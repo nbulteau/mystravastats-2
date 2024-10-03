@@ -18,8 +18,8 @@ Create a directory 'strava-cache' with a '.stava' file in. Put your clientId and
 ```shell
 mkdir strava-cache
 cd strava-cache
-echo "clientId=YOUR_CLIENT_ID" > .strava
-echo "clientSecret=YOUR_CLIENT_SECRET" >> .strava
+echo "clientId=[YOUR_CLIENT_ID]" > .strava
+echo "clientSecret=[YOUR_CLIENT_SECRET]" >> .strava
 export STRAVA_CACHE_PATH=$(pwd)
 ```
 
