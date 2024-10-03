@@ -13,7 +13,6 @@ COPY libs/ libs/
 # Copy the source code
 COPY src/ src/
 
-COPY famous-climb/ famous-climb/
 
 # Build the application
 RUN gradle build --no-daemon -x test
@@ -26,6 +25,7 @@ WORKDIR /app
 
 # Copy the built application from the build stage
 COPY --from=build /app/build/libs/*.jar /app/mystravastats.jar
+COPY famous-climb/ /app/famous-climb/
 
 # Expose the port the application runs on
 EXPOSE 8080
