@@ -57,8 +57,8 @@ export STRAVA_CACHE_PATH=[path to the strava-cache directory]
 docker-compose build
 ```
 
-* back end container will be built.
-* front end container will be built.
+* "back end" container will be built.
+* "front end" container will be built.
 
 ## run command
 
