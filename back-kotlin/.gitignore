@@ -1,0 +1,27 @@
+# Ignore Gradle project-specific cache directory
+.gradle
+
+# Ignore Gradle build output directory
+build
+
+# Ignore IntelliJ directory
+.idea
+
+# Ignore strava dowload directory
+strava-cache/.strava
+strava-*/
+.strava
+
+# Ignore fit dowload directory
+fit-*/
+
+# Ignore Strava json files
+activities-*.json
+stream-*.json
+
+# Ignore mac files
+.DS_Store
+
+*.hgt
+
+/DEVELOPMENT.md

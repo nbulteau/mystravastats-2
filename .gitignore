@@ -1,0 +1,7 @@
+# Ignore strava dowload directory
+strava-cache/.strava
+strava-*/
+.strava
+
+# Ignore mac files
+.DS_Store
