@@ -63,7 +63,7 @@ docker-compose build
 ## run command
 
 ```shell
-export STRAVA_CACHE_PATH=[]
+export STRAVA_CACHE_PATH=[path to the strava-cache directory]
 docker-compose up
 ```
 
