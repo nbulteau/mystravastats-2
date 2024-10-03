@@ -1,9 +1,11 @@
 package me.nicolas.stravastats.api.controllers
 
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.media.ArraySchema
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.tags.Tag
 import me.nicolas.stravastats.api.dto.ActivityDto
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
 import me.nicolas.stravastats.api.dto.toDto
@@ -21,10 +23,11 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/activities")
+@RequestMapping("/activities", produces = [MediaType.APPLICATION_JSON_VALUE])
 @Schema(description = "Activities controller", name = "ActivitiesController")
+@Tag(name = "Activities", description = "Activities endpoints")
 class ActivitiesController(
-    private val activityService: IActivityService
+    private val activityService: IActivityService,
 ) {
 
     private val validActivitySortProperties = setOf(
@@ -47,11 +50,14 @@ class ActivitiesController(
         description = "Get all activities",
         summary = "Get all activities from the authenticated user",
         responses = [ApiResponse(
-            responseCode = "200", description = "Activities found", content = [Content(
-                mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ActivityDto::class)
+            responseCode = "200", description = "Activities found",
+            content = [Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = Schema(implementation = PagedModel::class)
             )]
         ), ApiResponse(
-            responseCode = "404", description = "Activities not found", content = [Content(
+            responseCode = "404", description = "Activities not found",
+            content = [Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
                 schema = Schema(implementation = ErrorResponseMessageDto::class)
             )]
@@ -81,11 +87,14 @@ class ActivitiesController(
         description = "Get activities by activity type and year. If year is null, all activities are returned. It return a map with the date as key and the cumulated distance in km as value.",
         summary = "Get the active days by activity type for a year",
         responses = [ApiResponse(
-            responseCode = "200", description = "Active days found", content = [Content(
-                mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = Map::class)
+            responseCode = "200", description = "Active days found",
+            content = [Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                array = ArraySchema(schema = Schema(implementation = ActivityDto::class))
             )]
         ), ApiResponse(
-            responseCode = "404", description = "Active days not found", content = [Content(
+            responseCode = "404", description = "Active days not found",
+            content = [Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
                 schema = Schema(implementation = ErrorResponseMessageDto::class)
             )]
@@ -97,18 +106,22 @@ class ActivitiesController(
         @RequestParam(required = true) activityType: ActivityType,
         @RequestParam(required = false) year: Int?,
     ): List<ActivityDto> {
-        return activityService.getFilteredActivitiesByActivityTypeAndYear(activityType, year).map { activity -> activity.toDto() }
+        return activityService.getFilteredActivitiesByActivityTypeAndYear(activityType, year)
+            .map { activity -> activity.toDto() }
     }
 
     @Operation(
         description = "Get the active days by activity type",
         summary = "Get the active days by activity type",
         responses = [ApiResponse(
-            responseCode = "200", description = "Active days found", content = [Content(
-                mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = Map::class)
+            responseCode = "200", description = "Active days found",
+            content = [Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = Schema(implementation = Map::class)
             )]
         ), ApiResponse(
-            responseCode = "404", description = "Active days not found", content = [Content(
+            responseCode = "404", description = "Active days not found",
+            content = [Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
                 schema = Schema(implementation = ErrorResponseMessageDto::class)
             )]

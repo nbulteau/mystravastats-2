@@ -1,6 +1,7 @@
 package me.nicolas.stravastats.api.controllers
 
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.media.ArraySchema
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/charts")
+@RequestMapping("/charts", produces = [MediaType.APPLICATION_JSON_VALUE])
 @Schema(description = "Charts controller", name = "ChartsController")
 class ChartsController(
     private val chartsService: IChartsService,
@@ -26,11 +27,14 @@ class ChartsController(
         description = "Get the distance by months for a specific activity type and year",
         summary = "Get the distance by months for a specific activity type and year",
         responses = [ApiResponse(
-            responseCode = "200", description = "Distance by months found", content = [Content(
-                mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = Map::class)
+            responseCode = "200", description = "Distance by months found",
+            content = [Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                array = ArraySchema(schema = Schema(implementation = Map::class))
             )]
         ), ApiResponse(
-            responseCode = "404", description = "Distance by months not found", content = [Content(
+            responseCode = "404", description = "Distance by months not found",
+            content = [Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
                 schema = Schema(implementation = ErrorResponseMessageDto::class)
             )]
@@ -50,11 +54,14 @@ class ChartsController(
         description = "Get the elevation by months for a specific activity type and year",
         summary = "Get the elevation by months for a specific activity type and year",
         responses = [ApiResponse(
-            responseCode = "200", description = "Elevation by months found", content = [Content(
-                mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = Map::class)
+            responseCode = "200", description = "Elevation by months found",
+            content = [Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                array = ArraySchema(schema = Schema(implementation = Map::class))
             )]
         ), ApiResponse(
-            responseCode = "404", description = "Elevation by months not found", content = [Content(
+            responseCode = "404", description = "Elevation by months not found",
+            content = [Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
                 schema = Schema(implementation = ErrorResponseMessageDto::class)
             )]
@@ -70,6 +77,23 @@ class ChartsController(
             .map { mapOf(it.first to it.second) }
     }
 
+    @Operation(
+        description = "Get the cumulative distance by months for a specific activity type and year",
+        summary = "Get the cumulative distance by months for a specific activity type and year",
+        responses = [ApiResponse(
+            responseCode = "200", description = "Cumulative distance by months found",
+            content = [Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = Schema(implementation = Map::class)
+            )]
+        ), ApiResponse(
+            responseCode = "404", description = "Cumulative distance by months not found",
+            content = [Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = Schema(implementation = ErrorResponseMessageDto::class)
+            )]
+        )],
+    )
     @GetMapping("/cumulative-distance-per-year")
     fun getCumulativeDistancePerYear(
         activityType: ActivityType,
@@ -78,6 +102,23 @@ class ChartsController(
         return chartsService.getCumulativeDistancePerYear(activityType)
     }
 
+    @Operation(
+        description = "Get the Eddington number for a specific activity type",
+        summary = "Get the Eddington number for a specific activity type",
+        responses = [ApiResponse(
+            responseCode = "200", description = "Eddington number found",
+            content = [Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = Schema(implementation = EddingtonNumberDto::class)
+            )]
+        ), ApiResponse(
+            responseCode = "404", description = "Eddington number not found",
+            content = [Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = Schema(implementation = ErrorResponseMessageDto::class)
+            )]
+        )],
+    )
     @GetMapping("/eddington-number")
     fun getEddingtonNumber(
         activityType: ActivityType,

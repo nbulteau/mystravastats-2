@@ -2,19 +2,61 @@ package me.nicolas.stravastats.domain.services
 
 import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import me.nicolas.stravastats.domain.business.badges.Badge
-import me.nicolas.stravastats.domain.business.badges.BadgeSet
-import me.nicolas.stravastats.domain.business.badges.FamousClimb
-import me.nicolas.stravastats.domain.business.badges.FamousClimbBadge
+import me.nicolas.stravastats.domain.business.badges.*
 import me.nicolas.stravastats.domain.business.strava.Activity
+import me.nicolas.stravastats.domain.business.strava.ActivityType
+import org.slf4j.LoggerFactory
+import org.springframework.stereotype.Service
 import java.nio.file.Path
 
-class BadgesService {
+interface IBadgesService {
+    fun getGeneralBadges(activityType: ActivityType, activities: List<Activity>): List<BadgeCheckResult>
+
+    fun getFamousBadges(activityType: ActivityType, activities: List<Activity>): List<BadgeCheckResult>
+}
+
+@Service
+class BadgesService : IBadgesService {
+
+    private val logger = LoggerFactory.getLogger(ActivityService::class.java)
 
     private val objectMapper = jacksonObjectMapper()
 
-    private val alpes: BadgeSet = loadBadgeSet("alpes", "famous_climb/alpes.json")
-    private val pyrenees: BadgeSet = loadBadgeSet("pyrenees", "famous_climb/pyrenees.json")
+    private val alpes: BadgeSet = loadBadgeSet("alpes", "famous-climb/alpes.json")
+
+    private val pyrenees: BadgeSet = loadBadgeSet("pyrenees", "famous-climb/pyrenees.json")
+
+    override fun getGeneralBadges(activityType: ActivityType, activities: List<Activity>): List<BadgeCheckResult> {
+        logger.info("Checking general badges for $activityType")
+
+        return when (activityType) {
+            ActivityType.Ride -> {
+                DistanceBadge.rideBadgeSet.check(activities) +
+                        ElevationBadge.rideBadgeSet.check(activities) +
+                        MovingTimeBadge.movingTimeBadgesSet.check(activities)
+            }
+
+            ActivityType.Run -> {
+                DistanceBadge.runBadgeSet.check(activities) +
+                        ElevationBadge.runBadgeSet.check(activities) +
+                        MovingTimeBadge.movingTimeBadgesSet.check(activities)
+            }
+
+            else -> emptyList()
+        }
+    }
+
+    override fun getFamousBadges(activityType: ActivityType, activities: List<Activity>): List<BadgeCheckResult> {
+        logger.info("Checking famous badges for $activityType")
+
+        return when (activityType) {
+            ActivityType.Ride -> {
+                alpes.check(activities) + pyrenees.check(activities)
+            }
+
+            else -> emptyList()
+        }
+    }
 
     private fun loadBadgeSet(name: String, climbsJsonFilePath: String): BadgeSet {
         var famousClimbBadgeList: List<Badge>
@@ -44,10 +86,4 @@ class BadgesService {
 
         return BadgeSet(name, famousClimbBadgeList)
     }
-
-    fun getAlpesFamousBadges(activities: List<Activity>): List<Triple<Badge, Activity?, Boolean>> =
-        alpes.check(activities)
-
-    fun getPyreneesFamousBadges(activities: List<Activity>): List<Triple<Badge, Activity?, Boolean>> =
-        pyrenees.check(activities)
 }
