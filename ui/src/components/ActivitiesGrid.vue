@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import VGrid, { VGridVueTemplate, type ColumnRegular, type ColumnProp, } from "@revolist/vue3-datagrid";
+import VGrid, { VGridVueTemplate, type ColumnRegular, type ColumnProp, type CellProps, } from "@revolist/vue3-datagrid";
 import type { Activity } from "@/models/activity.model";
 import DistanceCellRenderer from "@/components/cell-renderers/DistanceCellRenderer.vue";
 import ElapsedTimeCellRenderer from "@/components/cell-renderers/ElapsedTimeCellRenderer.vue";
@@ -9,6 +9,7 @@ import SpeedCellRenderer from "@/components/cell-renderers/SpeedCellRenderer.vue
 import NameCellRenderer from "./cell-renderers/NameCellRenderer.vue";
 import DateCellRenderer from "./cell-renderers/DateCellRenderer.vue";
 import GradientCellRenderer from "./cell-renderers/GradientCellRenderer.vue";
+import type Style from "ol/style/Style";
 
 const props = defineProps<{
   activities: Activity[];
@@ -42,33 +43,42 @@ async function csvExport() {
 }
 
 const columns = ref<ColumnRegular[]>([
-  { prop: "name", name: "Activity", size: 500, pin: "colPinStart", cellTemplate: VGridVueTemplate(NameCellRenderer), sortable: false, columnType: 'string',
-// use this to return custom html per column
-columnTemplate: (createElement, column) => {
-    return createElement('div', {
-      style: {
-        display: 'flex',
-        alignItems: 'center'
+  {
+    prop: "name", name: "Activity", size: 500, pin: "colPinStart", cellTemplate: VGridVueTemplate(NameCellRenderer), sortable: false, columnType: 'string',
+    // use this to return custom html per column
+    columnTemplate: (createElement, column) => {
+      return createElement('div', {
+        style: {
+          display: 'flex',
+          alignItems: 'center',
+        }
+      }, [createElement('span', {
+        style: {
+          flex: '1',
+        }
+      }, column.name), createElement('button', {
+        class: 'btn btn-sm btn-outline-secondary ms-2',
+        onClick: async () => {
+          await csvExport();
+        }
+      }, createElement('img', {
+        src: "/icons/share-outline.svg",
+        alt: "CSV export",
+        style: {
+          width: '25px',
+          height: '25px'
+        }
+      }))]);
+    },
+    columnProperties: (): CellProps => {
+      return {
+        style: {
+          fontWeight: 'bold',
+        },
       }
-    }, [createElement('span', {
-      style: {
-        flex: '1',
-      }
-    }, column.name), createElement('button', {
-      class: 'btn btn-sm btn-outline-secondary ms-2',
-      onClick: async () => {
-        await csvExport();
-      }
-    }, createElement('img', {
-      src: "/icons/share-outline.svg",
-      alt: "CSV export",
-      style: {
-        width: '25px',
-        height: '25px'
-      }
-    }))]);
+    },
+
   },
- },
   {
     prop: "distance", name: "Distance", size: 100, cellTemplate: VGridVueTemplate(DistanceCellRenderer),
     sortable: true,
@@ -148,14 +158,8 @@ columnTemplate: (createElement, column) => {
 </script>
 
 <template>
-  <VGrid
-    name="activitiesGrid"
-    theme="material"
-    :exporting="true"
-    :columns="columns"
-    :source="activities"
-    style="height: 100%; height: calc(100vh - 150px)"
-  />
+  <VGrid name="activitiesGrid" theme="material" :columns="columns" :source="activities"
+    style="height: 100%; height: calc(100vh - 150px)" />
 </template>
 
 <style scoped></style>
