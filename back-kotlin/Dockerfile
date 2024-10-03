@@ -13,6 +13,8 @@ COPY libs/ libs/
 # Copy the source code
 COPY src/ src/
 
+COPY famous-climb/ famous-climb/
+
 # Build the application
 RUN gradle build --no-daemon -x test
 

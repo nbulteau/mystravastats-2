@@ -1,30 +1,22 @@
-# mystravastats-2
+# MyStravaStats-2
 
-A tool to calculates and displays many statistics on Strava activities.
+A tool to calculate and display various statistics on Strava activities.
 
-This tool scans through activities :
+## Features
 
-* Looks for best effort for a distance or time span fastest consecutive 1 km, 5 km, 10 km you've run, or the fastest 2
-  hours, 3 hours in ride activities.
-* Calculate Eddington number for rides, runs, inline skate and hikes. Eddington number is the largest number, E, such
-  that you have ridden at least E km on at least E
-  days. <https://en.wikipedia.org/wiki/Arthur_Eddington#Eddington_number_for_cycling>
-* Calculate the best Cooper (12 min) : In the original form, the point of the test is to run as far as possible within
-  12 minutes. MyStravaStats look for with a 'sliding window' the best effort for the given time (12 minutes) on running
-  activities.
-  <https://fr.wikipedia.org/wiki/Test_de_Cooper>
-* Calculate the best vVO2max (6 min) : This is the smallest speed that requires VO2 max in an accelerated speed test.
-  MyStravaStats look for with a 'sliding window' the best effort for the given time (6 minutes) on running activities.
-  <https://en.wikipedia.org/wiki/VVO2max>
-* FTP (Functional Threshold Power) is the maximum power you can sustain for an hour, measured in watts. MyStravaStats
-  look for with a 'sliding window' the best effort for the given time (1 hour) on bike activities.
-  The easiest way to calculate your FTP is to test your best average power for 20-minutes and then subtract 5%.
+This tool scans through activities and provides the following statistics:
 
-And many others statistics
+* **Best Effort**: Finds the fastest consecutive 1 km, 5 km, 10 km you've run, or the fastest 2 hours, 3 hours in ride activities.
+* **Eddington Number**: Calculates the Eddington number for rides, runs, inline skating, and hikes. The Eddington number is the largest number, E, such that you have ridden at least E km on at least E days. [Learn more](https://en.wikipedia.org/wiki/Arthur_Eddington#Eddington_number_for_cycling)
+* **Best Cooper (12 min)**: Finds the best effort for the given time (12 minutes) on running activities using a 'sliding window'. [Learn more](https://fr.wikipedia.org/wiki/Test_de_Cooper)
+* **Best vVO2max (6 min)**: Finds the best effort for the given time (6 minutes) on running activities using a 'sliding window'. [Learn more](https://en.wikipedia.org/wiki/VVO2max)
+* **FTP (Functional Threshold Power)**: Finds the best effort for the given time (1 hour) on bike activities using a 'sliding window'. The easiest way to calculate your FTP is to test your best average power for 20 minutes and then subtract 5%.
+
+And many other statistics.
 
 All statistics can be exported as a CSV file.
 
-## IHM
+## User Interface
 
 ![Screen shoot 1](https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-1.png?raw=true)
 ![Screen shoot 2](https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-2.png?raw=true)
@@ -35,31 +27,30 @@ All statistics can be exported as a CSV file.
 
 ## Table of Contents
 
-1. [Strava access](#strava-access)
-2. [Get activities from Strava](#get-activities-from-strava)
+1. [Strava Access](#strava-access)
+2. [Get Activities from Strava](#get-activities-from-strava)
 3. [Setting Up Environment Variables](#setting-up-environment-variables)
-4. [Build command](#build-command)
-5. [Run command](#run-command)
+4. [Build Command](#build-command)
+5. [Run Command](#run-command)
 6. [Provided Statistics](#provided-statistics)
     1. [Global Statistics](#global-statistics)
-    2. [Rides (commute)](#rides-commute)
-    3. [Rides (sport)](#rides-sport)
+    2. [Rides (Commute)](#rides-commute)
+    3. [Rides (Sport)](#rides-sport)
     4. [Runs](#runs)
     5. [InlineSkate](#inlineskate)
     6. [Hikes](#hikes)
 
-### Strava access
+### Strava Access
 
-All calls to the Strava API require an access_token defining the athlete and application making the call.
-Any registered Strava user can obtain an access_token by first creating an application
-at <https://www.strava.com/settings/api>.
+All calls to the Strava API require an `access_token` defining the athlete and application making the call. Any registered Strava user can obtain an `access_token` by first creating an application at [Strava API Settings](https://www.strava.com/settings/api).
 
-The Strava API application settings page provides *mandatory parameters* for My Strava Stats:
+The Strava API application settings page provides *mandatory parameters* for MyStravaStats:
 
-* clientId: your application’s ID.
-* clientSecret: your client secret.
+* `clientId`: Your application’s ID.
+* `clientSecret`: Your client secret.
 
-Create a directory 'strava-cache' with a '.stava' file in. Put your clientId and your clientSecret.
+Create a directory `strava-cache` with a `.strava` file in it. Put your `clientId` and `clientSecret` in the file.
+
 
 ```shell
 mkdir strava-cache
@@ -103,6 +94,12 @@ export STRAVA_CACHE_PATH=[path to the strava-cache directory]
 docker-compose build
 ```
 
+For Windows users, you can use .env file 
+```shell
+echo STRAVA_CACHE_PATH=[path to the strava-cache directory] > .env
+docker compose --env-file .env build
+```
+
 * "back end" container will be built.
 * "front end" container will be built.
 
@@ -111,6 +108,11 @@ docker-compose build
 ```shell
 export STRAVA_CACHE_PATH=[path to the strava-cache directory]
 docker-compose up
+```
+
+For Windows users, you can use .env file 
+```shell
+docker compose --env-file .env up
 ```
 
 Open link in a browser : <http://localhost/>
