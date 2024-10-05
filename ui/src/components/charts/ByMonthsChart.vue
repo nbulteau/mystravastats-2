@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { reactive, watch } from "vue";
 import { Chart } from "highcharts-vue";
-import type { SeriesColumnOptions, XAxisOptions } from "highcharts";
+import type { SeriesColumnOptions } from "highcharts";
 
 const props = defineProps<{
-  currentYear: string
-  distanceByWeeks: Map<string, number>[]
+  title: string
+  yAxisTitle: string
+  unit: string
+  dataByMonths: Map<string, number>[]
 }>();
 
 const chartOptions: Highcharts.Options = reactive({
   chart: { type: "column" },
-  title: { text: "Distance by weeks" },
+  title: { text: props.title },
   xAxis: {
     labels: {
       autoRotation: [-45, -90],
@@ -19,11 +21,25 @@ const chartOptions: Highcharts.Options = reactive({
         fontFamily: "Verdana, sans-serif",
       },
     },
+    categories: [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ],
   },
   yAxis: {
     min: 0,
     title: {
-      text: "Distance (km)",
+      text: props.yAxisTitle,
     },
   },
   legend: {
@@ -33,8 +49,8 @@ const chartOptions: Highcharts.Options = reactive({
     formatter: function (this: any): string {
       return this.points.reduce(function (
         s: string,
-        point: {x: string; y: number}
-      ) { return `${s}: <span>${Math.round(point.y)} km</span>`; },
+        point: { x: string; y: number }
+      ) { return `${s}: <span>${point.y.toFixed(2)} ${props.unit}</span>`; },
         "<b>" + this.x + "</b>");
     },
     shared: true,
@@ -43,7 +59,21 @@ const chartOptions: Highcharts.Options = reactive({
     {
       name: "Distance",
       type: "column",
-      colorByPoint: false,
+      colors: [
+        "#9b20d9",
+        "#9215ac",
+        "#861ec9",
+        "#7a17e6",
+        "#7010f9",
+        "#691af3",
+        "#6225ed",
+        "#5b30e7",
+        "#533be1",
+        "#4c46db",
+        "#4551d5",
+        "#3e5ccf",
+      ],
+      colorByPoint: true,
       groupPadding: 0,
       dataLabels: {
         enabled: true,
@@ -68,21 +98,23 @@ function convertToNumberArray(data: Map<string, number>[]): number[] {
   return data.map((item) => Object.values(item)[0]);
 }
 
-// Watch for changes in distanceByWeeks and update the chart data
-watch(() => props.distanceByWeeks, (newData) => {
-  if (chartOptions.series && chartOptions.series.length > 0) {
-    (chartOptions.series[0] as SeriesColumnOptions).data = convertToNumberArray(newData);
-  }
-  (chartOptions.xAxis as XAxisOptions).categories = Array.from(newData.keys()).map(String);
-}, { immediate: true }); // Immediate to handle initial data
+// Watch for changes in distanceByMonths and update the chart data
+watch(
+  () => props.dataByMonths,
+  (newData) => {
+    if (chartOptions.series && chartOptions.series.length > 0) {
+      (chartOptions.series[0] as SeriesColumnOptions).data = convertToNumberArray(newData);
+    }
+    if (chartOptions.title) {
+      chartOptions.title.text = props.title;
+    }
+  },
+  { immediate: true }
+); 
 </script>
-
 
 <template>
   <Chart :options="chartOptions" />
 </template>
 
-<style scoped>
-</style>
-
-
+<style scoped></style>

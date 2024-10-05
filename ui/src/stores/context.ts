@@ -19,6 +19,7 @@ export const useContextStore = defineStore('context', {
         gpxCoordinates: number[][][],
         distanceByMonths: Map<string, number>[],
         elevationByMonths: Map<string, number>[],
+        averageSpeedByMonths: Map<string, number>[],
         distanceByWeeks: Map<string, number>[],
         elevationByWeeks: Map<string, number>[],
         cumulativeDistancePerYear: Map<string, Map<string, number>>,
@@ -40,6 +41,7 @@ export const useContextStore = defineStore('context', {
             gpxCoordinates: [],
             distanceByMonths: [],
             elevationByMonths: [],
+            averageSpeedByMonths: [],
             distanceByWeeks: [],
             elevationByWeeks: [],
             eddingtonNumber: new EddingtonNumber(),
@@ -95,6 +97,11 @@ export const useContextStore = defineStore('context', {
                 .then(response => response.json())
             this.elevationByMonths = elevationByMonths;
         },
+        async fetchAverageSpeedByMonths() {
+            const averageSpeedByMonths = await fetch(this.url("charts/average-speed-by-period") + '&period=MONTHS')
+                .then(response => response.json())
+            this.averageSpeedByMonths = averageSpeedByMonths;
+        },
         async fetchDistanceByWeeks() {
             const distanceByWeeks = await fetch(this.url("charts/distance-by-period") + '&period=WEEKS')
                 .then(response => response.json())
@@ -134,8 +141,8 @@ export const useContextStore = defineStore('context', {
         async fetchBadges() {
             const generalBadgesCheckResults = await fetch(this.url("badges"))
                 .then(response => response.json())
-            this.generalBadgesCheckResults = generalBadgesCheckResults.filter((badgeCheckResult: BadgeCheckResult) => {return !badgeCheckResult.badge.type.endsWith('FamousClimbBadge')});
-            this.famousClimbBadgesCheckResults = generalBadgesCheckResults.filter((badgeCheckResult: BadgeCheckResult) => {return badgeCheckResult.badge.type.endsWith('FamousClimbBadge')});
+            this.generalBadgesCheckResults = generalBadgesCheckResults.filter((badgeCheckResult: BadgeCheckResult) => { return !badgeCheckResult.badge.type.endsWith('FamousClimbBadge') });
+            this.famousClimbBadgesCheckResults = generalBadgesCheckResults.filter((badgeCheckResult: BadgeCheckResult) => { return badgeCheckResult.badge.type.endsWith('FamousClimbBadge') });
         },
         async updateCurrentYear(currentYear: string) {
             this.currentYear = currentYear
@@ -162,6 +169,7 @@ export const useContextStore = defineStore('context', {
                     if (this.currentYear != 'All years') {
                         await this.fetchDistanceByMonths()
                         await this.fetchElevationByMonths()
+                        await this.fetchAverageSpeedByMonths()
                         await this.fetchDistanceByWeeks()
                         await this.fetchElevationByWeeks()
                     }

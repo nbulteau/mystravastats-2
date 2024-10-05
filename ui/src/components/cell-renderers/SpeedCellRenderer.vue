@@ -15,7 +15,7 @@ defineProps<{
 }>();
 
 /**
- * Format average speed (m/s)
+ * Format speed (m/s)
  */
 function formatSpeed(speed: number, activityType: string): string {
   if (activityType === "Run") {

@@ -21,6 +21,12 @@ interface IChartsService {
         period: Period,
     ): List<Pair<String, Double>>
 
+    fun getAverageSpeedByPeriodByActivityTypeByYear(
+        activityType: ActivityType,
+        year: Int,
+        period: Period
+    ): List<Pair<String, Double>>
+
     fun getCumulativeDistancePerYear(activityType: ActivityType): Map<String, Map<String, Double>>
 
     fun getEddingtonNumber(activityType: ActivityType): EddingtonNumber
@@ -75,6 +81,31 @@ internal class ChartsService(
         return activitiesByPeriod.mapValues { (_, activities) ->
             activities.sumOf { activity ->
                 activity.totalElevationGain
+            }
+        }.toList()
+    }
+
+    /**
+     * Get average speed by period by activity type by year.
+     * It returns a list of pair with the period as key and the average speed in km/h as value.
+     * @param activityType the activity type
+     * @param year the year
+     * @param period the period (days, weeks or months)
+     * @return a list of pair with the period as key and the average speed in km/h as value
+     */
+    override fun getAverageSpeedByPeriodByActivityTypeByYear(
+        activityType: ActivityType,
+        year: Int,
+        period: Period
+    ): List<Pair<String, Double>> {
+        logger.info("Get average speed by $period by activity ($activityType) type by year ($year)")
+
+        val activitiesByPeriod = activitiesByPeriod(activityType, year, period)
+        return activitiesByPeriod.mapValues { (_, activities) ->
+            if (activities.isEmpty()) {
+                0.0
+            } else {
+                activities.sumOf { activity -> activity.averageSpeed } / activities.size
             }
         }.toList()
     }

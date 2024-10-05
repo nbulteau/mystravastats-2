@@ -3,15 +3,17 @@ import { Chart } from "highcharts-vue";
 import { reactive, watch } from "vue";
 import Highcharts, { type Options, type SeriesColumnOptions } from "highcharts";
 import { EddingtonNumber } from "@/models/eddington-number.model";
+import { ActivityType } from "@/models/context.store.state.model";
 
 const props = defineProps<{
+  title: string;
   eddingtonNumber: EddingtonNumber;
 }>();
 
 const chartOptions: Options = reactive({
   chart: {},
   title: {
-    text: "Eddington number",
+    text: "",
   },
   credits: {
     text:
@@ -82,7 +84,7 @@ watch(
       }
 
       if (chartOptions.title) {
-        chartOptions.title.text = "Eddington number: " + newData.eddingtonNumber;
+        chartOptions.title.text = props.title
       }
     }
   },

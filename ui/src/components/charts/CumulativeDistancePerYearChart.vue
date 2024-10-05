@@ -4,7 +4,7 @@ import { Chart } from "highcharts-vue";
 import type { SeriesOptionsType } from "highcharts";
 
 const props = defineProps<{
-  currentYear: string;
+  title: string;
   cumulativeDistancePerYear: Map<string, Map<string, number>>;
 }>();
 
@@ -14,7 +14,7 @@ const chartOptions = reactive({
     height: '50%', // Make the chart responsive to the container's height
   },
   title: {
-    text: "Cumulative distance per year",
+    text: props.title,
   },
   xAxis: {
     labels: {
@@ -85,6 +85,10 @@ watch(
         chartOptions.xAxis.categories = categories;
       }
     } while (year++ < actual);
+
+    if (chartOptions.title) {
+        chartOptions.title.text = props.title
+      }
   },
   { immediate: true }
 ); // Immediate to handle initial data

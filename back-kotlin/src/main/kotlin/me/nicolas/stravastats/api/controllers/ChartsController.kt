@@ -78,6 +78,33 @@ class ChartsController(
     }
 
     @Operation(
+        description = "Get the average speed by months for a specific activity type and year",
+        summary = "Get the average speed by months for a specific activity type and year",
+        responses = [ApiResponse(
+            responseCode = "200", description = "Average speed by months found",
+            content = [Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                array = ArraySchema(schema = Schema(implementation = Map::class))
+            )]
+        ), ApiResponse(
+            responseCode = "404", description = "Average speed by months not found",
+            content = [Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = Schema(implementation = ErrorResponseMessageDto::class)
+            )]
+        )],
+    )
+    @GetMapping("/average-speed-by-period")
+    fun getAverageSpeedByPeriod(
+        activityType: ActivityType,
+        year: Int,
+        period: Period,
+    ): List<Map<String, Double>> {
+        return chartsService.getAverageSpeedByPeriodByActivityTypeByYear(activityType, year, period)
+            .map { mapOf(it.first to it.second) }
+    }
+
+    @Operation(
         description = "Get the cumulative distance by months for a specific activity type and year",
         summary = "Get the cumulative distance by months for a specific activity type and year",
         responses = [ApiResponse(

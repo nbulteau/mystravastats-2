@@ -4,13 +4,13 @@ import { Chart } from "highcharts-vue";
 import type { SeriesColumnOptions, XAxisOptions } from "highcharts";
 
 const props = defineProps<{
-  currentYear: string
+  title: string
   elevationByWeeks: Map<string, number>[]
 }>();
 
 const chartOptions: Highcharts.Options = reactive({
   chart: { type: "column" },
-  title: { text: "Elevation by weeks" },
+  title: { text: props.title },
   xAxis: {
     labels: {
       autoRotation: [-45, -90],

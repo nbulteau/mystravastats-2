@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { useContextStore } from "@/stores/context.js";
 import { computed } from "vue";
-import DistanceByMonthsChart from "@/components/charts/DistanceByMonthsChart.vue";
-import ElevationByMonthsChart from "@/components/charts/ElevationByMonthsChart.vue";
-import DistanceByWeeksChart from "@/components/charts/DistanceByWeeksChart.vue";
-import ElevationByWeeksChart from "@/components/charts/ElevationByWeeksChart.vue";
+import ByMonthsChart from "@/components/charts/ByMonthsChart.vue";
+import ByWeeksChart from "@/components/charts/ByWeeksChart.vue";
+import AverageSpeedByMonthsChart from "@/components/charts/AverageSpeedByMonthsChart.vue";
 import CumulativeDistancePerYearChart from "@/components/charts/CumulativeDistancePerYearChart.vue";
 import EddingtonNumberChart from "@/components/charts/EddingtonNumberChart.vue";
 
@@ -12,8 +11,10 @@ const contextStore = useContextStore();
 contextStore.updateCurrentView("charts");
 
 const currentYear = computed(() => contextStore.currentYear);
+const currentActivity = computed(() => contextStore.currentActivity);
 const distanceByMonths = computed(() => contextStore.distanceByMonths);
 const elevationByMonths = computed(() => contextStore.elevationByMonths);
+const averageSpeedByMonths = computed(() => contextStore.averageSpeedByMonths); 
 const distanceByWeeks = computed(() => contextStore.distanceByWeeks);
 const elevationByWeeks = computed(() => contextStore.elevationByWeeks);
 const cumulativeDistancePerYear = computed(() => contextStore.cumulativeDistancePerYear);
@@ -22,27 +23,48 @@ const eddingtonNumber = computed(() => contextStore.eddingtonNumber);
 
 <template>
   <main>
-    <EddingtonNumberChart :eddington-number="eddingtonNumber" />
+    <EddingtonNumberChart
+      :title="`Eddington number for ${currentActivity}: ${eddingtonNumber.eddingtonNumber}`"
+      :eddington-number="eddingtonNumber"
+    />
     <CumulativeDistancePerYearChart
+      :title="`Cumulative distance per year for ${currentActivity}`"
       :current-year="currentYear"
       :cumulative-distance-per-year="cumulativeDistancePerYear"
     />
     <div v-if="currentYear !== 'All years'">
-      <DistanceByMonthsChart
+      <ByMonthsChart
+        title="Distance by months"
+        y-axis-title="Distance (km)"
+        unit="km"
         :current-year="currentYear"
-        :distance-by-months="distanceByMonths"
+        :data-by-months="distanceByMonths"
       />
-      <ElevationByMonthsChart
+      <ByMonthsChart
+        title="Elevation by months"
+        y-axis-title="Elevation (m)"
+        unit="m"
         :current-year="currentYear"
-        :elevation-by-months="elevationByMonths"
+        :data-by-months="elevationByMonths"
       />
-      <DistanceByWeeksChart
+      <AverageSpeedByMonthsChart
+        :activity-type="currentActivity"
+        :current-year="currentYear"
+        :data-by-months="averageSpeedByMonths"
+      />
+      <ByWeeksChart
+        title="Distance by weeks"
+        y-axis-title="Distance (km)"
+        unit="km"
         :current-year="currentYear"
         :distance-by-weeks="distanceByWeeks"
       />
-      <ElevationByWeeksChart
+      <ByWeeksChart
+        title="Elevation by weeks"
+        y-axis-title="Elevation (m)"
+        unit="m"
         :current-year="currentYear"
-        :elevation-by-weeks="elevationByWeeks"
+        :distance-by-weeks="elevationByWeeks"
       />
     </div>
   </main>
