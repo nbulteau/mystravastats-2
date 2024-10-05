@@ -46,12 +46,10 @@ const chartOptions: Options = reactive({
   tooltip: {
     formatter: function (this: any): string {
       return this.points.reduce(function (s: string, point: { x: number; y: number }) {
-        return `<span style="color: ${
-          point.x >= props.eddingtonNumber.eddingtonNumber &&
-          point.y >= props.eddingtonNumber.eddingtonNumber
-            ? "red"
-            : "black"
-        }">You covered at least ${point.y} times ${point.x} kms</span>`;
+        const color = (point.x === props.eddingtonNumber.eddingtonNumber && point.y >= props.eddingtonNumber.eddingtonNumber) ? "red" : "black";
+        const text = (point.x > props.eddingtonNumber.eddingtonNumber) ? "<br>You need " + (point.x - point.y) + " more ride of at least " + point.x +" km to reach " + point.x : "";
+
+        return `<span style="color: ${color}">You covered at least ${point.y} times ${point.x} kms</span>${text ? text : ""}`;
       }, "");
     },
     shared: true,
@@ -74,7 +72,7 @@ watch(
     if (newData.eddingtonList) {
       // Modify the data to include color for eddington number bar
       const modifiedData = newData.eddingtonList.map((value, index) => {
-        if (index + 1 >= newData.eddingtonNumber && value >= newData.eddingtonNumber) {
+        if (index + 1 === newData.eddingtonNumber && value >= newData.eddingtonNumber) {
           return { x: index + 1, y: value, color: "red" };
         }
         return { x: index + 1, y: value, color: "black" };
