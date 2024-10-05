@@ -46,12 +46,13 @@ class BadgesController(
     fun getBadges(
         @RequestParam(required = true) activityType: ActivityType,
         @RequestParam(required = false) year: Int? = null,
-        @RequestParam(required = false) badgeSet: BadgeSetEnum = BadgeSetEnum.GENERAL,
+        @RequestParam(required = false) badgeSet: BadgeSetEnum? = null,
     ): List<BadgeCheckResultDto> {
 
         return when (badgeSet) {
             BadgeSetEnum.GENERAL -> badgesService.getGeneralBadges(activityType, year)
             BadgeSetEnum.FAMOUS -> badgesService.getFamousBadges(activityType, year)
+            else -> badgesService.getGeneralBadges(activityType, year) + badgesService.getFamousBadges(activityType, year)
         }.map { badgeCheckResult ->  badgeCheckResult.toDto(activityType) }
     }
 }

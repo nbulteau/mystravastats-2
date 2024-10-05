@@ -23,7 +23,9 @@ export const useContextStore = defineStore('context', {
         elevationByWeeks: Map<string, number>[],
         cumulativeDistancePerYear: Map<string, Map<string, number>>,
         eddingtonNumber: EddingtonNumber,
-        badgesCheckResults: BadgeCheckResult[],
+        generalBadgesCheckResults: BadgeCheckResult[],
+        famousClimbBadgesCheckResults: BadgeCheckResult[],
+
 
         currentView: 'statistics' | 'activities' | 'map' | 'badges' | 'charts'
         toasts: any[]
@@ -42,7 +44,8 @@ export const useContextStore = defineStore('context', {
             elevationByWeeks: [],
             eddingtonNumber: new EddingtonNumber(),
             cumulativeDistancePerYear: new Map<string, Map<string, number>>(),
-            badgesCheckResults: [],
+            generalBadgesCheckResults: [],
+            famousClimbBadgesCheckResults: [],
 
             currentView: 'statistics',
             toasts: [],
@@ -129,9 +132,10 @@ export const useContextStore = defineStore('context', {
             this.eddingtonNumber = eddingtonNumber;
         },
         async fetchBadges() {
-            const badgesCheckResults = await fetch(this.url("badges"))
+            const generalBadgesCheckResults = await fetch(this.url("badges"))
                 .then(response => response.json())
-            this.badgesCheckResults = badgesCheckResults;
+            this.generalBadgesCheckResults = generalBadgesCheckResults.filter((badgeCheckResult: BadgeCheckResult) => {return !badgeCheckResult.badge.type.endsWith('FamousClimbBadge')});
+            this.famousClimbBadgesCheckResults = generalBadgesCheckResults.filter((badgeCheckResult: BadgeCheckResult) => {return badgeCheckResult.badge.type.endsWith('FamousClimbBadge')});
         },
         async updateCurrentYear(currentYear: string) {
             this.currentYear = currentYear
@@ -155,11 +159,11 @@ export const useContextStore = defineStore('context', {
                 case 'charts':
                     await this.fetchEddingtonNumber()
                     await this.fetchCumulativeDistancePerYear()
-                    if(this.currentYear != 'All years') {
+                    if (this.currentYear != 'All years') {
                         await this.fetchDistanceByMonths()
                         await this.fetchElevationByMonths()
                         await this.fetchDistanceByWeeks()
-                        await this.fetchElevationByWeeks()                        
+                        await this.fetchElevationByWeeks()
                     }
                     break
                 case 'badges':

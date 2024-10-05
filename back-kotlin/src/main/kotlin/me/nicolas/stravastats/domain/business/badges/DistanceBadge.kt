@@ -59,7 +59,7 @@ data class DistanceBadge(
             distance = 21097
         )
         private val RUN_LEVEL_3 = DistanceBadge(
-            label = "Run that distance 30 lm",
+            label = "Run that distance 30 km",
             distance = 30000
         )
         private val RUN_LEVEL_4 = DistanceBadge(
@@ -71,5 +71,33 @@ data class DistanceBadge(
             badges = listOf(RUN_LEVEL_1, RUN_LEVEL_2, RUN_LEVEL_3, RUN_LEVEL_4)
         )
 
+        private val HIKE_LEVEL_1 = DistanceBadge(
+            label = "Hike that distance 10 km",
+            distance = 10000
+        )
+        private val HIKE_LEVEL_2 = DistanceBadge(
+            label = "Hike that distance 15 km",
+            distance = 15000
+        )
+        private val HIKE_LEVEL_3 = DistanceBadge(
+            label = "Hike that distance 20 km",
+            distance = 20000
+        )
+        private val HIKE_LEVEL_4 = DistanceBadge(
+            label = "Hike that distance 25 km",
+            distance = 25000
+        )
+        private val HIKE_LEVEL_5 = DistanceBadge(
+            label = "Hike that distance 30 km",
+            distance = 30000
+        )
+        private val HIKE_LEVEL_6 = DistanceBadge(
+            label = "Hike that distance 35 km",
+            distance = 35000
+        )
+        val hikeBadgeSet = BadgeSet(
+            name = "Hike that distance",
+            badges = listOf(HIKE_LEVEL_1, HIKE_LEVEL_2, HIKE_LEVEL_3, HIKE_LEVEL_4, HIKE_LEVEL_5, HIKE_LEVEL_6)
+        )
     }
 }

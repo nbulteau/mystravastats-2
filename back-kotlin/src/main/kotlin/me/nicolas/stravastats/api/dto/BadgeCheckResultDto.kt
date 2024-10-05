@@ -26,24 +26,23 @@ fun Badge.toDto(activityType: ActivityType): BadgeDto {
     return when (this) {
         is DistanceBadge -> this.toDto(activityType)
         is ElevationBadge -> this.toDto(activityType)
-        is FamousClimbBadge -> this.toDto(activityType)
         is MovingTimeBadge -> this.toDto(activityType)
+        is FamousClimbBadge -> this.toDto(activityType)
     }
 }
 
-    fun ElevationBadge.toDto(activityType: ActivityType): BadgeDto {
+private fun ElevationBadge.toDto(activityType: ActivityType): BadgeDto {
     return BadgeDto(this.label, this.totalElevationGain.toString(), activityType.name + this.javaClass.simpleName)
 }
 
-fun FamousClimbBadge.toDto(activityType: ActivityType): BadgeDto {
-    return BadgeDto(this.label, this.name, activityType.name + this.javaClass.simpleName)
-}
-
-fun DistanceBadge.toDto(activityType: ActivityType): BadgeDto {
+private fun DistanceBadge.toDto(activityType: ActivityType): BadgeDto {
     return BadgeDto(this.label, this.distance.toString(), activityType.name + this.javaClass.simpleName)
 }
 
-fun MovingTimeBadge.toDto(activityType: ActivityType): BadgeDto {
+private fun MovingTimeBadge.toDto(activityType: ActivityType): BadgeDto {
     return BadgeDto(this.label, this.movingTime.toString(), activityType.name + this.javaClass.simpleName)
 }
 
+private fun FamousClimbBadge.toDto(activityType: ActivityType): BadgeDto {
+    return BadgeDto(this.label, this.name, activityType.name + this.javaClass.simpleName)
+}

@@ -74,6 +74,31 @@ data class ElevationBadge(
             name = "Run that climb",
             badges = listOf(RUN_LEVEL_1, RUN_LEVEL_2, RUN_LEVEL_3, RUN_LEVEL_4, RUN_LEVEL_5)
         )
+
+        private val HIKE_LEVEL_1 = ElevationBadge(
+            label = "Hike that climb 1000 m",
+            totalElevationGain = 1000
+        )
+        private val HIKE_LEVEL_2 = ElevationBadge(
+            label = "Hike that climb 1500 m",
+            totalElevationGain = 1500
+        )
+        private val HIKE_LEVEL_3 = ElevationBadge(
+            label = "Hike that climb 2000 m",
+            totalElevationGain = 2000
+        )
+        private val HIKE_LEVEL_4 = ElevationBadge(
+            label = "Hike that climb 2500 m",
+            totalElevationGain = 2500
+        )
+        private val HIKE_LEVEL_5 = ElevationBadge(
+            label = "Hike that climb 3000 m",
+            totalElevationGain = 3000
+        )
+        val hikeBadgeSet = BadgeSet(
+            name = "Run that climb",
+            badges = listOf(HIKE_LEVEL_1, HIKE_LEVEL_2, HIKE_LEVEL_3, HIKE_LEVEL_4, HIKE_LEVEL_5)
+        )
     }
 
 }

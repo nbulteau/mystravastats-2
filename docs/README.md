@@ -51,15 +51,12 @@ The Strava API application settings page provides *mandatory parameters* for MyS
 
 Create a directory `strava-cache` with a `.strava` file in it. Put your `clientId` and `clientSecret` in the file.
 
-
 ```shell
 mkdir strava-cache
 cd strava-cache
 echo "clientId=[YOUR_CLIENT_ID]" > .strava
 echo "clientSecret=[YOUR_CLIENT_SECRET]" >> .strava
 export STRAVA_CACHE_PATH=$(pwd)
-```
-
 ### Get activities from Strava
 
 Activities are download in a local directory (strava-cache), in that way only new and missing ones are downloaded from Strava.

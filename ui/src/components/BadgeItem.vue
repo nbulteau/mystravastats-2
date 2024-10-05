@@ -11,20 +11,29 @@ const props = defineProps<{
 import runningBadge from "@/assets/badges/running.png";
 import cyclingBadge from "@/assets/badges/cycling.png";
 import racingBadge from "@/assets/badges/racing.png";
+import hickingBadge from "@/assets/badges/hiking.png";
 import stopwatchBadge from "@/assets/badges/stopwatch.png";
+import badge from "@/assets/badges/badge.png";
 
 const buildBadgeImageUrl = (type: string) => {
   switch (type) {
+    case "RunMovingTimeBadge":
+    case "RideMovingTimeBadge":
+    case  "HikeMovingTimeBadge":
+      return stopwatchBadge;
     case "RunDistanceBadge":
-    case "RunTimeBadge":
     case "RunElevationBadge":
       return runningBadge;
     case "RideDistanceBadge":
       return racingBadge;
+    case "RideFamousClimbBadge":
     case "RideElevationBadge":
       return cyclingBadge;
+    case "HikeDistanceBadge":
+    case "HikeElevationBadge":
+      return hickingBadge;
     default:
-      return stopwatchBadge;
+      return badge;
   }
 };
 
@@ -39,26 +48,43 @@ const badgeRef = ref<HTMLElement | null>(null);
 </script>
 
 <template>
-  <div 
-    ref="badgeRef" 
+  <div
+    ref="badgeRef"
     class="badge-item card text-center p-2 border border-primary bg-light"
-    :class="{ 'badge-item--disabled': !props.badgeCheckResult.isCompleted }"
     @click="navigateToActivity"
   >
-    <div class="d-flex justify-content-center align-items-center">
+    <div
+      class="d-flex justify-content-center align-items-center"
+      :class="{ 'badge-item--disabled': !props.badgeCheckResult.isCompleted }"
+    >
       <img
         :src="buildBadgeImageUrl(props.badgeCheckResult.badge.type)"
         :alt="props.badgeCheckResult.badge.label"
         class="badge-image card-img-top"
       >
     </div>
-    <div class="card-body">
-      <span class="badge-label card-title text-center">{{ props.badgeCheckResult.badge.label }}</span>
+    <div >
+      <span
+        class="badge-label card-title text-center"
+      >
+        {{ props.badgeCheckResult.badge.label }}
+      </span>
     </div>
   </div>
 </template>
 
 <style scoped>
+.badge-label {
+  font-size: 1.2em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%; /* Allow the text to take up the full width */
+}
+
 .badge-item {
   cursor: pointer;
   transition: transform 0.2s;
@@ -76,15 +102,19 @@ const badgeRef = ref<HTMLElement | null>(null);
   cursor: not-allowed;
   opacity: 0.5;
   pointer-events: none;
-  background-color: #e9ecef; /* Darker background color for disabled state */
-  border-color: #6c757d; /* Secondary border color for disabled state */
-  color: #6c757d; /* Secondary text color for disabled state */
+  background-color: #e9ecef;
+  /* Darker background color for disabled state */
+  border-color: #6c757d;
+  /* Secondary border color for disabled state */
+  color: #6c757d;
+  /* Secondary text color for disabled state */
 }
 
 .badge-image {
   width: 100px;
   height: 100px;
   object-fit: cover;
-  margin: auto; /* Center the image */
+  margin: auto;
+  /* Center the image */
 }
 </style>
