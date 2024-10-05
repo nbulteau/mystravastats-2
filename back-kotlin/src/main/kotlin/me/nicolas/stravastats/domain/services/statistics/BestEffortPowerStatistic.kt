@@ -69,7 +69,7 @@ fun Activity.calculateBestPowerForTime(seconds: Int): ActivityEffort? {
             0.0
         }
         val totalPower = if (watts?.isNotEmpty() == true) {
-            watts.drop(idxStart).take(idxEnd - idxStart + 1).sum() // sum of all power in the window
+            (idxStart..idxEnd).sumOf { watts[it] }
         } else {
             0
         }

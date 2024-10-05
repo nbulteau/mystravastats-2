@@ -59,6 +59,7 @@ internal abstract class CSVExporter(
     private fun followCVSFormat(value: String): String {
 
         var result = value
+        result = result.replace("\n", " ")
         if (result.contains("\"")) {
             result = result.replace("\"", "\"\"")
         }

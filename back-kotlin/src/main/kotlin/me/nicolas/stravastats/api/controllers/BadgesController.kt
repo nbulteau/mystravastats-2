@@ -12,7 +12,6 @@ import me.nicolas.stravastats.api.dto.toDto
 import me.nicolas.stravastats.domain.business.badges.BadgeSetEnum
 import me.nicolas.stravastats.domain.business.strava.ActivityType
 import me.nicolas.stravastats.domain.services.IBadgesService
-import me.nicolas.stravastats.domain.services.IStravaProxy
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -24,7 +23,6 @@ import org.springframework.web.bind.annotation.RestController
 @Schema(description = "Badges controller", name = "BadgesController")
 @Tag(name = "Badges", description = "Badges endpoints")
 class BadgesController(
-    private val stravaProxy: IStravaProxy,
     private val badgesService: IBadgesService,
 ) {
     @Operation(
@@ -51,12 +49,10 @@ class BadgesController(
         @RequestParam(required = false) badgeSet: BadgeSetEnum = BadgeSetEnum.GENERAL,
     ): List<BadgeCheckResultDto> {
 
-        val activities = stravaProxy.getFilteredActivitiesByActivityTypeAndYear(activityType, year)
-
         return when (badgeSet) {
-            BadgeSetEnum.GENERAL -> badgesService.getGeneralBadges(activityType, activities)
-            BadgeSetEnum.FAMOUS -> badgesService.getFamousBadges(activityType, activities)
-        }.map { badgeCheckResult ->  badgeCheckResult.toDto() }
+            BadgeSetEnum.GENERAL -> badgesService.getGeneralBadges(activityType, year)
+            BadgeSetEnum.FAMOUS -> badgesService.getFamousBadges(activityType, year)
+        }.map { badgeCheckResult ->  badgeCheckResult.toDto(activityType) }
     }
 }
 

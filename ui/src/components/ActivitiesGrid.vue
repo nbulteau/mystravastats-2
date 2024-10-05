@@ -9,7 +9,6 @@ import SpeedCellRenderer from "@/components/cell-renderers/SpeedCellRenderer.vue
 import NameCellRenderer from "./cell-renderers/NameCellRenderer.vue";
 import DateCellRenderer from "./cell-renderers/DateCellRenderer.vue";
 import GradientCellRenderer from "./cell-renderers/GradientCellRenderer.vue";
-import type Style from "ol/style/Style";
 
 const props = defineProps<{
   activities: Activity[];
@@ -77,7 +76,6 @@ const columns = ref<ColumnRegular[]>([
         },
       }
     },
-
   },
   {
     prop: "distance", name: "Distance", size: 100, cellTemplate: VGridVueTemplate(DistanceCellRenderer),
@@ -158,8 +156,13 @@ const columns = ref<ColumnRegular[]>([
 </script>
 
 <template>
-  <VGrid name="activitiesGrid" theme="material" :columns="columns" :source="activities"
-    style="height: 100%; height: calc(100vh - 150px)" />
+  <VGrid
+    name="activitiesGrid"
+    theme="material"
+    :columns="columns"
+    :source="activities"
+    style="height: 100%; height: calc(100vh - 150px)"
+  />
 </template>
 
 <style scoped></style>

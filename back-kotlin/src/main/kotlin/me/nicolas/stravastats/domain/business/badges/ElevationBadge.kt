@@ -22,27 +22,27 @@ data class ElevationBadge(
 
     companion object {
         private val RIDE_LEVEL_1 = ElevationBadge(
-            label = "Ride that climb",
+            label = "Ride that climb 1000 m",
             totalElevationGain = 1000
         )
         private val RIDE_LEVEL_2 = ElevationBadge(
-            label = "Ride that climb",
+            label = "Ride that climb 1500 m",
             totalElevationGain = 1500
         )
         private val RIDE_LEVEL_3 = ElevationBadge(
-            label = "Ride that climb",
+            label = "Ride that climb 2000 m",
             totalElevationGain = 2000
         )
         private val RIDE_LEVEL_4 = ElevationBadge(
-            label = "Ride that climb",
+            label = "Ride that climb 2500 m",
             totalElevationGain = 2500
         )
         private val RIDE_LEVEL_5 = ElevationBadge(
-            label = "Ride that climb",
+            label = "Ride that climb 3000 m",
             totalElevationGain = 3000
         )
         private val RIDE_LEVEL_6 = ElevationBadge(
-            label = "Ride that climb",
+            label = "Ride that climb 3500 m",
             totalElevationGain = 3500
         )
         val rideBadgeSet = BadgeSet(

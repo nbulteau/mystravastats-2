@@ -3,20 +3,21 @@ package me.nicolas.stravastats.domain.services
 import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import me.nicolas.stravastats.domain.business.badges.*
-import me.nicolas.stravastats.domain.business.strava.Activity
 import me.nicolas.stravastats.domain.business.strava.ActivityType
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.nio.file.Path
 
 interface IBadgesService {
-    fun getGeneralBadges(activityType: ActivityType, activities: List<Activity>): List<BadgeCheckResult>
+    fun getGeneralBadges(activityType: ActivityType, year: Int?): List<BadgeCheckResult>
 
-    fun getFamousBadges(activityType: ActivityType, activities: List<Activity>): List<BadgeCheckResult>
+    fun getFamousBadges(activityType: ActivityType, year: Int?): List<BadgeCheckResult>
 }
 
 @Service
-class BadgesService : IBadgesService {
+internal class BadgesService(
+    stravaProxy: StravaProxy,
+) : IBadgesService, AbstractStravaService(stravaProxy) {
 
     private val logger = LoggerFactory.getLogger(ActivityService::class.java)
 
@@ -26,8 +27,10 @@ class BadgesService : IBadgesService {
 
     private val pyrenees: BadgeSet = loadBadgeSet("pyrenees", "famous-climb/pyrenees.json")
 
-    override fun getGeneralBadges(activityType: ActivityType, activities: List<Activity>): List<BadgeCheckResult> {
-        logger.info("Checking general badges for $activityType")
+    override fun getGeneralBadges(activityType: ActivityType, year: Int?): List<BadgeCheckResult> {
+        logger.info("Checking general badges for $activityType in $year")
+
+        val activities = stravaProxy.getFilteredActivitiesByActivityTypeAndYear(activityType, year)
 
         return when (activityType) {
             ActivityType.Ride -> {
@@ -46,8 +49,10 @@ class BadgesService : IBadgesService {
         }
     }
 
-    override fun getFamousBadges(activityType: ActivityType, activities: List<Activity>): List<BadgeCheckResult> {
-        logger.info("Checking famous badges for $activityType")
+    override fun getFamousBadges(activityType: ActivityType, year: Int?): List<BadgeCheckResult> {
+        logger.info("Checking famous badges for $activityType in $year")
+
+        val activities = stravaProxy.getFilteredActivitiesByActivityTypeAndYear(activityType, year)
 
         return when (activityType) {
             ActivityType.Ride -> {

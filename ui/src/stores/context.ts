@@ -4,6 +4,7 @@ import { type Toast } from '@/models/toast.model'
 import type { Statistics } from '@/models/statistics.model';
 import type { Activity } from '@/models/activity.model';
 import { EddingtonNumber } from '@/models/eddington-number.model';
+import type { BadgeCheckResult } from '@/models/badge-check-result.model';
 
 
 
@@ -22,6 +23,7 @@ export const useContextStore = defineStore('context', {
         elevationByWeeks: Map<string, number>[],
         cumulativeDistancePerYear: Map<string, Map<string, number>>,
         eddingtonNumber: EddingtonNumber,
+        badgesCheckResults: BadgeCheckResult[],
 
         currentView: 'statistics' | 'activities' | 'map' | 'badges' | 'charts'
         toasts: any[]
@@ -40,6 +42,7 @@ export const useContextStore = defineStore('context', {
             elevationByWeeks: [],
             eddingtonNumber: new EddingtonNumber(),
             cumulativeDistancePerYear: new Map<string, Map<string, number>>(),
+            badgesCheckResults: [],
 
             currentView: 'statistics',
             toasts: [],
@@ -125,6 +128,11 @@ export const useContextStore = defineStore('context', {
                 .then(response => response.json())
             this.eddingtonNumber = eddingtonNumber;
         },
+        async fetchBadges() {
+            const badgesCheckResults = await fetch(this.url("badges"))
+                .then(response => response.json())
+            this.badgesCheckResults = badgesCheckResults;
+        },
         async updateCurrentYear(currentYear: string) {
             this.currentYear = currentYear
             this.updateData();
@@ -153,6 +161,9 @@ export const useContextStore = defineStore('context', {
                         await this.fetchDistanceByWeeks()
                         await this.fetchElevationByWeeks()                        
                     }
+                    break
+                case 'badges':
+                    await this.fetchBadges()
                     break
             }
         },

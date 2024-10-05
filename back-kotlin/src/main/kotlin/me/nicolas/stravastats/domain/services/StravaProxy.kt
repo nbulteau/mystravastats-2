@@ -33,7 +33,7 @@ interface IStravaProxy {
     fun getDetailedActivity(year: Int, activityId: Long): Optional<DetailledActivity>
     fun getActivitiesByActivityTypeGroupByActiveDays(activityType: ActivityType): Map<String, Int>
     fun getActivitiesByActivityTypeByYearGroupByActiveDays(activityType: ActivityType, year: Int): Map<String, Int>
-    fun getFilteredActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int?): List<Activity>
+    fun getFilteredActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int? = null): List<Activity>
     fun getActivitiesByActivityTypeGroupByYear(activityType: ActivityType): Map<String, List<Activity>>
     fun getAthlete(): Athlete?
 }
