@@ -65,7 +65,7 @@ export const useContextStore = defineStore('context', {
             return `${url}&year=${this.currentYear}`
         },
         async fetchAthlete() {
-            const response = await fetch(`http://localhost:8080/api/users/me`)
+            const response = await fetch(`http://localhost:8080/api/athletes/me`)
             if (!response.ok) {
                 await ErrorService.catchError(response)
             }

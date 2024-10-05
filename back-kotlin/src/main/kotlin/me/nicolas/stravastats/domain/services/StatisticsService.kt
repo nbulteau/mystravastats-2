@@ -1,6 +1,6 @@
 package me.nicolas.stravastats.domain.services
 
-import me.nicolas.stravastats.api.controllers.UserController
+import me.nicolas.stravastats.api.controllers.AthleteController
 import me.nicolas.stravastats.domain.business.strava.*
 import me.nicolas.stravastats.domain.services.statistics.*
 import org.slf4j.LoggerFactory
@@ -16,7 +16,7 @@ internal class StatisticsStravaService(
     stravaProxy: StravaProxy,
 ) : IStatisticsService, AbstractStravaService(stravaProxy) {
 
-    private val logger = LoggerFactory.getLogger(UserController::class.java)
+    private val logger = LoggerFactory.getLogger(AthleteController::class.java)
 
     override fun getStatistics(activityType: ActivityType, year: Int?): List<Statistic> {
         logger.info("Compute statistics for $activityType for ${year ?: "all years"}")

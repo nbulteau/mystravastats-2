@@ -55,6 +55,7 @@ class BadgesControllerTest {
         mockMvc.perform(
             get("/badges")
                 .param("activityType", activityType.name)
+                .param("year", year.toString())
                 .param("badgeSet", BadgeSetEnum.GENERAL.name)
         )
             .andExpect(status().isOk)
@@ -95,6 +96,7 @@ class BadgesControllerTest {
         mockMvc.perform(
             get("/badges")
                 .param("activityType", activityType.name)
+                .param("year", year.toString())
                 .param("badgeSet", BadgeSetEnum.FAMOUS.name)
         )
             .andExpect(status().isOk)

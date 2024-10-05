@@ -2,6 +2,7 @@ package me.nicolas.stravastats
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import me.nicolas.stravastats.domain.business.strava.Activity
+import me.nicolas.stravastats.domain.business.strava.Athlete
 import me.nicolas.stravastats.domain.business.strava.AthleteRef
 import java.io.File
 
@@ -37,6 +38,38 @@ class TestHelper {
             type = "Run",
             uploadId = 1234567890,
             weightedAverageWatts = 210
+        )
+
+        val athlete = Athlete(
+            badgeTypeId = 1,
+            city = "Paris",
+            country = "France",
+            createdAt = "2023-01-01T00:00:00Z",
+            firstname = "John",
+            follower = null,
+            friend = null,
+            id = 123456,
+            lastname = "Doe",
+            premium = true,
+            profile = "http://example.com/profile.jpg",
+            profileMedium = "http://example.com/profile_medium.jpg",
+            resourceState = 2,
+            sex = "M",
+            state = "Ile-de-France",
+            summit = false,
+            updatedAt = "2023-01-01T00:00:00Z",
+            username = "john.doe",
+            athleteType = 1,
+            bikes = emptyList(),
+            clubs = emptyList(),
+            datePreference = "Europe/Paris",
+            followerCount = 100,
+            friendCount = 50,
+            ftp = null,
+            measurementPreference = "meters",
+            mutualFriendCount = 10,
+            shoes = emptyList(),
+            weight = 70
         )
     }
 

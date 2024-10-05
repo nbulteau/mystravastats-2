@@ -15,9 +15,9 @@ import org.springframework.web.bind.annotation.RestController
 
 
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/athletes")
 @Schema(description = "User controller", name = "UserController")
-class UserController(
+class AthleteController(
     private val stravaProxy: IStravaProxy
 ) {
     @Operation(

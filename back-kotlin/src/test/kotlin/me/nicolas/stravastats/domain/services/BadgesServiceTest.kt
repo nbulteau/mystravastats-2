@@ -1,12 +1,12 @@
 package me.nicolas.stravastats.domain.services
 
 import me.nicolas.stravastats.TestHelper
+import me.nicolas.stravastats.domain.business.strava.ActivityType
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
-
-class ActivityServiceTest {
-
-    private lateinit var activityService: IActivityService
+class BadgesServiceTest {
+    private lateinit var badgesService: IBadgesService
 
 
     @BeforeEach
@@ -21,6 +21,18 @@ class ActivityServiceTest {
         field.isAccessible = true
         field.set(stravaProxy, activities)
 
-        activityService = ActivityService(stravaProxy)
+        badgesService = BadgesService(stravaProxy)
+    }
+
+    @Test
+    fun `getGeneralBadges should return the right badges for a ride`() {
+        // GIVEN
+
+        // WHEN
+        val badges = badgesService.getGeneralBadges(ActivityType.Ride, 2021)
+
+        // THEN
+        // Check the badges
+        // ...
     }
 }
