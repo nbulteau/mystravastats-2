@@ -25,3 +25,4 @@ stream-*.json
 *.hgt
 
 /DEVELOPMENT.md
+/.kotlin/
