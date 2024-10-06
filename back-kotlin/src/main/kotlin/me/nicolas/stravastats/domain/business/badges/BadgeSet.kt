@@ -21,8 +21,8 @@ data class BadgeSet(val name: String, private val badges: List<Badge> = listOf()
      */
     fun check(activities: List<Activity>): List<BadgeCheckResult> {
         return badges.map { badge ->
-            val (activity, isCompleted) = badge.check(activities)
-            BadgeCheckResult(badge, activity, isCompleted)
+            val (checkedActivities, isCompleted) = badge.check(activities)
+            BadgeCheckResult(badge, checkedActivities, isCompleted)
         }
     }
 

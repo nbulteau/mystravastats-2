@@ -16,8 +16,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <HeaderBar />
-  <nav class="navbar container">
+  <HeaderBar class="fixed-top" />
+  <nav class="navbar container mt-5">
     <ul
       id="myTab"
       class="nav nav-tabs"
@@ -123,7 +123,7 @@ onMounted(async () => {
           aria-selected="false"
           href="/badges"
         >
-          <RouterLink to="/badges">
+          <RouterLink  to="/badges">
             Badges
           </RouterLink>
         </button>
@@ -137,4 +137,15 @@ onMounted(async () => {
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.fixed-top {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1030; /* Ensure it is above other elements */
+}
+
+.mt-5 {
+  margin-top: 5rem !important; /* Adjust this value if needed */
+}
+</style>

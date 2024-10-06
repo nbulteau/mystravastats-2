@@ -14,8 +14,10 @@ const famousClimbBadgesCheckResults = computed(() => contextStore.famousClimbBad
 
 const handleBadgeClick = (badgeCheckResult: BadgeCheckResult) => {
   console.log('Badge clicked:', badgeCheckResult);
-  // Add your custom logic here
+  // TODO: Implement the badge click logic
 };
+
+
 </script>
 
 <template>
@@ -29,7 +31,7 @@ const handleBadgeClick = (badgeCheckResult: BadgeCheckResult) => {
     <div
       v-for="badge in generalBadgesCheckResults"
       :key="badge.badge.label"
-      class="col-2 col-sm col-md-4 col-lg-2 mb-1 d-flex justify-content-center"
+      class="col-lg-2 mb-2 d-flex justify-content-center"
     >
       <BadgeItem
         :badge-check-result="badge"
@@ -48,7 +50,7 @@ const handleBadgeClick = (badgeCheckResult: BadgeCheckResult) => {
     <div
       v-for="badge in famousClimbBadgesCheckResults"
       :key="badge.badge.label"
-      class="col-2 col-sm col-md-4 col-lg-2 mb-1 d-flex justify-content-center"
+      class="col-lg-2 mb-2 d-flex justify-content-center"
     >
       <BadgeItem
         :badge-check-result="badge"

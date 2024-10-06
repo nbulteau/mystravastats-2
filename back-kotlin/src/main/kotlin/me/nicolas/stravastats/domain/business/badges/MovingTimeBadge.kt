@@ -1,21 +1,16 @@
 package me.nicolas.stravastats.domain.business.badges
 
 import me.nicolas.stravastats.domain.business.strava.Activity
-import me.nicolas.stravastats.domain.services.statistics.MaxMovingTimeStatistic
 
 data class MovingTimeBadge(
     override val label: String,
     val movingTime: Int,
 ) : Badge(label) {
 
-    override fun check(activities: List<Activity>): Pair<Activity?, Boolean> {
-        val maxMovingTimeStatistic = MaxMovingTimeStatistic(activities)
-        val isChecked = if (maxMovingTimeStatistic.activity?.movingTime != null) {
-            maxMovingTimeStatistic.activity?.movingTime!! >= movingTime
-        } else {
-            false
-        }
-        return Pair(null, isChecked)
+    override fun check(activities: List<Activity>): Pair<List<Activity>, Boolean> {
+        val checkedActivities = activities.filter { activity -> activity.movingTime >= movingTime }
+
+        return Pair(checkedActivities, checkedActivities.isNotEmpty())
     }
 
     override fun toString(): String {

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { defineProps } from 'vue';
 import type { BadgeCheckResult } from "@/models/badge-check-result.model";
 import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js'; // Import Bootstrap JS
 
 const props = defineProps<{
   badgeCheckResult: BadgeCheckResult;
@@ -14,12 +15,14 @@ import racingBadge from "@/assets/badges/racing.png";
 import hickingBadge from "@/assets/badges/hiking.png";
 import stopwatchBadge from "@/assets/badges/stopwatch.png";
 import badge from "@/assets/badges/badge.png";
+import { Tooltip } from 'bootstrap';
+import type { Activity } from '@/models/activity.model';
 
 const buildBadgeImageUrl = (type: string) => {
   switch (type) {
     case "RunMovingTimeBadge":
     case "RideMovingTimeBadge":
-    case  "HikeMovingTimeBadge":
+    case "HikeMovingTimeBadge":
       return stopwatchBadge;
     case "RunDistanceBadge":
     case "RunElevationBadge":
@@ -38,20 +41,56 @@ const buildBadgeImageUrl = (type: string) => {
 };
 
 const navigateToActivity = () => {
-  if (props.badgeCheckResult.isCompleted && props.badgeCheckResult.activity) {
-    const activityUrl = `${props.badgeCheckResult.activity.link}`;
+  if (props.badgeCheckResult.isCompleted && props.badgeCheckResult.activities) {
+    const activityUrl = `${props.badgeCheckResult.activities.link}`;
     window.open(activityUrl, '_blank');
   }
 };
 
 const badgeRef = ref<HTMLElement | null>(null);
+
+const tooltipText = computed(() => {
+  return `<strong>${props.badgeCheckResult.badge.label}</strong><br>${props.badgeCheckResult.activities ? props.badgeCheckResult.activities.map((value: Activity) => value.name).join('<br>') : ''}`;
+});
+
+function initTooltip() {
+  if (badgeRef.value) {
+    const tooltip = new Tooltip(badgeRef.value, {});
+    tooltip.setContent({ '.tooltip-inner': tooltipText.value });
+  }
+}
+
+function updateTooltip() {
+  if (badgeRef.value) {
+    const tooltip = Tooltip.getInstance(badgeRef.value);
+    if (tooltip) {
+      tooltip.setContent({ '.tooltip-inner': tooltipText.value });
+    }
+  }
+}
+
+watch(
+  () => props.badgeCheckResult,
+  () => {
+    updateTooltip();
+  },
+  { immediate: true }
+);
+
+onMounted(() => {
+  initTooltip();
+});
+
 </script>
 
 <template>
   <div
     ref="badgeRef"
     class="badge-item card text-center p-2 border border-primary bg-light"
-    @click="navigateToActivity"
+    data-bs-toggle="tooltip"
+    data-bs-html="true"
+    :title="tooltipText"
+    @click="navigateToActivity" 
   >
     <div
       class="d-flex justify-content-center align-items-center"
@@ -116,5 +155,17 @@ const badgeRef = ref<HTMLElement | null>(null);
   object-fit: cover;
   margin: auto;
   /* Center the image */
+}
+/* Custom Tooltip Styles */
+.tooltip-inner {
+  background-color: #343a40; /* Dark background color */
+  color: #fff; /* White text color */
+  font-size: 1rem; /* Increase font size */
+  padding: 10px; /* Add padding */
+  border-radius: 5px; /* Rounded corners */
+}
+
+.tooltip-arrow::before {
+  border-top-color: #343a40; /* Dark arrow color */
 }
 </style>

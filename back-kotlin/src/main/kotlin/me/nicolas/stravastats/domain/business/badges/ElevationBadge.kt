@@ -1,21 +1,16 @@
 package me.nicolas.stravastats.domain.business.badges
 
 import me.nicolas.stravastats.domain.business.strava.Activity
-import me.nicolas.stravastats.domain.services.statistics.MaxElevationStatistic
 
 data class ElevationBadge(
     override val label: String,
     val totalElevationGain: Int,
 ) : Badge(label) {
 
-    override fun check(activities: List<Activity>): Pair<Activity?, Boolean> {
-        val maxElevationStatistic = MaxElevationStatistic(activities)
-        val isChecked = if (maxElevationStatistic.activity?.totalElevationGain != null) {
-            maxElevationStatistic.activity?.totalElevationGain!! >= totalElevationGain
-        } else {
-            false
-        }
-        return Pair(null, isChecked)
+    override fun check(activities: List<Activity>): Pair<List<Activity>, Boolean> {
+        val checkedActivities = activities.filter { activity -> activity.totalElevationGain >= totalElevationGain }
+
+        return Pair(checkedActivities, checkedActivities.isNotEmpty())
     }
 
     override fun toString() = "${super.toString()}\n$totalElevationGain m"

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import io.mockk.verify
+import me.nicolas.stravastats.TestHelper
 import me.nicolas.stravastats.api.dto.toDto
 import me.nicolas.stravastats.domain.business.badges.BadgeCheckResult
 import me.nicolas.stravastats.domain.business.badges.BadgeSetEnum
@@ -43,7 +44,7 @@ class BadgesControllerTest {
         val badgeCheckResults = listOf(
             BadgeCheckResult(
                 badge = DistanceBadge("badge1", 10),
-                activity = null,
+                activities = listOf(TestHelper.activity),
                 isCompleted = true,
             ),
         )
@@ -84,7 +85,7 @@ class BadgesControllerTest {
                         longitude = 6.0390149
                     ), 13.9, 1118, 8.0, 994
                 ),
-                activity = null,
+                activities = emptyList(),
                 isCompleted = false,
             ),
         )

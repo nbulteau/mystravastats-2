@@ -1,21 +1,16 @@
 package me.nicolas.stravastats.domain.business.badges
 
 import me.nicolas.stravastats.domain.business.strava.Activity
-import me.nicolas.stravastats.domain.services.statistics.MaxDistanceStatistic
 
 data class DistanceBadge(
     override val label: String,
     val distance: Int,
 ) : Badge(label) {
 
-    override fun check(activities: List<Activity>): Pair<Activity?, Boolean> {
-        val maxDistanceStatistic = MaxDistanceStatistic(activities)
-        val isChecked = if (maxDistanceStatistic.activity?.distance != null) {
-            maxDistanceStatistic.activity?.distance!! >= distance
-        } else {
-            false
-        }
-        return Pair(null, isChecked)
+    override fun check(activities: List<Activity>): Pair<List<Activity>, Boolean> {
+        val checkedActivities = activities.filter { activity -> activity.distance >= distance }
+
+        return Pair(checkedActivities, checkedActivities.isNotEmpty())
     }
 
     override fun toString() = label

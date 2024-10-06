@@ -16,7 +16,7 @@ data class FamousClimbBadge(
     val difficulty: Int,
 ) : Badge(label) {
 
-    override fun check(activities: List<Activity>): Pair<Activity?, Boolean> {
+    override fun check(activities: List<Activity>): Pair<List<Activity>, Boolean> {
         val filteredActivities = activities.filter { activity ->
             if (activity.startLatlng?.isNotEmpty() == true) {
                 this.start.haversineInKM(activity.startLatlng[0], activity.startLatlng[1]) < 50
@@ -27,11 +27,7 @@ data class FamousClimbBadge(
             check(activity, this.start) && check(activity, this.end)
         }
 
-        return if (filteredActivities.isEmpty()) {
-            Pair(null, false)
-        } else {
-            Pair(filteredActivities.last(), true)
-        }
+        return Pair(filteredActivities, filteredActivities.isNotEmpty())
     }
 
     private fun check(activity: Activity, geoCoordinateToCheck: GeoCoordinate): Boolean {

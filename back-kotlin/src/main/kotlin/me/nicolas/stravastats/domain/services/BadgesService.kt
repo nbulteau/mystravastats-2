@@ -28,7 +28,7 @@ internal class BadgesService(
     private val pyrenees: BadgeSet = loadBadgeSet("pyrenees", "famous-climb/pyrenees.json")
 
     override fun getGeneralBadges(activityType: ActivityType, year: Int?): List<BadgeCheckResult> {
-        logger.info("Checking general badges for $activityType in $year")
+        logger.info("Checking general badges for $activityType in ${year ?: "all years"}")
 
         val activities = stravaProxy.getFilteredActivitiesByActivityTypeAndYear(activityType, year)
 
@@ -56,7 +56,7 @@ internal class BadgesService(
     }
 
     override fun getFamousBadges(activityType: ActivityType, year: Int?): List<BadgeCheckResult> {
-        logger.info("Checking famous badges for $activityType in $year")
+        logger.info("Checking famous badges for $activityType in ${year ?: "all years"}")
 
         val activities = stravaProxy.getFilteredActivitiesByActivityTypeAndYear(activityType, year)
 
