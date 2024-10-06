@@ -13,7 +13,7 @@ internal class BestDayStatistic(
 
     override val value: String
         get() {
-            val pair = function(activities)
+            val pair: Pair<String, Number>? = function(activities)
             return if (pair != null) {
                 val date = LocalDate.parse(pair.first)
                 formatString.format(date.format(dateFormatter), pair.second)

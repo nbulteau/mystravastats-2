@@ -118,6 +118,11 @@ object ActivityHelper {
         }
     }
 
+    /**
+     * Remove activities that are not in the list of activity types to consider (i.e. Run, Ride, Hike, etc.)
+     * @return a list of activities filtered by type
+     * @see Activity
+     */
     fun List<Activity>.filterActivities() = this.filter { activity ->
         ActivityType.entries.any { activity.type == it.name }
     }

@@ -12,7 +12,7 @@ interface IStatisticsService {
 }
 
 @Service
-internal class StatisticsStravaService(
+internal class StatisticsService(
     stravaProxy: StravaProxy,
 ) : IStatisticsService, AbstractStravaService(stravaProxy) {
 
@@ -176,7 +176,7 @@ internal class StatisticsStravaService(
 
         statistics.addAll(
             listOf(
-                BestDayStatistic("Max distance in a day", hikeActivities, "%s => %.02f km")
+                BestDayStatistic("Max distance in a day", hikeActivities, formatString = "%s => %.02f km")
                 {
                     hikeActivities
                         .groupBy { activity: Activity -> activity.startDateLocal.substringBefore('T') }
@@ -184,7 +184,7 @@ internal class StatisticsStravaService(
                         .maxByOrNull { entry: Map.Entry<String, Double> -> entry.value }
                         ?.toPair()
                 },
-                BestDayStatistic("Max elevation in a day", hikeActivities, "%s => %.02f m")
+                BestDayStatistic("Max elevation in a day", hikeActivities, formatString = "%s => %.02f m")
                 {
                     hikeActivities
                         .groupBy { activity: Activity -> activity.startDateLocal.substringBefore('T') }
