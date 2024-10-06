@@ -1,7 +1,8 @@
-package me.nicolas.stravastats.domain.services
+package me.nicolas.stravastats.adapter.srtm
 
-import me.nicolas.stravastats.domain.services.srtm.Point
-import me.nicolas.stravastats.domain.services.srtm.SRTMFile
+import me.nicolas.stravastats.adapter.srtm.business.Point
+import me.nicolas.stravastats.adapter.srtm.business.SRTMFile
+import me.nicolas.stravastats.domain.interfaces.ISRTMProvider
 import java.io.File
 import java.nio.file.Path
 import kotlin.math.abs
@@ -11,7 +12,9 @@ import kotlin.math.floor
 /**
  * Get elevation using Shuttle Radar Topography Mission (SRTM) level 1 files
  */
-class SRTMService(private val cachePath: Path) {
+class SRTMProvider(
+    private val cachePath: Path = Path.of("srtm30m")
+) : ISRTMProvider {
 
     /**
      * SRTM files cache
@@ -23,7 +26,7 @@ class SRTMService(private val cachePath: Path) {
      */
     private val missingSRTMFiles = mutableSetOf<String>()
 
-    fun getElevation(latitudeLongitudeList: List<List<Double>>): List<Double> {
+    override fun getElevation(latitudeLongitudeList: List<List<Double>>): List<Double> {
 
         return latitudeLongitudeList.map { latlong ->
             if (latlong[0] == 0.0 && latlong[1] == 0.0) {

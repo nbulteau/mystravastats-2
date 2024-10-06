@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import me.nicolas.stravastats.api.dto.ActivityDto
+import me.nicolas.stravastats.api.dto.DetailedActivityDto
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
 import me.nicolas.stravastats.api.dto.toDto
 import me.nicolas.stravastats.domain.business.strava.Activity
@@ -161,5 +162,35 @@ class ActivitiesController(
     fun exportCSV(activityType: ActivityType, year: Int): String {
 
         return activityService.exportCSV(activityType, year)
+    }
+
+    @Operation(
+        description = "Get a detailed activity",
+        summary = "Get a detailed activity",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Activity found",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = DetailedActivityDto::class)
+                )]
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "Activity not found",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponseMessageDto::class)
+                )]
+            )
+        ]
+    )
+    @GetMapping("/{activityId}")
+    fun getDetailedActivity(activityId: Long): DetailedActivityDto {
+
+        return activityService.getDetailedActivity(activityId).orElseThrow {
+            ResourceNotFoundException("Activity id $activityId not found")
+        }.toDto()
     }
 }

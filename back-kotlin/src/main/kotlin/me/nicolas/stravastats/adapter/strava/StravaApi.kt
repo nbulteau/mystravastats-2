@@ -16,7 +16,7 @@ import kotlinx.coroutines.runBlocking
 import me.nicolas.stravastats.adapter.strava.business.Token
 import me.nicolas.stravastats.domain.business.strava.Activity
 import me.nicolas.stravastats.domain.business.strava.Athlete
-import me.nicolas.stravastats.domain.business.strava.DetailledActivity
+import me.nicolas.stravastats.domain.business.strava.DetailedActivity
 import me.nicolas.stravastats.domain.business.strava.Stream
 import me.nicolas.stravastats.domain.interfaces.IStravaApi
 import okhttp3.Headers
@@ -88,7 +88,7 @@ internal class StravaApi(clientId: String, clientSecret: String, private val pro
         }
     }
 
-    override fun getActivity(activityId: Long): Optional<DetailledActivity> {
+    override fun getDetailledActivity(activityId: Long): Optional<DetailedActivity> {
         try {
             return doGetActivity(activityId)
         } catch (connectException: ConnectException) {
@@ -221,7 +221,7 @@ internal class StravaApi(clientId: String, clientSecret: String, private val pro
         }
     }
 
-    private fun doGetActivity(activityId: Long): Optional<DetailledActivity> {
+    private fun doGetActivity(activityId: Long): Optional<DetailedActivity> {
         val url = "https://www.strava.com/api/v3/activities/$activityId?include_all_efforts=true"
 
         val request: Request = Request.Builder().url(url).headers(buildRequestHeaders()).build()
@@ -237,9 +237,13 @@ internal class StravaApi(clientId: String, clientSecret: String, private val pro
                             )
                             throw RuntimeException("Something was wrong with Strava API : 429 Too Many Requests")
                         }
+                        HttpStatus.NOT_FOUND.value() -> {
+                            logger.warn("Activity $activityId not found")
+                            return Optional.empty()
+                        }
 
                         else -> {
-                            logger.info("Something was wrong with Strava API for url ${response.request.url} : ${response.code} - ${response.body}")
+                            logger.info("Something was wrong with Strava API while getting activity ${response.request.url} : ${response.code} - ${response.body}")
                             return Optional.empty()
                         }
                     }
@@ -249,7 +253,7 @@ internal class StravaApi(clientId: String, clientSecret: String, private val pro
                     return try {
                         val json = response.body?.string()
                         return if (json != null) {
-                            Optional.of(objectMapper.readValue(json, DetailledActivity::class.java))
+                            Optional.of(objectMapper.readValue(json, DetailedActivity::class.java))
                         } else {
                             Optional.empty()
                         }

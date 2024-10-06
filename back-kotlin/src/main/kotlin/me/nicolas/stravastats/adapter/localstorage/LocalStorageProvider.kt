@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectWriter
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import me.nicolas.stravastats.domain.business.strava.Activity
 import me.nicolas.stravastats.domain.business.strava.Athlete
-import me.nicolas.stravastats.domain.business.strava.DetailledActivity
+import me.nicolas.stravastats.domain.business.strava.DetailedActivity
 import me.nicolas.stravastats.domain.business.strava.Stream
 import me.nicolas.stravastats.domain.interfaces.ILocalStorageProvider
 import me.nicolas.stravastats.domain.services.ActivityHelper.filterActivities
@@ -84,20 +84,20 @@ internal class LocalStorageProvider : ILocalStorageProvider {
         )
     }
 
-    override fun loadDetailedActivityFromCache(clientId: String, year: Int, activityId: Long): DetailledActivity? {
-        var detailedActivity: DetailledActivity? = null
+    override fun loadDetailedActivityFromCache(clientId: String, year: Int, activityId: Long): DetailedActivity? {
+        var detailedActivity: DetailedActivity? = null
         val activitiesDirectory = File(cacheDirectory,"strava-$clientId")
         val yearActivitiesDirectory = File(activitiesDirectory, "strava-${clientId}-$year")
         val detailedActivityFile = File(yearActivitiesDirectory, "activity-${activityId}")
 
         if (detailedActivityFile.exists()) {
-            detailedActivity = objectMapper.readValue(detailedActivityFile, DetailledActivity::class.java)
+            detailedActivity = objectMapper.readValue(detailedActivityFile, DetailedActivity::class.java)
         }
 
         return detailedActivity
     }
 
-    override fun saveDetailedActivityToCache(clientId: String, year: Int, detailedActivity: DetailledActivity) {
+    override fun saveDetailedActivityToCache(clientId: String, year: Int, detailedActivity: DetailedActivity) {
         val activitiesDirectory = File(cacheDirectory,"strava-$clientId")
         val yearActivitiesDirectory = File(activitiesDirectory, "strava-${clientId}-$year")
         val detailedActivityFile = File(yearActivitiesDirectory, "activity-${detailedActivity.id}")

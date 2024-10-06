@@ -30,11 +30,16 @@ interface IStravaProxy {
 
     fun listActivitiesPaginated(pageable: Pageable): Page<Activity>
 
-    fun getDetailedActivity(year: Int, activityId: Long): Optional<DetailledActivity>
+    fun getDetailedActivity(activityId: Long): Optional<DetailedActivity>
+
     fun getActivitiesByActivityTypeGroupByActiveDays(activityType: ActivityType): Map<String, Int>
+
     fun getActivitiesByActivityTypeByYearGroupByActiveDays(activityType: ActivityType, year: Int): Map<String, Int>
+
     fun getFilteredActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int? = null): List<Activity>
+
     fun getActivitiesByActivityTypeGroupByYear(activityType: ActivityType): Map<String, List<Activity>>
+
     fun getAthlete(): Athlete?
 }
 
@@ -96,16 +101,23 @@ class StravaProxy(
         return PageImpl(subList, pageable, activities.size.toLong())
     }
 
-    override fun getDetailedActivity(year: Int, activityId: Long): Optional<DetailledActivity> {
-        logger.info("Get detailed activity for year $year and activity id $activityId")
+    override fun getDetailedActivity(activityId: Long): Optional<DetailedActivity> {
+        logger.info("Get detailed activity for activity id $activityId")
 
-        localStorageProvider.loadDetailedActivityFromCache(clientId, year, activityId)?.let {
-            return Optional.of(it)
+        // Check if the activity is already loaded in the cache
+        val year = activities.find { activity -> activity.id == activityId }?.startDateLocal?.subSequence(0, 4)?.toString()?.toInt()
+        if (year != null) {
+            localStorageProvider.loadDetailedActivityFromCache(clientId, year, activityId)?.let {
+                return Optional.of(it)
+            }
         }
 
-        val optionalDetailedActivity = stravaApi.getActivity(activityId)
+        // Else load the activity from Strava and save it to the cache if it exists
+        val optionalDetailedActivity = stravaApi.getDetailledActivity(activityId)
         return if (optionalDetailedActivity.isPresent) {
-            localStorageProvider.saveDetailedActivityToCache(clientId, year, optionalDetailedActivity.get())
+            val detailedActivity = optionalDetailedActivity.get()
+            val detailedActivityYear = detailedActivity.startDate.subSequence(0, 4).toString().toInt()
+            localStorageProvider.saveDetailedActivityToCache(clientId, detailedActivityYear, detailedActivity)
             optionalDetailedActivity
         } else {
             Optional.empty()

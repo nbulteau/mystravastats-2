@@ -2,11 +2,13 @@ package me.nicolas.stravastats.domain.services
 
 import me.nicolas.stravastats.domain.business.strava.Activity
 import me.nicolas.stravastats.domain.business.strava.ActivityType
+import me.nicolas.stravastats.domain.business.strava.DetailedActivity
 import me.nicolas.stravastats.domain.services.csv.*
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
+import java.util.*
 
 
 interface IActivityService {
@@ -20,6 +22,8 @@ interface IActivityService {
     fun getFilteredActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int?): List<Activity>
 
     fun exportCSV(activityType: ActivityType, year: Int): String
+
+    fun getDetailedActivity(activityId: Long): Optional<DetailedActivity>
 }
 
 @Service
@@ -79,5 +83,11 @@ internal class ActivityService(
             else -> throw IllegalArgumentException("Unknown activity type: $activityType")
         }
         return exporter.export()
+    }
+
+    override fun getDetailedActivity(activityId: Long): Optional<DetailedActivity> {
+        logger.info("Get detailed activity $activityId")
+
+        return stravaProxy.getDetailedActivity(activityId)
     }
 }

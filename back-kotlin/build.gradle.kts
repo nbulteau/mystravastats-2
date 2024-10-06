@@ -39,8 +39,6 @@ dependencies {
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
-    implementation("space.kscience:plotlykt-server:0.6.0")
-
     implementation(files("libs/fit.jar"))
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

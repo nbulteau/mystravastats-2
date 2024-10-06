@@ -4,6 +4,7 @@ package me.nicolas.stravastats.domain.services
 import com.garmin.fit.*
 import me.nicolas.stravastats.domain.business.strava.*
 import me.nicolas.stravastats.domain.business.strava.Activity
+import me.nicolas.stravastats.domain.interfaces.ISRTMProvider
 import me.nicolas.stravastats.domain.utils.inDateTimeFormatter
 import java.io.File
 import java.nio.file.Path
@@ -12,11 +13,14 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.*
 
-internal class FitService(private val cachePath: Path) {
+//@Service
+internal class FitService(
+    private val cachePath: Path,
+    private val srtmProvider: ISRTMProvider
+
+) {
 
     private val fitDecoder = FitDecoder()
-
-    private val srtmService = SRTMService(Path.of("srtm30m"))
 
     /**
      * Load all FIT activities from cache ([cachePath])
@@ -229,7 +233,7 @@ internal class FitService(private val cachePath: Path) {
 
 
     private fun generateDataAltitude(latitudeLongitudeList: List<List<Double>>): MutableList<Double> {
-        return srtmService.getElevation(latitudeLongitudeList).toMutableList()
+        return srtmProvider.getElevation(latitudeLongitudeList).toMutableList()
     }
 
     private fun extractLatLng(lat: Int?, lng: Int?): List<Double> {

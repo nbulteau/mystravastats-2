@@ -1,4 +1,4 @@
-package me.nicolas.stravastats.domain.services.srtm
+package me.nicolas.stravastats.adapter.srtm.business
 
 import org.slf4j.LoggerFactory
 import java.io.File
