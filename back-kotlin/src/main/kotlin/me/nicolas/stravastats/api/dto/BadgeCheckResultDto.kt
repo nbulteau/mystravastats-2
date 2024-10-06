@@ -8,11 +8,15 @@ import me.nicolas.stravastats.domain.business.strava.ActivityType
 data class BadgeCheckResultDto(
     val badge: BadgeDto,
     val activities: List<ActivityDto>,
-    val isCompleted: Boolean,
+    val nbCheckedActivities: Int,
 )
 
-fun BadgeCheckResult.toDto(activityType: ActivityType) =
-    BadgeCheckResultDto(this.badge.toDto(activityType), this.activities.take(5).map{it.toDto()}, this.isCompleted)
+fun BadgeCheckResult.toDto(activityType: ActivityType): BadgeCheckResultDto {
+    val nbCheckedActivities = this.activities.size
+    val activities = this.activities.takeLast(1).map { it.toDto() }
+
+    return BadgeCheckResultDto(this.badge.toDto(activityType), activities, nbCheckedActivities)
+}
 
 @Schema(description = "Badge", name = "Badge")
 data class BadgeDto(

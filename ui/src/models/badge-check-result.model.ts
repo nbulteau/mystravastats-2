@@ -4,5 +4,5 @@ import type { Badge } from "./badge.model";
 export interface BadgeCheckResult {
     badge: Badge;
     activities: Activity[];
-    isCompleted: boolean;
+    nbCheckedActivities: number;
 }

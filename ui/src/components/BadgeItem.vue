@@ -41,7 +41,7 @@ const buildBadgeImageUrl = (type: string) => {
 };
 
 const navigateToActivity = () => {
-  if (props.badgeCheckResult.isCompleted && props.badgeCheckResult.activities) {
+  if (props.badgeCheckResult.nbCheckedActivities > 0 && props.badgeCheckResult.activities) {
     // Open all activities in a new tab
     props.badgeCheckResult.activities.forEach((activity: Activity) => {
       window.open(activity.link, '_blank');
@@ -52,7 +52,11 @@ const navigateToActivity = () => {
 const badgeRef = ref<HTMLElement | null>(null);
 
 const tooltipText = computed(() => {
-  return `<strong>${props.badgeCheckResult.badge.label}</strong><br>${props.badgeCheckResult.activities ? props.badgeCheckResult.activities.map((value: Activity) => value.name).join('<br>') : ''}`;
+  return `<strong>${props.badgeCheckResult.badge.label}</strong><br>
+  A total of ${props.badgeCheckResult.nbCheckedActivities} activities<br>
+  ${props.badgeCheckResult.activities && props.badgeCheckResult.activities.length > 0 ? 'Last activity is:<br>' : ''}
+  ${props.badgeCheckResult.activities ? props.badgeCheckResult.activities.map((value: Activity) => `• ${value.name}`).join('<br>') : ''}
+  `;  
 });
 
 function initTooltip() {
@@ -96,7 +100,7 @@ onMounted(() => {
   >
     <div
       class="d-flex justify-content-center align-items-center"
-      :class="{ 'badge-item--disabled': !props.badgeCheckResult.isCompleted }"
+      :class="{ 'badge-item--disabled': (props.badgeCheckResult.nbCheckedActivities <= 0) }"
     >
       <img
         :src="buildBadgeImageUrl(props.badgeCheckResult.badge.type)"
@@ -158,16 +162,15 @@ onMounted(() => {
   margin: auto;
   /* Center the image */
 }
+
 /* Custom Tooltip Styles */
 .tooltip-inner {
+  --bs-tooltip-max-width: 300px; /* Define the custom property for max-width */
+  max-width: var(--bs-tooltip-max-width); /* Apply the custom property */
   background-color: #343a40; /* Dark background color */
-  color: #fff; /* White text color */
+  color: #ffffff; /* White text color */
   font-size: 1rem; /* Increase font size */
   padding: 10px; /* Add padding */
   border-radius: 5px; /* Rounded corners */
-}
-
-.tooltip-arrow::before {
-  border-top-color: #343a40; /* Dark arrow color */
 }
 </style>
