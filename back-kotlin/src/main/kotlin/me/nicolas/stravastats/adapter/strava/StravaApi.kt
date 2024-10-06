@@ -273,7 +273,7 @@ internal class StravaApi(clientId: String, clientSecret: String, private val pro
 
     private fun setAccessToken(clientId: String, clientSecret: String) {
         val url =
-            "https://www.strava.com/api/v3/oauth/authorize" + "?client_id=$clientId" + "&response_type=code" + "&redirect_uri=http://localhost:8090/exchange_token" + "&approval_prompt=auto" + "&scope=read_all,activity:read_all,profile:read_all"
+            "https://www.strava.com/api/v3/oauth/authorize?client_id=$clientId&response_type=code&redirect_uri=http://localhost:8090/exchange_token&approval_prompt=auto&scope=read_all,activity:read_all,profile:read_all"
         openBrowser(url)
 
         println()

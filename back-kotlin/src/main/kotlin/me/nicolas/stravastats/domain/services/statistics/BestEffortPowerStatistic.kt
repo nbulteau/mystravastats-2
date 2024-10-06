@@ -44,21 +44,17 @@ internal open class BestEffortPowerStatistic(
  */
 fun Activity.calculateBestPowerForTime(seconds: Int): ActivityEffort? {
 
-    // no stream -> return null
-    if (stream == null || stream?.altitude == null) {
-        return null
-    }
+    val stream = this.stream ?: return null
+    val altitudes = stream.altitude?.data
+    val watts = stream.watts?.data ?: return null
 
     var idxStart = 0
     var idxEnd = 0
     var maxPower = 0
     var bestEffort: ActivityEffort? = null
 
-    val distances = this.stream?.distance?.data!!
-    val times = this.stream?.time?.data!!
-    val altitudes = this.stream?.altitude?.data
-    val watts = this.stream?.watts?.data
-
+    val distances = stream.distance.data
+    val times = stream.time.data
     val streamDataSize = distances.size
 
     do {
@@ -68,11 +64,8 @@ fun Activity.calculateBestPowerForTime(seconds: Int): ActivityEffort? {
         } else {
             0.0
         }
-        val totalPower = if (watts?.isNotEmpty() == true) {
-            (idxStart..idxEnd).sumOf { watts[it] }
-        } else {
-            0
-        }
+        val totalPower =  (idxStart..idxEnd).sumOf { watts[it] }
+
         val totalTime = times[idxEnd] - times[idxStart]
 
         if (totalTime < seconds) {
