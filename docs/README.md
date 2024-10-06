@@ -23,7 +23,7 @@ All statistics can be exported as a CSV file.
 ![Screen shoot 3](https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-3.png?raw=true)
 ![Screen shoot 4](https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-4.png?raw=true)
 
-<div>Icons made by <a href="https://www.freepik.com" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>
+Icons made by [Freepik](https://www.freepik.com) from [Flaticon](https://www.flaticon.com).
 
 ## Table of Contents
 
@@ -57,6 +57,8 @@ cd strava-cache
 echo "clientId=[YOUR_CLIENT_ID]" > .strava
 echo "clientSecret=[YOUR_CLIENT_SECRET]" >> .strava
 export STRAVA_CACHE_PATH=$(pwd)
+```
+
 ### Get activities from Strava
 
 Activities are download in a local directory (strava-cache), in that way only new and missing ones are downloaded from Strava.
