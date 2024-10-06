@@ -12,6 +12,7 @@ import me.nicolas.stravastats.api.dto.toDto
 import me.nicolas.stravastats.domain.business.badges.BadgeSetEnum
 import me.nicolas.stravastats.domain.business.strava.ActivityType
 import me.nicolas.stravastats.domain.services.IBadgesService
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -43,6 +44,7 @@ class BadgesController(
         )],
     )
     @GetMapping
+    @Cacheable("badges")
     fun getBadges(
         @RequestParam(required = true) activityType: ActivityType,
         @RequestParam(required = false) year: Int? = null,

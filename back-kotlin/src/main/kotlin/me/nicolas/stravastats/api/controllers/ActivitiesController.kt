@@ -13,15 +13,13 @@ import me.nicolas.stravastats.api.dto.toDto
 import me.nicolas.stravastats.domain.business.strava.Activity
 import me.nicolas.stravastats.domain.business.strava.ActivityType
 import me.nicolas.stravastats.domain.services.IActivityService
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.rest.webmvc.ResourceNotFoundException
 import org.springframework.data.web.PagedModel
 import org.springframework.http.MediaType
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/activities", produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -103,6 +101,7 @@ class ActivitiesController(
     )
 
     @GetMapping
+    @Cacheable("activities")
     fun getActivitiesByActivityType(
         @RequestParam(required = true) activityType: ActivityType,
         @RequestParam(required = false) year: Int?,
@@ -187,7 +186,9 @@ class ActivitiesController(
         ]
     )
     @GetMapping("/{activityId}")
-    fun getDetailedActivity(activityId: Long): DetailedActivityDto {
+    fun getDetailedActivity(
+        @PathVariable activityId: Long,
+    ): DetailedActivityDto {
 
         return activityService.getDetailedActivity(activityId).orElseThrow {
             ResourceNotFoundException("Activity id $activityId not found")
