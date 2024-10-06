@@ -22,50 +22,48 @@ const eddingtonNumber = computed(() => contextStore.eddingtonNumber);
 </script>
 
 <template>
-  <main>
-    <EddingtonNumberChart
-      :title="`Eddington number for ${currentActivity}: ${eddingtonNumber.eddingtonNumber}`"
-      :eddington-number="eddingtonNumber"
-    />
-    <CumulativeDistancePerYearChart
-      :title="`Cumulative distance per year for ${currentActivity}`"
+  <EddingtonNumberChart
+    :title="`Eddington number for ${currentActivity}: ${eddingtonNumber.eddingtonNumber}`"
+    :eddington-number="eddingtonNumber"
+  />
+  <CumulativeDistancePerYearChart
+    :title="`Cumulative distance per year for ${currentActivity}`"
+    :current-year="currentYear"
+    :cumulative-distance-per-year="cumulativeDistancePerYear"
+  />
+  <div v-if="currentYear !== 'All years'">
+    <ByMonthsChart
+      title="Distance by months"
+      y-axis-title="Distance (km)"
+      unit="km"
       :current-year="currentYear"
-      :cumulative-distance-per-year="cumulativeDistancePerYear"
+      :data-by-months="distanceByMonths"
     />
-    <div v-if="currentYear !== 'All years'">
-      <ByMonthsChart
-        title="Distance by months"
-        y-axis-title="Distance (km)"
-        unit="km"
-        :current-year="currentYear"
-        :data-by-months="distanceByMonths"
-      />
-      <ByMonthsChart
-        title="Elevation by months"
-        y-axis-title="Elevation (m)"
-        unit="m"
-        :current-year="currentYear"
-        :data-by-months="elevationByMonths"
-      />
-      <AverageSpeedByMonthsChart
-        :activity-type="currentActivity"
-        :current-year="currentYear"
-        :data-by-months="averageSpeedByMonths"
-      />
-      <ByWeeksChart
-        title="Distance by weeks"
-        y-axis-title="Distance (km)"
-        unit="km"
-        :current-year="currentYear"
-        :distance-by-weeks="distanceByWeeks"
-      />
-      <ByWeeksChart
-        title="Elevation by weeks"
-        y-axis-title="Elevation (m)"
-        unit="m"
-        :current-year="currentYear"
-        :distance-by-weeks="elevationByWeeks"
-      />
-    </div>
-  </main>
+    <ByMonthsChart
+      title="Elevation by months"
+      y-axis-title="Elevation (m)"
+      unit="m"
+      :current-year="currentYear"
+      :data-by-months="elevationByMonths"
+    />
+    <AverageSpeedByMonthsChart
+      :activity-type="currentActivity"
+      :current-year="currentYear"
+      :data-by-months="averageSpeedByMonths"
+    />
+    <ByWeeksChart
+      title="Distance by weeks"
+      y-axis-title="Distance (km)"
+      unit="km"
+      :current-year="currentYear"
+      :distance-by-weeks="distanceByWeeks"
+    />
+    <ByWeeksChart
+      title="Elevation by weeks"
+      y-axis-title="Elevation (m)"
+      unit="m"
+      :current-year="currentYear"
+      :distance-by-weeks="elevationByWeeks"
+    />
+  </div>
 </template>

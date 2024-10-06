@@ -12,9 +12,7 @@ const gpxCoordinates = computed(() => contextStore.gpxCoordinates);
 </script>
 
 <template>
-  <main>
-    <AllTracksMap :gpx-coordinates="gpxCoordinates" />
-  </main>
+  <AllTracksMap :gpx-coordinates="gpxCoordinates" />
 </template>
 
 <style></style>

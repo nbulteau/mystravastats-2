@@ -19,45 +19,43 @@ const handleBadgeClick = (badgeCheckResult: BadgeCheckResult) => {
 </script>
 
 <template>
-  <main class="container">
+  <div
+    v-if="generalBadgesCheckResults.length"
+    class="row"
+  >
+    <p class="text-center">
+      {{ currentActivity }} general Badges for {{ currentYear }}
+    </p>
     <div
-      v-if="generalBadgesCheckResults.length"
-      class="row"
+      v-for="badge in generalBadgesCheckResults"
+      :key="badge.badge.label"
+      class="col-2 col-sm col-md-4 col-lg-2 mb-1 d-flex justify-content-center"
     >
-      <p class="text-center">
-        {{ currentActivity }} general Badges for {{ currentYear }}
-      </p>
-      <div
-        v-for="badge in generalBadgesCheckResults"
-        :key="badge.badge.label"
-        class="col-2 col-sm col-md-4 col-lg-2 mb-1 d-flex justify-content-center"
-      >
-        <BadgeItem
-          :badge-check-result="badge"
-          @badge-clicked="handleBadgeClick"
-        /> 
-      </div>
+      <BadgeItem
+        :badge-check-result="badge"
+        @badge-clicked="handleBadgeClick"
+      /> 
     </div>
+  </div>
 
+  <div
+    v-if="famousClimbBadgesCheckResults.length"
+    class="row"
+  >
+    <p class="text-center">
+      Famous Climb {{ currentActivity }} Badges for {{ currentYear }}
+    </p>
     <div
-      v-if="famousClimbBadgesCheckResults.length"
-      class="row"
+      v-for="badge in famousClimbBadgesCheckResults"
+      :key="badge.badge.label"
+      class="col-2 col-sm col-md-4 col-lg-2 mb-1 d-flex justify-content-center"
     >
-      <p class="text-center">
-        Famous Climb {{ currentActivity }} Badges for {{ currentYear }}
-      </p>
-      <div
-        v-for="badge in famousClimbBadgesCheckResults"
-        :key="badge.badge.label"
-        class="col-2 col-sm col-md-4 col-lg-2 mb-1 d-flex justify-content-center"
-      >
-        <BadgeItem
-          :badge-check-result="badge"
-          @badge-clicked="handleBadgeClick"
-        /> 
-      </div>
+      <BadgeItem
+        :badge-check-result="badge"
+        @badge-clicked="handleBadgeClick"
+      /> 
     </div>
-  </main>
+  </div>
 </template>
 
 <style scoped>

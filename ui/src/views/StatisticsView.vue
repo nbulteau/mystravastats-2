@@ -12,11 +12,9 @@ const statistics = computed(() => contextStore.statistics);
 </script>
 
 <template>
-  <main>
-    <StatisticsGrid
-      :year="currentYear"
-      :activity="currentActivity"
-      :statistics="statistics"
-    />
-  </main>
+  <StatisticsGrid
+    :year="currentYear"
+    :activity="currentActivity"
+    :statistics="statistics"
+  />
 </template>

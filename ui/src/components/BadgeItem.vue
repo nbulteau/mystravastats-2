@@ -63,7 +63,7 @@ const badgeRef = ref<HTMLElement | null>(null);
         class="badge-image card-img-top"
       >
     </div>
-    <div >
+    <div>
       <span
         class="badge-label card-title text-center"
       >

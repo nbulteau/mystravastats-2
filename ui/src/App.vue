@@ -131,7 +131,9 @@ onMounted(async () => {
     </ul>
   </nav>
   <div class="container">
-    <RouterView />
+    <main>
+      <RouterView />
+    </main>
   </div>
 </template>
 

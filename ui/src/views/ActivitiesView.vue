@@ -12,11 +12,9 @@ const activities = computed(() => contextStore.activities);
 </script>
 
 <template>
-  <main>
-    <ActivitiesGrid
-      :activities="activities"
-      :current-activity="currentActivity"
-      :current-year="currentYear"
-    />
-  </main>
+  <ActivitiesGrid
+    :activities="activities"
+    :current-activity="currentActivity"
+    :current-year="currentYear"
+  />
 </template>
