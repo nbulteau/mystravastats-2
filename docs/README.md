@@ -91,7 +91,8 @@ export STRAVA_CACHE_PATH=[path to the strava-cache directory]
 docker compose build
 ```
 
-For Windows users, you can use .env file 
+For Windows users, you can use .env file
+
 ```shell
 echo STRAVA_CACHE_PATH=[path to the strava-cache directory] > .env
 docker compose --env-file .env build
@@ -107,7 +108,8 @@ export STRAVA_CACHE_PATH=[path to the strava-cache directory]
 docker compose up
 ```
 
-For Windows users, you can use .env file 
+For Windows users, you can use .env file
+
 ```shell
 docker compose --env-file .env up
 ```
