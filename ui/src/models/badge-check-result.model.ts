@@ -3,6 +3,6 @@ import type { Badge } from "./badge.model";
 
 export interface BadgeCheckResult {
     badge: Badge;
-    activity: Activity
+    activities: Activity[];
     isCompleted: boolean;
 }

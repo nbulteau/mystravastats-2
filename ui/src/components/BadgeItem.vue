@@ -42,8 +42,10 @@ const buildBadgeImageUrl = (type: string) => {
 
 const navigateToActivity = () => {
   if (props.badgeCheckResult.isCompleted && props.badgeCheckResult.activities) {
-    const activityUrl = `${props.badgeCheckResult.activities.link}`;
-    window.open(activityUrl, '_blank');
+    // Open all activities in a new tab
+    props.badgeCheckResult.activities.forEach((activity: Activity) => {
+      window.open(activity.link, '_blank');
+    });
   }
 };
 
