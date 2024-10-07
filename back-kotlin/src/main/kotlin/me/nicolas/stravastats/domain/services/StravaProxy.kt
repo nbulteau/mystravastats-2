@@ -67,7 +67,7 @@ class StravaProxy(
     @PostConstruct
     private fun init() {
         initStravaService()
-
+        localStorageProvider.initLocalStorage(clientId)
         logger.info("ActivityService initialized with clientId=$clientId and ${activities.size} activities")
     }
 
@@ -201,7 +201,6 @@ class StravaProxy(
                 }
 
                 clientId = id
-                athlete = localStorageProvider.loadAthleteFromCache(clientId) ?: retrieveLoggedInAthlete(clientId)
                 if (useCache == true) {
                     loadFromLocalCache(clientId)
                 } else {
@@ -209,9 +208,11 @@ class StravaProxy(
                         stravaApi = StravaApi(clientId, secret, properties)
                         loadCurrentYearFromStrava(clientId)
                     } else {
-                        throw IllegalStateException("Strava authentication not found")
+                        logger.error("Strava authentication not found")
+                        exitProcess(-1)
                     }
                 }
+                athlete = localStorageProvider.loadAthleteFromCache(clientId) ?: retrieveLoggedInAthlete(clientId)
             }
         }
     }

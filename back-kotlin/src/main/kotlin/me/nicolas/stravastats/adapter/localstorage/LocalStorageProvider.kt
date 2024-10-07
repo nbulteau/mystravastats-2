@@ -26,6 +26,13 @@ internal class LocalStorageProvider : ILocalStorageProvider {
 
     private val cacheDirectory = File("strava-cache")
 
+    override fun initLocalStorage(clientId: String) {
+        val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
+        if (!activitiesDirectory.exists()) {
+            activitiesDirectory.mkdirs()
+        }
+    }
+
     override fun loadAthleteFromCache(clientId: String): Athlete? {
         var athlete: Athlete? = null
 
