@@ -1,14 +1,33 @@
 <script setup lang="ts">
 import type { Activity } from "@/models/activity.model";
+import { defineProps } from "vue";
 
 defineProps<{
-  model: Activity; 
+  model: Activity;
 }>();
+
+import { eventBus } from "@/main";
+
+function handleDetailledActivityClick(link: string) {
+  eventBus.emit('detailledActivityClick', link);
+}
 
 </script>
 
 <template>
-  <div class="combined-cell">
+  <div>
+    <button
+      type="button"
+      class="btn btn-light"
+      @click="handleDetailledActivityClick($props.model.link)"
+    >
+      <img
+        src="@/assets/buttons/eye.png"
+        alt="Info"
+        width="16"
+        height="16"
+      >
+    </button>
     <a
       :href="model.link"
       target="_blank"

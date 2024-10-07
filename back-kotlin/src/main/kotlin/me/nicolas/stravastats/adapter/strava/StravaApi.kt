@@ -160,6 +160,10 @@ internal class StravaApi(clientId: String, clientSecret: String, private val pro
                     logger.info("Invalid accessToken : $accessToken")
                     exitProcess(-1)
                 }
+                if (response.code == 429) {
+                    logger.info("Quotas exceeded: Strava rate limitations (100 requests every 15 minutes, with up to 1,000 requests per day)")
+                    exitProcess(-1)
+                }
                 result = objectMapper.readValue(response.body?.string() ?: "")
 
                 activities.addAll(result)
@@ -189,7 +193,7 @@ internal class StravaApi(clientId: String, clientSecret: String, private val pro
                             logger.info(
                                 "Strava API usage is limited on a per-application basis using both a 15-minute " + "and daily request limit." + "The default rate limit allows 100 requests every 15 minutes, " + "with up to 1,000 requests per day."
                             )
-                            throw RuntimeException("Something was wrong with Strava API : 429 Too Many Requests")
+                            return Optional.empty()
                         }
 
                         else -> {
@@ -235,8 +239,9 @@ internal class StravaApi(clientId: String, clientSecret: String, private val pro
                             logger.info(
                                 "Strava API usage is limited on a per-application basis using both a 15-minute " + "and daily request limit." + "The default rate limit allows 100 requests every 15 minutes, " + "with up to 1,000 requests per day."
                             )
-                            throw RuntimeException("Something was wrong with Strava API : 429 Too Many Requests")
+                            return Optional.empty()
                         }
+
                         HttpStatus.NOT_FOUND.value() -> {
                             logger.warn("Activity $activityId not found")
                             return Optional.empty()

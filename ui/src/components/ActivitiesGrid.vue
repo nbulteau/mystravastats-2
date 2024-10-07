@@ -1,20 +1,47 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { nextTick, onMounted, ref } from "vue";
+import { eventBus } from "@/main"; // Adjust the path according to your project structure
 import VGrid, { VGridVueTemplate, type ColumnRegular, type ColumnProp, type CellProps, } from "@revolist/vue3-datagrid";
 import type { Activity } from "@/models/activity.model";
 import DistanceCellRenderer from "@/components/cell-renderers/DistanceCellRenderer.vue";
 import ElapsedTimeCellRenderer from "@/components/cell-renderers/ElapsedTimeCellRenderer.vue";
 import ElevationGainCellRenderer from "@/components/cell-renderers/ElevationGainCellRenderer.vue";
 import SpeedCellRenderer from "@/components/cell-renderers/SpeedCellRenderer.vue";
+import DetailedActivityModal from "@/components/DetailedActivityModal.vue";
+
 import NameCellRenderer from "./cell-renderers/NameCellRenderer.vue";
 import DateCellRenderer from "./cell-renderers/DateCellRenderer.vue";
 import GradientCellRenderer from "./cell-renderers/GradientCellRenderer.vue";
+import { Modal } from "bootstrap";
 
 const props = defineProps<{
   activities: Activity[];
   currentActivity: string;
   currentYear: string;
 }>();
+
+const selectedActivity = ref<Activity | null>(null);
+
+async function handleDetailledActivityClick(id: string) {
+  const activity = props.activities.find(activity => activity.link === id);
+  if (activity) {
+    selectedActivity.value = activity;
+    await nextTick(); // Wait for the DOM to update
+    const modalElement = document.getElementById('detailedActivityModal');
+    if (modalElement) {
+      const modal = new Modal(modalElement);
+      modal.show();
+    } else {
+      console.error("Modal element not found");
+    }
+  }
+}
+
+onMounted(() => {
+  eventBus.on('detailledActivityClick', (id) => {
+    return handleDetailledActivityClick(id as string);
+  });
+});
 
 async function csvExport() {
   let url = `http://localhost:8080/api/activities/csv?activityType=${props.currentActivity}`;
@@ -68,13 +95,6 @@ const columns = ref<ColumnRegular[]>([
           height: '25px'
         }
       }))]);
-    },
-    columnProperties: (): CellProps => {
-      return {
-        style: {
-          fontWeight: 'bold',
-        },
-      }
     },
   },
   {
@@ -161,7 +181,12 @@ const columns = ref<ColumnRegular[]>([
     theme="material"
     :columns="columns"
     :source="activities"
+    :readonly="true"
     style="height: 100%; height: calc(100vh - 150px)"
+  />
+  <DetailedActivityModal
+    v-if="selectedActivity"
+    :activity="selectedActivity"
   />
 </template>
 
