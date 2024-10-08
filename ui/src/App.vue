@@ -13,6 +13,7 @@ const isCurrent = (name: string) => {
 onMounted(async () => {
   await contextStore.updateData();
 });
+
 </script>
 
 <template>
