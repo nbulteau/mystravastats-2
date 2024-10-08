@@ -1,116 +1,168 @@
 <template>
-  <div
-    id="detailedActivityModal"
-    class="modal fade"
-    tabindex="-1"
-    aria-labelledby="detailedActivityModalLabel"
-    aria-hidden="true"
-  >
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5
-            id="detailedActivityModalLabel"
-            class="modal-title"
-          >
-            Detailed Activity
-          </h5>
-          <button
-            type="button"
-            class="btn-close"
-            data-bs-dismiss="modal"
-            aria-label="Close"
-          />
-        </div>
-        <div class="modal-body">
-          <!-- Modal body content goes here -->
-          <p><strong>Name:</strong> {{ activity.name }}</p>
-          <p><strong>Distance:</strong> {{ activity.distance / 1000 }} km</p>
-          <p><strong>Elapsed Time:</strong> {{ formattedElapsedTime(activity.elapsedTime) }}</p>
-          <p>
-            <strong>Total Elevation Gain:</strong> {{ activity.totalElevationGain }} m
-          </p>
-          <p>
-            <strong>Average Speed:</strong>
-            {{ formatSpeedWithUnit(activity.averageSpeed, activity.type) }}
-          </p>
-          <p><strong>Date:</strong> {{ formatDate(activity.date) }}</p>
-        </div>
-        <div class="modal-footer">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            data-bs-dismiss="modal"
-          >
-            Close
-          </button>
+  <div>
+    <!-- Modal -->
+    <div
+      id="mapModal"
+      class="modal fade modal-dialog-scrollable modal-xl"
+      tabindex="-1"
+      aria-labelledby="mapModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5
+              id="mapModalLabel"
+              class="modal-title"
+            >
+              {{ title() }}
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              aria-label="Close"
+              @click="hideModal"
+            />
+          </div>
+          <div class="modal-body">
+            <div
+              id="map"
+              style="width: 100%; height: 400px"
+            />
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              aria-label="Close"
+              @click="hideModal"
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
-import { defineProps } from "vue";
-import type { Activity } from "@/models/activity.model";
+<script lang="ts">
+import { defineComponent, onMounted, onUnmounted, watch } from "vue";
+import L from "leaflet";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap";
+import { Modal } from "bootstrap";
+import { DetailedActivity } from "@/models/activity.model"; // Ensure correct import
+import { formatSpeed, formatTime } from "@/utils/formatters";
 
-const props = defineProps<{
-  activity: Activity;
-}>();
+export default defineComponent({
+  name: "DetailedActivityModal",
+  props: {
+    activity: {
+      type: Object as () => DetailedActivity | null,
+      required: false,
+      default: () => null,
+    },
+  },
 
-const options: Intl.DateTimeFormatOptions = {
-  weekday: "short",
-  day: "2-digit",
-  month: "short",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-};
+  setup(props) {
+    let map: L.Map | null = null;
+    let modalInstance: Modal | null = null;    
 
-function formatDate(value: string): string {
-  const date = new Date(value);
-  return new Intl.DateTimeFormat(navigator.language, options).format(date);
-}
 
-function formatSpeedWithUnit(speed: number, activityType: string): string {
-  if (activityType === "Run") {
-    return `${formatSeconds(1000 / speed)}/km`;
-  } else {
-    return `${(speed * 3.6).toFixed(2)} km/h`;
-  }
-}
+    let title = () => {
+      return props.activity?.name + " - " 
+      + (props.activity?.averageSpeed !== undefined ? formatSpeed(props.activity.averageSpeed, props.activity.type) : "N/A")
+      + (props.activity?.distance !== undefined ? " / " + props.activity.distance / 1000 + " km" : "")
+      + (props.activity?.elapsedTime !== undefined ? " / " + formatTime(props.activity.elapsedTime) : "")
+      + (props.activity?.totalElevationGain !== undefined ? " / " + props.activity.totalElevationGain + " m" : "");
+    };
 
-function formattedElapsedTime(value: number): string {
-  const hours = Math.floor((value ?? 0) / 3600);
-  const minutes = Math.floor(((value ?? 0) % 3600) / 60);
-  const seconds = (value ?? 0) % 60;
+    const showModal = () => {
+      const modalElement = document.getElementById("mapModal")!;
+      modalInstance = new Modal(modalElement);
+      modalInstance.show();
 
-  if (hours === 0) {
-    return `${minutes}m ${seconds}s`; // Customize the formatting as needed
-  }
-  return `${hours}h ${minutes}m ${seconds}s`; // Customize the formatting as needed
-}
+      modalElement.addEventListener("shown.bs.modal", () => {
+        if (!map) {
+          map = L.map("map").setView([51.505, -0.09], 13);
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution:
+              '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          }).addTo(map);
 
-/**
- * Format seconds to minutes and seconds
- */
-function formatSeconds(seconds: number): string {
-  let min = Math.floor((seconds % 3600) / 60);
-  let sec = Math.floor(seconds % 60);
-  const hnd = Math.floor((seconds - min * 60 - sec) * 100 + 0.5);
+          // Add a polyline
+          const latlngs = props.activity?.stream?.latitudeLongitude?.map((latlng: number[]) => 
+            L.latLng(latlng[0], latlng[1])
+          );
 
-  if (hnd === 100) {
-    sec++;
-    if (sec === 60) {
-      sec = 0;
-      min++;
-    }
-  }
+          if (latlngs) {
+            const polyline = L.polyline(latlngs, { color: "red" }).addTo(map);
+            // Fit the map to the bounds of all polylines
+            const bounds = L.latLngBounds((polyline.getLatLngs() as L.LatLng[]));
+            map.fitBounds(bounds);
+          }
 
-  return `${min}'${sec < 10 ? "0" : ""}${sec}`;
-}
+        }
+      });
+
+      modalElement.addEventListener("hidden.bs.modal", () => {
+        if (map) {
+          map.remove();
+          map = null;
+        }
+        if (modalInstance) {
+          modalInstance.dispose();
+          modalInstance = null;
+        }
+        // Remove backdrop manually if needed
+        const backdrop = document.querySelector(".modal-backdrop");
+        if (backdrop) {
+          backdrop.remove();
+        }
+      });
+    };
+
+    const hideModal = () => {
+      const modalElement = document.getElementById("mapModal")!;
+      modalInstance = Modal.getInstance(modalElement);
+      if (modalInstance) {
+        modalInstance.hide();
+      }
+    };
+
+    onUnmounted(() => {
+      if (map) {
+        map.remove();
+      }
+      if (modalInstance) {
+        modalInstance.dispose();
+      }
+    });
+
+    watch(
+      () => props.activity,
+      (newActivity) => {
+        if (newActivity) {
+          title = newActivity.name + " - " + formatSpeed(newActivity.averageSpeed, newActivity.type);
+          showModal();
+        }
+      }
+    );
+
+    return {
+      showModal,
+      hideModal,
+      title,
+    };
+  },
+});
 </script>
 
 <style scoped>
-
+#map {
+  width: 100%;
+  height: 100%;
+  border-radius: 10px; /* Example of custom styling */
+}
 </style>

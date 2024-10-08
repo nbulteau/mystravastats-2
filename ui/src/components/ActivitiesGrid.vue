@@ -12,7 +12,7 @@ import DetailedActivityModal from "@/components/DetailedActivityModal.vue";
 import NameCellRenderer from "./cell-renderers/NameCellRenderer.vue";
 import DateCellRenderer from "./cell-renderers/DateCellRenderer.vue";
 import GradientCellRenderer from "./cell-renderers/GradientCellRenderer.vue";
-import { Modal } from "bootstrap";
+import type { DetailedActivity } from "@/models/activity.model";
 
 const props = defineProps<{
   activities: Activity[];
@@ -20,27 +20,30 @@ const props = defineProps<{
   currentYear: string;
 }>();
 
-const selectedActivity = ref<Activity | null>(null);
+const selectedActivity = ref<DetailedActivity | null>(null);
+const activityModal = ref<InstanceType<typeof DetailedActivityModal> | null>(null);
 
-async function handleDetailledActivityClick(id: string) {
-  const activity = props.activities.find(activity => activity.link === id);
-  if (activity) {
-    selectedActivity.value = activity;
-    await nextTick(); // Wait for the DOM to update
-    const modalElement = document.getElementById('detailedActivityModal');
-    if (modalElement) {
-      const modal = new Modal(modalElement);
-      modal.show();
-    } else {
-      console.error("Modal element not found");
-    }
+async function fetchDetailedActivity(id: string): Promise<DetailedActivity> {
+  const url = `http://localhost:8080/api/activities/${id}`;
+  const detailedActivity = await fetch(url)
+        .then(response => response.json());
+  return detailedActivity;
+}
+
+async function showActivityModal(activityId: string) {
+  // Fetch the detailed activity and show the modal
+  selectedActivity.value = await fetchDetailedActivity(activityId);
+  if (activityModal.value) {
+    nextTick(() => {
+      if (activityModal.value) {
+        activityModal.value.showModal();
+      }
+    });
   }
 }
 
 onMounted(() => {
-  eventBus.on('detailledActivityClick', (id) => {
-    return handleDetailledActivityClick(id as string);
-  });
+  eventBus.on("detailledActivityClick", (event: any) => showActivityModal(event as string));
 });
 
 async function csvExport() {
@@ -185,7 +188,7 @@ const columns = ref<ColumnRegular[]>([
     style="height: 100%; height: calc(100vh - 150px)"
   />
   <DetailedActivityModal
-    v-if="selectedActivity"
+    ref="activityModal"
     :activity="selectedActivity"
   />
 </template>

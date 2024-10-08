@@ -8,8 +8,11 @@ defineProps<{
 
 import { eventBus } from "@/main";
 
-function handleDetailledActivityClick(link: string) {
-  eventBus.emit('detailledActivityClick', link);
+  // Emit the event to the event bus so that the parent component can handle it
+  function handleDetailledActivityClick(link: string) {
+  // extract id from link
+  const id = link.split("/").pop();
+  eventBus.emit('detailledActivityClick', id);
 }
 
 </script>

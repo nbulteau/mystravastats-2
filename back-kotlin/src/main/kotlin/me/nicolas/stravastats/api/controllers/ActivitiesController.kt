@@ -6,10 +6,7 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
-import me.nicolas.stravastats.api.dto.ActivityDto
-import me.nicolas.stravastats.api.dto.DetailedActivityDto
-import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
-import me.nicolas.stravastats.api.dto.toDto
+import me.nicolas.stravastats.api.dto.*
 import me.nicolas.stravastats.domain.business.strava.Activity
 import me.nicolas.stravastats.domain.business.strava.ActivityType
 import me.nicolas.stravastats.domain.services.IActivityService
@@ -190,8 +187,8 @@ class ActivitiesController(
         @PathVariable activityId: Long,
     ): DetailedActivityDto {
 
-        return activityService.getDetailedActivity(activityId).orElseThrow {
+        return activityService.getActivity(activityId).orElseThrow {
             ResourceNotFoundException("Activity id $activityId not found")
-        }.toDto()
+        }.toDetailedActivityDto()
     }
 }

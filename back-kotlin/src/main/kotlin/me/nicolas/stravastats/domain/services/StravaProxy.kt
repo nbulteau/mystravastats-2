@@ -30,6 +30,8 @@ interface IStravaProxy {
 
     fun listActivitiesPaginated(pageable: Pageable): Page<Activity>
 
+    fun getActivity(activityId: Long): Optional<Activity>
+
     fun getDetailedActivity(activityId: Long): Optional<DetailedActivity>
 
     fun getActivitiesByActivityTypeGroupByActiveDays(activityType: ActivityType): Map<String, Int>
@@ -99,6 +101,18 @@ class StravaProxy(
         val subList = sortedActivities.subList(from, to)
 
         return PageImpl(subList, pageable, activities.size.toLong())
+    }
+
+    override fun getActivity(activityId: Long): Optional<Activity> {
+        logger.info("Get activity for activity id $activityId")
+
+        return activities.find { activity -> activity.id == activityId }.let {
+            if (it != null) {
+                Optional.of(it)
+            } else {
+                Optional.empty()
+            }
+        }
     }
 
     override fun getDetailedActivity(activityId: Long): Optional<DetailedActivity> {

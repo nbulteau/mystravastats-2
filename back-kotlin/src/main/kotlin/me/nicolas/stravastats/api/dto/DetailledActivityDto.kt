@@ -1,127 +1,102 @@
 package me.nicolas.stravastats.api.dto
 
-import me.nicolas.stravastats.domain.business.strava.DetailedActivity
-import me.nicolas.stravastats.domain.business.strava.Gear
-import me.nicolas.stravastats.domain.business.strava.GeoMap
+import io.swagger.v3.oas.annotations.media.Schema
+import me.nicolas.stravastats.domain.business.strava.*
+import me.nicolas.stravastats.domain.services.statistics.calculateBestElevationForDistance
+import me.nicolas.stravastats.domain.services.statistics.calculateBestPowerForTime
+import me.nicolas.stravastats.domain.services.statistics.calculateBestTimeForDistance
 
-data class DetailedActivityDto (
-    val achievementCount: Int,
-    val athlete: Long,
-    val athleteCount: Int,
-    val averageCadence: Double,
-    val averageSpeed: Double,
-    val averageTemp: Int,
-    val averageWatts: Double,
-    val calories: Double,
-    val commentCount: Int,
-    val commute: Boolean,
-    val description: String,
-    val deviceName: String?,
-    val deviceWatts: Boolean,
-    val distance: Int,
-    val elapsedTime: Int,
-    val elevHigh: Double,
-    val elevLow: Double,
-    val embedToken: String,
-    val endLatLng: List<Double>,
-    val externalId: String,
-    val flagged: Boolean,
-    val fromAcceptedTag: Boolean,
-    val gear: Gear,
-    val gearId: String,
-    val hasHeartRate: Boolean,
-    val hasKudoed: Boolean,
-    val hideFromHome: Boolean,
-    val id: Long,
-    val kilojoules: Double,
-    val kudosCount: Int,
-    val leaderboardOptOut: Boolean,
-    val map: GeoMap?,
-    val manual: Boolean,
-    val maxSpeed: Double,
-    val maxWatts: Int,
-    val movingTime: Int,
+@Schema(description = "Detailed activity object", name = "Activity")
+data class DetailedActivityDto(
+    @Schema(description = "Activity name")
     val name: String,
-    val prCount: Int,
-    val isPrivate: Boolean,
-    val resourceState: Int,
-    val segmentEfforts: List<SegmentEffortDto>,
-    val segmentLeaderboardOptOut: Boolean,
-    val splitsMetric: List<SplitsMetricDto>,
-    val sportType: String,
-    val startDate: String,
-    val startSateLocal: String,
-    val startLatLng: List<Double>,
-    val sufferScore: Double?,
-    val timezone: String,
-    val totalElevationGain: Int,
-    val totalPhotoCount: Int,
-    val trainer: Boolean,
+    @Schema(description = "Activity type")
     val type: String,
-    val uploadId: Long,
-    val utcOffset: Int,
-    val weightedAverageWatts: Int,
-    val workoutType: Int,
+    @Schema(description = "Activity link to Strava")
+    val link: String,
+    @Schema(description = "Activity distance in meters")
+    val distance: Int,
+    @Schema(description = "Activity elapsed time in seconds")
+    val elapsedTime: Int,
+    @Schema(description = "Activity total elevation gain in meters")
+    val totalElevationGain: Int,
+    @Schema(description = "Activity total descent in meters")
+    val totalDescent: Int,
+    @Schema(description = "Activity average speed in m/s")
+    val averageSpeed: Double,
+    @Schema(description = "Activity best time for distance for 1000m in m/s")
+    val bestTimeForDistanceFor1000m: Double,
+    @Schema(description = "Activity best elevation for distance for 500m in %")
+    val bestElevationForDistanceFor500m: Double,
+    @Schema(description = "Activity best elevation for distance for 1000m in %")
+    val bestElevationForDistanceFor1000m: Double,
+    @Schema(description = "Activity date")
+    val date: String,
+    @Schema(description = "Activity average watts")
+    val averageWatts: Int,
+    @Schema(description = "Activity weighted average watts")
+    val weightedAverageWatts: String,
+    @Schema(description = "Activity best power for 20 minutes in watts")
+    val bestPowerFor20minutes: String,
+    @Schema(description = "Activity best power for 60 minutes in watts")
+    val bestPowerFor60minutes: String,
+    @Schema(description = "Activity FTP (Functional Threshold Power) in watts")
+    val ftp: String,
+    val stream: StreamDto? = null
 )
 
-fun DetailedActivity.toDto(): DetailedActivityDto {
+fun Activity.toDetailedActivityDto(): DetailedActivityDto {
+
+    val bestPowerFor20Minutes = calculateBestPowerForTime(20 * 60)
+    val bestPowerFor60Minutes = calculateBestPowerForTime(60 * 60)
+
+    val ftp = if (bestPowerFor60Minutes != null) {
+        "${bestPowerFor60Minutes.averagePower}"
+    } else if (bestPowerFor20Minutes != null) {
+        "${(bestPowerFor20Minutes.averagePower?.times(0.95))?.toInt()}"
+    } else {
+        ""
+    }
     return DetailedActivityDto(
-        achievementCount = achievementCount,
-        athlete = athlete.id,
-        athleteCount = athleteCount,
-        averageCadence = averageCadence,
-        averageSpeed = averageSpeed,
-        averageTemp = averageTemp,
-        averageWatts = averageWatts,
-        calories = calories,
-        commentCount = commentCount,
-        commute = commute,
-        description = description,
-        deviceName = deviceName,
-        deviceWatts = deviceWatts,
-        distance = distance,
-        elapsedTime = elapsedTime,
-        elevHigh = elevHigh,
-        elevLow = elevLow,
-        embedToken = embedToken,
-        endLatLng = endLatLng,
-        externalId = externalId,
-        flagged = flagged,
-        fromAcceptedTag = fromAcceptedTag,
-        gear = gear,
-        gearId = gearId,
-        hasHeartRate = hasHeartRate,
-        hasKudoed = hasKudoed,
-        hideFromHome = hideFromHome,
-        id = id,
-        kilojoules = kilojoules,
-        kudosCount = kudosCount,
-        leaderboardOptOut = leaderboardOptOut,
-        map = map,
-        manual = manual,
-        maxSpeed = maxSpeed,
-        maxWatts = maxWatts,
-        movingTime = movingTime,
-        name = name,
-        prCount = prCount,
-        isPrivate = isPrivate,
-        resourceState = resourceState,
-        segmentEfforts = segmentEfforts.map { it.toDto() },
-        segmentLeaderboardOptOut = segmentLeaderboardOptOut,
-        splitsMetric = splitsMetric.map { it.toDto() },
-        sportType = sportType,
-        startDate = startDate,
-        startSateLocal = startSateLocal,
-        startLatLng = startLatLng,
-        sufferScore = sufferScore,
-        timezone = timezone,
-        totalElevationGain = totalElevationGain,
-        totalPhotoCount = totalPhotoCount,
-        trainer = trainer,
-        type = type,
-        uploadId = uploadId,
-        utcOffset = utcOffset,
-        weightedAverageWatts = weightedAverageWatts,
-        workoutType = workoutType,
+        name = this.name,
+        type = this.type,
+        link = "https://www.strava.com/activities/${this.id}",
+        distance = this.distance.toInt(),
+        elapsedTime = this.elapsedTime,
+        totalElevationGain = this.totalElevationGain.toInt(),
+        totalDescent = calculateTotalDescentGain().toInt(),
+        averageSpeed = this.averageSpeed,
+        bestTimeForDistanceFor1000m = calculateBestTimeForDistance(1000.0)?.getMSSpeed()?.toDouble() ?: Double.NaN,
+        bestElevationForDistanceFor500m = calculateBestElevationForDistance(500.0)?.getGradient()?.toDouble()
+            ?: Double.NaN,
+        bestElevationForDistanceFor1000m = calculateBestElevationForDistance(1000.0)?.getGradient()?.toDouble()
+            ?: Double.NaN,
+        date = this.startDateLocal,
+        averageWatts = this.averageWatts.toInt(),
+        weightedAverageWatts = "${this.weightedAverageWatts}",
+        bestPowerFor20minutes = bestPowerFor20Minutes?.getFormattedPower() ?: "",
+        bestPowerFor60minutes = bestPowerFor60Minutes?.getFormattedPower() ?: "",
+        ftp = ftp,
+        stream = this.stream?.toDto(),
+    )
+}
+
+data class StreamDto(
+    val distance: List<Double>,
+    val time: List<Int>,
+    val moving: List<Boolean>?,
+    val altitude: List<Double>?,
+    val latitudeLongitude: List<List<Double>>?,
+    val watts: List<Int>?,
+)
+
+fun Stream.toDto(): StreamDto {
+    return StreamDto(
+        distance = this.distance.data,
+        time = this.time.data,
+        moving = this.moving?.data,
+        altitude = this.altitude?.data,
+        latitudeLongitude = this.latitudeLongitude?.data,
+        watts = this.watts?.data,
     )
 }

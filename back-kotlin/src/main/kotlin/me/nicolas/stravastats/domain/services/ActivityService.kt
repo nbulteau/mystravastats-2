@@ -2,7 +2,6 @@ package me.nicolas.stravastats.domain.services
 
 import me.nicolas.stravastats.domain.business.strava.Activity
 import me.nicolas.stravastats.domain.business.strava.ActivityType
-import me.nicolas.stravastats.domain.business.strava.DetailedActivity
 import me.nicolas.stravastats.domain.services.csv.*
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
@@ -23,7 +22,7 @@ interface IActivityService {
 
     fun exportCSV(activityType: ActivityType, year: Int): String
 
-    fun getDetailedActivity(activityId: Long): Optional<DetailedActivity>
+    fun getActivity(activityId: Long): Optional<Activity>
 }
 
 @Service
@@ -85,9 +84,9 @@ internal class ActivityService(
         return exporter.export()
     }
 
-    override fun getDetailedActivity(activityId: Long): Optional<DetailedActivity> {
+    override fun getActivity(activityId: Long): Optional<Activity> {
         logger.info("Get detailed activity $activityId")
 
-        return stravaProxy.getDetailedActivity(activityId)
+        return stravaProxy.getActivity(activityId)
     }
 }
