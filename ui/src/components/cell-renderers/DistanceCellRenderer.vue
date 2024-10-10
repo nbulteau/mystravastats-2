@@ -1,5 +1,7 @@
 <template>
-  <div class="distance-cell">{{ formattedDistance }} km</div>
+  <div class="distance-cell">
+    {{ formattedDistance }} km
+  </div>
 </template>
 
 <script setup lang="ts">

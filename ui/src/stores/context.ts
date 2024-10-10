@@ -1,3 +1,5 @@
+// noinspection UnnecessaryLocalVariableJS
+
 import { defineStore } from 'pinia'
 import { ErrorService } from "@/services/error.service";
 import { type Toast } from '@/models/toast.model'
@@ -73,41 +75,49 @@ export const useContextStore = defineStore('context', {
             this.athleteDisplayName = `${data["firstname"]} ${data["lastname"]}`
         },
         async fetchStatistics() {
+            // noinspection UnnecessaryLocalVariableJS
             const statitstics = await fetch(this.url("statistics"))
                 .then(response => response.json())
             this.statistics = statitstics
         },
         async fetchActivities() {
+            // noinspection UnnecessaryLocalVariableJS
             const activities = await fetch(this.url("activities"))
                 .then(response => response.json())
             this.activities = activities
         },
         async fetchGPXCoordinates() {
+            // noinspection UnnecessaryLocalVariableJS
             const gpxCoordinates = await fetch(this.url("maps/gpx"))
                 .then(response => response.json())
             this.gpxCoordinates = gpxCoordinates
         },
         async fetchDistanceByMonths() {
+            // noinspection UnnecessaryLocalVariableJS
             const distanceByMonths = await fetch(this.url("charts/distance-by-period") + '&period=MONTHS').
                 then(response => response.json())
             this.distanceByMonths = distanceByMonths;
         },
         async fetchElevationByMonths() {
+            // noinspection UnnecessaryLocalVariableJS
             const elevationByMonths = await fetch(this.url("charts/elevation-by-period") + '&period=MONTHS')
                 .then(response => response.json())
             this.elevationByMonths = elevationByMonths;
         },
         async fetchAverageSpeedByMonths() {
+            // noinspection UnnecessaryLocalVariableJS
             const averageSpeedByMonths = await fetch(this.url("charts/average-speed-by-period") + '&period=MONTHS')
                 .then(response => response.json())
             this.averageSpeedByMonths = averageSpeedByMonths;
         },
         async fetchDistanceByWeeks() {
+            // noinspection UnnecessaryLocalVariableJS
             const distanceByWeeks = await fetch(this.url("charts/distance-by-period") + '&period=WEEKS')
                 .then(response => response.json())
             this.distanceByWeeks = distanceByWeeks;
         },
         async fetchElevationByWeeks() {
+            // noinspection UnnecessaryLocalVariableJS
             const elevationByWeeks = await fetch(this.url("charts/elevation-by-period") + '&period=WEEKS')
                 .then(response => response.json())
             this.elevationByWeeks = elevationByWeeks;
@@ -134,6 +144,7 @@ export const useContextStore = defineStore('context', {
             this.cumulativeDistancePerYear = cumulativeDistancePerYear;
         },
         async fetchEddingtonNumber() {
+            // noinspection UnnecessaryLocalVariableJS
             const eddingtonNumber = await fetch(this.url("charts/eddington-number"))
                 .then(response => response.json())
             this.eddingtonNumber = eddingtonNumber;
@@ -146,11 +157,11 @@ export const useContextStore = defineStore('context', {
         },
         async updateCurrentYear(currentYear: string) {
             this.currentYear = currentYear
-            this.updateData();
+            await this.updateData();
         },
         async updateCurrentActivityType(activityType: string) {
             this.currentActivity = activityType
-            this.updateData();
+            await this.updateData();
         },
         async updateData() {
             switch (this.currentView) {

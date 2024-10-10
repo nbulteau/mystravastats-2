@@ -1,5 +1,6 @@
+<!--suppress ALL -->
 <script setup lang="ts">
-import { eventBus } from "@/main"; // Adjust the path according to your project structure
+import { eventBus } from "@/main";
 import VGrid, { VGridVueTemplate, type ColumnRegular, type ColumnProp, } from "@revolist/vue3-datagrid";
 import type { Activity } from "@/models/activity.model";
 import DistanceCellRenderer from "@/components/cell-renderers/DistanceCellRenderer.vue";

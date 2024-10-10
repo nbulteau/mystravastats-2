@@ -177,7 +177,45 @@ const initChart = () => {
         }
       ));
     }
+
+    const chartContainer = document.getElementById('chart-container');
+    if(chartContainer) {
+        chartContainer.addEventListener('mousemove',
+        function (e: MouseEvent) {
+            let chart: Highcharts.Chart | undefined;
+            let point, i, event;
+
+            for (i = 0; i < Highcharts.charts.length; i = i + 1) {
+                chart = Highcharts.charts[i];
+                if (chart) {
+                    // Find coordinates within the chart
+                    event = chart.pointer.normalize(e);
+                    // Get the hovered point
+                    point = chart.series[0].searchPoint(event, true);
+
+                    if (point) {
+                        const mapContainer = document.getElementById("map-container");
+                        if (mapContainer) {
+                            const latlng = activity.value?.stream?.latitudeLongitude?.[point.index];
+                            if (latlng) {
+                                // Remove previous marker
+                                map.value?.eachLayer((layer) => {
+                                    if (layer instanceof L.Marker) {
+                                        map.value?.removeLayer(layer);
+                                    }
+                                }); 
+                                // Add a marker
+                                L.marker(L.latLng(latlng[0], latlng[1])).addTo(map.value!);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    );
+    }
 };
+
 
 
 onMounted(async () => {
@@ -192,16 +230,15 @@ onMounted(async () => {
 <template>
   <div
     id="title"
-    style="text-align: center; margin-bottom: 20px;"
+    style="text-align: center; margin-bottom: 20px"
   >
-    <span style="display: block; font-size: 1.5em; font-weight: bold;">
+    <span style="display: block; font-size: 1.5em; font-weight: bold">
       {{ activity?.name }}
     </span>
-    <span style="display: block; font-size: 1.2em;">
+    <span style="display: block; font-size: 1.2em">
       {{ (activity?.distance ?? 0) / 1000 }} km /
-      {{ formatSpeedWithUnit(activity?.averageSpeed ?? 0, activity?.type ?? 'Ride') }} /
-      {{ formatTime(activity?.elapsedTime ?? 0) }} /
-      {{ activity?.totalElevationGain }} m
+      {{ formatSpeedWithUnit(activity?.averageSpeed ?? 0, activity?.type ?? "Ride") }} /
+      {{ formatTime(activity?.elapsedTime ?? 0) }} / {{ activity?.totalElevationGain }} m
     </span>
   </div>
   <div

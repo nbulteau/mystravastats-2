@@ -3,7 +3,6 @@ import { Chart } from "highcharts-vue";
 import { reactive, watch } from "vue";
 import Highcharts, { type Options, type SeriesColumnOptions } from "highcharts";
 import { EddingtonNumber } from "@/models/eddington-number.model";
-import { ActivityType } from "@/models/context.store.state.model";
 
 const props = defineProps<{
   title: string;
