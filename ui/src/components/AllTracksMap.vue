@@ -13,7 +13,9 @@ const initMap = () => {
   const mapContainer = document.getElementById("map");
   if (mapContainer) {
     map.value = L.map(mapContainer);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map.value);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+    }).addTo(map.value);
   }
 };
 
@@ -31,13 +33,16 @@ const updateMap = () => {
     // Create a polyline from the GPX coordinates and add it to the map
     const polylines = props.gpxCoordinates.map((coords: number[][]) => {
       if (map.value) {
-        return L.polyline(coords.map((coord: number[]) => L.latLng(coord[0], coord[1])), { color: "red" }).addTo(map.value);
+        const latLngs = coords.map((coord) => L.latLng(coord[0], coord[1]));
+        return L.polyline(latLngs, { color: "red" }).addTo(map.value);
       }
     });
 
     // Fit the map to the bounds of all polylines
     // const bounds = L.latLngBounds(polylines.flatMap((polyline) => polyline.getLatLngs()));
-    const bounds = L.latLngBounds(polylines.flatMap((polyline) => polyline!.getLatLngs().flat() as L.LatLng[]));
+    const bounds = L.latLngBounds(
+      polylines.flatMap((polyline) => polyline!.getLatLngs().flat() as L.LatLng[])
+    );
     map.value.fitBounds(bounds);
   }
 };

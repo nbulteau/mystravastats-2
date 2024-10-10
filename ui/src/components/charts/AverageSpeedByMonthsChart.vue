@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from "vue";
+import { computed, reactive, watch } from "vue";
 import { Chart } from "highcharts-vue";
 import type { SeriesColumnOptions, YAxisOptions } from "highcharts";
 
 const props = defineProps<{
-  activityType: string
-  dataByMonths: Map<string, number>[]
+  activityType: string;
+  dataByMonths: Map<string, number>[];
 }>();
 
-const unit = computed(() => props.activityType === "Run" ? "min/km" : "km/h");
+const unit = computed(() => (props.activityType === "Run" ? "min/km" : "km/h"));
 
 const chartOptions: Highcharts.Options = reactive({
   chart: { type: "column" },
@@ -41,6 +41,12 @@ const chartOptions: Highcharts.Options = reactive({
     title: {
       text: `Average speed ${unit.value}`,
     },
+    labels: {
+      formatter: function (this: any): string {
+        return formatSpeedWithUnit(this.value, props.activityType);
+      },
+      
+    },
   },
   legend: {
     enabled: false,
@@ -49,7 +55,9 @@ const chartOptions: Highcharts.Options = reactive({
     formatter: function (this: any): string {
       const speed = formatSpeedWithUnit(this.y, props.activityType);
 
-      return this.points.reduce(function (s: string) { return `${s}: <span>${speed}</span>`; }, "<b>" + this.x + "</b>");
+      return this.points.reduce(function (s: string) {
+        return `${s}: <span>${speed}</span>`;
+      }, "<b>" + this.x + "</b>");
     },
     shared: true,
   },
@@ -133,7 +141,7 @@ function formatSeconds(seconds: number): string {
     }
   }
 
-  return `${min}'${sec < 10 ? '0' : ''}${sec}`;
+  return `${min}'${sec < 10 ? "0" : ""}${sec}`;
 }
 
 // Watch for changes in distanceByMonths and update the chart data
@@ -141,17 +149,16 @@ watch(
   () => props.dataByMonths,
   (newData) => {
     if (chartOptions.series && chartOptions.series.length > 0) {
-      (chartOptions.series[0] as SeriesColumnOptions).data = convertToNumberArray(newData);
-
+      (chartOptions.series[0] as SeriesColumnOptions).data = convertToNumberArray(
+        newData
+      );
     }
     if (chartOptions.yAxis && (chartOptions.yAxis as YAxisOptions).title) {
       (chartOptions.yAxis as YAxisOptions).title!.text = `Average speed ${unit.value}`;
     }
-
   },
   { immediate: true }
 );
-
 </script>
 
 <template>

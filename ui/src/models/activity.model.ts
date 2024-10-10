@@ -104,7 +104,7 @@ export class DetailedActivity extends Activity {
     }
 }
 
-class Stream {
+export class Stream {
     distance: number[];
     time: number[];
     moving?: number[];

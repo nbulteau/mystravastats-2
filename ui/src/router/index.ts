@@ -4,6 +4,7 @@ import ActivitiesView from "@/views/ActivitiesView.vue";
 import ChartsView from "@/views/ChartsView.vue";
 import MapView from "@/views/MapView.vue";
 import BadgesView from "@/views/BadgesView.vue";
+import DetailedActivityView from "@/views/DetailedActivityView.vue";
 
 
 const router: Router = createRouter({
@@ -33,6 +34,11 @@ const router: Router = createRouter({
       path: '/badges',
       name: 'badges',
       component: BadgesView
+    },
+    {
+      path: '/activities/:id',
+      name: 'activity',
+      component: DetailedActivityView
     }
   ]
 })

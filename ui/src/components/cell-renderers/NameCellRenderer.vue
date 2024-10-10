@@ -1,20 +1,20 @@
 <script setup lang="ts">
 import type { Activity } from "@/models/activity.model";
 import { defineProps } from "vue";
+import { eventBus } from "@/main";
 
 defineProps<{
   model: Activity;
 }>();
 
-import { eventBus } from "@/main";
 
-  // Emit the event to the event bus so that the parent component can handle it
-  function handleDetailledActivityClick(link: string) {
+
+// Emit the event to the event bus so that the parent component can handle it
+function handleDetailledActivityClick(link: string) {
   // extract id from link
   const id = link.split("/").pop();
-  eventBus.emit('detailledActivityClick', id);
+  eventBus.emit("detailledActivityClick", id);
 }
-
 </script>
 
 <template>

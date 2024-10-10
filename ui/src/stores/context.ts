@@ -28,7 +28,7 @@ export const useContextStore = defineStore('context', {
         famousClimbBadgesCheckResults: BadgeCheckResult[],
 
 
-        currentView: 'statistics' | 'activities' | 'map' | 'badges' | 'charts'
+        currentView: 'statistics' | 'activities' | 'activity' | 'map' | 'badges' | 'charts'
         toasts: any[]
     } {
         return {
@@ -179,7 +179,7 @@ export const useContextStore = defineStore('context', {
                     break
             }
         },
-        updateCurrentView(view: 'statistics' | 'activities' | 'map' | 'badges' | 'charts') {
+        updateCurrentView(view: 'statistics' | 'activities' | 'activity' | 'map' | 'badges' | 'charts') {
             this.currentView = view
             this.updateData();
         },
