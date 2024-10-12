@@ -11,13 +11,14 @@ build
 strava-cache/.strava
 strava-*/
 .strava
+activities-*.json
+stream-*.json
 
 # Ignore fit dowload directory
 fit-*/
 
-# Ignore Strava json files
-activities-*.json
-stream-*.json
+# Ignore gpx dowload directory
+gpx-*/
 
 # Ignore mac files
 .DS_Store
