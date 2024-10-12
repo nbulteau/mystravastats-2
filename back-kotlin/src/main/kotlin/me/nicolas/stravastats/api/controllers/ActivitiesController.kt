@@ -103,7 +103,7 @@ class ActivitiesController(
         @RequestParam(required = true) activityType: ActivityType,
         @RequestParam(required = false) year: Int?,
     ): List<ActivityDto> {
-        return activityService.getFilteredActivitiesByActivityTypeAndYear(activityType, year)
+        return activityService.getActivitiesByActivityTypeAndYear(activityType, year)
             .map { activity -> activity.toDto() }
     }
 

@@ -93,7 +93,7 @@ abstract class AbstractActivityProvider : IActivityProvider {
             .toMap()
     }
 
-    override fun getFilteredActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int?): List<Activity> {
+    override fun getActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int?): List<Activity> {
 
         val key: String = year?.let { "${activityType.name}-$it" } ?: activityType.name
         val filteredActivities = filteredActivitiesCache[key] ?: activities

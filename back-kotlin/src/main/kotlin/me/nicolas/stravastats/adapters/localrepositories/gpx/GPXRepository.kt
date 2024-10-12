@@ -10,6 +10,10 @@ import java.io.File
 import java.util.*
 import javax.xml.bind.DatatypeConverter
 import javax.xml.parsers.DocumentBuilderFactory
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 // WIP : GPXRepository
 class GPXRepository(gpxDirectory: String) {
@@ -23,14 +27,14 @@ class GPXRepository(gpxDirectory: String) {
     fun loadActivitiesFromCache(year: Int): List<Activity> {
 
         val yearActivitiesDirectory = File(cacheDirectory, "$year")
-        val fitFiles = yearActivitiesDirectory.listFiles { file ->
-            file.extension.lowercase(Locale.getDefault()) == "fit"
+        val gpxFiles = yearActivitiesDirectory.listFiles { file ->
+            file.extension.lowercase(Locale.getDefault()) == "gpx"
         }
-        val activities: List<Activity> = fitFiles?.mapNotNull { fitFile ->
+        val activities: List<Activity> = gpxFiles?.mapNotNull { gpxFile ->
             try {
-                convertGpxToActivity(fitFile, 0)
+                convertGpxToActivity(gpxFile, 0)
             } catch (exception: Exception) {
-                logger.error("Something wrong during FIT conversion: ${exception.message}")
+                logger.error("Something wrong during GPX conversion: ${exception.message}")
                 null
             }
         }?.toList() ?: emptyList()
@@ -46,6 +50,8 @@ class GPXRepository(gpxDirectory: String) {
         val name = trk.getElementsByTagName("name").item(0).textContent
         val trkseg = trk.getElementsByTagName("trkseg").item(0) as Element
         val trkpts = trkseg.getElementsByTagName("trkpt")
+
+        val type = trk.getElementsByTagName("type").item(0).textContent.toActivityType()
 
         var totalDistance = 0.0
         var totalElevationGain = 0.0
@@ -119,7 +125,7 @@ class GPXRepository(gpxDirectory: String) {
             startDateLocal = startTime,
             startLatlng = listOf(),
             totalElevationGain = totalElevationGain,
-            type = "Run",
+            type = type,
             uploadId = 0L,
             weightedAverageWatts = 0,
         )
@@ -200,10 +206,10 @@ class GPXRepository(gpxDirectory: String) {
         val deltaPhi = Math.toRadians(lat2 - lat1)
         val deltaLambda = Math.toRadians(lon2 - lon1)
 
-        val a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
-                Math.cos(phi1) * Math.cos(phi2) *
-                Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2)
-        val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+        val a = sin(deltaPhi / 2) * sin(deltaPhi / 2) +
+                cos(phi1) * Math.cos(phi2) *
+                sin(deltaLambda / 2) * sin(deltaLambda / 2)
+        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
 
         return R * c
     }
@@ -213,4 +219,12 @@ class GPXRepository(gpxDirectory: String) {
         val end = DatatypeConverter.parseDateTime(endTime).time
         return ((end.time - start.time) / 1000).toInt()
     }
+}
+
+private fun String.toActivityType(): String {
+    return when(this) {
+        "cycling" -> ActivityType.Ride.name
+        else -> ActivityType.Ride.name
+    }
+
 }

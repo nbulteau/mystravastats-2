@@ -187,7 +187,7 @@ internal class ChartsService(
         year: Int,
         period: Period,
     ): Map<String, List<Activity>> {
-        val filteredActivities = activityProvider.getFilteredActivitiesByActivityTypeAndYear(activityType, year)
+        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityType, year)
 
         val activitiesByPeriod = when (period) {
             Period.MONTHS -> groupActivitiesByMonth(filteredActivities)

@@ -17,7 +17,7 @@ class BadgesServiceTest {
     fun setUp() {
         val activities = TestHelper.loadActivities()
 
-        every { activityProvider.getFilteredActivitiesByActivityTypeAndYear(ActivityType.Ride, 2021) } returns activities
+        every { activityProvider.getActivitiesByActivityTypeAndYear(ActivityType.Ride, 2021) } returns activities
 
         badgesService = BadgesService(activityProvider)
     }

@@ -39,7 +39,7 @@ class ChartsServiceTest {
         val year = 2020
         val period = Period.MONTHS
 
-        every { activityProvider.getFilteredActivitiesByActivityTypeAndYear(ActivityType.Run, 2020) } returns run2020Activities
+        every { activityProvider.getActivitiesByActivityTypeAndYear(ActivityType.Run, 2020) } returns run2020Activities
 
         // WHEN
         val result = chartsStravaService.getDistanceByPeriodByActivityTypeByYear(activityType, year, period)
@@ -57,7 +57,7 @@ class ChartsServiceTest {
         val year = 2023
         val period = Period.MONTHS
 
-        every { activityProvider.getFilteredActivitiesByActivityTypeAndYear(ActivityType.Run, 2023) } returns run2023Activities
+        every { activityProvider.getActivitiesByActivityTypeAndYear(ActivityType.Run, 2023) } returns run2023Activities
 
         // WHEN
         val result = chartsStravaService.getDistanceByPeriodByActivityTypeByYear(activityType, year, period)

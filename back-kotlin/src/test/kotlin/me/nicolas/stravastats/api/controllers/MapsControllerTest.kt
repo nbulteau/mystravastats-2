@@ -32,7 +32,7 @@ class MapsControllerTest{
         val year = 2022
         val activities = listOf(TestHelper.activity)
 
-        every { stravaProxy.getFilteredActivitiesByActivityTypeAndYear(activityType, year) } returns activities
+        every { stravaProxy.getActivitiesByActivityTypeAndYear(activityType, year) } returns activities
 
         // WHEN
         mockMvc.perform(
@@ -53,7 +53,7 @@ class MapsControllerTest{
         val activityType = ActivityType.Run
         val year = 2022
 
-        every { stravaProxy.getFilteredActivitiesByActivityTypeAndYear(activityType, year) } returns emptyList()
+        every { stravaProxy.getActivitiesByActivityTypeAndYear(activityType, year) } returns emptyList()
 
         // WHEN
         mockMvc.perform(

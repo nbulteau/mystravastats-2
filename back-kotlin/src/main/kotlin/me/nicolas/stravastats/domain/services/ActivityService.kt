@@ -13,17 +13,15 @@ import java.util.*
 
 interface IActivityService {
 
+    fun getActivity(activityId: Long): Optional<Activity>
+
     fun getActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int?): List<Activity>
 
     fun getActivitiesByActivityTypeGroupByActiveDays(activityType: ActivityType): Map<String, Int>
 
     fun listActivitiesPaginated(pageable: Pageable): Page<Activity>
 
-    fun getFilteredActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int?): List<Activity>
-
     fun exportCSV(activityType: ActivityType, year: Int): String
-
-    fun getActivity(activityId: Long): Optional<Activity>
 }
 
 @Service
@@ -33,17 +31,6 @@ internal class ActivityService(
 
     private val logger = LoggerFactory.getLogger(ActivityService::class.java)
 
-    /**
-     * Get filtered activities by activity type and year.
-     * @param activityType the activity type
-     * @param year the year
-     * @return a list of activities
-     */
-    override fun getActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int?): List<Activity> {
-        logger.info("Get activities by activity type ($activityType) for ${year ?: "all years"}")
-
-        return activityProvider.getFilteredActivitiesByActivityTypeAndYear(activityType, year)
-    }
 
     override fun getActivitiesByActivityTypeGroupByActiveDays(activityType: ActivityType): Map<String, Int> {
         logger.info("Get activities by activity type ($activityType) group by active days")
@@ -57,10 +44,10 @@ internal class ActivityService(
         return activityProvider.listActivitiesPaginated(pageable)
     }
 
-    override fun getFilteredActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int?): List<Activity> {
-        logger.info("Get filtered activities by activity type ($activityType) for ${year ?: "all years"}")
+    override fun getActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int?): List<Activity> {
+        logger.info("Get activities by activity type ($activityType) for ${year ?: "all years"}")
 
-        return activityProvider.getFilteredActivitiesByActivityTypeAndYear(activityType, year)
+        return activityProvider.getActivitiesByActivityTypeAndYear(activityType, year)
     }
 
     override fun exportCSV(activityType: ActivityType, year: Int): String {
@@ -68,7 +55,7 @@ internal class ActivityService(
 
         val clientId = activityProvider.athlete().id.toString()
 
-        val activities = activityProvider.getFilteredActivitiesByActivityTypeAndYear(activityType, year)
+        val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityType, year)
         val exporter = when (activityType) {
             ActivityType.Ride -> RideCSVExporter(clientId = clientId, activities = activities, year = year)
             ActivityType.Run -> RunCSVExporter(clientId = clientId, activities = activities, year = year)

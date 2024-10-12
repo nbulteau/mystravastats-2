@@ -22,7 +22,7 @@ interface IActivityProvider {
 
     fun getActivitiesByActivityTypeByYearGroupByActiveDays(activityType: ActivityType, year: Int): Map<String, Int>
 
-    fun getFilteredActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int? = null): List<Activity>
+    fun getActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int? = null): List<Activity>
 
     fun getActivitiesByActivityTypeGroupByYear(activityType: ActivityType): Map<String, List<Activity>>
 }

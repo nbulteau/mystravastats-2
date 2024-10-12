@@ -35,7 +35,7 @@ class StatisticsServiceTest {
         val activityType = ActivityType.Run
         val year = 2020
 
-        every { activityProvider.getFilteredActivitiesByActivityTypeAndYear(ActivityType.Run, 2020) } returns run2020Activities
+        every { activityProvider.getActivitiesByActivityTypeAndYear(ActivityType.Run, 2020) } returns run2020Activities
 
         // WHEN
         val result = statisticsService.getStatistics(activityType, year)
@@ -51,7 +51,7 @@ class StatisticsServiceTest {
         val activityType = ActivityType.Ride
         val year = 2020
 
-        every { activityProvider.getFilteredActivitiesByActivityTypeAndYear(ActivityType.Ride, 2020) } returns ride2020Activities
+        every { activityProvider.getActivitiesByActivityTypeAndYear(ActivityType.Ride, 2020) } returns ride2020Activities
 
         // WHEN
         val result = statisticsService.getStatistics(activityType, year)
@@ -67,7 +67,7 @@ class StatisticsServiceTest {
         val activityType = ActivityType.Hike
         val year = 2020
 
-        every { activityProvider.getFilteredActivitiesByActivityTypeAndYear(ActivityType.Hike, 2020) } returns hike2020Activities
+        every { activityProvider.getActivitiesByActivityTypeAndYear(ActivityType.Hike, 2020) } returns hike2020Activities
 
         // WHEN
         val result = statisticsService.getStatistics(activityType, year)
