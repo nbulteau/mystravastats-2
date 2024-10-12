@@ -4,9 +4,16 @@ import me.nicolas.stravastats.domain.business.EddingtonNumber
 import me.nicolas.stravastats.domain.business.Period
 import me.nicolas.stravastats.domain.business.strava.Activity
 import me.nicolas.stravastats.domain.business.strava.ActivityType
+import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
+import me.nicolas.stravastats.domain.utils.inDateTimeFormatter
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.Month
+import java.time.format.TextStyle
+import java.time.temporal.WeekFields
+import java.util.*
 
 interface IChartsService {
     fun getDistanceByPeriodByActivityTypeByYear(
@@ -34,8 +41,8 @@ interface IChartsService {
 
 @Component
 internal class ChartsService(
-    stravaProxy: StravaProxy,
-) : IChartsService, AbstractStravaService(stravaProxy) {
+    activityProvider: IActivityProvider,
+) : IChartsService, AbstractStravaService(activityProvider) {
 
     private val logger = LoggerFactory.getLogger(ChartsService::class.java)
 
@@ -119,12 +126,12 @@ internal class ChartsService(
     override fun getCumulativeDistancePerYear(activityType: ActivityType): Map<String, Map<String, Double>> {
         logger.info("Get cumulative distance per year for activity type $activityType")
 
-        val activitiesByYear = stravaProxy.getActivitiesByActivityTypeGroupByYear(activityType)
+        val activitiesByYear = activityProvider.getActivitiesByActivityTypeGroupByYear(activityType)
 
         return (2010..LocalDate.now().year).mapNotNull { year ->
             val cumulativeDistance = if (activitiesByYear[year.toString()] != null) {
-                val activitiesByDay = ActivityHelper.groupActivitiesByDay(activitiesByYear[year.toString()]!!, year)
-                ActivityHelper.cumulativeDistance(activitiesByDay)
+                val activitiesByDay = groupActivitiesByDay(activitiesByYear[year.toString()]!!, year)
+                cumulativeDistance(activitiesByDay)
             } else {
                 null
             }
@@ -140,7 +147,7 @@ internal class ChartsService(
     override fun getEddingtonNumber(activityType: ActivityType): EddingtonNumber {
         logger.info("Get Eddington number for activity type $activityType")
 
-        val activitiesByActiveDays = stravaProxy.getActivitiesByActivityTypeGroupByActiveDays(activityType)
+        val activitiesByActiveDays = activityProvider.getActivitiesByActivityTypeGroupByActiveDays(activityType)
 
         val eddingtonList: List<Int> = if (activitiesByActiveDays.isEmpty()) {
             emptyList()
@@ -180,13 +187,96 @@ internal class ChartsService(
         year: Int,
         period: Period,
     ): Map<String, List<Activity>> {
-        val filteredActivities = stravaProxy.getFilteredActivitiesByActivityTypeAndYear(activityType, year)
+        val filteredActivities = activityProvider.getFilteredActivitiesByActivityTypeAndYear(activityType, year)
 
         val activitiesByPeriod = when (period) {
-            Period.MONTHS -> ActivityHelper.groupActivitiesByMonth(filteredActivities)
-            Period.WEEKS -> ActivityHelper.groupActivitiesByWeek(filteredActivities)
-            Period.DAYS -> ActivityHelper.groupActivitiesByDay(filteredActivities, year)
+            Period.MONTHS -> groupActivitiesByMonth(filteredActivities)
+            Period.WEEKS -> groupActivitiesByWeek(filteredActivities)
+            Period.DAYS -> groupActivitiesByDay(filteredActivities, year)
         }
         return activitiesByPeriod
+    }
+
+    /**
+     * Group activities by month
+     * @param activities list of activities
+     * @return a map with the month as key and the list of activities as value
+     * @see Activity
+     */
+    private fun groupActivitiesByMonth(activities: List<Activity>): Map<String, List<Activity>> {
+        val activitiesByMonth =
+            activities.groupBy { activity -> activity.startDateLocal.subSequence(5, 7).toString() }.toMutableMap()
+
+        // Add months without activities
+        for (month in (1..12)) {
+            if (!activitiesByMonth.contains("$month".padStart(2, '0'))) {
+                activitiesByMonth["$month".padStart(2, '0')] = emptyList()
+            }
+        }
+
+        return activitiesByMonth.toSortedMap().mapKeys { (key, _) ->
+            Month.of(key.toInt()).getDisplayName(TextStyle.FULL_STANDALONE, Locale.getDefault())
+        }.toMap()
+    }
+
+    /**
+     * Group activities by week
+     * @param activities list of activities
+     * @return a map with the week as key and the list of activities as value
+     * @see Activity
+     */
+    private fun groupActivitiesByWeek(activities: List<Activity>): Map<String, List<Activity>> {
+
+        val activitiesByWeek = activities.groupBy { activity ->
+            val week = LocalDateTime.parse(activity.startDateLocal, inDateTimeFormatter)
+                .get(WeekFields.of(Locale.getDefault()).weekOfYear())
+            "$week".padStart(2, '0')
+        }.toMutableMap()
+
+        // Add weeks without activities
+        for (week in (1..52)) {
+            if (!activitiesByWeek.contains("$week".padStart(2, '0'))) {
+                activitiesByWeek["$week".padStart(2, '0')] = emptyList()
+            }
+        }
+
+        return activitiesByWeek.toSortedMap()
+    }
+
+    /**
+     * Group activities by day
+     * @param activities list of activities
+     * @return a map with the day as key and the list of activities as value
+     * @see Activity
+     */
+    private fun groupActivitiesByDay(activities: List<Activity>, year: Int): Map<String, List<Activity>> {
+        val activitiesByDay =
+            activities.groupBy { activity -> activity.startDateLocal.subSequence(5, 10).toString() }.toMutableMap()
+
+        // Add days without activities
+        var currentDate = LocalDate.ofYearDay(year, 1)
+        for (i in (0..365 + if (currentDate.isLeapYear) 1 else 0)) {
+            currentDate = currentDate.plusDays(1L)
+            val dayString =
+                "${currentDate.monthValue}".padStart(2, '0') + "-" + "${currentDate.dayOfMonth}".padStart(2, '0')
+            if (!activitiesByDay.containsKey(dayString)) {
+                activitiesByDay[dayString] = emptyList()
+            }
+        }
+
+        return activitiesByDay.toSortedMap()
+    }
+
+    /**
+     * Calculate the cumulative distance for each activity
+     * @param activities list of activities
+     * @return a map with the activity id as key and the cumulative distance as value
+     * @see Activity
+     */
+    private fun cumulativeDistance(activities: Map<String, List<Activity>>): Map<String, Double> {
+        var sum = 0.0
+        return activities.mapValues { (_, activities) ->
+            sum += activities.sumOf { activity -> activity.distance / 1000 }; sum
+        }
     }
 }

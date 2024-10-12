@@ -1,4 +1,4 @@
-package me.nicolas.stravastats.adapter.strava.business.polyline
+package me.nicolas.stravastats.adapters.strava.business.polyline
 
 
 /**

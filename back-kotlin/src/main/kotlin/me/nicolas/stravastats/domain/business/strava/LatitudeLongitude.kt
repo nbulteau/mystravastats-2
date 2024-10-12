@@ -1,7 +1,10 @@
 package me.nicolas.stravastats.domain.business.strava
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import kotlin.math.*
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 data class LatitudeLongitude(
     // The sequence of altitude values for this stream, in meters

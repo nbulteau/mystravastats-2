@@ -1,6 +1,7 @@
 package me.nicolas.stravastats.domain.services
 
 import me.nicolas.stravastats.TestHelper
+import me.nicolas.stravastats.domain.services.activityproviders.StravaActivityProvider
 import org.junit.jupiter.api.BeforeEach
 
 
@@ -14,13 +15,13 @@ class ActivityServiceTest {
         val activities = TestHelper.loadActivities()
 
         // use introspection to set the activities
-        val stravaProxy = StravaProxy()
+        val stravaActivityProvider = StravaActivityProvider()
 
         // use introspection to set the activities
-        val field = stravaProxy.javaClass.getDeclaredField("activities")
+        val field = stravaActivityProvider.javaClass.getDeclaredField("activities")
         field.isAccessible = true
-        field.set(stravaProxy, activities)
+        field.set(stravaActivityProvider, activities)
 
-        activityService = ActivityService(stravaProxy)
+        activityService = ActivityService(stravaActivityProvider)
     }
 }

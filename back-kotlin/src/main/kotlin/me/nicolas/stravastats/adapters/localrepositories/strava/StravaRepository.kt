@@ -1,4 +1,4 @@
-package me.nicolas.stravastats.adapter.localstorage
+package me.nicolas.stravastats.adapters.localrepositories.strava
 
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter
 import com.fasterxml.jackson.databind.ObjectWriter
@@ -8,15 +8,17 @@ import me.nicolas.stravastats.domain.business.strava.Athlete
 import me.nicolas.stravastats.domain.business.strava.DetailedActivity
 import me.nicolas.stravastats.domain.business.strava.Stream
 import me.nicolas.stravastats.domain.interfaces.ILocalStorageProvider
-import me.nicolas.stravastats.domain.services.ActivityHelper.filterActivities
+import me.nicolas.stravastats.domain.services.ActivityHelper.filterByActivityTypes
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.io.FileInputStream
 import java.nio.file.Files
+import java.util.*
 import kotlin.io.path.name
 
-internal class LocalStorageProvider : ILocalStorageProvider {
+internal class StravaRepository(stravaCache: String) : ILocalStorageProvider {
 
-    private val logger = LoggerFactory.getLogger(LocalStorageProvider::class.java)
+    private val logger = LoggerFactory.getLogger(StravaRepository::class.java)
 
     private val objectMapper = jacksonObjectMapper()
 
@@ -24,37 +26,36 @@ internal class LocalStorageProvider : ILocalStorageProvider {
 
     private val prettyWriter: ObjectWriter = objectMapper.writer(DefaultPrettyPrinter())
 
-    private val cacheDirectory = File("strava-cache")
+    private val cacheDirectory = File(stravaCache)
 
-    override fun initLocalStorage(clientId: String) {
+    override fun initLocalStorageForClientId(clientId: String) {
         val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
         if (!activitiesDirectory.exists()) {
             activitiesDirectory.mkdirs()
         }
     }
 
-    override fun loadAthleteFromCache(clientId: String): Athlete? {
-        var athlete: Athlete? = null
-
+    override fun loadAthleteFromCache(clientId: String): Athlete {
         val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
         val athleteJsonFile = File(activitiesDirectory, "athlete-$clientId.json")
 
-        if (athleteJsonFile.exists()) {
-            athlete = objectMapper.readValue(athleteJsonFile, Athlete::class.java)
+        return if (athleteJsonFile.exists()) {
+            objectMapper.readValue(athleteJsonFile, Athlete::class.java)
+        } else {
+            logger.warn("No athlete found in cache")
+            Athlete(id = clientId.toLong(), username = "Unknown")
         }
-
-        return athlete
     }
 
     override fun saveAthleteToCache(clientId: String, athlete: Athlete) {
-        val activitiesDirectory = File(cacheDirectory,"strava-$clientId")
+        val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
         activitiesDirectory.mkdirs()
         prettyWriter.writeValue(File(activitiesDirectory, "athlete-$clientId.json"), athlete)
     }
 
     override fun loadActivitiesFromCache(clientId: String, year: Int): List<Activity> {
         var activities = emptyList<Activity>()
-        val activitiesDirectory = File(cacheDirectory,"strava-$clientId")
+        val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
         val yearActivitiesDirectory = File(activitiesDirectory, "strava-$clientId-$year")
         val yearActivitiesJsonFile = File(yearActivitiesDirectory, "activities-$clientId-$year.json")
 
@@ -62,7 +63,7 @@ internal class LocalStorageProvider : ILocalStorageProvider {
             logger.info("Load activities from cache for year $year")
             activities = objectMapper.readValue(yearActivitiesJsonFile, Array<Activity>::class.java)
                 .toList()
-                .filterActivities()
+                .filterByActivityTypes()
             logger.info("${activities.size} activities loaded")
 
             // Load activities streams
@@ -73,7 +74,7 @@ internal class LocalStorageProvider : ILocalStorageProvider {
     }
 
     override fun isLocalCacheExistForYear(clientId: String, year: Int): Boolean {
-        val activitiesDirectory = File(cacheDirectory,"strava-$clientId")
+        val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
         val yearActivitiesDirectory = File(activitiesDirectory, "strava-$clientId-$year")
         val yearActivitiesJsonFile = File(yearActivitiesDirectory, "activities-$clientId-$year.json")
 
@@ -81,7 +82,7 @@ internal class LocalStorageProvider : ILocalStorageProvider {
     }
 
     override fun saveActivitiesToCache(clientId: String, year: Int, activities: List<Activity>) {
-        val activitiesDirectory = File(cacheDirectory,"strava-$clientId")
+        val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
         val yearActivitiesDirectory = File(activitiesDirectory, "strava-$clientId-$year")
         yearActivitiesDirectory.mkdirs()
 
@@ -93,7 +94,7 @@ internal class LocalStorageProvider : ILocalStorageProvider {
 
     override fun loadDetailedActivityFromCache(clientId: String, year: Int, activityId: Long): DetailedActivity? {
         var detailedActivity: DetailedActivity? = null
-        val activitiesDirectory = File(cacheDirectory,"strava-$clientId")
+        val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
         val yearActivitiesDirectory = File(activitiesDirectory, "strava-${clientId}-$year")
         val detailedActivityFile = File(yearActivitiesDirectory, "activity-${activityId}")
 
@@ -105,7 +106,7 @@ internal class LocalStorageProvider : ILocalStorageProvider {
     }
 
     override fun saveDetailedActivityToCache(clientId: String, year: Int, detailedActivity: DetailedActivity) {
-        val activitiesDirectory = File(cacheDirectory,"strava-$clientId")
+        val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
         val yearActivitiesDirectory = File(activitiesDirectory, "strava-${clientId}-$year")
         val detailedActivityFile = File(yearActivitiesDirectory, "activity-${detailedActivity.id}")
 
@@ -113,7 +114,7 @@ internal class LocalStorageProvider : ILocalStorageProvider {
     }
 
     override fun loadActivitiesStreamsFromCache(clientId: String, year: Int, activity: Activity): Stream? {
-        val activitiesDirectory = File(cacheDirectory,"strava-$clientId")
+        val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
         val yearActivitiesDirectory = File(activitiesDirectory, "strava-${clientId}-$year")
 
         val streamFile = File(yearActivitiesDirectory, "stream-${activity.id}")
@@ -126,7 +127,7 @@ internal class LocalStorageProvider : ILocalStorageProvider {
     }
 
     override fun saveActivitiesStreamsToCache(clientId: String, year: Int, activity: Activity, stream: Stream) {
-        val activitiesDirectory = File(cacheDirectory,"strava-$clientId")
+        val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
         val yearActivitiesDirectory = File(activitiesDirectory, "strava-${clientId}-$year")
 
         val streamFile = File(yearActivitiesDirectory, "stream-${activity.id}")
@@ -136,7 +137,7 @@ internal class LocalStorageProvider : ILocalStorageProvider {
 
     override fun buildStreamIdsSet(clientId: String, year: Int): Set<Long> {
 
-        val activitiesDirectory = File(cacheDirectory,"strava-$clientId")
+        val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
         val yearActivitiesDirectory = File(activitiesDirectory, "strava-$clientId-$year")
 
         return Files.walk(yearActivitiesDirectory.toPath())
@@ -144,6 +145,29 @@ internal class LocalStorageProvider : ILocalStorageProvider {
             .filter { it.name.startsWith("stream-") }
             .map { it.name.substringAfter("stream-").toLong() }
             .toList().toSet()
+    }
+
+    /**
+     * Read Strava authentication from ".strava" file.
+     * The file must contain two properties: clientId and clientSecret.
+     * @return a Triple with clientId, clientSecret and useCache
+     */
+    override fun readStravaAuthentication(): Triple<String?, String?, Boolean?> {
+        val cacheDirectory = File("strava-cache")
+        val file = File(cacheDirectory, ".strava")
+        val properties = Properties()
+
+        if (file.exists()) {
+            FileInputStream(file).use { properties.load(it) }
+        } else {
+            logger.error("File .strava not found")
+        }
+
+        return Triple(
+            properties["clientId"]?.toString(),
+            properties["clientSecret"]?.toString(),
+            properties["useCache"]?.toString()?.toBoolean()
+        )
     }
 
     private fun loadActivitiesStreams(activities: List<Activity>, activitiesDirectory: File) {

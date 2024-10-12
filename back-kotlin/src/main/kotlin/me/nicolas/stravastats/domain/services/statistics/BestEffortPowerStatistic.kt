@@ -64,7 +64,12 @@ fun Activity.calculateBestPowerForTime(seconds: Int): ActivityEffort? {
         } else {
             0.0
         }
-        val totalPower =  (idxStart..idxEnd).sumOf { watts[it] }
+
+        val totalPower =  if(watts.isNotEmpty()) {
+            (idxStart..idxEnd).sumOf { watts[it] }
+        } else {
+            0
+        }
 
         val totalTime = times[idxEnd] - times[idxStart]
 

@@ -1,27 +1,25 @@
 package me.nicolas.stravastats.domain.services
 
+import io.mockk.every
+import io.mockk.mockk
 import me.nicolas.stravastats.TestHelper
 import me.nicolas.stravastats.domain.business.strava.ActivityType
+import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 class BadgesServiceTest {
     private lateinit var badgesService: IBadgesService
 
+    private val activityProvider = mockk<IActivityProvider>()
 
     @BeforeEach
     fun setUp() {
         val activities = TestHelper.loadActivities()
 
-        // use introspection to set the activities
-        val stravaProxy = StravaProxy()
+        every { activityProvider.getFilteredActivitiesByActivityTypeAndYear(ActivityType.Ride, 2021) } returns activities
 
-        // use introspection to set the activities
-        val field = stravaProxy.javaClass.getDeclaredField("activities")
-        field.isAccessible = true
-        field.set(stravaProxy, activities)
-
-        badgesService = BadgesService(stravaProxy)
+        badgesService = BadgesService(activityProvider)
     }
 
     @Test

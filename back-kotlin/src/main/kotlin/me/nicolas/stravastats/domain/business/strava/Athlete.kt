@@ -7,61 +7,61 @@ import com.fasterxml.jackson.annotation.JsonProperty
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class Athlete(
     @JsonProperty("badge_type_id")
-    val badgeTypeId: Int,
+    val badgeTypeId: Int? = null,
     @JsonProperty("city")
-    val city: String?,
+    val city: String? = null,
     @JsonProperty("country")
-    val country: String?,
+    val country: String? = null,
     @JsonProperty("created_at")
-    val createdAt: String?,
+    val createdAt: String? = null,
     @JsonProperty("firstname")
-    val firstname: String?,
+    val firstname: String? = null,
     @JsonProperty("follower")
-    val follower: Any?,
+    val follower: Any? = null,
     @JsonProperty("friend")
-    val friend: Any?,
+    val friend: Any? = null,
     @JsonProperty("id")
     val id: Long,
     @JsonProperty("lastname")
-    val lastname: String?,
+    val lastname: String? = null,
     @JsonProperty("premium")
-    val premium: Boolean,
+    val premium: Boolean? = null,
     @JsonProperty("profile")
-    val profile: String?,
+    val profile: String? = null,
     @JsonProperty("profile_medium")
-    val profileMedium: String?,
+    val profileMedium: String? = null,
     @JsonProperty("resource_state")
-    val resourceState: Int?,
+    val resourceState: Int? = null,
     @JsonProperty("sex")
-    val sex: String?,
+    val sex: String? = null,
     @JsonProperty("state")
-    val state: String?,
+    val state: String? = null,
     @JsonProperty("summit")
-    val summit: Boolean,
+    val summit: Boolean? = null,
     @JsonProperty("updated_at")
-    val updatedAt: String?,
+    val updatedAt: String? = null,
     @JsonProperty("username")
-    val username: String?,
+    val username: String? = null,
     @JsonProperty("athlete_type")
-    val athleteType: Int?,
+    val athleteType: Int? = null,
     @JsonProperty("bikes")
-    val bikes: List<Bike>?,
+    val bikes: List<Bike>? = null,
     @JsonProperty("clubs")
-    val clubs: List<Any>?,
+    val clubs: List<Any>? = null,
     @JsonProperty("date_preference")
-    val datePreference: String?,
+    val datePreference: String? = null,
     @JsonProperty("follower_count")
-    val followerCount: Int?,
+    val followerCount: Int? = null,
     @JsonProperty("friend_count")
-    val friendCount: Int?,
+    val friendCount: Int? = null,
     @JsonProperty("ftp")
-    val ftp: Any?,
+    val ftp: Any? = null,
     @JsonProperty("measurement_preference")
-    val measurementPreference: String?,
+    val measurementPreference: String? = null,
     @JsonProperty("mutual_friend_count")
-    val mutualFriendCount: Int?,
+    val mutualFriendCount: Int? = null,
     @JsonProperty("shoes")
-    val shoes: List<Shoe>?,
+    val shoes: List<Shoe>? = null,
     @JsonProperty("weight")
-    val weight: Int?,
+    val weight: Int? = null,
 )

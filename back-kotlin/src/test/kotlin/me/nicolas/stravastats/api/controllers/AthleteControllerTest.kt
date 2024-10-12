@@ -3,7 +3,7 @@ package me.nicolas.stravastats.api.controllers
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import me.nicolas.stravastats.TestHelper
-import me.nicolas.stravastats.domain.services.IStravaProxy
+import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
@@ -22,13 +22,13 @@ class AthleteControllerTest {
     private lateinit var mockMvc: MockMvc
 
     @MockkBean
-    private lateinit var stravaProxy: IStravaProxy
+    private lateinit var stravaProxy: IActivityProvider
 
     @Test
     fun `get athlete returns athlete when athlete is found`() {
         // GIVEN
         val athlete = TestHelper.athlete
-        every { stravaProxy.getAthlete() } returns athlete
+        every { stravaProxy.athlete() } returns athlete
 
         // WHEN
         val result = mockMvc.perform(

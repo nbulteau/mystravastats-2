@@ -4,7 +4,7 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import me.nicolas.stravastats.TestHelper
 import me.nicolas.stravastats.domain.business.strava.ActivityType
-import me.nicolas.stravastats.domain.services.IStravaProxy
+import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
@@ -23,7 +23,7 @@ class MapsControllerTest{
     private lateinit var mockMvc: MockMvc
 
     @MockkBean
-    private lateinit var stravaProxy: IStravaProxy
+    private lateinit var stravaProxy: IActivityProvider
 
     @Test
     fun `get GPX returns GPX coordinates when valid activity type and year`() {

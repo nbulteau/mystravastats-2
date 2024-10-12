@@ -1,7 +1,8 @@
 package me.nicolas.stravastats.api.dto
 
 import io.swagger.v3.oas.annotations.media.Schema
-import me.nicolas.stravastats.domain.business.strava.*
+import me.nicolas.stravastats.domain.business.strava.Activity
+import me.nicolas.stravastats.domain.business.strava.Stream
 import me.nicolas.stravastats.domain.services.statistics.calculateBestElevationForDistance
 import me.nicolas.stravastats.domain.services.statistics.calculateBestPowerForTime
 import me.nicolas.stravastats.domain.services.statistics.calculateBestTimeForDistance

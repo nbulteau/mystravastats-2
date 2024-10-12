@@ -1,5 +1,7 @@
 package me.nicolas.stravastats.domain.services
 
+import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
+
 abstract class AbstractStravaService(
-    protected val stravaProxy: StravaProxy
+    protected val activityProvider: IActivityProvider
 )

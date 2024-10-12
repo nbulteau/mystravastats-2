@@ -1,4 +1,4 @@
-package me.nicolas.stravastats.adapter.strava
+package me.nicolas.stravastats.adapters.strava
 
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.JsonMappingException
@@ -13,7 +13,7 @@ import io.ktor.server.routing.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import me.nicolas.stravastats.adapter.strava.business.Token
+import me.nicolas.stravastats.adapters.strava.business.Token
 import me.nicolas.stravastats.domain.business.strava.Activity
 import me.nicolas.stravastats.domain.business.strava.Athlete
 import me.nicolas.stravastats.domain.business.strava.DetailedActivity
@@ -35,12 +35,14 @@ import java.util.*
 import kotlin.system.exitProcess
 
 
-internal class StravaApi(clientId: String, clientSecret: String, private val properties: StravaProperties) :
+internal class StravaApi(clientId: String, clientSecret: String) :
     IStravaApi {
 
     private val logger: Logger = LoggerFactory.getLogger(StravaApi::class.java)
 
     private val objectMapper = jacksonObjectMapper()
+
+    private val properties: StravaProperties = StravaProperties()
 
     private val okHttpClient: OkHttpClient = OkHttpClient.Builder().proxy(getupProxyFromEnvironment()).build()
 
@@ -336,10 +338,11 @@ internal class StravaApi(clientId: String, clientSecret: String, private val pro
                 if (response.code == 200) {
                     return objectMapper.readValue(response.body?.string() ?: "", Token::class.java)
                 } else {
-                    throw RuntimeException("Something was wrong with Strava API for url $url : ${response.body}")
+                    throw RuntimeException("Something was wrong with Strava API for url $url")
                 }
             } catch (ex: Exception) {
-                throw RuntimeException("Something was wrong with Strava API for url $url", ex)
+                logger.error("Something was wrong with Strava API for url $url. ${ex.cause?.message ?: ex.message}")
+                throw RuntimeException("Something was wrong with Strava API for url $url. ${ex.cause?.message ?: ex.message}", )
             }
         }
     }

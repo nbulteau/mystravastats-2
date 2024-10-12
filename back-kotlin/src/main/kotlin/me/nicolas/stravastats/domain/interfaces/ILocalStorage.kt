@@ -7,9 +7,9 @@ import me.nicolas.stravastats.domain.business.strava.Stream
 
 interface ILocalStorageProvider {
 
-    fun initLocalStorage(clientId: String)
+    fun initLocalStorageForClientId(clientId: String)
 
-    fun loadAthleteFromCache(clientId: String): Athlete?
+    fun loadAthleteFromCache(clientId: String): Athlete
 
     fun saveAthleteToCache(clientId: String, athlete: Athlete)
 
@@ -28,4 +28,6 @@ interface ILocalStorageProvider {
     fun loadDetailedActivityFromCache(clientId: String, year: Int, activityId: Long): DetailedActivity?
 
     fun saveDetailedActivityToCache(clientId: String, year: Int, detailedActivity: DetailedActivity)
+
+    fun readStravaAuthentication(): Triple<String?, String?, Boolean?>
 }

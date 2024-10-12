@@ -7,14 +7,6 @@ import me.nicolas.stravastats.domain.utils.formatDate
 import me.nicolas.stravastats.domain.utils.formatSeconds
 import kotlin.math.abs
 
-const val Run = "Run"
-const val Ride = "Ride"
-const val VirtualRide = "VirtualRide"
-const val InlineSkate = "InlineSkate"
-const val Hike = "Hike"
-const val Commute = "Commute"
-const val AlpineSki = "AlpineSki"
-
 enum class ActivityType {
     Run,
     Ride,
@@ -73,7 +65,7 @@ data class Activity(
     override fun toString() = "${name.trim()} (${startDateLocal.formatDate()})"
 
     fun getFormattedSpeed(): String {
-        return if (type == Run) {
+        return if (type == ActivityType.Run.name) {
             "${getSpeed()}/km"
         } else {
             "${getSpeed()} km/h"
@@ -81,7 +73,7 @@ data class Activity(
     }
 
     fun getSpeed(): String {
-        return if (type == Run) {
+        return if (type == ActivityType.Run.name) {
             (elapsedTime * 1000 / distance).formatSeconds()
         } else {
             "%.02f".format(distance / elapsedTime * 3600 / 1000)

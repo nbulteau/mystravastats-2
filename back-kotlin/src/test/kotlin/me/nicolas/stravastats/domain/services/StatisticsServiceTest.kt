@@ -1,7 +1,10 @@
 package me.nicolas.stravastats.domain.services
 
+import io.mockk.every
+import io.mockk.mockk
 import me.nicolas.stravastats.TestHelper
 import me.nicolas.stravastats.domain.business.strava.ActivityType
+import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -11,20 +14,19 @@ import kotlin.test.assertEquals
 @ExtendWith(SpringExtension::class)
 class StatisticsServiceTest {
 
-
     private lateinit var statisticsService: IStatisticsService
+
+    private val activityProvider = mockk<IActivityProvider>()
+
+    private val run2020Activities = TestHelper.run2020Activities()
+
+    private val ride2020Activities = TestHelper.ride2020Activities()
+
+    private val hike2020Activities = TestHelper.hike2020Activities()
 
     @BeforeEach
     fun setUp() {
-        val activities = TestHelper.loadActivities()
-        val stravaProxy = StravaProxy()
-
-        // use introspection to set the activities
-        val field = stravaProxy.javaClass.getDeclaredField("activities")
-        field.isAccessible = true
-        field.set(stravaProxy, activities)
-
-        statisticsService = StatisticsService(stravaProxy)
+        statisticsService = StatisticsService(activityProvider)
     }
 
     @Test
@@ -32,6 +34,8 @@ class StatisticsServiceTest {
         // GIVEN
         val activityType = ActivityType.Run
         val year = 2020
+
+        every { activityProvider.getFilteredActivitiesByActivityTypeAndYear(ActivityType.Run, 2020) } returns run2020Activities
 
         // WHEN
         val result = statisticsService.getStatistics(activityType, year)
@@ -47,6 +51,8 @@ class StatisticsServiceTest {
         val activityType = ActivityType.Ride
         val year = 2020
 
+        every { activityProvider.getFilteredActivitiesByActivityTypeAndYear(ActivityType.Ride, 2020) } returns ride2020Activities
+
         // WHEN
         val result = statisticsService.getStatistics(activityType, year)
 
@@ -60,6 +66,8 @@ class StatisticsServiceTest {
         // GIVEN
         val activityType = ActivityType.Hike
         val year = 2020
+
+        every { activityProvider.getFilteredActivitiesByActivityTypeAndYear(ActivityType.Hike, 2020) } returns hike2020Activities
 
         // WHEN
         val result = statisticsService.getStatistics(activityType, year)

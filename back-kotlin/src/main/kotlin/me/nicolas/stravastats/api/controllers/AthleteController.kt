@@ -7,7 +7,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import me.nicolas.stravastats.api.dto.AthleteDto
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
 import me.nicolas.stravastats.api.dto.toDto
-import me.nicolas.stravastats.domain.services.IStravaProxy
+import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/athletes")
 @Schema(description = "User controller", name = "UserController")
 class AthleteController(
-    private val stravaProxy: IStravaProxy
+    private val stravaProxy: IActivityProvider
 ) {
     @Operation(
         description = "Get the authenticated user",
@@ -44,7 +44,7 @@ class AthleteController(
     )
     @GetMapping("/me")
     fun getAthlete(): AthleteDto {
-        return stravaProxy.getAthlete()?.toDto() ?: throw IllegalStateException("Athlete not found")
+        return stravaProxy.athlete().toDto()
     }
 }
 

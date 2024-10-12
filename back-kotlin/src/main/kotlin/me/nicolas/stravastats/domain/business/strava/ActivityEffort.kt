@@ -18,7 +18,7 @@ data class ActivityEffort(
 ) {
     fun getFormattedSpeed(): String {
         val speed = getSpeed()
-        return if (activity.type == Run) {
+        return if (activity.type == ActivityType.Run.name) {
             "${speed}/km"
         } else {
             "$speed km/h"
@@ -26,7 +26,7 @@ data class ActivityEffort(
     }
 
     fun getSpeed(): String {
-        return if (activity.type == Run) {
+        return if (activity.type == ActivityType.Run.name) {
             (seconds * 1000 / distance).formatSeconds()
         } else {
             "%.02f".format(Locale.ENGLISH, distance / seconds * 3600 / 1000)

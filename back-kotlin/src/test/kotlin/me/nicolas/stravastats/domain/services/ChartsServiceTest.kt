@@ -1,8 +1,11 @@
 package me.nicolas.stravastats.domain.services
 
+import io.mockk.every
+import io.mockk.mockk
 import me.nicolas.stravastats.TestHelper
 import me.nicolas.stravastats.domain.business.Period
 import me.nicolas.stravastats.domain.business.strava.ActivityType
+import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -15,17 +18,18 @@ class ChartsServiceTest {
 
     private lateinit var chartsStravaService: IChartsService
 
+    private val activityProvider = mockk<IActivityProvider>()
+
+    private val run2020Activities = TestHelper.run2020Activities()
+
+    private val run2023Activities = TestHelper.run2023Activities()
+
+
     @BeforeEach
     fun setUp() {
-        val activities = TestHelper.loadActivities()
-        val stravaProxy = StravaProxy()
 
-        // use introspection to set the activities
-        val field = stravaProxy.javaClass.getDeclaredField("activities")
-        field.isAccessible = true
-        field.set(stravaProxy, activities)
 
-        chartsStravaService  = ChartsService(stravaProxy)
+        chartsStravaService  = ChartsService(activityProvider)
     }
 
     @Test
@@ -34,6 +38,8 @@ class ChartsServiceTest {
         val activityType = ActivityType.Run
         val year = 2020
         val period = Period.MONTHS
+
+        every { activityProvider.getFilteredActivitiesByActivityTypeAndYear(ActivityType.Run, 2020) } returns run2020Activities
 
         // WHEN
         val result = chartsStravaService.getDistanceByPeriodByActivityTypeByYear(activityType, year, period)
@@ -50,6 +56,8 @@ class ChartsServiceTest {
         val activityType = ActivityType.Run
         val year = 2023
         val period = Period.MONTHS
+
+        every { activityProvider.getFilteredActivitiesByActivityTypeAndYear(ActivityType.Run, 2023) } returns run2023Activities
 
         // WHEN
         val result = chartsStravaService.getDistanceByPeriodByActivityTypeByYear(activityType, year, period)

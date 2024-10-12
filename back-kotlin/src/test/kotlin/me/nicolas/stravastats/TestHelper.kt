@@ -2,6 +2,7 @@ package me.nicolas.stravastats
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import me.nicolas.stravastats.domain.business.strava.Activity
+import me.nicolas.stravastats.domain.business.strava.ActivityType
 import me.nicolas.stravastats.domain.business.strava.Athlete
 import me.nicolas.stravastats.domain.business.strava.AthleteRef
 import java.io.File
@@ -11,8 +12,19 @@ class TestHelper {
         fun loadActivities(): List<Activity> {
             val url = Thread.currentThread().contextClassLoader.getResource("activities.json")
             val jsonFile = File(url?.path ?: "")
-            return jacksonObjectMapper().readValue(jsonFile, Array<Activity>::class.java).toList()
+            val activities = jacksonObjectMapper().readValue(jsonFile, Array<Activity>::class.java)
+
+            return activities.sortedBy { it.startDate }.reversed()
         }
+
+        fun run2020Activities() = loadActivities().getFilteredActivitiesByActivityTypeAndYear(ActivityType.Run, 2020)
+
+        fun hike2020Activities() = loadActivities().getFilteredActivitiesByActivityTypeAndYear(ActivityType.Hike, 2020)
+
+        fun ride2020Activities() = loadActivities().getFilteredActivitiesByActivityTypeAndYear(ActivityType.Ride, 2020)
+
+        fun run2023Activities() = loadActivities().getFilteredActivitiesByActivityTypeAndYear(ActivityType.Run, 2023)
+
 
         val activity = Activity(
             athlete = AthleteRef(id = 12345),
@@ -71,6 +83,17 @@ class TestHelper {
             shoes = emptyList(),
             weight = 70
         )
+
+        private fun List<Activity>.getFilteredActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int): List<Activity> {
+
+            val filteredActivities = this
+                .filter { activity -> activity.startDateLocal.subSequence(0, 4).toString().toInt() == year }
+                .filter { activity -> (activity.type == activityType.name) && !activity.commute }
+
+            return filteredActivities
+        }
     }
+
+
 
 }

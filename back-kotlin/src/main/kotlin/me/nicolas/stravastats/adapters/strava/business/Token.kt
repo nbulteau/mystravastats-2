@@ -1,4 +1,4 @@
-package me.nicolas.stravastats.adapter.strava.business
+package me.nicolas.stravastats.adapters.strava.business
 
 
 import com.fasterxml.jackson.annotation.JsonProperty

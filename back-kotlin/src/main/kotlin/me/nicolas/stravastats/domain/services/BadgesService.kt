@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import me.nicolas.stravastats.domain.business.badges.*
 import me.nicolas.stravastats.domain.business.strava.ActivityType
+import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.nio.file.Path
@@ -16,8 +17,8 @@ interface IBadgesService {
 
 @Service
 internal class BadgesService(
-    stravaProxy: StravaProxy,
-) : IBadgesService, AbstractStravaService(stravaProxy) {
+    activityProvider: IActivityProvider,
+) : IBadgesService, AbstractStravaService(activityProvider) {
 
     private val logger = LoggerFactory.getLogger(ActivityService::class.java)
 
@@ -30,7 +31,7 @@ internal class BadgesService(
     override fun getGeneralBadges(activityType: ActivityType, year: Int?): List<BadgeCheckResult> {
         logger.info("Checking general badges for $activityType in ${year ?: "all years"}")
 
-        val activities = stravaProxy.getFilteredActivitiesByActivityTypeAndYear(activityType, year)
+        val activities = activityProvider.getFilteredActivitiesByActivityTypeAndYear(activityType, year)
 
         return when (activityType) {
             ActivityType.Ride -> {
@@ -58,7 +59,7 @@ internal class BadgesService(
     override fun getFamousBadges(activityType: ActivityType, year: Int?): List<BadgeCheckResult> {
         logger.info("Checking famous badges for $activityType in ${year ?: "all years"}")
 
-        val activities = stravaProxy.getFilteredActivitiesByActivityTypeAndYear(activityType, year)
+        val activities = activityProvider.getFilteredActivitiesByActivityTypeAndYear(activityType, year)
 
         return when (activityType) {
             ActivityType.Ride -> {

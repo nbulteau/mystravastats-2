@@ -2,6 +2,7 @@ package me.nicolas.stravastats.domain.services
 
 import me.nicolas.stravastats.api.controllers.AthleteController
 import me.nicolas.stravastats.domain.business.strava.*
+import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import me.nicolas.stravastats.domain.services.statistics.*
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -13,15 +14,15 @@ interface IStatisticsService {
 
 @Service
 internal class StatisticsService(
-    stravaProxy: StravaProxy,
-) : IStatisticsService, AbstractStravaService(stravaProxy) {
+    activityProvider: IActivityProvider,
+) : IStatisticsService, AbstractStravaService(activityProvider) {
 
     private val logger = LoggerFactory.getLogger(AthleteController::class.java)
 
     override fun getStatistics(activityType: ActivityType, year: Int?): List<Statistic> {
         logger.info("Compute statistics for $activityType for ${year ?: "all years"}")
 
-        val filteredActivities = stravaProxy.getFilteredActivitiesByActivityTypeAndYear(activityType, year)
+        val filteredActivities = activityProvider.getFilteredActivitiesByActivityTypeAndYear(activityType, year)
 
         return when (activityType) {
             ActivityType.Ride -> computeRideStatistics(filteredActivities)

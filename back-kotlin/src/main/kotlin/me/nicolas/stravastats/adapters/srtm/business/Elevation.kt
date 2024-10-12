@@ -1,4 +1,4 @@
-package me.nicolas.stravastats.adapter.srtm.business
+package me.nicolas.stravastats.adapters.srtm.business
 
 /**
  *

@@ -35,4 +35,4 @@ EXPOSE 8090
 ENTRYPOINT ["java", "-jar", "/app/mystravastats.jar"]
 
 # Set the default command-line arguments
-CMD ["--clientId=", "--clientSecret="]
+CMD ["--stravaCache=", "--fitCache="]

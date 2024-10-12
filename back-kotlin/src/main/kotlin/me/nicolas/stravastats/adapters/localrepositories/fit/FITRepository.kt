@@ -1,43 +1,40 @@
-package me.nicolas.stravastats.domain.services
-
+package me.nicolas.stravastats.adapters.localrepositories.fit
 
 import com.garmin.fit.*
+import me.nicolas.stravastats.adapters.srtm.SRTMProvider
 import me.nicolas.stravastats.domain.business.strava.*
 import me.nicolas.stravastats.domain.business.strava.Activity
 import me.nicolas.stravastats.domain.interfaces.ISRTMProvider
 import me.nicolas.stravastats.domain.utils.inDateTimeFormatter
+import org.slf4j.LoggerFactory
 import java.io.File
-import java.nio.file.Path
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.*
 
-//@Service
-internal class FitService(
-    private val cachePath: Path,
-    private val srtmProvider: ISRTMProvider
+class FITRepository(fitDirectory: String) {
 
-) {
+    private val logger = LoggerFactory.getLogger(FITRepository::class.java)
+
+    private val srtmProvider: ISRTMProvider = SRTMProvider()
+
+    private val cacheDirectory = File(fitDirectory)
 
     private val fitDecoder = FitDecoder()
 
-    /**
-     * Load all FIT activities from cache ([cachePath])
-     * @param year Year to load
-     * @return An activity list
-     */
     fun loadActivitiesFromCache(year: Int): List<Activity> {
-        val yearActivitiesDirectory = File(cachePath.toFile(), "$year")
+
+        val yearActivitiesDirectory = File(cacheDirectory, "$year")
         val fitFiles = yearActivitiesDirectory.listFiles { file ->
             file.extension.lowercase(Locale.getDefault()) == "fit"
         }
         val activities: List<Activity> = fitFiles?.mapNotNull { fitFile ->
             try {
                 val fitMessages = fitDecoder.decode(fitFile.inputStream())
-                this.convertToActivity(fitMessages)
+                fitMessages.toActivity()
             } catch (exception: Exception) {
-                println(exception)
+                logger.error("Something wrong during FIT conversion: ${exception.message}")
                 null
             }
         }?.toList() ?: emptyList()
@@ -47,12 +44,12 @@ internal class FitService(
 
     /**
      * Convert a FIT activity to a Strava activity
-     * @param fitMessages The fit file to convert
      */
-    private fun convertToActivity(fitMessages: FitMessages): Activity {
-        val sessionMesg = fitMessages.sessionMesgs.first()
+    private fun FitMessages.toActivity(): Activity {
 
-        val stream: Stream = buildStream(fitMessages.recordMesgs)
+        val sessionMesg = this.sessionMesgs.first()
+
+        val stream: Stream = this.recordMesgs.buildStream()
 
         // Athlete
         val athlete = AthleteRef(0)
@@ -138,9 +135,9 @@ internal class FitService(
     /**
      * Build Strava Stream structure using the GPS records
      */
-    private fun buildStream(recordMesgs: List<RecordMesg>): Stream {
+    private fun List<RecordMesg>.buildStream(): Stream {
         // distance
-        val dataDistance = recordMesgs.map { recordMesg -> recordMesg.distance.toDouble() }
+        val dataDistance = this.map { recordMesg -> recordMesg.distance.toDouble() }
         val streamDistance = Distance(
             data = dataDistance.toMutableList(),
             originalSize = dataDistance.size,
@@ -149,8 +146,8 @@ internal class FitService(
         )
 
         //  time
-        val startTime = recordMesgs.first().timestamp.timestamp
-        val dataTime = recordMesgs.map { recordMesg ->
+        val startTime = this.first().timestamp.timestamp
+        val dataTime = this.map { recordMesg ->
             (recordMesg.timestamp.timestamp - startTime).toInt()
         }
         val streamTime = Time(
@@ -161,7 +158,7 @@ internal class FitService(
         )
 
         // latitude/longitude
-        val dataLatitude = recordMesgs.map { recordMesg ->
+        val dataLatitude = this.map { recordMesg ->
             if (recordMesg.positionLat == null) {
                 0
             } else {
@@ -170,7 +167,7 @@ internal class FitService(
         }.toMutableList()
         dataLatitude.fixCoordinate()
 
-        val dataLongitude = recordMesgs.map { recordMesg ->
+        val dataLongitude = this.map { recordMesg ->
             if (recordMesg.positionLong == null) {
                 0
             } else {
@@ -188,8 +185,8 @@ internal class FitService(
         )
 
         // altitude
-        val dataAltitude = if (recordMesgs.first().altitude != null) {
-            recordMesgs.map { recordMesg ->
+        val dataAltitude = if (this.first().altitude != null) {
+            this.map { recordMesg ->
                 recordMesg.altitude.toDouble()
             }
         } else {
@@ -203,7 +200,7 @@ internal class FitService(
         )
 
         // power
-        val dataPower = recordMesgs.map { recordMesg ->
+        val dataPower = this.mapNotNull { recordMesg ->
             recordMesg.power
         }
         val streamPower = PowerStream(
@@ -230,7 +227,6 @@ internal class FitService(
 
         return smooth.toList()
     }
-
 
     private fun generateDataAltitude(latitudeLongitudeList: List<List<Double>>): MutableList<Double> {
         return srtmProvider.getElevation(latitudeLongitudeList).toMutableList()
@@ -323,5 +319,3 @@ internal class FitService(
         }
     }
 }
-
-

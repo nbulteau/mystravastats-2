@@ -24,7 +24,7 @@ data class AthleteDto(
     @JsonProperty("lastname")
     val lastname: String?,
     @JsonProperty("premium")
-    val premium: Boolean,
+    val premium: Boolean?,
     @JsonProperty("profile")
     val profile: String?,
     @JsonProperty("profile_medium")
@@ -36,7 +36,7 @@ data class AthleteDto(
     @JsonProperty("state")
     val state: String?,
     @JsonProperty("summit")
-    val summit: Boolean,
+    val summit: Boolean?,
     @JsonProperty("updated_at")
     val updatedAt: String?,
     @JsonProperty("username")

@@ -1,7 +1,7 @@
-package me.nicolas.stravastats.adapter.srtm
+package me.nicolas.stravastats.adapters.srtm
 
-import me.nicolas.stravastats.adapter.srtm.business.Point
-import me.nicolas.stravastats.adapter.srtm.business.SRTMFile
+import me.nicolas.stravastats.adapters.srtm.business.Point
+import me.nicolas.stravastats.adapters.srtm.business.SRTMFile
 import me.nicolas.stravastats.domain.interfaces.ISRTMProvider
 import java.io.File
 import java.nio.file.Path
