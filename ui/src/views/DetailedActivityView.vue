@@ -1,15 +1,72 @@
+<template>
+  <div
+    id="title"
+    style="text-align: center; margin-bottom: 20px"
+  >
+    <span style="display: block; font-size: 1.5em; font-weight: bold">
+      {{ activity?.name }}
+    </span>
+    <span style="display: block; font-size: 1.2em">
+      Distance: {{ (activity?.distance ?? 0) / 1000 }} km | Average speed:
+      {{ formatSpeedWithUnit(activity?.averageSpeed ?? 0, activity?.type ?? "Ride") }} |
+      Elapsed time: {{ formatTime(activity?.elapsedTime ?? 0) }} | Total elevation gain:
+      {{ activity?.totalElevationGain }} m
+    </span>
+  </div>
+  <div style="display: flex; width: 100%; height: 400px">
+    <div
+      id="map-container"
+      style="width: 80%; height: 100%"
+    />
+    <div
+      id="radio-container"
+      style="width: 20%; height: 100%; padding-left: 10px"
+    >
+      <form>
+        <div
+          v-for="option in radioOptions"
+          :key="option.value"
+        >
+          <input
+            :id="option.value"
+            v-model="selectedOption"
+
+            type="radio"
+            :value="option.value"
+            class="radio-input"
+            @click="handleRadioClick(option.label)"
+          >
+          <label
+            ref="radioLabels"
+            :for="option.value"
+            class="radio-label"
+            :title="option.description"
+          >{{ option.label }}</label>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div
+    id="chart-container"
+    style="width: 100%; height: 400px"
+  >
+    <Chart :options="chartOptions" />
+  </div>
+</template>
+
 <script setup lang="ts">
 import "bootstrap";
-import { onMounted, ref, reactive } from "vue";
+import { onMounted, ref, reactive, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import L from "leaflet";
-import { DetailedActivity } from "@/models/activity.model"; // Ensure correct import
+import { ActivityEffort, DetailedActivity } from "@/models/activity.model"; // Ensure correct import
 import { formatSpeedWithUnit, formatTime } from "@/utils/formatters";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { useContextStore } from "@/stores/context.js";
 import { type Options, type SeriesAreaOptions, type SeriesLineOptions } from "highcharts";
 import Highcharts from "highcharts";
 import { Chart } from "highcharts-vue";
+import { Tooltip } from 'bootstrap'; // Import Bootstrap Tooltip
 
 const contextStore = useContextStore();
 contextStore.updateCurrentView("activity");
@@ -21,6 +78,26 @@ const activityId = Array.isArray(route.params.id) ? route.params.id[0] : route.p
 const activity = ref<DetailedActivity | null>(null);
 
 const map = ref<L.Map>();
+
+const radioOptions = ref<{ label: string; value: string; description: string }[]>([]);
+
+const selectedOption = ref(null);
+
+const radioLabels = ref<HTMLElement[]>([]); // Ref to hold radio labels
+
+const buildRadioOptions = () => {
+  if (activity.value?.activityEfforts) {
+    radioOptions.value = activity.value?.activityEfforts.map(effort => {
+      return {
+        label: effort.key,
+        value: effort.key,
+        description: effort?.description ?? '' 
+      };
+    });
+  } else {
+    radioOptions.value = [];
+  }
+};
 
 async function fetchDetailedActivity(id: string) {
   const url = `http://localhost:8080/api/activities/${id}`;
@@ -203,7 +280,7 @@ const initChart = () => {
                                     if (layer instanceof L.Marker) {
                                         map.value?.removeLayer(layer);
                                     }
-                                }); 
+                                });
                                 // Add a marker
                                 L.marker(L.latLng(latlng[0], latlng[1])).addTo(map.value!);
                             }
@@ -216,44 +293,77 @@ const initChart = () => {
     }
 };
 
+const handleRadioClick = (key: string) => {
+  console.log(`Radio button with value ${key} clicked`);
 
+  // 1 - Get the selected effort
+  const selectedEffort: ActivityEffort | undefined = activity.value?.activityEfforts.find(
+    (effort) => effort.key === key
+  );
+  if (!selectedEffort) {
+    console.error(`No effort found for value: ${key}`);
+    return;
+  }
+
+  // 2 - Get the stream data for the selected effort
+  const stream = activity.value?.stream;
+  if (!stream) {
+    console.error(`No stream data found for effort: ${selectedEffort}`);
+    return;
+  }
+  const startIndex = selectedEffort.idxStart;
+  const endIndex = selectedEffort.idxEnd;
+  const selectedStream = {
+    latitudeLongitude: stream.latitudeLongitude ? stream.latitudeLongitude.slice(startIndex, endIndex) : [],
+    altitude: stream.altitude ? stream.altitude.slice(startIndex, endIndex) : [],
+    distance: stream.distance.slice(startIndex, endIndex),
+    time: stream.time.slice(startIndex, endIndex)
+  };
+
+  // 3 - Update the map with the new stream data
+  // Remove previous blue polyline
+  map.value?.eachLayer((layer) => {
+    if (layer instanceof L.Polyline && layer.options.color === "blue") {
+      map.value?.removeLayer(layer);
+    }
+  });
+
+  if (map.value) {
+    const latlngs = selectedStream.latitudeLongitude.map((latlng: number[]) =>
+    L.latLng(latlng[0], latlng[1])
+  );
+  if (latlngs) {
+      const polyline = L.polyline(latlngs, { color: "blue" }).addTo(map.value);
+      // Fit the map to the bounds of all polylines
+      const bounds = L.latLngBounds(polyline.getLatLngs() as L.LatLng[]);
+      map.value.fitBounds(bounds);
+    }
+  }
+
+  // 4 - Update the chart with the new stream data
+
+};
 
 onMounted(async () => {
   initMap();
-  fetchDetailedActivity(activityId).then(() => {
+  await fetchDetailedActivity(activityId).then(async () => {
     updateMap();
     initChart();
+    buildRadioOptions();
+
+      // Ensure DOM is updated before initializing tooltips
+    await nextTick();
+
+    // Initialize tooltips for radio labels
+    radioLabels.value.forEach(label => {
+      new Tooltip(label, {
+        title: label.getAttribute('title') || '',
+        html: true
+      });
+    });
   });
 });
 </script>
-
-<template>
-  <div
-    id="title"
-    style="text-align: center; margin-bottom: 20px"
-  >
-    <span style="display: block; font-size: 1.5em; font-weight: bold">
-      {{ activity?.name }}
-    </span>
-    <span style="display: block; font-size: 1.2em">
-      Distance: {{ (activity?.distance ?? 0) / 1000 }} km |
-      Average speed: {{ formatSpeedWithUnit(activity?.averageSpeed ?? 0, activity?.type ?? "Ride") }} |
-      Elapsed time: {{ formatTime(activity?.elapsedTime ?? 0) }} | 
-      Total elevation gain: {{ activity?.totalElevationGain }} m
-    </span>
-  </div>
-  <div
-    id="map-container"
-    style="width: 100%; height: 400px"
-  />
-
-  <div
-    id="chart-container"
-    style="width: 100%; height: 400px"
-  >
-    <Chart :options="chartOptions" />
-  </div>
-</template>
 
 <style scoped>
 #chart-container {
@@ -268,5 +378,24 @@ onMounted(async () => {
 
 #activity-details {
   margin-top: 20px;
+}
+
+.radio-input {
+  margin-right: 5px;
+}
+
+.radio-label {
+  font-weight: bold;
+}
+
+/* Custom Tooltip Styles */
+.tooltip-inner {
+  --bs-tooltip-max-width: 300px; /* Define the custom property for max-width */
+  max-width: var(--bs-tooltip-max-width); /* Apply the custom property */
+  background-color: #343a40; /* Dark background color */
+  color: #ffffff; /* White text color */
+  font-size: 1rem; /* Increase font size */
+  padding: 10px; /* Add padding */
+  border-radius: 5px; /* Rounded corners */
 }
 </style>

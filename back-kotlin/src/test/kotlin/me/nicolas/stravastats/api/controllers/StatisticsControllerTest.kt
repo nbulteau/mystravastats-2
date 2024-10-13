@@ -2,8 +2,9 @@ package me.nicolas.stravastats.api.controllers
 
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
-import me.nicolas.stravastats.domain.business.strava.Activity
-import me.nicolas.stravastats.domain.business.strava.ActivityType
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
+import me.nicolas.stravastats.domain.business.ActivityType
+
 import me.nicolas.stravastats.domain.services.IStatisticsService
 import me.nicolas.stravastats.domain.services.statistics.GlobalStatistic
 import me.nicolas.stravastats.domain.services.statistics.Statistic
@@ -32,8 +33,8 @@ class StatisticsControllerTest {
         // GIVEN
         val activityType = ActivityType.Run
         val year = 2023
-        val activities = listOf<Activity>()
-        val statistic = GlobalStatistic("Nb activities", activities, "%d", List<Activity>::size)
+        val activities = listOf<StravaActivity>()
+        val statistic = GlobalStatistic("Nb activities", activities, "%d", List<StravaActivity>::size)
         val statistics = listOf<Statistic>(statistic)
 
         every { statisticsService.getStatistics(activityType, year) } returns (statistics)
@@ -56,8 +57,8 @@ class StatisticsControllerTest {
     fun getStatistics_returnsBadRequest_whenYearIsMissing() {
         // GIVEN
         val activityType = ActivityType.Run
-        val activities = listOf<Activity>()
-        val statistic = GlobalStatistic("Nb activities", activities, "%d", List<Activity>::size)
+        val activities = listOf<StravaActivity>()
+        val statistic = GlobalStatistic("Nb activities", activities, "%d", List<StravaActivity>::size)
         val statistics = listOf<Statistic>(statistic)
 
         every { statisticsService.getStatistics(activityType, null) } returns statistics
@@ -90,7 +91,7 @@ class StatisticsControllerTest {
             // THEN
             .andExpect(status().isBadRequest)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message").value("Unknown activity type")) // replace with actual error message
+            .andExpect(jsonPath("$.message").value("Unknown stravaActivity type")) // replace with actual error message
     }
 
 }

@@ -1,6 +1,7 @@
 package me.nicolas.stravastats.domain.business.strava
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.utils.formatSeconds
 
 data class SegmentEffort(

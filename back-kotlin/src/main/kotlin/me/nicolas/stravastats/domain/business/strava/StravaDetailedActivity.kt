@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class DetailedActivity(
+data class StravaDetailedActivity(
     @JsonProperty("achievement_count")
     val achievementCount: Int,
     val athlete: MetaActivity,

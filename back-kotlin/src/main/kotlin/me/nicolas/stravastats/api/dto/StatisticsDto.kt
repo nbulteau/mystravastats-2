@@ -12,8 +12,8 @@ data class StatisticsDto(
     val label: String,
     @Schema(description = "Value of the statistic")
     val value: String,
-    @Schema(description = "Activity related to the statistic")
-    val activity: ActivityDto? = null,
+    @Schema(description = "StravaActivity related to the statistic")
+    val stravaActivity: ActivityDto? = null,
 )
 
 fun Statistic.toDto(): StatisticsDto {
@@ -21,7 +21,7 @@ fun Statistic.toDto(): StatisticsDto {
         is ActivityStatistic -> StatisticsDto(
             label = name,
             value = value,
-            activity = activity?.toDto()
+            stravaActivity = stravaActivity?.toDto()
         )
 
         else -> StatisticsDto(name, value)

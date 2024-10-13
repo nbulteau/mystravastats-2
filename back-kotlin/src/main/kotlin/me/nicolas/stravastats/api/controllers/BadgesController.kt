@@ -9,8 +9,8 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import me.nicolas.stravastats.api.dto.BadgeCheckResultDto
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
 import me.nicolas.stravastats.api.dto.toDto
+import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.badges.BadgeSetEnum
-import me.nicolas.stravastats.domain.business.strava.ActivityType
 import me.nicolas.stravastats.domain.services.IBadgesService
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.http.MediaType
@@ -27,8 +27,8 @@ class BadgesController(
     private val badgesService: IBadgesService,
 ) {
     @Operation(
-        description = "Get the badges for a specific activity type and year",
-        summary = "Get the badges for a specific activity type and year",
+        description = "Get the badges for a specific stravaActivity type and year",
+        summary = "Get the badges for a specific stravaActivity type and year",
         responses = [ApiResponse(
             responseCode = "200", description = "Badges found",
             content = [Content(

@@ -1,28 +1,29 @@
 package me.nicolas.stravastats.domain.services.activityproviders
 
-import me.nicolas.stravastats.domain.business.strava.Activity
-import me.nicolas.stravastats.domain.business.strava.ActivityType
-import me.nicolas.stravastats.domain.business.strava.Athlete
-import me.nicolas.stravastats.domain.business.strava.DetailedActivity
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
+import me.nicolas.stravastats.domain.business.ActivityType
+
+import me.nicolas.stravastats.domain.business.strava.StravaAthlete
+import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import java.util.*
 
 interface IActivityProvider {
 
-    fun athlete(): Athlete
+    fun athlete(): StravaAthlete
 
-    fun listActivitiesPaginated(pageable: Pageable): Page<Activity>
+    fun listActivitiesPaginated(pageable: Pageable): Page<StravaActivity>
 
-    fun getActivity(activityId: Long): Optional<Activity>
+    fun getActivity(activityId: Long): Optional<StravaActivity>
 
-    fun getDetailedActivity(activityId: Long): Optional<DetailedActivity>
+    fun getDetailedActivity(activityId: Long): Optional<StravaDetailedActivity>
 
     fun getActivitiesByActivityTypeGroupByActiveDays(activityType: ActivityType): Map<String, Int>
 
     fun getActivitiesByActivityTypeByYearGroupByActiveDays(activityType: ActivityType, year: Int): Map<String, Int>
 
-    fun getActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int? = null): List<Activity>
+    fun getActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int? = null): List<StravaActivity>
 
-    fun getActivitiesByActivityTypeGroupByYear(activityType: ActivityType): Map<String, List<Activity>>
+    fun getActivitiesByActivityTypeGroupByYear(activityType: ActivityType): Map<String, List<StravaActivity>>
 }

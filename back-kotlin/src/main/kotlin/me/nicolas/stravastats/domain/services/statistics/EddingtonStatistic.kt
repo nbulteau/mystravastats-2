@@ -1,12 +1,12 @@
 package me.nicolas.stravastats.domain.services.statistics
 
-import me.nicolas.stravastats.domain.business.strava.Activity
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
 
 /**
  * https://en.wikipedia.org/wiki/Arthur_Eddington#Eddington_number_for_cycling
  */
 internal class EddingtonStatistic(
-    activities: List<Activity>,
+    activities: List<StravaActivity>,
 ) : Statistic("Eddington number", activities) {
 
     private val eddingtonNumber: Int

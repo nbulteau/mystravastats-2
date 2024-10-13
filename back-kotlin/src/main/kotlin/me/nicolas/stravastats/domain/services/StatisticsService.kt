@@ -1,6 +1,7 @@
 package me.nicolas.stravastats.domain.services
 
 import me.nicolas.stravastats.api.controllers.AthleteController
+import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.strava.*
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import me.nicolas.stravastats.domain.services.statistics.*
@@ -35,7 +36,7 @@ internal class StatisticsService(
         }
     }
 
-    private fun computeRunStatistics(runActivities: List<Activity>): List<Statistic> {
+    private fun computeRunStatistics(runActivities: List<StravaActivity>): List<Statistic> {
 
         val statistics = computeCommonStats(runActivities).toMutableList()
 
@@ -62,7 +63,7 @@ internal class StatisticsService(
         return statistics
     }
 
-    private fun computeRideStatistics(rideActivities: List<Activity>): List<Statistic> {
+    private fun computeRideStatistics(rideActivities: List<StravaActivity>): List<Statistic> {
 
         val statistics = computeCommonStats(rideActivities).toMutableList()
         statistics.addAll(
@@ -94,7 +95,7 @@ internal class StatisticsService(
         return statistics
     }
 
-    private fun computeVirtualRideStatistics(rideActivities: List<Activity>): List<Statistic> {
+    private fun computeVirtualRideStatistics(rideActivities: List<StravaActivity>): List<Statistic> {
 
         val statistics = computeCommonStats(rideActivities).toMutableList()
         statistics.addAll(
@@ -124,7 +125,7 @@ internal class StatisticsService(
         return statistics
     }
 
-    private fun computeAlpineSkiStatistics(filteredActivities: List<Activity>): List<Statistic> {
+    private fun computeAlpineSkiStatistics(filteredActivities: List<StravaActivity>): List<Statistic> {
         val statistics = computeCommonStats(filteredActivities).toMutableList()
         statistics.addAll(
             listOf(
@@ -149,7 +150,7 @@ internal class StatisticsService(
         return statistics
     }
 
-    private fun computeCommuteStatistics(commuteActivities: List<Activity>): List<Statistic> {
+    private fun computeCommuteStatistics(commuteActivities: List<StravaActivity>): List<Statistic> {
 
         val statistics = computeCommonStats(commuteActivities).toMutableList()
         statistics.addAll(
@@ -171,7 +172,7 @@ internal class StatisticsService(
         return statistics
     }
 
-    private fun computeHikeStatistics(hikeActivities: List<Activity>): List<Statistic> {
+    private fun computeHikeStatistics(hikeActivities: List<StravaActivity>): List<Statistic> {
 
         val statistics = computeCommonStats(hikeActivities).toMutableList()
 
@@ -180,7 +181,7 @@ internal class StatisticsService(
                 BestDayStatistic("Max distance in a day", hikeActivities, formatString = "%s => %.02f km")
                 {
                     hikeActivities
-                        .groupBy { activity: Activity -> activity.startDateLocal.substringBefore('T') }
+                        .groupBy { stravaActivity: StravaActivity -> stravaActivity.startDateLocal.substringBefore('T') }
                         .mapValues { it.value.sumOf { activity -> activity.distance / 1000 } }
                         .maxByOrNull { entry: Map.Entry<String, Double> -> entry.value }
                         ?.toPair()
@@ -188,7 +189,7 @@ internal class StatisticsService(
                 BestDayStatistic("Max elevation in a day", hikeActivities, formatString = "%s => %.02f m")
                 {
                     hikeActivities
-                        .groupBy { activity: Activity -> activity.startDateLocal.substringBefore('T') }
+                        .groupBy { stravaActivity: StravaActivity -> stravaActivity.startDateLocal.substringBefore('T') }
                         .mapValues { it.value.sumOf { activity -> activity.totalElevationGain } }
                         .maxByOrNull { entry: Map.Entry<String, Double> -> entry.value }
                         ?.toPair()
@@ -199,7 +200,7 @@ internal class StatisticsService(
         return statistics
     }
 
-    private fun computeInlineSkateStatistics(inlineSkateActivities: List<Activity>): List<Statistic> {
+    private fun computeInlineSkateStatistics(inlineSkateActivities: List<StravaActivity>): List<Statistic> {
 
         val statistics = computeCommonStats(inlineSkateActivities).toMutableList()
 
@@ -222,25 +223,25 @@ internal class StatisticsService(
     }
 
 
-    private fun computeCommonStats(activities: List<Activity>): List<Statistic> {
+    private fun computeCommonStats(activities: List<StravaActivity>): List<Statistic> {
 
         return listOf(
-            GlobalStatistic("Nb activities", activities, "%d", List<Activity>::size),
+            GlobalStatistic("Nb activities", activities, "%d", List<StravaActivity>::size),
 
             GlobalStatistic("Nb actives days", activities, "%d") {
                 activities
-                    .groupBy { activity: Activity -> activity.startDateLocal.substringBefore('T') }
+                    .groupBy { stravaActivity: StravaActivity -> stravaActivity.startDateLocal.substringBefore('T') }
                     .count()
             },
             MaxStreakStatistic(activities),
             GlobalStatistic("Total distance", activities, "%.2f km") {
-                activities.sumOf { activity: Activity -> activity.distance } / 1000
+                activities.sumOf { stravaActivity: StravaActivity -> stravaActivity.distance } / 1000
             },
             GlobalStatistic("Total elevation", activities, "%.2f m") {
-                activities.sumOf { activity: Activity -> activity.totalElevationGain }
+                activities.sumOf { stravaActivity: StravaActivity -> stravaActivity.totalElevationGain }
             },
-            GlobalStatistic("Km by activity", activities, "%.2f km") {
-                activities.sumOf { activity: Activity -> activity.distance }.div(activities.size) / 1000
+            GlobalStatistic("Km by stravaActivity", activities, "%.2f km") {
+                activities.sumOf { stravaActivity: StravaActivity -> stravaActivity.distance }.div(activities.size) / 1000
             },
 
             MaxDistanceStatistic(activities),

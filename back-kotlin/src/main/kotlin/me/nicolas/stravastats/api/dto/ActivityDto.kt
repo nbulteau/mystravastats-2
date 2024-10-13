@@ -1,51 +1,51 @@
 package me.nicolas.stravastats.api.dto
 
 import io.swagger.v3.oas.annotations.media.Schema
-import me.nicolas.stravastats.domain.business.strava.Activity
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.services.statistics.calculateBestElevationForDistance
 import me.nicolas.stravastats.domain.services.statistics.calculateBestPowerForTime
 import me.nicolas.stravastats.domain.services.statistics.calculateBestTimeForDistance
 
 
-@Schema(description = "Activity object", name = "Activity")
+@Schema(description = "StravaActivity object", name = "StravaActivity")
 data class ActivityDto(
-    @Schema(description = "Activity name")
+    @Schema(description = "StravaActivity name")
     val name: String,
-    @Schema(description = "Activity type")
+    @Schema(description = "StravaActivity type")
     val type: String,
-    @Schema(description = "Activity link to Strava")
+    @Schema(description = "StravaActivity link to Strava")
     val link: String,
-    @Schema(description = "Activity distance in meters")
+    @Schema(description = "StravaActivity distance in meters")
     val distance: Int,
-    @Schema(description = "Activity elapsed time in seconds")
+    @Schema(description = "StravaActivity elapsed time in seconds")
     val elapsedTime: Int,
-    @Schema(description = "Activity total elevation gain in meters")
+    @Schema(description = "StravaActivity total elevation gain in meters")
     val totalElevationGain: Int,
-    @Schema(description = "Activity total descent in meters")
+    @Schema(description = "StravaActivity total descent in meters")
     val totalDescent: Int,
-    @Schema(description = "Activity average speed in m/s")
+    @Schema(description = "StravaActivity average speed in m/s")
     val averageSpeed: Double,
-    @Schema(description = "Activity best time for distance for 1000m in m/s")
+    @Schema(description = "StravaActivity best time for distance for 1000m in m/s")
     val bestTimeForDistanceFor1000m: Double,
-    @Schema(description = "Activity best elevation for distance for 500m in %")
+    @Schema(description = "StravaActivity best elevation for distance for 500m in %")
     val bestElevationForDistanceFor500m: Double,
-    @Schema(description = "Activity best elevation for distance for 1000m in %")
+    @Schema(description = "StravaActivity best elevation for distance for 1000m in %")
     val bestElevationForDistanceFor1000m: Double,
-    @Schema(description = "Activity date")
+    @Schema(description = "StravaActivity date")
     val date: String,
-    @Schema(description = "Activity average watts")
+    @Schema(description = "StravaActivity average watts")
     val averageWatts: Int,
-    @Schema(description = "Activity weighted average watts")
+    @Schema(description = "StravaActivity weighted average watts")
     val weightedAverageWatts: String,
-    @Schema(description = "Activity best power for 20 minutes in watts")
+    @Schema(description = "StravaActivity best power for 20 minutes in watts")
     val bestPowerFor20minutes: String,
-    @Schema(description = "Activity best power for 60 minutes in watts")
+    @Schema(description = "StravaActivity best power for 60 minutes in watts")
     val bestPowerFor60minutes: String,
-    @Schema(description = "Activity FTP (Functional Threshold Power) in watts")
+    @Schema(description = "StravaActivity FTP (Functional Threshold Power) in watts")
     val ftp: String,
 )
 
-fun Activity.toDto(): ActivityDto {
+fun StravaActivity.toDto(): ActivityDto {
 
     val bestPowerFor20Minutes = calculateBestPowerForTime(20 * 60)
     val bestPowerFor60Minutes = calculateBestPowerForTime(60 * 60)

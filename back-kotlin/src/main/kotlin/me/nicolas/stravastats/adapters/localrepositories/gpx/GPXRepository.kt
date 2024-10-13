@@ -1,6 +1,7 @@
 package me.nicolas.stravastats.adapters.localrepositories.gpx
 
 import me.nicolas.stravastats.adapters.srtm.SRTMProvider
+import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.strava.*
 import me.nicolas.stravastats.domain.interfaces.ISRTMProvider
 import org.slf4j.LoggerFactory
@@ -24,13 +25,13 @@ class GPXRepository(gpxDirectory: String) {
 
     private val cacheDirectory = File(gpxDirectory)
 
-    fun loadActivitiesFromCache(year: Int): List<Activity> {
+    fun loadActivitiesFromCache(year: Int): List<StravaActivity> {
 
         val yearActivitiesDirectory = File(cacheDirectory, "$year")
         val gpxFiles = yearActivitiesDirectory.listFiles { file ->
             file.extension.lowercase(Locale.getDefault()) == "gpx"
         }
-        val activities: List<Activity> = gpxFiles?.mapNotNull { gpxFile ->
+        val activities: List<StravaActivity> = gpxFiles?.mapNotNull { gpxFile ->
             try {
                 convertGpxToActivity(gpxFile, 0)
             } catch (exception: Exception) {
@@ -42,7 +43,7 @@ class GPXRepository(gpxDirectory: String) {
         return activities
     }
 
-    private fun convertGpxToActivity(gpxFile: File, athleteId: Int): Activity {
+    private fun convertGpxToActivity(gpxFile: File, athleteId: Int): StravaActivity {
         val document: Document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(gpxFile)
         document.documentElement.normalize()
 
@@ -104,7 +105,7 @@ class GPXRepository(gpxDirectory: String) {
         val averageCadence = if (cadenceCount > 0) totalCadence / cadenceCount else 0.0
         val averageHeartrate = if (heartrateCount > 0) totalHeartrate / heartrateCount else 0.0
 
-        val activity = Activity(
+        val stravaActivity = StravaActivity(
             athlete = AthleteRef(id = athleteId),
             averageSpeed = totalDistance / totalElapsedTime,
             averageCadence = averageCadence,
@@ -129,7 +130,7 @@ class GPXRepository(gpxDirectory: String) {
             uploadId = 0L,
             weightedAverageWatts = 0,
         )
-        activity.stream = Stream(
+        stravaActivity.stream = Stream(
             latitudeLongitude = LatitudeLongitude(
                 data = (0 until trkpts.length).map { i ->
                     val trkpt = trkpts.item(i) as Element
@@ -196,7 +197,7 @@ class GPXRepository(gpxDirectory: String) {
         )
 
 
-        return activity
+        return stravaActivity
     }
 
     private fun haversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {

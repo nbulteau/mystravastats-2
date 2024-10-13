@@ -1,13 +1,14 @@
 package me.nicolas.stravastats.domain.services.csv
 
-import me.nicolas.stravastats.domain.business.strava.Activity
-import me.nicolas.stravastats.domain.business.strava.ActivityType
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
+import me.nicolas.stravastats.domain.business.ActivityType
+
 import me.nicolas.stravastats.domain.services.statistics.calculateBestDistanceForTime
 import me.nicolas.stravastats.domain.services.statistics.calculateBestTimeForDistance
 import me.nicolas.stravastats.domain.utils.formatDate
 import me.nicolas.stravastats.domain.utils.formatSeconds
 
-internal class RunCSVExporter(clientId: String, activities: List<Activity>, year: Int) :
+internal class RunCSVExporter(clientId: String, activities: List<StravaActivity>, year: Int) :
     CSVExporter(clientId, activities, year, ActivityType.Run) {
 
     override fun generateActivities(): String {

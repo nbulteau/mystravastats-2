@@ -1,10 +1,10 @@
 package me.nicolas.stravastats.domain.services.statistics
 
-import me.nicolas.stravastats.domain.business.strava.Activity
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import java.time.LocalDate
 
 internal class MaxStreakStatistic(
-    activities: List<Activity>,
+    activities: List<StravaActivity>,
 ) : Statistic("Max streak", activities) {
 
     private val maxStreak: Int

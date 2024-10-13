@@ -1,6 +1,6 @@
 package me.nicolas.stravastats.domain.business.badges
 
-import me.nicolas.stravastats.domain.business.strava.Activity
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.GeoCoordinate
 
 
@@ -16,7 +16,7 @@ data class FamousClimbBadge(
     val difficulty: Int,
 ) : Badge(label) {
 
-    override fun check(activities: List<Activity>): Pair<List<Activity>, Boolean> {
+    override fun check(activities: List<StravaActivity>): Pair<List<StravaActivity>, Boolean> {
         val filteredActivities = activities.filter { activity ->
             if (activity.startLatlng?.isNotEmpty() == true) {
                 this.start.haversineInKM(activity.startLatlng[0], activity.startLatlng[1]) < 50
@@ -30,9 +30,9 @@ data class FamousClimbBadge(
         return Pair(filteredActivities, filteredActivities.isNotEmpty())
     }
 
-    private fun check(activity: Activity, geoCoordinateToCheck: GeoCoordinate): Boolean {
-        if (activity.stream != null && activity.stream?.latitudeLongitude != null) {
-            for (coords in activity.stream?.latitudeLongitude?.data!!) {
+    private fun check(stravaActivity: StravaActivity, geoCoordinateToCheck: GeoCoordinate): Boolean {
+        if (stravaActivity.stream != null && stravaActivity.stream?.latitudeLongitude != null) {
+            for (coords in stravaActivity.stream?.latitudeLongitude?.data!!) {
                 if (geoCoordinateToCheck.match(coords[0], coords[1])) {
                     return true
                 }

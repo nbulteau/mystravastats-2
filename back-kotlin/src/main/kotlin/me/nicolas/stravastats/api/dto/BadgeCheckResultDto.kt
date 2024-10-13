@@ -1,8 +1,8 @@
 package me.nicolas.stravastats.api.dto
 
 import io.swagger.v3.oas.annotations.media.Schema
+import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.badges.*
-import me.nicolas.stravastats.domain.business.strava.ActivityType
 
 @Schema(description = "Badge check result", name = "BadgeCheckResult")
 data class BadgeCheckResultDto(

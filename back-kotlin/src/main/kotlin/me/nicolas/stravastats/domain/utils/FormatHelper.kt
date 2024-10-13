@@ -1,6 +1,7 @@
 package me.nicolas.stravastats.domain.utils
 
-import me.nicolas.stravastats.domain.business.strava.ActivityType
+import me.nicolas.stravastats.domain.business.ActivityType
+
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 

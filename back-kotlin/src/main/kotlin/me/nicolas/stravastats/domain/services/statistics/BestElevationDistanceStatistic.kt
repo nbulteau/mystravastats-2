@@ -1,12 +1,13 @@
 package me.nicolas.stravastats.domain.services.statistics
 
-import me.nicolas.stravastats.domain.business.strava.Activity
-import me.nicolas.stravastats.domain.business.strava.ActivityEffort
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
+import me.nicolas.stravastats.domain.business.ActivityEffort
+import java.util.*
 
 
 internal open class BestElevationDistanceStatistic(
     name: String,
-    activities: List<Activity>,
+    activities: List<StravaActivity>,
     private val distance: Double,
 ) : ActivityStatistic(name, activities) {
 
@@ -16,7 +17,7 @@ internal open class BestElevationDistanceStatistic(
 
     init {
         require(distance > 100) { "Distance must be > 100 meters" }
-        activity = bestActivityEffort?.activity
+        stravaActivity = bestActivityEffort?.stravaActivity
     }
 
     override val value: String
@@ -27,7 +28,7 @@ internal open class BestElevationDistanceStatistic(
  * Sliding window looking for best elevation gain for a given distance.
  * @param distance given distance.
  */
-fun Activity.calculateBestElevationForDistance(distance: Double): ActivityEffort? {
+fun StravaActivity.calculateBestElevationForDistance(distance: Double): ActivityEffort? {
 
     // no stream -> return null
     if (stream == null || stream?.altitude == null) {
@@ -59,7 +60,10 @@ fun Activity.calculateBestElevationForDistance(distance: Double): ActivityEffort
         } else {
             if (totalAltitude > bestElevation) {
                 bestElevation = totalAltitude
-                bestEffort = ActivityEffort(this, distance, totalTime, bestElevation, idxStart, idxEnd)
+                bestEffort = ActivityEffort(this, distance, totalTime, bestElevation, idxStart, idxEnd,
+                    null,
+                    "Best gradient for ${distance.toInt()}m: %.02f".format(Locale.ENGLISH, 100 * bestElevation / distance) + "%"
+                    )
             }
             ++idxStart
         }

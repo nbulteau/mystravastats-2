@@ -3,7 +3,8 @@ package me.nicolas.stravastats.api.controllers
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import me.nicolas.stravastats.domain.business.Period
-import me.nicolas.stravastats.domain.business.strava.ActivityType
+import me.nicolas.stravastats.domain.business.ActivityType
+
 import me.nicolas.stravastats.domain.services.IChartsService
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -84,7 +85,7 @@ class ChartsControllerTest {
             // THEN
             .andExpect(status().isBadRequest)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message").value("Unknown activity type"))
+            .andExpect(jsonPath("$.message").value("Unknown stravaActivity type"))
     }
 
     @Test
@@ -178,7 +179,7 @@ class ChartsControllerTest {
             // THEN
             .andExpect(status().isBadRequest)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message").value("Unknown activity type"))
+            .andExpect(jsonPath("$.message").value("Unknown stravaActivity type"))
     }
 
     @Test
@@ -269,6 +270,6 @@ class ChartsControllerTest {
             // THEN
             .andExpect(status().isBadRequest)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message").value("Unknown activity type"))
+            .andExpect(jsonPath("$.message").value("Unknown stravaActivity type"))
     }
 }

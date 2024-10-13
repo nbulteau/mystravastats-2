@@ -1,7 +1,7 @@
 package me.nicolas.stravastats.domain.services.statistics
 
 import me.nicolas.stravastats.TestHelper
-import me.nicolas.stravastats.domain.business.strava.Activity
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
@@ -25,7 +25,7 @@ class BestDayStatisticTest {
     @Test
     fun `should return not available when no activities`() {
         // Given
-        val activities = emptyList<Activity>()
+        val activities = emptyList<StravaActivity>()
         val bestDayStatistic = BestDayStatistic("Best day", activities, formatString = "%s: %.02f")
         { activityList -> activityList.maxByOrNull { it.distance }?.let { it.startDateLocal.substringBefore('T') to it.distance } }
 

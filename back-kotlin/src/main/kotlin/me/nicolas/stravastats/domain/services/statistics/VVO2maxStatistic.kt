@@ -1,7 +1,7 @@
 package me.nicolas.stravastats.domain.services.statistics
 
-import me.nicolas.stravastats.domain.business.strava.Activity
-import me.nicolas.stravastats.domain.business.strava.ActivityEffort
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
+import me.nicolas.stravastats.domain.business.ActivityEffort
 
 /**
  * A [BestEffortTimeStatistic] for 6 minutes that also reports vVO2max.
@@ -9,7 +9,7 @@ import me.nicolas.stravastats.domain.business.strava.ActivityEffort
  * vVO2max: Velocity at maximal oxygen uptake.
  */
 internal class VVO2maxStatistic(
-    activities: List<Activity>,
+    activities: List<StravaActivity>,
 ) : BestEffortTimeStatistic("Best vVO2max (6 min)", activities, 6 * 60) {
 
     override fun result(bestActivityEffort: ActivityEffort) =

@@ -58,67 +58,97 @@ export class Activity  {
 }
 
 // Define the DetailedActivity class that extends Activity class
-export class DetailedActivity extends Activity {
+export class DetailedActivity {
+    averageSpeed: number;
+    averageCadence: number;
+    averageHeartrate: number;
+    maxHeartrate: number;
+    averageWatts: number;
+    commute: boolean;
+    distance: number;
+    deviceWatts: boolean = false;
+    elapsedTime: number;
+    elevHigh: number;
+    id: number;
+    kilojoules: number;
+    maxSpeed: number;
+    movingTime: number;
+    name: string;
+    startDate: string;
+    startDateLocal: string;
+    startLatlng: number[] | null;
+    totalElevationGain: number;
+    type: string;
+    weightedAverageWatts: number;
+    stream: Stream | null = null;
+    activityEfforts: ActivityEffort[] = [];
 
     constructor(
-        name: string,
-        type: string,
-        link: string,
-        distance: number,
-        elapsedTime: number,
-        totalElevationGain: number,
-        totalDescent: number,
         averageSpeed: number,
-        bestTimeForDistanceFor1000m: string,
-        bestElevationForDistanceFor500m: string,
-        bestElevationForDistanceFor1000m: string,
-        date: string,
-        averageWatts: string,
-        weightedAverageWatts: string,
-        bestPowerFor20minutes: string,
-        bestPowerFor60minutes: string,
-        ftp: string,
-
-        public stream: Stream,
+        averageCadence: number,
+        averageHeartrate: number,
+        maxHeartrate: number,
+        averageWatts: number,
+        commute: boolean,
+        distance: number,
+        deviceWatts: boolean,
+        elapsedTime: number,
+        elevHigh: number,
+        id: number,
+        kilojoules: number,
+        maxSpeed: number,
+        movingTime: number,
+        name: string,
+        startDate: string,
+        startDateLocal: string,
+        startLatlng: number[] | null,
+        totalElevationGain: number,
+        type: string,
+        weightedAverageWatts: number,
+        stream: Stream | null,
+        activityEfforts:  ActivityEffort[]
     ) {
-        super(
-            name,
-            type,
-            link,
-            distance,
-            elapsedTime,
-            totalElevationGain,
-            totalDescent,
-            averageSpeed,
-            bestTimeForDistanceFor1000m,
-            bestElevationForDistanceFor500m,
-            bestElevationForDistanceFor1000m,
-            date,
-            averageWatts,
-            weightedAverageWatts,
-            bestPowerFor20minutes,
-            bestPowerFor60minutes,
-            ftp
-        );
+        this.averageSpeed = averageSpeed;
+        this.averageCadence = averageCadence;
+        this.averageHeartrate = averageHeartrate;
+        this.maxHeartrate = maxHeartrate;
+        this.averageWatts = averageWatts;
+        this.commute = commute;
+        this.distance = distance;
+        this.deviceWatts = deviceWatts;
+        this.elapsedTime = elapsedTime;
+        this.elevHigh = elevHigh;
+        this.id = id;
+        this.kilojoules = kilojoules;
+        this.maxSpeed = maxSpeed;
+        this.movingTime = movingTime;
+        this.name = name;
+        this.startDate = startDate;
+        this.startDateLocal = startDateLocal;
+        this.startLatlng = startLatlng;
+        this.totalElevationGain = totalElevationGain;
+        this.type = type;
+        this.weightedAverageWatts = weightedAverageWatts;
         this.stream = stream;
+        this.activityEfforts = activityEfforts;
     }
 }
 
 export class Stream {
     distance: number[];
     time: number[];
-    moving?: number[];
-    altitude?: number[];
-    latitudeLongitude?: number[][];
-    watts?: number[];
+    moving: boolean[] | null;
+    altitude: number[] | null;
+    latitudeLongitude: number[][] | null;
+    watts: number[] | null;
 
     constructor(
         distance: number[],
         time: number[],
-        moving?: number[],
-        altitude?: number[],
-        latitudeLongitude?: number[][],
-        watts?: number[]
+        moving: boolean[] | null,
+        altitude: number[] | null,
+        latitudeLongitude: number[][] | null,
+        watts: number[] | null
     ) {
         this.distance = distance;
         this.time = time;
@@ -126,5 +156,36 @@ export class Stream {
         this.altitude = altitude;
         this.latitudeLongitude = latitudeLongitude;
         this.watts = watts;
+    }
+}
+
+export class ActivityEffort {
+    key: string;
+    distance: number;
+    seconds: number;
+    deltaAltitude: number;
+    idxStart: number;
+    idxEnd: number;
+    averagePower: number | null = null;
+    description: string = '';
+
+    constructor(
+        key: string,
+        distance: number,
+        seconds: number,
+        deltaAltitude: number,
+        idxStart: number,
+        idxEnd: number,
+        averagePower: number | null,
+        description: string,
+    ) {
+        this.key = key;
+        this.distance = distance;
+        this.seconds = seconds;
+        this.deltaAltitude = deltaAltitude;
+        this.idxStart = idxStart;
+        this.idxEnd = idxEnd;
+        this.averagePower = averagePower;
+        this.description = description;
     }
 }

@@ -53,8 +53,8 @@ class RestResponseEntityExceptionHandler
         when (exception.name) {
             "activityType" -> {
                 val errorResponse = ErrorResponseMessageDto(
-                    message = "Unknown activity type",
-                    description = "The activity type '${exception.value}' is not recognized.",
+                    message = "Unknown stravaActivity type",
+                    description = "The stravaActivity type '${exception.value}' is not recognized.",
                     code = 1
                 )
                 return handleExceptionInternal(

@@ -8,8 +8,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import me.nicolas.stravastats.api.dto.EddingtonNumberDto
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
 import me.nicolas.stravastats.api.dto.toDto
+import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.Period
-import me.nicolas.stravastats.domain.business.strava.ActivityType
 import me.nicolas.stravastats.domain.services.IChartsService
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
@@ -24,8 +24,8 @@ class ChartsController(
 ) {
 
     @Operation(
-        description = "Get the distance by months for a specific activity type and year",
-        summary = "Get the distance by months for a specific activity type and year",
+        description = "Get the distance by months for a specific stravaActivity type and year",
+        summary = "Get the distance by months for a specific stravaActivity type and year",
         responses = [ApiResponse(
             responseCode = "200", description = "Distance by months found",
             content = [Content(
@@ -51,8 +51,8 @@ class ChartsController(
     }
 
     @Operation(
-        description = "Get the elevation by months for a specific activity type and year",
-        summary = "Get the elevation by months for a specific activity type and year",
+        description = "Get the elevation by months for a specific stravaActivity type and year",
+        summary = "Get the elevation by months for a specific stravaActivity type and year",
         responses = [ApiResponse(
             responseCode = "200", description = "Elevation by months found",
             content = [Content(
@@ -78,8 +78,8 @@ class ChartsController(
     }
 
     @Operation(
-        description = "Get the average speed by months for a specific activity type and year",
-        summary = "Get the average speed by months for a specific activity type and year",
+        description = "Get the average speed by months for a specific stravaActivity type and year",
+        summary = "Get the average speed by months for a specific stravaActivity type and year",
         responses = [ApiResponse(
             responseCode = "200", description = "Average speed by months found",
             content = [Content(
@@ -105,8 +105,8 @@ class ChartsController(
     }
 
     @Operation(
-        description = "Get the cumulative distance by months for a specific activity type and year",
-        summary = "Get the cumulative distance by months for a specific activity type and year",
+        description = "Get the cumulative distance by months for a specific stravaActivity type and year",
+        summary = "Get the cumulative distance by months for a specific stravaActivity type and year",
         responses = [ApiResponse(
             responseCode = "200", description = "Cumulative distance by months found",
             content = [Content(
@@ -130,8 +130,8 @@ class ChartsController(
     }
 
     @Operation(
-        description = "Get the Eddington number for a specific activity type",
-        summary = "Get the Eddington number for a specific activity type",
+        description = "Get the Eddington number for a specific stravaActivity type",
+        summary = "Get the Eddington number for a specific stravaActivity type",
         responses = [ApiResponse(
             responseCode = "200", description = "Eddington number found",
             content = [Content(

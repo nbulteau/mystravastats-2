@@ -5,7 +5,7 @@ import me.nicolas.stravastats.domain.services.activityproviders.StravaActivityPr
 import org.junit.jupiter.api.BeforeEach
 
 
-class ActivityServiceTest {
+class StravaActivityServiceTest {
 
     private lateinit var activityService: IActivityService
 

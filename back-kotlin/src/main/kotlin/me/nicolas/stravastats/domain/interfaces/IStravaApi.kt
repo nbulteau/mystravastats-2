@@ -1,20 +1,20 @@
 package me.nicolas.stravastats.domain.interfaces
 
-import me.nicolas.stravastats.domain.business.strava.Activity
-import me.nicolas.stravastats.domain.business.strava.Athlete
-import me.nicolas.stravastats.domain.business.strava.DetailedActivity
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
+import me.nicolas.stravastats.domain.business.strava.StravaAthlete
+import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.business.strava.Stream
 import java.time.LocalDateTime
 import java.util.*
 
 interface IStravaApi {
-    fun retrieveLoggedInAthlete(): Optional<Athlete>
+    fun retrieveLoggedInAthlete(): Optional<StravaAthlete>
 
-    fun getActivities(year: Int): List<Activity>
+    fun getActivities(year: Int): List<StravaActivity>
 
-    fun getActivities(after: LocalDateTime): List<Activity>
+    fun getActivities(after: LocalDateTime): List<StravaActivity>
 
-    fun getActivityStream(activity: Activity): Optional<Stream>
+    fun getActivityStream(stravaActivity: StravaActivity): Optional<Stream>
 
-    fun getDetailledActivity(activityId: Long): Optional<DetailedActivity>
+    fun getDetailledActivity(activityId: Long): Optional<StravaDetailedActivity>
 }

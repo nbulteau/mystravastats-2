@@ -4,43 +4,43 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import java.io.File
 
 
-fun loadColAgnelActivity(): Activity {
+fun loadColAgnelActivity(): StravaActivity {
     val objectMapper = jacksonObjectMapper()
     var url = Thread.currentThread().contextClassLoader.getResource("colagnel-activity.json")
     var jsonFile = File(url!!.path)
-    val activity = objectMapper.readValue(jsonFile, Activity::class.java)
+    val stravaActivity = objectMapper.readValue(jsonFile, StravaActivity::class.java)
 
     url = Thread.currentThread().contextClassLoader.getResource("colagnel-stream.json")
     jsonFile = File(url!!.path)
-    activity.stream = objectMapper.readValue(jsonFile, Stream::class.java)
+    stravaActivity.stream = objectMapper.readValue(jsonFile, Stream::class.java)
 
-    return activity
+    return stravaActivity
 }
 
-fun loadActivity(name: String): Activity {
+fun loadActivity(name: String): StravaActivity {
     val objectMapper = jacksonObjectMapper()
     var url = Thread.currentThread().contextClassLoader.getResource(name)
     var jsonFile = File(url!!.path)
-    val activity = objectMapper.readValue(jsonFile, Activity::class.java)
+    val stravaActivity = objectMapper.readValue(jsonFile, StravaActivity::class.java)
 
     url = Thread.currentThread().contextClassLoader.getResource("stream-$name")
     jsonFile = File(url!!.path)
-    activity.stream = objectMapper.readValue(jsonFile, Stream::class.java)
+    stravaActivity.stream = objectMapper.readValue(jsonFile, Stream::class.java)
 
-    return activity
+    return stravaActivity
 }
 
-fun loadZwiftActivity(): Activity {
+fun loadZwiftActivity(): StravaActivity {
     val objectMapper = jacksonObjectMapper()
     var url = Thread.currentThread().contextClassLoader.getResource("zwift-activity.json")
     var jsonFile = File(url!!.path)
-    val activity = objectMapper.readValue(jsonFile, Activity::class.java)
+    val stravaActivity = objectMapper.readValue(jsonFile, StravaActivity::class.java)
 
     url = Thread.currentThread().contextClassLoader.getResource("zwift-stream.json")
     jsonFile = File(url!!.path)
-    activity.stream = objectMapper.readValue(jsonFile, Stream::class.java)
+    stravaActivity.stream = objectMapper.readValue(jsonFile, Stream::class.java)
 
-    return activity
+    return stravaActivity
 }
 
 

@@ -3,7 +3,8 @@ package me.nicolas.stravastats.api.controllers
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import me.nicolas.stravastats.TestHelper
-import me.nicolas.stravastats.domain.business.strava.ActivityType
+import me.nicolas.stravastats.domain.business.ActivityType
+
 import me.nicolas.stravastats.domain.services.IActivityService
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -33,7 +34,7 @@ class ActivitiesControllerTest {
         // GIVEN
         val pageable = PageRequest.of(0, 10, Sort.by("averageSpeed"))
 
-        val activity = TestHelper.activity
+        val activity = TestHelper.stravaActivity
         val activities = listOf(activity)
 
         val page = PageImpl(activities, pageable, activities.size.toLong())
@@ -141,7 +142,7 @@ class ActivitiesControllerTest {
             // THEN
             .andExpect(status().isBadRequest)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message").value("Unknown activity type"))
+            .andExpect(jsonPath("$.message").value("Unknown stravaActivity type"))
     }
 
 }

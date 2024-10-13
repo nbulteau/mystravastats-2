@@ -1,11 +1,11 @@
 package me.nicolas.stravastats.domain.services.statistics
 
-import me.nicolas.stravastats.domain.business.strava.Activity
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.utils.dateFormatter
 import java.time.LocalDate
 
 internal class MaxDistanceInADayStatistic(
-    activities: List<Activity>,
+    activities: List<StravaActivity>,
 ) : Statistic(name = "Max distance in a day", activities) {
 
     private val mostActiveDay: Map.Entry<String, Double>? =

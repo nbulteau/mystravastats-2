@@ -16,7 +16,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 
 @ExtendWith(SpringExtension::class)
 @WebMvcTest(AthleteController::class)
-class AthleteControllerTest {
+class StravaAthleteControllerTest {
 
     @Autowired
     private lateinit var mockMvc: MockMvc
@@ -27,7 +27,7 @@ class AthleteControllerTest {
     @Test
     fun `get athlete returns athlete when athlete is found`() {
         // GIVEN
-        val athlete = TestHelper.athlete
+        val athlete = TestHelper.stravaAthlete
         every { stravaProxy.athlete() } returns athlete
 
         // WHEN

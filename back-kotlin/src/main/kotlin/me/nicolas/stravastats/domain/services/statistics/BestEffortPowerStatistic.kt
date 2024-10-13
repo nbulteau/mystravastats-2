@@ -1,12 +1,13 @@
 package me.nicolas.stravastats.domain.services.statistics
 
-import me.nicolas.stravastats.domain.business.strava.Activity
-import me.nicolas.stravastats.domain.business.strava.ActivityEffort
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
+import me.nicolas.stravastats.domain.business.ActivityEffort
+import me.nicolas.stravastats.domain.utils.formatSeconds
 
 
 internal open class BestEffortPowerStatistic(
     name: String,
-    activities: List<Activity>,
+    activities: List<StravaActivity>,
     private val seconds: Int,
 ) : ActivityStatistic(name, activities) {
 
@@ -16,7 +17,7 @@ internal open class BestEffortPowerStatistic(
 
     init {
         require(seconds > 10) { "Distance must be > 10 seconds" }
-        activity = bestActivityEffort?.activity
+        stravaActivity = bestActivityEffort?.stravaActivity
     }
 
     override val value: String
@@ -42,7 +43,7 @@ internal open class BestEffortPowerStatistic(
  * Sliding window best power for a given time
  * @param seconds given time
  */
-fun Activity.calculateBestPowerForTime(seconds: Int): ActivityEffort? {
+fun StravaActivity.calculateBestPowerForTime(seconds: Int): ActivityEffort? {
 
     val stream = this.stream ?: return null
     val altitudes = stream.altitude?.data
@@ -79,7 +80,16 @@ fun Activity.calculateBestPowerForTime(seconds: Int): ActivityEffort? {
             if (totalPower > maxPower) {
                 maxPower = totalPower
                 val averagePower = totalPower / (idxEnd - idxStart)
-                bestEffort = ActivityEffort(this, totalDistance, seconds, totalAltitude, idxStart, idxEnd, averagePower)
+                bestEffort = ActivityEffort(
+                    this,
+                    totalDistance,
+                    seconds,
+                    totalAltitude,
+                    idxStart,
+                    idxEnd,
+                    averagePower,
+                    description = "Best power for ${seconds.formatSeconds()}: %d W".format(averagePower),
+                )
             }
             ++idxStart
         }

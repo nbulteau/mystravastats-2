@@ -3,7 +3,8 @@ package me.nicolas.stravastats.domain.services
 import io.mockk.every
 import io.mockk.mockk
 import me.nicolas.stravastats.TestHelper
-import me.nicolas.stravastats.domain.business.strava.ActivityType
+import me.nicolas.stravastats.domain.business.ActivityType
+
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

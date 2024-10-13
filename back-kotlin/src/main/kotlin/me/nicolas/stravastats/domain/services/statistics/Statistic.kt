@@ -1,8 +1,8 @@
 package me.nicolas.stravastats.domain.services.statistics
 
-import me.nicolas.stravastats.domain.business.strava.Activity
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
 
-abstract class Statistic(val name: String, protected val activities: List<Activity>) {
+abstract class Statistic(val name: String, protected val activities: List<StravaActivity>) {
     abstract val value: String
 
     override fun toString() = value
@@ -10,9 +10,9 @@ abstract class Statistic(val name: String, protected val activities: List<Activi
 
 class GlobalStatistic(
     name: String,
-    activities: List<Activity>,
+    activities: List<StravaActivity>,
     private val formatString: String,
-    private val function: (List<Activity>) -> Number,
+    private val function: (List<StravaActivity>) -> Number,
 ) : Statistic(name, activities) {
 
     override val value: String
@@ -21,13 +21,13 @@ class GlobalStatistic(
 
 abstract class ActivityStatistic(
     name: String,
-    activities: List<Activity>,
+    activities: List<StravaActivity>,
 ) : Statistic(name, activities) {
 
-    var activity: Activity? = null
+    var stravaActivity: StravaActivity? = null
 
-    override fun toString() = if (activity != null) {
-        "$value - $activity"
+    override fun toString() = if (stravaActivity != null) {
+        "$value - $stravaActivity"
     } else {
         "Not available"
     }

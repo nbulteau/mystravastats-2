@@ -7,8 +7,8 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import me.nicolas.stravastats.api.dto.*
-import me.nicolas.stravastats.domain.business.strava.Activity
-import me.nicolas.stravastats.domain.business.strava.ActivityType
+import me.nicolas.stravastats.domain.business.ActivityType
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.services.IActivityService
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.data.domain.Page
@@ -71,7 +71,7 @@ class ActivitiesController(
             throw IllegalArgumentException("Invalid sort property : ${pageable.sort}")
         }
 
-        val resultPage: Page<Activity> = activityService.listActivitiesPaginated(pageable)
+        val resultPage: Page<StravaActivity> = activityService.listActivitiesPaginated(pageable)
         if (pageable.pageNumber > resultPage.totalPages) {
             throw ResourceNotFoundException("Page not found")
         }
@@ -80,8 +80,8 @@ class ActivitiesController(
     }
 
     @Operation(
-        description = "Get activities by activity type and year. If year is null, all activities are returned. It return a map with the date as key and the cumulated distance in km as value.",
-        summary = "Get the active days by activity type for a year",
+        description = "Get activities by stravaActivity type and year. If year is null, all activities are returned. It return a map with the date as key and the cumulated distance in km as value.",
+        summary = "Get the active days by stravaActivity type for a year",
         responses = [ApiResponse(
             responseCode = "200", description = "Active days found",
             content = [Content(
@@ -108,8 +108,8 @@ class ActivitiesController(
     }
 
     @Operation(
-        description = "Get the active days by activity type",
-        summary = "Get the active days by activity type",
+        description = "Get the active days by stravaActivity type",
+        summary = "Get the active days by stravaActivity type",
         responses = [ApiResponse(
             responseCode = "200", description = "Active days found",
             content = [Content(
@@ -161,12 +161,12 @@ class ActivitiesController(
     }
 
     @Operation(
-        description = "Get a detailed activity",
-        summary = "Get a detailed activity",
+        description = "Get a detailed stravaActivity",
+        summary = "Get a detailed stravaActivity",
         responses = [
             ApiResponse(
                 responseCode = "200",
-                description = "Activity found",
+                description = "StravaActivity found",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = DetailedActivityDto::class)
@@ -174,7 +174,7 @@ class ActivitiesController(
             ),
             ApiResponse(
                 responseCode = "404",
-                description = "Activity not found",
+                description = "StravaActivity not found",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = ErrorResponseMessageDto::class)
@@ -187,8 +187,8 @@ class ActivitiesController(
         @PathVariable activityId: Long,
     ): DetailedActivityDto {
 
-        return activityService.getActivity(activityId).orElseThrow {
-            ResourceNotFoundException("Activity id $activityId not found")
-        }.toDetailedActivityDto()
+        return activityService.getDetailedActivity(activityId).orElseThrow {
+            ResourceNotFoundException("StravaActivity id $activityId not found")
+        }.toDto()
     }
 }

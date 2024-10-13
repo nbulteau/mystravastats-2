@@ -3,7 +3,7 @@ package me.nicolas.stravastats.adapters.localrepositories.fit
 import com.garmin.fit.*
 import me.nicolas.stravastats.adapters.srtm.SRTMProvider
 import me.nicolas.stravastats.domain.business.strava.*
-import me.nicolas.stravastats.domain.business.strava.Activity
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.interfaces.ISRTMProvider
 import me.nicolas.stravastats.domain.utils.inDateTimeFormatter
 import org.slf4j.LoggerFactory
@@ -23,13 +23,13 @@ class FITRepository(fitDirectory: String) {
 
     private val fitDecoder = FitDecoder()
 
-    fun loadActivitiesFromCache(year: Int): List<Activity> {
+    fun loadActivitiesFromCache(year: Int): List<StravaActivity> {
 
         val yearActivitiesDirectory = File(cacheDirectory, "$year")
         val fitFiles = yearActivitiesDirectory.listFiles { file ->
             file.extension.lowercase(Locale.getDefault()) == "fit"
         }
-        val activities: List<Activity> = fitFiles?.mapNotNull { fitFile ->
+        val activities: List<StravaActivity> = fitFiles?.mapNotNull { fitFile ->
             try {
                 val fitMessages = fitDecoder.decode(fitFile.inputStream())
                 fitMessages.toActivity()
@@ -43,52 +43,52 @@ class FITRepository(fitDirectory: String) {
     }
 
     /**
-     * Convert a FIT activity to a Strava activity
+     * Convert a FIT stravaActivity to a Strava stravaActivity
      */
-    private fun FitMessages.toActivity(): Activity {
+    private fun FitMessages.toActivity(): StravaActivity {
 
         val sessionMesg = this.sessionMesgs.first()
 
         val stream: Stream = this.recordMesgs.buildStream()
 
-        // Athlete
+        // StravaAthlete
         val athlete = AthleteRef(0)
-        // The activity's average speed, in meters per second
+        // The stravaActivity's average speed, in meters per second
         val averageSpeed: Double = sessionMesg?.avgSpeed?.toDouble() ?: 0.0
         // The effort's average cadence
         val averageCadence: Double = sessionMesg?.avgCadence?.toDouble() ?: 0.0
-        // The heart rate of the athlete during this effort
+        // The heart rate of the stravaAthlete during this effort
         val averageHeartrate: Double = sessionMesg?.avgHeartRate?.toDouble() ?: 0.0
-        // The maximum heart rate of the athlete during this effort
+        // The maximum heart rate of the stravaAthlete during this effort
         val maxHeartrate: Double = sessionMesg?.maxHeartRate?.toDouble() ?: 0.0
         //The average wattage of this effort
         val averageWatts: Double = sessionMesg?.avgPower?.toDouble() ?: 0.0 // TODO : Calculate ?
-        // Whether this activity is a commute
+        // Whether this stravaActivity is a commute
         val commute = false
-        // The activity's distance, in meters
+        // The stravaActivity's distance, in meters
         val distance: Double = sessionMesg?.totalDistance?.toDouble() ?: 0.0
-        // The activity's elapsed time, in seconds
+        // The stravaActivity's elapsed time, in seconds
         val elapsedTime: Int = sessionMesg?.totalElapsedTime?.toInt() ?: 0
-        // The activity's highest elevation, in meters
+        // The stravaActivity's highest elevation, in meters
         val extractedElevHigh: Double = extractElevHigh(sessionMesg)
         val elevHigh: Double = if (extractedElevHigh == 0.0) {
             stream.altitude?.data?.maxOf { it }!!
         } else {
             extractedElevHigh
         }
-        // The unique identifier of the activity
+        // The unique identifier of the stravaActivity
         val id: Long = 0
-        // The total work done in kilojoules during this activity. Rides only
+        // The total work done in kilojoules during this stravaActivity. Rides only
         val kilojoules = 0.0
-        // The activity's max speed, in meters per second
+        // The stravaActivity's max speed, in meters per second
         val maxSpeed: Double = sessionMesg?.maxSpeed?.toDouble() ?: 0.0
-        // The activity's moving time, in seconds
+        // The stravaActivity's moving time, in seconds
         val movingTime: Int = sessionMesg?.timestamp?.timestamp?.minus(sessionMesg.startTime?.timestamp!!)?.toInt()!!
-        // The time at which the activity was started.
+        // The time at which the stravaActivity was started.
         val startDate: String = extractDate(sessionMesg.startTime?.timestamp!!)
-        // The time at which the activity was started in the local timezone.
+        // The time at which the stravaActivity was started in the local timezone.
         val startDateLocal: String = extractDateLocal(sessionMesg.startTime?.timestamp!!)
-        // Activity name
+        // StravaActivity name
         val name = "${extractActivityType(sessionMesg.sport!!)} - $startDateLocal"
         // Latitude /longitude of the start point
         val extractedStartLatLng = extractLatLng(sessionMesg.startPositionLat, sessionMesg.startPositionLong)
@@ -99,10 +99,10 @@ class FITRepository(fitDirectory: String) {
         val deltas = stream.altitude?.data?.zipWithNext { a, b -> b - a }
         val sum = deltas?.filter { it > 0 }?.sumOf { it }
         val totalElevationGain: Double = sessionMesg.totalAscent?.toDouble() ?: sum!!
-        // Activity type (i.e. Ride, Run ...)
+        // StravaActivity type (i.e. Ride, Run ...)
         val type: String = extractActivityType(sessionMesg.sport!!)
 
-        val activity = Activity(
+        val stravaActivity = StravaActivity(
             athlete = athlete,
             averageSpeed = averageSpeed,
             averageCadence = averageCadence,
@@ -127,9 +127,9 @@ class FITRepository(fitDirectory: String) {
             weightedAverageWatts = sessionMesg.avgPower?.toInt() ?: 0,
         )
 
-        activity.stream = stream
+        stravaActivity.stream = stream
 
-        return activity
+        return stravaActivity
     }
 
     /**

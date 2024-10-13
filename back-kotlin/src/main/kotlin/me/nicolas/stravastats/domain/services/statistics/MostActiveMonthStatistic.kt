@@ -1,12 +1,12 @@
 package me.nicolas.stravastats.domain.services.statistics
 
-import me.nicolas.stravastats.domain.business.strava.Activity
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import java.time.Month
 import java.time.format.TextStyle
 import java.util.*
 
 internal class MostActiveMonthStatistic(
-    activities: List<Activity>,
+    activities: List<StravaActivity>,
 ) : Statistic("Most active month", activities) {
 
     private val mostActiveMonth =

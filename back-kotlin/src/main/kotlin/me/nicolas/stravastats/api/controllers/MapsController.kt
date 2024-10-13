@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
-import me.nicolas.stravastats.domain.business.strava.ActivityType
+import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
@@ -22,8 +22,8 @@ class MapsController(
     private val stravaProxy: IActivityProvider,
 ) {
     @Operation(
-        description = "Get the GPX coordinates for a specific activity type and year",
-        summary = "Get the GPX coordinates for a specific activity type and year",
+        description = "Get the GPX coordinates for a specific stravaActivity type and year",
+        summary = "Get the GPX coordinates for a specific stravaActivity type and year",
         responses = [ApiResponse(
             responseCode = "200", description = "GPX coordinates found", content = [Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = List::class)

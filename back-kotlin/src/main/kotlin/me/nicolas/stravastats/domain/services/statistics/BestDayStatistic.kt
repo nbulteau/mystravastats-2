@@ -1,14 +1,14 @@
 package me.nicolas.stravastats.domain.services.statistics
 
-import me.nicolas.stravastats.domain.business.strava.Activity
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.utils.dateFormatter
 import java.time.LocalDate
 
 internal class BestDayStatistic(
     name: String,
-    activities: List<Activity>,
+    activities: List<StravaActivity>,
     private val formatString: String,
-    private val function: (List<Activity>) -> Pair<String, Number>?,
+    private val function: (List<StravaActivity>) -> Pair<String, Number>?,
 ) : Statistic(name, activities) {
 
     override val value: String

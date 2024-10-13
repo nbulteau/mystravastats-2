@@ -1,13 +1,13 @@
 package me.nicolas.stravastats.domain.services.statistics
 
-import me.nicolas.stravastats.domain.business.strava.Activity
-import me.nicolas.stravastats.domain.business.strava.ActivityEffort
+import me.nicolas.stravastats.domain.business.ActivityEffort
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.utils.formatSeconds
 
 
 internal open class BestEffortDistanceStatistic(
     name: String,
-    activities: List<Activity>,
+    activities: List<StravaActivity>,
     private val distance: Double,
 ) : ActivityStatistic(name, activities) {
 
@@ -17,7 +17,7 @@ internal open class BestEffortDistanceStatistic(
 
     init {
         require(distance > 100) { "Distance must be > 100 meters" }
-        activity = bestActivityEffort?.activity
+        stravaActivity = bestActivityEffort?.stravaActivity
     }
 
     override val value: String
@@ -32,7 +32,7 @@ internal open class BestEffortDistanceStatistic(
  * Sliding window best time for a given distance.
  * @param distance given distance.
  */
-fun Activity.calculateBestTimeForDistance(distance: Double): ActivityEffort? {
+fun StravaActivity.calculateBestTimeForDistance(distance: Double): ActivityEffort? {
 
     // no stream -> return null
     if (stream == null || stream?.altitude == null) {
@@ -66,7 +66,16 @@ fun Activity.calculateBestTimeForDistance(distance: Double): ActivityEffort? {
             // estimatedTimeForDistance > 1 to prevent corrupted data
             if (estimatedTimeForDistance < bestTime && estimatedTimeForDistance > 1) {
                 bestTime = estimatedTimeForDistance
-                bestEffort = ActivityEffort(this, distance, bestTime.toInt(), totalAltitude, idxStart, idxEnd)
+                bestEffort = ActivityEffort(
+                    this,
+                    distance,
+                    bestTime.toInt(),
+                    totalAltitude,
+                    idxStart,
+                    idxEnd,
+                    averagePower = null,
+                    description = "Best speed for ${distance.toInt()}m: ${getFormattedSpeed()}",
+                )
             }
             ++idxStart
         }

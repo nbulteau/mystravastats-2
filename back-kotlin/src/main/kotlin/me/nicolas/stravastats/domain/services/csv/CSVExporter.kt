@@ -1,18 +1,19 @@
 package me.nicolas.stravastats.domain.services.csv
 
-import me.nicolas.stravastats.domain.business.strava.Activity
-import me.nicolas.stravastats.domain.business.strava.ActivityType
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
+import me.nicolas.stravastats.domain.business.ActivityType
+
 import java.io.File
 import java.io.FileWriter
 
 internal abstract class CSVExporter(
     clientId: String,
-    activities: List<Activity>,
+    activities: List<StravaActivity>,
     year: Int,
     activityType: ActivityType,
 ) {
 
-    protected val activities: List<Activity> = activities
+    protected val activities: List<StravaActivity> = activities
         .filter { activity -> activity.type == activityType.name }
 
     private val writer: FileWriter = FileWriter(File("$clientId-$activityType-$year.csv"))

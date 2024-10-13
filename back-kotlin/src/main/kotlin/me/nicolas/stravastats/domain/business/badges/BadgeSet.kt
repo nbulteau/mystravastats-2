@@ -1,6 +1,6 @@
 package me.nicolas.stravastats.domain.business.badges
 
-import me.nicolas.stravastats.domain.business.strava.Activity
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
 
 
 enum class BadgeSetEnum {
@@ -19,7 +19,7 @@ data class BadgeSet(val name: String, private val badges: List<Badge> = listOf()
      * @param activities the list of activities to check
      * @return a list of BadgeCheckResult
      */
-    fun check(activities: List<Activity>): List<BadgeCheckResult> {
+    fun check(activities: List<StravaActivity>): List<BadgeCheckResult> {
         return badges.map { badge ->
             val (checkedActivities, isCompleted) = badge.check(activities)
             BadgeCheckResult(badge, checkedActivities, isCompleted)

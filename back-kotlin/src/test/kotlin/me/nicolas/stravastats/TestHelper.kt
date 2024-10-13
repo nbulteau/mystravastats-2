@@ -1,18 +1,19 @@
 package me.nicolas.stravastats
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import me.nicolas.stravastats.domain.business.strava.Activity
-import me.nicolas.stravastats.domain.business.strava.ActivityType
-import me.nicolas.stravastats.domain.business.strava.Athlete
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
+import me.nicolas.stravastats.domain.business.ActivityType
+
+import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.AthleteRef
 import java.io.File
 
 class TestHelper {
     companion object {
-        fun loadActivities(): List<Activity> {
+        fun loadActivities(): List<StravaActivity> {
             val url = Thread.currentThread().contextClassLoader.getResource("activities.json")
             val jsonFile = File(url?.path ?: "")
-            val activities = jacksonObjectMapper().readValue(jsonFile, Array<Activity>::class.java)
+            val activities = jacksonObjectMapper().readValue(jsonFile, Array<StravaActivity>::class.java)
 
             return activities.sortedBy { it.startDate }.reversed()
         }
@@ -26,7 +27,7 @@ class TestHelper {
         fun run2023Activities() = loadActivities().getFilteredActivitiesByActivityTypeAndYear(ActivityType.Run, 2023)
 
 
-        val activity = Activity(
+        val stravaActivity = StravaActivity(
             athlete = AthleteRef(id = 12345),
             averageSpeed = 5.5,
             averageCadence = 80.0,
@@ -52,7 +53,7 @@ class TestHelper {
             weightedAverageWatts = 210
         )
 
-        val athlete = Athlete(
+        val stravaAthlete = StravaAthlete(
             badgeTypeId = 1,
             city = "Paris",
             country = "France",
@@ -84,7 +85,7 @@ class TestHelper {
             weight = 70
         )
 
-        private fun List<Activity>.getFilteredActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int): List<Activity> {
+        private fun List<StravaActivity>.getFilteredActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int): List<StravaActivity> {
 
             val filteredActivities = this
                 .filter { activity -> activity.startDateLocal.subSequence(0, 4).toString().toInt() == year }

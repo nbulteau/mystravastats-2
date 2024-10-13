@@ -1,24 +1,26 @@
-package me.nicolas.stravastats.domain.business.strava
+package me.nicolas.stravastats.domain.business
 
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.utils.formatSeconds
 import java.util.*
 
 
 /**
- * An effort within an activity.
+ * An effort within an stravaActivity.
  */
 data class ActivityEffort(
-    val activity: Activity,
+    val stravaActivity: StravaActivity,
     val distance: Double,
     val seconds: Int,
     val deltaAltitude: Double,
     val idxStart: Int,
     val idxEnd: Int,
     val averagePower: Int? = null,
+    val description: String,
 ) {
     fun getFormattedSpeed(): String {
         val speed = getSpeed()
-        return if (activity.type == ActivityType.Run.name) {
+        return if (stravaActivity.type == ActivityType.Run.name) {
             "${speed}/km"
         } else {
             "$speed km/h"
@@ -26,7 +28,7 @@ data class ActivityEffort(
     }
 
     fun getSpeed(): String {
-        return if (activity.type == ActivityType.Run.name) {
+        return if (stravaActivity.type == ActivityType.Run.name) {
             (seconds * 1000 / distance).formatSeconds()
         } else {
             "%.02f".format(Locale.ENGLISH, distance / seconds * 3600 / 1000)

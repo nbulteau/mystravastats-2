@@ -1,9 +1,9 @@
 package me.nicolas.stravastats.domain.services.activityproviders
 
 import me.nicolas.stravastats.adapters.localrepositories.gpx.GPXRepository
-import me.nicolas.stravastats.domain.business.strava.Activity
-import me.nicolas.stravastats.domain.business.strava.Athlete
-import me.nicolas.stravastats.domain.business.strava.DetailedActivity
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
+import me.nicolas.stravastats.domain.business.strava.StravaAthlete
+import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import org.slf4j.LoggerFactory
 import java.time.LocalDate
 import java.util.*
@@ -14,20 +14,20 @@ class GpxActivityProvider (gpxCache: String) : AbstractActivityProvider() {
     private val localStorageProvider = GPXRepository(gpxCache)
 
     init {
-        logger.info("Initialize GPX activity provider ...")
+        logger.info("Initialize GPX stravaActivity provider ...")
         val firstname = gpxCache.substringAfterLast("-")
-        athlete = Athlete(id = 0, firstname = firstname, lastname = "")
+        stravaAthlete = StravaAthlete(id = 0, firstname = firstname, lastname = "")
         activities = loadFromLocalCache()
     }
 
-    override fun getDetailedActivity(activityId: Long): Optional<DetailedActivity> {
+    override fun getDetailedActivity(activityId: Long): Optional<StravaDetailedActivity> {
         TODO("Not yet implemented")
     }
 
-    private fun loadFromLocalCache(): List<Activity> {
+    private fun loadFromLocalCache(): List<StravaActivity> {
         logger.info("Load GPX activities from local cache ...")
 
-        val loadedActivities = mutableListOf<Activity>()
+        val loadedActivities = mutableListOf<StravaActivity>()
         for (currentYear in LocalDate.now().year downTo 2010) {
             logger.info("Load $currentYear activities ...")
             loadedActivities.addAll(localStorageProvider.loadActivitiesFromCache(currentYear))

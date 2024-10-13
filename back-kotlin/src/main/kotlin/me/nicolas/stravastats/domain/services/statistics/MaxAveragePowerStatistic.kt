@@ -1,18 +1,18 @@
 package me.nicolas.stravastats.domain.services.statistics
 
-import me.nicolas.stravastats.domain.business.strava.Activity
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
 
 internal class MaxAveragePowerStatistic(
-    activities: List<Activity>,
+    activities: List<StravaActivity>,
 ) : ActivityStatistic("Average power", activities) {
 
     init {
-        activity = activities.maxByOrNull { activity -> activity.maxSpeed }
+        stravaActivity = activities.maxByOrNull { activity -> activity.maxSpeed }
     }
 
     override val value: String
-        get() = if (activity != null) {
-            "%.02f W".format(activity?.averageWatts)
+        get() = if (stravaActivity != null) {
+            "%.02f W".format(stravaActivity?.averageWatts)
         } else {
             "Not available"
         }

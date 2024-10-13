@@ -22,6 +22,7 @@ All statistics can be exported as a CSV file.
 ![Screen shoot 2](https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-2.png?raw=true)
 ![Screen shoot 3](https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-3.png?raw=true)
 ![Screen shoot 4](https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-4.png?raw=true)
+![Screen shoot 5](https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-5.png?raw=true)
 
 Icons made by [Freepik](https://www.freepik.com) from [Flaticon](https://www.flaticon.com).
 
@@ -107,13 +108,13 @@ docker compose --env-file .env build
 
 ```shell
 export STRAVA_CACHE_PATH=[path to the strava-cache directory]
-docker compose up
+docker compose up back ui
 ```
 
 For Windows users, you can use .env file
 
 ```shell
-docker compose --env-file .env up
+docker compose --env-file .env up back ui
 ```
 
 Open link in a browser : <http://localhost/>

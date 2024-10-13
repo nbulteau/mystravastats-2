@@ -3,22 +3,13 @@ package me.nicolas.stravastats.domain.business.strava
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
+import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.utils.formatDate
 import me.nicolas.stravastats.domain.utils.formatSeconds
 import kotlin.math.abs
 
-enum class ActivityType {
-    Run,
-    Ride,
-    InlineSkate,
-    Hike,
-    Commute,
-    AlpineSki,
-    VirtualRide
-}
-
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class Activity(
+data class StravaActivity(
     val athlete: AthleteRef,
     @JsonProperty("average_speed")
     val averageSpeed: Double,
@@ -97,7 +88,7 @@ data class Activity(
     }
 
     /**
-     * Remove non-moving sections of the activity.
+     * Remove non-moving sections of the stravaActivity.
      */
     fun removeNonMoving() {
 

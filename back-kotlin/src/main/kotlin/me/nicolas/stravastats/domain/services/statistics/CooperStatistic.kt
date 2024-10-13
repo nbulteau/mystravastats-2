@@ -1,7 +1,7 @@
 package me.nicolas.stravastats.domain.services.statistics
 
-import me.nicolas.stravastats.domain.business.strava.Activity
-import me.nicolas.stravastats.domain.business.strava.ActivityEffort
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
+import me.nicolas.stravastats.domain.business.ActivityEffort
 
 /**
  * A {@link BestEffortTimeStatistic} for 12 minutes that is used to report the Cooper test result and VO2 max.
@@ -10,7 +10,7 @@ import me.nicolas.stravastats.domain.business.strava.ActivityEffort
  *  It is expressed in milliliters per minute per kilo (ml / min / kg) and can range from 20 to 95 ml / min / kg.
  */
 internal class CooperStatistic(
-    activities: List<Activity>,
+    activities: List<StravaActivity>,
 ) : BestEffortTimeStatistic("Best Cooper (12 min)", activities, 12 * 60) {
 
 

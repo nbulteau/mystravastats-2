@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 
-internal class ActivityTest {
+internal class StravaActivityTest {
 
     @Test
     fun getSpeed() {

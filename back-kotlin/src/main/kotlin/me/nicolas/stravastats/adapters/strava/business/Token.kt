@@ -2,13 +2,13 @@ package me.nicolas.stravastats.adapters.strava.business
 
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import me.nicolas.stravastats.domain.business.strava.Athlete
+import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 
 data class Token(
     @JsonProperty("access_token")
     val accessToken: String,
     @JsonProperty("athlete")
-    val athlete: Athlete,
+    val athlete: StravaAthlete,
     @JsonProperty("expires_at")
     val expiresAt: Int,
     @JsonProperty("expires_in")

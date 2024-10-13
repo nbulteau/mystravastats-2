@@ -1,18 +1,18 @@
 package me.nicolas.stravastats.domain.services.statistics
 
-import me.nicolas.stravastats.domain.business.strava.Activity
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
 
 internal class MaxElevationStatistic(
-    activities: List<Activity>,
+    activities: List<StravaActivity>,
 ) : ActivityStatistic("Max elevation", activities) {
 
     init {
-        activity = activities.maxByOrNull { activity -> activity.totalElevationGain }
+        stravaActivity = activities.maxByOrNull { activity -> activity.totalElevationGain }
     }
 
     override val value: String
-        get() = if (activity != null) {
-            "%.2f m".format(activity?.totalElevationGain)
+        get() = if (stravaActivity != null) {
+            "%.2f m".format(stravaActivity?.totalElevationGain)
         } else {
             "Not available"
         }

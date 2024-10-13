@@ -26,7 +26,7 @@ class AthleteController(
         responses = [
             ApiResponse(
                 responseCode = "200",
-                description = "Athlete found",
+                description = "StravaAthlete found",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = AthleteDto::class)
@@ -34,7 +34,7 @@ class AthleteController(
             ),
             ApiResponse(
                 responseCode = "404",
-                description = "Athlete not found",
+                description = "StravaAthlete not found",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = Schema(implementation = ErrorResponseMessageDto::class)

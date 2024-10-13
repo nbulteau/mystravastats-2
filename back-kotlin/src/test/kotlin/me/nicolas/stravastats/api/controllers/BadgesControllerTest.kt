@@ -10,7 +10,8 @@ import me.nicolas.stravastats.domain.business.badges.BadgeCheckResult
 import me.nicolas.stravastats.domain.business.badges.BadgeSetEnum
 import me.nicolas.stravastats.domain.business.badges.DistanceBadge
 import me.nicolas.stravastats.domain.business.badges.FamousClimbBadge
-import me.nicolas.stravastats.domain.business.strava.ActivityType
+import me.nicolas.stravastats.domain.business.ActivityType
+
 import me.nicolas.stravastats.domain.business.strava.GeoCoordinate
 import me.nicolas.stravastats.domain.services.IBadgesService
 import org.junit.jupiter.api.Test
@@ -44,7 +45,7 @@ class BadgesControllerTest {
         val badgeCheckResults = listOf(
             BadgeCheckResult(
                 badge = DistanceBadge("badge1", 10),
-                activities = listOf(TestHelper.activity),
+                activities = listOf(TestHelper.stravaActivity),
                 isCompleted = true,
             ),
         )

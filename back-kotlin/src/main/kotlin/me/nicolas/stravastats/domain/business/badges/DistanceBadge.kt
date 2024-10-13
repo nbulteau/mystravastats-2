@@ -1,13 +1,13 @@
 package me.nicolas.stravastats.domain.business.badges
 
-import me.nicolas.stravastats.domain.business.strava.Activity
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
 
 data class DistanceBadge(
     override val label: String,
     val distance: Int,
 ) : Badge(label) {
 
-    override fun check(activities: List<Activity>): Pair<List<Activity>, Boolean> {
+    override fun check(activities: List<StravaActivity>): Pair<List<StravaActivity>, Boolean> {
         val checkedActivities = activities.filter { activity -> activity.distance >= distance }
 
         return Pair(checkedActivities, checkedActivities.isNotEmpty())

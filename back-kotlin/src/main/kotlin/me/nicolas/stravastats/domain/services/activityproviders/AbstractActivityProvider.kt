@@ -1,8 +1,9 @@
 package me.nicolas.stravastats.domain.services.activityproviders
 
-import me.nicolas.stravastats.domain.business.strava.Activity
-import me.nicolas.stravastats.domain.business.strava.ActivityType
-import me.nicolas.stravastats.domain.business.strava.Athlete
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
+import me.nicolas.stravastats.domain.business.ActivityType
+
+import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.utils.GenericCache
 import me.nicolas.stravastats.domain.utils.SoftCache
 import org.slf4j.LoggerFactory
@@ -17,14 +18,14 @@ abstract class AbstractActivityProvider : IActivityProvider {
 
     protected lateinit var clientId: String
 
-    protected lateinit var athlete: Athlete
+    protected lateinit var stravaAthlete: StravaAthlete
 
-    protected lateinit var activities: List<Activity>
+    protected lateinit var activities: List<StravaActivity>
 
-    private val filteredActivitiesCache: GenericCache<String, List<Activity>> = SoftCache()
+    private val filteredActivitiesCache: GenericCache<String, List<StravaActivity>> = SoftCache()
 
-    override fun athlete(): Athlete {
-        return athlete
+    override fun athlete(): StravaAthlete {
+        return stravaAthlete
     }
 
     /**
@@ -32,7 +33,7 @@ abstract class AbstractActivityProvider : IActivityProvider {
      * @param pageable the pageable
      * @return a page of activities
      */
-    override fun listActivitiesPaginated(pageable: Pageable): Page<Activity> {
+    override fun listActivitiesPaginated(pageable: Pageable): Page<StravaActivity> {
         logger.info("List activities paginated")
 
         val from = pageable.offset.toInt()
@@ -51,8 +52,8 @@ abstract class AbstractActivityProvider : IActivityProvider {
         return PageImpl(subList, pageable, activities.size.toLong())
     }
 
-    override fun getActivity(activityId: Long): Optional<Activity> {
-        logger.info("Get activity for activity id $activityId")
+    override fun getActivity(activityId: Long): Optional<StravaActivity> {
+        logger.info("Get stravaActivity for stravaActivity id $activityId")
 
         return activities.find { activity -> activity.id == activityId }.let {
             if (it != null) {
@@ -64,7 +65,7 @@ abstract class AbstractActivityProvider : IActivityProvider {
     }
 
     override fun getActivitiesByActivityTypeGroupByActiveDays(activityType: ActivityType): Map<String, Int> {
-        logger.info("Get activities by activity type ($activityType) group by active days")
+        logger.info("Get activities by stravaActivity type ($activityType) group by active days")
 
         val filteredActivities = activities
             .filterActivitiesByType(activityType)
@@ -80,7 +81,7 @@ abstract class AbstractActivityProvider : IActivityProvider {
         activityType: ActivityType,
         year: Int,
     ): Map<String, Int> {
-        logger.info("Get activities by activity type ($activityType) group by active days for year $year")
+        logger.info("Get activities by stravaActivity type ($activityType) group by active days for year $year")
 
         val filteredActivities = activities
             .filterActivitiesByYear(year)
@@ -93,7 +94,7 @@ abstract class AbstractActivityProvider : IActivityProvider {
             .toMap()
     }
 
-    override fun getActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int?): List<Activity> {
+    override fun getActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int?): List<StravaActivity> {
 
         val key: String = year?.let { "${activityType.name}-$it" } ?: activityType.name
         val filteredActivities = filteredActivitiesCache[key] ?: activities
@@ -104,8 +105,8 @@ abstract class AbstractActivityProvider : IActivityProvider {
         return filteredActivities
     }
 
-    override fun getActivitiesByActivityTypeGroupByYear(activityType: ActivityType): Map<String, List<Activity>> {
-        logger.info("Get activities by activity type ($activityType) group by year")
+    override fun getActivitiesByActivityTypeGroupByYear(activityType: ActivityType): Map<String, List<StravaActivity>> {
+        logger.info("Get activities by stravaActivity type ($activityType) group by year")
 
         val filteredActivities = activities.filterActivitiesByType(activityType)
 
@@ -116,9 +117,9 @@ abstract class AbstractActivityProvider : IActivityProvider {
      * Group activities by year
      * @param activities list of activities
      * @return a map with the year as key and the list of activities as value
-     * @see Activity
+     * @see StravaActivity
      */
-    private fun groupActivitiesByYear(activities: List<Activity>): Map<String, List<Activity>> {
+    private fun groupActivitiesByYear(activities: List<StravaActivity>): Map<String, List<StravaActivity>> {
         val activitiesByYear =
             activities.groupBy { activity -> activity.startDateLocal.subSequence(0, 4).toString() }.toMutableMap()
 
@@ -135,7 +136,7 @@ abstract class AbstractActivityProvider : IActivityProvider {
         return activitiesByYear.toSortedMap()
     }
 
-    private fun List<Activity>.filterActivitiesByType(activityType: ActivityType): List<Activity> {
+    private fun List<StravaActivity>.filterActivitiesByType(activityType: ActivityType): List<StravaActivity> {
         return if (activityType == ActivityType.Commute) {
             this.filter { activity -> activity.type == ActivityType.Ride.name && activity.commute }
         } else {
@@ -143,7 +144,7 @@ abstract class AbstractActivityProvider : IActivityProvider {
         }
     }
 
-    private fun List<Activity>.filterActivitiesByYear(year: Int?): List<Activity> {
+    private fun List<StravaActivity>.filterActivitiesByYear(year: Int?): List<StravaActivity> {
         return if (year == null) {
             this
         } else {

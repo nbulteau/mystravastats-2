@@ -4,9 +4,9 @@ package me.nicolas.stravastats.api.dto
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
-import me.nicolas.stravastats.domain.business.strava.Athlete
+import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 
-@Schema(description = "Athlete object", name = "Athlete")
+@Schema(description = "StravaAthlete object", name = "StravaAthlete")
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class AthleteDto(
     @JsonProperty("badge_type_id")
@@ -57,7 +57,7 @@ data class AthleteDto(
     val weight: Int?,
 )
 
-fun Athlete.toDto() = AthleteDto(
+fun StravaAthlete.toDto() = AthleteDto(
     badgeTypeId = 0,
     city = this.city,
     country = this.country,
