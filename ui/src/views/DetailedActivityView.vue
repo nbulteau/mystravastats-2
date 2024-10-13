@@ -7,7 +7,7 @@
       {{ activity?.name }}
     </span>
     <span style="display: block; font-size: 1.2em">
-      Distance: {{ (activity?.distance ?? 0) / 1000 }} km | Average speed:
+      Distance: {{ ((activity?.distance ?? 0) / 1000).toFixed(1) }} km | Average speed:
       {{ formatSpeedWithUnit(activity?.averageSpeed ?? 0, activity?.type ?? "Ride") }} |
       Elapsed time: {{ formatTime(activity?.elapsedTime ?? 0) }} | Total elevation gain:
       {{ activity?.totalElevationGain }} m
