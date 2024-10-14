@@ -21,8 +21,6 @@ data class ActivityDto(
     val elapsedTime: Int,
     @Schema(description = "StravaActivity total elevation gain in meters")
     val totalElevationGain: Int,
-    @Schema(description = "StravaActivity total descent in meters")
-    val totalDescent: Int,
     @Schema(description = "StravaActivity average speed in m/s")
     val averageSpeed: Double,
     @Schema(description = "StravaActivity best time for distance for 1000m in m/s")
@@ -64,7 +62,6 @@ fun StravaActivity.toDto(): ActivityDto {
         distance = this.distance.toInt(),
         elapsedTime = this.elapsedTime,
         totalElevationGain = this.totalElevationGain.toInt(),
-        totalDescent = calculateTotalDescentGain().toInt(),
         averageSpeed = this.averageSpeed,
         bestTimeForDistanceFor1000m = calculateBestTimeForDistance(1000.0)?.getMSSpeed()?.toDouble() ?: Double.NaN,
         bestElevationForDistanceFor500m = calculateBestElevationForDistance(500.0)?.getGradient()?.toDouble()

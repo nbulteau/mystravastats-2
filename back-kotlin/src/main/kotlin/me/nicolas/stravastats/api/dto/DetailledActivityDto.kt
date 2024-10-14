@@ -43,6 +43,8 @@ data class DetailedActivityDto(
     val startDateLocal: String,
     @Schema(description = "The start latitude and longitude of the activity.")
     val startLatlng: List<Double>?,
+    @Schema(description = "Total descent in meters")
+    val totalDescent: Double,
     @Schema(description = "Total elevation gain in meters.")
     val totalElevationGain: Double,
     @Schema(description = "Activity type")
@@ -75,6 +77,7 @@ fun DetailedActivity.toDto(): DetailedActivityDto {
         startDate = this.startDate,
         startDateLocal = this.startDateLocal,
         startLatlng = this.startLatlng,
+        totalDescent = this.totalDescent,
         totalElevationGain = this.totalElevationGain,
         type = this.type,
         weightedAverageWatts = this.weightedAverageWatts,

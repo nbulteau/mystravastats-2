@@ -164,7 +164,6 @@ const columns = ref<ColumnRegular[]>([
   },
 ]);
 
-
 onMounted(() => {
   eventBus.on("detailledActivityClick", (event: any) => showDetailedActivity(event as string));
 });

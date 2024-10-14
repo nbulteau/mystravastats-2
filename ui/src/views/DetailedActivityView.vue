@@ -52,6 +52,37 @@
   >
     <Chart :options="chartOptions" />
   </div>
+  <div id="activity-details-container">
+    <div id="activity-details">
+      <h3>Basic Information</h3>
+      <ul>
+        <li><strong>Name:</strong> {{ activity?.name }}</li>
+        <li><strong>Type:</strong> {{ activity?.type }}</li>
+        <li><strong>Date:</strong> {{ activity?.startDate }}</li>
+        <li><strong>Distance:</strong> {{ ((activity?.distance ?? 0) / 1000).toFixed(1) }} km</li>
+        <li><strong>Total Elevation Gain:</strong> {{ activity?.totalElevationGain }} m</li>
+        <li><strong>Elapsed Time:</strong> {{ formatTime(activity?.elapsedTime ?? 0) }}</li>
+      </ul>
+    </div>
+    <div id="performance-metrics">
+      <h3>Performance Metrics</h3>
+      <ul>
+        <li><strong>Average Speed:</strong> {{ formatSpeedWithUnit(activity?.averageSpeed ?? 0, activity?.type ?? "Ride") }}</li>
+        <li><strong>Max Speed:</strong> {{ formatSpeedWithUnit(activity?.maxSpeed ?? 0, activity?.type ?? "Ride") }}</li>
+        <li><strong>Average Cadence:</strong> {{ activity?.averageCadence }} rpm</li>
+        <li><strong>Average Watts:</strong> {{ activity?.averageWatts }} W</li>
+        <li><strong>Weighted Average Watts:</strong> {{ activity?.weightedAverageWatts }} W</li>
+        <li><strong>Kilojoules:</strong> {{ activity?.kilojoules }} kJ</li>
+      </ul>
+    </div>
+    <div id="heart-rate-metrics">
+      <h3>Heart Rate Metrics</h3>
+      <ul>
+        <li><strong>Average Heartrate:</strong> {{ activity?.averageHeartrate }} bpm</li>
+        <li><strong>Max Heartrate:</strong> {{ activity?.maxHeartrate }} bpm</li>
+      </ul>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -376,8 +407,14 @@ onMounted(async () => {
   border-radius: 10px; /* Example of custom styling */
 }
 
-#activity-details {
+#activity-details-container {
+  display: flex;
+  justify-content: space-between;
   margin-top: 20px;
+}
+
+#activity-details, #performance-metrics, #heart-rate-metrics {
+  width: 32%;
 }
 
 .radio-input {
