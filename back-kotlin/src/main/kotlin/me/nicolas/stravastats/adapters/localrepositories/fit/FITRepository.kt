@@ -190,8 +190,9 @@ class FITRepository(fitDirectory: String) {
                 recordMesg.altitude.toDouble()
             }
         } else {
-            smooth(generateDataAltitude(dataLatitudeLongitude))
+            generateDataAltitude(dataLatitudeLongitude).smooth()
         }
+
         val streamAltitude = Altitude(
             data = dataAltitude.toMutableList(),
             originalSize = dataAltitude.size,
@@ -213,16 +214,16 @@ class FITRepository(fitDirectory: String) {
         return Stream(streamDistance, streamTime, null, streamAltitude, streamLatitudeLongitude, streamPower)
     }
 
-    private fun smooth(data: List<Double>, size: Int = 5): List<Double> {
-        val smooth = DoubleArray(data.size)
+    private fun List<Double>.smooth(size: Int = 5): List<Double> {
+        val smooth = DoubleArray(this.size)
         for (i in 0 until size) {
-            smooth[i] = data[i]
+            smooth[i] = this[i]
         }
-        for (i in size until data.size - size) {
-            smooth[i] = data.subList(i - size, i + size).sum() / (2 * size + 1)
+        for (i in size until this.size - size) {
+            smooth[i] = this.subList(i - size, i + size).sum() / (2 * size + 1)
         }
-        for (i in data.size - size until data.size) {
-            smooth[i] = data[i]
+        for (i in this.size - size until this.size) {
+            smooth[i] = this[i]
         }
 
         return smooth.toList()

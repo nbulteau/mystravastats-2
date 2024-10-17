@@ -1,37 +1,36 @@
 package me.nicolas.stravastats.adapters.localrepositories.gpx
 
-import me.nicolas.stravastats.adapters.srtm.SRTMProvider
+import io.jenetics.jpx.GPX
+import io.jenetics.jpx.Length
+import io.jenetics.jpx.Track
+import io.jenetics.jpx.TrackSegment
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.strava.*
-import me.nicolas.stravastats.domain.interfaces.ISRTMProvider
 import org.slf4j.LoggerFactory
 import org.w3c.dom.Document
-import org.w3c.dom.Element
 import java.io.File
+import java.nio.file.Path
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.util.*
-import javax.xml.bind.DatatypeConverter
-import javax.xml.parsers.DocumentBuilderFactory
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.sqrt
 
 // WIP : GPXRepository
 class GPXRepository(gpxDirectory: String) {
 
     private val logger = LoggerFactory.getLogger(GPXRepository::class.java)
 
-    private val srtmProvider: ISRTMProvider = SRTMProvider()
-
     private val cacheDirectory = File(gpxDirectory)
 
     fun loadActivitiesFromCache(year: Int): List<StravaActivity> {
 
         val yearActivitiesDirectory = File(cacheDirectory, "$year")
-        val gpxFiles = yearActivitiesDirectory.listFiles { file ->
-            file.extension.lowercase(Locale.getDefault()) == "gpx"
-        }
-        val activities: List<StravaActivity> = gpxFiles?.mapNotNull { gpxFile ->
+
+        val gpxFiles = yearActivitiesDirectory
+            .listFiles { _, name -> name.lowercase(Locale.getDefault()).endsWith(".gpx") }
+        val gpxFilesPath = gpxFiles?.map { file -> file.toPath() }
+
+        val activities: List<StravaActivity> = gpxFilesPath?.mapNotNull { gpxFile ->
             try {
                 convertGpxToActivity(gpxFile, 0)
             } catch (exception: Exception) {
@@ -43,65 +42,76 @@ class GPXRepository(gpxDirectory: String) {
         return activities
     }
 
-    private fun convertGpxToActivity(gpxFile: File, athleteId: Int): StravaActivity {
-        val document: Document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(gpxFile)
-        document.documentElement.normalize()
+    private fun convertGpxToActivity(gpxFile: Path, athleteId: Int): StravaActivity {
 
-        val trk = document.getElementsByTagName("trk").item(0) as Element
-        val name = trk.getElementsByTagName("name").item(0).textContent
-        val trkseg = trk.getElementsByTagName("trkseg").item(0) as Element
-        val trkpts = trkseg.getElementsByTagName("trkpt")
+        val latitudeLongitude = mutableListOf<List<Double>>()
+        val time = mutableListOf<Int>()
+        val distance = mutableListOf<Double>()
+        val altitude = mutableListOf<Double>()
+        val moving = mutableListOf<Boolean>()
+        val watts = mutableListOf<Int>()
 
-        val type = trk.getElementsByTagName("type").item(0).textContent.toActivityType()
+        val gpx = GPX.read(gpxFile)
+
+        var name = "Unknown"
+
+        var previousPoint = gpx.tracks()
+            .flatMap(Track::segments)
+            .flatMap(TrackSegment::points)
+            .findFirst().get()
 
         var totalDistance = 0.0
         var totalElevationGain = 0.0
-        var totalElapsedTime = 0
-        var startTime = ""
-        var endTime = ""
+        gpx.tracks()
+            .flatMap(Track::segments)
+            .flatMap(TrackSegment::points)
+            .forEach { point ->
+                val deltaDistance = point.distance(previousPoint).to(Length.Unit.METER)
+                totalDistance += deltaDistance
+
+                val elevation = point.elevation.get().to(Length.Unit.METER)
+                val previousElevation = previousPoint.elevation.get().to(Length.Unit.METER)
+                totalElevationGain += if (elevation > previousElevation) elevation - previousElevation else 0.0
+
+                latitudeLongitude.add(listOf(point.latitude.toDouble(), point.longitude.toDouble()))
+
+                time.add((point.time.get().epochSecond).toInt())
+
+                altitude.add(point.elevation.get().to(Length.Unit.METER))
+
+                distance.add(totalDistance)
+
+                moving.add(deltaDistance > 0)
+
+                previousPoint = point
+            }
+
+        val startTime = time.first()
+        val totalElapsedTime = time.last() - startTime
+
         var totalCadence = 0.0
         var totalHeartrate = 0.0
         var cadenceCount = 0
         var heartrateCount = 0
 
-        for (i in 0 until trkpts.length) {
-            val trkpt = trkpts.item(i) as Element
-            val lat = trkpt.getAttribute("lat").toDouble()
-            val lon = trkpt.getAttribute("lon").toDouble()
-            val ele = trkpt.getElementsByTagName("ele").item(0).textContent.toDouble()
-            val time = trkpt.getElementsByTagName("time").item(0).textContent
-
-            if (i == 0) {
-                startTime = time
-            } else if (i == trkpts.length - 1) {
-                endTime = time
-            }
-
-            if (i > 0) {
-                val prevTrkpt = trkpts.item(i - 1) as Element
-                val prevLat = prevTrkpt.getAttribute("lat").toDouble()
-                val prevLon = prevTrkpt.getAttribute("lon").toDouble()
-                val prevEle = prevTrkpt.getElementsByTagName("ele").item(0).textContent.toDouble()
-
-                totalDistance += haversine(lat, lon, prevLat, prevLon)
-                totalElevationGain += if (ele > prevEle) ele - prevEle else 0.0
-            }
-
-            // Extract cadence and heartrate if available
-            val cadenceNode = trkpt.getElementsByTagName("cadence").item(0)
-            if (cadenceNode != null) {
-                totalCadence += cadenceNode.textContent.toDouble()
+        var type = "Ride"
+        val extensions: Optional<Document> = gpx.extensions
+        extensions.ifPresent { document ->
+            val cadenceNodes = document.getElementsByTagName("cadence")
+            for (i in 0 until cadenceNodes.length) {
+                totalCadence += cadenceNodes.item(i).textContent.toDouble()
                 cadenceCount++
             }
 
-            val heartrateNode = trkpt.getElementsByTagName("heartrate").item(0)
-            if (heartrateNode != null) {
-                totalHeartrate += heartrateNode.textContent.toDouble()
+            val heartrateNodes = document.getElementsByTagName("heartrate")
+            for (i in 0 until heartrateNodes.length) {
+                totalHeartrate += heartrateNodes.item(i).textContent.toDouble()
                 heartrateCount++
             }
+
+            type = document.getElementsByTagName("type").item(0).textContent.toActivityType()
         }
 
-        totalElapsedTime = calculateElapsedTime(startTime, endTime)
         val averageCadence = if (cadenceCount > 0) totalCadence / cadenceCount else 0.0
         val averageHeartrate = if (heartrateCount > 0) totalHeartrate / heartrateCount else 0.0
 
@@ -122,8 +132,8 @@ class GPXRepository(gpxDirectory: String) {
             maxSpeed = 0.0,
             movingTime = totalElapsedTime,
             name = name,
-            startDate = startTime,
-            startDateLocal = startTime,
+            startDate = ZonedDateTime.of(LocalDateTime.ofEpochSecond(startTime.toLong(), 0, ZoneOffset.UTC), ZoneOffset.UTC).toString(),
+            startDateLocal = ZonedDateTime.of(LocalDateTime.ofEpochSecond(startTime.toLong(), 0, ZoneOffset.UTC), ZoneOffset.UTC).toString(),
             startLatlng = listOf(),
             totalElevationGain = totalElevationGain,
             type = type,
@@ -132,98 +142,49 @@ class GPXRepository(gpxDirectory: String) {
         )
         stravaActivity.stream = Stream(
             latitudeLongitude = LatitudeLongitude(
-                data = (0 until trkpts.length).map { i ->
-                    val trkpt = trkpts.item(i) as Element
-                    listOf(trkpt.getAttribute("lat").toDouble(), trkpt.getAttribute("lon").toDouble())
-                },
+                data = latitudeLongitude,
                 originalSize = 0,
                 resolution = "",
                 seriesType = "",
             ),
             time = Time(
-                data = (0 until trkpts.length).map { i ->
-                    val trkpt = trkpts.item(i) as Element
-                    (DatatypeConverter.parseDateTime(
-                        trkpt.getElementsByTagName("time").item(0).textContent
-                    ).timeInMillis / 1000).toInt()
-                }.toMutableList(),
+                data = time,
                 originalSize = 0,
                 resolution = "",
                 seriesType = "",
             ),
             distance = Distance(
-                data = (0 until trkpts.length).map { i ->
-                    val trkpt = trkpts.item(i) as Element
-                    val lat = trkpt.getAttribute("lat").toDouble()
-                    val lon = trkpt.getAttribute("lon").toDouble()
-                    if (i > 0) {
-                        val prevTrkpt = trkpts.item(i - 1) as Element
-                        val prevLat = prevTrkpt.getAttribute("lat").toDouble()
-                        val prevLon = prevTrkpt.getAttribute("lon").toDouble()
-                        haversine(lat, lon, prevLat, prevLon)
-                    } else {
-                        0.0
-                    }
-                }.toMutableList(),
+                data = distance,
                 originalSize = 0,
                 resolution = "",
                 seriesType = "",
             ),
             altitude = Altitude(
-                data = (0 until trkpts.length).map { i ->
-                    val trkpt = trkpts.item(i) as Element
-                    trkpt.getElementsByTagName("ele").item(0).textContent.toDouble()
-                }.toMutableList(),
+                data = altitude,
                 originalSize = 0,
                 resolution = "",
                 seriesType = "",
             ),
             moving = Moving(
-                data = (0 until trkpts.length).map { i ->
-                    true
-                }.toMutableList(),
+                data = moving,
                 originalSize = 0,
                 resolution = "",
                 seriesType = "",
             ),
             watts = PowerStream(
-                data = (0 until trkpts.length).map { i ->
-                    0
-                }.toMutableList(),
+                data = watts,
                 originalSize = 0,
                 resolution = "",
                 seriesType = "",
             ),
         )
 
-
         return stravaActivity
-    }
-
-    private fun haversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        val R = 6371e3 // Earth radius in meters
-        val phi1 = Math.toRadians(lat1)
-        val phi2 = Math.toRadians(lat2)
-        val deltaPhi = Math.toRadians(lat2 - lat1)
-        val deltaLambda = Math.toRadians(lon2 - lon1)
-
-        val a = sin(deltaPhi / 2) * sin(deltaPhi / 2) +
-                cos(phi1) * Math.cos(phi2) *
-                sin(deltaLambda / 2) * sin(deltaLambda / 2)
-        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-
-        return R * c
-    }
-
-    private fun calculateElapsedTime(startTime: String, endTime: String): Int {
-        val start = DatatypeConverter.parseDateTime(startTime).time
-        val end = DatatypeConverter.parseDateTime(endTime).time
-        return ((end.time - start.time) / 1000).toInt()
     }
 }
 
 private fun String.toActivityType(): String {
-    return when(this) {
+    return when (this) {
         "cycling" -> ActivityType.Ride.name
         else -> ActivityType.Ride.name
     }
