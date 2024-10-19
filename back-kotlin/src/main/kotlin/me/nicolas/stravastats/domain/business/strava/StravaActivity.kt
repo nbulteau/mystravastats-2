@@ -22,11 +22,11 @@ data class StravaActivity(
     @JsonProperty("average_watts")
     val averageWatts: Int,
     val commute: Boolean,
-    var distance: Double,
+    val distance: Double,
     @JsonProperty("device_watts")
     val deviceWatts: Boolean = false,
     @JsonProperty("elapsed_time")
-    var elapsedTime: Int,
+    val elapsedTime: Int,
     @JsonProperty("elev_high")
     val elevHigh: Double,
     val id: Long,
@@ -49,21 +49,13 @@ data class StravaActivity(
     val uploadId: Long,
     @JsonProperty("weighted_average_watts")
     val weightedAverageWatts: Int,
-) {
 
     var stream: Stream? = null
+) {
 
     override fun toString() = "${name.trim()} (${startDateLocal.formatDate()})"
 
-    fun getFormattedSpeed(): String {
-        return if (type == ActivityType.Run.name) {
-            "${getSpeed()}/km"
-        } else {
-            "${getSpeed()} km/h"
-        }
-    }
-
-    fun getSpeed(): String {
+    fun processAverageSpeed(): String {
         return if (type == ActivityType.Run.name) {
             (elapsedTime * 1000 / distance).formatSeconds()
         } else {
@@ -87,47 +79,18 @@ data class StravaActivity(
         return 0.0
     }
 
-    /**
-     * Remove non-moving sections of the stravaActivity.
-     */
-    fun removeNonMoving() {
+    fun setStreamAltitude(altitude: Altitude): StravaActivity {
+        val updatedStream = this.stream?.copy(altitude = altitude)
 
-        if (stream == null) {
-            return
-        }
+        // totalElevationGain
+        val deltas = altitude.data.zipWithNext { a, b -> b - a }
+        val updatedTotalElevationGain = deltas.filter { it > 0 }.sumOf { it }
 
-        var totDistance = 0.0
-        var totSeconds = 0
-        var totAltitude = 0.0
+        // elevHigh
+        val elevHigh = altitude.data.maxOrNull() ?: 0.0
+        val updatedElevHigh = elevHigh
 
-        val streamWithoutNonMovingData = Stream(
-            Distance(mutableListOf(), 0, "high", "distance"),
-            Time(mutableListOf(), 0, "high", "distance"),
-            Moving(mutableListOf(), 0, "high", "distance"),
-            Altitude(mutableListOf(), 0, "high", "distance"),
-            LatitudeLongitude(mutableListOf(), 0, "high", "distance"),
-            PowerStream(mutableListOf(), 0, "high", "distance")
-        )
-        streamWithoutNonMovingData.append(0.0, 0, 0.0)
-
-        for (index in stream!!.distance.data.indices) {
-            if (stream?.moving?.data?.get(index) == true) {
-                val prevDist: Double = if (index == 0) 0.0 else stream?.distance?.data?.get(index - 1)!!
-                val prevSeconds: Int = if (index == 0) 0 else stream?.time?.data?.get(index - 1)!!
-                val prevAltitude: Double = if (index == 0) 0.0 else stream?.altitude?.data?.get(index - 1)!!
-
-                totDistance += stream?.distance?.data?.get(index)!! - prevDist
-                totSeconds += stream?.time?.data?.get(index)!! - prevSeconds
-                totAltitude += stream?.altitude?.data?.get(index)!! - prevAltitude
-
-                streamWithoutNonMovingData.append(totDistance, totSeconds, totAltitude)
-            }
-        }
-
-        distance = totDistance
-        elapsedTime = totSeconds
-
-        stream = streamWithoutNonMovingData
+        return this.copy(stream = updatedStream, totalElevationGain = updatedTotalElevationGain, elevHigh = updatedElevHigh)
     }
 }
 

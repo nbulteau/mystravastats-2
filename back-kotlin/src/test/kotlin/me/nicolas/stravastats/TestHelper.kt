@@ -33,7 +33,7 @@ class TestHelper {
             averageCadence = 80.0,
             averageHeartrate = 150.0,
             maxHeartrate = 180.0,
-            averageWatts = 200.0,
+            averageWatts = 200,
             commute = false,
             distance = 10000.0,
             deviceWatts = true,

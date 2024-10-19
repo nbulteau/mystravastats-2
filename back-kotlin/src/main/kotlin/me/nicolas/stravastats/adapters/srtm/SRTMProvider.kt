@@ -21,7 +21,7 @@ class SRTMProvider(
     /**
      * SRTM files cache
      */
-    private val srtmTilescache = mutableMapOf<String, SRTMFile>()
+    private val srtmTilesCache = mutableMapOf<String, SRTMFile>()
 
     /**
      * Missing SRTM files to prevent multiple
@@ -36,7 +36,11 @@ class SRTMProvider(
             } else {
                 getElevation(latlong[0], latlong[1])
             }
-        }
+        }.smooth()
+    }
+
+    override fun isAvailable(): Boolean {
+        return cachePath.toFile().exists()
     }
 
     private fun getElevation(latitude: Double, longitude: Double): Double {
@@ -50,12 +54,12 @@ class SRTMProvider(
         }
 
         var srtmFile: SRTMFile? = null
-        if (srtmTilescache.contains(srtmFileName)) {
-            srtmFile = srtmTilescache[srtmFileName]!!
+        if (srtmTilesCache.contains(srtmFileName)) {
+            srtmFile = srtmTilesCache[srtmFileName]!!
         } else {
             try {
                 srtmFile = SRTMFile(File(cachePath.toFile(), "$srtmFileName.hgt"))
-                srtmTilescache[srtmFileName] = srtmFile
+                srtmTilesCache[srtmFileName] = srtmFile
             } catch (instantiationException: InstantiationException) {
                 logger.info("Download $srtmFileName.hgt from https://dwtkns.com/srtm30m/")
                 missingSRTMFiles.add(srtmFileName)
@@ -88,5 +92,23 @@ class SRTMProvider(
         val seconds = floor((minutesNotTruncated - minutes) * 60)
 
         return Triple(degrees.toInt(), minutes.toInt(), seconds.toInt())
+    }
+
+    /**
+     * Smooth the elevation data using a moving average filter of size 5
+     */
+    private fun List<Double>.smooth(size: Int = 5): List<Double> {
+        val smooth = DoubleArray(this.size)
+        for (i in 0 until size) {
+            smooth[i] = this[i]
+        }
+        for (i in size until this.size - size) {
+            smooth[i] = this.subList(i - size, i + size).sum() / (2 * size + 1)
+        }
+        for (i in this.size - size until this.size) {
+            smooth[i] = this[i]
+        }
+
+        return smooth.toList()
     }
 }

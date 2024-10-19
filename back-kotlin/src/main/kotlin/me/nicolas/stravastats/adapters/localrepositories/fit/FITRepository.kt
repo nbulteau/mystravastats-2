@@ -1,10 +1,7 @@
 package me.nicolas.stravastats.adapters.localrepositories.fit
 
 import com.garmin.fit.*
-import me.nicolas.stravastats.adapters.srtm.SRTMProvider
 import me.nicolas.stravastats.domain.business.strava.*
-import me.nicolas.stravastats.domain.business.strava.StravaActivity
-import me.nicolas.stravastats.domain.interfaces.ISRTMProvider
 import me.nicolas.stravastats.domain.utils.inDateTimeFormatter
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -16,8 +13,6 @@ import java.util.*
 class FITRepository(fitDirectory: String) {
 
     private val logger = LoggerFactory.getLogger(FITRepository::class.java)
-
-    private val srtmProvider: ISRTMProvider = SRTMProvider()
 
     private val cacheDirectory = File(fitDirectory)
 
@@ -58,9 +53,9 @@ class FITRepository(fitDirectory: String) {
         // The effort's average cadence
         val averageCadence: Double = sessionMesg?.avgCadence?.toDouble() ?: 0.0
         // The heart rate of the stravaAthlete during this effort
-        val averageHeartrate: Double = sessionMesg?.avgHeartRate?.toDouble() ?: 0.0
+        val averageHeartRate: Double = sessionMesg?.avgHeartRate?.toDouble() ?: 0.0
         // The maximum heart rate of the stravaAthlete during this effort
-        val maxHeartrate: Double = sessionMesg?.maxHeartRate?.toDouble() ?: 0.0
+        val maxHeartRate: Double = sessionMesg?.maxHeartRate?.toDouble() ?: 0.0
         //The average wattage of this effort
         val averageWatts: Int = sessionMesg?.avgPower ?: 0 // TODO : Calculate ?
         // Whether this stravaActivity is a commute
@@ -71,13 +66,13 @@ class FITRepository(fitDirectory: String) {
         val elapsedTime: Int = sessionMesg?.totalElapsedTime?.toInt() ?: 0
         // The stravaActivity's highest elevation, in meters
         val extractedElevHigh: Double = extractElevHigh(sessionMesg)
-        val elevHigh: Double = if (extractedElevHigh == 0.0) {
-            stream.altitude?.data?.maxOf { it }!!
-        } else {
+        val elevHigh: Double = if (extractedElevHigh != 0.0) {
             extractedElevHigh
+        } else if (stream.altitude != null) {
+            stream.altitude.data.maxOf { it }
+        } else {
+            0.0
         }
-        // The unique identifier of the stravaActivity
-        val id: Long = 0
         // The total work done in kilojoules during this stravaActivity. Rides only
         val kilojoules = 0.8604 * averageWatts * elapsedTime / 1000
         // The stravaActivity's max speed, in meters per second
@@ -90,24 +85,31 @@ class FITRepository(fitDirectory: String) {
         val startDateLocal: String = extractDateLocal(sessionMesg.startTime?.timestamp!!)
         // StravaActivity name
         val name = "${extractActivityType(sessionMesg.sport!!)} - $startDateLocal"
+        // The unique identifier of the stravaActivity
+        val id: Long =name.hashCode().toLong()
         // Latitude /longitude of the start point
         val extractedStartLatLng = extractLatLng(sessionMesg.startPositionLat, sessionMesg.startPositionLong)
         val startLatlng: List<Double>? = extractedStartLatLng.ifEmpty {
             stream.latitudeLongitude?.data?.first()
         }
         // Total elevation gain
-        val deltas = stream.altitude?.data?.zipWithNext { a, b -> b - a }
-        val sum = deltas?.filter { it > 0 }?.sumOf { it }
-        val totalElevationGain: Double = sessionMesg.totalAscent?.toDouble() ?: sum!!
+        val deltas = if(stream.altitude != null) {
+            stream.altitude.data.zipWithNext { a, b -> b - a }
+        } else {
+            null
+        }
+        val sum = deltas?.filter { it > 0 }?.sumOf { it } ?: 0.0
+        val totalElevationGain: Double = sessionMesg.totalAscent?.toDouble() ?: sum
+
         // StravaActivity type (i.e. Ride, Run ...)
         val type: String = extractActivityType(sessionMesg.sport!!)
 
-        val stravaActivity = StravaActivity(
+       return StravaActivity(
             athlete = athlete,
             averageSpeed = averageSpeed,
             averageCadence = averageCadence,
-            averageHeartrate = averageHeartrate,
-            maxHeartrate = maxHeartrate,
+            averageHeartrate = averageHeartRate,
+            maxHeartrate = maxHeartRate,
             averageWatts = averageWatts,
             commute = commute,
             distance = distance,
@@ -125,11 +127,8 @@ class FITRepository(fitDirectory: String) {
             type = type,
             uploadId = 0,
             weightedAverageWatts = sessionMesg.avgPower?.toInt() ?: 0,
+            stream = stream
         )
-
-        stravaActivity.stream = stream
-
-        return stravaActivity
     }
 
     /**
@@ -185,52 +184,37 @@ class FITRepository(fitDirectory: String) {
         )
 
         // altitude
-        val dataAltitude = if (this.first().altitude != null) {
-            this.map { recordMesg ->
-                recordMesg.altitude.toDouble()
-            }
+        val dataAltitude = this.mapNotNull { recordMesg ->
+            recordMesg.altitude?.toDouble()
+        }
+        val streamAltitude = if (dataAltitude.isNotEmpty()) {
+             Altitude(
+                data = dataAltitude.toMutableList(),
+                originalSize = dataAltitude.size,
+                resolution = "high",
+                seriesType = "distance"
+            )
         } else {
-            generateDataAltitude(dataLatitudeLongitude).smooth()
+            null
         }
 
-        val streamAltitude = Altitude(
-            data = dataAltitude.toMutableList(),
-            originalSize = dataAltitude.size,
-            resolution = "high",
-            seriesType = "distance"
-        )
 
         // power
         val dataPower = this.mapNotNull { recordMesg ->
             recordMesg.power
         }
-        val streamPower = PowerStream(
-            data = dataPower.toMutableList(),
-            originalSize = dataPower.size,
-            resolution = "high",
-            seriesType = "distance"
-        )
+        val streamPower = if(dataPower.isNotEmpty()) {
+            PowerStream(
+                data = dataPower.toMutableList(),
+                originalSize = dataPower.size,
+                resolution = "high",
+                seriesType = "distance"
+            )
+        } else {
+            null
+        }
 
         return Stream(streamDistance, streamTime, null, streamAltitude, streamLatitudeLongitude, streamPower)
-    }
-
-    private fun List<Double>.smooth(size: Int = 5): List<Double> {
-        val smooth = DoubleArray(this.size)
-        for (i in 0 until size) {
-            smooth[i] = this[i]
-        }
-        for (i in size until this.size - size) {
-            smooth[i] = this.subList(i - size, i + size).sum() / (2 * size + 1)
-        }
-        for (i in this.size - size until this.size) {
-            smooth[i] = this[i]
-        }
-
-        return smooth.toList()
-    }
-
-    private fun generateDataAltitude(latitudeLongitudeList: List<List<Double>>): MutableList<Double> {
-        return srtmProvider.getElevation(latitudeLongitudeList).toMutableList()
     }
 
     private fun extractLatLng(lat: Int?, lng: Int?): List<Double> {

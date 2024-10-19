@@ -1,5 +1,6 @@
 package me.nicolas.stravastats.domain
 
+import me.nicolas.stravastats.adapters.srtm.SRTMProvider
 import me.nicolas.stravastats.domain.services.activityproviders.FitActivityProvider
 import me.nicolas.stravastats.domain.services.activityproviders.GpxActivityProvider
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
@@ -10,7 +11,7 @@ import org.springframework.context.annotation.Configuration
 
 
 @Configuration
-class  ActivityProviderConfig {
+class ActivityProviderConfig {
     private val logger = LoggerFactory.getLogger(ActivityProviderConfig::class.java)
 
 
@@ -20,8 +21,6 @@ class  ActivityProviderConfig {
         val fitCache: String? = System.getenv("FIT_FILES_PATH")
         val gpxCache: String? = System.getenv("GPX_FILES_PATH")
 
-        // FIT files still in development
-
         return if (fitCache == null && gpxCache == null) {
             logger.info("Using Strava Activity Provider")
 
@@ -30,18 +29,23 @@ class  ActivityProviderConfig {
             } else {
                 StravaActivityProvider(stravaCache)
             }
-        } else if (fitCache != null) {
-            logger.info("Using FIT Activity Provider")
-
-            FitActivityProvider(fitCache)
-        } else if (gpxCache != null)  {
-            logger.info("Using GPX Activity Provider")
-
-            GpxActivityProvider(gpxCache)
         } else {
-            logger.error("No cache provided")
+            // Build a SRTM provider to get elevation data
+            val srtmProvider = SRTMProvider()
 
-            throw IllegalArgumentException("No cache provided")
+            if (fitCache != null) {
+                logger.info("Using FIT Activity Provider")
+
+                FitActivityProvider(fitCache, srtmProvider)
+            } else if (gpxCache != null) {
+                logger.info("Using GPX Activity Provider")
+
+                GpxActivityProvider(gpxCache, srtmProvider)
+            } else {
+                logger.error("No cache provided")
+
+                throw IllegalArgumentException("No cache provided")
+            }
         }
     }
 }

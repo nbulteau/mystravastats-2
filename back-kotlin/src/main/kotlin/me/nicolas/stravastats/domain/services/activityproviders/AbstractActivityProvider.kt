@@ -1,8 +1,7 @@
 package me.nicolas.stravastats.domain.services.activityproviders
 
-import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.ActivityType
-
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.utils.GenericCache
 import me.nicolas.stravastats.domain.utils.SoftCache

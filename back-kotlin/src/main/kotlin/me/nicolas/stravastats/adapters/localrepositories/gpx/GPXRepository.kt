@@ -29,7 +29,7 @@ class GPXRepository(gpxDirectory: String) {
 
         val activities: List<StravaActivity> = gpxFilesPath?.mapNotNull { gpxFile ->
             try {
-                convertGpxToActivity(gpxFile, 0)
+                convertGpxToActivity(gpxFile)
             } catch (exception: Exception) {
                 logger.error("Something wrong during GPX conversion: ${exception.message}")
                 null
@@ -39,7 +39,7 @@ class GPXRepository(gpxDirectory: String) {
         return activities
     }
 
-    private fun convertGpxToActivity(gpxFile: Path, athleteId: Int = 0): StravaActivity {
+    private fun convertGpxToActivity(gpxFile: Path): StravaActivity {
 
         val latitudeLongitude = mutableListOf<List<Double>>()
         val time = mutableListOf<Int>()
@@ -60,8 +60,8 @@ class GPXRepository(gpxDirectory: String) {
         var totalDistance = 0.0
         var totalElevationGain = 0.0
         var totalCadence = 0.0
-        var totalHeartrate = 0.0
-        var maxHeartrate = 0.0
+        var totalHeartRate = 0.0
+        var maxHeartRate = 0.0
         var maxSpeed = 0.0
         var movingTime = 0.0
 
@@ -107,10 +107,10 @@ class GPXRepository(gpxDirectory: String) {
                         0.0
                     }
 
-                    val heartrate = extensions.getElementsByTagName("gpxtpx:hr")
-                    totalHeartrate += if (heartrate.length > 0) {
-                        maxHeartrate = maxOf(maxHeartrate, heartrate.item(0).textContent.toDouble())
-                        heartrate.item(0).textContent.toDouble()
+                    val heartRate = extensions.getElementsByTagName("gpxtpx:hr")
+                    totalHeartRate += if (heartRate.length > 0) {
+                        maxHeartRate = maxOf(maxHeartRate, heartRate.item(0).textContent.toDouble())
+                        heartRate.item(0).textContent.toDouble()
                     } else {
                         0.0
                     }
@@ -124,17 +124,19 @@ class GPXRepository(gpxDirectory: String) {
         val nbPoints = time.size
 
         val averageCadence = if (totalCadence > 0) totalCadence / nbPoints else 0.0
-        val averageHeartbeat = if (totalHeartrate > 0) totalHeartrate / nbPoints else 0.0
+        val averageHeartbeat = if (totalHeartRate > 0) totalHeartRate / nbPoints else 0.0
         val averageWatts = watts.sum() / nbPoints
 
         val kilojoules = 0.8604 * averageWatts * totalElapsedTime / 1000
 
-        val stravaActivity = StravaActivity(
-            athlete = AthleteRef(id = athleteId),
+        val stream = buildStream(latitudeLongitude, time, distance, altitude, moving, watts)
+
+        return StravaActivity(
+            athlete = AthleteRef(id = 0),
             averageSpeed = totalDistance / totalElapsedTime,
             averageCadence = averageCadence,
             averageHeartrate = averageHeartbeat,
-            maxHeartrate = maxHeartrate,
+            maxHeartrate = maxHeartRate,
             averageWatts = averageWatts,
             commute = false,
             distance = totalDistance,
@@ -159,8 +161,19 @@ class GPXRepository(gpxDirectory: String) {
             type = type,
             uploadId = 0L,
             weightedAverageWatts = 0,
+            stream = stream
         )
-        stravaActivity.stream = Stream(
+    }
+
+    private fun buildStream(
+        latitudeLongitude: MutableList<List<Double>>,
+        time: MutableList<Int>,
+        distance: MutableList<Double>,
+        altitude: MutableList<Double>,
+        moving: MutableList<Boolean>,
+        watts: MutableList<Int>
+    ): Stream {
+        val stream = Stream(
             latitudeLongitude = LatitudeLongitude(
                 data = latitudeLongitude,
                 originalSize = latitudeLongitude.size,
@@ -198,8 +211,7 @@ class GPXRepository(gpxDirectory: String) {
                 seriesType = "distance",
             ),
         )
-
-        return stravaActivity
+        return stream
     }
 }
 

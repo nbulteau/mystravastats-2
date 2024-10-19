@@ -7,13 +7,13 @@ import org.junit.jupiter.api.Test
 internal class StravaActivityTest {
 
     @Test
-    fun getSpeed() {
+    fun processAverageSpeed() {
 
         // Given
         val colAgnelActivity = loadColAgnelActivity()
 
         // When
-        val result = colAgnelActivity.getSpeed()
+        val result = colAgnelActivity.processAverageSpeed()
 
         // Then
         assertEquals("15,48", result)

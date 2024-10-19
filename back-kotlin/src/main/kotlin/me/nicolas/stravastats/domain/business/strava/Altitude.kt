@@ -13,4 +13,6 @@ data class Altitude(
     val resolution: String,
     @JsonProperty("series_type")
     val seriesType: String,
-)
+) {
+    constructor(data: List<Double>) : this(data.toMutableList(), data.size, "high", "distance")
+}
