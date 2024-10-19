@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.ktor.http.*
-import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.response.*
@@ -363,9 +362,15 @@ internal class StravaApi(clientId: String, clientSecret: String) :
             // Fallback to using Runtime exec
             val os = System.getProperty("os.name").lowercase(Locale.getDefault())
             when {
-                os.contains("win") -> Runtime.getRuntime().exec(arrayOf("rundll32 url.dll,FileProtocolHandler", url))
+                os.contains("win") -> Runtime.getRuntime().exec(arrayOf("rundll32", "url.dll,FileProtocolHandler", url))
                 os.contains("mac") -> Runtime.getRuntime().exec(arrayOf("open", url))
-                os.contains("nix") || os.contains("nux") -> Runtime.getRuntime().exec(arrayOf("xdg-open", url))
+                os.contains("nix") || os.contains("nux") -> {
+                    val process = Runtime.getRuntime().exec(arrayOf("xdg-open", url))
+                    val exitCode = process.waitFor()
+                    if (exitCode != 0) {
+                        println("Failed to open the browser with xdg-open. Exit code: $exitCode")
+                    }
+                }
                 else -> println("Unsupported operating system. Cannot open the browser.")
             }
         } catch (e: Exception) {
