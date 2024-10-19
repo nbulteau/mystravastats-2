@@ -9,6 +9,7 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.*
+import kotlin.math.absoluteValue
 
 class FITRepository(fitDirectory: String) {
 
@@ -86,7 +87,7 @@ class FITRepository(fitDirectory: String) {
         // StravaActivity name
         val name = "${extractActivityType(sessionMesg.sport!!)} - $startDateLocal"
         // The unique identifier of the stravaActivity
-        val id: Long =name.hashCode().toLong()
+        val id: Long =name.hashCode().toLong().absoluteValue
         // Latitude /longitude of the start point
         val extractedStartLatLng = extractLatLng(sessionMesg.startPositionLat, sessionMesg.startPositionLong)
         val startLatlng: List<Double>? = extractedStartLatLng.ifEmpty {
