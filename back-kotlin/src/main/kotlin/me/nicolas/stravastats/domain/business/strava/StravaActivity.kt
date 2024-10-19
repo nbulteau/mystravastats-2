@@ -20,7 +20,7 @@ data class StravaActivity(
     @JsonProperty("max_heartrate")
     val maxHeartrate: Double,
     @JsonProperty("average_watts")
-    val averageWatts: Double,
+    val averageWatts: Int,
     val commute: Boolean,
     var distance: Double,
     @JsonProperty("device_watts")

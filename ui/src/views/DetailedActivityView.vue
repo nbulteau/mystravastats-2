@@ -86,8 +86,12 @@
     <div id="heart-rate-metrics">
       <h3>Heart Rate Metrics</h3>
       <ul>
-        <li><strong>Average Heartrate:</strong> {{ activity?.averageHeartrate.toFixed(0) }} bpm</li>
-        <li><strong>Max Heartrate:</strong> {{ activity?.maxHeartrate.toFixed(0) }} bpm</li>
+        <li v-if="(activity?.averageHeartrate ?? 0) > 0">
+          <strong>Average Heartrate:</strong> {{ activity?.averageHeartrate.toFixed(0) }} bpm
+        </li>
+        <li v-if="(activity?.maxHeartrate ?? 0) > 0">
+          <strong>Max Heartrate:</strong> {{ activity?.maxHeartrate.toFixed(0) }} bpm
+        </li>
       </ul>
     </div>
   </div>

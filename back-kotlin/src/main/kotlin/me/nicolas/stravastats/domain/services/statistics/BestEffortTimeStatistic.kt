@@ -3,6 +3,7 @@ package me.nicolas.stravastats.domain.services.statistics
 import me.nicolas.stravastats.domain.business.ActivityEffort
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.utils.formatSeconds
+import me.nicolas.stravastats.domain.utils.formatSpeed
 
 
 internal open class BestEffortTimeStatistic(
@@ -77,10 +78,11 @@ fun StravaActivity.calculateBestDistanceForTime(seconds: Int): ActivityEffort? {
 
             if (estimatedDistanceForTime > maxDist) {
                 maxDist = estimatedDistanceForTime
+                val speed = maxDist / totalTime
                 bestEffort = ActivityEffort(
                     this, maxDist, seconds, totalAltitude, idxStart, idxEnd,
                     null,
-                    description = "Best distance for ${seconds.formatSeconds()}: %.2f km => ${getFormattedSpeed()}".format(distance / 1000)
+                    description = "Best distance for ${seconds.formatSeconds()}: %.2f km => ${speed.formatSpeed(this.type)}".format(maxDist / 1000)
                 )
             }
             ++idxStart

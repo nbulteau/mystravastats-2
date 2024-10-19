@@ -3,6 +3,7 @@ package me.nicolas.stravastats.domain.services.statistics
 import me.nicolas.stravastats.domain.business.ActivityEffort
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.utils.formatSeconds
+import me.nicolas.stravastats.domain.utils.formatSpeed
 
 
 internal open class BestEffortDistanceStatistic(
@@ -66,6 +67,7 @@ fun StravaActivity.calculateBestTimeForDistance(distance: Double): ActivityEffor
             // estimatedTimeForDistance > 1 to prevent corrupted data
             if (estimatedTimeForDistance < bestTime && estimatedTimeForDistance > 1) {
                 bestTime = estimatedTimeForDistance
+                val speed = distance / bestTime
                 bestEffort = ActivityEffort(
                     this,
                     distance,
@@ -74,7 +76,7 @@ fun StravaActivity.calculateBestTimeForDistance(distance: Double): ActivityEffor
                     idxStart,
                     idxEnd,
                     averagePower = null,
-                    description = "Best speed for ${distance.toInt()}m: ${getFormattedSpeed()}",
+                    description = "Best speed for ${distance.toInt()}m: ${speed.formatSpeed(activityType = this.type)}",
                 )
             }
             ++idxStart

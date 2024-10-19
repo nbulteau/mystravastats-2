@@ -62,7 +62,7 @@ class FITRepository(fitDirectory: String) {
         // The maximum heart rate of the stravaAthlete during this effort
         val maxHeartrate: Double = sessionMesg?.maxHeartRate?.toDouble() ?: 0.0
         //The average wattage of this effort
-        val averageWatts: Double = sessionMesg?.avgPower?.toDouble() ?: 0.0 // TODO : Calculate ?
+        val averageWatts: Int = sessionMesg?.avgPower ?: 0 // TODO : Calculate ?
         // Whether this stravaActivity is a commute
         val commute = false
         // The stravaActivity's distance, in meters
@@ -79,7 +79,7 @@ class FITRepository(fitDirectory: String) {
         // The unique identifier of the stravaActivity
         val id: Long = 0
         // The total work done in kilojoules during this stravaActivity. Rides only
-        val kilojoules = 0.0
+        val kilojoules = 0.8604 * averageWatts * elapsedTime / 1000
         // The stravaActivity's max speed, in meters per second
         val maxSpeed: Double = sessionMesg?.maxSpeed?.toDouble() ?: 0.0
         // The stravaActivity's moving time, in seconds

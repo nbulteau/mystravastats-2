@@ -46,12 +46,17 @@ fun Double.formatSeconds(): String {
  * Format average speed (m/s)
  */
 fun Double.formatSpeed(activityType: ActivityType): String {
-    return if (activityType == ActivityType.Run) {
+    return this.formatSpeed(activityType.name)
+}
+
+fun Double.formatSpeed(activityType: String): String {
+    return if (activityType == ActivityType.Run.name) {
         "${(1000 / this).formatSeconds()}/km"
     } else {
         "%.02f km/h".format(this * 3.6)
     }
 }
+
 
 
 

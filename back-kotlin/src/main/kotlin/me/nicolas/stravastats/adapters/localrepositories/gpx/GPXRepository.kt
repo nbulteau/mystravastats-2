@@ -10,6 +10,7 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.*
+import kotlin.math.absoluteValue
 
 // WIP : GPXRepository
 class GPXRepository(gpxDirectory: String) {
@@ -38,7 +39,7 @@ class GPXRepository(gpxDirectory: String) {
         return activities
     }
 
-    private fun convertGpxToActivity(gpxFile: Path, athleteId: Int): StravaActivity {
+    private fun convertGpxToActivity(gpxFile: Path, athleteId: Int = 0): StravaActivity {
 
         val latitudeLongitude = mutableListOf<List<Double>>()
         val time = mutableListOf<Int>()
@@ -54,6 +55,7 @@ class GPXRepository(gpxDirectory: String) {
         val type: String = firstTrack.type.orElse("cycling").toActivityType()
 
         var previousPoint: WayPoint = firstTrack.segments.first().points.first()
+        val startPointTime = previousPoint.time.get().epochSecond
 
         var totalDistance = 0.0
         var totalElevationGain = 0.0
@@ -80,7 +82,7 @@ class GPXRepository(gpxDirectory: String) {
 
                 latitudeLongitude.add(listOf(point.latitude.toDouble(), point.longitude.toDouble()))
 
-                time.add((point.time.get().epochSecond).toInt())
+                time.add((point.time.get().epochSecond - startPointTime).toInt())
 
                 altitude.add(point.elevation.get().to(Length.Unit.METER))
 
@@ -94,6 +96,10 @@ class GPXRepository(gpxDirectory: String) {
                 }
 
                 point.extensions.ifPresent { extensions ->
+                    //
+                    val power = extensions.getElementsByTagName("power")
+                    watts.add(if (power.length > 0) power.item(0).textContent.toInt() else 0)
+
                     val cadence = extensions.getElementsByTagName("gpxtpx:cad")
                     totalCadence += if (cadence.length > 0) {
                         cadence.item(0).textContent.toDouble()
@@ -113,13 +119,15 @@ class GPXRepository(gpxDirectory: String) {
                 previousPoint = point
             }
 
-        val startTime = time.first()
-        val totalElapsedTime = time.last() - startTime
+        val totalElapsedTime = time.last()
 
         val nbPoints = time.size
 
         val averageCadence = if (totalCadence > 0) totalCadence / nbPoints else 0.0
         val averageHeartbeat = if (totalHeartrate > 0) totalHeartrate / nbPoints else 0.0
+        val averageWatts = watts.sum() / nbPoints
+
+        val kilojoules = 0.8604 * averageWatts * totalElapsedTime / 1000
 
         val stravaActivity = StravaActivity(
             athlete = AthleteRef(id = athleteId),
@@ -127,23 +135,23 @@ class GPXRepository(gpxDirectory: String) {
             averageCadence = averageCadence,
             averageHeartrate = averageHeartbeat,
             maxHeartrate = maxHeartrate,
-            averageWatts = 0.0,
+            averageWatts = averageWatts,
             commute = false,
             distance = totalDistance,
-            deviceWatts = false,
+            deviceWatts = watts.isNotEmpty(),
             elapsedTime = totalElapsedTime,
             elevHigh = totalElevationGain,
-            id = 0L,
-            kilojoules = 0.0,
+            id = name.hashCode().toLong().absoluteValue,
+            kilojoules = kilojoules,
             maxSpeed = maxSpeed,
             movingTime = movingTime.toInt() / 1000,
             name = name,
             startDate = ZonedDateTime.of(
-                LocalDateTime.ofEpochSecond(startTime.toLong(), 0, ZoneOffset.UTC),
+                LocalDateTime.ofEpochSecond(startPointTime, 0, ZoneOffset.UTC),
                 ZoneOffset.UTC
             ).toString(),
             startDateLocal = ZonedDateTime.of(
-                LocalDateTime.ofEpochSecond(startTime.toLong(), 0, ZoneOffset.UTC),
+                LocalDateTime.ofEpochSecond(startPointTime, 0, ZoneOffset.UTC),
                 ZoneOffset.UTC
             ).toString(),
             startLatlng = listOf(),
@@ -156,38 +164,38 @@ class GPXRepository(gpxDirectory: String) {
             latitudeLongitude = LatitudeLongitude(
                 data = latitudeLongitude,
                 originalSize = latitudeLongitude.size,
-                resolution = "",
-                seriesType = "",
+                resolution = "high",
+                seriesType = "distance",
             ),
             time = Time(
                 data = time,
                 originalSize = time.size,
-                resolution = "",
-                seriesType = "",
+                resolution = "high",
+                seriesType = "distance",
             ),
             distance = Distance(
                 data = distance,
                 originalSize = distance.size,
-                resolution = "",
-                seriesType = "",
+                resolution = "high",
+                seriesType = "distance",
             ),
             altitude = Altitude(
                 data = altitude,
                 originalSize = altitude.size,
-                resolution = "",
-                seriesType = "",
+                resolution = "high",
+                seriesType = "distance",
             ),
             moving = Moving(
                 data = moving,
                 originalSize = moving.size,
-                resolution = "",
-                seriesType = "",
+                resolution = "high",
+                seriesType = "distance",
             ),
             watts = PowerStream(
                 data = watts,
                 originalSize = watts.size,
-                resolution = "",
-                seriesType = "",
+                resolution = "high",
+                seriesType = "distance",
             ),
         )
 
@@ -198,7 +206,8 @@ class GPXRepository(gpxDirectory: String) {
 private fun String.toActivityType(): String {
     return when (this) {
         "cycling" -> ActivityType.Ride.name
-        else -> ActivityType.Ride.name
+        "running" -> ActivityType.Run.name
+        else ->this
     }
 
 }
