@@ -20,6 +20,9 @@ RUN gradle build --no-daemon -x test
 # Use an official OpenJDK runtime as a parent image
 FROM openjdk:21-jdk-slim AS runtime
 
+# Install xdg-utils
+RUN apt-get update && apt-get install -y xdg-utils
+
 # Set the working directory
 WORKDIR /app
 

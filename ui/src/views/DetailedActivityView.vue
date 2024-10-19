@@ -1,5 +1,8 @@
 <template>
-  <div id="title" style="text-align: center; margin-bottom: 20px">
+  <div
+    id="title"
+    style="text-align: center; margin-bottom: 20px"
+  >
     <span style="display: block; font-size: 1.5em; font-weight: bold">
       {{ activity?.name }}
     </span>
@@ -11,19 +14,42 @@
     </span>
   </div>
   <div style="display: flex; width: 100%; height: 400px">
-    <div id="map-container" style="width: 80%; height: 100%" />
-    <div id="radio-container" style="width: 20%; height: 100%; padding-left: 10px">
+    <div
+      id="map-container"
+      style="width: 80%; height: 100%"
+    />
+    <div
+      id="radio-container"
+      style="width: 20%; height: 100%; padding-left: 10px"
+    >
       <form>
-        <div v-for="option in radioOptions" :key="option.value">
-          <input :id="option.value" v-model="selectedOption" type="radio" :value="option.value" class="radio-input"
-            @click="handleRadioClick(option.label)">
-          <label ref="radioLabels" :for="option.value" class="radio-label" :title="option.description">{{ option.label
-            }}</label>
+        <div
+          v-for="option in radioOptions"
+          :key="option.value"
+        >
+          <input
+            :id="option.value"
+            v-model="selectedOption"
+            type="radio"
+            :value="option.value"
+            class="radio-input"
+            @click="handleRadioClick(option.label)"
+          >
+          <label
+            ref="radioLabels"
+            :for="option.value"
+            class="radio-label"
+            :title="option.description"
+          >{{ option.label
+          }}</label>
         </div>
       </form>
     </div>
   </div>
-  <div id="chart-container" style="width: 100%; height: 400px">
+  <div
+    id="chart-container"
+    style="width: 100%; height: 400px"
+  >
     <Chart :options="chartOptions" />
   </div>
   <div id="activity-details-container">
@@ -31,9 +57,11 @@
       <h3>Basic Information</h3>
       <ul>
         <li><strong>Type:</strong> {{ activity?.type }}</li>
-        <li><strong>Date:</strong> {{ activity?.startDate ? new Date(activity.startDate).toLocaleDateString('en-GB', {
-          weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-        }) : 'N/A' }}</li>
+        <li>
+          <strong>Date:</strong> {{ activity?.startDate ? new Date(activity.startDate).toLocaleDateString('en-GB', {
+            weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+          }) : 'N/A' }}
+        </li>
         <li><strong>Distance:</strong> {{ ((activity?.distance ?? 0) / 1000).toFixed(1) }} km</li>
         <li><strong>Total Elevation Gain:</strong> {{ activity?.totalElevationGain.toFixed(0) }} m</li>
         <li><strong>Elapsed Time:</strong> {{ formatTime(activity?.elapsedTime ?? 0) }}</li>
@@ -43,9 +71,12 @@
     <div id="performance-metrics">
       <h3>Performance Metrics</h3>
       <ul>
-        <li><strong>Average Speed:</strong> {{ formatSpeedWithUnit(activity?.averageSpeed ?? 0, activity?.type ??
-          "Ride") }}</li>
-        <li><strong>Max Speed:</strong> {{ formatSpeedWithUnit(activity?.maxSpeed ?? 0, activity?.type ?? "Ride") }}
+        <li>
+          <strong>Average Speed:</strong> {{ formatSpeedWithUnit(activity?.averageSpeed ?? 0, activity?.type ??
+            "Ride") }}
+        </li>
+        <li>
+          <strong>Max Speed:</strong> {{ formatSpeedWithUnit(activity?.maxSpeed ?? 0, activity?.type ?? "Ride") }}
         </li>
         <li v-if="(activity?.averageCadence ?? 0) > 0.0">
           <strong>Average Cadence:</strong> {{ (activity?.averageCadence ?? 0).toFixed(0) }} rpm
@@ -106,6 +137,9 @@ const radioOptions = ref<{ label: string; value: string; description: string }[]
 const selectedOption = ref(null);
 
 const radioLabels = ref<HTMLElement[]>([]); // Ref to hold radio labels
+
+// Icon options
+L.Icon.Default.imagePath = '/node_modules/leaflet/dist/images/';
 
 const buildRadioOptions = () => {
   if (activity.value?.activityEfforts) {
@@ -304,8 +338,7 @@ const initChart = () => {
                     }
                   });
                   // Add a marker
-                  //L.Icon.Default.imagePath = '/';
-                  L.marker(L.latLng(latlng[0], latlng[1])).addTo(map.value!);
+                  L.marker(L.latLng(latlng[0], latlng[1]), ).addTo(map.value!);
                 }
               }
             }
