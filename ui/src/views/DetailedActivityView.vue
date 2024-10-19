@@ -1,55 +1,29 @@
 <template>
-  <div
-    id="title"
-    style="text-align: center; margin-bottom: 20px"
-  >
+  <div id="title" style="text-align: center; margin-bottom: 20px">
     <span style="display: block; font-size: 1.5em; font-weight: bold">
       {{ activity?.name }}
     </span>
     <span style="display: block; font-size: 1.2em">
-      Distance: {{ ((activity?.distance ?? 0) / 1000).toFixed(1) }} km 
-      | Average speed: {{ formatSpeedWithUnit(activity?.averageSpeed ?? 0, activity?.type ?? "Ride") }} 
-      | Elapsed time: {{ formatTime(activity?.elapsedTime ?? 0) }} 
+      Distance: {{ ((activity?.distance ?? 0) / 1000).toFixed(1) }} km
+      | Average speed: {{ formatSpeedWithUnit(activity?.averageSpeed ?? 0, activity?.type ?? "Ride") }}
+      | Elapsed time: {{ formatTime(activity?.elapsedTime ?? 0) }}
       | Total elevation gain: {{ activity?.totalElevationGain.toFixed(0) }} m
     </span>
   </div>
   <div style="display: flex; width: 100%; height: 400px">
-    <div
-      id="map-container"
-      style="width: 80%; height: 100%"
-    />
-    <div
-      id="radio-container"
-      style="width: 20%; height: 100%; padding-left: 10px"
-    >
+    <div id="map-container" style="width: 80%; height: 100%" />
+    <div id="radio-container" style="width: 20%; height: 100%; padding-left: 10px">
       <form>
-        <div
-          v-for="option in radioOptions"
-          :key="option.value"
-        >
-          <input
-            :id="option.value"
-            v-model="selectedOption"
-
-            type="radio"
-            :value="option.value"
-            class="radio-input"
-            @click="handleRadioClick(option.label)"
-          >
-          <label
-            ref="radioLabels"
-            :for="option.value"
-            class="radio-label"
-            :title="option.description"
-          >{{ option.label }}</label>
+        <div v-for="option in radioOptions" :key="option.value">
+          <input :id="option.value" v-model="selectedOption" type="radio" :value="option.value" class="radio-input"
+            @click="handleRadioClick(option.label)">
+          <label ref="radioLabels" :for="option.value" class="radio-label" :title="option.description">{{ option.label
+            }}</label>
         </div>
       </form>
     </div>
   </div>
-  <div
-    id="chart-container"
-    style="width: 100%; height: 400px"
-  >
+  <div id="chart-container" style="width: 100%; height: 400px">
     <Chart :options="chartOptions" />
   </div>
   <div id="activity-details-container">
@@ -57,7 +31,9 @@
       <h3>Basic Information</h3>
       <ul>
         <li><strong>Type:</strong> {{ activity?.type }}</li>
-        <li><strong>Date:</strong> {{ activity?.startDate ? new Date(activity.startDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year:'numeric' }) : 'N/A' }}</li>
+        <li><strong>Date:</strong> {{ activity?.startDate ? new Date(activity.startDate).toLocaleDateString('en-GB', {
+          weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+        }) : 'N/A' }}</li>
         <li><strong>Distance:</strong> {{ ((activity?.distance ?? 0) / 1000).toFixed(1) }} km</li>
         <li><strong>Total Elevation Gain:</strong> {{ activity?.totalElevationGain.toFixed(0) }} m</li>
         <li><strong>Elapsed Time:</strong> {{ formatTime(activity?.elapsedTime ?? 0) }}</li>
@@ -67,8 +43,10 @@
     <div id="performance-metrics">
       <h3>Performance Metrics</h3>
       <ul>
-        <li><strong>Average Speed:</strong> {{ formatSpeedWithUnit(activity?.averageSpeed ?? 0, activity?.type ?? "Ride") }}</li>
-        <li><strong>Max Speed:</strong> {{ formatSpeedWithUnit(activity?.maxSpeed ?? 0, activity?.type ?? "Ride") }}</li>
+        <li><strong>Average Speed:</strong> {{ formatSpeedWithUnit(activity?.averageSpeed ?? 0, activity?.type ??
+          "Ride") }}</li>
+        <li><strong>Max Speed:</strong> {{ formatSpeedWithUnit(activity?.maxSpeed ?? 0, activity?.type ?? "Ride") }}
+        </li>
         <li v-if="(activity?.averageCadence ?? 0) > 0.0">
           <strong>Average Cadence:</strong> {{ (activity?.averageCadence ?? 0).toFixed(0) }} rpm
         </li>
@@ -99,6 +77,7 @@
 
 <script setup lang="ts">
 import "bootstrap";
+import 'leaflet/dist/leaflet.css';
 import { onMounted, ref, reactive, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import L from "leaflet";
@@ -134,7 +113,7 @@ const buildRadioOptions = () => {
       return {
         label: effort.key,
         value: effort.key,
-        description: effort?.description ?? '' 
+        description: effort?.description ?? ''
       };
     });
   } else {
@@ -199,34 +178,34 @@ const chartOptions: Options = reactive({
         text: "Speed",
       },
       labels: {
-            formatter: function (this: any): string {
-                return formatSpeedWithUnit(this.value, activity.value?.type ?? "Ride");
-            },
-            style: {
-                color: Highcharts.getOptions().colors?.[0] as string ?? '#000000'
-            }
+        formatter: function (this: any): string {
+          return formatSpeedWithUnit(this.value, activity.value?.type ?? "Ride");
         },
+        style: {
+          color: Highcharts.getOptions().colors?.[0] as string ?? '#000000'
+        }
+      },
     },
     {
       title: {
         text: "Altitude",
       },
       labels: {
-            format: '{value} m',
-            style: {
-                color: "#d3d3d3"
-            }
-        },
+        format: '{value} m',
+        style: {
+          color: "#d3d3d3"
+        }
+      },
       opposite: true
     },
   ],
   tooltip: {
     formatter: function (this: Highcharts.TooltipFormatterContextObject): string {
-        const speedMS = this.points?.[0]?.y ?? 0;
-        const speed = formatSpeedWithUnit(speedMS, activity.value?.type ?? "Ride");
+      const speedMS = this.points?.[0]?.y ?? 0;
+      const speed = formatSpeedWithUnit(speedMS, activity.value?.type ?? "Ride");
 
-        const altitude = this.points?.[1]?.y ?? 0;
-        return "Distance: " + (this.point.x).toFixed(1) + " km<br/>Speed: <b>" + speed + "</b></br>Altitude: " + altitude.toFixed(0) + " m";
+      const altitude = this.points?.[1]?.y ?? 0;
+      return "Distance: " + (this.point.x).toFixed(1) + " km<br/>Speed: <b>" + speed + "</b></br>Altitude: " + altitude.toFixed(0) + " m";
     },
     shared: true,
   },
@@ -251,89 +230,90 @@ const chartOptions: Options = reactive({
 });
 
 const initChart = () => {
-    const altitudeStream = activity.value?.stream?.altitude;
-    const distanceStream = activity.value?.stream?.distance;
-    const timeStream = activity.value?.stream?.time;
+  const altitudeStream = activity.value?.stream?.altitude;
+  const distanceStream = activity.value?.stream?.distance;
+  const timeStream = activity.value?.stream?.time;
 
-    if (timeStream && distanceStream && chartOptions.series && chartOptions.series.length > 0) {
-      const smoothedSpeedData = timeStream.map((_, index) => {
-        if (index === 0) {
-          return {
-            x: distanceStream[index] / 1000,
-            y: 0
-          };
-        } else {
-          const deltaTime = timeStream[index] - timeStream[index - 1];
-          const deltaDistance = distanceStream[index] - distanceStream[index - 1];
-          const instantSpeed = deltaDistance / deltaTime;
-          return {
-            x: distanceStream[index] / 1000,
-            y: instantSpeed
-          };
-        }
-      });
-
-      // Apply a simple moving average to smooth the speed data
-      const windowSize = 20;
-      const smoothedData = smoothedSpeedData.map((point, index, array) => {
-        const start = Math.max(0, index - windowSize + 1);
-        const end = index + 1;
-        const window = array.slice(start, end);
-        const averageY = window.reduce((sum, p) => sum + p.y, 0) / window.length;
+  if (timeStream && distanceStream && chartOptions.series && chartOptions.series.length > 0) {
+    const smoothedSpeedData = timeStream.map((_, index) => {
+      if (index === 0) {
         return {
-          x: point.x,
-          y: averageY
+          x: distanceStream[index] / 1000,
+          y: 0
         };
-      });
+      } else {
+        const deltaTime = timeStream[index] - timeStream[index - 1];
+        const deltaDistance = distanceStream[index] - distanceStream[index - 1];
+        const instantSpeed = deltaDistance / deltaTime;
+        return {
+          x: distanceStream[index] / 1000,
+          y: instantSpeed
+        };
+      }
+    });
 
-      (chartOptions.series[0] as SeriesLineOptions).data = smoothedData;
-    }
+    // Apply a simple moving average to smooth the speed data
+    const windowSize = 20;
+    const smoothedData = smoothedSpeedData.map((point, index, array) => {
+      const start = Math.max(0, index - windowSize + 1);
+      const end = index + 1;
+      const window = array.slice(start, end);
+      const averageY = window.reduce((sum, p) => sum + p.y, 0) / window.length;
+      return {
+        x: point.x,
+        y: averageY
+      };
+    });
 
-    if (altitudeStream && distanceStream && chartOptions.series && chartOptions.series.length > 0) {
-      (chartOptions.series[1] as SeriesAreaOptions).data = altitudeStream.map((altitude, index) => (
-        {
-            x: distanceStream[index] / 1000,
-            y: altitude
-        }
-      ));
-    }
+    (chartOptions.series[0] as SeriesLineOptions).data = smoothedData;
+  }
 
-    const chartContainer = document.getElementById('chart-container');
-    if(chartContainer) {
-        chartContainer.addEventListener('mousemove',
-        function (e: MouseEvent) {
-            let chart: Highcharts.Chart | undefined;
-            let point, i, event;
+  if (altitudeStream && distanceStream && chartOptions.series && chartOptions.series.length > 0) {
+    (chartOptions.series[1] as SeriesAreaOptions).data = altitudeStream.map((altitude, index) => (
+      {
+        x: distanceStream[index] / 1000,
+        y: altitude
+      }
+    ));
+  }
 
-            for (i = 0; i < Highcharts.charts.length; i = i + 1) {
-                chart = Highcharts.charts[i];
-                if (chart) {
-                    // Find coordinates within the chart
-                    event = chart.pointer.normalize(e);
-                    // Get the hovered point
-                    point = chart.series[0].searchPoint(event, true);
+  const chartContainer = document.getElementById('chart-container');
+  if (chartContainer) {
+    chartContainer.addEventListener('mousemove',
+      function (e: MouseEvent) {
+        let chart: Highcharts.Chart | undefined;
+        let point, i, event;
 
-                    if (point) {
-                        const mapContainer = document.getElementById("map-container");
-                        if (mapContainer) {
-                            const latlng = activity.value?.stream?.latitudeLongitude?.[point.index];
-                            if (latlng) {
-                                // Remove previous marker
-                                map.value?.eachLayer((layer) => {
-                                    if (layer instanceof L.Marker) {
-                                        map.value?.removeLayer(layer);
-                                    }
-                                });
-                                // Add a marker
-                                L.marker(L.latLng(latlng[0], latlng[1])).addTo(map.value!);
-                            }
-                        }
+        for (i = 0; i < Highcharts.charts.length; i = i + 1) {
+          chart = Highcharts.charts[i];
+          if (chart) {
+            // Find coordinates within the chart
+            event = chart.pointer.normalize(e);
+            // Get the hovered point
+            point = chart.series[0].searchPoint(event, true);
+
+            if (point) {
+              const mapContainer = document.getElementById("map-container");
+              if (mapContainer) {
+                const latlng = activity.value?.stream?.latitudeLongitude?.[point.index];
+                if (latlng) {
+                  // Remove previous marker
+                  map.value?.eachLayer((layer) => {
+                    if (layer instanceof L.Marker) {
+                      map.value?.removeLayer(layer);
                     }
+                  });
+                  // Add a marker
+                  //L.Icon.Default.imagePath = '/';
+                  L.marker(L.latLng(latlng[0], latlng[1])).addTo(map.value!);
                 }
+              }
             }
+          }
         }
+      }
     );
-    }
+  }
 };
 
 const handleRadioClick = (key: string) => {
@@ -373,9 +353,9 @@ const handleRadioClick = (key: string) => {
 
   if (map.value) {
     const latlngs = selectedStream.latitudeLongitude.map((latlng: number[]) =>
-    L.latLng(latlng[0], latlng[1])
-  );
-  if (latlngs) {
+      L.latLng(latlng[0], latlng[1])
+    );
+    if (latlngs) {
       const polyline = L.polyline(latlngs, { color: "blue" }).addTo(map.value);
       // Fit the map to the bounds of all polylines
       const bounds = L.latLngBounds(polyline.getLatLngs() as L.LatLng[]);
@@ -394,7 +374,7 @@ onMounted(async () => {
     initChart();
     buildRadioOptions();
 
-      // Ensure DOM is updated before initializing tooltips
+    // Ensure DOM is updated before initializing tooltips
     await nextTick();
 
     // Initialize tooltips for radio labels
@@ -416,7 +396,8 @@ onMounted(async () => {
 #map {
   width: 100%;
   height: 100%;
-  border-radius: 10px; /* Example of custom styling */
+  border-radius: 10px;
+  /* Example of custom styling */
 }
 
 #activity-details-container {
@@ -425,7 +406,9 @@ onMounted(async () => {
   margin-top: 20px;
 }
 
-#activity-details, #performance-metrics, #heart-rate-metrics {
+#activity-details,
+#performance-metrics,
+#heart-rate-metrics {
   width: 32%;
 }
 
@@ -439,12 +422,19 @@ onMounted(async () => {
 
 /* Custom Tooltip Styles */
 .tooltip-inner {
-  --bs-tooltip-max-width: 300px; /* Define the custom property for max-width */
-  max-width: var(--bs-tooltip-max-width); /* Apply the custom property */
-  background-color: #343a40; /* Dark background color */
-  color: #ffffff; /* White text color */
-  font-size: 1rem; /* Increase font size */
-  padding: 10px; /* Add padding */
-  border-radius: 5px; /* Rounded corners */
+  --bs-tooltip-max-width: 300px;
+  /* Define the custom property for max-width */
+  max-width: var(--bs-tooltip-max-width);
+  /* Apply the custom property */
+  background-color: #343a40;
+  /* Dark background color */
+  color: #ffffff;
+  /* White text color */
+  font-size: 1rem;
+  /* Increase font size */
+  padding: 10px;
+  /* Add padding */
+  border-radius: 5px;
+  /* Rounded corners */
 }
 </style>
