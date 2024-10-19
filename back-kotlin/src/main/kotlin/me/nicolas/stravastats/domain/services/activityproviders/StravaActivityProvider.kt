@@ -28,7 +28,7 @@ class StravaActivityProvider(
     private lateinit var stravaApi: IStravaApi
 
     init {
-        localStorageProvider.readStravaAuthentication().let { (id, secret, useCache) ->
+        localStorageProvider.readStravaAuthentication(stravaCache).let { (id, secret, useCache) ->
             if (id == null) {
                 logger.error("Strava authentication not found")
                 exitProcess(-1)

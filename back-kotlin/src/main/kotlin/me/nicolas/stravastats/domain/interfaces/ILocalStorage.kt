@@ -29,5 +29,5 @@ interface ILocalStorageProvider {
 
     fun saveDetailedActivityToCache(clientId: String, year: Int, stravaDetailedActivity: StravaDetailedActivity)
 
-    fun readStravaAuthentication(): Triple<String?, String?, Boolean?>
+    fun readStravaAuthentication(stravaCache: String): Triple<String?, String?, Boolean?>
 }

@@ -152,8 +152,8 @@ internal class StravaRepository(stravaCache: String) : ILocalStorageProvider {
      * The file must contain two properties: clientId and clientSecret.
      * @return a Triple with clientId, clientSecret and useCache
      */
-    override fun readStravaAuthentication(): Triple<String?, String?, Boolean?> {
-        val cacheDirectory = File("strava-cache")
+    override fun readStravaAuthentication(stravaCache: String): Triple<String?, String?, Boolean?> {
+        val cacheDirectory = File(stravaCache)
         val file = File(cacheDirectory, ".strava")
         val properties = Properties()
 
