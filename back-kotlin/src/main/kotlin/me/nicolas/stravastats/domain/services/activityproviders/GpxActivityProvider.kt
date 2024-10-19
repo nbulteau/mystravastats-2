@@ -33,7 +33,7 @@ class GpxActivityProvider (gpxCache: String) : AbstractActivityProvider() {
             loadedActivities.addAll(localStorageProvider.loadActivitiesFromCache(currentYear))
         }
 
-        logger.info("All activities are loaded.")
+        logger.info("All activities are loaded: ${loadedActivities.size} activities.")
 
         return loadedActivities.sortedBy { it.startDateLocal }.reversed()
     }

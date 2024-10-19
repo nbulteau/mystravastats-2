@@ -4,35 +4,43 @@ import me.nicolas.stravastats.domain.services.activityproviders.FitActivityProvi
 import me.nicolas.stravastats.domain.services.activityproviders.GpxActivityProvider
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import me.nicolas.stravastats.domain.services.activityproviders.StravaActivityProvider
-import org.springframework.boot.ApplicationArguments
+import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 
 @Configuration
-class ActivityProviderConfig(
-    private val args: ApplicationArguments,
-) {
+class  ActivityProviderConfig {
+    private val logger = LoggerFactory.getLogger(ActivityProviderConfig::class.java)
+
 
     @Bean
     fun activityProvider(): IActivityProvider {
-        val stravaCache: String? = args.getOptionValues("stravaCache")?.get(0)
-        val fitCache: String? = args.getOptionValues("fitCache")?.get(0)
-        val gpxCache: String? = args.getOptionValues("gpxCache")?.get(0)
+        val stravaCache: String? = System.getenv("STRAVA_CACHE_PATH")
+        val fitCache: String? = System.getenv("FIT_FILES_PATH")
+        val gpxCache: String? = System.getenv("GPX_FILES_PATH")
 
-        // FIT Files and GPX Files are not supported yet
+        // FIT files still in development
 
         return if (fitCache == null && gpxCache == null) {
+            logger.info("Using Strava Activity Provider")
+
             if (stravaCache == null) {
                 StravaActivityProvider()
             } else {
                 StravaActivityProvider(stravaCache)
             }
         } else if (fitCache != null) {
+            logger.info("Using FIT Activity Provider")
+
             FitActivityProvider(fitCache)
         } else if (gpxCache != null)  {
+            logger.info("Using GPX Activity Provider")
+
             GpxActivityProvider(gpxCache)
         } else {
+            logger.error("No cache provided")
+
             throw IllegalArgumentException("No cache provided")
         }
     }

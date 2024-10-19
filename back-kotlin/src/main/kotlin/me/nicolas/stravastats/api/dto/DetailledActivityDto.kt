@@ -16,7 +16,7 @@ data class DetailedActivityDto(
     @Schema(description = "Maximum heartrate")
     val maxHeartrate: Double,
     @Schema(description = "Average power output in watts during this activity. Rides only.")
-    val averageWatts: Double,
+    val averageWatts: Int,
     @Schema(description = "Whether the activity was a commute.")
     val commute: Boolean,
     @Schema(description = "Distance in meters.")

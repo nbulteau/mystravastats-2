@@ -12,7 +12,7 @@ data class DetailedActivity(
     val averageCadence: Double,
     val averageHeartrate: Double,
     val maxHeartrate: Double,
-    val averageWatts: Double,
+    val averageWatts: Int,
     val commute: Boolean,
     var distance: Double,
     val deviceWatts: Boolean = false,

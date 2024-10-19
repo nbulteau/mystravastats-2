@@ -37,7 +37,7 @@ internal class StravaRepository(stravaCache: String) : ILocalStorageProvider {
 
     override fun loadAthleteFromCache(clientId: String): StravaAthlete {
         val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
-        val athleteJsonFile = File(activitiesDirectory, "stravaAthlete-$clientId.json")
+        val athleteJsonFile = File(activitiesDirectory, "athlete-$clientId.json")
 
         return if (athleteJsonFile.exists()) {
             objectMapper.readValue(athleteJsonFile, StravaAthlete::class.java)
@@ -50,7 +50,7 @@ internal class StravaRepository(stravaCache: String) : ILocalStorageProvider {
     override fun saveAthleteToCache(clientId: String, stravaAthlete: StravaAthlete) {
         val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
         activitiesDirectory.mkdirs()
-        prettyWriter.writeValue(File(activitiesDirectory, "stravaAthlete-$clientId.json"), stravaAthlete)
+        prettyWriter.writeValue(File(activitiesDirectory, "athlete-$clientId.json"), stravaAthlete)
     }
 
     override fun loadActivitiesFromCache(clientId: String, year: Int): List<StravaActivity> {

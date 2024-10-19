@@ -3,6 +3,7 @@ package me.nicolas.stravastats.adapters.srtm
 import me.nicolas.stravastats.adapters.srtm.business.Point
 import me.nicolas.stravastats.adapters.srtm.business.SRTMFile
 import me.nicolas.stravastats.domain.interfaces.ISRTMProvider
+import org.slf4j.LoggerFactory
 import java.io.File
 import java.nio.file.Path
 import kotlin.math.abs
@@ -16,6 +17,7 @@ class SRTMProvider(
     private val cachePath: Path = Path.of("srtm30m")
 ) : ISRTMProvider {
 
+    private val logger = LoggerFactory.getLogger(SRTMProvider::class.java)
     /**
      * SRTM files cache
      */
@@ -55,7 +57,7 @@ class SRTMProvider(
                 srtmFile = SRTMFile(File(cachePath.toFile(), "$srtmFileName.hgt"))
                 srtmTilescache[srtmFileName] = srtmFile
             } catch (instantiationException: InstantiationException) {
-                println("Download $srtmFileName.hgt from https://dwtkns.com/srtm30m/")
+                logger.info("Download $srtmFileName.hgt from https://dwtkns.com/srtm30m/")
                 missingSRTMFiles.add(srtmFileName)
             }
         }

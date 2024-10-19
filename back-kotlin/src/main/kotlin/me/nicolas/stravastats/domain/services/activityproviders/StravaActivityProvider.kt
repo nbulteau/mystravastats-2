@@ -88,7 +88,7 @@ class StravaActivityProvider(
             loadedActivities.addAll(localStorageProvider.loadActivitiesFromCache(clientId, currentYear))
         }
 
-        logger.info("All activities are loaded.")
+        logger.info("All activities are loaded: ${loadedActivities.size} activities.")
 
         return loadedActivities
     }

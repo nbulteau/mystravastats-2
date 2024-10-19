@@ -35,12 +35,11 @@ dependencies {
 
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
 
-    implementation("io.ktor:ktor-server-netty:2.3.12")
+    implementation("io.ktor:ktor-server-netty:3.0.0")
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
-    implementation("javax.xml.bind:jaxb-api:2.3.1")
-    implementation("org.glassfish.jaxb:jaxb-runtime:2.3.1")
+    implementation("io.jenetics:jpx:3.1.0")
 
     implementation(files("libs/fit.jar"))
 

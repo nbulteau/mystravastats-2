@@ -33,6 +33,3 @@ EXPOSE 8090
 
 # Run the application
 ENTRYPOINT ["java", "-jar", "/app/mystravastats.jar"]
-
-# Set the default command-line arguments
-CMD ["--stravaCache=", "--fitCache="]
