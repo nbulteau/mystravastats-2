@@ -1,13 +1,9 @@
 package me.nicolas.stravastats.adapters.localrepositories.gpx
 
-import io.jenetics.jpx.GPX
-import io.jenetics.jpx.Length
-import io.jenetics.jpx.Track
-import io.jenetics.jpx.TrackSegment
+import io.jenetics.jpx.*
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.strava.*
 import org.slf4j.LoggerFactory
-import org.w3c.dom.Document
 import java.io.File
 import java.nio.file.Path
 import java.time.LocalDateTime
@@ -52,22 +48,31 @@ class GPXRepository(gpxDirectory: String) {
         val watts = mutableListOf<Int>()
 
         val gpx = GPX.read(gpxFile)
+        val firstTrack = gpx.tracks.first()
 
-        var name = "Unknown"
+        val name: String = firstTrack.name.orElse("Unknown")
+        val type: String = firstTrack.type.orElse("cycling").toActivityType()
 
-        var previousPoint = gpx.tracks()
-            .flatMap(Track::segments)
-            .flatMap(TrackSegment::points)
-            .findFirst().get()
+        var previousPoint: WayPoint = firstTrack.segments.first().points.first()
 
         var totalDistance = 0.0
         var totalElevationGain = 0.0
-        gpx.tracks()
-            .flatMap(Track::segments)
-            .flatMap(TrackSegment::points)
-            .forEach { point ->
+        var totalCadence = 0.0
+        var totalHeartrate = 0.0
+        var maxHeartrate = 0.0
+        var maxSpeed = 0.0
+        var movingTime = 0.0
+
+        firstTrack.segments
+            .flatMap { trackSegment -> trackSegment.points }
+            .forEach { point: WayPoint ->
                 val deltaDistance = point.distance(previousPoint).to(Length.Unit.METER)
                 totalDistance += deltaDistance
+
+                if(point != previousPoint) {
+                    val speed = deltaDistance / (point.time.get().epochSecond - previousPoint.time.get().epochSecond)
+                    maxSpeed = maxOf(maxSpeed, speed)
+                }
 
                 val elevation = point.elevation.get().to(Length.Unit.METER)
                 val previousElevation = previousPoint.elevation.get().to(Length.Unit.METER)
@@ -81,7 +86,29 @@ class GPXRepository(gpxDirectory: String) {
 
                 distance.add(totalDistance)
 
-                moving.add(deltaDistance > 0)
+                if(deltaDistance > 0) {
+                    movingTime += point.time.get().toEpochMilli() - previousPoint.time.get().toEpochMilli()
+                    moving.add(true)
+                } else {
+                    moving.add(false)
+                }
+
+                point.extensions.ifPresent { extensions ->
+                    val cadence = extensions.getElementsByTagName("gpxtpx:cad")
+                    totalCadence += if (cadence.length > 0) {
+                        cadence.item(0).textContent.toDouble()
+                    } else {
+                        0.0
+                    }
+
+                    val heartrate = extensions.getElementsByTagName("gpxtpx:hr")
+                    totalHeartrate += if (heartrate.length > 0) {
+                        maxHeartrate = maxOf(maxHeartrate, heartrate.item(0).textContent.toDouble())
+                        heartrate.item(0).textContent.toDouble()
+                    } else {
+                        0.0
+                    }
+                }
 
                 previousPoint = point
             }
@@ -89,38 +116,17 @@ class GPXRepository(gpxDirectory: String) {
         val startTime = time.first()
         val totalElapsedTime = time.last() - startTime
 
-        var totalCadence = 0.0
-        var totalHeartrate = 0.0
-        var cadenceCount = 0
-        var heartrateCount = 0
+        val nbPoints = time.size
 
-        var type = "Ride"
-        val extensions: Optional<Document> = gpx.extensions
-        extensions.ifPresent { document ->
-            val cadenceNodes = document.getElementsByTagName("cadence")
-            for (i in 0 until cadenceNodes.length) {
-                totalCadence += cadenceNodes.item(i).textContent.toDouble()
-                cadenceCount++
-            }
-
-            val heartrateNodes = document.getElementsByTagName("heartrate")
-            for (i in 0 until heartrateNodes.length) {
-                totalHeartrate += heartrateNodes.item(i).textContent.toDouble()
-                heartrateCount++
-            }
-
-            type = document.getElementsByTagName("type").item(0).textContent.toActivityType()
-        }
-
-        val averageCadence = if (cadenceCount > 0) totalCadence / cadenceCount else 0.0
-        val averageHeartrate = if (heartrateCount > 0) totalHeartrate / heartrateCount else 0.0
+        val averageCadence = if (totalCadence > 0) totalCadence / nbPoints else 0.0
+        val averageHeartbeat = if (totalHeartrate > 0) totalHeartrate / nbPoints else 0.0
 
         val stravaActivity = StravaActivity(
             athlete = AthleteRef(id = athleteId),
             averageSpeed = totalDistance / totalElapsedTime,
             averageCadence = averageCadence,
-            averageHeartrate = averageHeartrate,
-            maxHeartrate = 0.0,
+            averageHeartrate = averageHeartbeat,
+            maxHeartrate = maxHeartrate,
             averageWatts = 0.0,
             commute = false,
             distance = totalDistance,
@@ -129,11 +135,17 @@ class GPXRepository(gpxDirectory: String) {
             elevHigh = totalElevationGain,
             id = 0L,
             kilojoules = 0.0,
-            maxSpeed = 0.0,
-            movingTime = totalElapsedTime,
+            maxSpeed = maxSpeed,
+            movingTime = movingTime.toInt() / 1000,
             name = name,
-            startDate = ZonedDateTime.of(LocalDateTime.ofEpochSecond(startTime.toLong(), 0, ZoneOffset.UTC), ZoneOffset.UTC).toString(),
-            startDateLocal = ZonedDateTime.of(LocalDateTime.ofEpochSecond(startTime.toLong(), 0, ZoneOffset.UTC), ZoneOffset.UTC).toString(),
+            startDate = ZonedDateTime.of(
+                LocalDateTime.ofEpochSecond(startTime.toLong(), 0, ZoneOffset.UTC),
+                ZoneOffset.UTC
+            ).toString(),
+            startDateLocal = ZonedDateTime.of(
+                LocalDateTime.ofEpochSecond(startTime.toLong(), 0, ZoneOffset.UTC),
+                ZoneOffset.UTC
+            ).toString(),
             startLatlng = listOf(),
             totalElevationGain = totalElevationGain,
             type = type,
@@ -143,37 +155,37 @@ class GPXRepository(gpxDirectory: String) {
         stravaActivity.stream = Stream(
             latitudeLongitude = LatitudeLongitude(
                 data = latitudeLongitude,
-                originalSize = 0,
+                originalSize = latitudeLongitude.size,
                 resolution = "",
                 seriesType = "",
             ),
             time = Time(
                 data = time,
-                originalSize = 0,
+                originalSize = time.size,
                 resolution = "",
                 seriesType = "",
             ),
             distance = Distance(
                 data = distance,
-                originalSize = 0,
+                originalSize = distance.size,
                 resolution = "",
                 seriesType = "",
             ),
             altitude = Altitude(
                 data = altitude,
-                originalSize = 0,
+                originalSize = altitude.size,
                 resolution = "",
                 seriesType = "",
             ),
             moving = Moving(
                 data = moving,
-                originalSize = 0,
+                originalSize = moving.size,
                 resolution = "",
                 seriesType = "",
             ),
             watts = PowerStream(
                 data = watts,
-                originalSize = 0,
+                originalSize = watts.size,
                 resolution = "",
                 seriesType = "",
             ),
