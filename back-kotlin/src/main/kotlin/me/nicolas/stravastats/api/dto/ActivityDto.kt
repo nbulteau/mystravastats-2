@@ -56,6 +56,7 @@ fun StravaActivity.toDto(): ActivityDto {
         ""
     }
 
+    // If the activity is not uploaded, the link is not available
     val link = if (this.uploadId == 0L) "https://www.strava.com/activities/${this.id}" else ""
 
     return ActivityDto(
