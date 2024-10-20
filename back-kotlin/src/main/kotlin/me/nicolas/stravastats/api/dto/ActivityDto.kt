@@ -55,10 +55,13 @@ fun StravaActivity.toDto(): ActivityDto {
     } else {
         ""
     }
+
+    val link = if (this.uploadId == 0L) "https://www.strava.com/activities/${this.id}" else ""
+
     return ActivityDto(
         name = this.name,
         type = this.type,
-        link = "https://www.strava.com/activities/${this.id}",
+        link = link,
         distance = this.distance.toInt(),
         elapsedTime = this.elapsedTime,
         totalElevationGain = this.totalElevationGain.toInt(),
@@ -69,7 +72,7 @@ fun StravaActivity.toDto(): ActivityDto {
         bestElevationForDistanceFor1000m = calculateBestElevationForDistance(1000.0)?.getGradient()?.toDouble()
             ?: Double.NaN,
         date = this.startDateLocal,
-        averageWatts = this.averageWatts.toInt(),
+        averageWatts = this.averageWatts,
         weightedAverageWatts = "${this.weightedAverageWatts}",
         bestPowerFor20minutes = bestPowerFor20Minutes?.getFormattedPower() ?: "",
         bestPowerFor60minutes = bestPowerFor60Minutes?.getFormattedPower() ?: "",
