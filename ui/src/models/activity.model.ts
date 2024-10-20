@@ -1,5 +1,6 @@
 
 export class Activity  {
+    id: number;
     name: string;
     type: string;
     link: string;
@@ -19,6 +20,7 @@ export class Activity  {
     ftp: string;
 
     constructor(
+        id: number,
         name: string,
         type: string,
         link: string,
@@ -37,6 +39,7 @@ export class Activity  {
         bestPowerFor60minutes: string,
         ftp: string
     ) {
+        this.id = id;
         this.name = name;
         this.type = type;
         this.link = link;

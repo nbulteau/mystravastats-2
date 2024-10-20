@@ -7,39 +7,41 @@ import me.nicolas.stravastats.domain.services.statistics.calculateBestPowerForTi
 import me.nicolas.stravastats.domain.services.statistics.calculateBestTimeForDistance
 
 
-@Schema(description = "StravaActivity object", name = "StravaActivity")
+@Schema(description = "Activity object", name = "Activity")
 data class ActivityDto(
-    @Schema(description = "StravaActivity name")
+    @Schema(description = "Activity id")
+    val id: Long = 0,
+    @Schema(description = "Activity name")
     val name: String,
-    @Schema(description = "StravaActivity type")
+    @Schema(description = "Activity type")
     val type: String,
-    @Schema(description = "StravaActivity link to Strava")
+    @Schema(description = "Activity link to ")
     val link: String,
-    @Schema(description = "StravaActivity distance in meters")
+    @Schema(description = "Activity distance in meters")
     val distance: Int,
-    @Schema(description = "StravaActivity elapsed time in seconds")
+    @Schema(description = "Activity elapsed time in seconds")
     val elapsedTime: Int,
-    @Schema(description = "StravaActivity total elevation gain in meters")
+    @Schema(description = "Activity total elevation gain in meters")
     val totalElevationGain: Int,
-    @Schema(description = "StravaActivity average speed in m/s")
+    @Schema(description = "Activity average speed in m/s")
     val averageSpeed: Double,
-    @Schema(description = "StravaActivity best time for distance for 1000m in m/s")
+    @Schema(description = "Activity best time for distance for 1000m in m/s")
     val bestTimeForDistanceFor1000m: Double,
-    @Schema(description = "StravaActivity best elevation for distance for 500m in %")
+    @Schema(description = "Activity best elevation for distance for 500m in %")
     val bestElevationForDistanceFor500m: Double,
-    @Schema(description = "StravaActivity best elevation for distance for 1000m in %")
+    @Schema(description = "Activity best elevation for distance for 1000m in %")
     val bestElevationForDistanceFor1000m: Double,
-    @Schema(description = "StravaActivity date")
+    @Schema(description = "Activity date")
     val date: String,
-    @Schema(description = "StravaActivity average watts")
+    @Schema(description = "Activity average watts")
     val averageWatts: Int,
-    @Schema(description = "StravaActivity weighted average watts")
+    @Schema(description = "Activity weighted average watts")
     val weightedAverageWatts: String,
-    @Schema(description = "StravaActivity best power for 20 minutes in watts")
+    @Schema(description = "Activity best power for 20 minutes in watts")
     val bestPowerFor20minutes: String,
-    @Schema(description = "StravaActivity best power for 60 minutes in watts")
+    @Schema(description = "Activity best power for 60 minutes in watts")
     val bestPowerFor60minutes: String,
-    @Schema(description = "StravaActivity FTP (Functional Threshold Power) in watts")
+    @Schema(description = "Activity FTP (Functional Threshold Power) in watts")
     val ftp: String,
 )
 
@@ -57,9 +59,10 @@ fun StravaActivity.toDto(): ActivityDto {
     }
 
     // If the activity is not uploaded, the link is not available
-    val link = if (this.uploadId == 0L) "https://www.strava.com/activities/${this.id}" else ""
+    val link = if (this.uploadId != 0L) "https://www.strava.com/activities/${this.id}" else ""
 
     return ActivityDto(
+        id = this.id,
         name = this.name,
         type = this.type,
         link = link,
