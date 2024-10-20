@@ -16,7 +16,7 @@ internal open class BestEffortPowerStatistic(
         .maxByOrNull { activityEffort -> activityEffort.distance }
 
     init {
-        require(seconds > 10) { "Distance must be > 10 seconds" }
+        require(seconds > 10) { "DistanceStream must be > 10 seconds" }
         stravaActivity = bestActivityEffort?.stravaActivity
     }
 

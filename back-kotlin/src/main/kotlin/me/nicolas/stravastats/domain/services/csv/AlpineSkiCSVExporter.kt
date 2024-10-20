@@ -17,9 +17,9 @@ internal class AlpineSkiCSVExporter(clientId: String, activities: List<StravaAct
             listOf(
                 "Date",
                 "Description",
-                "Distance (km)",
-                "Time",
-                "Time (seconds)",
+                "DistanceStream (km)",
+                "TimeStream",
+                "TimeStream (seconds)",
                 "Average speed (km/h)",
                 "Best 250m (km/h)",
                 "Best 500m (km/h)",

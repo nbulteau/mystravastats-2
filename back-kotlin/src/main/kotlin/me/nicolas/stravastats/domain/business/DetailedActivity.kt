@@ -2,7 +2,7 @@ package me.nicolas.stravastats.domain.business
 
 
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
-import me.nicolas.stravastats.domain.business.strava.Stream
+import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.services.statistics.calculateBestDistanceForTime
 import me.nicolas.stravastats.domain.services.statistics.calculateBestElevationForDistance
 import me.nicolas.stravastats.domain.services.statistics.calculateBestTimeForDistance
@@ -11,7 +11,7 @@ data class DetailedActivity(
     val averageSpeed: Double,
     val averageCadence: Double,
     val averageHeartrate: Double,
-    val maxHeartrate: Double,
+    val maxHeartrate: Int,
     val averageWatts: Int,
     val commute: Boolean,
     var distance: Double,
@@ -20,7 +20,7 @@ data class DetailedActivity(
     val elevHigh: Double,
     val id: Long,
     val kilojoules: Double,
-    val maxSpeed: Double,
+    val maxSpeed: Float,
     val movingTime: Int,
     val name: String,
     val startDate: String,

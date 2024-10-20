@@ -17,9 +17,9 @@ internal class HikeCSVExporter(clientId: String, activities: List<StravaActivity
             listOf(
                 "Date",
                 "Description",
-                "Distance (km)",
-                "Time",
-                "Time (seconds)",
+                "DistanceStream (km)",
+                "TimeStream",
+                "TimeStream (seconds)",
                 "Average speed (km/h)",
                 "Elevation (m)",
                 "Highest point (m)",

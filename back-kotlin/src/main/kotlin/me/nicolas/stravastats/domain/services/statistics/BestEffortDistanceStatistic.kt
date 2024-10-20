@@ -17,7 +17,7 @@ internal open class BestEffortDistanceStatistic(
         .minByOrNull { activityEffort -> activityEffort.seconds }
 
     init {
-        require(distance > 100) { "Distance must be > 100 meters" }
+        require(distance > 100) { "DistanceStream must be > 100 meters" }
         stravaActivity = bestActivityEffort?.stravaActivity
     }
 

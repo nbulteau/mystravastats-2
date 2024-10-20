@@ -3,7 +3,9 @@ package me.nicolas.stravastats.api.dto
 import io.swagger.v3.oas.annotations.media.Schema
 import me.nicolas.stravastats.domain.business.ActivityEffort
 import me.nicolas.stravastats.domain.business.DetailedActivity
-import me.nicolas.stravastats.domain.business.strava.Stream
+import me.nicolas.stravastats.domain.business.strava.stream.Stream
+import me.nicolas.stravastats.domain.services.ActivityHelper.smooth
+import kotlin.math.*
 
 @Schema(description = "Detailed activity object", name = "DetailedActivity")
 data class DetailedActivityDto(
@@ -14,12 +16,12 @@ data class DetailedActivityDto(
     @Schema(description = "Average heartrate")
     val averageHeartrate: Double,
     @Schema(description = "Maximum heartrate")
-    val maxHeartrate: Double,
+    val maxHeartrate: Int,
     @Schema(description = "Average power output in watts during this activity. Rides only.")
     val averageWatts: Int,
     @Schema(description = "Whether the activity was a commute.")
     val commute: Boolean,
-    @Schema(description = "Distance in meters.")
+    @Schema(description = "DistanceStream in meters.")
     var distance: Double,
     @Schema(description = "Whether the watts are from a power meter, false if estimated.")
     val deviceWatts: Boolean = false,
@@ -32,8 +34,8 @@ data class DetailedActivityDto(
     @Schema(description = "The total work done in kilojoules during this activity. Rides only.")
     val kilojoules: Double,
     @Schema(description = "Maximum speed.")
-    val maxSpeed: Double,
-    @Schema(description = "Moving time in seconds.")
+    val maxSpeed: Float,
+    @Schema(description = "MovingStream time in seconds.")
     val movingTime: Int,
     @Schema(description = "Activity name.")
     val name: String,
@@ -89,21 +91,62 @@ fun DetailedActivity.toDto(): DetailedActivityDto {
 data class StreamDto(
     val distance: List<Double>,
     val time: List<Int>,
-    val moving: List<Boolean>?,
-    val altitude: List<Double>?,
-    val latitudeLongitude: List<List<Double>>?,
-    val watts: List<Int>?,
+    val latlng: List<List<Double>>? = null,
+    val moving: List<Boolean>? = null,
+    val altitude: List<Double>? = null,
+    val watts: List<Int>? = null,
+    val velocitySmooth: List<Double>? = null,
 )
 
 fun Stream.toDto(): StreamDto {
+    if (this.latlng == null) {
+        return StreamDto(
+            distance = this.distance.data,
+            time = this.time.data
+        )
+    }
+
+    val velocity = if (this.velocitySmooth?.data == null) {
+        // Calculate velocitySmooth
+        val velocitySmooth = mutableListOf<Double>()
+        for (i in 0 until this.latlng.data.size - 1) {
+            val (lat1, lon1) = this.latlng.data[i]
+            val (lat2, lon2) = this.latlng.data[i + 1]
+            val distance = haversine(lat1, lon1, lat2, lon2)
+            val time = this.time.data[i + 1] - this.time.data[i]
+            if (time == 0) {
+                velocitySmooth.add(0.0)
+            } else {
+                velocitySmooth.add(distance / time)
+            }
+        }
+        velocitySmooth.smooth()
+    } else {
+        this.velocitySmooth.data.map { it.toDouble() }
+    }
+
     return StreamDto(
         distance = this.distance.data,
         time = this.time.data,
+        latlng = this.latlng.data,
         moving = this.moving?.data,
         altitude = this.altitude?.data,
-        latitudeLongitude = this.latitudeLongitude?.data,
         watts = this.watts?.data,
+        velocitySmooth = velocity,
     )
+}
+
+fun haversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+    val R = 6371e3 // Earth radius in meters
+    val phi1 = lat1 * PI / 180
+    val phi2 = lat2 * PI / 180
+    val deltaPhi = (lat2 - lat1) * PI / 180
+    val deltaLambda = (lon2 - lon1) * PI / 180
+
+    val a = sin(deltaPhi / 2).pow(2) + cos(phi1) * cos(phi2) * sin(deltaLambda / 2).pow(2)
+    val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+    return R * c
 }
 
 data class ActivityEffortDto(

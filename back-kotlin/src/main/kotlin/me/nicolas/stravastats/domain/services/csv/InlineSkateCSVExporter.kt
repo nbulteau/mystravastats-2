@@ -16,9 +16,9 @@ internal class InlineSkateCSVExporter(clientId: String, activities: List<StravaA
             listOf(
                 "Date",
                 "Description",
-                "Distance (km)",
-                "Time",
-                "Time (seconds)",
+                "DistanceStream (km)",
+                "TimeStream",
+                "TimeStream (seconds)",
                 "Average speed (km/h)",
                 "Best 200m (km/h)",
                 "Best 400m (km/h)",

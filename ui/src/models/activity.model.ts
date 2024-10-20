@@ -66,7 +66,7 @@ export class DetailedActivity {
     averageWatts: number;
     commute: boolean;
     distance: number;
-    deviceWatts: boolean = false;
+    deviceWatts: boolean;
     elapsedTime: number;
     elevHigh: number;
     id: number;
@@ -77,10 +77,11 @@ export class DetailedActivity {
     startDate: string;
     startDateLocal: string;
     startLatlng: number[] | null;
+    totalDescent: number;
     totalElevationGain: number;
     type: string;
     weightedAverageWatts: number;
-    stream: Stream | null = null;
+    stream: Stream;
     activityEfforts: ActivityEffort[] = [];
 
     constructor(
@@ -102,10 +103,11 @@ export class DetailedActivity {
         startDate: string,
         startDateLocal: string,
         startLatlng: number[] | null,
+        totalDescent: number,
         totalElevationGain: number,
         type: string,
         weightedAverageWatts: number,
-        stream: Stream | null,
+        stream: Stream,
         activityEfforts:  ActivityEffort[]
     ) {
         this.averageSpeed = averageSpeed;
@@ -126,6 +128,7 @@ export class DetailedActivity {
         this.startDate = startDate;
         this.startDateLocal = startDateLocal;
         this.startLatlng = startLatlng;
+        this.totalDescent = totalDescent;
         this.totalElevationGain = totalElevationGain;
         this.type = type;
         this.weightedAverageWatts = weightedAverageWatts;
@@ -134,28 +137,31 @@ export class DetailedActivity {
     }
 }
 
-export class Stream {
+class Stream {
     distance: number[];
     time: number[];
     moving: boolean[] | null;
     altitude: number[] | null;
-    latitudeLongitude: number[][] | null;
+    latlng: number[][] | null;
     watts: number[] | null;
+    velocitySmooth?: number[] | null;
 
     constructor(
         distance: number[],
         time: number[],
         moving: boolean[] | null,
         altitude: number[] | null,
-        latitudeLongitude: number[][] | null,
-        watts: number[] | null
+        latlng: number[][] | null,
+        watts: number[] | null,
+        velocitySmooth?: number[]| null,
     ) {
         this.distance = distance;
         this.time = time;
+        this.latlng = latlng;
         this.moving = moving;
         this.altitude = altitude;
-        this.latitudeLongitude = latitudeLongitude;
         this.watts = watts;
+        this.velocitySmooth = velocitySmooth;
     }
 }
 

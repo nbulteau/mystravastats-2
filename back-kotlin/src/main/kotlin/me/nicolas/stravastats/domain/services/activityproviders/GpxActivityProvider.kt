@@ -3,7 +3,7 @@ package me.nicolas.stravastats.domain.services.activityproviders
 import kotlinx.coroutines.runBlocking
 import me.nicolas.stravastats.adapters.localrepositories.gpx.GPXRepository
 import me.nicolas.stravastats.adapters.srtm.SRTMProvider
-import me.nicolas.stravastats.domain.business.strava.Altitude
+import me.nicolas.stravastats.domain.business.strava.stream.AltitudeStream
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import org.slf4j.LoggerFactory
@@ -54,8 +54,8 @@ class GpxActivityProvider(gpxCache: String, private val srtmProvider: SRTMProvid
             if (activity.stream != null && activity.stream?.altitude == null) {
                 logger.info("Process altitude stream to activity ${activity.name}")
 
-                val data = srtmProvider.getElevation(activity.stream?.latitudeLongitude?.data ?: emptyList())
-                val altitude = Altitude(data)
+                val data = srtmProvider.getElevation(activity.stream?.latlng?.data ?: emptyList())
+                val altitude = AltitudeStream(data)
                 activity.setStreamAltitude(altitude)
             } else {
                 activity

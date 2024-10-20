@@ -3,6 +3,7 @@ package me.nicolas.stravastats.adapters.srtm
 import me.nicolas.stravastats.adapters.srtm.business.Point
 import me.nicolas.stravastats.adapters.srtm.business.SRTMFile
 import me.nicolas.stravastats.domain.interfaces.ISRTMProvider
+import me.nicolas.stravastats.domain.services.ActivityHelper.smooth
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.nio.file.Path
@@ -92,23 +93,5 @@ class SRTMProvider(
         val seconds = floor((minutesNotTruncated - minutes) * 60)
 
         return Triple(degrees.toInt(), minutes.toInt(), seconds.toInt())
-    }
-
-    /**
-     * Smooth the elevation data using a moving average filter of size 5
-     */
-    private fun List<Double>.smooth(size: Int = 5): List<Double> {
-        val smooth = DoubleArray(this.size)
-        for (i in 0 until size) {
-            smooth[i] = this[i]
-        }
-        for (i in size until this.size - size) {
-            smooth[i] = this.subList(i - size, i + size).sum() / (2 * size + 1)
-        }
-        for (i in this.size - size until this.size) {
-            smooth[i] = this[i]
-        }
-
-        return smooth.toList()
     }
 }

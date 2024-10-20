@@ -48,7 +48,7 @@ class MapsController(
 
         return activities.map { activity ->
             // Take 1 out 100 points for this map
-            val coordinates = activity.stream?.latitudeLongitude?.data?.windowed(1, step)?.flatten()
+            val coordinates = activity.stream?.latlng?.data?.windowed(1, step)?.flatten()
             coordinates?.map { pair ->
                 listOf(pair.first(), pair.last())
             } ?: emptyList()

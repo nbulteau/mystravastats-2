@@ -31,8 +31,8 @@ data class FamousClimbBadge(
     }
 
     private fun check(stravaActivity: StravaActivity, geoCoordinateToCheck: GeoCoordinate): Boolean {
-        if (stravaActivity.stream != null && stravaActivity.stream?.latitudeLongitude != null) {
-            for (coords in stravaActivity.stream?.latitudeLongitude?.data!!) {
+        if (stravaActivity.stream != null && stravaActivity.stream?.latlng != null) {
+            for (coords in stravaActivity.stream?.latlng?.data!!) {
                 if (geoCoordinateToCheck.match(coords[0], coords[1])) {
                     return true
                 }

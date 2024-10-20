@@ -4,9 +4,11 @@ package me.nicolas.stravastats.domain.business.strava
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import me.nicolas.stravastats.domain.business.ActivityType
+import me.nicolas.stravastats.domain.business.strava.stream.AltitudeStream
+import me.nicolas.stravastats.domain.business.strava.stream.Stream
+import me.nicolas.stravastats.domain.services.ActivityHelper.smooth
 import me.nicolas.stravastats.domain.utils.formatDate
 import me.nicolas.stravastats.domain.utils.formatSeconds
-import kotlin.math.abs
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class StravaActivity(
@@ -18,7 +20,7 @@ data class StravaActivity(
     @JsonProperty("average_heartrate")
     val averageHeartrate: Double,
     @JsonProperty("max_heartrate")
-    val maxHeartrate: Double,
+    val maxHeartrate: Int,
     @JsonProperty("average_watts")
     val averageWatts: Int,
     val commute: Boolean,
@@ -32,7 +34,7 @@ data class StravaActivity(
     val id: Long,
     val kilojoules: Double,
     @JsonProperty("max_speed")
-    val maxSpeed: Double,
+    val maxSpeed: Float,
     @JsonProperty("moving_time")
     val movingTime: Int,
     val name: String,
@@ -65,21 +67,21 @@ data class StravaActivity(
 
     fun calculateTotalAscentGain(): Double {
         if (stream?.altitude?.data != null) {
-            val deltas = stream?.altitude?.data?.zipWithNext { a, b -> b - a }
-            return abs(deltas?.filter { it < 0 }?.sumOf { it }!!)
+            val deltas = stream?.altitude?.data?.smooth()?.zipWithNext { a, b -> b - a }
+            return deltas?.filter { it <= 0 }?.sumOf { it }!!
         }
         return 0.0
     }
 
     fun calculateTotalDescentGain(): Double {
         if (stream?.altitude?.data != null) {
-            val deltas = stream?.altitude?.data?.zipWithNext { a, b -> b - a }
-            return deltas?.filter { it > 0 }?.sumOf { it }!!
+            val deltas = stream?.altitude?.data?.smooth()?.zipWithNext { a, b -> b - a }
+            return deltas?.filter { it >= 0 }?.sumOf { it }!!
         }
         return 0.0
     }
 
-    fun setStreamAltitude(altitude: Altitude): StravaActivity {
+    fun setStreamAltitude(altitude: AltitudeStream): StravaActivity {
         val updatedStream = this.stream?.copy(altitude = altitude)
 
         // totalElevationGain

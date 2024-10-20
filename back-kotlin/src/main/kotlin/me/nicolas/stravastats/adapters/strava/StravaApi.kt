@@ -16,7 +16,7 @@ import me.nicolas.stravastats.adapters.strava.business.Token
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
-import me.nicolas.stravastats.domain.business.strava.Stream
+import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.interfaces.IStravaApi
 import okhttp3.Headers
 import okhttp3.MediaType.Companion.toMediaType
@@ -181,7 +181,7 @@ internal class StravaApi(clientId: String, clientSecret: String) :
             return Optional.empty()
         }
         val url =
-            "https://www.strava.com/api/v3/activities/${stravaActivity.id}/streams" + "?keys=time,distance,latlng,altitude,moving,watts&key_by_type=true"
+            "https://www.strava.com/api/v3/activities/${stravaActivity.id}/streams" + "?keys=time,distance,latlng,altitude,velocity_smooth,heartrate,cadence,watts,moving,grade_smooth&key_by_type=true"
 
         val request: Request = Request.Builder().url(url).headers(buildRequestHeaders()).build()
 

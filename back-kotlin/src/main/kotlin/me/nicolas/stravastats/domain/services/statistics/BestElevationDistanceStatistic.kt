@@ -16,7 +16,7 @@ internal open class BestElevationDistanceStatistic(
         .maxByOrNull { activityEffort -> activityEffort.deltaAltitude }
 
     init {
-        require(distance > 100) { "Distance must be > 100 meters" }
+        require(distance > 100) { "DistanceStream must be > 100 meters" }
         stravaActivity = bestActivityEffort?.stravaActivity
     }
 

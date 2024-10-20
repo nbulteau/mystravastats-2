@@ -1,7 +1,10 @@
 package me.nicolas.stravastats.adapters.localrepositories.fit
 
 import com.garmin.fit.*
-import me.nicolas.stravastats.domain.business.strava.*
+import me.nicolas.stravastats.domain.business.strava.AthleteRef
+import me.nicolas.stravastats.domain.business.strava.PowerStream
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
+import me.nicolas.stravastats.domain.business.strava.stream.*
 import me.nicolas.stravastats.domain.utils.inDateTimeFormatter
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -56,7 +59,7 @@ class FITRepository(fitDirectory: String) {
         // The heart rate of the stravaAthlete during this effort
         val averageHeartRate: Double = sessionMesg?.avgHeartRate?.toDouble() ?: 0.0
         // The maximum heart rate of the stravaAthlete during this effort
-        val maxHeartRate: Double = sessionMesg?.maxHeartRate?.toDouble() ?: 0.0
+        val maxHeartRate: Int = sessionMesg?.maxHeartRate?.toInt() ?: 0
         //The average wattage of this effort
         val averageWatts: Int = sessionMesg?.avgPower ?: 0 // TODO : Calculate ?
         // Whether this stravaActivity is a commute
@@ -77,7 +80,7 @@ class FITRepository(fitDirectory: String) {
         // The total work done in kilojoules during this stravaActivity. Rides only
         val kilojoules = 0.8604 * averageWatts * elapsedTime / 1000
         // The stravaActivity's max speed, in meters per second
-        val maxSpeed: Double = sessionMesg?.maxSpeed?.toDouble() ?: 0.0
+        val maxSpeed: Float = sessionMesg?.maxSpeed?.toFloat() ?: 0.0F
         // The stravaActivity's moving time, in seconds
         val movingTime: Int = sessionMesg?.timestamp?.timestamp?.minus(sessionMesg.startTime?.timestamp!!)?.toInt()!!
         // The time at which the stravaActivity was started.
@@ -87,14 +90,14 @@ class FITRepository(fitDirectory: String) {
         // StravaActivity name
         val name = "${extractActivityType(sessionMesg.sport!!)} - $startDateLocal"
         // The unique identifier of the stravaActivity
-        val id: Long =name.hashCode().toLong().absoluteValue
+        val id: Long = name.hashCode().toLong().absoluteValue
         // Latitude /longitude of the start point
         val extractedStartLatLng = extractLatLng(sessionMesg.startPositionLat, sessionMesg.startPositionLong)
         val startLatlng: List<Double>? = extractedStartLatLng.ifEmpty {
-            stream.latitudeLongitude?.data?.first()
+            stream.latlng?.data?.first()
         }
         // Total elevation gain
-        val deltas = if(stream.altitude != null) {
+        val deltas = if (stream.altitude != null) {
             stream.altitude.data.zipWithNext { a, b -> b - a }
         } else {
             null
@@ -105,7 +108,7 @@ class FITRepository(fitDirectory: String) {
         // StravaActivity type (i.e. Ride, Run ...)
         val type: String = extractActivityType(sessionMesg.sport!!)
 
-       return StravaActivity(
+        return StravaActivity(
             athlete = athlete,
             averageSpeed = averageSpeed,
             averageCadence = averageCadence,
@@ -138,7 +141,7 @@ class FITRepository(fitDirectory: String) {
     private fun List<RecordMesg>.buildStream(): Stream {
         // distance
         val dataDistance = this.map { recordMesg -> recordMesg.distance.toDouble() }
-        val streamDistance = Distance(
+        val streamDistance = DistanceStream(
             data = dataDistance.toMutableList(),
             originalSize = dataDistance.size,
             resolution = "high",
@@ -150,7 +153,7 @@ class FITRepository(fitDirectory: String) {
         val dataTime = this.map { recordMesg ->
             (recordMesg.timestamp.timestamp - startTime).toInt()
         }
-        val streamTime = Time(
+        val streamTime = TimeStream(
             data = dataTime.toMutableList(),
             originalSize = dataTime.size,
             resolution = "high",
@@ -177,7 +180,7 @@ class FITRepository(fitDirectory: String) {
         dataLongitude.fixCoordinate()
 
         val dataLatitudeLongitude = dataLatitude.zip(dataLongitude) { lat, long -> extractLatLng(lat, long) }
-        val streamLatitudeLongitude = LatitudeLongitude(
+        val streamLatitudeLongitude = LatLngStream(
             data = dataLatitudeLongitude,
             originalSize = dataLatitudeLongitude.size,
             resolution = "high",
@@ -189,7 +192,7 @@ class FITRepository(fitDirectory: String) {
             recordMesg.altitude?.toDouble()
         }
         val streamAltitude = if (dataAltitude.isNotEmpty()) {
-             Altitude(
+            AltitudeStream(
                 data = dataAltitude.toMutableList(),
                 originalSize = dataAltitude.size,
                 resolution = "high",
@@ -199,12 +202,26 @@ class FITRepository(fitDirectory: String) {
             null
         }
 
+        // moving
+        val dataMoving = this.map { recordMesg ->
+            recordMesg.speed > 0.0
+        }
+        val streamMoving = if (dataMoving.isNotEmpty()) {
+            MovingStream(
+                data = dataMoving.toMutableList(),
+                originalSize = dataMoving.size,
+                resolution = "high",
+                seriesType = "distance"
+            )
+        } else {
+            null
+        }
 
         // power
         val dataPower = this.mapNotNull { recordMesg ->
             recordMesg.power
         }
-        val streamPower = if(dataPower.isNotEmpty()) {
+        val streamPower = if (dataPower.isNotEmpty()) {
             PowerStream(
                 data = dataPower.toMutableList(),
                 originalSize = dataPower.size,
@@ -215,7 +232,78 @@ class FITRepository(fitDirectory: String) {
             null
         }
 
-        return Stream(streamDistance, streamTime, null, streamAltitude, streamLatitudeLongitude, streamPower)
+        // cadence
+        val dataCadence = this.mapNotNull { recordMesg ->
+            recordMesg.cadence.toInt()
+        }
+        val streamCadence = if (dataCadence.isNotEmpty()) {
+            CadenceStream(
+                data = dataCadence.toMutableList(),
+                originalSize = dataCadence.size,
+                resolution = "high",
+                seriesType = "distance"
+            )
+        } else {
+            null
+        }
+
+        // heart rate
+        val dataHeartRate = this.mapNotNull { recordMesg ->
+            recordMesg.heartRate.toInt()
+        }
+        val streamHeartRate = if (dataHeartRate.isNotEmpty()) {
+            HeartRateStream(
+                data = dataHeartRate.toMutableList(),
+                originalSize = dataHeartRate.size,
+                resolution = "high",
+                seriesType = "distance"
+            )
+        } else {
+            null
+        }
+
+        // velocity smooth
+        val dataVelocitySmooth = this.map { recordMesg ->
+            recordMesg.speed
+        }
+        val streamVelocitySmooth = if (dataVelocitySmooth.isNotEmpty()) {
+            SmoothVelocityStream(
+                data = dataVelocitySmooth.toMutableList(),
+                originalSize = dataVelocitySmooth.size,
+                resolution = "high",
+                seriesType = "distance"
+            )
+        } else {
+            null
+        }
+
+        // grade smooth
+        val dataGradeSmooth = this.map { recordMesg ->
+            recordMesg.grade
+        }
+        val streamGradeSmooth = if (dataGradeSmooth.isNotEmpty()) {
+            SmoothGradeStream(
+                data = dataGradeSmooth.toMutableList(),
+                originalSize = dataGradeSmooth.size,
+                resolution = "high",
+                seriesType = "distance"
+            )
+        } else {
+            null
+        }
+
+        return Stream(
+            streamDistance,
+            streamTime,
+            streamLatitudeLongitude,
+            streamCadence,
+            streamHeartRate,
+            streamMoving,
+            streamAltitude,
+            streamPower,
+            streamVelocitySmooth,
+            streamGradeSmooth
+        )
     }
 
     private fun extractLatLng(lat: Int?, lng: Int?): List<Double> {

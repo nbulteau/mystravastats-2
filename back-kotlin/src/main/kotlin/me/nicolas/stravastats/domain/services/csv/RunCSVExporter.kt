@@ -45,9 +45,9 @@ internal class RunCSVExporter(clientId: String, activities: List<StravaActivity>
             listOf(
                 "Date",
                 "Description",
-                "Distance (km)",
-                "Time",
-                "Time (seconds)",
+                "DistanceStream (km)",
+                "TimeStream",
+                "TimeStream (seconds)",
                 "Average speed (min/km)",
                 "Best 200m (min/km)",
                 "Best 400m (min/km)",

@@ -3,7 +3,7 @@ package me.nicolas.stravastats.domain.interfaces
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
-import me.nicolas.stravastats.domain.business.strava.Stream
+import me.nicolas.stravastats.domain.business.strava.stream.Stream
 
 interface ILocalStorageProvider {
 

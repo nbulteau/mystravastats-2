@@ -7,10 +7,17 @@
       {{ activity?.name }}
     </span>
     <span style="display: block; font-size: 1.2em">
-      Distance: {{ ((activity?.distance ?? 0) / 1000).toFixed(1) }} km
-      | Average speed: {{ formatSpeedWithUnit(activity?.averageSpeed ?? 0, activity?.type ?? "Ride") }}
-      | Elapsed time: {{ formatTime(activity?.elapsedTime ?? 0) }}
-      | Total elevation gain: {{ activity?.totalElevationGain.toFixed(0) }} m
+      Distance: {{ ((activity?.distance ?? 0) / 1000).toFixed(1) }} km |
+      <template v-if="isHike">
+        Total elevation gain: {{ activity?.totalElevationGain.toFixed(0) }} m | Total
+        Descent: {{ activity?.totalDescent.toFixed(0) }} m |
+      </template>
+      <template v-else>
+        Average speed:
+        {{ formatSpeedWithUnit(activity?.averageSpeed ?? 0, activity?.type ?? "Ride") }} |
+        Total elevation gain: {{ activity?.totalElevationGain.toFixed(0) }} m |
+      </template>
+      Elapsed time: {{ formatTime(activity?.elapsedTime ?? 0) }}
     </span>
   </div>
   <div style="display: flex; width: 100%; height: 400px">
@@ -40,8 +47,7 @@
             :for="option.value"
             class="radio-label"
             :title="option.description"
-          >{{ option.label
-          }}</label>
+          >{{ option.label }}</label>
         </div>
       </form>
     </div>
@@ -58,13 +64,29 @@
       <ul>
         <li><strong>Type:</strong> {{ activity?.type }}</li>
         <li>
-          <strong>Date:</strong> {{ activity?.startDate ? new Date(activity.startDate).toLocaleDateString('en-GB', {
-            weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-          }) : 'N/A' }}
+          <strong>Date:</strong>
+          {{
+            activity?.startDate
+              ? new Date(activity.startDate).toLocaleDateString("en-GB", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })
+              : "N/A"
+          }}
         </li>
-        <li><strong>Distance:</strong> {{ ((activity?.distance ?? 0) / 1000).toFixed(1) }} km</li>
-        <li><strong>Total Elevation Gain:</strong> {{ activity?.totalElevationGain.toFixed(0) }} m</li>
-        <li><strong>Elapsed Time:</strong> {{ formatTime(activity?.elapsedTime ?? 0) }}</li>
+        <li>
+          <strong>Distance:</strong>
+          {{ ((activity?.distance ?? 0) / 1000).toFixed(1) }} km
+        </li>
+        <li>
+          <strong>Total Elevation Gain:</strong>
+          {{ activity?.totalElevationGain.toFixed(0) }} m
+        </li>
+        <li>
+          <strong>Elapsed Time:</strong> {{ formatTime(activity?.elapsedTime ?? 0) }}
+        </li>
         <li><strong>Moving Time:</strong> {{ formatTime(activity?.movingTime ?? 0) }}</li>
       </ul>
     </div>
@@ -72,20 +94,23 @@
       <h3>Performance Metrics</h3>
       <ul>
         <li>
-          <strong>Average Speed:</strong> {{ formatSpeedWithUnit(activity?.averageSpeed ?? 0, activity?.type ??
-            "Ride") }}
+          <strong>Average Speed:</strong>
+          {{ formatSpeedWithUnit(activity?.averageSpeed ?? 0, activity?.type ?? "Ride") }}
         </li>
         <li>
-          <strong>Max Speed:</strong> {{ formatSpeedWithUnit(activity?.maxSpeed ?? 0, activity?.type ?? "Ride") }}
+          <strong>Max Speed:</strong>
+          {{ formatSpeedWithUnit(activity?.maxSpeed ?? 0, activity?.type ?? "Ride") }}
         </li>
         <li v-if="(activity?.averageCadence ?? 0) > 0.0">
-          <strong>Average Cadence:</strong> {{ (activity?.averageCadence ?? 0).toFixed(0) }} rpm
+          <strong>Average Cadence:</strong>
+          {{ (activity?.averageCadence ?? 0).toFixed(0) }} rpm
         </li>
         <li v-if="(activity?.averageWatts ?? 0) > 0">
           <strong>Average Watts:</strong> {{ (activity?.averageWatts ?? 0).toFixed(0) }} W
         </li>
         <li v-if="(activity?.weightedAverageWatts ?? 0) > 0">
-          <strong>Weighted Average Watts:</strong> {{ (activity?.weightedAverageWatts ?? 0).toFixed(0) }} W
+          <strong>Weighted Average Watts:</strong>
+          {{ (activity?.weightedAverageWatts ?? 0).toFixed(0) }} W
         </li>
         <li v-if="(activity?.kilojoules ?? 0) > 0">
           <strong>Kilojoules:</strong> {{ (activity?.kilojoules ?? 0).toFixed(0) }} kJ
@@ -96,7 +121,8 @@
       <h3>Heart Rate Metrics</h3>
       <ul>
         <li v-if="(activity?.averageHeartrate ?? 0) > 0">
-          <strong>Average Heartrate:</strong> {{ activity?.averageHeartrate.toFixed(0) }} bpm
+          <strong>Average Heartrate:</strong>
+          {{ activity?.averageHeartrate.toFixed(0) }} bpm
         </li>
         <li v-if="(activity?.maxHeartrate ?? 0) > 0">
           <strong>Max Heartrate:</strong> {{ activity?.maxHeartrate.toFixed(0) }} bpm
@@ -109,7 +135,7 @@
 <script setup lang="ts">
 import "bootstrap";
 import 'leaflet/dist/leaflet.css';
-import { onMounted, ref, reactive, nextTick } from "vue";
+import { onMounted, ref, reactive, nextTick, computed } from "vue";
 import { useRoute } from "vue-router";
 import L from "leaflet";
 import { ActivityEffort, DetailedActivity } from "@/models/activity.model"; // Ensure correct import
@@ -137,6 +163,8 @@ const radioOptions = ref<{ label: string; value: string; description: string }[]
 const selectedOption = ref(null);
 
 const radioLabels = ref<HTMLElement[]>([]); // Ref to hold radio labels
+
+const isHike = computed(() => activity.value?.type === "Hike");
 
 // Icon options
 L.Icon.Default.imagePath = '/node_modules/leaflet/dist/images/';
@@ -175,7 +203,7 @@ const initMap = () => {
 const updateMap = () => {
   if (map.value) {
     // Add a polyline
-    const latlngs = activity.value?.stream?.latitudeLongitude?.map((latlng: number[]) =>
+    const latlngs = activity.value?.stream?.latlng?.map((latlng: number[]) =>
       L.latLng(latlng[0], latlng[1])
     );
 
@@ -201,6 +229,7 @@ const chartOptions: Options = reactive({
     {
       categories: [],
       crosshair: true,
+      allowDecimals: false,
       labels: {
         format: "{value} km",
       },
@@ -211,6 +240,7 @@ const chartOptions: Options = reactive({
       title: {
         text: "Speed",
       },
+      allowDecimals: false,
       labels: {
         formatter: function (this: any): string {
           return formatSpeedWithUnit(this.value, activity.value?.type ?? "Ride");
@@ -235,11 +265,11 @@ const chartOptions: Options = reactive({
   ],
   tooltip: {
     formatter: function (this: Highcharts.TooltipFormatterContextObject): string {
-      const speedMS = this.points?.[0]?.y ?? 0;
-      const speed = formatSpeedWithUnit(speedMS, activity.value?.type ?? "Ride");
-
       const altitude = this.points?.[1]?.y ?? 0;
-      return "Distance: " + (this.point.x).toFixed(1) + " km<br/>Speed: <b>" + speed + "</b></br>Altitude: " + altitude.toFixed(0) + " m";
+      const velocityMS = activity.value?.stream?.velocitySmooth?.[this.points?.[0]?.point?.index ?? 0];
+      const velocity = formatSpeedWithUnit(velocityMS ?? 0, activity.value?.type ?? "Ride");
+
+      return "Distance: " + (this.point.x).toFixed(1) + " km<br/>Speed: <b>" + velocity + "</b></br>Altitude: " + altitude.toFixed(0) + " m";
     },
     shared: true,
   },
@@ -266,40 +296,15 @@ const chartOptions: Options = reactive({
 const initChart = () => {
   const altitudeStream = activity.value?.stream?.altitude;
   const distanceStream = activity.value?.stream?.distance;
-  const timeStream = activity.value?.stream?.time;
+  const speedStream = activity.value?.stream?.velocitySmooth;
 
-  if (timeStream && distanceStream && chartOptions.series && chartOptions.series.length > 0) {
-    const smoothedSpeedData = timeStream.map((_, index) => {
-      if (index === 0) {
-        return {
-          x: distanceStream[index] / 1000,
-          y: 0
-        };
-      } else {
-        const deltaTime = timeStream[index] - timeStream[index - 1];
-        const deltaDistance = distanceStream[index] - distanceStream[index - 1];
-        const instantSpeed = deltaDistance / deltaTime;
-        return {
-          x: distanceStream[index] / 1000,
-          y: instantSpeed
-        };
+  if (speedStream && distanceStream && chartOptions.series && chartOptions.series.length > 0) {
+    (chartOptions.series[0] as SeriesLineOptions).data = speedStream.map((speed, index) => (
+      {
+        x: distanceStream[index] / 1000,
+        y: speed
       }
-    });
-
-    // Apply a simple moving average to smooth the speed data
-    const windowSize = 20;
-    const smoothedData = smoothedSpeedData.map((point, index, array) => {
-      const start = Math.max(0, index - windowSize + 1);
-      const end = index + 1;
-      const window = array.slice(start, end);
-      const averageY = window.reduce((sum, p) => sum + p.y, 0) / window.length;
-      return {
-        x: point.x,
-        y: averageY
-      };
-    });
-
-    (chartOptions.series[0] as SeriesLineOptions).data = smoothedData;
+    ));
   }
 
   if (altitudeStream && distanceStream && chartOptions.series && chartOptions.series.length > 0) {
@@ -309,6 +314,15 @@ const initChart = () => {
         y: altitude
       }
     ));
+
+    // Calculate the minimum altitude value
+    const minAltitude = Math.min(...altitudeStream);
+    const yAxisMin = minAltitude * 0.95; // Set the min property of the altitude yAxis
+
+    // Set the min property of the altitude yAxis
+    if (Array.isArray(chartOptions.yAxis) && chartOptions.yAxis[1]) {
+      chartOptions.yAxis[1].min = yAxisMin;
+    }
   }
 
   const chartContainer = document.getElementById('chart-container');
@@ -329,7 +343,7 @@ const initChart = () => {
             if (point) {
               const mapContainer = document.getElementById("map-container");
               if (mapContainer) {
-                const latlng = activity.value?.stream?.latitudeLongitude?.[point.index];
+                const latlng = activity.value?.stream?.latlng?.[point.index];
                 if (latlng) {
                   // Remove previous marker
                   map.value?.eachLayer((layer) => {
@@ -370,7 +384,7 @@ const handleRadioClick = (key: string) => {
   const startIndex = selectedEffort.idxStart;
   const endIndex = selectedEffort.idxEnd;
   const selectedStream = {
-    latitudeLongitude: stream.latitudeLongitude ? stream.latitudeLongitude.slice(startIndex, endIndex) : [],
+    latitudeLongitude: stream.latlng ? stream.latlng.slice(startIndex, endIndex) : [],
     altitude: stream.altitude ? stream.altitude.slice(startIndex, endIndex) : [],
     distance: stream.distance.slice(startIndex, endIndex),
     time: stream.time.slice(startIndex, endIndex)

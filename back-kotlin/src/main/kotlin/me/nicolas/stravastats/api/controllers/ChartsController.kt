@@ -27,13 +27,13 @@ class ChartsController(
         description = "Get the distance by months for a specific stravaActivity type and year",
         summary = "Get the distance by months for a specific stravaActivity type and year",
         responses = [ApiResponse(
-            responseCode = "200", description = "Distance by months found",
+            responseCode = "200", description = "DistanceStream by months found",
             content = [Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
                 array = ArraySchema(schema = Schema(implementation = Map::class))
             )]
         ), ApiResponse(
-            responseCode = "404", description = "Distance by months not found",
+            responseCode = "404", description = "DistanceStream by months not found",
             content = [Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
                 schema = Schema(implementation = ErrorResponseMessageDto::class)
