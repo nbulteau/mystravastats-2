@@ -7,12 +7,12 @@ internal class HighestPointStatistic(
 ) : ActivityStatistic("Highest point", activities) {
 
     init {
-        stravaActivity = activities.maxByOrNull { activity -> activity.elevHigh }
+        activity = activities.maxByOrNull { activity -> activity.elevHigh }
     }
 
     override val value: String
-        get() = if (stravaActivity != null) {
-            "%.2f m".format(stravaActivity!!.elevHigh)
+        get() = if (activity != null) {
+            "%.2f m".format(activity!!.elevHigh)
         } else {
             "Not available"
         }

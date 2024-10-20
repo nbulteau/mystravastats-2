@@ -7,12 +7,12 @@ internal class MaxDistanceStatistic(
 ) : ActivityStatistic("Max distance", activities) {
 
     init {
-        stravaActivity = activities.maxByOrNull { activity -> activity.distance }
+        activity = activities.maxByOrNull { activity -> activity.distance }
     }
 
     override val value: String
-        get() = if (stravaActivity != null) {
-            "%.2f km".format(stravaActivity?.distance?.div(1000))
+        get() = if (activity != null) {
+            "%.2f km".format(activity?.distance?.div(1000))
         } else {
             "Not available"
         }

@@ -24,10 +24,10 @@ abstract class ActivityStatistic(
     activities: List<StravaActivity>,
 ) : Statistic(name, activities) {
 
-    var stravaActivity: StravaActivity? = null
+    var activity: StravaActivity? = null
 
-    override fun toString() = if (stravaActivity != null) {
-        "$value - $stravaActivity"
+    override fun toString() = if (activity != null) {
+        "$value - $activity"
     } else {
         "Not available"
     }

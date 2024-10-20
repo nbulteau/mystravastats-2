@@ -17,7 +17,7 @@ internal open class BestElevationDistanceStatistic(
 
     init {
         require(distance > 100) { "DistanceStream must be > 100 meters" }
-        stravaActivity = bestActivityEffort?.stravaActivity
+        activity = bestActivityEffort?.stravaActivity
     }
 
     override val value: String

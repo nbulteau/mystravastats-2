@@ -7,12 +7,12 @@ internal class MaxSpeedStatistic(
 ) : ActivityStatistic("Max speed", activities) {
 
     init {
-        stravaActivity = activities.maxByOrNull { activity -> activity.maxSpeed }
+        activity = activities.maxByOrNull { activity -> activity.maxSpeed }
     }
 
     override val value: String
-        get() = if (stravaActivity != null) {
-            "%.02f km/h".format(stravaActivity?.maxSpeed?.times(3.6))
+        get() = if (activity != null) {
+            "%.02f km/h".format(activity?.maxSpeed?.times(3.6))
         } else {
             "Not available"
         }

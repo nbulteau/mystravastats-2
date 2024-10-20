@@ -10,9 +10,7 @@ defineProps<{
 
 
 // Emit the event to the event bus so that the parent component can handle it
-function handleDetailledActivityClick(link: string) {
-  // extract id from link
-  const id = link.split("/").pop();
+function handleDetailledActivityClick(id: string) {
   eventBus.emit("detailledActivityClick", id);
 }
 </script>
@@ -22,7 +20,7 @@ function handleDetailledActivityClick(link: string) {
     <button
       type="button"
       class="btn btn-light"
-      @click="handleDetailledActivityClick($props.model.link)"
+      @click="handleDetailledActivityClick($props.model.id.toString())"
     >
       <img
         src="@/assets/buttons/eye.png"

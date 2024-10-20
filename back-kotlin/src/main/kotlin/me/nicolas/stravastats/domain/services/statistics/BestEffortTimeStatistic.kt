@@ -18,7 +18,7 @@ internal open class BestEffortTimeStatistic(
 
     init {
         require(seconds > 10) { "DistanceStream must be > 10 seconds" }
-        stravaActivity = bestActivityEffort?.stravaActivity
+        activity = bestActivityEffort?.stravaActivity
     }
 
     override val value: String

@@ -8,12 +8,12 @@ internal class MaxMovingTimeStatistic(
 ) : ActivityStatistic("Max moving time", activities) {
 
     init {
-        stravaActivity = activities.maxByOrNull { activity -> activity.movingTime }
+        activity = activities.maxByOrNull { activity -> activity.movingTime }
     }
 
     override val value: String
-        get() = if (stravaActivity != null) {
-            "${stravaActivity?.movingTime?.formatSeconds()}"
+        get() = if (activity != null) {
+            "${activity?.movingTime?.formatSeconds()}"
         } else {
             "Not available"
         }

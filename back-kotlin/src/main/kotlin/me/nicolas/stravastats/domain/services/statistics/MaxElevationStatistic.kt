@@ -7,12 +7,12 @@ internal class MaxElevationStatistic(
 ) : ActivityStatistic("Max elevation", activities) {
 
     init {
-        stravaActivity = activities.maxByOrNull { activity -> activity.totalElevationGain }
+        activity = activities.maxByOrNull { activity -> activity.totalElevationGain }
     }
 
     override val value: String
-        get() = if (stravaActivity != null) {
-            "%.2f m".format(stravaActivity?.totalElevationGain)
+        get() = if (activity != null) {
+            "%.2f m".format(activity?.totalElevationGain)
         } else {
             "Not available"
         }

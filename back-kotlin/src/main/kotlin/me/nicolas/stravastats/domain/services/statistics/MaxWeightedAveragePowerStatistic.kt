@@ -10,12 +10,12 @@ internal class MaxWeightedAveragePowerStatistic(
 ) : ActivityStatistic("Weighted average power", activities) {
 
     init {
-        stravaActivity = activities.maxByOrNull { activity -> activity.weightedAverageWatts }
+        activity = activities.maxByOrNull { activity -> activity.weightedAverageWatts }
     }
 
     override val value: String
-        get() = if (stravaActivity != null) {
-            "%d W".format(stravaActivity?.weightedAverageWatts)
+        get() = if (activity != null) {
+            "%d W".format(activity?.weightedAverageWatts)
         } else {
             "Not available"
         }
