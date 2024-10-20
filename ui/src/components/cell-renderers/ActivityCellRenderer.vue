@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import type { Statistics } from "@/models/statistics.model";
 
-defineProps<{
+const props = defineProps<{
   model: Statistics; 
 }>();
 
+console.log(props.model.activity?.link);
 </script>
 
 <template>
