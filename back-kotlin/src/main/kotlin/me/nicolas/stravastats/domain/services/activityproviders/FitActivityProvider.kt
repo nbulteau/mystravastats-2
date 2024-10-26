@@ -5,8 +5,11 @@ import me.nicolas.stravastats.adapters.srtm.SRTMProvider
 import me.nicolas.stravastats.domain.business.strava.stream.AltitudeStream
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
+import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
+import me.nicolas.stravastats.domain.services.toStravaDetailedActivity
 import org.slf4j.LoggerFactory
 import java.time.LocalDate
+import java.util.*
 import kotlin.system.measureTimeMillis
 
 class FitActivityProvider(fitCache: String, private val srtmProvider: SRTMProvider) : AbstractActivityProvider() {
@@ -19,6 +22,15 @@ class FitActivityProvider(fitCache: String, private val srtmProvider: SRTMProvid
         val firstname = fitCache.substringAfterLast("-")
         stravaAthlete = StravaAthlete(id = 0, firstname = firstname, lastname = "")
         activities = loadFromLocalCache()
+    }
+
+    override fun getDetailedActivity(activityId: Long): Optional<StravaDetailedActivity> {
+        val activity = getActivity(activityId)
+        return if (activity.isPresent) {
+            Optional.of(activity.get().toStravaDetailedActivity())
+        } else {
+            Optional.empty()
+        }
     }
 
     private fun loadFromLocalCache(): List<StravaActivity> {

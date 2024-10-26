@@ -1,6 +1,7 @@
 package me.nicolas.stravastats.domain.business.strava
 
 import me.nicolas.stravastats.domain.business.ActivityEffort
+import me.nicolas.stravastats.domain.business.ActivityShort
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
@@ -14,14 +15,14 @@ internal class StravaActivityEffortTest {
 
         // When
         val colAgnelActivityEffort = ActivityEffort(
-            colAgnelActivity,
             colAgnelActivity.distance,
             colAgnelActivity.elapsedTime,
             colAgnelActivity.totalElevationGain,
             0,
             10,
             null,
-            "Desctiption"
+            "Desctiption",
+            ActivityShort(colAgnelActivity.id, colAgnelActivity.name, colAgnelActivity.type)
         )
 
         // Then

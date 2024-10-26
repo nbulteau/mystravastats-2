@@ -2,6 +2,7 @@ package me.nicolas.stravastats.domain.business.strava
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
+import me.nicolas.stravastats.domain.business.strava.stream.Stream
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class StravaDetailedActivity(
@@ -12,6 +13,8 @@ data class StravaDetailedActivity(
     val athleteCount: Int,
     @JsonProperty("average_cadence")
     val averageCadence: Double,
+    @JsonProperty("average_heartrate")
+    val averageHeartrate: Double,
     @JsonProperty("average_speed")
     val averageSpeed: Double,
     @JsonProperty("average_temp")
@@ -61,6 +64,8 @@ data class StravaDetailedActivity(
     @JsonProperty("map")
     val map: GeoMap?,
     val manual: Boolean,
+    @JsonProperty("max_heartrate")
+    val maxHeartrate: Int,
     @JsonProperty("max_speed")
     val maxSpeed: Double,
     @JsonProperty("max_watts")
@@ -75,7 +80,7 @@ data class StravaDetailedActivity(
     @JsonProperty("resource_state")
     val resourceState: Int,
     @JsonProperty("segment_efforts")
-    val segmentEfforts: List<SegmentEffort>,
+    val segmentEfforts: List<StravaSegmentEffort>,
     @JsonProperty("segment_leaderboard_opt_out")
     val segmentLeaderboardOptOut: Boolean,
     @JsonProperty("splits_metric")
@@ -85,7 +90,7 @@ data class StravaDetailedActivity(
     @JsonProperty("start_date")
     val startDate: String,
     @JsonProperty("start_date_local")
-    val startSateLocal: String,
+    val startDateLocal: String,
     @JsonProperty("start_latlng")
     val startLatLng: List<Double>,
     @JsonProperty("suffer_score")
@@ -105,4 +110,6 @@ data class StravaDetailedActivity(
     val weightedAverageWatts: Int,
     @JsonProperty("workout_type")
     val workoutType: Int,
+
+    var stream: Stream? = null
 )

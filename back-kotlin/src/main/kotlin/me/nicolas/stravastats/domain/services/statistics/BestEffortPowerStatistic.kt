@@ -1,7 +1,10 @@
 package me.nicolas.stravastats.domain.services.statistics
 
-import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.ActivityEffort
+import me.nicolas.stravastats.domain.business.ActivityShort
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
+import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
+import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.utils.formatSeconds
 
 
@@ -17,7 +20,7 @@ internal open class BestEffortPowerStatistic(
 
     init {
         require(seconds > 10) { "DistanceStream must be > 10 seconds" }
-        activity = bestActivityEffort?.stravaActivity
+        activity = bestActivityEffort?.activityShort
     }
 
     override val value: String
@@ -39,13 +42,37 @@ internal open class BestEffortPowerStatistic(
         }
 }
 
+fun StravaDetailedActivity.calculateBestPowerForTime(seconds: Int): ActivityEffort? {
+
+    // no stream -> return null
+    return if (stream == null || stream?.altitude == null) {
+        null
+    } else {
+        activityEffort(this.id, this.name, this.type, this.stream!!, seconds)
+    }
+}
+
+fun StravaActivity.calculateBestPowerForTime(seconds: Int): ActivityEffort? {
+
+    // no stream -> return null
+    return if (stream == null || stream?.altitude == null) {
+        null
+    } else {
+        activityEffort(this.id, this.name, this.type, this.stream!!, seconds)
+    }
+}
+
 /**
  * Sliding window best power for a given time
  * @param seconds given time
  */
-fun StravaActivity.calculateBestPowerForTime(seconds: Int): ActivityEffort? {
-
-    val stream = this.stream ?: return null
+private fun activityEffort(
+    id: Long,
+    name: String,
+    type: String,
+    stream: Stream,
+    seconds: Int
+): ActivityEffort? {
     val altitudes = stream.altitude?.data
     val watts = stream.watts?.data ?: return null
 
@@ -66,7 +93,7 @@ fun StravaActivity.calculateBestPowerForTime(seconds: Int): ActivityEffort? {
             0.0
         }
 
-        val totalPower =  if(watts.isNotEmpty()) {
+        val totalPower = if (watts.isNotEmpty()) {
             (idxStart..idxEnd).sumOf { watts[it] }
         } else {
             0
@@ -81,14 +108,13 @@ fun StravaActivity.calculateBestPowerForTime(seconds: Int): ActivityEffort? {
                 maxPower = totalPower
                 val averagePower = totalPower / (idxEnd - idxStart)
                 bestEffort = ActivityEffort(
-                    this,
-                    totalDistance,
-                    seconds,
-                    totalAltitude,
-                    idxStart,
-                    idxEnd,
-                    averagePower,
-                    description = "Best power for ${seconds.formatSeconds()}: %d W".format(averagePower),
+                    totalDistance, seconds, totalAltitude, idxStart, idxEnd, averagePower,
+                    label = "Best power for ${seconds.formatSeconds()}",
+                    activityShort = ActivityShort(
+                        id = id,
+                        name = name,
+                        type = type
+                    )
                 )
             }
             ++idxStart

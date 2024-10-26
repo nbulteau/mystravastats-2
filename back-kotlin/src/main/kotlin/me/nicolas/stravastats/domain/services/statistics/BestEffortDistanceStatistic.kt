@@ -1,9 +1,11 @@
 package me.nicolas.stravastats.domain.services.statistics
 
 import me.nicolas.stravastats.domain.business.ActivityEffort
+import me.nicolas.stravastats.domain.business.ActivityShort
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
+import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
+import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.utils.formatSeconds
-import me.nicolas.stravastats.domain.utils.formatSpeed
 
 
 internal open class BestEffortDistanceStatistic(
@@ -18,7 +20,7 @@ internal open class BestEffortDistanceStatistic(
 
     init {
         require(distance > 100) { "DistanceStream must be > 100 meters" }
-        activity = bestActivityEffort?.stravaActivity
+        activity = bestActivityEffort?.activityShort
     }
 
     override val value: String
@@ -29,27 +31,48 @@ internal open class BestEffortDistanceStatistic(
         }
 }
 
+
+fun StravaActivity.calculateBestTimeForDistance(distance: Double): ActivityEffort? {
+
+    // no stream -> return null
+    return if (stream == null || stream?.altitude == null) {
+        null
+    } else {
+        activityEffort(this.id, this.name, this.type, this.stream!!, distance)
+    }
+}
+
+fun StravaDetailedActivity.calculateBestTimeForDistance(distance: Double): ActivityEffort? {
+
+    // no stream -> return null
+    return if (this.stream == null || this.stream?.altitude == null) {
+        null
+    } else {
+        activityEffort(this.id, this.name, this.type, this.stream!!, distance)
+    }
+}
+
 /**
  * Sliding window best time for a given distance.
  * @param distance given distance.
  */
-fun StravaActivity.calculateBestTimeForDistance(distance: Double): ActivityEffort? {
-
-    // no stream -> return null
-    if (stream == null || stream?.altitude == null) {
-        return null
-    }
-
+private fun activityEffort(
+    id: Long,
+    name: String,
+    type: String,
+    stream: Stream,
+    distance: Double
+): ActivityEffort? {
     var idxStart = 0
     var idxEnd = 0
     var bestTime = Double.MAX_VALUE
     var bestEffort: ActivityEffort? = null
 
-    val distances = this.stream?.distance?.data!!
-    val times = this.stream?.time?.data!!
-    val altitudes = this.stream?.altitude?.data!!
+    val distances = stream.distance.data
+    val times = stream.time.data
+    val altitudes = stream.altitude?.data!!
 
-    val streamDataSize = this.stream?.distance?.originalSize!!
+    val streamDataSize = stream.distance.originalSize
 
     do {
         val totalDistance = distances[idxEnd] - distances[idxStart]
@@ -67,16 +90,17 @@ fun StravaActivity.calculateBestTimeForDistance(distance: Double): ActivityEffor
             // estimatedTimeForDistance > 1 to prevent corrupted data
             if (estimatedTimeForDistance < bestTime && estimatedTimeForDistance > 1) {
                 bestTime = estimatedTimeForDistance
-                val speed = distance / bestTime
+                val averagePower = stream.watts?.data?.let { watts ->
+                    (idxStart..idxEnd).sumOf { watts[it] } / (idxEnd - idxStart)
+                }
                 bestEffort = ActivityEffort(
-                    this,
-                    distance,
-                    bestTime.toInt(),
-                    totalAltitude,
-                    idxStart,
-                    idxEnd,
-                    averagePower = null,
-                    description = "Best speed for ${distance.toInt()}m: ${speed.formatSpeed(activityType = this.type)}",
+                    distance, bestTime.toInt(), totalAltitude, idxStart, idxEnd, averagePower,
+                    label = "Best speed for ${distance.toInt()}m",
+                    activityShort = ActivityShort(
+                        id = id,
+                        name = name,
+                        type = type
+                    )
                 )
             }
             ++idxStart

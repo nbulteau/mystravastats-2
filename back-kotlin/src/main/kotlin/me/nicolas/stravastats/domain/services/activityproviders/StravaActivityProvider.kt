@@ -6,18 +6,20 @@ import me.nicolas.stravastats.adapters.localrepositories.strava.StravaRepository
 import me.nicolas.stravastats.adapters.strava.StravaApi
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
+import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.interfaces.IStravaApi
 import me.nicolas.stravastats.domain.services.ActivityHelper.filterByActivityTypes
 import org.slf4j.LoggerFactory
 import java.time.LocalDate
+import java.util.*
 import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
 
 
 class StravaActivityProvider(
     stravaCache: String = "strava-cache",
-): AbstractActivityProvider() {
+) : AbstractActivityProvider() {
 
     private val logger = LoggerFactory.getLogger(StravaActivityProvider::class.java)
 
@@ -52,12 +54,49 @@ class StravaActivityProvider(
         logger.info("ActivityService initialized with clientId=$clientId and ${activities.size} activities")
     }
 
+    override fun getDetailedActivity(activityId: Long): Optional<StravaDetailedActivity> {
+        logger.info("Get detailed stravaActivity for stravaActivity id $activityId")
+
+        // find detailed activity in cache or retrieve from Strava
+        val activity = activities.find { it.id == activityId } ?: return Optional.empty()
+        val year = activity.startDate.take(4).toInt()
+
+        // load detailed activity from cache or retrieve from Strava
+        var stravaDetailedActivity = localStorageProvider.loadDetailedActivityFromCache(clientId, year, activityId)
+
+        if(stravaDetailedActivity == null){
+            // It's not in local cache, retrieve from Strava
+            val detailedActivity = stravaApi.getDetailedActivity(activityId)
+            if (detailedActivity.isPresent) {
+                localStorageProvider.saveDetailedActivityToCache(clientId, year, detailedActivity.get())
+            } else {
+                return Optional.empty()
+            }
+            stravaDetailedActivity = detailedActivity.get()
+        }
+
+        // load stream from cache or retrieve from Strava
+        var stream = localStorageProvider.loadActivitiesStreamsFromCache(clientId, year, activity)
+        if (stream == null) {
+            val optionalStream = stravaApi.getActivityStream(activity)
+            if (optionalStream.isPresent) {
+                stream = optionalStream.get()
+                localStorageProvider.saveActivitiesStreamsToCache(clientId, year, activity, stream)
+            } else {
+                stream = null
+            }
+        }
+        stravaDetailedActivity.stream = stream
+
+        return Optional.of(stravaDetailedActivity)
+    }
+
     private fun loadFromLocalCache(clientId: String): List<StravaActivity> {
         logger.info("Load Strava activities from local cache ...")
 
         val loadedActivities = mutableListOf<StravaActivity>()
         val elapsed = measureTimeMillis {
-            runBlocking<Unit> {
+            runBlocking {
                 for (currentYear in LocalDate.now().year downTo 2010) {
                     logger.info("Load $currentYear activities ...")
                     loadedActivities.addAll(localStorageProvider.loadActivitiesFromCache(clientId, currentYear))

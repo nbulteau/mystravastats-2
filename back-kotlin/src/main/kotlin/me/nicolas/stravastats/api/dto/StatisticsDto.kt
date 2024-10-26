@@ -2,6 +2,7 @@ package me.nicolas.stravastats.api.dto
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import io.swagger.v3.oas.annotations.media.Schema
+import me.nicolas.stravastats.domain.business.ActivityShort
 import me.nicolas.stravastats.domain.services.statistics.ActivityStatistic
 import me.nicolas.stravastats.domain.services.statistics.Statistic
 
@@ -13,7 +14,7 @@ data class StatisticsDto(
     @Schema(description = "Value of the statistic")
     val value: String,
     @Schema(description = "StravaActivity related to the statistic")
-    val activity: ActivityDto? = null,
+    val activity: ActivityShortDto? = null,
 )
 
 fun Statistic.toDto(): StatisticsDto {
@@ -27,6 +28,21 @@ fun Statistic.toDto(): StatisticsDto {
         else -> StatisticsDto(name, value)
     }
 }
+
+data class ActivityShortDto(
+    val id: Long,
+    val name: String,
+    val type: String,
+)
+
+fun ActivityShort.toDto(): ActivityShortDto {
+    return ActivityShortDto(
+        id = id,
+        name = name,
+        type = type.name
+    )
+}
+
 
 
 

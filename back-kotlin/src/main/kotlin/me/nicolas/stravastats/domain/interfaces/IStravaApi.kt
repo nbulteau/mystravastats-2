@@ -16,5 +16,5 @@ interface IStravaApi {
 
     fun getActivityStream(stravaActivity: StravaActivity): Optional<Stream>
 
-    fun getDetailledActivity(activityId: Long): Optional<StravaDetailedActivity>
+    fun getDetailedActivity(activityId: Long): Optional<StravaDetailedActivity>
 }
