@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.utils.formatSeconds
 
-data class SegmentEffort(
+data class StravaSegmentEffort(
     val achievements: List<Achievement>,
     val activity: MetaActivity,
     val athlete: MetaAthlete,
@@ -55,7 +55,7 @@ data class SegmentEffort(
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as SegmentEffort
+        other as StravaSegmentEffort
 
         if (endIndex != other.endIndex) return false
         if (name != other.name) return false

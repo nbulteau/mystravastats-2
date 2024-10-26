@@ -1,26 +1,25 @@
 package me.nicolas.stravastats.domain.business
 
-import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.utils.formatSeconds
 import java.util.*
 
 
 /**
- * An effort within an stravaActivity.
+ * An effort within an activity.
  */
-data class ActivityEffort(
-    val stravaActivity: StravaActivity,
+class ActivityEffort(
     val distance: Double,
     val seconds: Int,
     val deltaAltitude: Double,
     val idxStart: Int,
     val idxEnd: Int,
     val averagePower: Int? = null,
-    val description: String,
+    val label: String,
+    val activityShort: ActivityShort
 ) {
     fun getFormattedSpeed(): String {
         val speed = getSpeed()
-        return if (stravaActivity.type == ActivityType.Run.name) {
+        return if (activityShort.type == ActivityType.Run) {
             "${speed}/km"
         } else {
             "$speed km/h"
@@ -28,7 +27,7 @@ data class ActivityEffort(
     }
 
     fun getSpeed(): String {
-        return if (stravaActivity.type == ActivityType.Run.name) {
+        return if (activityShort.type == ActivityType.Run) {
             (seconds * 1000 / distance).formatSeconds()
         } else {
             "%.02f".format(Locale.ENGLISH, distance / seconds * 3600 / 1000)
@@ -41,7 +40,16 @@ data class ActivityEffort(
 
     fun getFormattedGradient() = "${this.getGradient()} %"
 
-    fun getFormattedPower() = if (this.averagePower != null) "${this.averagePower} Watts" else ""
+    fun getFormattedPower() = if (this.averagePower != null) "${this.averagePower} W" else ""
 
     fun getGradient() = "%.02f".format(Locale.ENGLISH, 100 * deltaAltitude / distance)
+
+    fun getDescription() = "${this.label}:" +
+            "<ul>" +
+            "<li>Time : ${seconds.formatSeconds()}</li>" +
+            "<li>Speed : ${getFormattedSpeed()}</li>" +
+            "<li>Gradient: ${getGradient()}%</li>" +
+            "<li>Power: ${if (averagePower != null) getFormattedPower() else "Not available"}</li>" +
+            "</ul>"
 }
+

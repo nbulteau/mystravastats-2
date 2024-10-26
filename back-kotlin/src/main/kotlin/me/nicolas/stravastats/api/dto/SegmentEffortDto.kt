@@ -1,6 +1,6 @@
 package me.nicolas.stravastats.api.dto
 
-import me.nicolas.stravastats.domain.business.strava.SegmentEffort
+import me.nicolas.stravastats.domain.business.strava.StravaSegmentEffort
 
 data class SegmentEffortDto(
     val achievements: List<AchievementDto>,
@@ -28,7 +28,7 @@ data class SegmentEffortDto(
     val visibility: String?,
 )
 
-fun SegmentEffort.toDto() = SegmentEffortDto(
+fun StravaSegmentEffort.toDto() = SegmentEffortDto(
     achievements = achievements.map { it.toDto() },
     activity = activity.id,
     athlete = athlete.id,

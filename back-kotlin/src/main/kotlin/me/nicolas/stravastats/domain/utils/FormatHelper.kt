@@ -5,8 +5,6 @@ import me.nicolas.stravastats.domain.business.ActivityType
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-var timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
-
 var inDateTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
 
 var outDateTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE dd MMMM yyyy - HH:mm")
@@ -25,6 +23,11 @@ fun Int.formatSeconds(): String {
         }
         return String.format("%02dm %02ds", min, this % 60)
     }
+
+    if (min == 0 && (this % 60) == 0) {
+        return String.format("%2dh", hours)
+    }
+
     return String.format("%02dh %02dm %02ds", hours, min, this % 60)
 }
 
