@@ -26,12 +26,12 @@ data class DetailedActivity(
     val startDate: String,
     val startDateLocal: String,
     val startLatlng: List<Double>?,
-    val totalElevationGain: Double,
+    val totalElevationGain: Int,
     val totalDescent: Double,
     val type: String,
     val weightedAverageWatts: Int,
     val stream: Stream? = null,
-    val activityEfforts: Map<String, ActivityEffort?>
+    val activityEfforts: List<ActivityEffort> = emptyList(),
 ) {
 
     constructor(activity: StravaActivity) : this(
@@ -53,7 +53,7 @@ data class DetailedActivity(
         startDate = activity.startDate,
         startDateLocal = activity.startDateLocal,
         startLatlng = activity.startLatlng,
-        totalElevationGain = activity.totalElevationGain,
+        totalElevationGain = activity.totalElevationGain.toInt(),
         totalDescent = activity.calculateTotalDescentGain(),
         type = activity.type,
         weightedAverageWatts = activity.weightedAverageWatts,

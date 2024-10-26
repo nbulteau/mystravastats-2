@@ -3,28 +3,28 @@ package me.nicolas.stravastats.api.dto
 import io.swagger.v3.oas.annotations.media.Schema
 import me.nicolas.stravastats.domain.business.ActivityEffort
 import me.nicolas.stravastats.domain.business.DetailedActivity
+import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.services.ActivityHelper.smooth
 import kotlin.math.*
 
 @Schema(description = "Detailed activity object", name = "DetailedActivity")
 data class DetailedActivityDto(
-    @Schema(description = "Average speed")
-    val averageSpeed: Double,
     @Schema(description = "Average cadence")
-    val averageCadence: Double,
+    val averageCadence: Int,
     @Schema(description = "Average heartrate")
-    val averageHeartrate: Double,
-    @Schema(description = "Maximum heartrate")
-    val maxHeartrate: Int,
+    val averageHeartrate: Int,
     @Schema(description = "Average power output in watts during this activity. Rides only.")
     val averageWatts: Int,
+    @Schema(description = "Average speed")
+    val averageSpeed: Float,
+    val calories: Double,
     @Schema(description = "Whether the activity was a commute.")
     val commute: Boolean,
-    @Schema(description = "DistanceStream in meters.")
-    var distance: Double,
     @Schema(description = "Whether the watts are from a power meter, false if estimated.")
     val deviceWatts: Boolean = false,
+    @Schema(description = "DistanceStream in meters.")
+    var distance: Double,
     @Schema(description = "Elapsed time in seconds.")
     var elapsedTime: Int,
     @Schema(description = "Highest elevation in meters.")
@@ -33,39 +33,78 @@ data class DetailedActivityDto(
     val id: Long,
     @Schema(description = "The total work done in kilojoules during this activity. Rides only.")
     val kilojoules: Double,
+    @Schema(description = "Maximum heartrate")
+    val maxHeartrate: Int,
     @Schema(description = "Maximum speed.")
     val maxSpeed: Float,
+    @Schema(description = "Maximum power output in watts during this activity. Rides only.")
+    val maxWatts: Int,
     @Schema(description = "MovingStream time in seconds.")
     val movingTime: Int,
     @Schema(description = "Activity name.")
     val name: String,
+    @Schema(description = "List of segment efforts.")
+    val segmentEfforts: List<SegmentEffortDto>,
     @Schema(description = "The time at which the activity was started.")
     val startDate: String,
     @Schema(description = "The time at which the activity was started in the local timezone.")
     val startDateLocal: String,
     @Schema(description = "The start latitude and longitude of the activity.")
     val startLatlng: List<Double>?,
+    @Schema(description = "Stream object")
+    val stream: StreamDto? = null,
+    @Schema(description = "The suffer score for the activity.")
+    val sufferScore: Double?,
     @Schema(description = "Total descent in meters")
     val totalDescent: Double,
     @Schema(description = "Total elevation gain in meters.")
-    val totalElevationGain: Double,
+    val totalElevationGain: Int,
     @Schema(description = "Activity type")
     val type: String,
     @Schema(description = "Weighted average power output in watts during this activity. Rides only.")
     val weightedAverageWatts: Int,
-    @Schema(description = "Stream object")
-    val stream: StreamDto? = null,
-    @Schema(description = "Map of activity efforts")
-    val activityEfforts: List<ActivityEffortDto>,
 )
+
+fun StravaDetailedActivity.toDto(): DetailedActivityDto {
+    return DetailedActivityDto(
+        averageSpeed = this.averageSpeed.toFloat(),
+        averageCadence = this.averageCadence.toInt(),
+        averageHeartrate = this.averageHeartrate.toInt(),
+        averageWatts = this.averageWatts.toInt(),
+        calories = this.calories,
+        commute = this.commute,
+        distance = this.distance.toDouble(),
+        deviceWatts = this.deviceWatts,
+        elapsedTime = this.elapsedTime,
+        elevHigh = this.elevHigh,
+        id = this.id,
+        kilojoules = this.kilojoules,
+        maxHeartrate = this.maxHeartrate,
+        maxSpeed = this.maxSpeed.toFloat(),
+        maxWatts = this.maxWatts,
+        movingTime = this.movingTime,
+        name = this.name,
+        segmentEfforts = this.segmentEfforts.map { it.toDto() },
+        startDate = this.startDate,
+        startDateLocal = this.startDateLocal,
+        startLatlng = this.startLatLng,
+        sufferScore = this.sufferScore,
+        totalDescent = this.elevLow,
+        totalElevationGain = this.totalElevationGain,
+        type = this.type,
+        weightedAverageWatts = this.weightedAverageWatts,
+        stream = this.stream?.toDto(),
+    )
+}
 
 fun DetailedActivity.toDto(): DetailedActivityDto {
     return DetailedActivityDto(
-        averageSpeed = this.averageSpeed,
-        averageCadence = this.averageCadence,
-        averageHeartrate = this.averageHeartrate,
+        averageSpeed = this.averageSpeed.toFloat(),
+        averageCadence = this.averageCadence.toInt(),
+        averageHeartrate = this.averageHeartrate.toInt(),
         maxHeartrate = this.maxHeartrate,
         averageWatts = this.averageWatts,
+        calories = 0.0,// this.calories, // TODO: Calculate calories
         commute = this.commute,
         distance = this.distance,
         deviceWatts = this.deviceWatts,
@@ -74,17 +113,19 @@ fun DetailedActivity.toDto(): DetailedActivityDto {
         id = this.id,
         kilojoules = this.kilojoules,
         maxSpeed = this.maxSpeed,
+        maxWatts = 0, // this.maxWatts, // TODO: Calculate maxWatts
         movingTime = this.movingTime,
         name = this.name,
         startDate = this.startDate,
         startDateLocal = this.startDateLocal,
         startLatlng = this.startLatlng,
+        sufferScore = 0.0, // this.sufferScore, // TODO: Calculate sufferScore
         totalDescent = this.totalDescent,
         totalElevationGain = this.totalElevationGain,
         type = this.type,
         weightedAverageWatts = this.weightedAverageWatts,
         stream = this.stream?.toDto(),
-        activityEfforts = this.activityEfforts.mapNotNull { (key, value) -> value?.toDto(key) }
+        segmentEfforts = this.segmentEfforts.mapNotNull { (key, value) -> value?.toDto(key) }
     )
 }
 

@@ -34,8 +34,12 @@ import java.util.*
 import kotlin.system.exitProcess
 
 
-internal class StravaApi(clientId: String, clientSecret: String) :
-    IStravaApi {
+internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
+
+    companion object {
+        private const val QUOTA_EXCEED_LIMIT =
+            "Quotas exceeded: Strava rate limitations (100 requests every 15 minutes, with up to 1,000 requests per day)"
+    }
 
     private val logger: Logger = LoggerFactory.getLogger(StravaApi::class.java)
 
@@ -89,7 +93,7 @@ internal class StravaApi(clientId: String, clientSecret: String) :
         }
     }
 
-    override fun getDetailledActivity(activityId: Long): Optional<StravaDetailedActivity> {
+    override fun getDetailedActivity(activityId: Long): Optional<StravaDetailedActivity> {
         try {
             return doGetActivity(activityId)
         } catch (connectException: ConnectException) {
@@ -162,7 +166,7 @@ internal class StravaApi(clientId: String, clientSecret: String) :
                     exitProcess(-1)
                 }
                 if (response.code == 429) {
-                    logger.info("Quotas exceeded: Strava rate limitations (100 requests every 15 minutes, with up to 1,000 requests per day)")
+                    logger.info(QUOTA_EXCEED_LIMIT)
                     exitProcess(-1)
                 }
                 result = objectMapper.readValue(response.body?.string() ?: "")
@@ -191,9 +195,7 @@ internal class StravaApi(clientId: String, clientSecret: String) :
                     logger.info("Unable to load streams for stravaActivity : ${stravaActivity.id}")
                     when (response.code) {
                         HttpStatus.TOO_MANY_REQUESTS.value() -> {
-                            logger.info(
-                                "Strava API usage is limited on a per-application basis using both a 15-minute " + "and daily request limit." + "The default rate limit allows 100 requests every 15 minutes, " + "with up to 1,000 requests per day."
-                            )
+                            logger.info(QUOTA_EXCEED_LIMIT)
                             return Optional.empty()
                         }
 
@@ -237,9 +239,7 @@ internal class StravaApi(clientId: String, clientSecret: String) :
                     logger.info("Unable to load stravaActivity : $activityId")
                     when (response.code) {
                         HttpStatus.TOO_MANY_REQUESTS.value() -> {
-                            logger.info(
-                                "Strava API usage is limited on a per-application basis using both a 15-minute " + "and daily request limit." + "The default rate limit allows 100 requests every 15 minutes, " + "with up to 1,000 requests per day."
-                            )
+                            logger.info(QUOTA_EXCEED_LIMIT)
                             return Optional.empty()
                         }
 
@@ -341,7 +341,7 @@ internal class StravaApi(clientId: String, clientSecret: String) :
                 }
             } catch (ex: Exception) {
                 logger.error("Something was wrong with Strava API for url $url. ${ex.cause?.message ?: ex.message}")
-                throw RuntimeException("Something was wrong with Strava API for url $url. ${ex.cause?.message ?: ex.message}", )
+                throw RuntimeException("Something was wrong with Strava API for url $url. ${ex.cause?.message ?: ex.message}")
             }
         }
     }
@@ -371,6 +371,7 @@ internal class StravaApi(clientId: String, clientSecret: String) :
                         println("Failed to open the browser with xdg-open. Exit code: $exitCode")
                     }
                 }
+
                 else -> println("Unsupported operating system. Cannot open the browser.")
             }
         } catch (e: Exception) {

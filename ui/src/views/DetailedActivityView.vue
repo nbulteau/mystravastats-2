@@ -290,6 +290,13 @@ const chartOptions: Options = reactive({
       color: "#d3d3d3",
       yAxis: 1,
     },
+    {
+      name: "Altitude",
+      type: "area",
+      data: [],
+      color: "blue",
+      yAxis: 1,
+    },
   ],
 });
 
@@ -411,6 +418,15 @@ const handleRadioClick = (key: string) => {
   }
 
   // 4 - Update the chart with the new stream data
+  if(selectedStream.altitude && selectedStream.distance && chartOptions.series && chartOptions.series.length > 0) {
+    (chartOptions.series[2] as SeriesAreaOptions).data = selectedStream.altitude.map((altitude, index) => (
+      {
+        x: selectedStream.distance[index] / 1000,
+        y: altitude,
+        color: "blue"
+      }
+    ));
+  }
 
 };
 
