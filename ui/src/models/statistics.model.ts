@@ -1,7 +1,7 @@
-import type { Activity } from "./activity.model";
+import type { ActivityShort } from "./activity.model";
 
 export interface Statistics {
     label: string;
     value: string;
-    activity?: Activity;
+    activity?: ActivityShort;
 }

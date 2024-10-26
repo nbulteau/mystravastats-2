@@ -140,6 +140,18 @@ export class DetailedActivity {
     }
 }
 
+export class ActivityShort {
+    id: number;
+    name: string;
+    type: string;
+
+    constructor(id: number, name: string, type: string) {
+        this.id = id;
+        this.name = name;
+        this.type = type;
+    }
+}
+
 class Stream {
     distance: number[];
     time: number[];
@@ -169,7 +181,8 @@ class Stream {
 }
 
 export class ActivityEffort {
-    key: string;
+    id: string;
+    label: string;
     distance: number;
     seconds: number;
     deltaAltitude: number;
@@ -179,7 +192,8 @@ export class ActivityEffort {
     description: string = '';
 
     constructor(
-        key: string,
+        id: string,
+        label: string,
         distance: number,
         seconds: number,
         deltaAltitude: number,
@@ -188,7 +202,8 @@ export class ActivityEffort {
         averagePower: number | null,
         description: string,
     ) {
-        this.key = key;
+        this.id = id;
+        this.label = label;
         this.distance = distance;
         this.seconds = seconds;
         this.deltaAltitude = deltaAltitude;
