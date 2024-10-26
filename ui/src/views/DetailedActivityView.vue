@@ -27,6 +27,7 @@
     />
     <div
       id="radio-container"
+      class="radio-scroll-container"
       style="width: 20%; height: 100%; padding-left: 10px"
     >
       <form>
@@ -40,7 +41,7 @@
             type="radio"
             :value="option.value"
             class="radio-input"
-            @click="handleRadioClick(option.label)"
+            @click="handleRadioClick(option.value)"
           >
           <label
             ref="radioLabels"
@@ -171,17 +172,18 @@ L.Icon.Default.imagePath = '/node_modules/leaflet/dist/images/';
 
 const buildRadioOptions = () => {
   if (activity.value?.activityEfforts) {
-    radioOptions.value = activity.value?.activityEfforts.map(effort => {
+    radioOptions.value = activity.value?.activityEfforts.map((effort) => {
       return {
-        label: effort.key,
-        value: effort.key,
-        description: effort?.description ?? ''
+      label: effort.label.length > 20 ? effort.label.substring(0, 20) + '...' : effort.label,
+      value: effort.id, 
+      description: effort?.description ?? ''
       };
     });
   } else {
     radioOptions.value = [];
   }
 };
+
 
 async function fetchDetailedActivity(id: string) {
   const url = `http://localhost:8080/api/activities/${id}`;
@@ -288,6 +290,13 @@ const chartOptions: Options = reactive({
       type: "area",
       data: [],
       color: "#d3d3d3",
+      yAxis: 1,
+    },
+    {
+      name: "Altitude",
+      type: "area",
+      data: [],
+      color: "blue",
       yAxis: 1,
     },
   ],
@@ -411,6 +420,15 @@ const handleRadioClick = (key: string) => {
   }
 
   // 4 - Update the chart with the new stream data
+  if(selectedStream.altitude && selectedStream.distance && chartOptions.series && chartOptions.series.length > 0) {
+    (chartOptions.series[2] as SeriesAreaOptions).data = selectedStream.altitude.map((altitude, index) => (
+      {
+        x: selectedStream.distance[index] / 1000,
+        y: altitude,
+        color: "blue"
+      }
+    ));
+  }
 
 };
 
@@ -465,11 +483,14 @@ onMounted(async () => {
 
 .radio-label {
   font-weight: bold;
+    text-align: left; /* Align text to the left */
+
 }
 
 /* Custom Tooltip Styles */
 .tooltip-inner {
-  --bs-tooltip-max-width: 300px;
+  text-align: left; /* Align text to the left */
+  --bs-tooltip-max-width: 500px;
   /* Define the custom property for max-width */
   max-width: var(--bs-tooltip-max-width);
   /* Apply the custom property */
@@ -483,5 +504,16 @@ onMounted(async () => {
   /* Add padding */
   border-radius: 5px;
   /* Rounded corners */
+}
+
+.tooltip-inner ul,
+.tooltip-inner li {
+  text-align: left; /* Ensure list items are left-aligned */
+}
+
+/* Scrollable container for radio buttons */
+.radio-scroll-container {
+  height: 100%; /* Set height to 100% to match the map container */
+  overflow-y: auto; /* Enable vertical scrolling */
 }
 </style>
