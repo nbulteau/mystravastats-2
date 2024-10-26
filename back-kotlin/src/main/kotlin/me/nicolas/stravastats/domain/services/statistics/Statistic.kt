@@ -1,5 +1,6 @@
 package me.nicolas.stravastats.domain.services.statistics
 
+import me.nicolas.stravastats.domain.business.ActivityShort
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 
 abstract class Statistic(val name: String, protected val activities: List<StravaActivity>) {
@@ -24,7 +25,7 @@ abstract class ActivityStatistic(
     activities: List<StravaActivity>,
 ) : Statistic(name, activities) {
 
-    var activity: StravaActivity? = null
+    var activity: ActivityShort? = null
 
     override fun toString() = if (activity != null) {
         "$value - $activity"

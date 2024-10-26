@@ -1,5 +1,6 @@
 package me.nicolas.stravastats.domain.services.statistics
 
+import me.nicolas.stravastats.domain.business.ActivityShort
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 
 /**
@@ -9,13 +10,17 @@ internal class MaxWeightedAveragePowerStatistic(
     activities: List<StravaActivity>,
 ) : ActivityStatistic("Weighted average power", activities) {
 
+    private val maxWeightedAverageWatts: Int?
+
     init {
-        activity = activities.maxByOrNull { activity -> activity.weightedAverageWatts }
+        val maxWeightedAverageWattsActivity = activities.maxByOrNull { activity -> activity.weightedAverageWatts }
+        maxWeightedAverageWattsActivity?.let{ activity -> this.activity = ActivityShort(activity.id, activity.name, activity.type) }
+        maxWeightedAverageWatts = maxWeightedAverageWattsActivity?.weightedAverageWatts
     }
 
     override val value: String
-        get() = if (activity != null) {
-            "%d W".format(activity?.weightedAverageWatts)
+        get() = if (maxWeightedAverageWatts != null) {
+            "%d W".format(maxWeightedAverageWatts)
         } else {
             "Not available"
         }

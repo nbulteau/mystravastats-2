@@ -2,9 +2,9 @@ package me.nicolas.stravastats.api.dto
 
 import io.swagger.v3.oas.annotations.media.Schema
 import me.nicolas.stravastats.domain.business.ActivityEffort
-import me.nicolas.stravastats.domain.business.DetailedActivity
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
+import me.nicolas.stravastats.domain.services.ActivityHelper.buildActivityEfforts
 import me.nicolas.stravastats.domain.services.ActivityHelper.smooth
 import kotlin.math.*
 
@@ -43,8 +43,8 @@ data class DetailedActivityDto(
     val movingTime: Int,
     @Schema(description = "Activity name.")
     val name: String,
-    @Schema(description = "List of segment efforts.")
-    val segmentEfforts: List<SegmentEffortDto>,
+    @Schema(description = "List of activity efforts.")
+    val activityEfforts: List<ActivityEffortDto>,
     @Schema(description = "The time at which the activity was started.")
     val startDate: String,
     @Schema(description = "The time at which the activity was started in the local timezone.")
@@ -66,6 +66,9 @@ data class DetailedActivityDto(
 )
 
 fun StravaDetailedActivity.toDto(): DetailedActivityDto {
+
+    val activityEfforts = buildActivityEfforts()
+
     return DetailedActivityDto(
         averageSpeed = this.averageSpeed.toFloat(),
         averageCadence = this.averageCadence.toInt(),
@@ -84,7 +87,7 @@ fun StravaDetailedActivity.toDto(): DetailedActivityDto {
         maxWatts = this.maxWatts,
         movingTime = this.movingTime,
         name = this.name,
-        segmentEfforts = this.segmentEfforts.map { it.toDto() },
+        activityEfforts = activityEfforts.map { it.toDto() },
         startDate = this.startDate,
         startDateLocal = this.startDateLocal,
         startLatlng = this.startLatLng,
@@ -94,38 +97,6 @@ fun StravaDetailedActivity.toDto(): DetailedActivityDto {
         type = this.type,
         weightedAverageWatts = this.weightedAverageWatts,
         stream = this.stream?.toDto(),
-    )
-}
-
-fun DetailedActivity.toDto(): DetailedActivityDto {
-    return DetailedActivityDto(
-        averageSpeed = this.averageSpeed.toFloat(),
-        averageCadence = this.averageCadence.toInt(),
-        averageHeartrate = this.averageHeartrate.toInt(),
-        maxHeartrate = this.maxHeartrate,
-        averageWatts = this.averageWatts,
-        calories = 0.0,// this.calories, // TODO: Calculate calories
-        commute = this.commute,
-        distance = this.distance,
-        deviceWatts = this.deviceWatts,
-        elapsedTime = this.elapsedTime,
-        elevHigh = this.elevHigh,
-        id = this.id,
-        kilojoules = this.kilojoules,
-        maxSpeed = this.maxSpeed,
-        maxWatts = 0, // this.maxWatts, // TODO: Calculate maxWatts
-        movingTime = this.movingTime,
-        name = this.name,
-        startDate = this.startDate,
-        startDateLocal = this.startDateLocal,
-        startLatlng = this.startLatlng,
-        sufferScore = 0.0, // this.sufferScore, // TODO: Calculate sufferScore
-        totalDescent = this.totalDescent,
-        totalElevationGain = this.totalElevationGain,
-        type = this.type,
-        weightedAverageWatts = this.weightedAverageWatts,
-        stream = this.stream?.toDto(),
-        segmentEfforts = this.segmentEfforts.mapNotNull { (key, value) -> value?.toDto(key) }
     )
 }
 
@@ -178,7 +149,7 @@ fun Stream.toDto(): StreamDto {
 }
 
 fun haversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-    val R = 6371e3 // Earth radius in meters
+    val earthRadius = 6371e3 // Earth radius in meters
     val phi1 = lat1 * PI / 180
     val phi2 = lat2 * PI / 180
     val deltaPhi = (lat2 - lat1) * PI / 180
@@ -187,11 +158,12 @@ fun haversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
     val a = sin(deltaPhi / 2).pow(2) + cos(phi1) * cos(phi2) * sin(deltaLambda / 2).pow(2)
     val c = 2 * atan2(sqrt(a), sqrt(1 - a))
 
-    return R * c
+    return earthRadius * c
 }
 
 data class ActivityEffortDto(
-    val key: String,
+    val id: String,
+    val label: String,
     val distance: Double,
     val seconds: Int,
     val deltaAltitude: Double,
@@ -201,15 +173,16 @@ data class ActivityEffortDto(
     val description: String,
 )
 
-fun ActivityEffort.toDto(key: String): ActivityEffortDto {
+fun ActivityEffort.toDto(): ActivityEffortDto {
     return ActivityEffortDto(
-        key = key,
+        id = this.label.hashCode().toString(),
+        label = this.label,
         distance = this.distance,
         seconds = this.seconds,
         deltaAltitude = this.deltaAltitude,
         idxStart = this.idxStart,
         idxEnd = this.idxEnd,
         averagePower = this.averagePower,
-        description = this.description,
+        description = this.getDescription(),
     )
 }

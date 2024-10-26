@@ -1,8 +1,10 @@
 package me.nicolas.stravastats.domain.services.statistics
 
-import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.ActivityEffort
-import java.util.*
+import me.nicolas.stravastats.domain.business.ActivityShort
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
+import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
+import me.nicolas.stravastats.domain.business.strava.stream.Stream
 
 
 internal open class BestElevationDistanceStatistic(
@@ -17,34 +19,54 @@ internal open class BestElevationDistanceStatistic(
 
     init {
         require(distance > 100) { "DistanceStream must be > 100 meters" }
-        activity = bestActivityEffort?.stravaActivity
+        activity = bestActivityEffort?.activityShort
     }
 
     override val value: String
         get() = bestActivityEffort?.getFormattedGradient() ?: "Not available"
 }
 
-/**
- * Sliding window looking for best elevation gain for a given distance.
- * @param distance given distance.
- */
 fun StravaActivity.calculateBestElevationForDistance(distance: Double): ActivityEffort? {
 
     // no stream -> return null
     if (stream == null || stream?.altitude == null) {
         return null
+    } else {
+        return activityEffort(this.id, this.name, this.type, this.stream!!, distance)
     }
+}
 
+fun StravaDetailedActivity.calculateBestElevationForDistance(distance: Double): ActivityEffort? {
+
+    // no stream -> return null
+    if (stream == null || stream?.altitude == null) {
+        return null
+    } else {
+        return activityEffort(this.id, this.name, this.type, this.stream!!, distance)
+    }
+}
+
+/**
+ * Sliding window looking for best elevation gain for a given distance.
+ * @param distance given distance.
+ */
+private fun activityEffort(
+    id: Long,
+    name: String,
+    type: String,
+    stream: Stream,
+    distance: Double
+): ActivityEffort? {
     var idxStart = 0
     var idxEnd = 0
     var bestElevation = Double.MIN_VALUE
     var bestEffort: ActivityEffort? = null
 
-    val distances = this.stream?.distance?.data!!
-    val times = this.stream?.time?.data!!
-    val altitudes = this.stream?.altitude?.data!!
+    val distances = stream.distance.data
+    val times = stream.time.data
+    val altitudes = stream.altitude?.data!!
 
-    val streamDataSize = this.stream?.distance?.originalSize!!
+    val streamDataSize = stream.distance.originalSize
 
     do {
         val totalDistance = distances[idxEnd] - distances[idxStart]
@@ -60,10 +82,18 @@ fun StravaActivity.calculateBestElevationForDistance(distance: Double): Activity
         } else {
             if (totalAltitude > bestElevation) {
                 bestElevation = totalAltitude
-                bestEffort = ActivityEffort(this, distance, totalTime, bestElevation, idxStart, idxEnd,
-                    null,
-                    "Best gradient for ${distance.toInt()}m: %.02f".format(Locale.ENGLISH, 100 * bestElevation / distance) + "%"
+                val averagePower = stream.watts?.data?.let { watts ->
+                    (idxStart..idxEnd).sumOf { watts[it] } / (idxEnd - idxStart)
+                }
+                bestEffort = ActivityEffort(
+                    distance, totalTime, bestElevation, idxStart, idxEnd, averagePower,
+                    label =  "Best gradient for ${distance.toInt()}m",
+                    activityShort = ActivityShort(
+                        id = id,
+                        name = name,
+                        type = type
                     )
+                )
             }
             ++idxStart
         }

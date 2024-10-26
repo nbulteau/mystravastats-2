@@ -6,6 +6,7 @@ import me.nicolas.stravastats.domain.business.strava.stream.AltitudeStream
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
+import me.nicolas.stravastats.domain.services.toStravaDetailedActivity
 import org.slf4j.LoggerFactory
 import java.time.LocalDate
 import java.util.*
@@ -24,7 +25,12 @@ class FitActivityProvider(fitCache: String, private val srtmProvider: SRTMProvid
     }
 
     override fun getDetailedActivity(activityId: Long): Optional<StravaDetailedActivity> {
-        TODO("Not yet implemented")
+        val activity = getActivity(activityId)
+        return if (activity.isPresent) {
+            Optional.of(activity.get().toStravaDetailedActivity())
+        } else {
+            Optional.empty()
+        }
     }
 
     private fun loadFromLocalCache(): List<StravaActivity> {
