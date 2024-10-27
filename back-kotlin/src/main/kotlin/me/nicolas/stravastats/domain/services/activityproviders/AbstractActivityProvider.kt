@@ -15,8 +15,6 @@ abstract class AbstractActivityProvider : IActivityProvider {
 
     private val logger = LoggerFactory.getLogger(AbstractActivityProvider::class.java)
 
-    protected lateinit var clientId: String
-
     protected lateinit var stravaAthlete: StravaAthlete
 
     protected lateinit var activities: List<StravaActivity>

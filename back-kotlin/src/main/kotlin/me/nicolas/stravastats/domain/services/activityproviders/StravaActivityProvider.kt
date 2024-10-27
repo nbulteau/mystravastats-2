@@ -25,6 +25,8 @@ class StravaActivityProvider(
 
     private val localStorageProvider = StravaRepository(stravaCache = stravaCache)
 
+    private val clientId: String
+
     private lateinit var stravaApi: IStravaApi
 
     init {
