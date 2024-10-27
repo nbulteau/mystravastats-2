@@ -4,14 +4,12 @@ import type { Statistics } from "@/models/statistics.model";
 const props = defineProps<{
   model: Statistics; 
 }>();
-
-console.log(props.model.activity?.link);
 </script>
 
 <template>
   <div class="combined-cell">
     <a
-      :href="model.activity?.link"
+      :href="`https://www.strava.com/activities/${model.activity?.id}`"
       target="_blank"
       class="activity-link"
     >{{ model.activity?.name }}</a>
