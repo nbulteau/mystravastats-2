@@ -158,7 +158,13 @@ class GPXRepository(gpxDirectory: String) {
         val averageCadence = if (stream.hasCadenceStream()) (stream.cadence!!.data.sum() / nbPoints).toDouble() else 0.0
         val averageHeartbeat =
             if (stream.hasHeartRateStream()) (stream.heartrate!!.data.sum() / nbPoints).toDouble() else 0.0
-        val averageWatts = if (stream.hasPowerStream()) (stream.watts!!.data.sum() / nbPoints) else 0
+        val averageWatts = if (stream.hasPowerStream()) {
+            val nonNullWatts = stream.watts!!.data.filterNotNull()
+            val nbPointsNotNull = nonNullWatts.size
+            nonNullWatts.sum() / nbPointsNotNull
+        } else {
+            0
+        }
 
         val startLatlng = listOf(
             firstTrack.segments.first().points.first().latitude.toDouble(),

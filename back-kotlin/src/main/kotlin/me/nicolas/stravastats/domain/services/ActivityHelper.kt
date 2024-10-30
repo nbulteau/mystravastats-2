@@ -55,7 +55,7 @@ object ActivityHelper {
                 segmentEffort.toActivityEffort()
             }
 
-        val activityEfforts = listOf(
+        val activityEfforts = listOfNotNull(
             this.calculateBestTimeForDistance(1000.0),
             this.calculateBestTimeForDistance(5000.0),
             this.calculateBestTimeForDistance(10000.0),
@@ -64,7 +64,6 @@ object ActivityHelper {
             this.calculateBestElevationForDistance(1000.0),
             this.calculateBestElevationForDistance(10000.0)
         )
-            .filterNotNull()
 
         return activityEfforts + activityEffortsFromSegmentSegments
     }

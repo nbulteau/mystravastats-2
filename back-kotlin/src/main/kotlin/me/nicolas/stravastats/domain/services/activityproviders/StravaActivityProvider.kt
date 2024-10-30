@@ -167,6 +167,7 @@ class StravaActivityProvider(
                 }
             }
 
+            // Clean stream
             activity.stream = stream
         }
     }

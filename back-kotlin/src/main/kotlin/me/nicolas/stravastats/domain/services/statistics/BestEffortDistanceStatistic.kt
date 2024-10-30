@@ -70,29 +70,23 @@ private fun activityEffort(
 
     val distances = stream.distance.data
     val times = stream.time.data
-    val altitudes = stream.altitude?.data!!
+    val altitudes = stream.altitude?.data ?: emptyList()
+    val nonNullWatts = stream.watts?.data?.map { it ?: 0 }
 
-    val streamDataSize = stream.distance.originalSize
+    val streamDataSize = distances.size
 
-    do {
+    while (idxEnd < streamDataSize) {
         val totalDistance = distances[idxEnd] - distances[idxStart]
-        val totalAltitude = if (altitudes.isNotEmpty()) {
-            altitudes[idxEnd] - altitudes[idxStart]
-        } else {
-            0.0
-        }
         val totalTime = times[idxEnd] - times[idxStart]
+        val totalAltitude = altitudes.getOrNull(idxEnd)?.minus(altitudes.getOrNull(idxStart) ?: 0.0) ?: 0.0
 
-        if (totalDistance < distance - 0.5) { // 999.6 m would count towards 1 km
-            ++idxEnd
+        if (totalDistance < distance - 0.5) {
+            idxEnd++
         } else {
             val estimatedTimeForDistance = distance / totalDistance * totalTime
-            // estimatedTimeForDistance > 1 to prevent corrupted data
             if (estimatedTimeForDistance < bestTime && estimatedTimeForDistance > 1) {
                 bestTime = estimatedTimeForDistance
-                val averagePower = stream.watts?.data?.let { watts ->
-                    (idxStart..idxEnd).sumOf { watts[it] } / (idxEnd - idxStart)
-                }
+                val averagePower = nonNullWatts?.subList(idxStart, idxEnd + 1)?.average()?.toInt()
                 bestEffort = ActivityEffort(
                     distance, bestTime.toInt(), totalAltitude, idxStart, idxEnd, averagePower,
                     label = "Best speed for ${distance.toInt()}m",
@@ -103,9 +97,9 @@ private fun activityEffort(
                     )
                 )
             }
-            ++idxStart
+            idxStart++
         }
-    } while (idxEnd < streamDataSize)
+    }
 
     return bestEffort
 }

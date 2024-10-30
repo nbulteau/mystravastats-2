@@ -106,7 +106,7 @@ data class StreamDto(
     val latlng: List<List<Double>>? = null,
     val moving: List<Boolean>? = null,
     val altitude: List<Double>? = null,
-    val watts: List<Int>? = null,
+    val watts: List<Int?>? = null,
     val velocitySmooth: List<Double>? = null,
 )
 

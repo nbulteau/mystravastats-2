@@ -74,7 +74,10 @@ private fun activityEffort(
     seconds: Int
 ): ActivityEffort? {
     val altitudes = stream.altitude?.data
-    val watts = stream.watts?.data ?: return null
+
+    stream.watts?.data ?: return null
+
+    val nonNullWatts: List<Int> = stream.watts.data.map { it ?: 0 }
 
     var idxStart = 0
     var idxEnd = 0
@@ -85,6 +88,8 @@ private fun activityEffort(
     val times = stream.time.data
     val streamDataSize = distances.size
 
+    var currentPower = 0
+
     do {
         val totalDistance = distances[idxEnd] - distances[idxStart]
         val totalAltitude = if (altitudes?.isNotEmpty() == true) {
@@ -93,20 +98,16 @@ private fun activityEffort(
             0.0
         }
 
-        val totalPower = if (watts.isNotEmpty()) {
-            (idxStart..idxEnd).sumOf { watts[it] }
-        } else {
-            0
-        }
+        currentPower += nonNullWatts[idxEnd]
 
         val totalTime = times[idxEnd] - times[idxStart]
 
         if (totalTime < seconds) {
             ++idxEnd
         } else {
-            if (totalPower > maxPower) {
-                maxPower = totalPower
-                val averagePower = totalPower / (idxEnd - idxStart)
+            if (currentPower > maxPower) {
+                maxPower = currentPower
+                val averagePower = currentPower / (idxEnd - idxStart + 1)
                 bestEffort = ActivityEffort(
                     totalDistance, seconds, totalAltitude, idxStart, idxEnd, averagePower,
                     label = "Best power for ${seconds.formatSeconds()}",
@@ -117,7 +118,9 @@ private fun activityEffort(
                     )
                 )
             }
+            currentPower -= nonNullWatts[idxStart]
             ++idxStart
+            ++idxEnd
         }
     } while (idxEnd < streamDataSize)
 

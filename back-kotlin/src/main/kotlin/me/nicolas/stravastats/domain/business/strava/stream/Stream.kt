@@ -8,7 +8,7 @@ import me.nicolas.stravastats.domain.business.strava.PowerStream
 data class Stream(
     val distance: DistanceStream,
     val time: TimeStream,
-    val latlng: LatLngStream?= null,
+    val latlng: LatLngStream? = null,
     val cadence: CadenceStream? = null,
     val heartrate: HeartRateStream? = null,
     val moving: MovingStream? = null,

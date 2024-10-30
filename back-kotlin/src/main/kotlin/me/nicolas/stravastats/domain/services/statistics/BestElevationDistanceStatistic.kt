@@ -55,7 +55,7 @@ private fun activityEffort(
     name: String,
     type: String,
     stream: Stream,
-    distance: Double
+    distance: Double,
 ): ActivityEffort? {
     var idxStart = 0
     var idxEnd = 0
@@ -65,6 +65,7 @@ private fun activityEffort(
     val distances = stream.distance.data
     val times = stream.time.data
     val altitudes = stream.altitude?.data!!
+    val nonNullWatts: List<Int>? = stream.watts?.data?.map { it ?: 0 }
 
     val streamDataSize = stream.distance.originalSize
 
@@ -82,12 +83,12 @@ private fun activityEffort(
         } else {
             if (totalAltitude > bestElevation) {
                 bestElevation = totalAltitude
-                val averagePower = stream.watts?.data?.let { watts ->
-                    (idxStart..idxEnd).sumOf { watts[it] } / (idxEnd - idxStart)
+                val averagePower = nonNullWatts?.let {
+                    (idxStart..idxEnd).sumOf { nonNullWatts[it] } / (idxEnd - idxStart)
                 }
                 bestEffort = ActivityEffort(
                     distance, totalTime, bestElevation, idxStart, idxEnd, averagePower,
-                    label =  "Best gradient for ${distance.toInt()}m",
+                    label = "Best gradient for ${distance.toInt()}m",
                     activityShort = ActivityShort(
                         id = id,
                         name = name,

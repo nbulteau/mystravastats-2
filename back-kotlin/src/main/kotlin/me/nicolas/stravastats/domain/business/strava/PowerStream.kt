@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 
 data class PowerStream(
     @JsonProperty("data")
-    val `data`: List<Int>,
+    val `data`: List<Int?>,
     @JsonProperty("original_size")
     val originalSize: Int,
     val resolution: String,
