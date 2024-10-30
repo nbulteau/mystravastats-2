@@ -71,9 +71,11 @@ class StravaActivityProvider(
             val detailedActivity = stravaApi!!.getDetailedActivity(activityId)
             if (detailedActivity.isPresent) {
                 localStorageProvider.saveDetailedActivityToCache(clientId, year, detailedActivity.get())
+                stravaDetailedActivity = detailedActivity.get()
             }
-            stravaDetailedActivity = detailedActivity.get()
-        } else {
+        }
+
+        if (stravaDetailedActivity == null) {
             // Detailed activity not found on Strava, return the activity without details
             stravaDetailedActivity = activity.toStravaDetailedActivity()
         }

@@ -25,7 +25,7 @@ data class StravaDetailedActivity(
     @JsonProperty("comment_count")
     val commentCount: Int,
     val commute: Boolean,
-    val description: String,
+    val description: String?,
     @JsonProperty("device_name")
     val deviceName: String?,
     @JsonProperty("device_watts")
@@ -46,9 +46,9 @@ data class StravaDetailedActivity(
     val flagged: Boolean,
     @JsonProperty("from_accepted_tag")
     val fromAcceptedTag: Boolean,
-    val gear: Gear,
+    val gear: Gear?,
     @JsonProperty("gear_id")
-    val gearId: String,
+    val gearId: String?,
     @JsonProperty("has_heartrate")
     val hasHeartRate: Boolean,
     @JsonProperty("has_kudoed")
