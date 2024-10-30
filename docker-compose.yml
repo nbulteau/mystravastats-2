@@ -6,8 +6,8 @@ services:
     image: nbulteau/mystravastats-back-kotlin:latest
     container_name: mystravastats-backend
     ports:
-      - 8080:8080
-      - 8090:8090
+      - "8080:8080"
+      - "8090:8090"
     volumes:
       - ${STRAVA_CACHE_PATH}:/app/strava-cache
 
@@ -16,7 +16,7 @@ services:
     image: nbulteau/mystravastats-ui:latest
     container_name: mystravastats-ui
     ports:
-      - 80:80
+      - "80:80"
     depends_on:
       - back
     networks: 

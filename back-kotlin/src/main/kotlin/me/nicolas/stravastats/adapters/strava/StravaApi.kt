@@ -95,6 +95,9 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
 
     override fun getDetailedActivity(activityId: Long): Optional<StravaDetailedActivity> {
         try {
+            if(accessToken == null) {
+                return Optional.empty()
+            }
             return doGetActivity(activityId)
         } catch (connectException: ConnectException) {
             throw RuntimeException("Unable to connect to Strava API : ${connectException.message}")
