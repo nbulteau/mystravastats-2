@@ -346,6 +346,10 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
                     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
                     text-align: center;
                 }
+                .custom-class {
+                    color: #007bff;
+                    font-weight: bold;
+                }
                 h1 {
                     color: #333;
                 }
@@ -357,11 +361,12 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
         <body>
             <div class="container">
                 <h1>Access Granted</h1>
-                <p>Access granted to read activities of clientId: $clientId.</p>
+                <p class="custom-class">Access granted to read activities of clientId: $clientId.</p>
+                <p>You can now close this window.</p>
             </div>
         </body>
         </html>
-        """.trimIndent()
+    """.trimIndent()
 
     private fun getToken(clientId: String, clientSecret: String, authorizationCode: String): Token {
 
