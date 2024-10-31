@@ -298,7 +298,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
                     get("/exchange_token") {
                         val authorizationCode = call.request.queryParameters["code"] ?: "no authorization code"
                         call.respondText(
-                            "Access granted to read activities of clientId: $clientId.",
+                            buildResponseHtml(clientId),
                             ContentType.Text.Html
                         )
                         launch {
@@ -321,6 +321,47 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
             embeddedServer.stop(1000, 1000)
         }
     }
+
+    private fun buildResponseHtml(clientId: String): String = """
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Access Granted</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    background-color: #f4f4f4;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                    margin: 0;
+                }
+                .container {
+                    background-color: #fff;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                    text-align: center;
+                }
+                h1 {
+                    color: #333;
+                }
+                p {
+                    color: #666;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Access Granted</h1>
+                <p>Access granted to read activities of clientId: $clientId.</p>
+            </div>
+        </body>
+        </html>
+        """.trimIndent()
 
     private fun getToken(clientId: String, clientSecret: String, authorizationCode: String): Token {
 

@@ -4,7 +4,7 @@ import { computed } from "vue";
 import ByMonthsChart from "@/components/charts/ByMonthsChart.vue";
 import ByWeeksChart from "@/components/charts/ByWeeksChart.vue";
 import AverageSpeedByMonthsChart from "@/components/charts/AverageSpeedByMonthsChart.vue";
-import CumulativeDistancePerYearChart from "@/components/charts/CumulativeDistancePerYearChart.vue";
+import CumulativeDistancePerYearChart from "@/components/charts/CumulativeDataPerYearChart.vue";
 import EddingtonNumberChart from "@/components/charts/EddingtonNumberChart.vue";
 
 const contextStore = useContextStore();
@@ -18,6 +18,7 @@ const averageSpeedByMonths = computed(() => contextStore.averageSpeedByMonths);
 const distanceByWeeks = computed(() => contextStore.distanceByWeeks);
 const elevationByWeeks = computed(() => contextStore.elevationByWeeks);
 const cumulativeDistancePerYear = computed(() => contextStore.cumulativeDistancePerYear);
+const cumulativeElevationPerYear = computed(() => contextStore.cumulativeElevationPerYear);
 const eddingtonNumber = computed(() => contextStore.eddingtonNumber);
 </script>
 
@@ -27,9 +28,8 @@ const eddingtonNumber = computed(() => contextStore.eddingtonNumber);
     :eddington-number="eddingtonNumber"
   />
   <CumulativeDistancePerYearChart
-    :title="`Cumulative distance per year for ${currentActivity}`"
-    :current-year="currentYear"
-    :cumulative-distance-per-year="cumulativeDistancePerYear"
+      :cumulative-distance-per-year="cumulativeDistancePerYear"
+      :cumulative-elevation-per-year="cumulativeElevationPerYear"
   />
   <div v-if="currentYear !== 'All years'">
     <ByMonthsChart

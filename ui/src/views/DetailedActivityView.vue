@@ -135,18 +135,17 @@
 
 <script setup lang="ts">
 import "bootstrap";
+import {Tooltip} from 'bootstrap'; // Import Bootstrap Tooltip
 import 'leaflet/dist/leaflet.css';
-import { onMounted, ref, reactive, nextTick, computed } from "vue";
-import { useRoute } from "vue-router";
+import {computed, nextTick, onMounted, reactive, ref} from "vue";
+import {useRoute} from "vue-router";
 import L from "leaflet";
-import { ActivityEffort, DetailedActivity } from "@/models/activity.model"; // Ensure correct import
-import { formatSpeedWithUnit, formatTime } from "@/utils/formatters";
+import {ActivityEffort, DetailedActivity} from "@/models/activity.model"; // Ensure correct import
+import {formatSpeedWithUnit, formatTime} from "@/utils/formatters";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { useContextStore } from "@/stores/context.js";
-import { type Options, type SeriesAreaOptions, type SeriesLineOptions } from "highcharts";
-import Highcharts from "highcharts";
-import { Chart } from "highcharts-vue";
-import { Tooltip } from 'bootstrap'; // Import Bootstrap Tooltip
+import {useContextStore} from "@/stores/context.js";
+import Highcharts, {type Options, type SeriesAreaOptions, type SeriesLineOptions} from "highcharts";
+import {Chart} from "highcharts-vue";
 
 const contextStore = useContextStore();
 contextStore.updateCurrentView("activity");
@@ -187,9 +186,7 @@ const buildRadioOptions = () => {
 
 async function fetchDetailedActivity(id: string) {
   const url = `http://localhost:8080/api/activities/${id}`;
-  const detailedActivity = await fetch(url).then((response) => response.json());
-
-  activity.value = detailedActivity;
+  activity.value = await fetch(url).then((response) => response.json());
 }
 
 const initMap = () => {
@@ -445,7 +442,7 @@ onMounted(async () => {
     // Initialize tooltips for radio labels
     radioLabels.value.forEach(label => {
       new Tooltip(label, {
-        title: label.getAttribute('title') || '',
+        title: "<div class='tooltip-inner'>" + label.getAttribute('title') + "</div>" || '',
         html: true
       });
     });
@@ -456,13 +453,6 @@ onMounted(async () => {
 <style scoped>
 #chart-container {
   margin-top: 20px;
-}
-
-#map {
-  width: 100%;
-  height: 100%;
-  border-radius: 10px;
-  /* Example of custom styling */
 }
 
 #activity-details-container {
@@ -487,23 +477,14 @@ onMounted(async () => {
 
 }
 
-/* Custom Tooltip Styles */
 .tooltip-inner {
-  text-align: left; /* Align text to the left */
-  --bs-tooltip-max-width: 500px;
-  /* Define the custom property for max-width */
-  max-width: var(--bs-tooltip-max-width);
-  /* Apply the custom property */
-  background-color: #343a40;
-  /* Dark background color */
-  color: #ffffff;
-  /* White text color */
-  font-size: 1rem;
-  /* Increase font size */
-  padding: 10px;
-  /* Add padding */
-  border-radius: 5px;
-  /* Rounded corners */
+  --bs-tooltip-max-width: 300px; /* Define the custom property for max-width */
+  max-width: var(--bs-tooltip-max-width); /* Apply the custom property */
+  background-color: #343a40; /* Dark background color */
+  color: #ffffff; /* White text color */
+  font-size: 1rem; /* Increase font size */
+  padding: 10px; /* Add padding */
+  border-radius: 5px; /* Rounded corners */
 }
 
 .tooltip-inner ul,

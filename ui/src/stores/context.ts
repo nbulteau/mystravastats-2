@@ -25,6 +25,7 @@ export const useContextStore = defineStore('context', {
         distanceByWeeks: Map<string, number>[],
         elevationByWeeks: Map<string, number>[],
         cumulativeDistancePerYear: Map<string, Map<string, number>>,
+        cumulativeElevationPerYear: Map<string, Map<string, number>>,
         eddingtonNumber: EddingtonNumber,
         generalBadgesCheckResults: BadgeCheckResult[],
         famousClimbBadgesCheckResults: BadgeCheckResult[],
@@ -48,6 +49,7 @@ export const useContextStore = defineStore('context', {
             elevationByWeeks: [],
             eddingtonNumber: new EddingtonNumber(),
             cumulativeDistancePerYear: new Map<string, Map<string, number>>(),
+            cumulativeElevationPerYear: new Map<string, Map<string, number>>(),
             generalBadgesCheckResults: [],
             famousClimbBadgesCheckResults: [],
 
@@ -132,16 +134,37 @@ export const useContextStore = defineStore('context', {
 
             for (const year in data) {
                 if (Object.prototype.hasOwnProperty.call(data, year)) {
-                    const monthsData = new Map<string, number>();
-                    for (const month in data[year]) {
-                        if (Object.prototype.hasOwnProperty.call(data[year], month)) {
-                            monthsData.set(month, data[year][month]);
+                    const daysData = new Map<string, number>();
+                    for (const datumKey in data[year]) {
+                        if (Object.prototype.hasOwnProperty.call(data[year], datumKey)) {
+                            daysData.set(datumKey, data[year][datumKey]);
                         }
                     }
-                    cumulativeDistancePerYear.set(year, monthsData);
+                    cumulativeDistancePerYear.set(year, daysData);
                 }
             }
             this.cumulativeDistancePerYear = cumulativeDistancePerYear;
+        },
+        async fetchCumulativeElevationPerYear() {
+            const data = await fetch(
+                `http://localhost:8080/api/charts/cumulative-elevation-per-year?activityType=${this.currentActivity}`,
+            ).then(response => response.json())
+
+            // Convert the fetched data to a Map<string, Map<string, number>>
+            const cumulativeElevationPerYear = new Map<string, Map<string, number>>();
+
+            for (const year in data) {
+                if (Object.prototype.hasOwnProperty.call(data, year)) {
+                    const daysData = new Map<string, number>();
+                    for (const datumKey in data[year]) {
+                        if (Object.prototype.hasOwnProperty.call(data[year], datumKey)) {
+                            daysData.set(datumKey, data[year][datumKey]);
+                        }
+                    }
+                    cumulativeElevationPerYear.set(year, daysData);
+                }
+            }
+            this.cumulativeElevationPerYear = cumulativeElevationPerYear;
         },
         async fetchEddingtonNumber() {
             // noinspection UnnecessaryLocalVariableJS
@@ -177,6 +200,7 @@ export const useContextStore = defineStore('context', {
                 case 'charts':
                     await this.fetchEddingtonNumber()
                     await this.fetchCumulativeDistancePerYear()
+                    await this.fetchCumulativeElevationPerYear()
                     if (this.currentYear != 'All years') {
                         await this.fetchDistanceByMonths()
                         await this.fetchElevationByMonths()

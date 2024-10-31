@@ -37,6 +37,8 @@ interface IChartsService {
 
     fun getCumulativeDistancePerYear(activityType: ActivityType): Map<String, Map<String, Double>>
 
+    fun getCumulativeElevationPerYear(activityType: ActivityType): Map<String, Map<String, Int>>
+
     fun getEddingtonNumber(activityType: ActivityType): EddingtonNumber
 }
 
@@ -137,6 +139,22 @@ internal class ChartsService(
                 null
             }
             cumulativeDistance?.let { year.toString() to it }
+        }.toMap()
+    }
+
+    override fun getCumulativeElevationPerYear(activityType: ActivityType): Map<String, Map<String, Int>> {
+        logger.info("Get cumulative elevation per year for stravaActivity type $activityType")
+
+        val activitiesByYear = activityProvider.getActivitiesByActivityTypeGroupByYear(activityType)
+
+        return (2010..LocalDate.now().year).mapNotNull { year ->
+            val cumulativeElevation = if (activitiesByYear[year.toString()] != null) {
+                val activitiesByDay = groupActivitiesByDay(activitiesByYear[year.toString()]!!, year)
+                cumulativeElevation(activitiesByDay)
+            } else {
+                null
+            }
+            cumulativeElevation?.let { year.toString() to it }
         }.toMap()
     }
 
@@ -278,6 +296,13 @@ internal class ChartsService(
         var sum = 0.0
         return activities.mapValues { (_, activities) ->
             sum += activities.sumOf { activity -> activity.distance / 1000 }; sum
+        }
+    }
+
+    private fun cumulativeElevation(activities: Map<String, List<StravaActivity>>): Map<String, Int> {
+        var sum = 0
+        return activities.mapValues { (_, activities) ->
+            sum += activities.sumOf { activity -> activity.totalElevationGain.toInt() }; sum
         }
     }
 }

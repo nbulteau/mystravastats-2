@@ -105,8 +105,8 @@ class ChartsController(
     }
 
     @Operation(
-        description = "Get the cumulative distance by months for a specific stravaActivity type and year",
-        summary = "Get the cumulative distance by months for a specific stravaActivity type and year",
+        description = "Get the cumulative distance by for a year",
+        summary = "Get the cumulative distance by for a year for a specific stravaActivity type",
         responses = [ApiResponse(
             responseCode = "200", description = "Cumulative distance by months found",
             content = [Content(
@@ -127,6 +127,31 @@ class ChartsController(
     ): Map<String, Map<String, Double>> {
 
         return chartsService.getCumulativeDistancePerYear(activityType)
+    }
+
+    @Operation(
+        description = "Get the cumulative elevation by for a year",
+        summary = "Get the cumulative elevation by for a year for a specific stravaActivity type",
+        responses = [ApiResponse(
+            responseCode = "200", description = "Cumulative elevation by months found",
+            content = [Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = Schema(implementation = Map::class)
+            )]
+        ), ApiResponse(
+            responseCode = "404", description = "Cumulative elevation by months not found",
+            content = [Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = Schema(implementation = ErrorResponseMessageDto::class)
+            )]
+        )],
+    )
+    @GetMapping("/cumulative-elevation-per-year")
+    fun getCumulativeElevationPerYear(
+        activityType: ActivityType,
+    ): Map<String, Map<String, Int>> {
+
+        return chartsService.getCumulativeElevationPerYear(activityType)
     }
 
     @Operation(
