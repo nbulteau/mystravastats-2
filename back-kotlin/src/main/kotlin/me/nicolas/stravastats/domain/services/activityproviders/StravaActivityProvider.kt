@@ -123,16 +123,21 @@ class StravaActivityProvider(
                 }
 
                 val previousYearsActivities = async {
-                    val activities = mutableListOf<StravaActivity>()
+                    val loadedActivities = mutableListOf<StravaActivity>()
                     for (yearToLoad in currentYear - 1 downTo 2010) {
                         if (localStorageProvider.isLocalCacheExistForYear(clientId, yearToLoad)) {
-                            activities.addAll(localStorageProvider.loadActivitiesFromCache(clientId, yearToLoad))
+                            localStorageProvider.loadActivitiesFromCache(clientId, yearToLoad).let { activities ->
+                                // Load missing activities streams
+                                loadActivitiesStreams(clientId, yearToLoad,
+                                    activities.filter { activity -> activity.stream == null })
+                                loadedActivities.addAll(activities)
+                            }
                         } else {
-                            activities.addAll(retrieveActivities(clientId, yearToLoad))
+                            loadedActivities.addAll(retrieveActivities(clientId, yearToLoad))
                         }
                     }
 
-                    activities
+                    loadedActivities
                 }
 
                 loadedActivities.addAll(currentYearActivities.await())
