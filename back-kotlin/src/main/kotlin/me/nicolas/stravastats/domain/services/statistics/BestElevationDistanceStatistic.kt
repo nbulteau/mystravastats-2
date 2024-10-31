@@ -32,6 +32,8 @@ fun StravaActivity.calculateBestElevationForDistance(distance: Double): Activity
     if (stream == null || stream?.altitude == null) {
         return null
     } else {
+        val foo = activityEffort(this.id, this.name, this.type, this.stream!!, distance)
+        println(foo)
         return activityEffort(this.id, this.name, this.type, this.stream!!, distance)
     }
 }
@@ -39,10 +41,10 @@ fun StravaActivity.calculateBestElevationForDistance(distance: Double): Activity
 fun StravaDetailedActivity.calculateBestElevationForDistance(distance: Double): ActivityEffort? {
 
     // no stream -> return null
-    if (stream == null || stream?.altitude == null) {
-        return null
+    return if (stream == null || stream?.altitude == null) {
+        null
     } else {
-        return activityEffort(this.id, this.name, this.type, this.stream!!, distance)
+        activityEffort(this.id, this.name, this.type, this.stream!!, distance)
     }
 }
 
