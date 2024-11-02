@@ -4,6 +4,7 @@ import {computed} from "vue";
 import CumulativeDistancePerYearChart from "@/components/charts/CumulativeDataPerYearChart.vue";
 import EddingtonNumberChart from "@/components/charts/EddingtonNumberChart.vue";
 import SpeedPerYearChart from "@/components/charts/SpeedPerYearChart.vue";
+import DistancePerYearChart from "@/components/charts/DistancePerYearChart.vue";
 
 const contextStore = useContextStore();
 contextStore.updateCurrentView("dashboard");
@@ -14,6 +15,9 @@ const cumulativeElevationPerYear = computed(() => contextStore.cumulativeElevati
 const eddingtonNumber = computed(() => contextStore.eddingtonNumber);
 const averageSpeedByYear = computed(() => contextStore.dashboardData.averageSpeedByYear);
 const maxSpeedByYear = computed(() => contextStore.dashboardData.maxSpeedByYear);
+const totalDistanceByYear = computed(() => contextStore.dashboardData.totalDistanceByYear);
+const averageDistanceByYear = computed(() => contextStore.dashboardData.averageDistanceByYear);
+const maxDistanceByYear = computed(() => contextStore.dashboardData.maxDistanceByYear);
 
 </script>
 
@@ -25,6 +29,10 @@ const maxSpeedByYear = computed(() => contextStore.dashboardData.maxSpeedByYear)
   <CumulativeDistancePerYearChart
       :cumulative-distance-per-year="cumulativeDistancePerYear"
       :cumulative-elevation-per-year="cumulativeElevationPerYear"
+  />
+  <DistancePerYearChart
+      :average-distance-by-year="averageDistanceByYear"
+      :max-distance-by-year="maxDistanceByYear"
   />
   <SpeedPerYearChart
       :activity-type="currentActivity"

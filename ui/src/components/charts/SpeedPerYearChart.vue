@@ -2,6 +2,7 @@
 import {computed, reactive, watch} from "vue";
 import {Chart} from "highcharts-vue";
 import type {SeriesColumnOptions, SeriesLineOptions, SeriesOptionsType, YAxisOptions} from "highcharts";
+import {formatSpeed, formatSpeedWithUnit} from "@/utils/formatters";
 
 const props = defineProps<{
   activityType: string;
@@ -44,11 +45,15 @@ const chartOptions = reactive({
   },
   tooltip: {
     formatter: function (this: any): string {
-      const speed = formatSpeedWithUnit(this.y, props.activityType);
-
-      return this.points.reduce(function (s: string) {
-        return `${s}: <span>${speed}</span>`;
-      }, "<b>" + this.x + "</b>");
+      return this.points.reduce(function (
+              s: any,
+              point: {
+                color: any; series: { name: string }; y: string
+              }
+          ) {
+        const speed = formatSpeedWithUnit(parseFloat(point.y), props.activityType);
+        return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${speed}`; },
+          "<b>" + this.x + "</b>");
     },
     shared: true,
   },
@@ -98,11 +103,10 @@ function updateChartData() {
     return;
   }
 
-  const averageSpeedData = Object.values(averageSpeedByYear);
-  const maxSpeedData = Object.values(maxSpeedByYear);
-  chartOptions.xAxis.categories = Object.keys(averageSpeedByYear);
-
   if (chartOptions.series && chartOptions.series.length > 0) {
+    const averageSpeedData = Object.values(averageSpeedByYear);
+    const maxSpeedData = Object.values(maxSpeedByYear);
+    chartOptions.xAxis.categories = Object.keys(averageSpeedByYear);
 
     const maxAverageSpeed = Math.max(...averageSpeedData);
     const maxAverageSpeedIndex = averageSpeedData.indexOf(maxAverageSpeed);
@@ -141,43 +145,7 @@ function calculateTrendLine(data: number[]): number[] {
   return data.map((_, index) => slope * index + intercept);
 }
 
-/**
- * Format speed (m/s)
- */
-function formatSpeed(speed: number, activityType: string): string {
-  if (activityType === "Run") {
-    return `${formatSeconds(1000 / speed)}`;
-  } else {
-    return `${(speed * 3.6).toFixed(2)}`;
-  }
-}
 
-function formatSpeedWithUnit(speed: number, activityType: string): string {
-  if (activityType === "Run") {
-    return `${formatSeconds(1000 / speed)}/km`;
-  } else {
-    return `${(speed * 3.6).toFixed(2)} km/h`;
-  }
-}
-
-/**
- * Format seconds to minutes and seconds
- */
-function formatSeconds(seconds: number): string {
-  let min = Math.floor((seconds % 3600) / 60);
-  let sec = Math.floor(seconds % 60);
-  const hnd = Math.floor((seconds - min * 60 - sec) * 100 + 0.5);
-
-  if (hnd === 100) {
-    sec++;
-    if (sec === 60) {
-      sec = 0;
-      min++;
-    }
-  }
-
-  return `${min}'${sec < 10 ? "0" : ""}${sec}`;
-}
 
 watch(
     () => props.averageSpeedByYear || props.maxSpeedByYear || props.activityType,

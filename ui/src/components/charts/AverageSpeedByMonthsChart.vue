@@ -2,6 +2,7 @@
 import { computed, reactive, watch } from "vue";
 import { Chart } from "highcharts-vue";
 import type { SeriesColumnOptions, YAxisOptions } from "highcharts";
+import {formatSpeed, formatSpeedWithUnit} from "@/utils/formatters";
 
 const props = defineProps<{
   activityType: string;
@@ -103,44 +104,6 @@ const chartOptions: Highcharts.Options = reactive({
 // Function to convert the array of objects to an array of numbers
 function convertToNumberArray(data: Map<string, number>[]): number[] {
   return data.map((item) => Object.values(item)[0], props.activityType);
-}
-
-/**
- * Format speed (m/s)
- */
-function formatSpeed(speed: number, activityType: string): string {
-  if (activityType === "Run") {
-    return `${formatSeconds(1000 / speed)}`;
-  } else {
-    return `${(speed * 3.6).toFixed(2)}`;
-  }
-}
-
-function formatSpeedWithUnit(speed: number, activityType: string): string {
-  if (activityType === "Run") {
-    return `${formatSeconds(1000 / speed)}/km`;
-  } else {
-    return `${(speed * 3.6).toFixed(2)} km/h`;
-  }
-}
-
-/**
- * Format seconds to minutes and seconds
- */
-function formatSeconds(seconds: number): string {
-  let min = Math.floor((seconds % 3600) / 60);
-  let sec = Math.floor(seconds % 60);
-  const hnd = Math.floor((seconds - min * 60 - sec) * 100 + 0.5);
-
-  if (hnd === 100) {
-    sec++;
-    if (sec === 60) {
-      sec = 0;
-      min++;
-    }
-  }
-
-  return `${min}'${sec < 10 ? "0" : ""}${sec}`;
 }
 
 // Watch for changes in distanceByMonths and update the chart data
