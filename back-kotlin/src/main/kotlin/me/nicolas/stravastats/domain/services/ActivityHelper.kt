@@ -11,6 +11,13 @@ import me.nicolas.stravastats.domain.business.strava.StravaSegmentEffort
 import me.nicolas.stravastats.domain.services.statistics.calculateBestDistanceForTime
 import me.nicolas.stravastats.domain.services.statistics.calculateBestElevationForDistance
 import me.nicolas.stravastats.domain.services.statistics.calculateBestTimeForDistance
+import me.nicolas.stravastats.domain.utils.inDateTimeFormatter
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.Month
+import java.time.format.TextStyle
+import java.time.temporal.WeekFields
+import java.util.Locale
 
 object ActivityHelper {
     /**
@@ -67,69 +74,147 @@ object ActivityHelper {
 
         return activityEfforts + activityEffortsFromSegmentSegments
     }
+
+    /**
+     * Group activities by month
+     * @param activities list of activities
+     * @return a map with the month as key and the list of activities as value
+     * @see StravaActivity
+     */
+    fun groupActivitiesByMonth(activities: List<StravaActivity>): Map<String, List<StravaActivity>> {
+        val activitiesByMonth =
+            activities.groupBy { activity -> activity.startDateLocal.subSequence(5, 7).toString() }.toMutableMap()
+
+        // Add months without activities
+        for (month in (1..12)) {
+            if (!activitiesByMonth.contains("$month".padStart(2, '0'))) {
+                activitiesByMonth["$month".padStart(2, '0')] = emptyList()
+            }
+        }
+
+        return activitiesByMonth.toSortedMap().mapKeys { (key, _) ->
+            Month.of(key.toInt()).getDisplayName(TextStyle.FULL_STANDALONE, Locale.getDefault())
+        }.toMap()
+    }
+
+    /**
+     * Group activities by week
+     * @param activities list of activities
+     * @return a map with the week as key and the list of activities as value
+     * @see StravaActivity
+     */
+    fun groupActivitiesByWeek(activities: List<StravaActivity>): Map<String, List<StravaActivity>> {
+
+        val activitiesByWeek = activities.groupBy { activity ->
+            val week = LocalDateTime.parse(activity.startDateLocal, inDateTimeFormatter)
+                .get(WeekFields.of(Locale.getDefault()).weekOfYear())
+            "$week".padStart(2, '0')
+        }.toMutableMap()
+
+        // Add weeks without activities
+        for (week in (1..52)) {
+            if (!activitiesByWeek.contains("$week".padStart(2, '0'))) {
+                activitiesByWeek["$week".padStart(2, '0')] = emptyList()
+            }
+        }
+
+        return activitiesByWeek.toSortedMap()
+    }
+
+    /**
+     * Group activities by day
+     * @param activities list of activities
+     * @return a map with the day as key and the list of activities as value
+     * @see StravaActivity
+     */
+    fun groupActivitiesByDay(activities: List<StravaActivity>, year: Int): Map<String, List<StravaActivity>> {
+        val activitiesByDay =
+            activities.groupBy { activity -> activity.startDateLocal.subSequence(5, 10).toString() }.toMutableMap()
+
+        // Add days without activities
+        var currentDate = LocalDate.ofYearDay(year, 1)
+        for (i in (0..365 + if (currentDate.isLeapYear) 1 else 0)) {
+            currentDate = currentDate.plusDays(1L)
+            val dayString =
+                "${currentDate.monthValue}".padStart(2, '0') + "-" + "${currentDate.dayOfMonth}".padStart(2, '0')
+            if (!activitiesByDay.containsKey(dayString)) {
+                activitiesByDay[dayString] = emptyList()
+            }
+        }
+
+        return activitiesByDay.toSortedMap()
+    }
 }
 
 fun StravaActivity.toStravaDetailedActivity(): StravaDetailedActivity {
     return StravaDetailedActivity(
-        achievementCount = 0, 
+        achievementCount = 0,
         athlete = MetaActivity(id = 0),
-        athleteCount = 1, 
+        athleteCount = 1,
         averageCadence = this.averageCadence,
         averageHeartrate = this.averageHeartrate,
         averageSpeed = this.averageSpeed,
-        averageTemp = 0, 
+        averageTemp = 0,
         averageWatts = this.averageWatts.toDouble(),
-        calories = 0.0, 
-        commentCount = 0, 
+        calories = 0.0,
+        commentCount = 0,
         commute = this.commute,
-        description = "", 
-        deviceName = null, 
+        description = "",
+        deviceName = null,
         deviceWatts = this.deviceWatts,
         distance = this.distance.toInt(),
         elapsedTime = this.elapsedTime,
         elevHigh = this.elevHigh,
-        elevLow = 0.0, 
-        embedToken = "", 
-        endLatLng = listOf(), 
-        externalId = "", 
-        flagged = false, 
-        fromAcceptedTag = false, 
-        gear = Gear(id = "", distance = 0, convertedDistance = 0.0, name = "", nickname = "", primary = false, retired = false),
-        gearId = "", 
-        hasHeartRate = true, 
-        hasKudoed = false, 
-        hideFromHome = false, 
+        elevLow = 0.0,
+        embedToken = "",
+        endLatLng = listOf(),
+        externalId = "",
+        flagged = false,
+        fromAcceptedTag = false,
+        gear = Gear(
+            id = "",
+            distance = 0,
+            convertedDistance = 0.0,
+            name = "",
+            nickname = "",
+            primary = false,
+            retired = false
+        ),
+        gearId = "",
+        hasHeartRate = true,
+        hasKudoed = false,
+        hideFromHome = false,
         id = this.id,
         kilojoules = this.kilojoules,
-        kudosCount = 0, 
-        leaderboardOptOut = false, 
-        map = null, 
-        manual = false, 
+        kudosCount = 0,
+        leaderboardOptOut = false,
+        map = null,
+        manual = false,
         maxHeartrate = this.maxHeartrate,
         maxSpeed = this.maxSpeed.toDouble(),
-        maxWatts = 0, 
+        maxWatts = 0,
         movingTime = this.movingTime,
         name = this.name,
-        prCount = 0, 
-        isPrivate = false, 
-        resourceState = 0, 
-        segmentEfforts = listOf(), 
-        segmentLeaderboardOptOut = false, 
-        splitsMetric = listOf(), 
+        prCount = 0,
+        isPrivate = false,
+        resourceState = 0,
+        segmentEfforts = listOf(),
+        segmentLeaderboardOptOut = false,
+        splitsMetric = listOf(),
         sportType = this.type,
         startDate = this.startDate,
         startDateLocal = this.startDateLocal,
         startLatLng = this.startLatlng ?: listOf(),
-        sufferScore = null, 
-        timezone = "", 
+        sufferScore = null,
+        timezone = "",
         totalElevationGain = this.totalElevationGain.toInt(),
-        totalPhotoCount = 0, 
-        trainer = false, 
+        totalPhotoCount = 0,
+        trainer = false,
         type = this.type,
         uploadId = this.uploadId,
-        utcOffset = 0, 
+        utcOffset = 0,
         weightedAverageWatts = this.weightedAverageWatts,
-        workoutType = 0, 
+        workoutType = 0,
         stream = this.stream
     )
 }

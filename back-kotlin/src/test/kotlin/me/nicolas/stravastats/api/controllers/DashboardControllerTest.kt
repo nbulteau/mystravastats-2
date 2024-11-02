@@ -3,7 +3,7 @@ package me.nicolas.stravastats.api.controllers
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import me.nicolas.stravastats.domain.business.ActivityType
-import me.nicolas.stravastats.domain.services.IChartsService
+import me.nicolas.stravastats.domain.services.IDashboardService
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
@@ -22,7 +22,7 @@ class DashboardControllerTest{
     private lateinit var mockMvc: MockMvc
 
     @MockkBean
-    private lateinit var chartsService: IChartsService
+    private lateinit var dashboardService: IDashboardService
 
     @Test
     fun `get cumulative distance per year returns distances when valid activity type`() {
@@ -38,8 +38,8 @@ class DashboardControllerTest{
             "2022" to mapOf("January" to 300, "February" to 2500)
         )
 
-        every { chartsService.getCumulativeDistancePerYear(activityType) } returns cumulativeDistances
-        every { chartsService.getCumulativeElevationPerYear(activityType) } returns cumulativeElevations
+        every { dashboardService.getCumulativeDistancePerYear(activityType) } returns cumulativeDistances
+        every { dashboardService.getCumulativeElevationPerYear(activityType) } returns cumulativeElevations
 
         // WHEN
         mockMvc.perform(
@@ -61,8 +61,8 @@ class DashboardControllerTest{
         // GIVEN
         val activityType = ActivityType.Run
 
-        every { chartsService.getCumulativeDistancePerYear(activityType) } returns emptyMap()
-        every { chartsService.getCumulativeElevationPerYear(activityType) } returns emptyMap()
+        every { dashboardService.getCumulativeDistancePerYear(activityType) } returns emptyMap()
+        every { dashboardService.getCumulativeElevationPerYear(activityType) } returns emptyMap()
 
         // WHEN
         mockMvc.perform(

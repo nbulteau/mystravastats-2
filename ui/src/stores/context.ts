@@ -7,7 +7,7 @@ import type { Statistics } from '@/models/statistics.model';
 import type { Activity } from '@/models/activity.model';
 import { EddingtonNumber } from '@/models/eddington-number.model';
 import type { BadgeCheckResult } from '@/models/badge-check-result.model';
-
+import { DashboardData } from '@/models/dashboard-data.model';
 
 
 export const useContextStore = defineStore('context', {
@@ -27,7 +27,7 @@ export const useContextStore = defineStore('context', {
         cumulativeDistancePerYear: Map<string, Map<string, number>>,
         cumulativeElevationPerYear: Map<string, Map<string, number>>,
         eddingtonNumber: EddingtonNumber,
-        dashboardData: any,
+        dashboardData: DashboardData,
         generalBadgesCheckResults: BadgeCheckResult[],
         famousClimbBadgesCheckResults: BadgeCheckResult[],
 
@@ -49,7 +49,7 @@ export const useContextStore = defineStore('context', {
             distanceByWeeks: [],
             elevationByWeeks: [],
             eddingtonNumber: new EddingtonNumber(),
-            dashboardData: {},
+            dashboardData: new DashboardData({}, {}, {}, {}, {}, {}),
             cumulativeDistancePerYear: new Map<string, Map<string, number>>(),
             cumulativeElevationPerYear: new Map<string, Map<string, number>>(),
             generalBadgesCheckResults: [],
@@ -80,9 +80,9 @@ export const useContextStore = defineStore('context', {
         },
         async fetchStatistics() {
             // noinspection UnnecessaryLocalVariableJS
-            const statitstics = await fetch(this.url("statistics"))
+            const statistics = await fetch(this.url("statistics"))
                 .then(response => response.json())
-            this.statistics = statitstics
+            this.statistics = statistics
         },
         async fetchActivities() {
             // noinspection UnnecessaryLocalVariableJS
@@ -163,6 +163,9 @@ export const useContextStore = defineStore('context', {
             // noinspection UnnecessaryLocalVariableJS
             const dashboardData = await fetch(this.url("dashboard"))
                 .then(response => response.json())
+
+            console.log(dashboardData)
+
             this.dashboardData = dashboardData;
         },
         async fetchBadges() {

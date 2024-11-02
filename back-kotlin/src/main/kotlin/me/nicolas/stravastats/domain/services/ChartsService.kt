@@ -4,6 +4,9 @@ import me.nicolas.stravastats.domain.business.EddingtonNumber
 import me.nicolas.stravastats.domain.business.Period
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.ActivityType
+import me.nicolas.stravastats.domain.services.ActivityHelper.groupActivitiesByDay
+import me.nicolas.stravastats.domain.services.ActivityHelper.groupActivitiesByMonth
+import me.nicolas.stravastats.domain.services.ActivityHelper.groupActivitiesByWeek
 
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import me.nicolas.stravastats.domain.utils.inDateTimeFormatter
@@ -34,12 +37,6 @@ interface IChartsService {
         year: Int,
         period: Period
     ): List<Pair<String, Double>>
-
-    fun getCumulativeDistancePerYear(activityType: ActivityType): Map<String, Map<String, Double>>
-
-    fun getCumulativeElevationPerYear(activityType: ActivityType): Map<String, Map<String, Int>>
-
-    fun getEddingtonNumber(activityType: ActivityType): EddingtonNumber
 }
 
 @Component
@@ -120,79 +117,7 @@ internal class ChartsService(
         }.toList()
     }
 
-    /**
-     * Get cumulative distance per year for a specific stravaActivity type.
-     * It returns a map with the year as key and the cumulative distance in km as value.
-     * @param activityType the stravaActivity type
-     * @return a map with the year as key and the cumulative distance in km as value
-     */
-    override fun getCumulativeDistancePerYear(activityType: ActivityType): Map<String, Map<String, Double>> {
-        logger.info("Get cumulative distance per year for stravaActivity type $activityType")
 
-        val activitiesByYear = activityProvider.getActivitiesByActivityTypeGroupByYear(activityType)
-
-        return (2010..LocalDate.now().year).mapNotNull { year ->
-            val cumulativeDistance = if (activitiesByYear[year.toString()] != null) {
-                val activitiesByDay = groupActivitiesByDay(activitiesByYear[year.toString()]!!, year)
-                cumulativeDistance(activitiesByDay)
-            } else {
-                null
-            }
-            cumulativeDistance?.let { year.toString() to it }
-        }.toMap()
-    }
-
-    override fun getCumulativeElevationPerYear(activityType: ActivityType): Map<String, Map<String, Int>> {
-        logger.info("Get cumulative elevation per year for stravaActivity type $activityType")
-
-        val activitiesByYear = activityProvider.getActivitiesByActivityTypeGroupByYear(activityType)
-
-        return (2010..LocalDate.now().year).mapNotNull { year ->
-            val cumulativeElevation = if (activitiesByYear[year.toString()] != null) {
-                val activitiesByDay = groupActivitiesByDay(activitiesByYear[year.toString()]!!, year)
-                cumulativeElevation(activitiesByDay)
-            } else {
-                null
-            }
-            cumulativeElevation?.let { year.toString() to it }
-        }.toMap()
-    }
-
-    /**
-     * Get the Eddington number for a specific stravaActivity type.
-     * @param activityType the stravaActivity type
-     * @return the Eddington number structure
-     */
-    override fun getEddingtonNumber(activityType: ActivityType): EddingtonNumber {
-        logger.info("Get Eddington number for stravaActivity type $activityType")
-
-        val activitiesByActiveDays = activityProvider.getActivitiesByActivityTypeGroupByActiveDays(activityType)
-
-        val eddingtonList: List<Int> = if (activitiesByActiveDays.isEmpty()) {
-            emptyList()
-        } else {
-            val counts = IntArray(activitiesByActiveDays.maxOf { entry -> entry.value }) { 0 }.toMutableList()
-            if (counts.isNotEmpty()) {
-                // counts = number of time we reach a distance
-                activitiesByActiveDays.forEach { entry: Map.Entry<String, Int> ->
-                    for (day in entry.value downTo 1) {
-                        counts[day - 1] += 1
-                    }
-                }
-            }
-            counts
-        }
-
-        var eddingtonNumber = 0
-        for (day in eddingtonList.size downTo 1) {
-            if (eddingtonList[day - 1] >= day) {
-                eddingtonNumber = day
-                break
-            }
-        }
-
-        return EddingtonNumber(eddingtonNumber, eddingtonList)
-    }
 
     /**
      * Get filtered activities by stravaActivity type, year and period.
@@ -214,95 +139,5 @@ internal class ChartsService(
             Period.DAYS -> groupActivitiesByDay(filteredActivities, year)
         }
         return activitiesByPeriod
-    }
-
-    /**
-     * Group activities by month
-     * @param activities list of activities
-     * @return a map with the month as key and the list of activities as value
-     * @see StravaActivity
-     */
-    private fun groupActivitiesByMonth(activities: List<StravaActivity>): Map<String, List<StravaActivity>> {
-        val activitiesByMonth =
-            activities.groupBy { activity -> activity.startDateLocal.subSequence(5, 7).toString() }.toMutableMap()
-
-        // Add months without activities
-        for (month in (1..12)) {
-            if (!activitiesByMonth.contains("$month".padStart(2, '0'))) {
-                activitiesByMonth["$month".padStart(2, '0')] = emptyList()
-            }
-        }
-
-        return activitiesByMonth.toSortedMap().mapKeys { (key, _) ->
-            Month.of(key.toInt()).getDisplayName(TextStyle.FULL_STANDALONE, Locale.getDefault())
-        }.toMap()
-    }
-
-    /**
-     * Group activities by week
-     * @param activities list of activities
-     * @return a map with the week as key and the list of activities as value
-     * @see StravaActivity
-     */
-    private fun groupActivitiesByWeek(activities: List<StravaActivity>): Map<String, List<StravaActivity>> {
-
-        val activitiesByWeek = activities.groupBy { activity ->
-            val week = LocalDateTime.parse(activity.startDateLocal, inDateTimeFormatter)
-                .get(WeekFields.of(Locale.getDefault()).weekOfYear())
-            "$week".padStart(2, '0')
-        }.toMutableMap()
-
-        // Add weeks without activities
-        for (week in (1..52)) {
-            if (!activitiesByWeek.contains("$week".padStart(2, '0'))) {
-                activitiesByWeek["$week".padStart(2, '0')] = emptyList()
-            }
-        }
-
-        return activitiesByWeek.toSortedMap()
-    }
-
-    /**
-     * Group activities by day
-     * @param activities list of activities
-     * @return a map with the day as key and the list of activities as value
-     * @see StravaActivity
-     */
-    private fun groupActivitiesByDay(activities: List<StravaActivity>, year: Int): Map<String, List<StravaActivity>> {
-        val activitiesByDay =
-            activities.groupBy { activity -> activity.startDateLocal.subSequence(5, 10).toString() }.toMutableMap()
-
-        // Add days without activities
-        var currentDate = LocalDate.ofYearDay(year, 1)
-        for (i in (0..365 + if (currentDate.isLeapYear) 1 else 0)) {
-            currentDate = currentDate.plusDays(1L)
-            val dayString =
-                "${currentDate.monthValue}".padStart(2, '0') + "-" + "${currentDate.dayOfMonth}".padStart(2, '0')
-            if (!activitiesByDay.containsKey(dayString)) {
-                activitiesByDay[dayString] = emptyList()
-            }
-        }
-
-        return activitiesByDay.toSortedMap()
-    }
-
-    /**
-     * Calculate the cumulative distance for each stravaActivity
-     * @param activities list of activities
-     * @return a map with the stravaActivity id as key and the cumulative distance as value
-     * @see StravaActivity
-     */
-    private fun cumulativeDistance(activities: Map<String, List<StravaActivity>>): Map<String, Double> {
-        var sum = 0.0
-        return activities.mapValues { (_, activities) ->
-            sum += activities.sumOf { activity -> activity.distance / 1000 }; sum
-        }
-    }
-
-    private fun cumulativeElevation(activities: Map<String, List<StravaActivity>>): Map<String, Int> {
-        var sum = 0
-        return activities.mapValues { (_, activities) ->
-            sum += activities.sumOf { activity -> activity.totalElevationGain.toInt() }; sum
-        }
     }
 }

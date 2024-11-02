@@ -5,11 +5,13 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import me.nicolas.stravastats.api.dto.CumulativeDataPerYearDto
+import me.nicolas.stravastats.api.dto.DashboardDataDto
 import me.nicolas.stravastats.api.dto.EddingtonNumberDto
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
 import me.nicolas.stravastats.api.dto.toDto
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.services.IChartsService
+import me.nicolas.stravastats.domain.services.IDashboardService
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -19,11 +21,15 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/dashboard", produces = [MediaType.APPLICATION_JSON_VALUE])
 @Schema(description = "Dashboard controller", name = "DashboardController")
 class DashboardController(
-    private val chartsService: IChartsService,
+    private val dashboardService: IDashboardService,
 ) {
     @GetMapping
-    fun getDashboardData(): List<String> {
-        return emptyList()
+    fun getDashboardData(
+        activityType: ActivityType,
+    ): DashboardDataDto {
+        val dashboardData = dashboardService.getDashboardData(activityType)
+
+        return dashboardData.toDto()
     }
 
     @Operation(
@@ -48,7 +54,7 @@ class DashboardController(
         activityType: ActivityType,
     ): EddingtonNumberDto {
 
-        return chartsService.getEddingtonNumber(activityType).toDto()
+        return dashboardService.getEddingtonNumber(activityType).toDto()
     }
 
     @Operation(
@@ -73,8 +79,8 @@ class DashboardController(
         activityType: ActivityType,
     ): CumulativeDataPerYearDto {
         return CumulativeDataPerYearDto(
-            distance = chartsService.getCumulativeDistancePerYear(activityType),
-            elevation = chartsService.getCumulativeElevationPerYear(activityType)
+            distance = dashboardService.getCumulativeDistancePerYear(activityType),
+            elevation = dashboardService.getCumulativeElevationPerYear(activityType)
         )
     }
 }

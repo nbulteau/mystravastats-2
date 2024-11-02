@@ -45,7 +45,6 @@ const chartOptions: Highcharts.Options = reactive({
       formatter: function (this: any): string {
         return formatSpeedWithUnit(this.value, props.activityType);
       },
-      
     },
   },
   legend: {
