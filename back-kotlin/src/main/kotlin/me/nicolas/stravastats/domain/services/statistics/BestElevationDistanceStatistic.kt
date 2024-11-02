@@ -32,8 +32,6 @@ fun StravaActivity.calculateBestElevationForDistance(distance: Double): Activity
     if (stream == null || stream?.altitude == null) {
         return null
     } else {
-        val foo = activityEffort(this.id, this.name, this.type, this.stream!!, distance)
-        println(foo)
         return activityEffort(this.id, this.name, this.type, this.stream!!, distance)
     }
 }

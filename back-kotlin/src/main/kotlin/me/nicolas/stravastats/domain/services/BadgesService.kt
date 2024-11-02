@@ -93,7 +93,7 @@ internal class BadgesService(
                 }
             }.toList()
         } catch (jsonMappingException: JsonMappingException) {
-            println("Something was wrong while reading BadgeSet : ${jsonMappingException.message}")
+            logger.error("Something was wrong while reading BadgeSet : ${jsonMappingException.message}")
             famousClimbBadgeList = emptyList()
         }
 

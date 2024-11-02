@@ -27,11 +27,12 @@ export const useContextStore = defineStore('context', {
         cumulativeDistancePerYear: Map<string, Map<string, number>>,
         cumulativeElevationPerYear: Map<string, Map<string, number>>,
         eddingtonNumber: EddingtonNumber,
+        dashboardData: any,
         generalBadgesCheckResults: BadgeCheckResult[],
         famousClimbBadgesCheckResults: BadgeCheckResult[],
 
 
-        currentView: 'statistics' | 'activities' | 'activity' | 'map' | 'badges' | 'charts'
+        currentView: 'statistics' | 'activities' | 'activity' | 'map' | 'badges' | 'charts' | 'dashboard'
         toasts: any[]
     } {
         return {
@@ -48,6 +49,7 @@ export const useContextStore = defineStore('context', {
             distanceByWeeks: [],
             elevationByWeeks: [],
             eddingtonNumber: new EddingtonNumber(),
+            dashboardData: {},
             cumulativeDistancePerYear: new Map<string, Map<string, number>>(),
             cumulativeElevationPerYear: new Map<string, Map<string, number>>(),
             generalBadgesCheckResults: [],
@@ -124,53 +126,44 @@ export const useContextStore = defineStore('context', {
                 .then(response => response.json())
             this.elevationByWeeks = elevationByWeeks;
         },
-        async fetchCumulativeDistancePerYear() {
-            const data = await fetch(
-                `http://localhost:8080/api/charts/cumulative-distance-per-year?activityType=${this.currentActivity}`,
-            ).then(response => response.json())
+        async fetchCumulativeDataPerYear() {
+            const data = await fetch(this.url("dashboard/cumulative-data-per-year") + '&activityType=' + this.currentActivity)
+                .then(response => response.json())
 
             // Convert the fetched data to a Map<string, Map<string, number>>
             const cumulativeDistancePerYear = new Map<string, Map<string, number>>();
-
-            for (const year in data) {
-                if (Object.prototype.hasOwnProperty.call(data, year)) {
-                    const daysData = new Map<string, number>();
-                    for (const datumKey in data[year]) {
-                        if (Object.prototype.hasOwnProperty.call(data[year], datumKey)) {
-                            daysData.set(datumKey, data[year][datumKey]);
-                        }
-                    }
-                    cumulativeDistancePerYear.set(year, daysData);
-                }
+            for (const year in data.distance) {
+                convertToMap(year, data.distance, cumulativeDistancePerYear);
             }
             this.cumulativeDistancePerYear = cumulativeDistancePerYear;
-        },
-        async fetchCumulativeElevationPerYear() {
-            const data = await fetch(
-                `http://localhost:8080/api/charts/cumulative-elevation-per-year?activityType=${this.currentActivity}`,
-            ).then(response => response.json())
 
-            // Convert the fetched data to a Map<string, Map<string, number>>
             const cumulativeElevationPerYear = new Map<string, Map<string, number>>();
-
-            for (const year in data) {
-                if (Object.prototype.hasOwnProperty.call(data, year)) {
-                    const daysData = new Map<string, number>();
-                    for (const datumKey in data[year]) {
-                        if (Object.prototype.hasOwnProperty.call(data[year], datumKey)) {
-                            daysData.set(datumKey, data[year][datumKey]);
-                        }
-                    }
-                    cumulativeElevationPerYear.set(year, daysData);
-                }
+            for (const year in data.elevation) {
+                convertToMap(year, data.elevation, cumulativeElevationPerYear);
             }
             this.cumulativeElevationPerYear = cumulativeElevationPerYear;
+
+            function convertToMap(year: string, data: any, cumulativeDataPerYear: Map<string, Map<string, number>>) {
+                const daysData = new Map<string, number>();
+                for (const datumKey in data[year]) {
+                    if (Object.prototype.hasOwnProperty.call(data[year], datumKey)) {
+                        daysData.set(datumKey, data[year][datumKey]);
+                    }
+                }
+                cumulativeDataPerYear.set(year, daysData);
+            }
         },
         async fetchEddingtonNumber() {
             // noinspection UnnecessaryLocalVariableJS
-            const eddingtonNumber = await fetch(this.url("charts/eddington-number"))
+            const eddingtonNumber = await fetch(this.url("dashboard/eddington-number"))
                 .then(response => response.json())
             this.eddingtonNumber = eddingtonNumber;
+        },
+        async fetchDashboardData() {
+            // noinspection UnnecessaryLocalVariableJS
+            const dashboardData = await fetch(this.url("dashboard"))
+                .then(response => response.json())
+            this.dashboardData = dashboardData;
         },
         async fetchBadges() {
             const generalBadgesCheckResults = await fetch(this.url("badges"))
@@ -198,9 +191,6 @@ export const useContextStore = defineStore('context', {
                     await this.fetchGPXCoordinates()
                     break
                 case 'charts':
-                    await this.fetchEddingtonNumber()
-                    await this.fetchCumulativeDistancePerYear()
-                    await this.fetchCumulativeElevationPerYear()
                     if (this.currentYear != 'All years') {
                         await this.fetchDistanceByMonths()
                         await this.fetchElevationByMonths()
@@ -209,12 +199,17 @@ export const useContextStore = defineStore('context', {
                         await this.fetchElevationByWeeks()
                     }
                     break
+                case 'dashboard':
+                    await this.fetchEddingtonNumber()
+                    await this.fetchCumulativeDataPerYear()
+                    await this.fetchDashboardData()
+                    break
                 case 'badges':
                     await this.fetchBadges()
                     break
             }
         },
-        updateCurrentView(view: 'statistics' | 'activities' | 'activity' | 'map' | 'badges' | 'charts') {
+        updateCurrentView(view: 'statistics' | 'activities' | 'activity' | 'map' | 'badges' | 'charts' | 'dashboard') {
             this.currentView = view
             this.updateData();
         },

@@ -114,6 +114,27 @@ onMounted(async () => {
           role="presentation"
         >
           <button
+            id="dashboard-tab"
+            class="nav-link"
+            :class="{ active: isCurrent('dashboard') }"
+            data-bs-toggle="tab"
+            data-bs-target="#dashboard-tab-pane"
+            type="button"
+            role="tab"
+            aria-controls="dashboard-tab-pane"
+            aria-selected="false"
+            href="/dashboard"
+          >
+            <RouterLink to="/dashboard">
+              Dashboard
+            </RouterLink>
+          </button>
+        </li>
+        <li
+          class="nav-item"
+          role="presentation"
+        >
+          <button
             id="badges-tab"
             class="nav-link"
             :class="{ active: isCurrent('badges') }"
