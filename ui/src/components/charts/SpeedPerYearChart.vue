@@ -104,27 +104,28 @@ function updateChartData() {
   }
 
   if (chartOptions.series && chartOptions.series.length > 0) {
-    const averageSpeedData = Object.values(averageSpeedByYear);
-    const maxSpeedData = Object.values(maxSpeedByYear);
-    chartOptions.xAxis.categories = Object.keys(averageSpeedByYear);
+    const averageSpeedByYear = Object.values(props.averageSpeedByYear);
+    const maxSpeedByYear = Object.values(props.maxSpeedByYear);
 
-    const maxAverageSpeed = Math.max(...averageSpeedData);
-    const maxAverageSpeedIndex = averageSpeedData.indexOf(maxAverageSpeed);
+    chartOptions.xAxis.categories = Object.keys(props.averageSpeedByYear);
 
-    const maxMaxSpeed = Math.max(...maxSpeedData);
-    const maxMaxSpeedIndex = maxSpeedData.indexOf(maxMaxSpeed);
+    const maxAverageSpeed = Math.max(...averageSpeedByYear);
+    const maxAverageSpeedIndex = averageSpeedByYear.indexOf(maxAverageSpeed);
 
-    (chartOptions.series[0] as SeriesColumnOptions).data = averageSpeedData.map((value, index) => ({
+    const maxMaxSpeed = Math.max(...maxSpeedByYear);
+    const maxMaxSpeedIndex = maxSpeedByYear.indexOf(maxMaxSpeed);
+
+    (chartOptions.series[0] as SeriesColumnOptions).data = averageSpeedByYear.map((value, index) => ({
       y: value,
       marker: index === maxAverageSpeedIndex ? { enabled: true, radius: 6, fillColor: 'red' } : undefined
     }));
 
-    (chartOptions.series[1] as SeriesColumnOptions).data = maxSpeedData.map((value, index) => ({
+    (chartOptions.series[1] as SeriesColumnOptions).data = maxSpeedByYear.map((value, index) => ({
       y: value,
       marker: index === maxMaxSpeedIndex ? { enabled: true, radius: 6, fillColor: 'red' } : undefined
     }));
 
-    (chartOptions.series[2] as SeriesLineOptions).data = calculateTrendLine(averageSpeedData);
+    (chartOptions.series[2] as SeriesLineOptions).data = calculateTrendLine(averageSpeedByYear);
   }
 
   if (chartOptions.yAxis && (chartOptions.yAxis as YAxisOptions).title) {

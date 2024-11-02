@@ -5,6 +5,9 @@ import CumulativeDistancePerYearChart from "@/components/charts/CumulativeDataPe
 import EddingtonNumberChart from "@/components/charts/EddingtonNumberChart.vue";
 import SpeedPerYearChart from "@/components/charts/SpeedPerYearChart.vue";
 import DistancePerYearChart from "@/components/charts/DistancePerYearChart.vue";
+import {Chart} from "highcharts-vue";
+import ElevationPerYearChart from "@/components/charts/ElevationPerYearChart.vue";
+import HeartRatePerYearChart from "@/components/charts/HeartRatePerYearChart.vue";
 
 const contextStore = useContextStore();
 contextStore.updateCurrentView("dashboard");
@@ -18,6 +21,11 @@ const maxSpeedByYear = computed(() => contextStore.dashboardData.maxSpeedByYear)
 const totalDistanceByYear = computed(() => contextStore.dashboardData.totalDistanceByYear);
 const averageDistanceByYear = computed(() => contextStore.dashboardData.averageDistanceByYear);
 const maxDistanceByYear = computed(() => contextStore.dashboardData.maxDistanceByYear);
+const totalElevationByYear = computed(() => contextStore.dashboardData.totalElevationByYear);
+const averageElevationByYear = computed(() => contextStore.dashboardData.averageElevationByYear);
+const maxElevationByYear = computed(() => contextStore.dashboardData.maxElevationByYear);
+const averageHeartRateByYear = computed(() => contextStore.dashboardData.averageHeartRateByYear);
+const maxHeartRateByYear = computed(() => contextStore.dashboardData.maxHeartRateByYear);
 
 </script>
 
@@ -33,6 +41,14 @@ const maxDistanceByYear = computed(() => contextStore.dashboardData.maxDistanceB
   <DistancePerYearChart
       :average-distance-by-year="averageDistanceByYear"
       :max-distance-by-year="maxDistanceByYear"
+  />
+  <ElevationPerYearChart
+      :average-elevation-by-year="averageElevationByYear"
+      :max-elevation-by-year="maxElevationByYear"
+  />
+  <HeartRatePerYearChart
+      :average-heart-rate-by-year="averageHeartRateByYear"
+      :max-heart-rate-by-year="maxHeartRateByYear"
   />
   <SpeedPerYearChart
       :activity-type="currentActivity"

@@ -4,8 +4,8 @@ import {Chart} from "highcharts-vue";
 import type {SeriesColumnOptions, SeriesLineOptions, SeriesOptionsType, YAxisOptions} from "highcharts";
 
 const props = defineProps<{
-  averageDistanceByYear: Record<string, number>;
-  maxDistanceByYear: Record<string, number>;
+  averageHeartRateByYear: Record<string, number>;
+  maxHeartRateByYear: Record<string, number>;
 }>();
 
 const chartOptions = reactive({
@@ -13,7 +13,7 @@ const chartOptions = reactive({
     type: 'line',
   },
   title: {
-    text: "Distance per year",
+    text: "HeartRate per year",
   },
   xAxis: {
     labels: {
@@ -28,7 +28,7 @@ const chartOptions = reactive({
   yAxis: {
     min: 0,
     title: {
-      text: `Distance per year`,
+      text: `HeartRate per year`,
     },
   },
   legend: {
@@ -42,7 +42,7 @@ const chartOptions = reactive({
                 color: any; series: { name: string }; y: string
               }
           ) {
-            return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${point.y} km`;
+            return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${point.y} m`;
           },
           "<b>" + this.x + "</b>");
     },
@@ -50,7 +50,7 @@ const chartOptions = reactive({
   },
   series: [
     {
-      name: "Average distance",
+      name: "Average heart rate",
       type: "line",
       dataLabels: {
         enabled: true,
@@ -59,7 +59,7 @@ const chartOptions = reactive({
       data: [], // Initialize with an empty array
     },
     {
-      name: "Maximum distance",
+      name: "Maximum heart rate",
       type: "line",
       dataLabels: {
         enabled: true,
@@ -82,33 +82,33 @@ const chartOptions = reactive({
 
 function updateChartData() {
 
-  if (!props.averageDistanceByYear || !props.maxDistanceByYear ) {
+  if (!props.averageHeartRateByYear || !props.maxHeartRateByYear ) {
     return;
   }
 
   if (chartOptions.series && chartOptions.series.length > 0) {
-    const averageDistanceByYear = Object.values(props.averageDistanceByYear);
-    const maxDistanceByYear = Object.values(props.maxDistanceByYear);
+    const averageHeartRateByYear = Object.values(props.averageHeartRateByYear);
+    const maxHeartRateByYear = Object.values(props.maxHeartRateByYear);
 
-    chartOptions.xAxis.categories = Object.keys(props.averageDistanceByYear);
+    chartOptions.xAxis.categories = Object.keys(props.averageHeartRateByYear);
 
-    const maxAverageDistance = Math.max(...averageDistanceByYear);
-    const maxAverageDistanceIndex = averageDistanceByYear.indexOf(maxAverageDistance);
+    const maxAverageHeartRate = Math.max(...averageHeartRateByYear);
+    const maxAverageHeartRateIndex = averageHeartRateByYear.indexOf(maxAverageHeartRate);
 
-    const maxMaxDistance = Math.max(...maxDistanceByYear);
-    const maxMaxDistanceIndex = maxDistanceByYear.indexOf(maxMaxDistance);
+    const maxMaxHeartRate = Math.max(...maxHeartRateByYear);
+    const maxMaxHeartRateIndex = maxHeartRateByYear.indexOf(maxMaxHeartRate);
 
-    (chartOptions.series[0] as SeriesColumnOptions).data = averageDistanceByYear.map((value, index) => ({
+    (chartOptions.series[0] as SeriesColumnOptions).data = averageHeartRateByYear.map((value, index) => ({
       y: value,
-      marker: index === maxAverageDistanceIndex ? {enabled: true, radius: 6, fillColor: 'red'} : undefined
+      marker: index === maxAverageHeartRateIndex ? {enabled: true, radius: 6, fillColor: 'red'} : undefined
     }));
 
-    (chartOptions.series[1] as SeriesColumnOptions).data = maxDistanceByYear.map((value, index) => ({
+    (chartOptions.series[1] as SeriesColumnOptions).data = maxHeartRateByYear.map((value, index) => ({
       y: value,
-      marker: index === maxMaxDistanceIndex ? {enabled: true, radius: 6, fillColor: 'red'} : undefined
+      marker: index === maxMaxHeartRateIndex ? {enabled: true, radius: 6, fillColor: 'red'} : undefined
     }));
 
-    (chartOptions.series[2] as SeriesLineOptions).data = calculateTrendLine(averageDistanceByYear);
+    (chartOptions.series[2] as SeriesLineOptions).data = calculateTrendLine(averageHeartRateByYear);
   }
 }
 
@@ -127,7 +127,7 @@ function calculateTrendLine(data: number[]): number[] {
 
 
 watch(
-    () => props.averageDistanceByYear || props.maxDistanceByYear,
+    () => props.averageHeartRateByYear || props.maxHeartRateByYear,
     updateChartData,
     {immediate: true}
 );

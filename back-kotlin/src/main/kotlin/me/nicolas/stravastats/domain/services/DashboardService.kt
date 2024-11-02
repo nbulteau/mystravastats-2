@@ -173,6 +173,7 @@ class DashboardService(
                 .mapValues { (_, activities) ->
                     (activities.sumOf { activity -> activity.averageHeartrate } / activities.size).toInt()
                 }
+                .filter { it.value > 0 }
 
         // compute max heart rate for all years
         val maxHeartRateByYear =
@@ -180,6 +181,7 @@ class DashboardService(
                 .mapValues { (_, activities) ->
                     activities.maxOf { activity -> activity.maxHeartrate }
                 }
+                .filter { it.value > 0 }
 
         // compute average watts for all years
         val averageWattsByYear =

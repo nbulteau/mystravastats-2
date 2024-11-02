@@ -49,7 +49,7 @@ export const useContextStore = defineStore('context', {
             distanceByWeeks: [],
             elevationByWeeks: [],
             eddingtonNumber: new EddingtonNumber(),
-            dashboardData: new DashboardData({}, {}, {}, {}, {}, {}),
+            dashboardData: new DashboardData({},  {},  {},  {},  {},  {},  {},  {},  {},  {},  {},  {},  {}),
             cumulativeDistancePerYear: new Map<string, Map<string, number>>(),
             cumulativeElevationPerYear: new Map<string, Map<string, number>>(),
             generalBadgesCheckResults: [],
@@ -164,8 +164,6 @@ export const useContextStore = defineStore('context', {
             const dashboardData = await fetch(this.url("dashboard"))
                 .then(response => response.json())
 
-            console.log(dashboardData)
-
             this.dashboardData = dashboardData;
         },
         async fetchBadges() {
@@ -214,7 +212,11 @@ export const useContextStore = defineStore('context', {
         },
         updateCurrentView(view: 'statistics' | 'activities' | 'activity' | 'map' | 'badges' | 'charts' | 'dashboard') {
             this.currentView = view
-            this.updateData();
+            this.updateData().then(
+                () => {
+                    console.log(`Data updated for view ${view}`)
+                }
+            );
         },
 
         showToast(toast: Toast) {
