@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {reactive, watch} from "vue";
 import {Chart} from "highcharts-vue";
-import type {SeriesColumnOptions, SeriesLineOptions, SeriesOptionsType, YAxisOptions} from "highcharts";
+import type {SeriesColumnOptions, SeriesLineOptions, SeriesOptionsType} from "highcharts";
 
 const props = defineProps<{
   averageWattsByYear: Record<string, number>;

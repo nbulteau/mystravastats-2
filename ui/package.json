@@ -19,6 +19,7 @@
     "bootstrap": "^5.3.3",
     "highcharts-vue": "^2.0.1",
     "leaflet": "^1.9.4",
+    "leaflet-defaulticon-compatibility": "^0.1.2",
     "ol": "^10.1.0",
     "pinia": "^2.1.7",
     "sass": "^1.78.0",

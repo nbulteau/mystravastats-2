@@ -136,16 +136,26 @@
 <script setup lang="ts">
 import "bootstrap";
 import {Tooltip} from 'bootstrap'; // Import Bootstrap Tooltip
-import 'leaflet/dist/leaflet.css';
 import {computed, nextTick, onMounted, reactive, ref} from "vue";
 import {useRoute} from "vue-router";
-import L from "leaflet";
 import {ActivityEffort, DetailedActivity} from "@/models/activity.model"; // Ensure correct import
 import {formatSpeedWithUnit, formatTime} from "@/utils/formatters";
 import "bootstrap/dist/css/bootstrap.min.css";
 import {useContextStore} from "@/stores/context.js";
-import Highcharts, {type Options, type SeriesAreaOptions, type SeriesLineOptions} from "highcharts";
+import type {Options, SeriesAreaOptions, SeriesLineOptions} from "highcharts";
+import Highcharts from "highcharts";
 import {Chart} from "highcharts-vue";
+
+// Import the leaflet library
+import 'leaflet/dist/leaflet.css';
+import * as L from 'leaflet';
+
+// Set the default icon options
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'marker-icon-2x.png',
+  iconUrl: 'marker-icon.png',
+  shadowUrl: 'marker-shadow.png',
+});
 
 const contextStore = useContextStore();
 contextStore.updateCurrentView("activity");
@@ -167,15 +177,15 @@ const radioLabels = ref<HTMLElement[]>([]); // Ref to hold radio labels
 const isHike = computed(() => activity.value?.type === "Hike");
 
 // Icon options
-L.Icon.Default.imagePath = '/node_modules/leaflet/dist/images/';
+
 
 const buildRadioOptions = () => {
   if (activity.value?.activityEfforts) {
     radioOptions.value = activity.value?.activityEfforts.map((effort) => {
       return {
-      label: effort.label.length > 20 ? effort.label.substring(0, 20) + '...' : effort.label,
-      value: effort.id, 
-      description: effort?.description ?? ''
+        label: effort.label.length > 20 ? effort.label.substring(0, 20) + '...' : effort.label,
+        value: effort.id,
+        description: effort?.description ?? ''
       };
     });
   } else {
@@ -203,11 +213,11 @@ const updateMap = () => {
   if (map.value) {
     // Add a polyline
     const latlngs = activity.value?.stream?.latlng?.map((latlng: number[]) =>
-      L.latLng(latlng[0], latlng[1])
+        L.latLng(latlng[0], latlng[1])
     );
 
     if (latlngs) {
-      const polyline = L.polyline(latlngs, { color: "red" }).addTo(map.value);
+      const polyline = L.polyline(latlngs, {color: "red"}).addTo(map.value);
       // Fit the map to the bounds of all polylines
       const bounds = L.latLngBounds(polyline.getLatLngs() as L.LatLng[]);
       map.value.fitBounds(bounds);
@@ -222,7 +232,7 @@ const chartOptions: Options = reactive({
   },
   credits: {
     text:
-      "Source: <a href='https://en.wikipedia.org/wiki/Eddington_number' target='_blank'>Eddington number</a>",
+        "Source: <a href='https://en.wikipedia.org/wiki/Eddington_number' target='_blank'>Eddington number</a>",
   },
   xAxis: [
     {
@@ -306,19 +316,19 @@ const initChart = () => {
 
   if (speedStream && distanceStream && chartOptions.series && chartOptions.series.length > 0) {
     (chartOptions.series[0] as SeriesLineOptions).data = speedStream.map((speed, index) => (
-      {
-        x: distanceStream[index] / 1000,
-        y: speed
-      }
+        {
+          x: distanceStream[index] / 1000,
+          y: speed
+        }
     ));
   }
 
   if (altitudeStream && distanceStream && chartOptions.series && chartOptions.series.length > 0) {
     (chartOptions.series[1] as SeriesAreaOptions).data = altitudeStream.map((altitude, index) => (
-      {
-        x: distanceStream[index] / 1000,
-        y: altitude
-      }
+        {
+          x: distanceStream[index] / 1000,
+          y: altitude
+        }
     ));
 
     // Calculate the minimum altitude value
@@ -334,37 +344,37 @@ const initChart = () => {
   const chartContainer = document.getElementById('chart-container');
   if (chartContainer) {
     chartContainer.addEventListener('mousemove',
-      function (e: MouseEvent) {
-        let chart: Highcharts.Chart | undefined;
-        let point, i, event;
+        function (e: MouseEvent) {
+          let chart: Highcharts.Chart | undefined;
+          let point, i, event;
 
-        for (i = 0; i < Highcharts.charts.length; i = i + 1) {
-          chart = Highcharts.charts[i];
-          if (chart) {
-            // Find coordinates within the chart
-            event = chart.pointer.normalize(e);
-            // Get the hovered point
-            point = chart.series[0].searchPoint(event, true);
+          for (i = 0; i < Highcharts.charts.length; i = i + 1) {
+            chart = Highcharts.charts[i];
+            if (chart) {
+              // Find coordinates within the chart
+              event = chart.pointer.normalize(e);
+              // Get the hovered point
+              point = chart.series[0].searchPoint(event, true);
 
-            if (point) {
-              const mapContainer = document.getElementById("map-container");
-              if (mapContainer) {
-                const latlng = activity.value?.stream?.latlng?.[point.index];
-                if (latlng) {
-                  // Remove previous marker
-                  map.value?.eachLayer((layer) => {
-                    if (layer instanceof L.Marker) {
-                      map.value?.removeLayer(layer);
-                    }
-                  });
-                  // Add a marker
-                  L.marker(L.latLng(latlng[0], latlng[1]), ).addTo(map.value!);
+              if (point) {
+                const mapContainer = document.getElementById("map-container");
+                if (mapContainer) {
+                  const latlng = activity.value?.stream?.latlng?.[point.index];
+                  if (latlng) {
+                    // Remove previous marker
+                    map.value?.eachLayer((layer) => {
+                      if (layer instanceof L.Marker) {
+                        map.value?.removeLayer(layer);
+                      }
+                    });
+                    // Add a marker
+                    L.marker(L.latLng(latlng[0], latlng[1]),).addTo(map.value!);
+                  }
                 }
               }
             }
           }
         }
-      }
     );
   }
 };
@@ -374,7 +384,7 @@ const handleRadioClick = (key: string) => {
 
   // 1 - Get the selected effort
   const selectedEffort: ActivityEffort | undefined = activity.value?.activityEfforts.find(
-    (effort) => effort.id === key
+      (effort) => effort.id === key
   );
   if (!selectedEffort) {
     console.error(`No effort found for value: ${key}`);
@@ -406,10 +416,10 @@ const handleRadioClick = (key: string) => {
 
   if (map.value) {
     const latlngs = selectedStream.latitudeLongitude.map((latlng: number[]) =>
-      L.latLng(latlng[0], latlng[1])
+        L.latLng(latlng[0], latlng[1])
     );
     if (latlngs) {
-      const polyline = L.polyline(latlngs, { color: "blue" }).addTo(map.value);
+      const polyline = L.polyline(latlngs, {color: "blue"}).addTo(map.value);
       // Fit the map to the bounds of all polylines
       const bounds = L.latLngBounds(polyline.getLatLngs() as L.LatLng[]);
       map.value.fitBounds(bounds);
@@ -417,13 +427,13 @@ const handleRadioClick = (key: string) => {
   }
 
   // 4 - Update the chart with the new stream data
-  if(selectedStream.altitude && selectedStream.distance && chartOptions.series && chartOptions.series.length > 0) {
+  if (selectedStream.altitude && selectedStream.distance && chartOptions.series && chartOptions.series.length > 0) {
     (chartOptions.series[2] as SeriesAreaOptions).data = selectedStream.altitude.map((altitude, index) => (
-      {
-        x: selectedStream.distance[index] / 1000,
-        y: altitude,
-        color: "blue"
-      }
+        {
+          x: selectedStream.distance[index] / 1000,
+          y: altitude,
+          color: "blue"
+        }
     ));
   }
 
@@ -473,7 +483,7 @@ onMounted(async () => {
 
 .radio-label {
   font-weight: bold;
-    text-align: left; /* Align text to the left */
+  text-align: left; /* Align text to the left */
 
 }
 

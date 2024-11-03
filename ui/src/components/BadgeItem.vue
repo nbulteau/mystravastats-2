@@ -105,7 +105,7 @@ onMounted(() => {
       <img
         :src="buildBadgeImageUrl(props.badgeCheckResult.badge.type)"
         class="badge-image card-img-top"
-      >
+       alt="">
     </div>
     <div>
       <span

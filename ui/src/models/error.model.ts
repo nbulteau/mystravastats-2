@@ -7,6 +7,3 @@ export interface APIResponseError {
     description: string;
 }
 
-export interface FindError extends Error {
-    cause:APIResponseError
-}

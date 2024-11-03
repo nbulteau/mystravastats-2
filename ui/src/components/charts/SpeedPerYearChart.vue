@@ -2,7 +2,7 @@
 import {computed, reactive, watch} from "vue";
 import {Chart} from "highcharts-vue";
 import type {SeriesColumnOptions, SeriesLineOptions, SeriesOptionsType, YAxisOptions} from "highcharts";
-import {formatSpeed, formatSpeedWithUnit} from "@/utils/formatters";
+import {formatSpeedWithUnit} from "@/utils/formatters";
 
 const props = defineProps<{
   activityType: string;
