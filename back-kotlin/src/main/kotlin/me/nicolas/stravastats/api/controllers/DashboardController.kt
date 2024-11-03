@@ -4,14 +4,10 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
-import me.nicolas.stravastats.api.dto.CumulativeDataPerYearDto
-import me.nicolas.stravastats.api.dto.DashboardDataDto
-import me.nicolas.stravastats.api.dto.EddingtonNumberDto
-import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
-import me.nicolas.stravastats.api.dto.toDto
+import me.nicolas.stravastats.api.dto.*
 import me.nicolas.stravastats.domain.business.ActivityType
-import me.nicolas.stravastats.domain.services.IChartsService
 import me.nicolas.stravastats.domain.services.IDashboardService
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -23,7 +19,25 @@ import org.springframework.web.bind.annotation.RestController
 class DashboardController(
     private val dashboardService: IDashboardService,
 ) {
+    @Operation(
+        description = "Get the dashboard data for a specific activity type",
+        summary = "Get the dashboard data for a specific activity type",
+        responses = [ApiResponse(
+            responseCode = "200", description = "Dashboard data found",
+            content = [Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = Schema(implementation = DashboardDataDto::class)
+            )]
+        ), ApiResponse(
+            responseCode = "404", description = "Dashboard data not found",
+            content = [Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = Schema(implementation = ErrorResponseMessageDto::class)
+            )]
+        )],
+    )
     @GetMapping
+    @Cacheable("dashboarddata")
     fun getDashboardData(
         activityType: ActivityType,
     ): DashboardDataDto {
@@ -33,8 +47,8 @@ class DashboardController(
     }
 
     @Operation(
-        description = "Get the Eddington number for a specific stravaActivity type",
-        summary = "Get the Eddington number for a specific stravaActivity type",
+        description = "Get the Eddington number for a specific activity type",
+        summary = "Get the Eddington number for a specific activity type",
         responses = [ApiResponse(
             responseCode = "200", description = "Eddington number found",
             content = [Content(
@@ -50,6 +64,7 @@ class DashboardController(
         )],
     )
     @GetMapping("/eddington-number")
+    @Cacheable("eddingtonnumber")
     fun getEddingtonNumber(
         activityType: ActivityType,
     ): EddingtonNumberDto {
@@ -59,7 +74,7 @@ class DashboardController(
 
     @Operation(
         description = "Get the cumulative data for a year",
-        summary = "Get the cumulative data for a year for a specific stravaActivity type",
+        summary = "Get the cumulative data for a year for a specific activity type",
         responses = [ApiResponse(
             responseCode = "200", description = "Cumulative data by months found",
             content = [Content(
@@ -75,6 +90,7 @@ class DashboardController(
         )],
     )
     @GetMapping("/cumulative-data-per-year")
+    @Cacheable("cumulativedataperyear")
     fun getCumulativeDataPerYear(
         activityType: ActivityType,
     ): CumulativeDataPerYearDto {

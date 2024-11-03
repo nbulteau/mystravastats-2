@@ -94,9 +94,7 @@ data class StravaActivity(
 
         return this.copy(stream = updatedStream, totalElevationGain = updatedTotalElevationGain, elevHigh = updatedElevHigh)
     }
-
-    val maxWatts: Int
-        get() = stream?.watts?.data?.map { it!! }?.maxOrNull() ?: 0}
+}
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class AthleteRef(

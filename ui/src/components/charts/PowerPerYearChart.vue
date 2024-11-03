@@ -4,8 +4,8 @@ import {Chart} from "highcharts-vue";
 import type {SeriesColumnOptions, SeriesLineOptions, SeriesOptionsType, YAxisOptions} from "highcharts";
 
 const props = defineProps<{
-  averageDistanceByYear: Record<string, number>;
-  maxDistanceByYear: Record<string, number>;
+  averageWattsByYear: Record<string, number>;
+  maxWattsByYear: Record<string, number>;
 }>();
 
 const chartOptions = reactive({
@@ -13,7 +13,7 @@ const chartOptions = reactive({
     type: 'line',
   },
   title: {
-    text: "Distance",
+    text: "Power",
   },
   xAxis: {
     labels: {
@@ -29,10 +29,7 @@ const chartOptions = reactive({
   yAxis: {
     min: 0,
     title: {
-      text: `Distance (km)`,
-    },
-    labels: {
-      format: "{value} km",
+      text: `Power (watts)`,
     },
   },
   legend: {
@@ -43,10 +40,10 @@ const chartOptions = reactive({
       return this.points.reduce(function (
               s: any,
               point: {
-                color: any; series: { name: string }; y: number
+                color: any; series: { name: string }; y: string
               }
           ) {
-            return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${point.y.toFixed(0)} km`;
+            return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${point.y} m`;
           },
           "<b>" + this.x + "</b>");
     },
@@ -54,26 +51,26 @@ const chartOptions = reactive({
   },
   series: [
     {
-      name: "Average distance",
+      name: "Average watts",
       type: "line",
       dataLabels: {
         enabled: true,
         y: -10,
         formatter: function (this: any): string {
-          return `${this.y.toFixed(0)} km`;
-        },
+        return `${this.y.toFixed(0)} watts`;
+      },
       },
       data: [], // Initialize with an empty array
     },
     {
-      name: "Maximum distance",
+      name: "Maximum watts",
       type: "line",
       dataLabels: {
         enabled: true,
         y: -10,
         formatter: function (this: any): string {
-          return `${this.y.toFixed(0)} km`;
-        },
+        return `${this.y.toFixed(0)} watts`;
+      },
       },
       data: [], // Initialize with an empty array
     },
@@ -92,33 +89,33 @@ const chartOptions = reactive({
 
 function updateChartData() {
 
-  if (!props.averageDistanceByYear || !props.maxDistanceByYear ) {
+  if (!props.averageWattsByYear || !props.maxWattsByYear ) {
     return;
   }
 
   if (chartOptions.series && chartOptions.series.length > 0) {
-    const averageDistanceByYear = Object.values(props.averageDistanceByYear);
-    const maxDistanceByYear = Object.values(props.maxDistanceByYear);
+    const averageWattsByYear = Object.values(props.averageWattsByYear);
+    const maxWattsByYear = Object.values(props.maxWattsByYear);
 
-    chartOptions.xAxis.categories = Object.keys(props.averageDistanceByYear);
+    chartOptions.xAxis.categories = Object.keys(props.averageWattsByYear);
 
-    const maxAverageDistance = Math.max(...averageDistanceByYear);
-    const maxAverageDistanceIndex = averageDistanceByYear.indexOf(maxAverageDistance);
+    const maxAverageWatts = Math.max(...averageWattsByYear);
+    const maxAverageWattsIndex = averageWattsByYear.indexOf(maxAverageWatts);
 
-    const maxMaxDistance = Math.max(...maxDistanceByYear);
-    const maxMaxDistanceIndex = maxDistanceByYear.indexOf(maxMaxDistance);
+    const maxMaxWatts = Math.max(...maxWattsByYear);
+    const maxMaxWattsIndex = maxWattsByYear.indexOf(maxMaxWatts);
 
-    (chartOptions.series[0] as SeriesColumnOptions).data = averageDistanceByYear.map((value, index) => ({
+    (chartOptions.series[0] as SeriesColumnOptions).data = averageWattsByYear.map((value, index) => ({
       y: value,
-      marker: index === maxAverageDistanceIndex ? {enabled: true, radius: 6, fillColor: 'red'} : undefined
+      marker: index === maxAverageWattsIndex ? {enabled: true, radius: 6, fillColor: 'red'} : undefined
     }));
 
-    (chartOptions.series[1] as SeriesColumnOptions).data = maxDistanceByYear.map((value, index) => ({
+    (chartOptions.series[1] as SeriesColumnOptions).data = maxWattsByYear.map((value, index) => ({
       y: value,
-      marker: index === maxMaxDistanceIndex ? {enabled: true, radius: 6, fillColor: 'red'} : undefined
+      marker: index === maxMaxWattsIndex ? {enabled: true, radius: 6, fillColor: 'red'} : undefined
     }));
 
-    (chartOptions.series[2] as SeriesLineOptions).data = calculateTrendLine(averageDistanceByYear);
+    (chartOptions.series[2] as SeriesLineOptions).data = calculateTrendLine(averageWattsByYear);
   }
 }
 
@@ -137,7 +134,7 @@ function calculateTrendLine(data: number[]): number[] {
 
 
 watch(
-    () => props.averageDistanceByYear || props.maxDistanceByYear,
+    () => props.averageWattsByYear || props.maxWattsByYear,
     updateChartData,
     {immediate: true}
 );

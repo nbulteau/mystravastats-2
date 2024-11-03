@@ -17,7 +17,7 @@ const chartOptions = reactive({
     type: 'line',
   },
   title: {
-    text: "Speed per year",
+    text: "Speed",
   },
   xAxis: {
     labels: {
@@ -28,6 +28,7 @@ const chartOptions = reactive({
       },
     },
     categories: [] as string[],
+    crosshair: true
   },
   yAxis: {
     min: 0,
@@ -63,10 +64,10 @@ const chartOptions = reactive({
       type: "line",
       dataLabels: {
         enabled: true,
-        formatter: function (this: any): string {
-          return formatSpeed(this.y, props.activityType);
-        },
         y: -10,
+        formatter: function (this: any): string {
+          return formatSpeedWithUnit(this.y, props.activityType);
+        },
       },
       data: [], // Initialize with an empty array
     },
@@ -75,10 +76,10 @@ const chartOptions = reactive({
       type: "line",
       dataLabels: {
         enabled: true,
-        formatter: function (this: any): string {
-          return formatSpeed(this.y, props.activityType);
-        },
         y: -10,
+        formatter: function (this: any): string {
+          return formatSpeedWithUnit(this.y, props.activityType);
+        },
       },
       data: [], // Initialize with an empty array
     },

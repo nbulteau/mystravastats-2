@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {reactive, watch} from "vue";
 import {Chart} from "highcharts-vue";
-import type {SeriesColumnOptions, SeriesLineOptions, SeriesOptionsType, YAxisOptions} from "highcharts";
+import type {SeriesColumnOptions, SeriesLineOptions, SeriesOptionsType} from "highcharts";
 
 const props = defineProps<{
   averageHeartRateByYear: Record<string, number>;
@@ -13,7 +13,7 @@ const chartOptions = reactive({
     type: 'line',
   },
   title: {
-    text: "HeartRate per year",
+    text: "Heart rate",
   },
   xAxis: {
     labels: {
@@ -24,11 +24,12 @@ const chartOptions = reactive({
       },
     },
     categories: [] as string[],
+    crosshair: true
   },
   yAxis: {
     min: 0,
     title: {
-      text: `HeartRate per year`,
+      text: `Heart rate (bpm)`,
     },
   },
   legend: {
@@ -55,6 +56,9 @@ const chartOptions = reactive({
       dataLabels: {
         enabled: true,
         y: -10,
+        formatter: function (this: any): string {
+        return `${this.y.toFixed(0)} bpm`;
+      },
       },
       data: [], // Initialize with an empty array
     },
@@ -64,6 +68,9 @@ const chartOptions = reactive({
       dataLabels: {
         enabled: true,
         y: -10,
+        formatter: function (this: any): string {
+        return `${this.y.toFixed(0)} bpm`;
+      },
       },
       data: [], // Initialize with an empty array
     },
@@ -136,7 +143,7 @@ watch(
 
 <template>
   <div class="chart-container">
-    <Chart :options="chartOptions"/>
+    <Chart :options="chartOptions" />
   </div>
 </template>
 

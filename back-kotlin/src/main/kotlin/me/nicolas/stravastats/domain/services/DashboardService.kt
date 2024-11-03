@@ -111,6 +111,7 @@ class DashboardService(
         val nbActivitiesByYear =
             activitiesByYear.groupBy { activity -> activity.startDateLocal.subSequence(0, 4).toString() }
                 .mapValues { (_, activities) -> activities.size }
+                .filter { it.value > 0 }
 
         // compute total distance for all years
         val totalDistanceByYear =
@@ -118,6 +119,7 @@ class DashboardService(
                 .mapValues { (_, activities) ->
                     activities.sumOf { activity -> activity.distance / 1000 }.toFloat()
                 }
+                .filter { it.value > 0 }
 
         // compute average distance for all years
         val averageDistanceByYear =
@@ -125,6 +127,7 @@ class DashboardService(
                 .mapValues { (_, activities) ->
                     (activities.sumOf { activity -> activity.distance / 1000 } / activities.size).toFloat()
                 }
+                .filter { it.value > 0 }
 
         // compute max distance for all years
         val maxDistanceByYear =
@@ -132,12 +135,13 @@ class DashboardService(
                 .mapValues { (_, activities) ->
                     activities.maxOf { activity -> activity.distance / 1000 }.toFloat()
                 }
+                .filter { it.value > 0 }
 
         // compute total elevation for all years
         val totalElevationByYear =
             activitiesByYear.groupBy { activity -> activity.startDateLocal.subSequence(0, 4).toString() }
                 .mapValues { (_, activities) -> activities.sumOf { activity -> activity.totalElevationGain.toInt() } }
-
+                .filter { it.value > 0 }
 
         // compute average elevation for all years
         val averageElevationByYear =
@@ -145,6 +149,7 @@ class DashboardService(
                 .mapValues { (_, activities) ->
                     (activities.sumOf { activity -> activity.totalElevationGain } / activities.size).toInt()
                 }
+                .filter { it.value > 0 }
 
         // compute max elevation for all years
         val maxElevationByYear =
@@ -152,13 +157,16 @@ class DashboardService(
                 .mapValues { (_, activities) ->
                     activities.maxOf { activity -> activity.totalElevationGain.toInt() }
                 }
+                .filter { it.value > 0 }
 
         // compute average speed for all years
         val averageSpeedByYear =
             activitiesByYear.groupBy { activity -> activity.startDateLocal.subSequence(0, 4).toString() }
                 .mapValues { (_, activities) ->
-                    (activities.sumOf { activity -> activity.averageSpeed } / activities.size).toFloat()
+                    (activities.filter { it.averageSpeed > 0.0 }
+                        .sumOf { activity -> activity.averageSpeed } / activities.count { it.averageSpeed > 0.0 }).toFloat()
                 }
+                .filter { it.value > 0 }
 
         // compute max speed for all years
         val maxSpeedByYear =
@@ -166,12 +174,15 @@ class DashboardService(
                 .mapValues { (_, activities) ->
                     activities.maxOf { activity -> activity.maxSpeed }
                 }
+                .filter { it.value > 0 }
 
         // compute average heart rate for all years
         val averageHeartRateByYear =
             activitiesByYear.groupBy { activity -> activity.startDateLocal.subSequence(0, 4).toString() }
                 .mapValues { (_, activities) ->
-                    (activities.sumOf { activity -> activity.averageHeartrate } / activities.size).toInt()
+                    (activities.filter { it.averageHeartrate > 0.0 }
+                        .sumOf { activity -> activity.averageHeartrate } / activities.count { it.averageHeartrate > 0.0 })
+                        .toInt()
                 }
                 .filter { it.value > 0 }
 
@@ -187,16 +198,18 @@ class DashboardService(
         val averageWattsByYear =
             activitiesByYear.groupBy { activity -> activity.startDateLocal.subSequence(0, 4).toString() }
                 .mapValues { (_, activities) ->
-                    (activities.sumOf { activity -> activity.averageWatts } / activities.size).toInt()
+                    (activities.filter { it.averageWatts > 0 }
+                        .sumOf { activity -> activity.averageWatts } / activities.count { it.averageWatts > 0 })
                 }
+                .filter { it.value > 0 }
 
         // compute max watts for all years
         val maxWattsByYear =
             activitiesByYear.groupBy { activity -> activity.startDateLocal.subSequence(0, 4).toString() }
                 .mapValues { entry: Map.Entry<String, List<StravaActivity>> ->
-                    entry.value.maxOf { activity -> activity.maxWatts.toInt() }
+                    entry.value.maxOf { activity -> activity.averageWatts }
                 }
-
+                .filter { it.value > 0 }
 
         return DashboardData(
             nbActivitiesByYear,

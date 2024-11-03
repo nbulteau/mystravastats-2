@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import {computed, reactive, ref, watch} from "vue";
-import {Chart} from "highcharts-vue";
-import type {SeriesOptionsType} from "highcharts";
+import { computed, reactive, ref, watch } from "vue";
+import { Chart } from "highcharts-vue";
+import type { SeriesOptionsType, DashStyleValue } from "highcharts";
 
 const props = defineProps<{
   cumulativeDistancePerYear: Map<string, Map<string, number>>;
@@ -9,11 +9,36 @@ const props = defineProps<{
 }>();
 
 const actual = new Date().getFullYear();
+const currentDate = new Date();
+const currentMonthDay = `${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(
+  currentDate.getDate()
+).padStart(2, "0")}`;
+
+console.log(props.cumulativeDistancePerYear);
+
+let today = computed(() => {
+  const currentYearData = props.cumulativeDistancePerYear.get(actual.toString());
+  if (currentYearData) {
+    const keysArray = Array.from(currentYearData.keys());
+    return keysArray.indexOf(currentMonthDay);
+  }
+  return -1; // Return a default value if currentYearData is not found
+});
+
+const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+
+function formatTooltip(dateString: string): string {
+      const [month, day] = dateString.split('-').map(Number);
+      return `${day} ${monthNames[month - 1]}`;
+    }
 
 const chartOptions = reactive({
   chart: {
-    type: 'line',
-    height: '50%', // Make the chart responsive to the container's height
+    type: "line",
+    height: "50%", // Make the chart responsive to the container's height
   },
   title: {
     text: "Cumulative distance per year",
@@ -26,6 +51,23 @@ const chartOptions = reactive({
         fontFamily: "Verdana, sans-serif",
       },
     },
+    plotLines: [
+      {
+        color: "#4840d6",
+        width: 2,
+        value: today,
+        zIndex: 2,
+        dashStyle: "Dash" as DashStyleValue,
+        label: {
+          text: "Current time",
+          rotation: 0,
+          y: 20,
+          style: {
+            color: "#333333",
+          },
+        },
+      },
+    ],
     categories: [] as string[],
   },
   yAxis: {
@@ -40,12 +82,15 @@ const chartOptions = reactive({
   tooltip: {
     formatter: function (this: any): string {
       return this.points.reduce(function (
-              s: any,
-              point: {
-                color: any; series: { name: string }; y: string
-              }
-          ) { return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${parseInt(point.y)} km`; },
-          "<b>" + this.x + "</b>");
+        s: any,
+        point: {
+          color: any;
+          series: { name: string };
+          y: string;
+        }
+      ) {
+        return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${parseInt(point.y)} km`;
+      }, "<b>" + formatTooltip(this.x) + "</b>");
     },
     shared: true,
   },
@@ -71,20 +116,44 @@ const chartType = ref<"distance" | "elevation">("distance");
 const title = computed(() => `Cumulative ${chartType.value} per year`);
 
 function updateChartData() {
-  const data = chartType.value === "distance" ? props.cumulativeDistancePerYear : props.cumulativeElevationPerYear;
-  let year = 2010;
+  const data =
+    chartType.value === "distance"
+      ? props.cumulativeDistancePerYear
+      : props.cumulativeElevationPerYear;
+
 
   // reset all series
   chartOptions.series = [];
+
+  let year = 2010;
   do {
     const yearStr = year.toString();
     const yearData = data.get(yearStr);
     if (yearData !== undefined) {
-      const series: SeriesOptionsType = {
-        type: "line",
-        name: yearStr,
-        data: convertToNumberArray(yearData),
-      };
+      let series: SeriesOptionsType;
+      if (year === actual) {
+        series = {
+          type: "line",
+          name: yearStr,
+          data: convertToNumberArray(yearData),
+          zoneAxis: "x",
+          zones: [
+            {
+              value: today,
+            },
+            {
+              dashStyle: "Dot",
+            },
+          ],
+        } as SeriesOptionsType;
+      } else {
+        series = {
+          type: "line",
+          name: yearStr,
+          data: convertToNumberArray(yearData),
+        } as SeriesOptionsType;
+      }
+
       chartOptions.series.push(series);
 
       // Put all the keys as category
@@ -108,7 +177,6 @@ watch(
     updateChartData,
     { immediate: true }
 );
-
 </script>
 
 <template>

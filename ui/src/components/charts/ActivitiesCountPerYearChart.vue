@@ -4,8 +4,7 @@ import {Chart} from "highcharts-vue";
 import type {SeriesColumnOptions, SeriesLineOptions, SeriesOptionsType} from "highcharts";
 
 const props = defineProps<{
-  averageElevationByYear: Record<string, number>;
-  maxElevationByYear: Record<string, number>;
+  activitiesCount: Record<string, number>;
 }>();
 
 const chartOptions = reactive({
@@ -13,7 +12,7 @@ const chartOptions = reactive({
     type: 'line',
   },
   title: {
-    text: "Elevation",
+    text: "Activities count",
   },
   xAxis: {
     labels: {
@@ -29,7 +28,7 @@ const chartOptions = reactive({
   yAxis: {
     min: 0,
     title: {
-      text: `Elevation (m)`,
+      text: `Count`,
     },
   },
   legend: {
@@ -43,7 +42,7 @@ const chartOptions = reactive({
                 color: any; series: { name: string }; y: string
               }
           ) {
-            return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${point.y} m`;
+            return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${point.y} km`;
           },
           "<b>" + this.x + "</b>");
     },
@@ -51,26 +50,11 @@ const chartOptions = reactive({
   },
   series: [
     {
-      name: "Average elevation",
+      name: "Activities count",
       type: "line",
       dataLabels: {
         enabled: true,
         y: -10,
-        formatter: function (this: any): string {
-        return `${this.y.toFixed(0)} m`;
-      },
-      },
-      data: [], // Initialize with an empty array
-    },
-    {
-      name: "Maximum elevation",
-      type: "line",
-      dataLabels: {
-        enabled: true,
-        y: -10,
-        formatter: function (this: any): string {
-        return `${this.y.toFixed(0)} m`;
-      },
       },
       data: [], // Initialize with an empty array
     },
@@ -89,33 +73,24 @@ const chartOptions = reactive({
 
 function updateChartData() {
 
-  if (!props.averageElevationByYear || !props.maxElevationByYear ) {
+  if (!props.activitiesCount) {
     return;
   }
 
   if (chartOptions.series && chartOptions.series.length > 0) {
-    const averageElevationByYear = Object.values(props.averageElevationByYear);
-    const maxElevationByYear = Object.values(props.maxElevationByYear);
+    const activitiesCount = Object.values(props.activitiesCount);
 
-    chartOptions.xAxis.categories = Object.keys(props.averageElevationByYear);
+    chartOptions.xAxis.categories = Object.keys(props.activitiesCount);
 
-    const maxAverageElevation = Math.max(...averageElevationByYear);
-    const maxAverageElevationIndex = averageElevationByYear.indexOf(maxAverageElevation);
+    const maxActivitiesCount = Math.max(...activitiesCount);
+    const maxActivitiesCountIndex = activitiesCount.indexOf(maxActivitiesCount);
 
-    const maxMaxElevation = Math.max(...maxElevationByYear);
-    const maxMaxElevationIndex = maxElevationByYear.indexOf(maxMaxElevation);
-
-    (chartOptions.series[0] as SeriesColumnOptions).data = averageElevationByYear.map((value, index) => ({
+    (chartOptions.series[0] as SeriesColumnOptions).data = activitiesCount.map((value, index) => ({
       y: value,
-      marker: index === maxAverageElevationIndex ? {enabled: true, radius: 6, fillColor: 'red'} : undefined
+      marker: index === maxActivitiesCountIndex ? {enabled: true, radius: 6, fillColor: 'red'} : undefined
     }));
 
-    (chartOptions.series[1] as SeriesColumnOptions).data = maxElevationByYear.map((value, index) => ({
-      y: value,
-      marker: index === maxMaxElevationIndex ? {enabled: true, radius: 6, fillColor: 'red'} : undefined
-    }));
-
-    (chartOptions.series[2] as SeriesLineOptions).data = calculateTrendLine(averageElevationByYear);
+    (chartOptions.series[1] as SeriesLineOptions).data = calculateTrendLine(activitiesCount);
   }
 }
 
@@ -134,7 +109,7 @@ function calculateTrendLine(data: number[]): number[] {
 
 
 watch(
-    () => props.averageElevationByYear || props.maxElevationByYear,
+    () => props.activitiesCount,
     updateChartData,
     {immediate: true}
 );
