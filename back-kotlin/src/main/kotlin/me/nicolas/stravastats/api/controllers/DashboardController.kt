@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import me.nicolas.stravastats.api.dto.*
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.services.IDashboardService
-import org.springframework.cache.annotation.Cacheable
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -37,7 +36,6 @@ class DashboardController(
         )],
     )
     @GetMapping
-    @Cacheable("dashboarddata")
     fun getDashboardData(
         activityType: ActivityType,
     ): DashboardDataDto {
@@ -64,7 +62,6 @@ class DashboardController(
         )],
     )
     @GetMapping("/eddington-number")
-    @Cacheable("eddingtonnumber")
     fun getEddingtonNumber(
         activityType: ActivityType,
     ): EddingtonNumberDto {
@@ -90,7 +87,6 @@ class DashboardController(
         )],
     )
     @GetMapping("/cumulative-data-per-year")
-    @Cacheable("cumulativedataperyear")
     fun getCumulativeDataPerYear(
         activityType: ActivityType,
     ): CumulativeDataPerYearDto {

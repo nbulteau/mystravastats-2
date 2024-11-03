@@ -6,11 +6,13 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
-import me.nicolas.stravastats.api.dto.*
+import me.nicolas.stravastats.api.dto.ActivityDto
+import me.nicolas.stravastats.api.dto.DetailedActivityDto
+import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
+import me.nicolas.stravastats.api.dto.toDto
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.services.IActivityService
-import org.springframework.cache.annotation.Cacheable
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.rest.webmvc.ResourceNotFoundException
@@ -98,7 +100,6 @@ class ActivitiesController(
     )
 
     @GetMapping
-    @Cacheable("activities")
     fun getActivitiesByActivityType(
         @RequestParam(required = true) activityType: ActivityType,
         @RequestParam(required = false) year: Int?,

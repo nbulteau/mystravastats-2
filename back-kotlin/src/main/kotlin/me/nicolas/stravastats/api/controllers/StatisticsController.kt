@@ -9,7 +9,6 @@ import me.nicolas.stravastats.api.dto.StatisticsDto
 import me.nicolas.stravastats.api.dto.toDto
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.services.IStatisticsService
-import org.springframework.cache.annotation.Cacheable
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -46,7 +45,6 @@ class StatisticsController(
         ]
     )
     @GetMapping
-    @Cacheable("statistics")
     fun getStatistics(
         @RequestParam(required = true) activityType: ActivityType,
         @RequestParam(required = false) year: Int?,
