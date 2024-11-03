@@ -148,14 +148,17 @@ import {Chart} from "highcharts-vue";
 
 // Import the leaflet library
 import 'leaflet/dist/leaflet.css';
-import * as L from 'leaflet';
+import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css'; // Ensure CSS is imported
+import L from 'leaflet';
+import 'leaflet-defaulticon-compatibility';
 
 // Set the default icon options
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'marker-icon-2x.png',
-  iconUrl: 'marker-icon.png',
-  shadowUrl: 'marker-shadow.png',
+  iconRetinaUrl: '/markers/marker-icon-2x.png',
+  iconUrl: '/markers/marker-icon.png',
+  shadowUrl: '/markers/marker-shadow.png',
 });
+
 
 const contextStore = useContextStore();
 contextStore.updateCurrentView("activity");
