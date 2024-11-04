@@ -5,3 +5,5 @@ strava-*/
 
 # Ignore mac files
 .DS_Store
+
+.env
