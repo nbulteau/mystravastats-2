@@ -240,7 +240,7 @@ internal class StatisticsService(
             GlobalStatistic("Total elevation", activities, "%.2f m") {
                 activities.sumOf { stravaActivity: StravaActivity -> stravaActivity.totalElevationGain }
             },
-            GlobalStatistic("Km by stravaActivity", activities, "%.2f km") {
+            GlobalStatistic("Km by activity", activities, "%.2f km") {
                 activities.sumOf { stravaActivity: StravaActivity -> stravaActivity.distance }.div(activities.size) / 1000
             },
 

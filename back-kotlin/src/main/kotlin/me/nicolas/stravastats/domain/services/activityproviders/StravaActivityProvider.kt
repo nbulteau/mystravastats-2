@@ -58,7 +58,7 @@ class StravaActivityProvider(
     }
 
     override fun getDetailedActivity(activityId: Long): Optional<StravaDetailedActivity> {
-        logger.info("Get detailed stravaActivity for stravaActivity id $activityId")
+        logger.info("Get detailed activity for activity id $activityId")
 
         // find detailed activity in cache or retrieve from Strava
         val activity = activities.find { it.id == activityId } ?: return Optional.empty()

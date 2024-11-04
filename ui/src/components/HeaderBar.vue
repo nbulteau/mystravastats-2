@@ -118,7 +118,13 @@ const onChangeActivityType = (event: Event) => {
               alt="Commute"
             >
           </button>
+        </div>
 
+        <div
+          class="btn-group btn-group-lg"
+          role="group"
+          aria-label="Activity"
+        >
           <button
             id="run"
             type="button"

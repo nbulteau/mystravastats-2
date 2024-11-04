@@ -47,9 +47,9 @@ internal class ChartsService(
     private val logger = LoggerFactory.getLogger(ChartsService::class.java)
 
     /**
-     * Get distance by period by stravaActivity type by year.
+     * Get distance by period by activity type by year.
      * It returns a list of pair with the period as key and the distance in km as value.
-     * @param activityType the stravaActivity type
+     * @param activityType the activity type
      * @param year the year
      * @param period the period (days, weeks or months)
      * @return a list of pair with the period as key and the distance in km as value
@@ -59,7 +59,7 @@ internal class ChartsService(
         year: Int,
         period: Period,
     ): List<Pair<String, Double>> {
-        logger.info("Get distance by $period by stravaActivity ($activityType) type by year ($year)")
+        logger.info("Get distance by $period by sctivity ($activityType) type by year ($year)")
 
         val activitiesByPeriod = this.activitiesByPeriod(activityType, year, period)
         return activitiesByPeriod.mapValues { (_, activities) ->
@@ -70,9 +70,9 @@ internal class ChartsService(
     }
 
     /**
-     * Get elevation by period by stravaActivity type by year.
+     * Get elevation by period by activity type by year.
      * It returns a list of pair with the period as key and the elevation in meters as value.
-     * @param activityType the stravaActivity type
+     * @param activityType the activity type
      * @param year the year
      * @param period the period (days, weeks or months)
      * @return a list of pair with the period as key and the elevation in meters as value
@@ -82,7 +82,7 @@ internal class ChartsService(
         year: Int,
         period: Period,
     ): List<Pair<String, Double>> {
-        logger.info("Get elevation by $period by stravaActivity ($activityType) type by year ($year)")
+        logger.info("Get elevation by $period by activity ($activityType) type by year ($year)")
 
         val activitiesByPeriod = activitiesByPeriod(activityType, year, period)
         return activitiesByPeriod.mapValues { (_, activities) ->
@@ -93,9 +93,9 @@ internal class ChartsService(
     }
 
     /**
-     * Get average speed by period by stravaActivity type by year.
+     * Get average speed by period by activity type by year.
      * It returns a list of pair with the period as key and the average speed in km/h as value.
-     * @param activityType the stravaActivity type
+     * @param activityType the activity type
      * @param year the year
      * @param period the period (days, weeks or months)
      * @return a list of pair with the period as key and the average speed in km/h as value
@@ -105,7 +105,7 @@ internal class ChartsService(
         year: Int,
         period: Period
     ): List<Pair<String, Double>> {
-        logger.info("Get average speed by $period by stravaActivity ($activityType) type by year ($year)")
+        logger.info("Get average speed by $period by activity ($activityType) type by year ($year)")
 
         val activitiesByPeriod = activitiesByPeriod(activityType, year, period)
         return activitiesByPeriod.mapValues { (_, activities) ->
@@ -120,8 +120,8 @@ internal class ChartsService(
 
 
     /**
-     * Get filtered activities by stravaActivity type, year and period.
-     * @param activityType the stravaActivity type
+     * Get filtered activities by activity type, year and period.
+     * @param activityType the activity type
      * @param year the year
      * @param period the period
      * @return a map with the period as key and the list of activities as value

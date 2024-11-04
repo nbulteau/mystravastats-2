@@ -1,4 +1,3 @@
-<!--suppress ALL -->
 <script setup lang="ts">
 import { eventBus } from "@/main";
 import VGrid, { VGridVueTemplate, type ColumnRegular, type ColumnProp, } from "@revolist/vue3-datagrid";

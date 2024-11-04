@@ -2,10 +2,10 @@
 import { reactive, watch } from "vue";
 import { Chart } from "highcharts-vue";
 import type { SeriesColumnOptions, XAxisOptions } from "highcharts";
+import { calculateAverageLine } from "@/utils/charts";
 
 const props = defineProps<{
   title: string
-  yAxisTitle: string
   unit: string
   distanceByWeeks: Map<string, number>[]
 }>();
@@ -25,7 +25,7 @@ const chartOptions: Highcharts.Options = reactive({
   yAxis: {
     min: 0,
     title: {
-      text: props.yAxisTitle,
+      text: props.title + ' (' + props.unit + ')',
     },
   },
   legend: {
@@ -62,6 +62,31 @@ const chartOptions: Highcharts.Options = reactive({
       },
       data: [], // Initialize with an empty array
     },
+    {
+      name: "Average distance",
+      type: "line",
+      color: "red",
+      dashStyle: "ShortDash",
+      marker: {
+        enabled: false,
+      },
+      enableMouseTracking: false,
+      dataLabels: {
+        enabled: true,
+        formatter: function () {
+          // Display the label only for the first point
+          if (this.point.index === 0) {
+            return 'average ' + props.title.toLowerCase() + ` by weeks : ${this.y ? this.y.toFixed(1) : 0} ` + props.unit;
+          }
+          return null;
+        },
+        style: {
+          fontSize: "13px",
+          fontFamily: "Verdana, sans-serif",
+        },
+      },
+      data: [], // Initialize with an empty array
+    },
   ],
 });
 
@@ -73,7 +98,11 @@ function convertToNumberArray(data: Map<string, number>[]): number[] {
 // Watch for changes in distanceByWeeks and update the chart data
 watch(() => props.distanceByWeeks, (newData) => {
   if (chartOptions.series && chartOptions.series.length > 0) {
-    (chartOptions.series[0] as SeriesColumnOptions).data = convertToNumberArray(newData);
+    const data = convertToNumberArray(newData);
+
+    (chartOptions.series[0] as SeriesColumnOptions).data = data;
+
+    (chartOptions.series[1] as SeriesColumnOptions).data = calculateAverageLine(data);
   }
   (chartOptions.xAxis as XAxisOptions).categories = Array.from(newData.keys()).map(String);
 }, { immediate: true }); // Immediate to handle initial data

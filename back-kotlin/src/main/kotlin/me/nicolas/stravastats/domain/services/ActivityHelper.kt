@@ -41,7 +41,7 @@ object ActivityHelper {
     }
 
     /**
-     * Remove activities that are not in the list of stravaActivity types to consider (i.e. Run, Ride, Hike, etc.)
+     * Remove activities that are not in the list of activity types to consider (i.e. Run, Ride, Hike, etc.)
      * @return a list of activities filtered by type
      * @see StravaActivity
      */

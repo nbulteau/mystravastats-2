@@ -2,17 +2,17 @@
 import { reactive, watch } from "vue";
 import { Chart } from "highcharts-vue";
 import type { SeriesColumnOptions } from "highcharts";
+import { calculateAverageLine } from "@/utils/charts";
 
 const props = defineProps<{
-  title: string
-  yAxisTitle: string
-  unit: string
-  dataByMonths: Map<string, number>[]
+  title: string;
+  unit: string;
+  dataByMonths: Map<string, number>[];
 }>();
 
 const chartOptions: Highcharts.Options = reactive({
   chart: { type: "column" },
-  title: { text: props.title },
+  title: { text: props.title + " by months" },
   xAxis: {
     labels: {
       autoRotation: [-45, -90],
@@ -39,7 +39,7 @@ const chartOptions: Highcharts.Options = reactive({
   yAxis: {
     min: 0,
     title: {
-      text: props.yAxisTitle,
+      text: props.title + ' (' + props.unit + ')',
     },
   },
   legend: {
@@ -47,11 +47,9 @@ const chartOptions: Highcharts.Options = reactive({
   },
   tooltip: {
     formatter: function (this: any): string {
-      return this.points.reduce(function (
-        s: string,
-        point: { x: string; y: number }
-      ) { return `${s}: <span>${point.y.toFixed(2)} ${props.unit}</span>`; },
-        "<b>" + this.x + "</b>");
+      return this.points.reduce(function (s: string, point: { x: string; y: number }) {
+        return `${s}: <span>${point.y.toFixed(2)} ${props.unit}</span>`;
+      }, "<b>" + this.x + "</b>");
     },
     shared: true,
   },
@@ -90,6 +88,31 @@ const chartOptions: Highcharts.Options = reactive({
       },
       data: [], // Initialize with an empty array
     },
+    {
+      name: "Average distance",
+      type: "line",
+      color: "red",
+      dashStyle: "ShortDash",
+      marker: {
+        enabled: false,
+      },
+      enableMouseTracking: false,
+      dataLabels: {
+        enabled: true,
+        formatter: function () {
+          // Display the label only for the first point
+          if (this.point.index === 0) {
+            return 'Average ' + props.title.toLowerCase() + ` by months : ${this.y ? this.y.toFixed(1) : 0} ` + props.unit;
+          }
+          return null;
+        },
+        style: {
+          fontSize: "13px",
+          fontFamily: "Verdana, sans-serif",
+        },
+      },
+      data: [], // Initialize with an empty array
+    },
   ],
 });
 
@@ -103,14 +126,14 @@ watch(
   () => props.dataByMonths,
   (newData) => {
     if (chartOptions.series && chartOptions.series.length > 0) {
-      (chartOptions.series[0] as SeriesColumnOptions).data = convertToNumberArray(newData);
-    }
-    if (chartOptions.title) {
-      chartOptions.title.text = props.title;
+      const data = convertToNumberArray(newData);
+      (chartOptions.series[0] as SeriesColumnOptions).data = data;
+
+      (chartOptions.series[1] as SeriesColumnOptions).data = calculateAverageLine(data);
     }
   },
   { immediate: true }
-); 
+);
 </script>
 
 <template>

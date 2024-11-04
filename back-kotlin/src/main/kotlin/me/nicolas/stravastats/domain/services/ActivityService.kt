@@ -34,7 +34,7 @@ internal class ActivityService(
     private val logger = LoggerFactory.getLogger(ActivityService::class.java)
 
     override fun getActivitiesByActivityTypeGroupByActiveDays(activityType: ActivityType): Map<String, Int> {
-        logger.info("Get activities by stravaActivity type ($activityType) group by active days")
+        logger.info("Get activities by activity type ($activityType) group by active days")
 
         return activityProvider.getActivitiesByActivityTypeGroupByActiveDays(activityType)
     }
@@ -46,13 +46,13 @@ internal class ActivityService(
     }
 
     override fun getActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int?): List<StravaActivity> {
-        logger.info("Get activities by stravaActivity type ($activityType) for ${year ?: "all years"}")
+        logger.info("Get activities by activity type ($activityType) for ${year ?: "all years"}")
 
         return activityProvider.getActivitiesByActivityTypeAndYear(activityType, year)
     }
 
     override fun exportCSV(activityType: ActivityType, year: Int): String {
-        logger.info("Export CSV for stravaActivity type $activityType and year $year")
+        logger.info("Export CSV for activity type $activityType and year $year")
 
         val clientId = activityProvider.athlete().id.toString()
 
@@ -68,13 +68,13 @@ internal class ActivityService(
 
             ActivityType.Hike -> HikeCSVExporter(clientId = clientId, activities = activities, year = year)
             ActivityType.AlpineSki -> AlpineSkiCSVExporter(clientId = clientId, activities = activities, year = year)
-            else -> throw IllegalArgumentException("Unknown stravaActivity type: $activityType")
+            else -> throw IllegalArgumentException("Unknown activity type: $activityType")
         }
         return exporter.export()
     }
 
     override fun getDetailedActivity(activityId: Long): Optional<StravaDetailedActivity> {
-        logger.info("Get detailed stravaActivity $activityId")
+        logger.info("Get detailed activity $activityId")
 
         val detailedActivity = activityProvider.getDetailedActivity(activityId).getOrElse {
             logger.error("Activity $activityId not found")

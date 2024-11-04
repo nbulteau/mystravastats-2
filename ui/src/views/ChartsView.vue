@@ -20,17 +20,13 @@ const elevationByWeeks = computed(() => contextStore.elevationByWeeks);
 <template>
   <div v-if="currentYear !== 'All years'">
     <ByMonthsChart
-      title="Distance by months"
-      y-axis-title="Distance (km)"
+      title="Distance"
       unit="km"
-      :current-year="currentYear"
       :data-by-months="distanceByMonths"
     />
     <ByMonthsChart
-      title="Elevation by months"
-      y-axis-title="Elevation (m)"
+      title="Elevation"
       unit="m"
-      :current-year="currentYear"
       :data-by-months="elevationByMonths"
     />
     <AverageSpeedByMonthsChart
@@ -39,17 +35,13 @@ const elevationByWeeks = computed(() => contextStore.elevationByWeeks);
       :data-by-months="averageSpeedByMonths"
     />
     <ByWeeksChart
-      title="Distance by weeks"
-      y-axis-title="Distance (km)"
+      title="Distances"
       unit="km"
-      :current-year="currentYear"
       :distance-by-weeks="distanceByWeeks"
     />
     <ByWeeksChart
-      title="Elevation by weeks"
-      y-axis-title="Elevation (m)"
+      title="Elevation"
       unit="m"
-      :current-year="currentYear"
       :distance-by-weeks="elevationByWeeks"
     />
   </div>
