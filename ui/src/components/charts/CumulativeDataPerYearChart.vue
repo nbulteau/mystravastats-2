@@ -14,12 +14,11 @@ const currentMonthDay = `${String(currentDate.getMonth() + 1).padStart(2, "0")}-
   currentDate.getDate()
 ).padStart(2, "0")}`;
 
-console.log(props.cumulativeDistancePerYear);
-
 let today = computed(() => {
   const currentYearData = props.cumulativeDistancePerYear.get(actual.toString());
   if (currentYearData) {
     const keysArray = Array.from(currentYearData.keys());
+
     return keysArray.indexOf(currentMonthDay);
   }
   return -1; // Return a default value if currentYearData is not found
@@ -115,6 +114,25 @@ const chartType = ref<"distance" | "elevation">("distance");
 
 const title = computed(() => `Cumulative ${chartType.value} per year`);
 
+const yearColors: { [key: string]: string } = {
+  "2010": "#FF0000", // Red
+  "2011": "#00FF00", // Green
+  "2012": "#0000FF", // Blue
+  "2013": "#FFFF00", // Yellow
+  "2014": "#FF00FF", // Magenta
+  "2015": "#00FFFF", // Cyan
+  "2016": "#800000", // Maroon
+  "2017": "#808000", // Olive
+  "2018": "#008000", // Dark Green
+  "2019": "#800080", // Purple
+  "2020": "#008080", // Teal
+  "2021": "#000080", // Navy
+  "2022": "#FFC0CB", // Pink
+  "2023": "#A52A2A", // Brown
+  "2024": "#FFA500", // Orange
+  "2025": "#808080", // Gray
+};
+
 function updateChartData() {
   const data =
     chartType.value === "distance"
@@ -136,6 +154,7 @@ function updateChartData() {
           type: "line",
           name: yearStr,
           data: convertToNumberArray(yearData),
+          color: yearColors[year] || "#000000", // Default to black if color not defined
           zoneAxis: "x",
           zones: [
             {
@@ -151,6 +170,8 @@ function updateChartData() {
           type: "line",
           name: yearStr,
           data: convertToNumberArray(yearData),
+          color: yearColors[year] || "#000000", // Default to black if color not defined
+          zones: [],
         } as SeriesOptionsType;
       }
 
