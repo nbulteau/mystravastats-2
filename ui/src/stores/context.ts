@@ -79,55 +79,47 @@ export const useContextStore = defineStore('context', {
             this.athleteDisplayName = `${data["firstname"]} ${data["lastname"]}`
         },
         async fetchStatistics() {
-            // noinspection UnnecessaryLocalVariableJS
             const statistics = await fetch(this.url("statistics"))
                 .then(response => response.json())
             this.statistics = statistics
         },
         async fetchActivities() {
-            // noinspection UnnecessaryLocalVariableJS
             const activities = await fetch(this.url("activities"))
                 .then(response => response.json())
             this.activities = activities
         },
         async fetchGPXCoordinates() {
-            // noinspection UnnecessaryLocalVariableJS
             const gpxCoordinates = await fetch(this.url("maps/gpx"))
                 .then(response => response.json())
             this.gpxCoordinates = gpxCoordinates
         },
         async fetchDistanceByMonths() {
-            // noinspection UnnecessaryLocalVariableJS
             const distanceByMonths = await fetch(this.url("charts/distance-by-period") + '&period=MONTHS').
                 then(response => response.json())
             this.distanceByMonths = distanceByMonths;
         },
         async fetchElevationByMonths() {
-            // noinspection UnnecessaryLocalVariableJS
             const elevationByMonths = await fetch(this.url("charts/elevation-by-period") + '&period=MONTHS')
                 .then(response => response.json())
             this.elevationByMonths = elevationByMonths;
         },
         async fetchAverageSpeedByMonths() {
-            // noinspection UnnecessaryLocalVariableJS
             const averageSpeedByMonths = await fetch(this.url("charts/average-speed-by-period") + '&period=MONTHS')
                 .then(response => response.json())
             this.averageSpeedByMonths = averageSpeedByMonths;
         },
         async fetchDistanceByWeeks() {
-            // noinspection UnnecessaryLocalVariableJS
             const distanceByWeeks = await fetch(this.url("charts/distance-by-period") + '&period=WEEKS')
                 .then(response => response.json())
             this.distanceByWeeks = distanceByWeeks;
         },
         async fetchElevationByWeeks() {
-            // noinspection UnnecessaryLocalVariableJS
             const elevationByWeeks = await fetch(this.url("charts/elevation-by-period") + '&period=WEEKS')
                 .then(response => response.json())
             this.elevationByWeeks = elevationByWeeks;
         },
         async fetchCumulativeDataPerYear() {
-            const data = await fetch(this.url("dashboard/cumulative-data-per-year") + '&activityType=' + this.currentActivity)
+            const data = await fetch(this.url("dashboard/cumulative-data-per-year"))
                 .then(response => response.json())
 
             // Convert the fetched data to a Map<string, Map<string, number>>
@@ -154,16 +146,13 @@ export const useContextStore = defineStore('context', {
             }
         },
         async fetchEddingtonNumber() {
-            // noinspection UnnecessaryLocalVariableJS
             const eddingtonNumber = await fetch(this.url("dashboard/eddington-number"))
                 .then(response => response.json())
             this.eddingtonNumber = eddingtonNumber;
         },
         async fetchDashboardData() {
-            // noinspection UnnecessaryLocalVariableJS
             const dashboardData = await fetch(this.url("dashboard"))
                 .then(response => response.json())
-
             this.dashboardData = dashboardData;
         },
         async fetchBadges() {

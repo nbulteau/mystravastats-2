@@ -90,6 +90,7 @@ class DashboardController(
     fun getCumulativeDataPerYear(
         activityType: ActivityType,
     ): CumulativeDataPerYearDto {
+
         return CumulativeDataPerYearDto(
             distance = dashboardService.getCumulativeDistancePerYear(activityType),
             elevation = dashboardService.getCumulativeElevationPerYear(activityType)

@@ -72,7 +72,7 @@ class DashboardService(
      * @return the Eddington number structure
      */
     override fun getEddingtonNumber(activityType: ActivityType): EddingtonNumber {
-        logger.info("Get Eddington number for stravaActivity type $activityType")
+        logger.info("Get Eddington number for activity type $activityType")
 
         val activitiesByActiveDays = activityProvider.getActivitiesByActivityTypeGroupByActiveDays(activityType)
 
@@ -103,7 +103,7 @@ class DashboardService(
     }
 
     override fun getDashboardData(activityType: ActivityType): DashboardData {
-        logger.info("Get dashboard data")
+        logger.info("Get dashboard data for activity type $activityType")
 
         val activitiesByYear = activityProvider.getActivitiesByActivityTypeAndYear(activityType)
 
@@ -163,8 +163,10 @@ class DashboardService(
         val averageSpeedByYear =
             activitiesByYear.groupBy { activity -> activity.startDateLocal.subSequence(0, 4).toString() }
                 .mapValues { (_, activities) ->
+                    val count = activities.count { it.averageSpeed > 0.0 }
+                    if (count == 0) return@mapValues 0F
                     (activities.filter { it.averageSpeed > 0.0 }
-                        .sumOf { activity -> activity.averageSpeed } / activities.count { it.averageSpeed > 0.0 }).toFloat()
+                        .sumOf { activity -> activity.averageSpeed } / count).toFloat()
                 }
                 .filter { it.value > 0 }
 
@@ -180,8 +182,10 @@ class DashboardService(
         val averageHeartRateByYear =
             activitiesByYear.groupBy { activity -> activity.startDateLocal.subSequence(0, 4).toString() }
                 .mapValues { (_, activities) ->
+                    val count = activities.count { it.averageHeartrate > 0.0 }
+                    if (count == 0) return@mapValues 0
                     (activities.filter { it.averageHeartrate > 0.0 }
-                        .sumOf { activity -> activity.averageHeartrate } / activities.count { it.averageHeartrate > 0.0 })
+                        .sumOf { activity -> activity.averageHeartrate } / count)
                         .toInt()
                 }
                 .filter { it.value > 0 }
@@ -198,8 +202,10 @@ class DashboardService(
         val averageWattsByYear =
             activitiesByYear.groupBy { activity -> activity.startDateLocal.subSequence(0, 4).toString() }
                 .mapValues { (_, activities) ->
+                    val count = activities.count { it.averageWatts > 0 }
+                    if (count == 0) return@mapValues 0
                     (activities.filter { it.averageWatts > 0 }
-                        .sumOf { activity -> activity.averageWatts } / activities.count { it.averageWatts > 0 })
+                        .sumOf { activity -> activity.averageWatts } / count)
                 }
                 .filter { it.value > 0 }
 
