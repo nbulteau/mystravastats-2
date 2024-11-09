@@ -14,7 +14,7 @@ import DistanceElevationPerYearChart from "@/components/charts/DistanceElevation
 const contextStore = useContextStore();
 contextStore.updateCurrentView("dashboard");
 
-const currentActivity = computed(() => contextStore.currentActivitiesTypes);
+const currentActivity = computed(() => contextStore.currentActivityType);
 const cumulativeDistancePerYear = computed(() => contextStore.cumulativeDistancePerYear);
 const cumulativeElevationPerYear = computed(() => contextStore.cumulativeElevationPerYear);
 const eddingtonNumber = computed(() => contextStore.eddingtonNumber);

@@ -9,7 +9,7 @@ const contextStore = useContextStore();
 contextStore.updateCurrentView("charts");
 
 const currentYear = computed(() => contextStore.currentYear);
-const currentActivity = computed(() => contextStore.currentActivitiesTypes);
+const currentActivity = computed(() => contextStore.currentActivityType);
 const distanceByMonths = computed(() => contextStore.distanceByMonths);
 const elevationByMonths = computed(() => contextStore.elevationByMonths);
 const averageSpeedByMonths = computed(() => contextStore.averageSpeedByMonths); 
