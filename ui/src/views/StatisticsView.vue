@@ -7,14 +7,12 @@ const contextStore = useContextStore();
 contextStore.updateCurrentView("statistics");
 
 const currentYear = computed(() => contextStore.currentYear);
-const currentActivity = computed(() => contextStore.currentActivity);
 const statistics = computed(() => contextStore.statistics);
 </script>
 
 <template>
   <StatisticsGrid
     :year="currentYear"
-    :activity="currentActivity"
     :statistics="statistics"
   />
 </template>

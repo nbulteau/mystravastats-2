@@ -7,7 +7,7 @@ const contextStore = useContextStore();
 contextStore.updateCurrentView("activities");
 
 const currentYear = computed(() => contextStore.currentYear);
-const currentActivity = computed(() => contextStore.currentActivity);
+const currentActivity = computed(() => contextStore.currentActivitiesTypes);
 const activities = computed(() => contextStore.activities);
 
 

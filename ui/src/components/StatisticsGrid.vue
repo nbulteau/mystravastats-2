@@ -6,7 +6,6 @@ import ActivityCellRenderer from "./cell-renderers/ActivityCellRenderer.vue";
 
 defineProps<{
   year: string;
-  activity: string;
   statistics: Statistics[];
 }>();
 

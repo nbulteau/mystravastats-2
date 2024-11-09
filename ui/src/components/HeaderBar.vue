@@ -5,7 +5,10 @@ import { computed } from "vue";
 const contextStore = useContextStore();
 const athleteDisplayName = computed(() => contextStore.athleteDisplayName);
 const selectedYear = contextStore.currentYear;
-const selectedActivity = computed(() => contextStore.currentActivity);
+const selectedActivity = computed(() => contextStore.currentActivityType);
+import { ref } from "vue";
+
+const selectedActivitiesType = ref<string[]>([selectedActivity.value as string]);
 
 const currentYear = new Date().getFullYear();
 const years: string[] = Array.from({ length: currentYear - 2010 + 1 }, (_, i) => (2024 - i).toString());
@@ -17,27 +20,20 @@ const onChangeCurrentYear = (event: Event) => {
   contextStore.updateCurrentYear(year);
 };
 
-const onChangeActivityType = (event: Event) => {
-  const target = event.currentTarget as HTMLElement;
-  switch (target.id) {
-    case "ride":
-      contextStore.updateCurrentActivityType("Ride");
-      break;
-    case "virtual-ride":
-      contextStore.updateCurrentActivityType("VirtualRide");
-      break;
-    case "commute":
-      contextStore.updateCurrentActivityType("Commute");
-      break;
-    case "run":
-      contextStore.updateCurrentActivityType("Run");
-      break;
-    case "hike":
-      contextStore.updateCurrentActivityType("Hike");
-      break;
-    case "alpine-ski":
-      contextStore.updateCurrentActivityType("AlpineSki")
+const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'Commute' | 'Run' | 'Hike' | 'AlpineSki') => {
+  if (activity === 'Ride' || activity === 'Commute') {
+    const otherActivity = activity === 'Ride' ? 'Commute' : 'Ride';
+    if (selectedActivitiesType.value.includes(activity)) {
+      selectedActivitiesType.value = selectedActivitiesType.value.length === 1 ? [activity] : [otherActivity];
+    } else {
+      selectedActivitiesType.value = selectedActivitiesType.value.includes(otherActivity) ? ['Ride', 'Commute'] : [activity];
+    }
+  } else {
+    selectedActivitiesType.value = [activity];
   }
+
+  const activityType = selectedActivitiesType.value.length > 1 ? 'RideWithCommute' : selectedActivitiesType.value[0];
+  contextStore.updateCurrentActivityType(activityType);
 };
 </script>
 
@@ -76,10 +72,10 @@ const onChangeActivityType = (event: Event) => {
             type="button"
             class="btn"
             :class="{
-              'btn-outline-primary': selectedActivity !== 'Ride',
-              'btn-primary': selectedActivity === 'Ride',
+              'btn-outline-primary': !selectedActivitiesType.includes('Ride'),
+              'btn-primary': selectedActivitiesType.includes('Ride'),
             }"
-            @click="onChangeActivityType"
+            @click="onChangeActivityType('Ride')"
           >
             <img
               src="@/assets/buttons/ride.png"
@@ -88,30 +84,14 @@ const onChangeActivityType = (event: Event) => {
           </button>
 
           <button
-            id="virtual-ride"
-            type="button"
-            class="btn"
-            :class="{
-              'btn-outline-primary': selectedActivity !== 'VirtualRide',
-              'btn-primary': selectedActivity === 'VirtualRide',
-            }"
-            @click="onChangeActivityType"
-          >
-            <img
-              src="@/assets/buttons/virtualride.png"
-              alt="Virtual ride"
-            >
-          </button>
-
-          <button
             id="commute"
             type="button"
             class="btn"
             :class="{
-              'btn-outline-primary': selectedActivity !== 'Commute',
-              'btn-primary': selectedActivity === 'Commute',
+              'btn-outline-primary': !selectedActivitiesType.includes('Commute'),
+              'btn-primary': selectedActivitiesType.includes('Commute'),
             }"
-            @click="onChangeActivityType"
+            @click="onChangeActivityType('Commute')"
           >
             <img
               src="@/assets/buttons/commute.png"
@@ -126,14 +106,30 @@ const onChangeActivityType = (event: Event) => {
           aria-label="Activity"
         >
           <button
+            id="virtual-ride"
+            type="button"
+            class="btn"
+            :class="{
+              'btn-outline-primary': !selectedActivitiesType.includes('VirtualRide'),
+              'btn-primary': selectedActivitiesType.includes('VirtualRide'),
+            }"
+            @click="onChangeActivityType('VirtualRide')"
+          >
+            <img
+              src="@/assets/buttons/virtualride.png"
+              alt="Virtual Ride"
+            >
+          </button>
+
+          <button
             id="run"
             type="button"
             class="btn"
             :class="{
-              'btn-outline-primary': selectedActivity !== 'Run',
-              'btn-primary': selectedActivity === 'Run',
+              'btn-outline-primary': !selectedActivitiesType.includes('Run'),
+              'btn-primary': selectedActivitiesType.includes('Run'),
             }"
-            @click="onChangeActivityType"
+            @click="onChangeActivityType('Run')"
           >
             <img
               src="@/assets/buttons/run.png"
@@ -146,29 +142,30 @@ const onChangeActivityType = (event: Event) => {
             type="button"
             class="btn"
             :class="{
-              'btn-outline-primary': selectedActivity !== 'Hike',
-              'btn-primary': selectedActivity === 'Hike',
+              'btn-outline-primary': !selectedActivitiesType.includes('Hike'),
+              'btn-primary': selectedActivitiesType.includes('Hike'),
             }"
-            @click="onChangeActivityType"
+            @click="onChangeActivityType('Hike')"
           >
             <img
               src="@/assets/buttons/hike.png"
               alt="Hike"
             >
           </button>
+
           <button
             id="alpine-ski"
             type="button"
             class="btn"
             :class="{
-              'btn-outline-primary': selectedActivity !== 'AlpineSki',
-              'btn-primary': selectedActivity === 'AlpineSki',
+              'btn-outline-primary': !selectedActivitiesType.includes('AlpineSki'),
+              'btn-primary': selectedActivitiesType.includes('AlpineSki'),
             }"
-            @click="onChangeActivityType"
+            @click="onChangeActivityType('AlpineSki')"
           >
             <img
               src="@/assets/buttons/alpineski.png"
-              alt="AlpineSki"
+              alt="Alpine Ski"
             >
           </button>
         </div>
@@ -183,6 +180,7 @@ header {
 }
 
 .athlete-name {
-  margin-right: 20px; /* Adjust the value as needed */
+  margin-right: 20px;
+  /* Adjust the value as needed */
 }
 </style>

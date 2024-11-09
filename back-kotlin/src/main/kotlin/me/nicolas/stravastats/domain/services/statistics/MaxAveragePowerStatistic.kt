@@ -17,7 +17,7 @@ internal class MaxAveragePowerStatistic(
 
     override val value: String
         get() = if (averageWatts != null) {
-            "%.02f W".format(averageWatts)
+            "%d W".format(averageWatts)
         } else {
             "Not available"
         }

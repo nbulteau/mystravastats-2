@@ -8,7 +8,7 @@ const contextStore = useContextStore();
 contextStore.updateCurrentView("badges");
 
 const currentYear = computed(() => contextStore.currentYear);
-const currentActivity = computed(() => contextStore.currentActivity);
+const currentActivity = computed(() => contextStore.currentActivitiesTypes);
 const generalBadgesCheckResults = computed(() => contextStore.generalBadgesCheckResults);
 const famousClimbBadgesCheckResults = computed(() => contextStore.famousClimbBadgesCheckResults);
 

@@ -136,7 +136,10 @@ abstract class AbstractActivityProvider : IActivityProvider {
     private fun List<StravaActivity>.filterActivitiesByType(activityType: ActivityType): List<StravaActivity> {
         return if (activityType == ActivityType.Commute) {
             this.filter { activity -> activity.type == ActivityType.Ride.name && activity.commute }
-        } else {
+        } else if (activityType == ActivityType.RideWithCommute) {
+            this.filter { activity -> activity.type == ActivityType.Ride.name }
+        }
+        else {
             this.filter { activity -> (activity.type == activityType.name) && !activity.commute }
         }
     }

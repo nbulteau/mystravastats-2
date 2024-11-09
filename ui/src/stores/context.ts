@@ -14,7 +14,7 @@ export const useContextStore = defineStore('context', {
     state(): {
         athleteDisplayName: string
         currentYear: string
-        currentActivity: string
+        currentActivityType: string,
 
         statistics: Statistics[]
         activities: Activity[],
@@ -38,7 +38,7 @@ export const useContextStore = defineStore('context', {
         return {
             athleteDisplayName: '',
             currentYear: new Date().getFullYear().toString(),
-            currentActivity: 'Ride',
+            currentActivityType: 'Ride',
 
             statistics: [],
             activities: [],
@@ -64,7 +64,7 @@ export const useContextStore = defineStore('context', {
     },
     actions: {
         url(path: string): string {
-            const url = `http://localhost:8080/api/${path}?activityType=${this.currentActivity}`
+            const url = `http://localhost:8080/api/${path}?activityType=${this.currentActivityType}`
             if (this.currentYear === "All years") {
                 return url
             }
@@ -166,7 +166,7 @@ export const useContextStore = defineStore('context', {
             await this.updateData();
         },
         async updateCurrentActivityType(activityType: string) {
-            this.currentActivity = activityType
+            this.currentActivityType = activityType
             await this.updateData();
         },
         async updateData() {

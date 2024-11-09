@@ -27,6 +27,7 @@ internal class StatisticsService(
 
         return when (activityType) {
             ActivityType.Ride -> computeRideStatistics(filteredActivities)
+            ActivityType.RideWithCommute -> computeRideStatistics(filteredActivities) // Same as ride
             ActivityType.VirtualRide -> computeVirtualRideStatistics(filteredActivities)
             ActivityType.Commute -> computeCommuteStatistics(filteredActivities)
             ActivityType.Run -> computeRunStatistics(filteredActivities)
