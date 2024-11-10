@@ -59,6 +59,13 @@
   >
     <Chart :options="chartOptions" />
   </div>
+  <div
+    v-if="hasPowerData"
+    class="chart-container"
+  >
+    <Chart :options="powerDistributionChartOptions" />
+  </div>
+
   <div id="activity-details-container">
     <div id="activity-details">
       <h3>Basic Information</h3>
@@ -135,30 +142,34 @@
 
 <script setup lang="ts">
 import "bootstrap";
-import {Tooltip} from 'bootstrap'; // Import Bootstrap Tooltip
-import {computed, nextTick, onMounted, reactive, ref} from "vue";
-import {useRoute} from "vue-router";
-import {ActivityEffort, DetailedActivity} from "@/models/activity.model"; // Ensure correct import
-import {formatSpeedWithUnit, formatTime} from "@/utils/formatters";
+import { Tooltip } from "bootstrap"; // Import Bootstrap Tooltip
+import { computed, nextTick, onMounted, reactive, ref } from "vue";
+import { useRoute } from "vue-router";
+import { ActivityEffort, DetailedActivity } from "@/models/activity.model"; // Ensure correct import
+import { formatSpeedWithUnit, formatTime } from "@/utils/formatters";
 import "bootstrap/dist/css/bootstrap.min.css";
-import {useContextStore} from "@/stores/context.js";
-import type {Options, SeriesAreaOptions, SeriesLineOptions} from "highcharts";
+import { useContextStore } from "@/stores/context.js";
+import type { Options, SeriesAreaOptions, SeriesLineOptions } from "highcharts";
 import Highcharts from "highcharts";
-import {Chart} from "highcharts-vue";
+import { Chart } from "highcharts-vue";
 
 // Import the leaflet library
-import 'leaflet/dist/leaflet.css';
-import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css'; // Ensure CSS is imported
-import L from 'leaflet';
-import 'leaflet-defaulticon-compatibility';
+import "leaflet/dist/leaflet.css";
+import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css"; // Ensure CSS is imported
+import L from "leaflet";
+import "leaflet-defaulticon-compatibility";
 
 // Set the default icon options
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: '/markers/marker-icon-2x.png',
-  iconUrl: '/markers/marker-icon.png',
-  shadowUrl: '/markers/marker-shadow.png',
+  iconRetinaUrl: "/markers/marker-icon-2x.png",
+  iconUrl: "/markers/marker-icon.png",
+  shadowUrl: "/markers/marker-shadow.png",
 });
 
+const hasPowerData = computed(() => {
+  const powerData = activity.value?.stream?.watts;
+  return powerData && powerData.length > 0;
+});
 
 const contextStore = useContextStore();
 contextStore.updateCurrentView("activity");
@@ -181,21 +192,20 @@ const isHike = computed(() => activity.value?.type === "Hike");
 
 // Icon options
 
-
 const buildRadioOptions = () => {
   if (activity.value?.activityEfforts) {
     radioOptions.value = activity.value?.activityEfforts.map((effort) => {
       return {
-        label: effort.label.length > 20 ? effort.label.substring(0, 20) + '...' : effort.label,
+        label:
+          effort.label.length > 20 ? effort.label.substring(0, 20) + "..." : effort.label,
         value: effort.id,
-        description: effort?.description ?? ''
+        description: effort?.description ?? "",
       };
     });
   } else {
     radioOptions.value = [];
   }
 };
-
 
 async function fetchDetailedActivity(id: string) {
   const url = `http://localhost:8080/api/activities/${id}`;
@@ -216,11 +226,11 @@ const updateMap = () => {
   if (map.value) {
     // Add a polyline
     const latlngs = activity.value?.stream?.latlng?.map((latlng: number[]) =>
-        L.latLng(latlng[0], latlng[1])
+      L.latLng(latlng[0], latlng[1])
     );
 
     if (latlngs) {
-      const polyline = L.polyline(latlngs, {color: "red"}).addTo(map.value);
+      const polyline = L.polyline(latlngs, { color: "red" }).addTo(map.value);
       // Fit the map to the bounds of all polylines
       const bounds = L.latLngBounds(polyline.getLatLngs() as L.LatLng[]);
       map.value.fitBounds(bounds);
@@ -235,7 +245,7 @@ const chartOptions: Options = reactive({
   },
   credits: {
     text:
-        "Source: <a href='https://en.wikipedia.org/wiki/Eddington_number' target='_blank'>Eddington number</a>",
+      "Source: <a href='https://en.wikipedia.org/wiki/Eddington_number' target='_blank'>Eddington number</a>",
   },
   xAxis: [
     {
@@ -258,8 +268,8 @@ const chartOptions: Options = reactive({
           return formatSpeedWithUnit(this.value, activity.value?.type ?? "Ride");
         },
         style: {
-          color: Highcharts.getOptions().colors?.[0] as string ?? '#000000'
-        }
+          color: (Highcharts.getOptions().colors?.[0] as string) ?? "#000000",
+        },
       },
     },
     {
@@ -267,21 +277,33 @@ const chartOptions: Options = reactive({
         text: "Altitude",
       },
       labels: {
-        format: '{value} m',
+        format: "{value} m",
         style: {
-          color: "#d3d3d3"
-        }
+          color: "#d3d3d3",
+        },
       },
-      opposite: true
+      opposite: true,
     },
   ],
   tooltip: {
     formatter: function (this: Highcharts.TooltipFormatterContextObject): string {
       const altitude = this.points?.[1]?.y ?? 0;
-      const velocityMS = activity.value?.stream?.velocitySmooth?.[this.points?.[0]?.point?.index ?? 0];
-      const velocity = formatSpeedWithUnit(velocityMS ?? 0, activity.value?.type ?? "Ride");
+      const velocityMS =
+        activity.value?.stream?.velocitySmooth?.[this.points?.[0]?.point?.index ?? 0];
+      const velocity = formatSpeedWithUnit(
+        velocityMS ?? 0,
+        activity.value?.type ?? "Ride"
+      );
 
-      return "Distance: " + (this.point.x).toFixed(1) + " km<br/>Speed: <b>" + velocity + "</b></br>Altitude: " + altitude.toFixed(0) + " m";
+      return (
+        "Distance: " +
+        this.point.x.toFixed(1) +
+        " km<br/>Speed: <b>" +
+        velocity +
+        "</b></br>Altitude: " +
+        altitude.toFixed(0) +
+        " m"
+      );
     },
     shared: true,
   },
@@ -293,7 +315,6 @@ const chartOptions: Options = reactive({
       name: "Speed",
       type: "line",
       data: [],
-
     },
     {
       name: "Altitude",
@@ -317,22 +338,32 @@ const initChart = () => {
   const distanceStream = activity.value?.stream?.distance;
   const speedStream = activity.value?.stream?.velocitySmooth;
 
-  if (speedStream && distanceStream && chartOptions.series && chartOptions.series.length > 0) {
-    (chartOptions.series[0] as SeriesLineOptions).data = speedStream.map((speed, index) => (
-        {
-          x: distanceStream[index] / 1000,
-          y: speed
-        }
-    ));
+  if (
+    speedStream &&
+    distanceStream &&
+    chartOptions.series &&
+    chartOptions.series.length > 0
+  ) {
+    (chartOptions.series[0] as SeriesLineOptions).data = speedStream.map(
+      (speed, index) => ({
+        x: distanceStream[index] / 1000,
+        y: speed,
+      })
+    );
   }
 
-  if (altitudeStream && distanceStream && chartOptions.series && chartOptions.series.length > 0) {
-    (chartOptions.series[1] as SeriesAreaOptions).data = altitudeStream.map((altitude, index) => (
-        {
-          x: distanceStream[index] / 1000,
-          y: altitude
-        }
-    ));
+  if (
+    altitudeStream &&
+    distanceStream &&
+    chartOptions.series &&
+    chartOptions.series.length > 0
+  ) {
+    (chartOptions.series[1] as SeriesAreaOptions).data = altitudeStream.map(
+      (altitude, index) => ({
+        x: distanceStream[index] / 1000,
+        y: altitude,
+      })
+    );
 
     // Calculate the minimum altitude value
     const minAltitude = Math.min(...altitudeStream);
@@ -344,41 +375,39 @@ const initChart = () => {
     }
   }
 
-  const chartContainer = document.getElementById('chart-container');
+  const chartContainer = document.getElementById("chart-container");
   if (chartContainer) {
-    chartContainer.addEventListener('mousemove',
-        function (e: MouseEvent) {
-          let chart: Highcharts.Chart | undefined;
-          let point, i, event;
+    chartContainer.addEventListener("mousemove", function (e: MouseEvent) {
+      let chart: Highcharts.Chart | undefined;
+      let point, i, event;
 
-          for (i = 0; i < Highcharts.charts.length; i = i + 1) {
-            chart = Highcharts.charts[i];
-            if (chart) {
-              // Find coordinates within the chart
-              event = chart.pointer.normalize(e);
-              // Get the hovered point
-              point = chart.series[0].searchPoint(event, true);
+      for (i = 0; i < Highcharts.charts.length; i = i + 1) {
+        chart = Highcharts.charts[i];
+        if (chart) {
+          // Find coordinates within the chart
+          event = chart.pointer.normalize(e);
+          // Get the hovered point
+          point = chart.series[0].searchPoint(event, true);
 
-              if (point) {
-                const mapContainer = document.getElementById("map-container");
-                if (mapContainer) {
-                  const latlng = activity.value?.stream?.latlng?.[point.index];
-                  if (latlng) {
-                    // Remove previous marker
-                    map.value?.eachLayer((layer) => {
-                      if (layer instanceof L.Marker) {
-                        map.value?.removeLayer(layer);
-                      }
-                    });
-                    // Add a marker
-                    L.marker(L.latLng(latlng[0], latlng[1]),).addTo(map.value!);
+          if (point) {
+            const mapContainer = document.getElementById("map-container");
+            if (mapContainer) {
+              const latlng = activity.value?.stream?.latlng?.[point.index];
+              if (latlng) {
+                // Remove previous marker
+                map.value?.eachLayer((layer) => {
+                  if (layer instanceof L.Marker) {
+                    map.value?.removeLayer(layer);
                   }
-                }
+                });
+                // Add a marker
+                L.marker(L.latLng(latlng[0], latlng[1])).addTo(map.value!);
               }
             }
           }
         }
-    );
+      }
+    });
   }
 };
 
@@ -387,7 +416,7 @@ const handleRadioClick = (key: string) => {
 
   // 1 - Get the selected effort
   const selectedEffort: ActivityEffort | undefined = activity.value?.activityEfforts.find(
-      (effort) => effort.id === key
+    (effort) => effort.id === key
   );
   if (!selectedEffort) {
     console.error(`No effort found for value: ${key}`);
@@ -406,7 +435,7 @@ const handleRadioClick = (key: string) => {
     latitudeLongitude: stream.latlng ? stream.latlng.slice(startIndex, endIndex) : [],
     altitude: stream.altitude ? stream.altitude.slice(startIndex, endIndex) : [],
     distance: stream.distance.slice(startIndex, endIndex),
-    time: stream.time.slice(startIndex, endIndex)
+    time: stream.time.slice(startIndex, endIndex),
   };
 
   // 3 - Update the map with the new stream data
@@ -419,10 +448,10 @@ const handleRadioClick = (key: string) => {
 
   if (map.value) {
     const latlngs = selectedStream.latitudeLongitude.map((latlng: number[]) =>
-        L.latLng(latlng[0], latlng[1])
+      L.latLng(latlng[0], latlng[1])
     );
     if (latlngs) {
-      const polyline = L.polyline(latlngs, {color: "blue"}).addTo(map.value);
+      const polyline = L.polyline(latlngs, { color: "blue" }).addTo(map.value);
       // Fit the map to the bounds of all polylines
       const bounds = L.latLngBounds(polyline.getLatLngs() as L.LatLng[]);
       map.value.fitBounds(bounds);
@@ -430,17 +459,136 @@ const handleRadioClick = (key: string) => {
   }
 
   // 4 - Update the chart with the new stream data
-  if (selectedStream.altitude && selectedStream.distance && chartOptions.series && chartOptions.series.length > 0) {
-    (chartOptions.series[2] as SeriesAreaOptions).data = selectedStream.altitude.map((altitude, index) => (
-        {
-          x: selectedStream.distance[index] / 1000,
-          y: altitude,
-          color: "blue"
-        }
-    ));
+  if (
+    selectedStream.altitude &&
+    selectedStream.distance &&
+    chartOptions.series &&
+    chartOptions.series.length > 0
+  ) {
+    (chartOptions.series[2] as SeriesAreaOptions).data = selectedStream.altitude.map(
+      (altitude, index) => ({
+        x: selectedStream.distance[index] / 1000,
+        y: altitude,
+        color: "blue",
+      })
+    );
+  }
+};
+
+const powerDistributionChartOptions = computed<Options>(() => {
+  const powerData = activity.value?.stream?.watts ?? [];
+  const maxPower = Math.ceil(Math.max(...powerData) / 25) * 25;
+
+  // Initialize zones
+  const zones: { [key: number]: number } = {};
+  for (let i = 0; i <= maxPower; i += 25) {
+    zones[i] = 0;
   }
 
-};
+  // Count seconds in each zone
+  powerData.forEach((power) => {
+    const zoneLower = Math.floor(power / 25) * 25;
+    zones[zoneLower]++;
+  });
+
+  // Prepare data for Highcharts
+  const seriesData = Object.entries(zones).map(([power, seconds]) => ({
+    x: parseInt(power),
+    y: seconds,
+    percentage: ((seconds / powerData.length) * 100).toFixed(1),
+  }));
+
+  const formatTimeString = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+  };
+
+  return {
+    chart: {
+      type: 'column',
+      backgroundColor: 'transparent',
+      spacing: [10, 10, 15, 10], // [top, right, bottom, left]
+      height: 250, // Reduce overall height
+      style: {
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      }
+    },
+    title: {
+      text: 'Power Distribution',
+      style: { fontSize: '14px' },
+      margin: 5
+    },
+    xAxis: {
+        title: { text: 'Power (watts)', style: { fontSize: '12px' } },
+        labels: {
+          formatter: function() {
+            return `${Number(this.value)}-${Number(this.value) + 24}`;
+          },
+          style: { fontSize: '11px' }
+        },
+        plotLines: [{
+          color: '#FF0000',
+          dashStyle: 'Dash',
+          value: activity.value?.weightedAverageWatts ?? 0,
+          width: 2,
+          zIndex: 5,
+          label: {
+      text: `Weighted Avg: ${Math.round(activity.value?.weightedAverageWatts ?? 0)}W`,
+      align: 'left',
+      rotation: 0,
+      x: 10,
+      style: {
+        color: '#FF0000',
+        fontSize: '11px'
+      },
+      y: 15
+    }
+        }]
+      },
+    yAxis: {
+      title: {
+        text: 'Time',
+        style: { fontSize: '12px' }
+      },
+      labels: {
+        formatter: function() {
+          return formatTimeString(Number(this.value));
+        },
+        style: { fontSize: '11px' }
+      }
+    },
+    legend: {
+      enabled: false
+    },
+    tooltip: {
+      formatter: function() {
+        const xValue = typeof this.x === 'number' ? this.x : 0;
+        return `<b>${xValue}-${xValue + 24}W</b><br/>
+                Time: ${formatTimeString(this.y ?? 0)}<br/>
+                ${this.point.percentage}%`;
+      },
+      style: { fontSize: '11px' }
+    },
+    plotOptions: {
+      column: {
+        pointPadding: 0,
+        groupPadding: 0,
+        borderWidth: 0,
+        shadow: false
+      }
+    },
+    series: [{
+      type: 'column',
+      name: 'Time in Zone',
+      data: seriesData,
+      color: '#2E86C1'
+    }],
+    credits: {
+      enabled: false
+    }
+  };
+});
 
 onMounted(async () => {
   initMap();
@@ -453,10 +601,10 @@ onMounted(async () => {
     await nextTick();
 
     // Initialize tooltips for radio labels
-    radioLabels.value.forEach(label => {
+    radioLabels.value.forEach((label) => {
       new Tooltip(label, {
-        title: "<div class='tooltip-inner'>" + label.getAttribute('title') + "</div>" || '',
-        html: true
+        title: label.getAttribute("title") || "",
+        html: true,
       });
     });
   });
@@ -464,8 +612,8 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-#chart-container {
-  margin-top: 20px;
+.chart-container {
+  margin-top: 20px 0;
 }
 
 #activity-details-container {
@@ -487,7 +635,6 @@ onMounted(async () => {
 .radio-label {
   font-weight: bold;
   text-align: left; /* Align text to the left */
-
 }
 
 .tooltip-inner {

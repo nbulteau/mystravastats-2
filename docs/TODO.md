@@ -2,22 +2,6 @@
 
 ## 1. **Heart Rate Analysis**
 
-- **Average Heart Rate**:
-  - **How to Calculate**: Sum all heart rate readings during an activity and divide by the number of readings.
-  - **Implementation**: Fetch heart rate data from the Strava API or GPX/FIT files, then perform the calculation.
-
-     ```kotlin
-     val averageHeartRate = heartRateReadings.sum() / heartRateReadings.size
-     ```
-
-- **Max Heart Rate**:
-  - **How to Calculate**: Identify the maximum value from the heart rate readings.
-  - **Implementation**: Fetch heart rate data and use a simple max function.
-
-     ```kotlin
-     val maxHeartRate = heartRateReadings.maxOrNull()
-     ```
-
 - **Heart Rate Zones**:
   - **How to Calculate**: Define heart rate zones (e.g., warm-up, fat burn, cardio, peak) and calculate the time spent in each zone.
   - **Implementation**: Iterate through heart rate readings and count the duration spent in each zone.
@@ -84,24 +68,7 @@
   - **How to Implement**: Provide recommendations based on recent training load and intensity.
   - **Implementation**: Use algorithms or guidelines from sports science to suggest recovery time.
 
-     ```kotlin
-     val recoveryTime = calculateRecoveryTime(recentTrainingLoad)
-     ```
-
-### 5. **Social Features**
-
-- **Activity Sharing**:
-  - **How to Implement**: Integrate with social media APIs to allow sharing of activity summaries.
-  - **Implementation**: Create shareable content (e.g., images, text) and use social media SDKs.
-- **Leaderboard**:
-  - **How to Implement**: Create a leaderboard to compare statistics with friends or other users.
-  - **Implementation**: Store user statistics in a database and sort by performance metrics.
-
-     ```kotlin
-     val leaderboard = users.sortedByDescending { it.totalDistance }
-     ```
-
-### 6. **Route Analysis**
+### 5. **Route Analysis**
 
 - **Popular Routes**:
   - **How to Implement**: Identify frequently used routes by analyzing GPS data.
@@ -114,7 +81,7 @@
      val difficulty = calculateRouteDifficulty(elevationGain, distance)
      ```
 
-### 7. **Custom Challenges**
+### 6. **Custom Challenges**
 
 - **Create Challenges**:
   - **How to Implement**: Allow users to create custom challenges and track progress.
@@ -127,7 +94,7 @@
      val challenges = fetchAvailableChallenges()
      ```
 
-### 8. **Nutrition Tracking**
+### 7. **Nutrition Tracking**
 
 - **Calorie Burn**:
   - **How to Calculate**: Estimate calorie burn using activity type, duration, and intensity.
@@ -145,7 +112,7 @@
      val nutritionLog = logNutrition(foodItem, calories, macros)
      ```
 
-### 9. **Injury Prevention**
+### 8. **Injury Prevention**
 
 - **Overtraining Alerts**:
   - **How to Implement**: Provide alerts if the user is at risk of overtraining.
@@ -165,7 +132,7 @@
      val injuryLog = logInjury(injuryType, date, recoveryStatus)
      ```
 
-### 10. **Enhanced Export Options**
+### 9. **Enhanced Export Options**
 
 - **Customizable Reports**:
   - **How to Implement**: Allow users to generate customizable reports with selected statistics.
@@ -179,20 +146,7 @@
      exportToPlatform(exportData, platformApi)
      ```
 
-### 11. **Mobile App Integration**
-
-- **Mobile App**:
-  - **How to Implement**: Develop a mobile app version of MyStravaStats for on-the-go access.
-  - **Implementation**: Use frameworks like Flutter or React Native for cross-platform development.
-- **Push Notifications**:
-  - **How to Implement**: Provide push notifications for milestones, achievements, and reminders.
-  - **Implementation**: Use Firebase Cloud Messaging (FCM) or similar services for push notifications.
-
-     ```kotlin
-     sendPushNotification("Milestone Achieved!", "You have completed 100 km this month.")
-     ```
-
-### 12. **Virtual Races**
+### 10. **Virtual Races**
 
 - **Organize Virtual Races**:
   - **How to Implement**: Allow users to participate in virtual races and track their performance.
@@ -201,11 +155,7 @@
   - **How to Implement**: Provide detailed race results and comparisons with other participants.
   - **Implementation**: Store race results in a database and generate comparison reports.
 
-     ```kotlin
-     val raceResults = fetchRaceResults(raceId)
-     ```
-
-### 13. **Sleep Tracking**
+### 11. **Sleep Tracking**
 
 - **Sleep Data Integration**:
   - **How to Implement**: Integrate with sleep tracking devices to analyze the impact of sleep on performance.
@@ -214,21 +164,7 @@
   - **How to Implement**: Provide insights into sleep quality and its correlation with activity performance.
   - **Implementation**: Analyze sleep data and provide insights based on sleep quality metrics.
 
-     ```kotlin
-     val sleepQuality = analyzeSleepQuality(sleepData)
-     ```
-
-### 14. **Voice Feedback**
-
-- **Real-time Voice Feedback**:
-  - **How to Implement**: Provide real-time voice feedback during activities for pace, distance, and other metrics.
-  - **Implementation**: Use text-to-speech (TTS) libraries to provide voice feedback.
-
-     ```kotlin
-     textToSpeech.speak("You have completed 5 km at an average pace of 5:30 per km.")
-     ```
-
-### 15. **Historical Data Analysis**
+### 12. **Historical Data Analysis**
 
 - **Year-over-Year Comparison**:
   - **How to Implement**: Allow users to compare their performance year-over-year.
@@ -236,7 +172,3 @@
 - **Trend Analysis**:
   - **How to Implement**: Provide trend analysis for different metrics over time.
   - **Implementation**: Use data visualization libraries to display trends.
-
-     ```kotlin
-     val performanceTrends = analyzePerformanceTrends(historicalData)
-     ```
