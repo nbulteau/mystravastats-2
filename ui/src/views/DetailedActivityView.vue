@@ -20,6 +20,7 @@
       Elapsed time: {{ formatTime(activity?.elapsedTime ?? 0) }}
     </span>
   </div>
+
   <div style="display: flex; width: 100%; height: 400px">
     <div
       id="map-container"
@@ -48,7 +49,8 @@
             :for="option.value"
             class="radio-label"
             :title="option.description"
-          >{{ option.label }}</label>
+          >{{ option.label
+          }}</label>
         </div>
       </form>
     </div>
@@ -59,99 +61,34 @@
   >
     <Chart :options="chartOptions" />
   </div>
-  <div
-    v-if="hasPowerData"
-    class="chart-container"
-  >
-    <Chart :options="powerDistributionChartOptions" />
+
+  <div v-if="hasPowerData">
+    <PowerDistributionChart
+      v-if="activity"
+      :activity="activity"
+    />
   </div>
 
-  <div id="activity-details-container">
-    <div id="activity-details">
-      <h3>Basic Information</h3>
-      <ul>
-        <li><strong>Type:</strong> {{ activity?.type }}</li>
-        <li>
-          <strong>Date:</strong>
-          {{
-            activity?.startDate
-              ? new Date(activity.startDate).toLocaleDateString("en-GB", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              })
-              : "N/A"
-          }}
-        </li>
-        <li>
-          <strong>Distance:</strong>
-          {{ ((activity?.distance ?? 0) / 1000).toFixed(1) }} km
-        </li>
-        <li>
-          <strong>Total Elevation Gain:</strong>
-          {{ activity?.totalElevationGain.toFixed(0) }} m
-        </li>
-        <li>
-          <strong>Elapsed Time:</strong> {{ formatTime(activity?.elapsedTime ?? 0) }}
-        </li>
-        <li><strong>Moving Time:</strong> {{ formatTime(activity?.movingTime ?? 0) }}</li>
-      </ul>
-    </div>
-    <div id="performance-metrics">
-      <h3>Performance Metrics</h3>
-      <ul>
-        <li>
-          <strong>Average Speed:</strong>
-          {{ formatSpeedWithUnit(activity?.averageSpeed ?? 0, activity?.type ?? "Ride") }}
-        </li>
-        <li>
-          <strong>Max Speed:</strong>
-          {{ formatSpeedWithUnit(activity?.maxSpeed ?? 0, activity?.type ?? "Ride") }}
-        </li>
-        <li v-if="(activity?.averageCadence ?? 0) > 0.0">
-          <strong>Average Cadence:</strong>
-          {{ (activity?.averageCadence ?? 0).toFixed(0) }} rpm
-        </li>
-        <li v-if="(activity?.averageWatts ?? 0) > 0">
-          <strong>Average Watts:</strong> {{ (activity?.averageWatts ?? 0).toFixed(0) }} W
-        </li>
-        <li v-if="(activity?.weightedAverageWatts ?? 0) > 0">
-          <strong>Weighted Average Watts:</strong>
-          {{ (activity?.weightedAverageWatts ?? 0).toFixed(0) }} W
-        </li>
-        <li v-if="(activity?.kilojoules ?? 0) > 0">
-          <strong>Kilojoules:</strong> {{ (activity?.kilojoules ?? 0).toFixed(0) }} kJ
-        </li>
-      </ul>
-    </div>
-    <div id="heart-rate-metrics">
-      <h3>Heart Rate Metrics</h3>
-      <ul>
-        <li v-if="(activity?.averageHeartrate ?? 0) > 0">
-          <strong>Average Heartrate:</strong>
-          {{ activity?.averageHeartrate.toFixed(0) }} bpm
-        </li>
-        <li v-if="(activity?.maxHeartrate ?? 0) > 0">
-          <strong>Max Heartrate:</strong> {{ activity?.maxHeartrate.toFixed(0) }} bpm
-        </li>
-      </ul>
-    </div>
-  </div>
+  <ActivityMetrics
+    v-if="activity"
+    :activity="activity"
+  />
 </template>
 
 <script setup lang="ts">
 import "bootstrap";
+import "bootstrap/dist/css/bootstrap.min.css";
 import { Tooltip } from "bootstrap"; // Import Bootstrap Tooltip
 import { computed, nextTick, onMounted, reactive, ref } from "vue";
 import { useRoute } from "vue-router";
 import { ActivityEffort, DetailedActivity } from "@/models/activity.model"; // Ensure correct import
 import { formatSpeedWithUnit, formatTime } from "@/utils/formatters";
-import "bootstrap/dist/css/bootstrap.min.css";
 import { useContextStore } from "@/stores/context.js";
 import type { Options, SeriesAreaOptions, SeriesLineOptions } from "highcharts";
 import Highcharts from "highcharts";
 import { Chart } from "highcharts-vue";
+import ActivityMetrics from "@/components/ActivityMetrics.vue";
+import PowerDistributionChart from "@/components/charts/PowerDistributionChart.vue";
 
 // Import the leaflet library
 import "leaflet/dist/leaflet.css";
@@ -168,6 +105,7 @@ L.Icon.Default.mergeOptions({
 
 const hasPowerData = computed(() => {
   const powerData = activity.value?.stream?.watts;
+
   return powerData && powerData.length > 0;
 });
 
@@ -239,7 +177,9 @@ const updateMap = () => {
 };
 
 const chartOptions: Options = reactive({
-  chart: {},
+  chart: {
+    renderTo: 'chart-container',
+  },
   title: {
     text: "",
   },
@@ -265,6 +205,9 @@ const chartOptions: Options = reactive({
       allowDecimals: false,
       labels: {
         formatter: function (this: any): string {
+          if (this.isFirst) {
+          return "";
+        }
           return formatSpeedWithUnit(this.value, activity.value?.type ?? "Ride");
         },
         style: {
@@ -378,31 +321,27 @@ const initChart = () => {
   const chartContainer = document.getElementById("chart-container");
   if (chartContainer) {
     chartContainer.addEventListener("mousemove", function (e: MouseEvent) {
-      let chart: Highcharts.Chart | undefined;
-      let point, i, event;
+      const chart: Highcharts.Chart | undefined = Highcharts.charts[0]; // Get the chart instance from the global array of charts
 
-      for (i = 0; i < Highcharts.charts.length; i = i + 1) {
-        chart = Highcharts.charts[i];
-        if (chart) {
-          // Find coordinates within the chart
-          event = chart.pointer.normalize(e);
-          // Get the hovered point
-          point = chart.series[0].searchPoint(event, true);
+      if (chart) {
+        // Find coordinates within the chart
+        const event: Highcharts.PointerEventObject = chart.pointer.normalize(e);
+        // Get the hovered point
+        const point: Highcharts.Point | undefined = chart.series[0].searchPoint(event, true);
 
-          if (point) {
-            const mapContainer = document.getElementById("map-container");
-            if (mapContainer) {
-              const latlng = activity.value?.stream?.latlng?.[point.index];
-              if (latlng) {
-                // Remove previous marker
-                map.value?.eachLayer((layer) => {
-                  if (layer instanceof L.Marker) {
-                    map.value?.removeLayer(layer);
-                  }
-                });
-                // Add a marker
-                L.marker(L.latLng(latlng[0], latlng[1])).addTo(map.value!);
-              }
+        if (point) {
+          const mapContainer = document.getElementById("map-container");
+          if (mapContainer) {
+            const latlng = activity.value?.stream?.latlng?.[point.index];
+            if (latlng) {
+              // Remove previous marker
+              map.value?.eachLayer((layer) => {
+                if (layer instanceof L.Marker) {
+                  map.value?.removeLayer(layer);
+                }
+              });
+              // Add a marker
+              L.marker(L.latLng(latlng[0], latlng[1])).addTo(map.value!);
             }
           }
         }
@@ -475,121 +414,6 @@ const handleRadioClick = (key: string) => {
   }
 };
 
-const powerDistributionChartOptions = computed<Options>(() => {
-  const powerData = activity.value?.stream?.watts ?? [];
-  const maxPower = Math.ceil(Math.max(...powerData) / 25) * 25;
-
-  // Initialize zones
-  const zones: { [key: number]: number } = {};
-  for (let i = 0; i <= maxPower; i += 25) {
-    zones[i] = 0;
-  }
-
-  // Count seconds in each zone
-  powerData.forEach((power) => {
-    const zoneLower = Math.floor(power / 25) * 25;
-    zones[zoneLower]++;
-  });
-
-  // Prepare data for Highcharts
-  const seriesData = Object.entries(zones).map(([power, seconds]) => ({
-    x: parseInt(power),
-    y: seconds,
-    percentage: ((seconds / powerData.length) * 100).toFixed(1),
-  }));
-
-  const formatTimeString = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-  };
-
-  return {
-    chart: {
-      type: 'column',
-      backgroundColor: 'transparent',
-      spacing: [10, 10, 15, 10], // [top, right, bottom, left]
-      height: 250, // Reduce overall height
-      style: {
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-      }
-    },
-    title: {
-      text: 'Power Distribution',
-      style: { fontSize: '14px' },
-      margin: 5
-    },
-    xAxis: {
-        title: { text: 'Power (watts)', style: { fontSize: '12px' } },
-        labels: {
-          formatter: function() {
-            return `${Number(this.value)}-${Number(this.value) + 24}`;
-          },
-          style: { fontSize: '11px' }
-        },
-        plotLines: [{
-          color: '#FF0000',
-          dashStyle: 'Dash',
-          value: activity.value?.weightedAverageWatts ?? 0,
-          width: 2,
-          zIndex: 5,
-          label: {
-      text: `Weighted Avg: ${Math.round(activity.value?.weightedAverageWatts ?? 0)}W`,
-      align: 'left',
-      rotation: 0,
-      x: 10,
-      style: {
-        color: '#FF0000',
-        fontSize: '11px'
-      },
-      y: 15
-    }
-        }]
-      },
-    yAxis: {
-      title: {
-        text: 'Time',
-        style: { fontSize: '12px' }
-      },
-      labels: {
-        formatter: function() {
-          return formatTimeString(Number(this.value));
-        },
-        style: { fontSize: '11px' }
-      }
-    },
-    legend: {
-      enabled: false
-    },
-    tooltip: {
-      formatter: function() {
-        const xValue = typeof this.x === 'number' ? this.x : 0;
-        return `<b>${xValue}-${xValue + 24}W</b><br/>
-                Time: ${formatTimeString(this.y ?? 0)}<br/>
-                ${this.point.percentage}%`;
-      },
-      style: { fontSize: '11px' }
-    },
-    plotOptions: {
-      column: {
-        pointPadding: 0,
-        groupPadding: 0,
-        borderWidth: 0,
-        shadow: false
-      }
-    },
-    series: [{
-      type: 'column',
-      name: 'Time in Zone',
-      data: seriesData,
-      color: '#2E86C1'
-    }],
-    credits: {
-      enabled: false
-    }
-  };
-});
-
 onMounted(async () => {
   initMap();
   await fetchDetailedActivity(activityId).then(async () => {
@@ -616,45 +440,44 @@ onMounted(async () => {
   margin-top: 20px 0;
 }
 
-#activity-details-container {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 20px;
-}
-
-#activity-details,
-#performance-metrics,
-#heart-rate-metrics {
-  width: 32%;
-}
-
 .radio-input {
   margin-right: 5px;
 }
 
 .radio-label {
   font-weight: bold;
-  text-align: left; /* Align text to the left */
+  text-align: left;
+  /* Align text to the left */
 }
 
 .tooltip-inner {
-  --bs-tooltip-max-width: 300px; /* Define the custom property for max-width */
-  max-width: var(--bs-tooltip-max-width); /* Apply the custom property */
-  background-color: #343a40; /* Dark background color */
-  color: #ffffff; /* White text color */
-  font-size: 1rem; /* Increase font size */
-  padding: 10px; /* Add padding */
-  border-radius: 5px; /* Rounded corners */
+  --bs-tooltip-max-width: 300px;
+  /* Define the custom property for max-width */
+  max-width: var(--bs-tooltip-max-width);
+  /* Apply the custom property */
+  background-color: #343a40;
+  /* Dark background color */
+  color: #ffffff;
+  /* White text color */
+  font-size: 1rem;
+  /* Increase font size */
+  padding: 10px;
+  /* Add padding */
+  border-radius: 5px;
+  /* Rounded corners */
 }
 
 .tooltip-inner ul,
 .tooltip-inner li {
-  text-align: left; /* Ensure list items are left-aligned */
+  text-align: left;
+  /* Ensure list items are left-aligned */
 }
 
 /* Scrollable container for radio buttons */
 .radio-scroll-container {
-  height: 100%; /* Set height to 100% to match the map container */
-  overflow-y: auto; /* Enable vertical scrolling */
+  height: 100%;
+  /* Set height to 100% to match the map container */
+  overflow-y: auto;
+  /* Enable vertical scrolling */
 }
 </style>
