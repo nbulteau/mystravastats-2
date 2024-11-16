@@ -58,7 +58,7 @@ onMounted(() => {
         </li>
         <li v-if="(activity.averageCadence ?? 0) > 0.0">
           <strong>Average Cadence:</strong>
-          {{ (activity.averageCadence ?? 0).toFixed(0) }} rpm
+          {{ ((activity.averageCadence ?? 0) * 2).toFixed(0) }} spm
         </li>
         <li v-if="(activity.averageWatts ?? 0) > 0">
           <strong>Average Watts:</strong> {{ (activity.averageWatts ?? 0).toFixed(0) }} W

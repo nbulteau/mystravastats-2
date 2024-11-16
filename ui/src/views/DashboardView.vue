@@ -10,11 +10,12 @@ import HeartRatePerYearChart from "@/components/charts/HeartRatePerYearChart.vue
 import PowerPerYearChart from "@/components/charts/PowerPerYearChart.vue";
 import ActivitiesCountPerYearChart from "@/components/charts/ActivitiesCountPerYearChart.vue";
 import DistanceElevationPerYearChart from "@/components/charts/DistanceElevationPerYearChart.vue";
+import AverageCadenceChart from "@/components/charts/AverageCadenceChart.vue";
 
 const contextStore = useContextStore();
 contextStore.updateCurrentView("dashboard");
 
-const currentActivity = computed(() => contextStore.currentActivityType);
+const currentActivityType = computed(() => contextStore.currentActivityType);
 const cumulativeDistancePerYear = computed(() => contextStore.cumulativeDistancePerYear);
 const cumulativeElevationPerYear = computed(() => contextStore.cumulativeElevationPerYear);
 const eddingtonNumber = computed(() => contextStore.eddingtonNumber);
@@ -31,6 +32,7 @@ const averageHeartRateByYear = computed(() => contextStore.dashboardData.average
 const maxHeartRateByYear = computed(() => contextStore.dashboardData.maxHeartRateByYear);
 const averageWattsByYear = computed(() => contextStore.dashboardData.averageWattsByYear);
 const maxWattsByYear = computed(() => contextStore.dashboardData.maxWattsByYear);
+const averageCadence = computed(() => contextStore.dashboardData.averageCadence);
 
 </script>
 
@@ -39,7 +41,7 @@ const maxWattsByYear = computed(() => contextStore.dashboardData.maxWattsByYear)
     :activities-count="activitiesCount"
   />
   <EddingtonNumberChart
-    :title="`Eddington number for ${currentActivity}: ${eddingtonNumber.eddingtonNumber}`"
+    :title="`Eddington number for ${currentActivityType}: ${eddingtonNumber.eddingtonNumber}`"
     :eddington-number="eddingtonNumber"
   />
   <CumulativeDistancePerYearChart
@@ -67,8 +69,12 @@ const maxWattsByYear = computed(() => contextStore.dashboardData.maxWattsByYear)
     :max-watts-by-year="maxWattsByYear"
   />
   <SpeedPerYearChart
-    :activity-type="currentActivity"
+    :activity-type="currentActivityType"
     :average-speed-by-year="averageSpeedByYear"
     :max-speed-by-year="maxSpeedByYear"
+  />
+  <AverageCadenceChart
+    v-if="currentActivityType === 'Run'"
+    :average-cadence="averageCadence"  
   />
 </template>

@@ -49,7 +49,7 @@ export const useContextStore = defineStore('context', {
             distanceByWeeks: [],
             elevationByWeeks: [],
             eddingtonNumber: new EddingtonNumber(),
-            dashboardData: new DashboardData({},  {},  {},  {},  {},  {},  {},  {},  {},  {},  {},  {},  {}),
+            dashboardData: new DashboardData({},  {},  {},  {},  {},  {},  {},  {},  {},  {},  {},  {},  {}, []),
             cumulativeDistancePerYear: new Map<string, Map<string, number>>(),
             cumulativeElevationPerYear: new Map<string, Map<string, number>>(),
             generalBadgesCheckResults: [],
