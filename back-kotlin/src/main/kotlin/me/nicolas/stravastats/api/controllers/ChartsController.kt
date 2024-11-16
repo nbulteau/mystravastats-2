@@ -13,6 +13,8 @@ import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import java.time.LocalDate
+import java.time.ZoneOffset
 
 @RestController
 @RequestMapping("/charts", produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -100,6 +102,19 @@ class ChartsController(
     ): List<Map<String, Double>> {
         return chartsService.getAverageSpeedByPeriodByActivityTypeByYear(activityType, year, period)
             .map { mapOf(it.first to it.second) }
+    }
+
+
+    @GetMapping("/average-cadence-by-period")
+    fun getAverageCadenceByPeriod(
+        activityType: ActivityType,
+    ): List<List<Long>> {
+        return chartsService.getAverageCadenceByPeriodByActivityTypeByYear(activityType)
+            .map { (day, value) ->
+                // Convert the day to seconds
+                val seconds = LocalDate.parse(day).atStartOfDay(ZoneOffset.UTC).toEpochSecond()
+                listOf(seconds, value.toLong())
+            }
     }
 }
 

@@ -9,6 +9,7 @@ import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvide
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDate
+import java.time.ZoneOffset
 
 interface IDashboardService {
     fun getCumulativeDistancePerYear(activityType: ActivityType): Map<String, Map<String, Double>>
@@ -217,6 +218,17 @@ class DashboardService(
                 }
                 .filter { it.value > 0 }
 
+        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityType)
+
+        val averageCadence = filteredActivities
+            .filter{ activity -> activity.averageCadence > 0 }
+            .groupBy { activity -> activity.startDateLocal.substringBefore('T') }
+            .map { (day, activities) ->
+                val milliseconds = LocalDate.parse(day).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
+                val averageCadence = (activities.sumOf { activity -> activity.averageCadence * 2 } / activities.size).toLong()
+                listOf(milliseconds, averageCadence)
+            }
+
         return DashboardData(
             nbActivitiesByYear,
             totalDistanceByYear,
@@ -231,6 +243,7 @@ class DashboardService(
             maxHeartRateByYear,
             averageWattsByYear,
             maxWattsByYear,
+            averageCadence
         )
     }
 

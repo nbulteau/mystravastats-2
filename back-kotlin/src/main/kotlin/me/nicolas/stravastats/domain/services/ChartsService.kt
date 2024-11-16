@@ -1,23 +1,14 @@
 package me.nicolas.stravastats.domain.services
 
-import me.nicolas.stravastats.domain.business.EddingtonNumber
+import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.Period
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
-import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.services.ActivityHelper.groupActivitiesByDay
 import me.nicolas.stravastats.domain.services.ActivityHelper.groupActivitiesByMonth
 import me.nicolas.stravastats.domain.services.ActivityHelper.groupActivitiesByWeek
-
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
-import me.nicolas.stravastats.domain.utils.inDateTimeFormatter
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.Month
-import java.time.format.TextStyle
-import java.time.temporal.WeekFields
-import java.util.*
 
 interface IChartsService {
     fun getDistanceByPeriodByActivityTypeByYear(
@@ -37,6 +28,11 @@ interface IChartsService {
         year: Int,
         period: Period
     ): List<Pair<String, Double>>
+
+    fun getAverageCadenceByPeriodByActivityTypeByYear(
+        activityType: ActivityType,
+    ): Map<String, Int>
+
 }
 
 @Component
@@ -117,6 +113,17 @@ internal class ChartsService(
         }.toList()
     }
 
+    override fun getAverageCadenceByPeriodByActivityTypeByYear(
+        activityType: ActivityType,
+    ): Map<String, Int> {
+        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityType)
+
+        return filteredActivities
+            .groupBy { activity -> activity.startDateLocal.substringBefore('T') }
+            .mapValues { (_, activities) -> activities.sumOf { activity -> activity.averageCadence * 2 } }
+            .mapValues { entry -> entry.value.toInt() }
+            .toMap()
+    }
 
 
     /**
