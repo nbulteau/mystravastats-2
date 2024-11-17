@@ -18,11 +18,11 @@ All statistics can be exported as a CSV file.
 
 ## User Interface
 
-![Screen shoot 1](https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-1.png?raw=true)
-![Screen shoot 2](https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-2.png?raw=true)
-![Screen shoot 3](https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-3.png?raw=true)
-![Screen shoot 4](https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-4.png?raw=true)
-![Screen shoot 5](https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-5.png?raw=true)
+<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-1.png?raw=true" width="45%" /> <img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-2.png?raw=true" width="45%" />
+
+<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-3.png?raw=true" width="45%" /> <img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-4.png?raw=true" width="45%" />
+
+<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-5.png?raw=true" width="45%" />
 
 Icons made by [Freepik](https://www.freepik.com) from [Flaticon](https://www.flaticon.com).
 
