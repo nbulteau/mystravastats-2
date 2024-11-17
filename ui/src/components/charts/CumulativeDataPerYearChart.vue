@@ -202,7 +202,10 @@ watch(
 
 <template>
   <div class="button-container">
-    <button @click="toggleChartType">
+    <button 
+      class="btn btn-primary"
+      @click="toggleChartType"
+    >
       Switch to {{ chartType === "distance" ? "Elevation" : "Distance" }}
     </button>
   </div>

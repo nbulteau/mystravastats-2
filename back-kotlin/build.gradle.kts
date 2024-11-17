@@ -39,7 +39,7 @@ dependencies {
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
-    implementation("io.jenetics:jpx:3.1.0")
+    implementation("io.jenetics:jpx:3.2.0")
 
     implementation(files("libs/fit.jar"))
 

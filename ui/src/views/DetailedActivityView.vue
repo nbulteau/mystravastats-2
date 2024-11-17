@@ -55,6 +55,16 @@
       </form>
     </div>
   </div>
+
+  <div
+    v-if="hasPowerData"
+    class="switch-container"
+  >
+    <switch-button
+      v-model="showPowerCurve"
+      button-text="Show Power curve"
+    />
+  </div>
   <div
     id="chart-container"
     style="width: 100%; height: 400px"
@@ -69,6 +79,15 @@
     />
   </div>
 
+  <div v-if="hasPowerData">
+    <PowerCurveDetailsChart
+      v-if="activity"
+      :activity="activity"
+      :historical-data="[]"
+      :weight="85"
+      :display-in-watts-per-kg="true"
+    />
+  </div>
   <ActivityMetrics
     v-if="activity"
     :activity="activity"
@@ -79,9 +98,9 @@
 import "bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Tooltip } from "bootstrap"; // Import Bootstrap Tooltip
-import { computed, nextTick, onMounted, reactive, ref } from "vue";
+import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { ActivityEffort, DetailedActivity } from "@/models/activity.model"; // Ensure correct import
+import { ActivityEffort, DetailedActivity } from "@/models/activity.model"; 
 import { formatSpeedWithUnit, formatTime } from "@/utils/formatters";
 import { useContextStore } from "@/stores/context.js";
 import type { Options, SeriesAreaOptions, SeriesLineOptions } from "highcharts";
@@ -89,12 +108,14 @@ import Highcharts from "highcharts";
 import { Chart } from "highcharts-vue";
 import ActivityMetrics from "@/components/ActivityMetrics.vue";
 import PowerDistributionChart from "@/components/charts/PowerDistributionChart.vue";
+import SwitchButton from '@/components/SwitchButton.vue';
 
 // Import the leaflet library
 import "leaflet/dist/leaflet.css";
-import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css"; // Ensure CSS is imported
+import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css"; 
 import L from "leaflet";
 import "leaflet-defaulticon-compatibility";
+import PowerCurveDetailsChart from "@/components/charts/PowerCurveDetailsChart.vue";
 
 // Set the default icon options
 L.Icon.Default.mergeOptions({
@@ -102,6 +123,8 @@ L.Icon.Default.mergeOptions({
   iconUrl: "/markers/marker-icon.png",
   shadowUrl: "/markers/marker-shadow.png",
 });
+
+const showPowerCurve = ref(false);
 
 const hasPowerData = computed(() => {
   const powerData = activity.value?.stream?.watts;
@@ -115,6 +138,7 @@ contextStore.updateCurrentView("activity");
 const route = useRoute();
 
 const activityId = Array.isArray(route.params.id) ? route.params.id[0] : route.params.id;
+
 
 const activity = ref<DetailedActivity | null>(null);
 
@@ -206,8 +230,8 @@ const chartOptions: Options = reactive({
       labels: {
         formatter: function (this: any): string {
           if (this.isFirst) {
-          return "";
-        }
+            return "";
+          }
           return formatSpeedWithUnit(this.value, activity.value?.type ?? "Ride");
         },
         style: {
@@ -226,6 +250,17 @@ const chartOptions: Options = reactive({
         },
       },
       opposite: true,
+    },
+    {
+      title: {
+        text: "",
+      },
+      labels: {
+        format: "{value} watts",
+        style: {
+          color: "red",
+        },
+      },
     },
   ],
   tooltip: {
@@ -267,11 +302,17 @@ const chartOptions: Options = reactive({
       yAxis: 1,
     },
     {
-      name: "Altitude",
+      name: "",
       type: "area",
       data: [],
       color: "blue",
       yAxis: 1,
+    },
+    {
+      name: "Power Curve",
+      type: "line",
+      data: [],
+      color: "red",
     },
   ],
 });
@@ -433,6 +474,33 @@ onMounted(async () => {
     });
   });
 });
+
+// Watcher to update chart options when showPowerCurve changes
+  watch([showPowerCurve, activity], () => {
+  if (chartOptions.series) {
+    if (showPowerCurve.value && hasPowerData.value) {
+      chartOptions.series[3] = {
+        name: "Power Curve",
+        type: "line",
+        data: (activity.value?.stream?.watts ?? []).map((watts, index) => ({
+            x: (activity.value?.stream?.distance?.[index] ?? 0) / 1000,
+            y: watts,
+          })),
+                  color: "red",
+                  yAxis: 2,
+
+      };
+    } else {
+      chartOptions.series[3] = {
+        name: "Power Curve",
+        type: "line",
+        data: [],
+        color: "red",
+      };
+    }
+  }
+}); 
+
 </script>
 
 <style scoped>
@@ -479,5 +547,43 @@ onMounted(async () => {
   /* Set height to 100% to match the map container */
   overflow-y: auto;
   /* Enable vertical scrolling */
+}
+
+.switch-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  /* Adjust as needed */
+}
+
+.switch-button {
+  /* Example styles */
+  width: 50px;
+  height: 25px;
+  background-color: #ccc;
+  border-radius: 25px;
+  position: relative;
+  cursor: pointer;
+}
+
+.switch-button::before {
+  content: '';
+  position: absolute;
+  width: 23px;
+  height: 23px;
+  background-color: white;
+  border-radius: 50%;
+  top: 1px;
+  left: 1px;
+  transition: transform 0.3s;
+}
+
+.switch-button.on {
+  background-color: #4caf50;
+}
+
+.switch-button.on::before {
+  transform: translateX(25px);
 }
 </style>
