@@ -115,7 +115,6 @@ import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css"; 
 import L from "leaflet";
 import "leaflet-defaulticon-compatibility";
-import PowerCurveDetailsChart from "@/components/charts/PowerCurveDetailsChart.vue";
 
 // Set the default icon options
 L.Icon.Default.mergeOptions({
