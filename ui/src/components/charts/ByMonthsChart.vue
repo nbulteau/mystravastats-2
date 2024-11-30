@@ -49,7 +49,7 @@ const chartOptions: Highcharts.Options = reactive({
     formatter: function (this: any): string {
       return this.points.reduce(function (s: string, point: { x: string; y: number }) {
         return `${s}: <span>${point.y.toFixed(2)} ${props.unit}</span>`;
-      }, "<b>" + this.x + "</b>");
+      }, `<b>${(chartOptions.xAxis as Highcharts.XAxisOptions).categories?.[this.point.index]}</b>`);
     },
     shared: true,
   },

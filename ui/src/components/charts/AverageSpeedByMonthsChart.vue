@@ -44,6 +44,9 @@ const chartOptions: Highcharts.Options = reactive({
     },
     labels: {
       formatter: function (this: any): string {
+        if(this.value === 0) {
+            return '';
+          }
         return formatSpeedWithUnit(this.value, props.activityType);
       },
     },
@@ -53,11 +56,14 @@ const chartOptions: Highcharts.Options = reactive({
   },
   tooltip: {
     formatter: function (this: any): string {
+      if(this.y === 0) {
+            return 'Not available';
+          }
       const speed = formatSpeedWithUnit(this.y, props.activityType);
 
       return this.points.reduce(function (s: string) {
         return `${s}: <span>${speed}</span>`;
-      }, "<b>" + this.x + "</b>");
+      }, `<b>${(chartOptions.xAxis as Highcharts.XAxisOptions).categories?.[this.point.index]}</b>`);
     },
     shared: true,
   },
@@ -88,6 +94,7 @@ const chartOptions: Highcharts.Options = reactive({
         inside: true,
         verticalAlign: "top",
         formatter: function (this: any): string {
+
           return formatSpeed(this.y, props.activityType);
         },
         y: 10, // 10 pixels down from the top
