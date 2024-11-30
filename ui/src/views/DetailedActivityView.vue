@@ -109,6 +109,7 @@ import { Chart } from "highcharts-vue";
 import ActivityMetrics from "@/components/ActivityMetrics.vue";
 import PowerDistributionChart from "@/components/charts/PowerDistributionChart.vue";
 import SwitchButton from '@/components/SwitchButton.vue';
+import PowerCurveDetailsChart from "@/components/charts/PowerCurveDetailsChart.vue";
 
 // Import the leaflet library
 import "leaflet/dist/leaflet.css";
@@ -316,6 +317,8 @@ const chartOptions: Options = reactive({
   ],
 });
 
+let chartInstance: Highcharts.Chart | null = null;
+
 const initChart = () => {
   const altitudeStream = activity.value?.stream?.altitude;
   const distanceStream = activity.value?.stream?.distance;
@@ -360,14 +363,14 @@ const initChart = () => {
 
   const chartContainer = document.getElementById("chart-container");
   if (chartContainer) {
-    chartContainer.addEventListener("mousemove", function (e: MouseEvent) {
-      const chart: Highcharts.Chart | undefined = Highcharts.charts[0]; // Get the chart instance from the global array of charts
+    chartInstance = Highcharts.chart(chartContainer, chartOptions);
 
-      if (chart) {
+    chartContainer.addEventListener("mousemove", function (e: MouseEvent) {
+      if (chartInstance) {
         // Find coordinates within the chart
-        const event: Highcharts.PointerEventObject = chart.pointer.normalize(e);
+        const event: Highcharts.PointerEventObject = chartInstance.pointer.normalize(e);
         // Get the hovered point
-        const point: Highcharts.Point | undefined = chart.series[0].searchPoint(event, true);
+        const point: Highcharts.Point | undefined = chartInstance.series[0].searchPoint(event, true);
 
         if (point) {
           const mapContainer = document.getElementById("map-container");
@@ -475,19 +478,18 @@ onMounted(async () => {
 });
 
 // Watcher to update chart options when showPowerCurve changes
-  watch([showPowerCurve, activity], () => {
+watch([showPowerCurve, activity], () => {
   if (chartOptions.series) {
     if (showPowerCurve.value && hasPowerData.value) {
       chartOptions.series[3] = {
         name: "Power Curve",
         type: "line",
         data: (activity.value?.stream?.watts ?? []).map((watts, index) => ({
-            x: (activity.value?.stream?.distance?.[index] ?? 0) / 1000,
-            y: watts,
-          })),
-                  color: "red",
-                  yAxis: 2,
-
+          x: (activity.value?.stream?.distance?.[index] ?? 0) / 1000,
+          y: watts,
+        })),
+        color: "red",
+        yAxis: 2,
       };
     } else {
       chartOptions.series[3] = {
@@ -497,8 +499,13 @@ onMounted(async () => {
         color: "red",
       };
     }
+    if (chartInstance) {
+      chartInstance.update({
+        series: chartOptions.series,
+      });
+    }
   }
-}); 
+});
 
 </script>
 
