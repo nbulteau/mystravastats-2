@@ -75,7 +75,7 @@ const chartOptions: Highcharts.Options = reactive({
         enabled: true,
         formatter: function () {
           // Display the label only for the first point
-          if (this.point.index === 0) {
+          if (this.index === 0) {
             return 'average ' + props.title.toLowerCase() + ` by weeks : ${this.y ? this.y.toFixed(1) : 0} ` + props.unit;
           }
           return null;

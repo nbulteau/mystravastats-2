@@ -264,7 +264,7 @@ const chartOptions: Options = reactive({
     },
   ],
   tooltip: {
-    formatter: function (this: Highcharts.TooltipFormatterContextObject): string {
+    formatter: function (this: any): string {
       const altitude = this.points?.[1]?.y ?? 0;
       const velocityMS =
         activity.value?.stream?.velocitySmooth?.[this.points?.[0]?.point?.index ?? 0];

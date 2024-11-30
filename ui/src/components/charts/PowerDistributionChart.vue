@@ -101,7 +101,7 @@ const powerDistributionChartOptions = computed<Options>(() => {
                 const xValue = typeof this.x === 'number' ? this.x : 0;
                 return `<b>${xValue}-${xValue + 24}W</b><br/>
                 Time: ${formatTimeString(this.y ?? 0)}<br/>
-                ${this.point.percentage}%`;
+                ${(this as any).point.percentage}%`;
             },
             style: { fontSize: '11px' }
         },
