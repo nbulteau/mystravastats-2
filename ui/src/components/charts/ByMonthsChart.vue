@@ -49,7 +49,7 @@ const chartOptions: Highcharts.Options = reactive({
     formatter: function (this: any): string {
       return this.points.reduce(function (s: string, point: { x: string; y: number }) {
         return `${s}: <span>${point.y.toFixed(2)} ${props.unit}</span>`;
-      }, "<b>" + this.x + "</b>");
+      }, `<b>${(chartOptions.xAxis as Highcharts.XAxisOptions).categories?.[this.point.index]}</b>`);
     },
     shared: true,
   },
@@ -99,9 +99,9 @@ const chartOptions: Highcharts.Options = reactive({
       enableMouseTracking: false,
       dataLabels: {
         enabled: true,
-        formatter: function () {
+        formatter: function (this: Highcharts.Point) {
           // Display the label only for the first point
-          if (this.point.index === 0) {
+          if (this.index === 0) {
             return 'Average ' + props.title.toLowerCase() + ` by months : ${this.y ? this.y.toFixed(1) : 0} ` + props.unit;
           }
           return null;

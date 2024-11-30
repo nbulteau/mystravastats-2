@@ -17,10 +17,10 @@ function handleDetailledActivityClick(id: string) {
 
 <template>
   <div>
-    <button
-      type="button"
-      class="btn btn-light"
-      @click="handleDetailledActivityClick($props.model.id.toString())"
+    <a
+      :href="model.link"
+      target="_blank"
+    class="btn btn-light"
     >
       <img
         src="@/assets/buttons/eye.png"
@@ -28,12 +28,15 @@ function handleDetailledActivityClick(id: string) {
         width="16"
         height="16"
       >
-    </button>
+  </a>
+
     <a
-      :href="model.link"
-      target="_blank"
+      href="#"
       class="activity-link"
-    >{{ model.name }}</a>
+      @click.prevent="handleDetailledActivityClick($props.model.id.toString())"
+    >
+      {{ model.name }}
+    </a>
   </div>
 </template>
 

@@ -37,6 +37,9 @@ const chartOptions = reactive({
     },
     labels: {
       formatter: function (this: any): string {
+        if (this.isFirst) {
+            return "";
+          }
         return formatSpeedWithUnit(this.value, props.activityType);
       },
     },
