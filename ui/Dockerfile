@@ -18,7 +18,7 @@ COPY . .
 # build app for production with minification
 RUN npm run build
 
-FROM nginx:1.27.1-alpine-slim AS runtime
+FROM nginx:alpine-slim AS runtime
 
 RUN mkdir -p /app && chown nginx:nginx /app
 COPY conf/default.conf.template /etc/nginx/templates/
