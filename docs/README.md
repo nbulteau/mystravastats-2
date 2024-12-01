@@ -85,7 +85,7 @@ Login to Strava then click 'Authorize' and tick the required permissions if need
 Before running the `docker-compose` command, you need to set the `STRAVA_CACHE_PATH` environment variable. You can do this by creating a `.env` file in the root directory of your project with the following content:
 
 ```shell
-export STRAVA_CACHE_PATH=[path to the strava-cache directory]
+STRAVA_CACHE_PATH=[path to the strava-cache directory]
 ```
 
 ## build command
@@ -94,11 +94,11 @@ export STRAVA_CACHE_PATH=[path to the strava-cache directory]
 docker compose build
 ```
 
-For Windows users, you can use .env file
+You can use .env file
 
 ```shell
 echo STRAVA_CACHE_PATH=[path to the strava-cache directory] > .env
-docker compose --env-file .env build
+docker compose build
 ```
 
 * "back end" container will be built.
@@ -108,13 +108,7 @@ docker compose --env-file .env build
 
 ```shell
 export STRAVA_CACHE_PATH=[path to the strava-cache directory]
-docker compose up back ui
-```
-
-For Windows users, you can use .env file
-
-```shell
-docker compose --env-file .env up back ui
+docker compose up
 ```
 
 Open link in a browser : <http://localhost/>

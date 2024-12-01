@@ -115,7 +115,7 @@ const chartType = ref<"distance" | "elevation">("distance");
 const title = computed(() => `Cumulative ${chartType.value} per year`);
 
 const yearColors: { [key: string]: string } = {
-  "2010": "#FF0000", // Red
+  "2010": "#808080", // Gray
   "2011": "#00FF00", // Green
   "2012": "#0000FF", // Blue
   "2013": "#FFFF00", // Yellow
@@ -130,7 +130,7 @@ const yearColors: { [key: string]: string } = {
   "2022": "#FFC0CB", // Pink
   "2023": "#A52A2A", // Brown
   "2024": "#FFA500", // Orange
-  "2025": "#808080", // Gray
+  "2025":  "#FF0000", // Red
 };
 
 function updateChartData() {
@@ -179,6 +179,8 @@ function updateChartData() {
 
       // Put all the keys as category
       chartOptions.xAxis.categories = Array.from(yearData.keys());
+
+      chartOptions.yAxis.title.text = chartType.value === "distance" ? "Distance (km)" : "Elevation (m)";
     }
   } while (year++ < actual);
 
