@@ -31,10 +31,20 @@ const maxElevationByYear = computed(() => contextStore.dashboardData.maxElevatio
 const averageHeartRateByYear = computed(() => contextStore.dashboardData.averageHeartRateByYear);
 const maxHeartRateByYear = computed(() => contextStore.dashboardData.maxHeartRateByYear);
 const averageWattsByYear = computed(() => contextStore.dashboardData.averageWattsByYear);
-const maxWattsByYear = computed(() => contextStore.dashboardData.maxWattsByYear);
+const maxWattsByYear = computed(() => sortDataByYear(contextStore.dashboardData.maxWattsByYear));
 const averageCadence = computed(() => contextStore.dashboardData.averageCadence);
 
+function sortDataByYear(averageWattsByYear: Record<string, number>): Record<string, number> {
+  return Object.keys(averageWattsByYear)
+    .sort((a, b) => parseInt(a) - parseInt(b))
+    .reduce((acc, key) => {
+      acc[key] = averageWattsByYear[key];
+      return acc;
+    }, {} as Record<string, number>);
+}
+
 </script>
+
 
 <template>
   <ActivitiesCountPerYearChart
