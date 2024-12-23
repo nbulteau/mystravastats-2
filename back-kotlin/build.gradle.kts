@@ -1,8 +1,8 @@
 plugins {
     kotlin("jvm") version "2.1.0"
     kotlin("plugin.spring") version "2.1.0"
-    id("org.springframework.boot") version "3.4.0"
-    id("io.spring.dependency-management") version "1.1.6"
+    id("org.springframework.boot") version "3.4.1"
+    id("io.spring.dependency-management") version "1.1.7"
     id("com.github.ben-manes.versions") version "0.51.0"
 }
 
@@ -35,7 +35,7 @@ dependencies {
 
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
 
-    implementation("io.ktor:ktor-server-netty:3.0.1")
+    implementation("io.ktor:ktor-server-netty:3.0.3")
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
