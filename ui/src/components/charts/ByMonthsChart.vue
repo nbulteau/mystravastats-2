@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive, watch } from "vue";
 import { Chart } from "highcharts-vue";
-import type { SeriesColumnOptions } from "highcharts";
+import type { SeriesColumnOptions, Point } from "highcharts"; // Import Point here
 import { calculateAverageLine } from "@/utils/charts";
 
 const props = defineProps<{
@@ -99,10 +99,10 @@ const chartOptions: Highcharts.Options = reactive({
       enableMouseTracking: false,
       dataLabels: {
         enabled: true,
-        formatter: function (this: Highcharts.PointLabelObject) {
+        formatter: function (this: Point) { // Use Point here
           // Display the label only for the first point
-          if (this.point.index === 0) {
-            return 'Average ' + props.title.toLowerCase() + ` by months : ${this.point.y ? this.point.y.toFixed(1) : 0} ` + props.unit;
+          if (this.index === 0) {
+            return 'Average ' + props.title.toLowerCase() + ` by months : ${this.y ? this.y.toFixed(1) : 0} ` + props.unit;
           }
           return null;
         },
