@@ -21,7 +21,7 @@ class ActivityProviderConfig {
         val fitCache: String? = System.getenv("FIT_FILES_PATH")
         val gpxCache: String? = System.getenv("GPX_FILES_PATH")
 
-        return if (fitCache == null && gpxCache == null) {
+        val activityProvider = if (fitCache == null && gpxCache == null) {
             logger.info("Using Strava Activity Provider")
 
             if (stravaCache == null) {
@@ -47,5 +47,11 @@ class ActivityProviderConfig {
                 throw IllegalArgumentException("No cache provided")
             }
         }
+
+        println()
+        println("To access MyStravaStats: copy paste this url http://localhost:80 in a browser")
+        println()
+
+        return activityProvider
     }
 }
