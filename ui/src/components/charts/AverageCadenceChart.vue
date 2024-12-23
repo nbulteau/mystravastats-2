@@ -3,9 +3,6 @@ import { reactive, watch } from "vue";
 import { Chart } from "highcharts-vue";
 import type { SeriesColumnOptions } from "highcharts";
 import Highcharts from 'highcharts';
-import HighchartsMore from 'highcharts/highcharts-more';
-
-HighchartsMore(Highcharts);
 
 const props = defineProps<{
     averageCadence: Array<Array<number>>
