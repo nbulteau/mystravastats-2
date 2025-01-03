@@ -11,7 +11,7 @@ import { ref } from "vue";
 const selectedActivitiesType = ref<string[]>([selectedActivity.value as string]);
 
 const currentYear = new Date().getFullYear();
-const years: string[] = Array.from({ length: currentYear - 2010 + 1 }, (_, i) => (2024 - i).toString());
+const years: string[] = Array.from({ length: currentYear - 2010 + 1 }, (_, i) => (currentYear - i).toString());
 years.push("All years");
 
 const onChangeCurrentYear = (event: Event) => {

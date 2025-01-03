@@ -89,7 +89,7 @@ const chartOptions = reactive({
         }
       ) {
         return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${parseInt(point.y)} km`;
-      }, "<b>" + formatTooltip(this.x) + "</b>");
+      }, "<b>" + formatTooltip(this.key) + "</b>");
     },
     shared: true,
   },
@@ -130,7 +130,8 @@ const yearColors: { [key: string]: string } = {
   "2022": "#FFC0CB", // Pink
   "2023": "#A52A2A", // Brown
   "2024": "#FFA500", // Orange
-  "2025":  "#FF0000", // Red
+  "2025": "#FF0000", // Red
+  "2026": "#00008B", // Dark blue
 };
 
 function updateChartData() {
