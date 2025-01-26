@@ -1,0 +1,71 @@
+package api
+
+import (
+	"encoding/json"
+	"fmt"
+	"mystravastats/api/dto"
+	"mystravastats/domain/services"
+	"mystravastats/domain/services/strava"
+	"net/http"
+	"strconv"
+)
+
+func getActivitiesByActivityType(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+
+	// TODO: This is for testing purposes only
+	year := 2024
+	activities := services.FetchActivitiesByActivityTypeAndYear(services.VirtualRide, &year)
+	// Convert to activitydto
+	activitiesDto := make([]dto.ActivityDto, len(activities))
+	for i, activity := range activities {
+		activitiesDto[i] = toDto(activity)
+	}
+
+	if err := json.NewEncoder(w).Encode(activitiesDto); err != nil {
+		panic(err)
+	}
+}
+
+func toDto(activity strava.Activity) dto.ActivityDto {
+	// TODO: Implement the following methods
+	// bestPowerFor20Minutes := activity.calculateBestPowerForTime(20 * 60)
+	// bestPowerFor60Minutes := activity.calculateBestPowerForTime(60 * 60)
+
+	var ftp = ""
+	/*
+		if bestPowerFor60Minutes != nil {
+			ftp = fmt.Sprintf("%d", bestPowerFor60Minutes.AveragePower)
+		} else if bestPowerFor20Minutes != nil {
+			ftp = fmt.Sprintf("%d", int(float64(bestPowerFor20Minutes.AveragePower)*0.95))
+		} else {
+			ftp = ""
+		}
+	*/
+
+	link := ""
+	if activity.UploadId != 0 {
+		link = fmt.Sprintf("https://www.strava.com/activities/%d", activity.Id)
+	}
+
+	return dto.ActivityDto{
+		ID:                               activity.Id,
+		Name:                             activity.Name,
+		Type:                             activity.Type,
+		Link:                             link,
+		Distance:                         int(activity.Distance),
+		ElapsedTime:                      activity.ElapsedTime,
+		TotalElevationGain:               int(activity.TotalElevationGain),
+		AverageSpeed:                     activity.AverageSpeed,
+		BestTimeForDistanceFor1000m:      42.0, // activity.calculateBestTimeForDistance(1000.0).getMSSpeed(),
+		BestElevationForDistanceFor500m:  42.0, // activity.calculateBestElevationForDistance(500.0).getGradient(),
+		BestElevationForDistanceFor1000m: 42.0, // activity.calculateBestElevationForDistance(1000.0).getGradient(),
+		Date:                             activity.StartDateLocal,
+		AverageWatts:                     int(activity.AverageWatts),
+		WeightedAverageWatts:             strconv.Itoa(activity.WeightedAverageWatts),
+		BestPowerFor20Minutes:            "", // bestPowerFor20Minutes.getFormattedPower(),
+		BestPowerFor60Minutes:            "", // bestPowerFor60Minutes.getFormattedPower(),
+		FTP:                              ftp,
+	}
+}
