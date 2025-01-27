@@ -51,12 +51,18 @@ func (api *StravaApi) setAccessToken(clientId, clientSecret string) {
 	fmt.Println("To grant MyStravaStats to read your Strava activities data: copy paste this URL in a browser")
 	fmt.Println(authURL)
 
+	// Create a channel to signal when the accessToken is set
+	tokenChan := make(chan struct{})
+
 	// Start a local server to handle the OAuth callback
 	http.HandleFunc("/exchange_token", func(w http.ResponseWriter, r *http.Request) {
 		code := r.URL.Query().Get("code")
 		token := api.getToken(clientId, clientSecret, code)
 		api.accessToken = token.AccessToken
 		_, _ = fmt.Fprintf(w, buildResponseHtml(clientId))
+
+		// Signal that the token is set
+		close(tokenChan)
 
 		// Remove port binding
 		_ = http.ListenAndServe(":8090", nil)
@@ -71,6 +77,9 @@ func (api *StravaApi) setAccessToken(clientId, clientSecret string) {
 
 	// Open the browser
 	openBrowser(authURL)
+
+	// Wait for the accessToken to be set
+	<-tokenChan
 }
 
 func (api *StravaApi) getToken(clientId, clientSecret, authorizationCode string) Token {

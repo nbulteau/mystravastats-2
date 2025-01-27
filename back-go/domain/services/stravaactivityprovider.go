@@ -85,7 +85,7 @@ func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *s
 }
 
 func (provider *StravaActivityProvider) loadFromLocalCache(clientId string) []strava.Activity {
-	log.Println("Load Strava activities from local cache ...")
+	log.Println("Load activities from local cache ...")
 
 	var loadedActivities []strava.Activity
 	startYear := time.Now().Year()
@@ -99,7 +99,7 @@ func (provider *StravaActivityProvider) loadFromLocalCache(clientId string) []st
 }
 
 func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId string) []strava.Activity {
-	log.Println("Load Strava activities from Strava ...")
+	log.Println("Load activities from Strava ...")
 
 	var loadedActivities []strava.Activity
 	currentYear := time.Now().Year()
@@ -139,15 +139,19 @@ func (provider *StravaActivityProvider) loadActivitiesStreams(clientId string, y
 }
 
 func (provider *StravaActivityProvider) retrieveLoggedInAthlete(clientId string) strava.Athlete {
-	log.Printf("Load stravaAthlete with id %s description from Strava", clientId)
+	log.Printf("Load athlete with id %s description from Strava", clientId)
 
 	if provider.StravaApi != nil {
 		athlete, err := provider.StravaApi.RetrieveLoggedInAthlete()
 		if err == nil {
 			provider.localStorageProvider.SaveAthleteToCache(clientId, *athlete)
-		}
 
-		return *athlete
+			return *athlete
+		} else {
+			log.Printf("Failed to load athlete from Strava: %v", err)
+
+			return strava.Athlete{Id: 0}
+		}
 	}
 
 	return provider.localStorageProvider.LoadAthleteFromCache(clientId)
