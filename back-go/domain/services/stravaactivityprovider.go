@@ -7,6 +7,7 @@ import (
 	"mystravastats/domain/services/strava"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -102,19 +103,37 @@ func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId strin
 	log.Println("Load activities from Strava ...")
 
 	var loadedActivities []strava.Activity
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
 	currentYear := time.Now().Year()
-	loadedActivities = append(loadedActivities, provider.retrieveActivities(clientId, currentYear)...)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		activities := provider.retrieveActivities(clientId, currentYear)
+		mu.Lock()
+		loadedActivities = append(loadedActivities, activities...)
+		mu.Unlock()
+	}()
 
 	for year := currentYear - 1; year >= 2010; year-- {
-		if provider.localStorageProvider.IsLocalCacheExistForYear(clientId, year) {
-			activities := provider.localStorageProvider.LoadActivitiesFromCache(clientId, year)
-			provider.loadActivitiesStreams(clientId, year, activities)
+		wg.Add(1)
+		go func(year int) {
+			defer wg.Done()
+			var activities []strava.Activity
+			if provider.localStorageProvider.IsLocalCacheExistForYear(clientId, year) {
+				activities = provider.localStorageProvider.LoadActivitiesFromCache(clientId, year)
+				provider.loadActivitiesStreams(clientId, year, activities)
+			} else {
+				activities = provider.retrieveActivities(clientId, year)
+			}
+			mu.Lock()
 			loadedActivities = append(loadedActivities, activities...)
-		} else {
-			loadedActivities = append(loadedActivities, provider.retrieveActivities(clientId, year)...)
-		}
+			mu.Unlock()
+		}(year)
 	}
 
+	wg.Wait()
 	log.Printf("%d activities loaded.", len(loadedActivities))
 	return loadedActivities
 }
@@ -139,22 +158,21 @@ func (provider *StravaActivityProvider) loadActivitiesStreams(clientId string, y
 }
 
 func (provider *StravaActivityProvider) retrieveLoggedInAthlete(clientId string) strava.Athlete {
-	log.Printf("Load athlete with id %s description from Strava", clientId)
-
+	log.Printf("Load loggedInAthlete with id %s description from Strava", clientId)
+	var loggedInAthlete *strava.Athlete
 	if provider.StravaApi != nil {
 		athlete, err := provider.StravaApi.RetrieveLoggedInAthlete()
 		if err == nil {
 			provider.localStorageProvider.SaveAthleteToCache(clientId, *athlete)
-
-			return *athlete
-		} else {
-			log.Printf("Failed to load athlete from Strava: %v", err)
-
-			return strava.Athlete{Id: 0}
+			loggedInAthlete = athlete
 		}
 	}
 
-	return provider.localStorageProvider.LoadAthleteFromCache(clientId)
+	if loggedInAthlete == nil {
+		return provider.localStorageProvider.LoadAthleteFromCache(clientId)
+	}
+
+	return *loggedInAthlete
 }
 
 func (provider *StravaActivityProvider) retrieveActivities(clientId string, year int) []strava.Activity {
@@ -166,7 +184,7 @@ func (provider *StravaActivityProvider) retrieveActivities(clientId string, year
 			filteredActivities := filterByActivityTypes(retrievedActivities)
 			provider.localStorageProvider.SaveActivitiesToCache(clientId, year, filteredActivities)
 			provider.loadActivitiesStreams(clientId, year, filteredActivities)
-			log.Printf("%d activities loaded", len(filteredActivities))
+
 			return filteredActivities
 		} else {
 			log.Printf("Failed to load activities from Strava: %v", err)
