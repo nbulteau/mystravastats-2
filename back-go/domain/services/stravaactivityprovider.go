@@ -89,12 +89,23 @@ func (provider *StravaActivityProvider) loadFromLocalCache(clientId string) []st
 	log.Println("Load activities from local cache ...")
 
 	var loadedActivities []strava.Activity
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
 	startYear := time.Now().Year()
 	for year := startYear; year >= 2010; year-- {
-		log.Printf("Load %d activities ...", year)
-		loadedActivities = append(loadedActivities, provider.localStorageProvider.LoadActivitiesFromCache(clientId, year)...)
+		wg.Add(1)
+		go func(year int) {
+			defer wg.Done()
+			log.Printf("Load %d activities ...", year)
+			activities := provider.localStorageProvider.LoadActivitiesFromCache(clientId, year)
+			mu.Lock()
+			loadedActivities = append(loadedActivities, activities...)
+			mu.Unlock()
+		}(year)
 	}
 
+	wg.Wait()
 	log.Printf("%d activities loaded.", len(loadedActivities))
 	return loadedActivities
 }

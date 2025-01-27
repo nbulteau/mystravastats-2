@@ -10,14 +10,13 @@ import (
 	"strconv"
 )
 
-func getActivitiesByActivityType(w http.ResponseWriter, _ *http.Request) {
+func getActivitiesByActivityType(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 
-	// TODO: This is for testing purposes only
-	year := 2024
-	activities := services.FetchActivitiesByActivityTypeAndYear(services.VirtualRide, &year)
-	// Convert to activitydto
+	year := getYearParam(r)
+	activityType := getActivityTypeParam(r)
+	activities := services.FetchActivitiesByActivityTypeAndYear(activityType, year)
 	activitiesDto := make([]dto.ActivityDto, len(activities))
 	for i, activity := range activities {
 		activitiesDto[i] = toDto(activity)
@@ -26,6 +25,25 @@ func getActivitiesByActivityType(w http.ResponseWriter, _ *http.Request) {
 	if err := json.NewEncoder(w).Encode(activitiesDto); err != nil {
 		panic(err)
 	}
+}
+
+func getActivityTypeParam(r *http.Request) services.ActivityType {
+	var activityType services.ActivityType
+	activityTypeStr := r.URL.Query().Get("activityType")
+	if activityTypeStr != "" {
+		activityType = services.ActivityTypes[activityTypeStr]
+	}
+	return activityType
+}
+
+func getYearParam(r *http.Request) *int {
+	var year *int
+	yearStr := r.URL.Query().Get("year")
+	if yearStr != "" {
+		y, _ := strconv.Atoi(yearStr)
+		year = &y
+	}
+	return year
 }
 
 func toDto(activity strava.Activity) dto.ActivityDto {
