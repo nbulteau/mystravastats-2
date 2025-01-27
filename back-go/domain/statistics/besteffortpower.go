@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"mystravastats/domain/business"
 	"mystravastats/domain/strava"
-	"time"
 )
 
 type BestEffortPowerStatistic struct {
@@ -45,7 +44,7 @@ func (b *BestEffortPowerStatistic) Value() string {
 func calculateBestPowerForTime(activities []strava.Activity, seconds int) *business.ActivityEffort {
 	var bestEffort *business.ActivityEffort
 	for _, activity := range activities {
-		effort := CalculateBestPowerForTimeForActivity(activity, seconds)
+		effort := BestPowerForTime(activity, seconds)
 		if effort != nil && (bestEffort == nil || effort.Distance > bestEffort.Distance) {
 			bestEffort = effort
 		}
@@ -53,14 +52,14 @@ func calculateBestPowerForTime(activities []strava.Activity, seconds int) *busin
 	return bestEffort
 }
 
-func CalculateBestPowerForTimeForActivity(a strava.Activity, seconds int) *business.ActivityEffort {
+func BestPowerForTime(a strava.Activity, seconds int) *business.ActivityEffort {
 	if a.Stream == nil || len(a.Stream.Altitude.Data) == 0 {
 		return nil
 	}
-	return activityEffort(a.Id, a.Name, a.Type, a.Stream, seconds)
+	return bestPowerForTimeForTime(a.Id, a.Name, a.Type, a.Stream, seconds)
 }
 
-func activityEffort(id int64, name, activityType string, stream *strava.Stream, seconds int) *business.ActivityEffort {
+func bestPowerForTimeForTime(id int64, name, activityType string, stream *strava.Stream, seconds int) *business.ActivityEffort {
 	altitudes := stream.Altitude
 	watts := stream.Watts
 	if watts == nil || len(watts.Data) == 0 {
@@ -123,8 +122,4 @@ func activityEffort(id int64, name, activityType string, stream *strava.Stream, 
 	}
 
 	return bestEffort
-}
-
-func formatSeconds(seconds int) string {
-	return time.Duration(seconds * int(time.Second)).String()
 }

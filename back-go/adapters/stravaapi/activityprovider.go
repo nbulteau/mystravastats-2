@@ -97,7 +97,6 @@ func (provider *StravaActivityProvider) loadFromLocalCache(clientId string) []st
 		wg.Add(1)
 		go func(year int) {
 			defer wg.Done()
-			log.Printf("Load %d activities ...", year)
 			activities := provider.localStorageProvider.LoadActivitiesFromCache(clientId, year)
 			mu.Lock()
 			loadedActivities = append(loadedActivities, activities...)
@@ -106,7 +105,7 @@ func (provider *StravaActivityProvider) loadFromLocalCache(clientId string) []st
 	}
 
 	wg.Wait()
-	log.Printf("%d activities loaded.", len(loadedActivities))
+
 	return loadedActivities
 }
 
@@ -134,7 +133,6 @@ func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId strin
 			var activities []strava.Activity
 			if provider.localStorageProvider.IsLocalCacheExistForYear(clientId, year) {
 				activities = provider.localStorageProvider.LoadActivitiesFromCache(clientId, year)
-				provider.loadActivitiesStreams(clientId, year, activities)
 			} else {
 				activities = provider.retrieveActivities(clientId, year)
 			}
@@ -149,10 +147,10 @@ func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId strin
 	return loadedActivities
 }
 
-func (provider *StravaActivityProvider) loadActivitiesStreams(clientId string, year int, activities []strava.Activity) {
+func (provider *StravaActivityProvider) loadActivitiesStreams(clientId string, year int, activities []strava.Activity) []strava.Activity {
 	streamIdsSet := provider.localStorageProvider.BuildStreamIdsSet(clientId, year)
 
-	for _, activity := range activities {
+	for i, activity := range activities {
 		var stream *strava.Stream
 		if streamIdsSet[activity.Id] {
 			stream = provider.localStorageProvider.LoadActivitiesStreamsFromCache(clientId, year, activity)
@@ -164,8 +162,10 @@ func (provider *StravaActivityProvider) loadActivitiesStreams(clientId string, y
 				}
 			}
 		}
-		activity.Stream = stream
+		activities[i].Stream = stream
 	}
+
+	return activities
 }
 
 func (provider *StravaActivityProvider) retrieveLoggedInAthlete(clientId string) strava.Athlete {
@@ -194,9 +194,8 @@ func (provider *StravaActivityProvider) retrieveActivities(clientId string, year
 		if err == nil {
 			filteredActivities := filterByActivityTypes(retrievedActivities)
 			provider.localStorageProvider.SaveActivitiesToCache(clientId, year, filteredActivities)
-			provider.loadActivitiesStreams(clientId, year, filteredActivities)
 
-			return filteredActivities
+			return provider.loadActivitiesStreams(clientId, year, filteredActivities)
 		} else {
 			log.Printf("Failed to load activities from Strava: %v", err)
 		}

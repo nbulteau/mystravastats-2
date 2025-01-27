@@ -49,8 +49,8 @@ func getYearParam(r *http.Request) *int {
 }
 
 func toDto(activity strava.Activity) dto.ActivityDto {
-	bestPowerFor20Minutes := statistics.CalculateBestPowerForTimeForActivity(activity, 20*60)
-	bestPowerFor60Minutes := statistics.CalculateBestPowerForTimeForActivity(activity, 60*60)
+	bestPowerFor20Minutes := statistics.BestPowerForTime(activity, 20*60)
+	bestPowerFor60Minutes := statistics.BestPowerForTime(activity, 60*60)
 
 	var ftp = ""
 	if bestPowerFor60Minutes != nil {
@@ -80,19 +80,45 @@ func toDto(activity strava.Activity) dto.ActivityDto {
 		return ""
 	}()
 
+	bestTimeForDistanceFor1000m := func() float64 {
+		var bestTimeForDistance = statistics.BestActivityEffort(activity, 1000.0)
+		if bestTimeForDistance != nil {
+			return bestTimeForDistance.GetMSSpeed()
+		} else {
+			return 0.0
+		}
+	}()
+
+	bestElevationForDistanceFor500m := func() float64 {
+		var bestElevationForDistance = statistics.BestElevationEffort(activity, 500.0)
+		if bestElevationForDistance != nil {
+			return bestElevationForDistance.GetGradient()
+		} else {
+			return 0.0
+		}
+	}()
+
+	bestElevationForDistanceFor1000m := func() float64 {
+		var bestElevationForDistance = statistics.BestElevationEffort(activity, 1000.0)
+		if bestElevationForDistance != nil {
+			return bestElevationForDistance.GetGradient()
+		} else {
+			return 0.0
+		}
+	}()
+
 	return dto.ActivityDto{
-		ID:                 activity.Id,
-		Name:               activity.Name,
-		Type:               activity.Type,
-		Link:               link,
-		Distance:           int(activity.Distance),
-		ElapsedTime:        activity.ElapsedTime,
-		TotalElevationGain: int(activity.TotalElevationGain),
-		AverageSpeed:       activity.AverageSpeed,
-		// TODO BestTimeForDistanceFor500m:      42.0, // activity.calculateBestTimeForDistance(500.0).getMSSpeed(),
-		BestTimeForDistanceFor1000m:      42.0, // activity.calculateBestTimeForDistance(1000.0).getMSSpeed(),
-		BestElevationForDistanceFor500m:  42.0, // activity.calculateBestElevationForDistance(500.0).getGradient(),
-		BestElevationForDistanceFor1000m: 42.0, // activity.calculateBestElevationForDistance(1000.0).getGradient(),
+		ID:                               activity.Id,
+		Name:                             activity.Name,
+		Type:                             activity.Type,
+		Link:                             link,
+		Distance:                         int(activity.Distance),
+		ElapsedTime:                      activity.ElapsedTime,
+		TotalElevationGain:               int(activity.TotalElevationGain),
+		AverageSpeed:                     activity.AverageSpeed,
+		BestTimeForDistanceFor1000m:      bestTimeForDistanceFor1000m,
+		BestElevationForDistanceFor500m:  bestElevationForDistanceFor500m,
+		BestElevationForDistanceFor1000m: bestElevationForDistanceFor1000m,
 		Date:                             activity.StartDateLocal,
 		AverageWatts:                     int(activity.AverageWatts),
 		WeightedAverageWatts:             strconv.Itoa(activity.WeightedAverageWatts),

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"mystravastats/domain/business"
 	"mystravastats/domain/strava"
+	"time"
 )
 
 type Statistic interface {
@@ -59,4 +60,20 @@ func NewActivityStatistic(name string, activities []strava.Activity) *ActivitySt
 	return &ActivityStatistic{
 		BaseStatistic: BaseStatistic{Name: name, Activities: activities},
 	}
+}
+
+func formatSeconds(seconds int) string {
+	return time.Duration(seconds * int(time.Second)).String()
+}
+
+func average(nums []int) *int {
+	if len(nums) == 0 {
+		return nil
+	}
+	sum := 0
+	for _, num := range nums {
+		sum += num
+	}
+	avg := sum / len(nums)
+	return &avg
 }

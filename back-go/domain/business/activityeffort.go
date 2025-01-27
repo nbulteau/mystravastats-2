@@ -2,6 +2,7 @@ package business
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -31,12 +32,14 @@ func (ae ActivityEffort) GetSpeed() string {
 	return fmt.Sprintf("%.02f", ae.Distance/float64(ae.Seconds)*3600/1000)
 }
 
-func (ae ActivityEffort) GetMSSpeed() string {
-	return fmt.Sprintf("%.02f", ae.Distance/float64(ae.Seconds))
+func (ae ActivityEffort) GetMSSpeed() float64 {
+	speed := ae.Distance / float64(ae.Seconds)
+	formattedSpeed, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", speed), 64)
+	return formattedSpeed
 }
 
 func (ae ActivityEffort) GetFormattedGradient() string {
-	return fmt.Sprintf("%.02f %%", ae.GetGradient())
+	return fmt.Sprintf("%.02f%%", ae.GetGradient())
 }
 
 func (ae ActivityEffort) GetFormattedPower() string {
