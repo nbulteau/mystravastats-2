@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"mystravastats/domain/services/strava"
+	"mystravastats/domain/strava"
 	"os"
 	"path/filepath"
 	"strconv"

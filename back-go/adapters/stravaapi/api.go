@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"mystravastats/domain/services/strava"
+	"mystravastats/domain/strava"
 	"net/http"
 	"os/exec"
 	"runtime"

@@ -2,7 +2,7 @@ package me.nicolas.stravastats.adapters.localrepositories.fit
 
 import com.garmin.fit.*
 import me.nicolas.stravastats.domain.business.strava.AthleteRef
-import me.nicolas.stravastats.domain.business.strava.PowerStream
+import me.nicolas.stravastats.domain.business.strava.stream.PowerStream
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.stream.*
 import me.nicolas.stravastats.domain.utils.inDateTimeFormatter

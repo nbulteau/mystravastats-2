@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"mystravastats/api/dto"
-	"mystravastats/domain/services"
-	"mystravastats/domain/services/strava"
+	"mystravastats/domain"
+	"mystravastats/domain/business"
+	"mystravastats/domain/statistics"
+	"mystravastats/domain/strava"
 	"net/http"
 	"strconv"
 )
@@ -16,7 +18,7 @@ func getActivitiesByActivityType(w http.ResponseWriter, r *http.Request) {
 
 	year := getYearParam(r)
 	activityType := getActivityTypeParam(r)
-	activities := services.FetchActivitiesByActivityTypeAndYear(activityType, year)
+	activities := domain.FetchActivitiesByActivityTypeAndYear(activityType, year)
 	activitiesDto := make([]dto.ActivityDto, len(activities))
 	for i, activity := range activities {
 		activitiesDto[i] = toDto(activity)
@@ -27,11 +29,11 @@ func getActivitiesByActivityType(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getActivityTypeParam(r *http.Request) services.ActivityType {
-	var activityType services.ActivityType
+func getActivityTypeParam(r *http.Request) business.ActivityType {
+	var activityType business.ActivityType
 	activityTypeStr := r.URL.Query().Get("activityType")
 	if activityTypeStr != "" {
-		activityType = services.ActivityTypes[activityTypeStr]
+		activityType = business.ActivityTypes[activityTypeStr]
 	}
 	return activityType
 }
@@ -47,43 +49,55 @@ func getYearParam(r *http.Request) *int {
 }
 
 func toDto(activity strava.Activity) dto.ActivityDto {
-	// TODO: Implement the following methods
-	// bestPowerFor20Minutes := activity.calculateBestPowerForTime(20 * 60)
-	// bestPowerFor60Minutes := activity.calculateBestPowerForTime(60 * 60)
+	bestPowerFor20Minutes := statistics.CalculateBestPowerForTimeForActivity(activity, 20*60)
+	bestPowerFor60Minutes := statistics.CalculateBestPowerForTimeForActivity(activity, 60*60)
 
 	var ftp = ""
-	/*
-		if bestPowerFor60Minutes != nil {
-			ftp = fmt.Sprintf("%d", bestPowerFor60Minutes.AveragePower)
-		} else if bestPowerFor20Minutes != nil {
-			ftp = fmt.Sprintf("%d", int(float64(bestPowerFor20Minutes.AveragePower)*0.95))
-		} else {
-			ftp = ""
-		}
-	*/
+	if bestPowerFor60Minutes != nil {
+		ftp = fmt.Sprintf("%d", bestPowerFor60Minutes.AveragePower)
+	} else if bestPowerFor20Minutes != nil {
+		ftp = fmt.Sprintf("%d", int(float64(*bestPowerFor20Minutes.AveragePower)*0.95))
+	} else {
+		ftp = ""
+	}
 
 	link := ""
 	if activity.UploadId != 0 {
 		link = fmt.Sprintf("https://www.strava.com/activities/%d", activity.Id)
 	}
 
+	bestPowerFor20MinutesStr := func() string {
+		if bestPowerFor20Minutes != nil {
+			return bestPowerFor20Minutes.GetFormattedPower()
+		}
+		return ""
+	}()
+
+	bestPowerFor60MinutesStr := func() string {
+		if bestPowerFor60Minutes != nil {
+			return bestPowerFor60Minutes.GetFormattedPower()
+		}
+		return ""
+	}()
+
 	return dto.ActivityDto{
-		ID:                               activity.Id,
-		Name:                             activity.Name,
-		Type:                             activity.Type,
-		Link:                             link,
-		Distance:                         int(activity.Distance),
-		ElapsedTime:                      activity.ElapsedTime,
-		TotalElevationGain:               int(activity.TotalElevationGain),
-		AverageSpeed:                     activity.AverageSpeed,
+		ID:                 activity.Id,
+		Name:               activity.Name,
+		Type:               activity.Type,
+		Link:               link,
+		Distance:           int(activity.Distance),
+		ElapsedTime:        activity.ElapsedTime,
+		TotalElevationGain: int(activity.TotalElevationGain),
+		AverageSpeed:       activity.AverageSpeed,
+		// TODO BestTimeForDistanceFor500m:      42.0, // activity.calculateBestTimeForDistance(500.0).getMSSpeed(),
 		BestTimeForDistanceFor1000m:      42.0, // activity.calculateBestTimeForDistance(1000.0).getMSSpeed(),
 		BestElevationForDistanceFor500m:  42.0, // activity.calculateBestElevationForDistance(500.0).getGradient(),
 		BestElevationForDistanceFor1000m: 42.0, // activity.calculateBestElevationForDistance(1000.0).getGradient(),
 		Date:                             activity.StartDateLocal,
 		AverageWatts:                     int(activity.AverageWatts),
 		WeightedAverageWatts:             strconv.Itoa(activity.WeightedAverageWatts),
-		BestPowerFor20Minutes:            "", // bestPowerFor20Minutes.getFormattedPower(),
-		BestPowerFor60Minutes:            "", // bestPowerFor60Minutes.getFormattedPower(),
+		BestPowerFor20Minutes:            bestPowerFor20MinutesStr,
+		BestPowerFor60Minutes:            bestPowerFor60MinutesStr,
 		FTP:                              ftp,
 	}
 }

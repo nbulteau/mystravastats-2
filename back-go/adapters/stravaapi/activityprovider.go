@@ -1,10 +1,10 @@
-package services
+package stravaapi
 
 import (
 	"log"
 	"mystravastats/adapters/localrepository"
-	"mystravastats/adapters/stravaapi"
-	"mystravastats/domain/services/strava"
+	"mystravastats/domain/business"
+	"mystravastats/domain/strava"
 	"strconv"
 	"strings"
 	"sync"
@@ -13,7 +13,7 @@ import (
 
 type StravaActivityProvider struct {
 	clientId             string
-	StravaApi            *stravaapi.StravaApi
+	StravaApi            *StravaApi
 	localStorageProvider *localrepository.StravaRepository
 	activities           []strava.Activity
 	stravaAthlete        strava.Athlete
@@ -35,7 +35,7 @@ func NewStravaActivityProvider(stravaCache string) *StravaActivityProvider {
 		provider.activities = provider.loadFromLocalCache(id)
 	} else {
 		if secret != "" {
-			provider.StravaApi = stravaapi.NewStravaApi(id, secret)
+			provider.StravaApi = NewStravaApi(id, secret)
 
 			provider.localStorageProvider.InitLocalStorageForClientId(id)
 			provider.stravaAthlete = provider.retrieveLoggedInAthlete(id)
@@ -228,7 +228,7 @@ func (provider *StravaActivityProvider) GetActivity(activityId int64) *strava.Ac
 	return nil
 }
 
-func (provider *StravaActivityProvider) GetActivitiesByActivityTypeGroupByActiveDays(activityType ActivityType) map[string]int {
+func (provider *StravaActivityProvider) GetActivitiesByActivityTypeGroupByActiveDays(activityType business.ActivityType) map[string]int {
 	log.Printf("Get activities by stravaActivity type (%s) group by active days\n", activityType)
 
 	filteredActivities := filterActivitiesByType(provider.activities, activityType)
@@ -241,7 +241,7 @@ func (provider *StravaActivityProvider) GetActivitiesByActivityTypeGroupByActive
 	return result
 }
 
-func (provider *StravaActivityProvider) GetActivitiesByActivityTypeByYearGroupByActiveDays(activityType ActivityType, year *int) map[string]int {
+func (provider *StravaActivityProvider) GetActivitiesByActivityTypeByYearGroupByActiveDays(activityType business.ActivityType, year *int) map[string]int {
 	log.Printf("Get activities by stravaActivity type (%s) group by active days for year %d\n", activityType, year)
 
 	filteredActivities := filterActivitiesByYear(provider.activities, year)
@@ -255,7 +255,7 @@ func (provider *StravaActivityProvider) GetActivitiesByActivityTypeByYearGroupBy
 	return result
 }
 
-func (provider *StravaActivityProvider) GetActivitiesByActivityTypeAndYear(activityType ActivityType, year *int) []strava.Activity {
+func (provider *StravaActivityProvider) GetActivitiesByActivityTypeAndYear(activityType business.ActivityType, year *int) []strava.Activity {
 	key := activityType.String()
 	if year != nil {
 		key = key + "-" + strconv.Itoa(*year)
@@ -267,7 +267,7 @@ func (provider *StravaActivityProvider) GetActivitiesByActivityTypeAndYear(activ
 	return filteredActivities
 }
 
-func (provider *StravaActivityProvider) GetActivitiesByActivityTypeGroupByYear(activityType ActivityType) map[string][]strava.Activity {
+func (provider *StravaActivityProvider) GetActivitiesByActivityTypeGroupByYear(activityType business.ActivityType) map[string][]strava.Activity {
 	log.Printf("Get activities by stravaActivity type (%s) group by year\n", activityType)
 
 	filteredActivities := filterActivitiesByType(provider.activities, activityType)
@@ -297,7 +297,7 @@ func (provider *StravaActivityProvider) groupActivitiesByYear(activities []strav
 func filterByActivityTypes(activities []strava.Activity) []strava.Activity {
 	var filtered []strava.Activity
 	for _, activity := range activities {
-		for _, activityType := range ActivityTypes {
+		for _, activityType := range business.ActivityTypes {
 			if activity.Type == activityType.String() {
 				filtered = append(filtered, activity)
 				break
@@ -307,12 +307,12 @@ func filterByActivityTypes(activities []strava.Activity) []strava.Activity {
 	return filtered
 }
 
-func filterActivitiesByType(activities []strava.Activity, activityType ActivityType) []strava.Activity {
+func filterActivitiesByType(activities []strava.Activity, activityType business.ActivityType) []strava.Activity {
 	var filtered []strava.Activity
 	for _, activity := range activities {
-		if activityType == Commute && activity.Type == Ride.String() && activity.Commute {
+		if activityType == business.Commute && activity.Type == business.Ride.String() && activity.Commute {
 			filtered = append(filtered, activity)
-		} else if activityType == RideWithCommute && activity.Type == Ride.String() {
+		} else if activityType == business.RideWithCommute && activity.Type == business.Ride.String() {
 			filtered = append(filtered, activity)
 		} else if activity.Type == activityType.String() && !activity.Commute {
 			filtered = append(filtered, activity)

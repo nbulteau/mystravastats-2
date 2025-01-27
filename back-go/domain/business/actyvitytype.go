@@ -1,17 +1,6 @@
-package services
+package business
 
 type ActivityType int
-
-const (
-	Run ActivityType = iota
-	Ride
-	RideWithCommute
-	InlineSkate
-	Hike
-	Commute
-	AlpineSki
-	VirtualRide
-)
 
 var ActivityTypes = map[string]ActivityType{
 	"Run":             Run,
@@ -23,6 +12,17 @@ var ActivityTypes = map[string]ActivityType{
 	"AlpineSki":       AlpineSki,
 	"VirtualRide":     VirtualRide,
 }
+
+const (
+	Run ActivityType = iota
+	Ride
+	RideWithCommute
+	InlineSkate
+	Hike
+	Commute
+	AlpineSki
+	VirtualRide
+)
 
 func (a ActivityType) String() string {
 	return [...]string{"Run", "Ride", "RideWithCommute", "InlineSkate", "Hike", "Commute", "AlpineSki", "VirtualRide"}[a]

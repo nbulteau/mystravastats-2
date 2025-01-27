@@ -2,7 +2,6 @@ package me.nicolas.stravastats.domain.business.strava.stream
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
-import me.nicolas.stravastats.domain.business.strava.PowerStream
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class Stream(

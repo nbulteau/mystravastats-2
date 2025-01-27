@@ -5,7 +5,7 @@ import io.jenetics.jpx.Length
 import io.jenetics.jpx.WayPoint
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.strava.AthleteRef
-import me.nicolas.stravastats.domain.business.strava.PowerStream
+import me.nicolas.stravastats.domain.business.strava.stream.PowerStream
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.stream.*
 import org.slf4j.LoggerFactory

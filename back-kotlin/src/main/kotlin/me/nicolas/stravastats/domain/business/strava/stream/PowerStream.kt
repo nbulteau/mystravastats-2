@@ -1,4 +1,4 @@
-package me.nicolas.stravastats.domain.business.strava
+package me.nicolas.stravastats.domain.business.strava.stream
 
 import com.fasterxml.jackson.annotation.JsonProperty
 
