@@ -19,9 +19,15 @@ var routes = Routes{
 		getActivitiesByActivityType,
 	},
 	Route{
-		"GetActivitiesByActivityType",
+		"GetStatisticsByActivityType",
 		"GET",
-		"/api/activities",
-		getActivitiesByActivityType,
+		"/api/statistics",
+		getStatisticsByActivityType,
+	},
+	Route{
+		"GetAthlete",
+		"GET",
+		"/api/athletes/me",
+		getAthlete,
 	},
 }

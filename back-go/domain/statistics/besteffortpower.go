@@ -11,7 +11,11 @@ type BestEffortPowerStatistic struct {
 	Activities         []strava.Activity
 	Seconds            int
 	BestActivityEffort *business.ActivityEffort
-	Activity           *business.ActivityShort
+	Activity           business.ActivityShort
+}
+
+func (b *BestEffortPowerStatistic) String() string {
+	return fmt.Sprintf("%s: %s", b.Name, b.Value())
 }
 
 func NewBestEffortPowerStatistic(name string, activities []strava.Activity, seconds int) *BestEffortPowerStatistic {
@@ -20,9 +24,9 @@ func NewBestEffortPowerStatistic(name string, activities []strava.Activity, seco
 	}
 
 	bestActivityEffort := calculateBestPowerForTime(activities, seconds)
-	var activity *business.ActivityShort
+	var activity business.ActivityShort
 	if bestActivityEffort != nil {
-		activity = &bestActivityEffort.ActivityShort
+		activity = bestActivityEffort.ActivityShort
 	}
 
 	return &BestEffortPowerStatistic{

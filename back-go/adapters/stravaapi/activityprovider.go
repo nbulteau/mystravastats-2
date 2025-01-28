@@ -310,6 +310,10 @@ func (provider *StravaActivityProvider) groupActivitiesByYear(activities []strav
 	return activitiesByYear
 }
 
+func (provider *StravaActivityProvider) GetAthlete() strava.Athlete {
+	return provider.stravaAthlete
+}
+
 func filterByActivityTypes(activities []strava.Activity) []strava.Activity {
 	var filtered []strava.Activity
 	for _, activity := range activities {

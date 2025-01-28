@@ -1,7 +1,7 @@
 package dto
 
 type ActivityDto struct {
-	ID                               int64   `json:"id"`
+	Id                               int64   `json:"id"`
 	Name                             string  `json:"name"`
 	Type                             string  `json:"type"`
 	Link                             string  `json:"link"`

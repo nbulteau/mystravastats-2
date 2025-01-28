@@ -14,6 +14,10 @@ type BestElevationDistanceStatistic struct {
 	BestActivityEffort *business.ActivityEffort
 }
 
+func (b *BestElevationDistanceStatistic) String() string {
+	return fmt.Sprintf("%s: %s", b.Name, b.Value())
+}
+
 func NewBestElevationDistanceStatistic(name string, activities []strava.Activity, distance float64) *BestElevationDistanceStatistic {
 	if distance <= 100 {
 		panic("DistanceStream must be > 100 meters")
