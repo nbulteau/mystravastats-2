@@ -7,3 +7,8 @@ http://localhost:8080/api/activities
 
 http://localhost:8080/api/activities?year=2025&activityType=VirtualRide
 
+### statistics
+
+http://localhost:8080/api/statistics
+
+http://localhost:8080/api/statistics?year=2025&activityType=VirtualRide

@@ -10,7 +10,7 @@ type CooperStatistic struct {
 	BestEffortTimeStatistic
 }
 
-func NewCooperStatistic(activities []strava.Activity) *CooperStatistic {
+func NewCooperStatistic(activities []*strava.Activity) *CooperStatistic {
 	return &CooperStatistic{
 		BestEffortTimeStatistic: *NewBestEffortTimeStatistic("Best Cooper (12 min)", activities, 12*60),
 	}

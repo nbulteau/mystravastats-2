@@ -5,7 +5,7 @@ import (
 	"mystravastats/domain/strava"
 )
 
-func FetchActivitiesByActivityTypeAndYear(activityType business.ActivityType, year *int) []strava.Activity {
+func FetchActivitiesByActivityTypeAndYear(activityType business.ActivityType, year *int) []*strava.Activity {
 	return activityProvider.GetActivitiesByActivityTypeAndYear(activityType, year)
 }
 

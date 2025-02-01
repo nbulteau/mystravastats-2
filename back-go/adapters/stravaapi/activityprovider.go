@@ -15,7 +15,7 @@ type StravaActivityProvider struct {
 	clientId             string
 	StravaApi            *StravaApi
 	localStorageProvider *localrepository.StravaRepository
-	activities           []strava.Activity
+	activities           []*strava.Activity
 	stravaAthlete        strava.Athlete
 }
 
@@ -84,11 +84,11 @@ func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *s
 	return stravaDetailedActivity
 }
 
-func (provider *StravaActivityProvider) loadFromLocalCache(clientId string) []strava.Activity {
+func (provider *StravaActivityProvider) loadFromLocalCache(clientId string) []*strava.Activity {
 	startTime := time.Now()
 	log.Println("Load activities from local cache ...")
 
-	var loadedActivities []strava.Activity
+	var loadedActivities []*strava.Activity
 	activityCh := make(chan []strava.Activity, 20) // Buffered channel to collect results
 	var wg sync.WaitGroup
 
@@ -110,7 +110,9 @@ func (provider *StravaActivityProvider) loadFromLocalCache(clientId string) []st
 
 	// Collect results from the channel
 	for activities := range activityCh {
-		loadedActivities = append(loadedActivities, activities...)
+		for _, activity := range activities {
+			loadedActivities = append(loadedActivities, &activity)
+		}
 	}
 
 	duration := time.Since(startTime)
@@ -118,11 +120,11 @@ func (provider *StravaActivityProvider) loadFromLocalCache(clientId string) []st
 	return loadedActivities
 }
 
-func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId string) []strava.Activity {
+func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId string) []*strava.Activity {
 	startTime := time.Now()
 	log.Println("Load activities from Strava ...")
 
-	var loadedActivities []strava.Activity
+	var loadedActivities []*strava.Activity
 	activityCh := make(chan []strava.Activity, 20) // Buffered channel to collect results
 	var wg sync.WaitGroup
 
@@ -156,7 +158,9 @@ func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId strin
 
 	// Collect results from the channel
 	for activities := range activityCh {
-		loadedActivities = append(loadedActivities, activities...)
+		for _, activity := range activities {
+			loadedActivities = append(loadedActivities, &activity)
+		}
 	}
 
 	duration := time.Since(startTime)
@@ -223,7 +227,7 @@ func (provider *StravaActivityProvider) retrieveActivities(clientId string, year
 func (provider *StravaActivityProvider) findActivityById(activityId int64) *strava.Activity {
 	for _, activity := range provider.activities {
 		if activity.Id == activityId {
-			return &activity
+			return activity
 		}
 	}
 	return nil
@@ -238,7 +242,7 @@ func (provider *StravaActivityProvider) GetActivity(activityId int64) *strava.Ac
 
 	for _, activity := range provider.activities {
 		if activity.Id == activityId {
-			return &activity
+			return activity
 		}
 	}
 	return nil
@@ -271,7 +275,7 @@ func (provider *StravaActivityProvider) GetActivitiesByActivityTypeByYearGroupBy
 	return result
 }
 
-func (provider *StravaActivityProvider) GetActivitiesByActivityTypeAndYear(activityType business.ActivityType, year *int) []strava.Activity {
+func (provider *StravaActivityProvider) GetActivitiesByActivityTypeAndYear(activityType business.ActivityType, year *int) []*strava.Activity {
 	key := activityType.String()
 	if year != nil {
 		key = key + "-" + strconv.Itoa(*year)
@@ -283,15 +287,15 @@ func (provider *StravaActivityProvider) GetActivitiesByActivityTypeAndYear(activ
 	return filteredActivities
 }
 
-func (provider *StravaActivityProvider) GetActivitiesByActivityTypeGroupByYear(activityType business.ActivityType) map[string][]strava.Activity {
+func (provider *StravaActivityProvider) GetActivitiesByActivityTypeGroupByYear(activityType business.ActivityType) map[string][]*strava.Activity {
 	log.Printf("Get activities by stravaActivity type (%s) group by year\n", activityType)
 
 	filteredActivities := filterActivitiesByType(provider.activities, activityType)
 	return provider.groupActivitiesByYear(filteredActivities)
 }
 
-func (provider *StravaActivityProvider) groupActivitiesByYear(activities []strava.Activity) map[string][]strava.Activity {
-	activitiesByYear := make(map[string][]strava.Activity)
+func (provider *StravaActivityProvider) groupActivitiesByYear(activities []*strava.Activity) map[string][]*strava.Activity {
+	activitiesByYear := make(map[string][]*strava.Activity)
 	for _, activity := range activities {
 		year := activity.StartDateLocal[:4]
 		activitiesByYear[year] = append(activitiesByYear[year], activity)
@@ -303,7 +307,7 @@ func (provider *StravaActivityProvider) groupActivitiesByYear(activities []strav
 		for year := minYear; year <= maxYear; year++ {
 			yearStr := strconv.Itoa(year)
 			if _, exists := activitiesByYear[yearStr]; !exists {
-				activitiesByYear[yearStr] = []strava.Activity{}
+				activitiesByYear[yearStr] = []*strava.Activity{}
 			}
 		}
 	}
@@ -327,8 +331,8 @@ func filterByActivityTypes(activities []strava.Activity) []strava.Activity {
 	return filtered
 }
 
-func filterActivitiesByType(activities []strava.Activity, activityType business.ActivityType) []strava.Activity {
-	var filtered []strava.Activity
+func filterActivitiesByType(activities []*strava.Activity, activityType business.ActivityType) []*strava.Activity {
+	var filtered []*strava.Activity
 	for _, activity := range activities {
 		if activityType == business.Commute && activity.Type == business.Ride.String() && activity.Commute {
 			filtered = append(filtered, activity)
@@ -341,12 +345,12 @@ func filterActivitiesByType(activities []strava.Activity, activityType business.
 	return filtered
 }
 
-func filterActivitiesByYear(activities []strava.Activity, year *int) []strava.Activity {
+func filterActivitiesByYear(activities []*strava.Activity, year *int) []*strava.Activity {
 	if year == nil {
 		return activities
 	}
 
-	var filtered []strava.Activity
+	var filtered []*strava.Activity
 	for _, activity := range activities {
 		activityYear, _ := strconv.Atoi(activity.StartDateLocal[:4])
 		if activityYear == *year {
@@ -356,7 +360,7 @@ func filterActivitiesByYear(activities []strava.Activity, year *int) []strava.Ac
 	return filtered
 }
 
-func minKey(m map[string][]strava.Activity) string {
+func minKey(m map[string][]*strava.Activity) string {
 	minKey := ""
 	for k := range m {
 		if minKey == "" || k < minKey {
@@ -366,7 +370,7 @@ func minKey(m map[string][]strava.Activity) string {
 	return minKey
 }
 
-func maxKey(m map[string][]strava.Activity) string {
+func maxKey(m map[string][]*strava.Activity) string {
 	maxKey := ""
 	for k := range m {
 		if maxKey == "" || k > maxKey {

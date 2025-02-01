@@ -20,10 +20,10 @@ func getActivitiesByActivityType(w http.ResponseWriter, r *http.Request) {
 	year := getYearParam(r)
 	activityType := getActivityTypeParam(r)
 
-	activities := domain.FetchActivitiesByActivityTypeAndYear(activityType, year)
-	activitiesDto := make([]dto.ActivityDto, len(activities))
-	for i, activity := range activities {
-		activitiesDto[i] = toActivityDto(activity)
+	activitiesByActivityTypeAndYear := domain.FetchActivitiesByActivityTypeAndYear(activityType, year)
+	activitiesDto := make([]dto.ActivityDto, len(activitiesByActivityTypeAndYear))
+	for i, activity := range activitiesByActivityTypeAndYear {
+		activitiesDto[i] = toActivityDto(*activity)
 	}
 
 	if err := json.NewEncoder(w).Encode(activitiesDto); err != nil {
@@ -38,9 +38,13 @@ func getStatisticsByActivityType(w http.ResponseWriter, r *http.Request) {
 	year := getYearParam(r)
 	activityType := getActivityTypeParam(r)
 
-	statisticsForActivityTypeAndYear := domain.GetStatistics(activityType, year)
+	statisticsByActivityTypeAndYear := domain.FetchStatisticsByActivityTypeAndYear(activityType, year)
+	statisticsDto := make([]dto.StatisticDto, len(statisticsByActivityTypeAndYear))
+	for i, statistic := range statisticsByActivityTypeAndYear {
+		statisticsDto[i] = toStatisticDto(statistic)
+	}
 
-	if err := json.NewEncoder(w).Encode(statisticsForActivityTypeAndYear); err != nil {
+	if err := json.NewEncoder(w).Encode(statisticsDto); err != nil {
 		panic(err)
 	}
 }
@@ -103,6 +107,24 @@ func toAthleteDto(athlete strava.Athlete) dto.AthleteDto {
 		MeasurementPreference: getStringValue(athlete.MeasurementPreference),
 		MutualFriendCount:     getIntValue(athlete.MutualFriendCount),
 		Weight:                getIntValueFromFloat(athlete.Weight),
+	}
+}
+func toStatisticDto(statistic statistics.Statistic) dto.StatisticDto {
+	if statistic.Activity() != nil {
+		return dto.StatisticDto{
+			Label: statistic.Label(),
+			Value: statistic.Value(),
+			Activity: &dto.ActivityShortDto{
+				ID:   statistic.Activity().Id,
+				Name: statistic.Activity().Name,
+				Type: statistic.Activity().Type.String(),
+			},
+		}
+	} else {
+		return dto.StatisticDto{
+			Label: statistic.Label(),
+			Value: statistic.Value(),
+		}
 	}
 }
 

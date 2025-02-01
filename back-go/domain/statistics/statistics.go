@@ -8,57 +8,79 @@ import (
 )
 
 type Statistic interface {
+	Label() string
 	Value() string
-	String() string
+	Activity() *business.ActivityShort
 }
 
 type BaseStatistic struct {
-	Name       string
-	Activities []strava.Activity
+	name       string
+	Activities []*strava.Activity
 }
 
-func (s *BaseStatistic) Value() string {
-	// Implement the Value method
-	return fmt.Sprintf("BaseStatistic: %s", s.Name)
+func (stat *BaseStatistic) Label() string {
+	return stat.name
 }
 
-func (s *BaseStatistic) String() string {
-	return s.Value()
+func (stat *BaseStatistic) Value() string {
+	return stat.Value()
+}
+
+func (stat *BaseStatistic) Activity() *business.ActivityShort {
+	return nil
 }
 
 type GlobalStatistic struct {
 	BaseStatistic
-	FormatString string
-	Function     func([]strava.Activity) float64
+	Function func([]strava.Activity) string
 }
 
-func (s *GlobalStatistic) Value() string {
-	return fmt.Sprintf(s.FormatString, s.Function(s.Activities))
+func (stat *GlobalStatistic) Value() string {
+	activities := make([]strava.Activity, len(stat.Activities))
+	for i, activity := range stat.Activities {
+		activities[i] = *activity
+	}
+	return stat.Function(activities)
 }
 
-func NewGlobalStatistic(name string, activities []strava.Activity, formatString string, function func([]strava.Activity) float64) *GlobalStatistic {
+func (stat *GlobalStatistic) Label() string {
+	return stat.BaseStatistic.Label()
+}
+
+func (stat *GlobalStatistic) Activity() *business.ActivityShort {
+	return nil
+}
+
+func NewGlobalStatistic(name string, activities []*strava.Activity, function func([]strava.Activity) string) *GlobalStatistic {
 	return &GlobalStatistic{
-		BaseStatistic: BaseStatistic{Name: name, Activities: activities},
-		FormatString:  formatString,
+		BaseStatistic: BaseStatistic{name: name, Activities: activities},
 		Function:      function,
 	}
 }
 
 type ActivityStatistic struct {
 	BaseStatistic
-	Activity *business.ActivityShort
+	activity *business.ActivityShort
 }
 
-func (s *ActivityStatistic) Value() string {
-	if s.Activity != nil {
-		return fmt.Sprintf("%s - %v", s.BaseStatistic.String(), s.Activity)
+func (stat *ActivityStatistic) Value() string {
+	if stat.Activity != nil {
+		return fmt.Sprintf("%stat - %v", stat.BaseStatistic.Label(), stat.Activity)
 	}
 	return "Not available"
 }
 
-func NewActivityStatistic(name string, activities []strava.Activity) *ActivityStatistic {
+func (stat *ActivityStatistic) Label() string {
+	return stat.BaseStatistic.Label()
+}
+
+func (stat *ActivityStatistic) Activity() *business.ActivityShort {
+	return stat.activity
+}
+
+func NewActivityStatistic(name string, activities []*strava.Activity) *ActivityStatistic {
 	return &ActivityStatistic{
-		BaseStatistic: BaseStatistic{Name: name, Activities: activities},
+		BaseStatistic: BaseStatistic{name: name, Activities: activities},
 	}
 }
 
@@ -66,12 +88,12 @@ func formatSeconds(seconds int) string {
 	return time.Duration(seconds * int(time.Second)).String()
 }
 
-func averagePower(watts *strava.PowerStream, idxStart int, idxEnd int) float64 {
+func averagePower(watts []float64, idxStart int, idxEnd int) float64 {
 	averagePower := 0.0
-	if watts != nil && len(watts.Data) > 0 {
+	if watts != nil && len(watts) > 0 {
 		sumPower := 0.0
 		for i := idxStart; i <= idxEnd; i++ {
-			sumPower += watts.Data[i]
+			sumPower += watts[i]
 		}
 		averagePower = sumPower / float64(idxEnd-idxStart+1)
 	}

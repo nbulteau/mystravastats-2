@@ -1,14 +1,15 @@
 package domain
 
 import (
+	"fmt"
 	"log"
 	"mystravastats/domain/business"
 	"mystravastats/domain/statistics"
 	"mystravastats/domain/strava"
 )
 
-func GetStatistics(activityType business.ActivityType, year *int) []statistics.Statistic {
-	log.Printf("Compute statistics for %s for %v", activityType, year)
+func FetchStatisticsByActivityTypeAndYear(activityType business.ActivityType, year *int) []statistics.Statistic {
+	log.Printf("Compute statistics for %s for %v", activityType, &year)
 
 	filteredActivities := activityProvider.GetActivitiesByActivityTypeAndYear(activityType, year)
 
@@ -34,7 +35,7 @@ func GetStatistics(activityType business.ActivityType, year *int) []statistics.S
 	}
 }
 
-func computeRunStatistics(runActivities []strava.Activity) []statistics.Statistic {
+func computeRunStatistics(runActivities []*strava.Activity) []statistics.Statistic {
 	allStatistics := computeCommonStats(runActivities)
 
 	allStatistics = append(allStatistics, []statistics.Statistic{
@@ -58,7 +59,7 @@ func computeRunStatistics(runActivities []strava.Activity) []statistics.Statisti
 	return allStatistics
 }
 
-func computeRideStatistics(rideActivities []strava.Activity) []statistics.Statistic {
+func computeRideStatistics(rideActivities []*strava.Activity) []statistics.Statistic {
 	allStatistics := computeCommonStats(rideActivities)
 
 	allStatistics = append(allStatistics, []statistics.Statistic{
@@ -89,7 +90,7 @@ func computeRideStatistics(rideActivities []strava.Activity) []statistics.Statis
 	return allStatistics
 }
 
-func computeVirtualRideStatistics(rideActivities []strava.Activity) []statistics.Statistic {
+func computeVirtualRideStatistics(rideActivities []*strava.Activity) []statistics.Statistic {
 	allStatistics := computeCommonStats(rideActivities)
 
 	allStatistics = append(allStatistics, []statistics.Statistic{
@@ -117,7 +118,7 @@ func computeVirtualRideStatistics(rideActivities []strava.Activity) []statistics
 	return allStatistics
 }
 
-func computeAlpineSkiStatistics(filteredActivities []strava.Activity) []statistics.Statistic {
+func computeAlpineSkiStatistics(filteredActivities []*strava.Activity) []statistics.Statistic {
 	allStatistics := computeCommonStats(filteredActivities)
 
 	allStatistics = append(allStatistics, []statistics.Statistic{
@@ -142,7 +143,7 @@ func computeAlpineSkiStatistics(filteredActivities []strava.Activity) []statisti
 	return allStatistics
 }
 
-func computeCommuteStatistics(commuteActivities []strava.Activity) []statistics.Statistic {
+func computeCommuteStatistics(commuteActivities []*strava.Activity) []statistics.Statistic {
 	allStatistics := computeCommonStats(commuteActivities)
 
 	allStatistics = append(allStatistics, []statistics.Statistic{
@@ -163,7 +164,7 @@ func computeCommuteStatistics(commuteActivities []strava.Activity) []statistics.
 	return allStatistics
 }
 
-func computeHikeStatistics(hikeActivities []strava.Activity) []statistics.Statistic {
+func computeHikeStatistics(hikeActivities []*strava.Activity) []statistics.Statistic {
 	allStatistics := computeCommonStats(hikeActivities)
 
 	/*
@@ -205,7 +206,7 @@ func computeHikeStatistics(hikeActivities []strava.Activity) []statistics.Statis
 	return allStatistics
 }
 
-func computeInlineSkateStatistics(inlineSkateActivities []strava.Activity) []statistics.Statistic {
+func computeInlineSkateStatistics(inlineSkateActivities []*strava.Activity) []statistics.Statistic {
 	allStatistics := computeCommonStats(inlineSkateActivities)
 
 	allStatistics = append(allStatistics, []statistics.Statistic{
@@ -224,40 +225,41 @@ func computeInlineSkateStatistics(inlineSkateActivities []strava.Activity) []sta
 	return allStatistics
 }
 
-func computeCommonStats(activities []strava.Activity) []statistics.Statistic {
+func computeCommonStats(activities []*strava.Activity) []statistics.Statistic {
 	return []statistics.Statistic{
-		statistics.NewGlobalStatistic("Nb activities", activities, "%d", func(activities []strava.Activity) float64 {
-			return float64(len(activities))
+		statistics.NewGlobalStatistic("Nb activities", activities, func(activities []strava.Activity) string {
+			return fmt.Sprintf("%d", len(activities))
 		}),
-		statistics.NewGlobalStatistic("Nb actives days", activities, "%d", func(activities []strava.Activity) float64 {
+		statistics.NewGlobalStatistic("Nb actives days", activities, func(activities []strava.Activity) string {
 			activeDays := make(map[string]struct{})
 			for _, activity := range activities {
 				date := activity.StartDateLocal[:10]
 				activeDays[date] = struct{}{}
 			}
-			return float64(len(activeDays))
+			return fmt.Sprintf("%d", len(activeDays))
 		}),
 		//statistics.NewMaxStreakStatistic(activities),
-		statistics.NewGlobalStatistic("Total distance", activities, "%.2f km", func(activities []strava.Activity) float64 {
+		statistics.NewGlobalStatistic("Total distance", activities, func(activities []strava.Activity) string {
 			totalDistance := 0.0
 			for _, activity := range activities {
 				totalDistance += activity.Distance
 			}
-			return totalDistance / 1000
+
+			return fmt.Sprintf("%.2f km", totalDistance/1000)
 		}),
-		statistics.NewGlobalStatistic("Total elevation", activities, "%.2f m", func(activities []strava.Activity) float64 {
+		statistics.NewGlobalStatistic("Total elevation", activities, func(activities []strava.Activity) string {
 			totalElevation := 0.0
 			for _, activity := range activities {
 				totalElevation += activity.TotalElevationGain
 			}
-			return totalElevation
+			return fmt.Sprintf("%.2f m", totalElevation)
 		}),
-		statistics.NewGlobalStatistic("Km by activity", activities, "%.2f km", func(activities []strava.Activity) float64 {
+		statistics.NewGlobalStatistic("Km by activity", activities, func(activities []strava.Activity) string {
 			totalDistance := 0.0
 			for _, activity := range activities {
 				totalDistance += activity.Distance
 			}
-			return totalDistance / float64(len(activities)) / 1000
+			return fmt.Sprintf("%.2f km", totalDistance/float64(len(activities))/1000)
 		}),
 		//statistics.NewMaxDistanceStatistic(activities),
 		//statistics.NewMaxDistanceInADayStatistic(activities),

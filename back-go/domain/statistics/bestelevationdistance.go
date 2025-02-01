@@ -8,17 +8,31 @@ import (
 )
 
 type BestElevationDistanceStatistic struct {
-	Name               string
-	Activities         []strava.Activity
+	name               string
+	Activities         []*strava.Activity
 	Distance           float64
 	BestActivityEffort *business.ActivityEffort
 }
 
-func (b *BestElevationDistanceStatistic) String() string {
-	return fmt.Sprintf("%s: %s", b.Name, b.Value())
+func (stat *BestElevationDistanceStatistic) Value() string {
+	if stat.BestActivityEffort != nil {
+		return fmt.Sprintf("%s => %s", formatSeconds(stat.BestActivityEffort.Seconds), stat.BestActivityEffort.GetFormattedGradient())
+	}
+	return "Not available"
 }
 
-func NewBestElevationDistanceStatistic(name string, activities []strava.Activity, distance float64) *BestElevationDistanceStatistic {
+func (stat *BestElevationDistanceStatistic) Label() string {
+	return stat.name
+}
+
+func (stat *BestElevationDistanceStatistic) Activity() *business.ActivityShort {
+	if stat.BestActivityEffort != nil {
+		return &stat.BestActivityEffort.ActivityShort
+	}
+	return nil
+}
+
+func NewBestElevationDistanceStatistic(name string, activities []*strava.Activity, distance float64) *BestElevationDistanceStatistic {
 	if distance <= 100 {
 		panic("DistanceStream must be > 100 meters")
 	}
@@ -26,17 +40,17 @@ func NewBestElevationDistanceStatistic(name string, activities []strava.Activity
 	bestActivityEffort := findBestElevationEffort(activities, distance)
 
 	return &BestElevationDistanceStatistic{
-		Name:               name,
+		name:               name,
 		Activities:         activities,
 		Distance:           distance,
 		BestActivityEffort: bestActivityEffort,
 	}
 }
 
-func findBestElevationEffort(activities []strava.Activity, distance float64) *business.ActivityEffort {
+func findBestElevationEffort(activities []*strava.Activity, distance float64) *business.ActivityEffort {
 	var bestEffort *business.ActivityEffort
 	for _, activity := range activities {
-		effort := BestElevationEffort(activity, distance)
+		effort := BestElevationEffort(*activity, distance)
 		if effort != nil && (bestEffort == nil || effort.DeltaAltitude > bestEffort.DeltaAltitude) {
 			bestEffort = effort
 		}
@@ -48,10 +62,10 @@ func BestElevationEffort(activity strava.Activity, distance float64) *business.A
 	if activity.Stream == nil || len(activity.Stream.Altitude.Data) == 0 {
 		return nil
 	}
-	return bestElevationEffortForDistance(activity.Id, activity.Name, activity.Type, *activity.Stream, distance)
+	return bestElevationEffortForDistance(activity.Id, activity.Name, activity.Type, activity.Stream, distance)
 }
 
-func bestElevationEffortForDistance(id int64, name, activityType string, stream strava.Stream, distance float64) *business.ActivityEffort {
+func bestElevationEffortForDistance(id int64, name, activityType string, stream *strava.Stream, distance float64) *business.ActivityEffort {
 	idxStart := 0
 	idxEnd := 0
 	bestElevation := -math.MaxFloat64
@@ -60,7 +74,8 @@ func bestElevationEffortForDistance(id int64, name, activityType string, stream 
 	distances := stream.Distance
 	times := stream.Time
 	altitudes := stream.Altitude
-	watts := stream.Watts
+
+	nonNullWatts := buildNonNullWatts(stream.Watts)
 
 	streamDataSize := len(distances.Data)
 
@@ -74,7 +89,7 @@ func bestElevationEffortForDistance(id int64, name, activityType string, stream 
 		} else {
 			if totalAltitude > bestElevation {
 				bestElevation = totalAltitude
-				averagePower := averagePower(watts, idxStart, idxEnd)
+				averagePower := averagePower(nonNullWatts, idxStart, idxEnd)
 				bestEffort = &business.ActivityEffort{
 					Distance:      distance,
 					Seconds:       totalTime,
@@ -95,11 +110,4 @@ func bestElevationEffortForDistance(id int64, name, activityType string, stream 
 	}
 
 	return bestEffort
-}
-
-func (stat *BestElevationDistanceStatistic) Value() string {
-	if stat.BestActivityEffort != nil {
-		return fmt.Sprintf("%s => %s", formatSeconds(stat.BestActivityEffort.Seconds), stat.BestActivityEffort.GetFormattedGradient())
-	}
-	return "Not available"
 }

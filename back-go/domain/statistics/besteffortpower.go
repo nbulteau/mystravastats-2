@@ -7,48 +7,60 @@ import (
 )
 
 type BestEffortPowerStatistic struct {
-	Name               string
-	Activities         []strava.Activity
+	name               string
+	Activities         []*strava.Activity
 	Seconds            int
 	BestActivityEffort *business.ActivityEffort
-	Activity           business.ActivityShort
+	activity           business.ActivityShort
 }
 
-func (b *BestEffortPowerStatistic) String() string {
-	return fmt.Sprintf("%s: %s", b.Name, b.Value())
+func (stat *BestEffortPowerStatistic) String() string {
+	return fmt.Sprintf("%s: %s", stat.name, stat.Value())
 }
 
-func NewBestEffortPowerStatistic(name string, activities []strava.Activity, seconds int) *BestEffortPowerStatistic {
+func (stat *BestEffortPowerStatistic) Label() string {
+	return stat.name
+}
+
+func (stat *BestEffortPowerStatistic) Activity() *business.ActivityShort {
+	if stat.BestActivityEffort != nil {
+		return &stat.BestActivityEffort.ActivityShort
+	}
+	return nil
+}
+
+func NewBestEffortPowerStatistic(name string, activities []*strava.Activity, seconds int) *BestEffortPowerStatistic {
 	if seconds <= 10 {
 		panic("DistanceStream must be > 10 seconds")
 	}
 
 	bestActivityEffort := calculateBestPowerForTime(activities, seconds)
+
 	var activity business.ActivityShort
 	if bestActivityEffort != nil {
 		activity = bestActivityEffort.ActivityShort
 	}
 
 	return &BestEffortPowerStatistic{
-		Name:               name,
+		name:               name,
 		Activities:         activities,
 		Seconds:            seconds,
 		BestActivityEffort: bestActivityEffort,
-		Activity:           activity,
+		activity:           activity,
 	}
 }
 
-func (b *BestEffortPowerStatistic) Value() string {
-	if b.BestActivityEffort != nil && b.BestActivityEffort.AveragePower != nil {
-		return fmt.Sprintf("%d W", *b.BestActivityEffort.AveragePower)
+func (stat *BestEffortPowerStatistic) Value() string {
+	if stat.BestActivityEffort != nil && stat.BestActivityEffort.AveragePower != nil {
+		return fmt.Sprintf("%.02f W", *stat.BestActivityEffort.AveragePower)
 	}
 	return "Not available"
 }
 
-func calculateBestPowerForTime(activities []strava.Activity, seconds int) *business.ActivityEffort {
+func calculateBestPowerForTime(activities []*strava.Activity, seconds int) *business.ActivityEffort {
 	var bestEffort *business.ActivityEffort
 	for _, activity := range activities {
-		effort := BestPowerForTime(activity, seconds)
+		effort := BestPowerForTime(*activity, seconds)
 		if effort != nil && (bestEffort == nil || effort.Distance > bestEffort.Distance) {
 			bestEffort = effort
 		}
@@ -70,14 +82,7 @@ func bestPowerForTimeForTime(id int64, name, activityType string, stream *strava
 		return nil
 	}
 
-	nonNullWatts := make([]float64, len(watts.Data))
-	for i, watt := range watts.Data {
-		if watt == 0 {
-			nonNullWatts[i] = 0
-		} else {
-			nonNullWatts[i] = watt
-		}
-	}
+	nonNullWatts := buildNonNullWatts(stream.Watts)
 
 	idxStart, idxEnd, maxPower := 0, 0, 0.0
 	var bestEffort *business.ActivityEffort
@@ -103,7 +108,7 @@ func bestPowerForTimeForTime(id int64, name, activityType string, stream *strava
 		} else {
 			if currentPower > maxPower {
 				maxPower = currentPower
-				averagePower := averagePower(watts, idxStart, idxEnd)
+				averagePower := averagePower(nonNullWatts, idxStart, idxEnd)
 				bestEffort = &business.ActivityEffort{
 					Distance:      totalDistance,
 					Seconds:       seconds,

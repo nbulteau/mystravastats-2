@@ -12,12 +12,18 @@ type BestEffortTimeStatistic struct {
 	bestActivityEffort *business.ActivityEffort
 }
 
-func NewBestEffortTimeStatistic(name string, activities []strava.Activity, seconds int) *BestEffortTimeStatistic {
+func NewBestEffortTimeStatistic(name string, activities []*strava.Activity, seconds int) *BestEffortTimeStatistic {
+
 	bestActivityEffort := findBestActivityEffortForTime(activities, seconds)
+	var activity *business.ActivityShort
+	if bestActivityEffort != nil {
+		activity = &bestActivityEffort.ActivityShort
+	}
+
 	return &BestEffortTimeStatistic{
 		ActivityStatistic: ActivityStatistic{
-			BaseStatistic: BaseStatistic{Name: name, Activities: activities},
-			Activity:      &bestActivityEffort.ActivityShort,
+			BaseStatistic: BaseStatistic{name: name, Activities: activities},
+			activity:      activity,
 		},
 		seconds:            seconds,
 		bestActivityEffort: bestActivityEffort,
@@ -41,10 +47,10 @@ func (b *BestEffortTimeStatistic) Result(bestActivityEffort *business.ActivityEf
 	return fmt.Sprintf("%.0f m => %s", bestActivityEffort.Distance, bestActivityEffort.GetFormattedSpeed())
 }
 
-func findBestActivityEffortForTime(activities []strava.Activity, seconds int) *business.ActivityEffort {
+func findBestActivityEffortForTime(activities []*strava.Activity, seconds int) *business.ActivityEffort {
 	var bestEffort *business.ActivityEffort
 	for _, activity := range activities {
-		effort := calculateBestDistanceForTime(activity, seconds)
+		effort := calculateBestDistanceForTime(*activity, seconds)
 		if effort != nil && (bestEffort == nil || effort.Distance > bestEffort.Distance) {
 			bestEffort = effort
 		}
@@ -56,10 +62,10 @@ func calculateBestDistanceForTime(activity strava.Activity, seconds int) *busine
 	if activity.Stream == nil || activity.Stream.Altitude == nil {
 		return nil
 	}
-	return activityEffort(activity.Id, activity.Name, activity.Type, *activity.Stream, seconds)
+	return activityEffort(activity.Id, activity.Name, activity.Type, activity.Stream, seconds)
 }
 
-func activityEffort(id int64, name, activityType string, stream strava.Stream, seconds int) *business.ActivityEffort {
+func activityEffort(id int64, name, activityType string, stream *strava.Stream, seconds int) *business.ActivityEffort {
 	var idxStart, idxEnd int
 	var maxDist float64
 	var bestEffort *business.ActivityEffort
@@ -68,7 +74,7 @@ func activityEffort(id int64, name, activityType string, stream strava.Stream, s
 	times := stream.Time.Data
 	altitudes := stream.Altitude.Data
 
-	nonNullWatts := buildNonNullWatts(stream)
+	nonNullWatts := buildNonNullWatts(stream.Watts)
 
 	for idxEnd < len(distances) {
 		totalDistance := distances[idxEnd] - distances[idxStart]
@@ -81,17 +87,15 @@ func activityEffort(id int64, name, activityType string, stream strava.Stream, s
 			estimatedDistanceForTime := totalDistance / float64(totalTime) * float64(seconds)
 			if estimatedDistanceForTime > maxDist {
 				maxDist = estimatedDistanceForTime
-				var averagePower *int
-				if nonNullWatts != nil {
-					averagePower = average(nonNullWatts[idxStart:idxEnd])
-				}
+				averagePower := averagePower(nonNullWatts, idxStart, idxEnd)
+
 				bestEffort = &business.ActivityEffort{
 					Distance:      maxDist,
 					Seconds:       seconds,
 					DeltaAltitude: totalAltitude,
 					IdxStart:      idxStart,
 					IdxEnd:        idxEnd,
-					AveragePower:  averagePower,
+					AveragePower:  &averagePower,
 					Label:         fmt.Sprintf("Best distance for %s", formatSeconds(seconds)),
 					ActivityShort: business.ActivityShort{
 						Id:   id,
@@ -107,11 +111,11 @@ func activityEffort(id int64, name, activityType string, stream strava.Stream, s
 	return bestEffort
 }
 
-func buildNonNullWatts(stream strava.Stream) []int {
-	var nonNullWatts []int
-	if stream.Watts != nil && len(stream.Watts.Data) > 0 {
-		nonNullWatts = make([]int, len(stream.Watts.Data))
-		for i, watt := range stream.Watts.Data {
+func buildNonNullWatts(watts *strava.PowerStream) []float64 {
+	var nonNullWatts []float64
+	if watts != nil && len(watts.Data) > 0 {
+		nonNullWatts = make([]float64, len(watts.Data))
+		for i, watt := range watts.Data {
 			if watt == 0 {
 				nonNullWatts[i] = 0
 			} else {
