@@ -66,7 +66,7 @@ func bestPowerForTimeForTime(id int64, name, activityType string, stream *strava
 		return nil
 	}
 
-	nonNullWatts := make([]int, len(watts.Data))
+	nonNullWatts := make([]float64, len(watts.Data))
 	for i, watt := range watts.Data {
 		if watt == 0 {
 			nonNullWatts[i] = 0
@@ -75,14 +75,14 @@ func bestPowerForTimeForTime(id int64, name, activityType string, stream *strava
 		}
 	}
 
-	idxStart, idxEnd, maxPower := 0, 0, 0
+	idxStart, idxEnd, maxPower := 0, 0, 0.0
 	var bestEffort *business.ActivityEffort
 
 	distances := stream.Distance
 	times := stream.Time
 	streamDataSize := len(distances.Data)
 
-	currentPower := 0
+	currentPower := 0.0
 
 	for idxEnd < streamDataSize {
 		totalDistance := distances.Data[idxEnd] - distances.Data[idxStart]
@@ -99,7 +99,7 @@ func bestPowerForTimeForTime(id int64, name, activityType string, stream *strava
 		} else {
 			if currentPower > maxPower {
 				maxPower = currentPower
-				averagePower := currentPower / (idxEnd - idxStart + 1)
+				averagePower := averagePower(watts, idxStart, idxEnd)
 				bestEffort = &business.ActivityEffort{
 					Distance:      totalDistance,
 					Seconds:       seconds,

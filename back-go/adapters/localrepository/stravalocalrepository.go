@@ -102,7 +102,7 @@ func (repo *StravaRepository) LoadActivitiesFromCache(clientId string, year int)
 			}
 			var stream strava.Stream
 			if err := json.Unmarshal(data, &stream); err != nil {
-				log.Fatalf("Failed to unmarshal stream data: %v", err)
+				log.Fatalf("Failed to unmarshal stream %s data: %v", streamFile, err)
 			}
 			activities[i].Stream = &stream
 		}
@@ -183,12 +183,12 @@ func (repo *StravaRepository) LoadActivitiesStreamsFromCache(clientId string, ye
 
 	data, err := os.ReadFile(streamFile)
 	if err != nil {
-		log.Fatalf("Failed to read stream file: %v", err)
+		log.Fatalf("Failed to read stream file '%s': %v", streamFile, err)
 	}
 
 	var stream strava.Stream
 	if err := json.Unmarshal(data, &stream); err != nil {
-		log.Fatalf("Failed to unmarshal stream data: %v", err)
+		log.Fatalf("Failed to unmarshal stream '%s' data: %v", streamFile, err)
 	}
 
 	return &stream

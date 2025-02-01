@@ -37,10 +37,10 @@ type LatLngStream struct {
 }
 
 type PowerStream struct {
-	Data         []int  `json:"data"`
-	OriginalSize int    `json:"original_size"`
-	Resolution   string `json:"resolution"`
-	SeriesType   string `json:"series_type"`
+	Data         []float64 `json:"data"`
+	OriginalSize int       `json:"original_size"`
+	Resolution   string    `json:"resolution"`
+	SeriesType   string    `json:"series_type"`
 }
 
 type AltitudeStream struct {

@@ -66,14 +66,14 @@ func formatSeconds(seconds int) string {
 	return time.Duration(seconds * int(time.Second)).String()
 }
 
-func average(nums []int) *int {
-	if len(nums) == 0 {
-		return nil
+func averagePower(watts *strava.PowerStream, idxStart int, idxEnd int) float64 {
+	averagePower := 0.0
+	if watts != nil && len(watts.Data) > 0 {
+		sumPower := 0.0
+		for i := idxStart; i <= idxEnd; i++ {
+			sumPower += watts.Data[i]
+		}
+		averagePower = sumPower / float64(idxEnd-idxStart+1)
 	}
-	sum := 0
-	for _, num := range nums {
-		sum += num
-	}
-	avg := sum / len(nums)
-	return &avg
+	return averagePower
 }

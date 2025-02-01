@@ -56,7 +56,7 @@ func bestElevationEffortForDistance(id int64, name, activityType string, stream 
 	distances := stream.Distance
 	times := stream.Time
 	altitudes := stream.Altitude
-	nonNullWatts := stream.Watts
+	watts := stream.Watts
 
 	streamDataSize := len(distances.Data)
 
@@ -70,14 +70,7 @@ func bestElevationEffortForDistance(id int64, name, activityType string, stream 
 		} else {
 			if totalAltitude > bestElevation {
 				bestElevation = totalAltitude
-				averagePower := 0
-				if len(nonNullWatts.Data) > 0 {
-					sumPower := 0
-					for i := idxStart; i <= idxEnd; i++ {
-						sumPower += nonNullWatts.Data[i]
-					}
-					averagePower = sumPower / (idxEnd - idxStart + 1)
-				}
+				averagePower := averagePower(watts, idxStart, idxEnd)
 				bestEffort = &business.ActivityEffort{
 					Distance:      distance,
 					Seconds:       totalTime,

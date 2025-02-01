@@ -35,9 +35,8 @@ func NewStravaActivityProvider(stravaCache string) *StravaActivityProvider {
 		provider.activities = provider.loadFromLocalCache(id)
 	} else {
 		if secret != "" {
-			provider.StravaApi = NewStravaApi(id, secret)
-
 			provider.localStorageProvider.InitLocalStorageForClientId(id)
+			provider.StravaApi = NewStravaApi(id, secret)
 			provider.stravaAthlete = provider.retrieveLoggedInAthlete(id)
 			provider.activities = provider.loadCurrentYearFromStrava(id)
 		} else {
@@ -86,10 +85,11 @@ func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *s
 }
 
 func (provider *StravaActivityProvider) loadFromLocalCache(clientId string) []strava.Activity {
+	startTime := time.Now()
 	log.Println("Load activities from local cache ...")
 
 	var loadedActivities []strava.Activity
-	var mu sync.Mutex
+	activityCh := make(chan []strava.Activity, 20) // Buffered channel to collect results
 	var wg sync.WaitGroup
 
 	startYear := time.Now().Year()
@@ -98,22 +98,32 @@ func (provider *StravaActivityProvider) loadFromLocalCache(clientId string) []st
 		go func(year int) {
 			defer wg.Done()
 			activities := provider.localStorageProvider.LoadActivitiesFromCache(clientId, year)
-			mu.Lock()
-			loadedActivities = append(loadedActivities, activities...)
-			mu.Unlock()
+			activityCh <- activities
 		}(year)
 	}
 
-	wg.Wait()
+	// Close the channel once all goroutines are done
+	go func() {
+		wg.Wait()
+		close(activityCh)
+	}()
 
+	// Collect results from the channel
+	for activities := range activityCh {
+		loadedActivities = append(loadedActivities, activities...)
+	}
+
+	duration := time.Since(startTime)
+	log.Printf("Loaded activities from local cache in %s", duration)
 	return loadedActivities
 }
 
 func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId string) []strava.Activity {
+	startTime := time.Now()
 	log.Println("Load activities from Strava ...")
 
 	var loadedActivities []strava.Activity
-	var mu sync.Mutex
+	activityCh := make(chan []strava.Activity, 20) // Buffered channel to collect results
 	var wg sync.WaitGroup
 
 	currentYear := time.Now().Year()
@@ -121,9 +131,7 @@ func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId strin
 	go func() {
 		defer wg.Done()
 		activities := provider.retrieveActivities(clientId, currentYear)
-		mu.Lock()
-		loadedActivities = append(loadedActivities, activities...)
-		mu.Unlock()
+		activityCh <- activities
 	}()
 
 	for year := currentYear - 1; year >= 2010; year-- {
@@ -136,14 +144,23 @@ func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId strin
 			} else {
 				activities = provider.retrieveActivities(clientId, year)
 			}
-			mu.Lock()
-			loadedActivities = append(loadedActivities, activities...)
-			mu.Unlock()
+			activityCh <- activities
 		}(year)
 	}
 
-	wg.Wait()
-	log.Printf("%d activities loaded.", len(loadedActivities))
+	// Close the channel once all goroutines are done
+	go func() {
+		wg.Wait()
+		close(activityCh)
+	}()
+
+	// Collect results from the channel
+	for activities := range activityCh {
+		loadedActivities = append(loadedActivities, activities...)
+	}
+
+	duration := time.Since(startTime)
+	log.Printf("%d activities loaded in %s", len(loadedActivities), duration)
 	return loadedActivities
 }
 

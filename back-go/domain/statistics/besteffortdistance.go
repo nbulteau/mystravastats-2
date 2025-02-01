@@ -44,6 +44,7 @@ func BestActivityEffort(activity strava.Activity, distance float64) *business.Ac
 	if activity.Stream == nil || len(activity.Stream.Altitude.Data) == 0 {
 		return nil
 	}
+
 	return bestActivityEffortForDistance(activity.Id, activity.Name, activity.Type, *activity.Stream, distance)
 }
 
@@ -55,7 +56,7 @@ func bestActivityEffortForDistance(id int64, name, activityType string, stream s
 	distances := stream.Distance.Data
 	times := stream.Time
 	altitudes := stream.Altitude
-	nonNullWatts := stream.Watts
+	watts := stream.Watts
 
 	streamDataSize := len(distances)
 
@@ -73,14 +74,14 @@ func bestActivityEffortForDistance(id int64, name, activityType string, stream s
 			estimatedTimeForDistance := distance / totalDistance * float64(totalTime)
 			if estimatedTimeForDistance < bestTime && estimatedTimeForDistance > 1 {
 				bestTime = estimatedTimeForDistance
-				averagePower := average(nonNullWatts.Data[idxStart : idxEnd+1])
+				averagePower := averagePower(watts, idxStart, idxEnd)
 				bestEffort = &business.ActivityEffort{
 					Distance:      distance,
 					Seconds:       int(bestTime),
 					DeltaAltitude: totalAltitude,
 					IdxStart:      idxStart,
 					IdxEnd:        idxEnd,
-					AveragePower:  averagePower,
+					AveragePower:  &averagePower,
 					Label:         fmt.Sprintf("Best speed for %.0fm", distance),
 					ActivityShort: business.ActivityShort{
 						Id:   id,

@@ -12,7 +12,7 @@ type ActivityEffort struct {
 	DeltaAltitude float64
 	IdxStart      int
 	IdxEnd        int
-	AveragePower  *int
+	AveragePower  *float64
 	Label         string
 	ActivityShort ActivityShort
 }
@@ -44,7 +44,7 @@ func (ae ActivityEffort) GetFormattedGradient() string {
 
 func (ae ActivityEffort) GetFormattedPower() string {
 	if ae.AveragePower != nil {
-		return fmt.Sprintf("%d W", *ae.AveragePower)
+		return fmt.Sprintf(`%d W`, int(*ae.AveragePower))
 	}
 	return ""
 }
@@ -67,7 +67,7 @@ func formatSeconds(seconds int) string {
 	return time.Duration(seconds * int(time.Second)).String()
 }
 
-func NewActivityEffort(distance float64, seconds int, deltaAltitude float64, idxStart int, idxEnd int, averagePower *int, label string, activityShort ActivityShort) ActivityEffort {
+func NewActivityEffort(distance float64, seconds int, deltaAltitude float64, idxStart int, idxEnd int, averagePower *float64, label string, activityShort ActivityShort) ActivityEffort {
 	return ActivityEffort{
 		Distance:      distance,
 		Seconds:       seconds,
