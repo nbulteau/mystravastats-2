@@ -9,7 +9,7 @@ import (
 )
 
 func FetchStatisticsByActivityTypeAndYear(activityType business.ActivityType, year *int) []statistics.Statistic {
-	log.Printf("Compute statistics for %s for %v", activityType, &year)
+	log.Printf("Compute statistics for %s for %v", activityType, year)
 
 	filteredActivities := activityProvider.GetActivitiesByActivityTypeAndYear(activityType, year)
 

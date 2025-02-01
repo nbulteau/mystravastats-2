@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/rs/cors"
 	"log"
 	"mystravastats/adapters/localrepository"
 	"mystravastats/api"
@@ -56,7 +57,15 @@ func main() {
 	// Test the Strava repository
 	//testStravaRepository()
 
-	router := api.NewRouter()
+	// Create a new CORS handler
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:*"}, // Allow any port on localhost
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowCredentials: true,
+	})
 
-	log.Fatal(http.ListenAndServe(":8080", router))
+	handler := c.Handler(api.NewRouter())
+
+	log.Fatal(http.ListenAndServe(":8080", handler))
 }
