@@ -13,6 +13,19 @@ import (
 	"time"
 )
 
+func getAthlete(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+
+	athlete := domain.FetchAthlete()
+
+	athleteDto := toAthleteDto(athlete)
+
+	if err := json.NewEncoder(w).Encode(athleteDto); err != nil {
+		panic(err)
+	}
+}
+
 func getActivitiesByActivityType(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
@@ -20,7 +33,7 @@ func getActivitiesByActivityType(w http.ResponseWriter, r *http.Request) {
 	year := getYearParam(r)
 	activityType := getActivityTypeParam(r)
 
-	activitiesByActivityTypeAndYear := domain.FetchActivitiesByActivityTypeAndYear(activityType, year)
+	activitiesByActivityTypeAndYear := domain.RetrieveActivitiesByActivityTypeAndYear(activityType, year)
 	activitiesDto := make([]dto.ActivityDto, len(activitiesByActivityTypeAndYear))
 	for i, activity := range activitiesByActivityTypeAndYear {
 		activitiesDto[i] = toActivityDto(*activity)
@@ -49,18 +62,143 @@ func getStatisticsByActivityType(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getAthlete(w http.ResponseWriter, _ *http.Request) {
+func getMapsGPX(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 
-	athlete := domain.FetchAthlete()
+	year := getYearParam(r)
+	activityType := getActivityTypeParam(r)
 
-	// Convert to DTO
-	athleteDto := toAthleteDto(athlete)
+	gpx := domain.RetrieveGPXByActivityTypeAndYear(activityType, year)
 
-	if err := json.NewEncoder(w).Encode(athleteDto); err != nil {
+	if err := json.NewEncoder(w).Encode(gpx); err != nil {
 		panic(err)
 	}
+}
+
+func getChartsDistanceByPeriod(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+
+	year := getYearParam(r)
+	activityType := getActivityTypeParam(r)
+	period := getPeriodParam(r)
+
+	distanceByPeriod := domain.FetchChartsDistanceByPeriod(activityType, year, period)
+
+	if err := json.NewEncoder(w).Encode(distanceByPeriod); err != nil {
+		panic(err)
+	}
+}
+
+func getChartsElevationByPeriod(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+
+	year := getYearParam(r)
+	activityType := getActivityTypeParam(r)
+	period := getPeriodParam(r)
+
+	elevationByPeriod := domain.FetchChartsElevationByPeriod(activityType, year, period)
+
+	if err := json.NewEncoder(w).Encode(elevationByPeriod); err != nil {
+		panic(err)
+	}
+}
+
+func getChartsAverageSpeedByPeriod(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+
+	year := getYearParam(r)
+	activityType := getActivityTypeParam(r)
+	period := getPeriodParam(r)
+
+	averageSpeedByPeriod := domain.FetchChartsAverageSpeedByPeriod(activityType, year, period)
+
+	if err := json.NewEncoder(w).Encode(averageSpeedByPeriod); err != nil {
+		panic(err)
+	}
+}
+
+func getDashboard(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+
+	activityType := getActivityTypeParam(r)
+
+	dashboardData := domain.FetchDashboardData(activityType)
+	dashboardDataDto := toDashboardDataDto(dashboardData)
+
+	if err := json.NewEncoder(w).Encode(dashboardDataDto); err != nil {
+		panic(err)
+	}
+
+}
+
+func getDashboardCumulativeDataByYear(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+
+	activityType := getActivityTypeParam(r)
+
+	cumulativeDistancePerYear := domain.GetCumulativeDistancePerYear(activityType)
+	cumulativeElevationPerYear := domain.GetCumulativeElevationPerYear(activityType)
+
+	cumulativeDataDto := dto.CumulativeDataPerYearDto{
+		Distance:  cumulativeDistancePerYear,
+		Elevation: cumulativeElevationPerYear,
+	}
+
+	if err := json.NewEncoder(w).Encode(cumulativeDataDto); err != nil {
+		panic(err)
+	}
+}
+
+func getDashboardEddingtonNumber(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+
+	activityType := getActivityTypeParam(r)
+
+	edNum := domain.FetchEddingtonNumber(activityType)
+	edNumDto := dto.EddingtonNumberDto{
+		EddingtonNumber: edNum.Number,
+		EddingtonList:   edNum.List,
+	}
+
+	if err := json.NewEncoder(w).Encode(edNumDto); err != nil {
+		panic(err)
+	}
+}
+
+func getBadges(w http.ResponseWriter, r *http.Request) {
+	year := getYearParam(r)
+	activityType := getActivityTypeParam(r)
+	badgeSetParam := r.URL.Query().Get("badgeSet")
+
+	var badgeSet business.BadgeSetEnum
+	if badgeSetParam != "" {
+		badgeSet = business.BadgeSetEnum(badgeSetParam)
+	}
+
+	var badges []business.BadgeCheckResult
+	switch badgeSet {
+	case business.GENERAL:
+		badges = domain.GetGeneralBadges(activityType, year)
+	case business.FAMOUS:
+		badges = domain.GetFamousBadges(activityType, year)
+	default:
+		generalBadges := domain.GetGeneralBadges(activityType, year)
+		famousBadges := domain.GetFamousBadges(activityType, year)
+		badges = append(generalBadges, famousBadges...)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(badges); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+
 }
 
 func getActivityTypeParam(r *http.Request) business.ActivityType {
@@ -80,6 +218,15 @@ func getYearParam(r *http.Request) *int {
 		year = &y
 	}
 	return year
+}
+
+func getPeriodParam(r *http.Request) business.Period {
+	periodParam := r.URL.Query().Get("period")
+	var period business.Period
+	if periodParam != "" {
+		period = business.Period(periodParam)
+	}
+	return period
 }
 
 func toAthleteDto(athlete strava.Athlete) dto.AthleteDto {
@@ -125,6 +272,25 @@ func toStatisticDto(statistic statistics.Statistic) dto.StatisticDto {
 			Label: statistic.Label(),
 			Value: statistic.Value(),
 		}
+	}
+}
+
+func toDashboardDataDto(data business.DashboardData) dto.DashboardDataDto {
+	return dto.DashboardDataDto{
+		NbActivities:           data.NbActivities,
+		TotalDistanceByYear:    data.TotalDistanceByYear,
+		AverageDistanceByYear:  data.AverageDistanceByYear,
+		MaxDistanceByYear:      data.MaxDistanceByYear,
+		TotalElevationByYear:   data.TotalElevationByYear,
+		AverageElevationByYear: data.AverageElevationByYear,
+		MaxElevationByYear:     data.MaxElevationByYear,
+		AverageSpeedByYear:     data.AverageSpeedByYear,
+		MaxSpeedByYear:         data.MaxSpeedByYear,
+		AverageHeartRateByYear: data.AverageHeartRateByYear,
+		MaxHeartRateByYear:     data.MaxHeartRateByYear,
+		AverageWattsByYear:     data.AverageWattsByYear,
+		MaxWattsByYear:         data.MaxWattsByYear,
+		AverageCadence:         data.AverageCadence,
 	}
 }
 

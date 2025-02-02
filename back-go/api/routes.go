@@ -13,6 +13,12 @@ type Routes []Route
 
 var routes = Routes{
 	Route{
+		"GetAthlete",
+		"GET",
+		"/api/athletes/me",
+		getAthlete,
+	},
+	Route{
 		"GetActivitiesByActivityType",
 		"GET",
 		"/api/activities",
@@ -25,9 +31,51 @@ var routes = Routes{
 		getStatisticsByActivityType,
 	},
 	Route{
-		"GetAthlete",
+		"GetMapsGPX",
 		"GET",
-		"/api/athletes/me",
-		getAthlete,
+		"/api/maps/gpx",
+		getMapsGPX,
+	},
+	Route{
+		"GetChartsDistanceByPeriod",
+		"GET",
+		"/api/charts/distance-by-period",
+		getChartsDistanceByPeriod,
+	},
+	Route{
+		"GetChartsElevationByPeriod",
+		"GET",
+		"/api/charts/elevation-by-period",
+		getChartsElevationByPeriod,
+	},
+	Route{
+		"GetChartsAverageSpeedByPeriod",
+		"GET",
+		"/api/charts/average-speed-by-period",
+		getChartsAverageSpeedByPeriod,
+	},
+	Route{
+		"GetDashboard",
+		"GET",
+		"/api/dashboard",
+		getDashboard,
+	},
+	Route{
+		"GetDashboardCumulativeDataByYear",
+		"GET",
+		"/api/dashboard/cumulative-data-per-year",
+		getDashboardCumulativeDataByYear,
+	},
+	Route{
+		"GetDashboardEddingtonNumber",
+		"GET",
+		"/api/dashboard/eddington-number",
+		getDashboardEddingtonNumber,
+	},
+	Route{
+		"GetBadges",
+		"GET",
+		"/api/badges",
+		getBadges,
 	},
 }
