@@ -55,7 +55,7 @@ internal class ChartsService(
         year: Int,
         period: Period,
     ): List<Pair<String, Double>> {
-        logger.info("Get distance by $period by sctivity ($activityType) type by year ($year)")
+        logger.info("Get distance by $period by activity ($activityType) type by year ($year)")
 
         val activitiesByPeriod = this.activitiesByPeriod(activityType, year, period)
         return activitiesByPeriod.mapValues { (_, activities) ->
