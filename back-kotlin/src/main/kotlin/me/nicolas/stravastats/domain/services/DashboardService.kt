@@ -256,14 +256,16 @@ class DashboardService(
     private fun cumulativeDistance(activities: Map<String, List<StravaActivity>>): Map<String, Double> {
         var sum = 0.0
         return activities.mapValues { (_, activities) ->
-            sum += activities.sumOf { activity -> activity.distance / 1000 }; sum
+            sum += activities.sumOf { activity -> activity.distance / 1000 }
+            sum
         }
     }
 
     private fun cumulativeElevation(activities: Map<String, List<StravaActivity>>): Map<String, Int> {
         var sum = 0
         return activities.mapValues { (_, activities) ->
-            sum += activities.sumOf { activity -> activity.totalElevationGain.toInt() }; sum
+            sum += activities.sumOf { activity -> activity.totalElevationGain.toInt() }
+            sum
         }
     }
 }
