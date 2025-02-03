@@ -63,7 +63,7 @@ func computeRideStatistics(rideActivities []*strava.Activity) []statistics.Stati
 	allStatistics := computeCommonStats(rideActivities)
 
 	allStatistics = append(allStatistics, []statistics.Statistic{
-		//statistics.NewMaxSpeedStatistic(rideActivities),
+		statistics.NewMaxSpeedStatistic(rideActivities),
 		//statistics.NewMaxMovingTimeStatistic(rideActivities),
 		statistics.NewBestEffortDistanceStatistic("Best 250 m", rideActivities, 250.0),
 		statistics.NewBestEffortDistanceStatistic("Best 500 m", rideActivities, 500.0),
@@ -94,7 +94,7 @@ func computeVirtualRideStatistics(rideActivities []*strava.Activity) []statistic
 	allStatistics := computeCommonStats(rideActivities)
 
 	allStatistics = append(allStatistics, []statistics.Statistic{
-		//statistics.NewMaxSpeedStatistic(rideActivities),
+		statistics.NewMaxSpeedStatistic(rideActivities),
 		//statistics.NewMaxMovingTimeStatistic(rideActivities),
 		//statistics.NewMaxAveragePowerStatistic(rideActivities),
 		//statistics.NewMaxWeightedAveragePowerStatistic(rideActivities),
@@ -122,7 +122,7 @@ func computeAlpineSkiStatistics(filteredActivities []*strava.Activity) []statist
 	allStatistics := computeCommonStats(filteredActivities)
 
 	allStatistics = append(allStatistics, []statistics.Statistic{
-		//statistics.NewMaxSpeedStatistic(filteredActivities),
+		statistics.NewMaxSpeedStatistic(filteredActivities),
 		//statistics.NewMaxMovingTimeStatistic(filteredActivities),
 		statistics.NewBestEffortDistanceStatistic("Best 250 m", filteredActivities, 250.0),
 		statistics.NewBestEffortDistanceStatistic("Best 500 m", filteredActivities, 500.0),
@@ -147,7 +147,7 @@ func computeCommuteStatistics(commuteActivities []*strava.Activity) []statistics
 	allStatistics := computeCommonStats(commuteActivities)
 
 	allStatistics = append(allStatistics, []statistics.Statistic{
-		//statistics.NewMaxSpeedStatistic(commuteActivities),
+		statistics.NewMaxSpeedStatistic(commuteActivities),
 		//statistics.NewMaxMovingTimeStatistic(commuteActivities),
 		statistics.NewBestEffortDistanceStatistic("Best 250 m", commuteActivities, 250.0),
 		statistics.NewBestEffortDistanceStatistic("Best 500 m", commuteActivities, 500.0),

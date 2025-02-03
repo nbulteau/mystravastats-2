@@ -1,5 +1,6 @@
 package strava
 
+// TODO should be in business package
 type BadgeSetEnum string
 
 const (
