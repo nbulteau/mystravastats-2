@@ -1,6 +1,8 @@
 package domain
 
 import (
+	"fmt"
+	"log"
 	"mystravastats/domain/business"
 	"mystravastats/domain/strava"
 )
@@ -37,4 +39,16 @@ func RetrieveGPXByActivityTypeAndYear(activityType business.ActivityType, year *
 	}
 
 	return result
+}
+
+func RetrieveDetailedActivity(activityId int64) (*strava.DetailedActivity, error) {
+	log.Printf("Get detailed activity %d", activityId)
+
+	detailedActivity := activityProvider.GetDetailedActivity(activityId)
+	if detailedActivity == nil {
+		log.Printf("Activity %d not found", activityId)
+		return nil, fmt.Errorf("activity %d not found", activityId)
+	}
+
+	return detailedActivity, nil
 }

@@ -49,30 +49,32 @@ func GetCumulativeDistancePerYear(activityType business.ActivityType) map[string
 	activitiesByYear := activityProvider.GetActivitiesByActivityTypeGroupByYear(activityType)
 
 	currentYear := time.Now().Year()
-	cumulativeDistancePerYear := make(map[string]map[string]float64)
+	result := make(map[string]map[string]float64)
 
 	for year := 2010; year <= currentYear; year++ {
 		yearStr := strconv.Itoa(year)
 		if activities, exists := activitiesByYear[yearStr]; exists {
 			activitiesByDay := groupActivitiesByDay(activities, year)
 			cumulativeDistance := calculateCumulativeDistance(activitiesByDay)
-			cumulativeDistancePerYear[yearStr] = cumulativeDistance
+			result[yearStr] = cumulativeDistance
 		}
 	}
 
-	return cumulativeDistancePerYear
+	return result
 }
 
 func calculateCumulativeDistance(activitiesByDay map[string][]*strava.Activity) map[string]float64 {
-	cumulativeDistance := make(map[string]float64)
+	result := make(map[string]float64)
+
 	var sum float64
-	for day, activities := range activitiesByDay {
-		for _, activity := range activities {
+	for _, day := range sortedKeys(activitiesByDay) {
+		for _, activity := range activitiesByDay[day] {
 			sum += activity.Distance / 1000
 		}
-		cumulativeDistance[day] = sum
+		result[day] = sum
 	}
-	return cumulativeDistance
+
+	return result
 }
 
 func GetCumulativeElevationPerYear(activityType business.ActivityType) map[string]map[string]float64 {
@@ -97,8 +99,8 @@ func GetCumulativeElevationPerYear(activityType business.ActivityType) map[strin
 func cumulativeElevation(activitiesByDay map[string][]*strava.Activity) map[string]float64 {
 	sum := 0.0
 	result := make(map[string]float64)
-	for day, activities := range activitiesByDay {
-		for _, activity := range activities {
+	for _, day := range sortedKeys(activitiesByDay) {
+		for _, activity := range activitiesByDay[day] {
 			sum += activity.TotalElevationGain
 		}
 		result[day] = sum

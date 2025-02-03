@@ -3,14 +3,13 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/mux"
 	"mystravastats/api/dto"
 	"mystravastats/domain"
 	"mystravastats/domain/business"
-	"mystravastats/domain/statistics"
 	"mystravastats/domain/strava"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 func getAthlete(w http.ResponseWriter, _ *http.Request) {
@@ -40,6 +39,29 @@ func getActivitiesByActivityType(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewEncoder(w).Encode(activitiesDto); err != nil {
+		panic(err)
+	}
+}
+
+func getDetailedActivity(writer http.ResponseWriter, request *http.Request) {
+	writer.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	writer.WriteHeader(http.StatusOK)
+
+	vars := mux.Vars(request)
+	activityId, err := strconv.ParseInt(vars["activityId"], 10, 64)
+	if err != nil {
+		http.Error(writer, "Invalid activityId", http.StatusBadRequest)
+		return
+	}
+	activity, err := domain.RetrieveDetailedActivity(activityId)
+	if err != nil {
+		http.Error(writer, fmt.Sprintf("Activity %d not found", activityId), http.StatusNotFound)
+		return
+	}
+
+	activityDto := toDetailedActivityDto(*activity)
+
+	if err := json.NewEncoder(writer).Encode(activityDto); err != nil {
 		panic(err)
 	}
 }
@@ -177,16 +199,16 @@ func getBadges(w http.ResponseWriter, r *http.Request) {
 	activityType := getActivityTypeParam(r)
 	badgeSetParam := r.URL.Query().Get("badgeSet")
 
-	var badgeSet business.BadgeSetEnum
+	var badgeSet strava.BadgeSetEnum
 	if badgeSetParam != "" {
-		badgeSet = business.BadgeSetEnum(badgeSetParam)
+		badgeSet = strava.BadgeSetEnum(badgeSetParam)
 	}
 
-	var badges []business.BadgeCheckResult
+	var badges []strava.BadgeCheckResult
 	switch badgeSet {
-	case business.GENERAL:
+	case strava.GENERAL:
 		badges = domain.GetGeneralBadges(activityType, year)
-	case business.FAMOUS:
+	case strava.FAMOUS:
 		badges = domain.GetFamousBadges(activityType, year)
 	default:
 		generalBadges := domain.GetGeneralBadges(activityType, year)
@@ -227,169 +249,4 @@ func getPeriodParam(r *http.Request) business.Period {
 		period = business.Period(periodParam)
 	}
 	return period
-}
-
-func toAthleteDto(athlete strava.Athlete) dto.AthleteDto {
-	return dto.AthleteDto{
-		BadgeTypeId:           getIntValue(athlete.BadgeTypeId),
-		City:                  getStringValue(athlete.City),
-		Country:               getStringValue(athlete.Country),
-		CreatedAt:             parseTime(athlete.CreatedAt),
-		Firstname:             getStringValue(athlete.Firstname),
-		Id:                    athlete.Id,
-		Lastname:              getStringValue(athlete.Lastname),
-		Premium:               getBoolValue(athlete.Premium),
-		Profile:               getStringValue(athlete.Profile),
-		ProfileMedium:         getStringValue(athlete.ProfileMedium),
-		ResourceState:         getIntValue(athlete.ResourceState),
-		Sex:                   getStringValue(athlete.Sex),
-		State:                 getStringValue(athlete.State),
-		Summit:                getBoolValue(athlete.Summit),
-		UpdatedAt:             parseTime(athlete.UpdatedAt),
-		Username:              getStringValue(athlete.Username),
-		AthleteType:           getIntValue(athlete.AthleteType),
-		DatePreference:        getStringValue(athlete.DatePreference),
-		FollowerCount:         getIntValue(athlete.FollowerCount),
-		FriendCount:           getIntValue(athlete.FriendCount),
-		MeasurementPreference: getStringValue(athlete.MeasurementPreference),
-		MutualFriendCount:     getIntValue(athlete.MutualFriendCount),
-		Weight:                getIntValueFromFloat(athlete.Weight),
-	}
-}
-func toStatisticDto(statistic statistics.Statistic) dto.StatisticDto {
-	if statistic.Activity() != nil {
-		return dto.StatisticDto{
-			Label: statistic.Label(),
-			Value: statistic.Value(),
-			Activity: &dto.ActivityShortDto{
-				ID:   statistic.Activity().Id,
-				Name: statistic.Activity().Name,
-				Type: statistic.Activity().Type.String(),
-			},
-		}
-	} else {
-		return dto.StatisticDto{
-			Label: statistic.Label(),
-			Value: statistic.Value(),
-		}
-	}
-}
-
-func toDashboardDataDto(data business.DashboardData) dto.DashboardDataDto {
-	return dto.DashboardDataDto{
-		NbActivities:           data.NbActivities,
-		TotalDistanceByYear:    data.TotalDistanceByYear,
-		AverageDistanceByYear:  data.AverageDistanceByYear,
-		MaxDistanceByYear:      data.MaxDistanceByYear,
-		TotalElevationByYear:   data.TotalElevationByYear,
-		AverageElevationByYear: data.AverageElevationByYear,
-		MaxElevationByYear:     data.MaxElevationByYear,
-		AverageSpeedByYear:     data.AverageSpeedByYear,
-		MaxSpeedByYear:         data.MaxSpeedByYear,
-		AverageHeartRateByYear: data.AverageHeartRateByYear,
-		MaxHeartRateByYear:     data.MaxHeartRateByYear,
-		AverageWattsByYear:     data.AverageWattsByYear,
-		MaxWattsByYear:         data.MaxWattsByYear,
-		AverageCadence:         data.AverageCadence,
-	}
-}
-
-func getIntValue(value *int) int {
-	if value != nil {
-		return *value
-	}
-	return 0
-}
-
-func getStringValue(value *string) string {
-	if value != nil {
-		return *value
-	}
-	return ""
-}
-
-func getBoolValue(value *bool) bool {
-	if value != nil {
-		return *value
-	}
-	return false
-}
-
-func parseTime(value *string) time.Time {
-	if value != nil {
-		parsedTime, _ := time.Parse(time.RFC3339, *value)
-		return parsedTime
-	}
-	return time.Time{}
-}
-
-func getIntValueFromFloat(value *float64) int {
-	if value != nil {
-		return int(*value)
-	}
-	return 0
-}
-
-func toActivityDto(activity strava.Activity) dto.ActivityDto {
-	bestPowerFor20Minutes := statistics.BestPowerForTime(activity, 20*60)
-	bestPowerFor60Minutes := statistics.BestPowerForTime(activity, 60*60)
-
-	var ftp string
-	if bestPowerFor60Minutes != nil {
-		ftp = fmt.Sprintf("%d", bestPowerFor60Minutes.AveragePower)
-	} else if bestPowerFor20Minutes != nil {
-		ftp = fmt.Sprintf("%d", int(float64(*bestPowerFor20Minutes.AveragePower)*0.95))
-	} else {
-		ftp = ""
-	}
-
-	link := ""
-	if activity.UploadId != 0 {
-		link = fmt.Sprintf("https://www.strava.com/activities/%d", activity.Id)
-	}
-
-	bestPowerFor20MinutesStr := ""
-	if bestPowerFor20Minutes != nil {
-		bestPowerFor20MinutesStr = bestPowerFor20Minutes.GetFormattedPower()
-	}
-
-	bestPowerFor60MinutesStr := ""
-	if bestPowerFor60Minutes != nil {
-		bestPowerFor60MinutesStr = bestPowerFor60Minutes.GetFormattedPower()
-	}
-
-	bestTimeForDistanceFor1000m := 0.0
-	if bestTimeForDistance := statistics.BestActivityEffort(activity, 1000.0); bestTimeForDistance != nil {
-		bestTimeForDistanceFor1000m = bestTimeForDistance.GetMSSpeed()
-	}
-
-	bestElevationForDistanceFor500m := 0.0
-	if bestElevationForDistance := statistics.BestElevationEffort(activity, 500.0); bestElevationForDistance != nil {
-		bestElevationForDistanceFor500m = bestElevationForDistance.GetGradient()
-	}
-
-	bestElevationForDistanceFor1000m := 0.0
-	if bestElevationForDistance := statistics.BestElevationEffort(activity, 1000.0); bestElevationForDistance != nil {
-		bestElevationForDistanceFor1000m = bestElevationForDistance.GetGradient()
-	}
-
-	return dto.ActivityDto{
-		Id:                               activity.Id,
-		Name:                             activity.Name,
-		Type:                             activity.Type,
-		Link:                             link,
-		Distance:                         int(activity.Distance),
-		ElapsedTime:                      activity.ElapsedTime,
-		TotalElevationGain:               int(activity.TotalElevationGain),
-		AverageSpeed:                     activity.AverageSpeed,
-		BestTimeForDistanceFor1000m:      bestTimeForDistanceFor1000m,
-		BestElevationForDistanceFor500m:  bestElevationForDistanceFor500m,
-		BestElevationForDistanceFor1000m: bestElevationForDistanceFor1000m,
-		Date:                             activity.StartDateLocal,
-		AverageWatts:                     int(activity.AverageWatts),
-		WeightedAverageWatts:             strconv.Itoa(activity.WeightedAverageWatts),
-		BestPowerFor20Minutes:            bestPowerFor20MinutesStr,
-		BestPowerFor60Minutes:            bestPowerFor60MinutesStr,
-		FTP:                              ftp,
-	}
 }

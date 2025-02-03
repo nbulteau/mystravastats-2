@@ -35,7 +35,7 @@ internal open class BestEffortDistanceStatistic(
 fun StravaActivity.calculateBestTimeForDistance(distance: Double): ActivityEffort? {
 
     // no stream -> return null
-    return if (stream == null || stream?.altitude == null) {
+    return if (stream == null || stream?.distance == null) {
         null
     } else {
         activityEffort(this.id, this.name, this.type, this.stream!!, distance)

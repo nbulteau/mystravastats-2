@@ -1,5 +1,9 @@
 package strava
 
+import (
+	"mystravastats/domain/business"
+)
+
 type MetaActivity struct {
 	Id int64 `json:"id"`
 }
@@ -65,4 +69,71 @@ type DetailedActivity struct {
 	WeightedAverageWatts     int             `json:"weighted_average_watts"`
 	WorkoutType              int             `json:"workout_type"`
 	Stream                   *Stream         `json:"stream,omitempty"`
+}
+
+func (activity *DetailedActivity) BuildActivityEfforts() []business.ActivityEffort {
+	var activityEfforts []business.ActivityEffort
+
+	for _, segmentEffort := range activity.SegmentEfforts {
+		if segmentEffort.Segment.ClimbCategory > 2 || segmentEffort.Segment.Starred {
+			activityEfforts = append(activityEfforts, segmentEffort.toActivityEffort())
+		}
+	}
+
+	// Add additional efforts based on specific criteria
+	bestTimeFor1000m := calculateBestTimeForDistance(activity, 1000.0)
+	if bestTimeFor1000m != nil {
+		activityEfforts = append(activityEfforts, *bestTimeFor1000m)
+	}
+	bestTimeFor5000m := calculateBestTimeForDistance(activity, 5000.0)
+	if bestTimeFor5000m != nil {
+		activityEfforts = append(activityEfforts, *bestTimeFor5000m)
+	}
+	bestTimeFor10000m := calculateBestTimeForDistance(activity, 10000.0)
+	if bestTimeFor10000m != nil {
+		activityEfforts = append(activityEfforts, *bestTimeFor10000m)
+	}
+	bestDistanceFor1Hour := calculateBestDistanceForTime(activity, 3600)
+	if bestDistanceFor1Hour != nil {
+		activityEfforts = append(activityEfforts, *bestDistanceFor1Hour)
+	}
+	bestElevationFor500m := calculateBestElevationForDistance(activity, 500.0)
+	if bestElevationFor500m != nil {
+		activityEfforts = append(activityEfforts, *bestElevationFor500m)
+	}
+	bestElevationFor1000m := calculateBestElevationForDistance(activity, 1000.0)
+	if bestElevationFor1000m != nil {
+		activityEfforts = append(activityEfforts, *bestElevationFor1000m)
+	}
+	bestElevationFor10000m := calculateBestElevationForDistance(activity, 10000.0)
+	if bestElevationFor10000m != nil {
+		activityEfforts = append(activityEfforts, *bestElevationFor10000m)
+	}
+
+	return activityEfforts
+}
+
+func calculateBestElevationForDistance(activity *DetailedActivity, f float64) *business.ActivityEffort {
+	if activity.Stream == nil {
+		return nil
+	}
+	// TODO: Implement
+	return nil
+}
+
+func calculateBestDistanceForTime(activity *DetailedActivity, i int) *business.ActivityEffort {
+	if activity.Stream == nil {
+		return nil
+	}
+	// TODO: Implement
+	return nil
+}
+
+func calculateBestTimeForDistance(activity *DetailedActivity, f float64) *business.ActivityEffort {
+
+	if activity.Stream == nil {
+		return nil
+	}
+	// TODO: Implement
+	return nil
 }

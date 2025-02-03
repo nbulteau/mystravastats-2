@@ -72,14 +72,14 @@ type MovingStream struct {
 }
 
 type SmoothVelocityStream struct {
-	Data         []float32 `json:"data"`
+	Data         []float64 `json:"data"`
 	OriginalSize int       `json:"original_size"`
 	Resolution   string    `json:"resolution"`
 	SeriesType   string    `json:"series_type"`
 }
 
 type SmoothGradeStream struct {
-	Data         []float32 `json:"data"`
+	Data         []float64 `json:"data"`
 	OriginalSize int       `json:"original_size"`
 	Resolution   string    `json:"resolution"`
 	SeriesType   string    `json:"series_type"`

@@ -25,6 +25,12 @@ var routes = Routes{
 		getActivitiesByActivityType,
 	},
 	Route{
+		"GetDetailedActivity",
+		"GET",
+		"/api/activities/{activityId}",
+		getDetailedActivity,
+	},
+	Route{
 		"GetStatisticsByActivityType",
 		"GET",
 		"/api/statistics",

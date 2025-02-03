@@ -27,11 +27,7 @@ func groupActivitiesByDay(activities []*strava.Activity, year int) map[string][]
 	}
 
 	// Sort the map keys
-	sortedKeys := make([]string, 0, len(activitiesByDay))
-	for k := range activitiesByDay {
-		sortedKeys = append(sortedKeys, k)
-	}
-	sort.Strings(sortedKeys)
+	sortedKeys := sortedKeys(activitiesByDay)
 
 	sortedActivitiesByDay := make(map[string][]*strava.Activity)
 	for _, k := range sortedKeys {
@@ -39,4 +35,14 @@ func groupActivitiesByDay(activities []*strava.Activity, year int) map[string][]
 	}
 
 	return sortedActivitiesByDay
+}
+
+func sortedKeys(m map[string][]*strava.Activity) []string {
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	return keys
 }
