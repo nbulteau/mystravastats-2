@@ -64,10 +64,7 @@ type ActivityStatistic struct {
 }
 
 func (stat *ActivityStatistic) Value() string {
-	if stat.Activity != nil {
-		return fmt.Sprintf("%stat - %v", stat.BaseStatistic.Label(), stat.Activity)
-	}
-	return "Not available"
+	return fmt.Sprintf("%s - %v", stat.BaseStatistic.Label(), stat.Activity)
 }
 
 func (stat *ActivityStatistic) Label() string {
