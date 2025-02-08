@@ -64,7 +64,7 @@ func computeRideStatistics(rideActivities []*strava.Activity) []statistics.Stati
 
 	allStatistics = append(allStatistics, []statistics.Statistic{
 		statistics.NewMaxSpeedStatistic(rideActivities),
-		//statistics.NewMaxMovingTimeStatistic(rideActivities),
+		statistics.NewMaxMovingTimeStatistic(rideActivities),
 		statistics.NewBestEffortDistanceStatistic("Best 250 m", rideActivities, 250.0),
 		statistics.NewBestEffortDistanceStatistic("Best 500 m", rideActivities, 500.0),
 		statistics.NewBestEffortDistanceStatistic("Best 1000 m", rideActivities, 1000.0),
@@ -95,7 +95,7 @@ func computeVirtualRideStatistics(rideActivities []*strava.Activity) []statistic
 
 	allStatistics = append(allStatistics, []statistics.Statistic{
 		statistics.NewMaxSpeedStatistic(rideActivities),
-		//statistics.NewMaxMovingTimeStatistic(rideActivities),
+		statistics.NewMaxMovingTimeStatistic(rideActivities),
 		//statistics.NewMaxAveragePowerStatistic(rideActivities),
 		//statistics.NewMaxWeightedAveragePowerStatistic(rideActivities),
 		statistics.NewBestEffortDistanceStatistic("Best 250 m", rideActivities, 250.0),
@@ -123,7 +123,7 @@ func computeAlpineSkiStatistics(filteredActivities []*strava.Activity) []statist
 
 	allStatistics = append(allStatistics, []statistics.Statistic{
 		statistics.NewMaxSpeedStatistic(filteredActivities),
-		//statistics.NewMaxMovingTimeStatistic(filteredActivities),
+		statistics.NewMaxMovingTimeStatistic(filteredActivities),
 		statistics.NewBestEffortDistanceStatistic("Best 250 m", filteredActivities, 250.0),
 		statistics.NewBestEffortDistanceStatistic("Best 500 m", filteredActivities, 500.0),
 		statistics.NewBestEffortDistanceStatistic("Best 1000 m", filteredActivities, 1000.0),
@@ -148,7 +148,7 @@ func computeCommuteStatistics(commuteActivities []*strava.Activity) []statistics
 
 	allStatistics = append(allStatistics, []statistics.Statistic{
 		statistics.NewMaxSpeedStatistic(commuteActivities),
-		//statistics.NewMaxMovingTimeStatistic(commuteActivities),
+		statistics.NewMaxMovingTimeStatistic(commuteActivities),
 		statistics.NewBestEffortDistanceStatistic("Best 250 m", commuteActivities, 250.0),
 		statistics.NewBestEffortDistanceStatistic("Best 500 m", commuteActivities, 500.0),
 		statistics.NewBestEffortDistanceStatistic("Best 1000 m", commuteActivities, 1000.0),
@@ -238,7 +238,7 @@ func computeCommonStats(activities []*strava.Activity) []statistics.Statistic {
 			}
 			return fmt.Sprintf("%d", len(activeDays))
 		}),
-		//statistics.NewMaxStreakStatistic(activities),
+		statistics.NewMaxStreakStatistic(activities),
 		statistics.NewGlobalStatistic("Total distance", activities, func(activities []strava.Activity) string {
 			totalDistance := 0.0
 			for _, activity := range activities {
@@ -261,12 +261,13 @@ func computeCommonStats(activities []*strava.Activity) []statistics.Statistic {
 			}
 			return fmt.Sprintf("%.2f km", totalDistance/float64(len(activities))/1000)
 		}),
-		//statistics.NewMaxDistanceStatistic(activities),
-		//statistics.NewMaxDistanceInADayStatistic(activities),
-		//statistics.NewMaxElevationStatistic(activities),
-		//statistics.NewMaxElevationInADayStatistic(activities),
-		//statistics.NewHighestPointStatistic(activities),
-		//statistics.NewMaxMovingTimeStatistic(activities),
+		statistics.NewAverageSpeedStatistic(activities), //TODO: write it in kotlin
+		statistics.NewMaxDistanceStatistic(activities),
+		statistics.NewMaxDistanceInADayStatistic(activities),
+		statistics.NewMaxElevationStatistic(activities),
+		statistics.NewMaxElevationInADayStatistic(activities),
+		statistics.NewHighestPointStatistic(activities),
+		statistics.NewMaxMovingTimeStatistic(activities),
 		//statistics.NewMostActiveMonthStatistic(activities),
 		//statistics.NewEddingtonStatistic(activities),
 	}

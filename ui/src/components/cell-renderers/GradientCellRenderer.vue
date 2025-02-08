@@ -11,7 +11,7 @@ const props = defineProps<{
   value: number; 
 }>();
 
-const bestGradient = computed(() =>props.value);
+const bestGradient = computed(() =>props.value.toFixed(1));
 </script>
 
 <style scoped>
