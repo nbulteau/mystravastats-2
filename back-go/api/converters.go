@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"github.com/google/uuid"
 	"mystravastats/api/dto"
 	"mystravastats/domain/business"
 	"mystravastats/domain/statistics"
@@ -39,7 +40,7 @@ func toActivityDto(activity strava.Activity) dto.ActivityDto {
 	}
 
 	bestTimeForDistanceFor1000m := 0.0
-	if bestTimeForDistance := statistics.BestActivityEffort(activity, 1000.0); bestTimeForDistance != nil {
+	if bestTimeForDistance := statistics.BestTimeEffort(activity, 1000.0); bestTimeForDistance != nil {
 		bestTimeForDistanceFor1000m = bestTimeForDistance.GetMSSpeed()
 	}
 
@@ -74,38 +75,38 @@ func toActivityDto(activity strava.Activity) dto.ActivityDto {
 	}
 }
 
-func toDetailedActivityDto(activity strava.DetailedActivity) dto.DetailedActivityDto {
+func toDetailedActivityDto(detailedActivity *strava.DetailedActivity) dto.DetailedActivityDto {
 
-	activityEfforts := activity.BuildActivityEfforts()
+	activityEfforts := BuildActivityEfforts(detailedActivity)
 
 	return dto.DetailedActivityDto{
-		AverageCadence:       int(activity.AverageCadence),
-		AverageHeartrate:     int(activity.AverageHeartrate),
-		AverageWatts:         int(activity.AverageWatts),
-		AverageSpeed:         float32(activity.AverageSpeed),
-		Calories:             activity.Calories,
-		Commute:              activity.Commute,
-		DeviceWatts:          activity.DeviceWatts,
-		Distance:             float64(activity.Distance),
-		ElapsedTime:          activity.ElapsedTime,
-		ElevHigh:             activity.ElevHigh,
-		ID:                   activity.Id,
-		Kilojoules:           activity.Kilojoules,
-		MaxHeartrate:         int(activity.MaxHeartrate),
-		MaxSpeed:             float32(activity.MaxSpeed),
-		MaxWatts:             activity.MaxWatts,
-		MovingTime:           activity.MovingTime,
-		Name:                 activity.Name,
+		AverageCadence:       int(detailedActivity.AverageCadence),
+		AverageHeartrate:     int(detailedActivity.AverageHeartrate),
+		AverageWatts:         int(detailedActivity.AverageWatts),
+		AverageSpeed:         float32(detailedActivity.AverageSpeed),
+		Calories:             detailedActivity.Calories,
+		Commute:              detailedActivity.Commute,
+		DeviceWatts:          detailedActivity.DeviceWatts,
+		Distance:             float64(detailedActivity.Distance),
+		ElapsedTime:          detailedActivity.ElapsedTime,
+		ElevHigh:             detailedActivity.ElevHigh,
+		ID:                   detailedActivity.Id,
+		Kilojoules:           detailedActivity.Kilojoules,
+		MaxHeartrate:         int(detailedActivity.MaxHeartrate),
+		MaxSpeed:             float32(detailedActivity.MaxSpeed),
+		MaxWatts:             detailedActivity.MaxWatts,
+		MovingTime:           detailedActivity.MovingTime,
+		Name:                 detailedActivity.Name,
 		ActivityEfforts:      toActivityEffortsDto(activityEfforts),
-		StartDate:            parseTime(activity.StartDate),
-		StartDateLocal:       parseTime(activity.StartDateLocal),
-		StartLatlng:          activity.StartLatLng,
-		Stream:               toStreamDto(activity.Stream),
-		SufferScore:          activity.SufferScore,
-		TotalDescent:         activity.ElevLow,
-		TotalElevationGain:   activity.TotalElevationGain,
-		Type:                 activity.Type,
-		WeightedAverageWatts: activity.WeightedAverageWatts,
+		StartDate:            parseTime(detailedActivity.StartDate),
+		StartDateLocal:       parseTime(detailedActivity.StartDateLocal),
+		StartLatlng:          detailedActivity.StartLatLng,
+		Stream:               toStreamDto(detailedActivity.Stream),
+		SufferScore:          detailedActivity.SufferScore,
+		TotalDescent:         detailedActivity.ElevLow,
+		TotalElevationGain:   detailedActivity.TotalElevationGain,
+		Type:                 detailedActivity.Type,
+		WeightedAverageWatts: detailedActivity.WeightedAverageWatts,
 	}
 }
 
@@ -113,7 +114,7 @@ func toActivityEffortsDto(efforts []business.ActivityEffort) []dto.ActivityEffor
 	var effortsDto []dto.ActivityEffortDto
 	for _, effort := range efforts {
 		effortsDto = append(effortsDto, dto.ActivityEffortDto{
-			ID:            strconv.FormatInt(effort.ActivityShort.Id, 10),
+			ID:            uuid.New().String(),
 			Label:         effort.Label,
 			Distance:      effort.Distance,
 			Seconds:       effort.Seconds,
@@ -290,4 +291,86 @@ func getIntValueFromFloat(value *float64) int {
 		return int(*value)
 	}
 	return 0
+}
+
+func BuildActivityEfforts(activity *strava.DetailedActivity) []business.ActivityEffort {
+	var activityEfforts []business.ActivityEffort
+
+	for _, segmentEffort := range activity.SegmentEfforts {
+		if segmentEffort.Segment.ClimbCategory > 2 || segmentEffort.Segment.Starred {
+			activityEfforts = append(activityEfforts, toActivityEffort(&segmentEffort))
+		}
+	}
+
+	// Add additional efforts based on specific criteria
+	bestTimeFor1000m := calculateBestTimeForDistance(activity, 1000.0)
+	if bestTimeFor1000m != nil {
+		activityEfforts = append(activityEfforts, *bestTimeFor1000m)
+	}
+	bestTimeFor5000m := calculateBestTimeForDistance(activity, 5000.0)
+	if bestTimeFor5000m != nil {
+		activityEfforts = append(activityEfforts, *bestTimeFor5000m)
+	}
+	bestTimeFor10000m := calculateBestTimeForDistance(activity, 10000.0)
+	if bestTimeFor10000m != nil {
+		activityEfforts = append(activityEfforts, *bestTimeFor10000m)
+	}
+	bestDistanceFor1Hour := calculateBestDistanceForTime(activity, 3600)
+	if bestDistanceFor1Hour != nil {
+		activityEfforts = append(activityEfforts, *bestDistanceFor1Hour)
+	}
+	bestElevationFor500m := calculateBestElevationForDistance(activity, 500.0)
+	if bestElevationFor500m != nil {
+		activityEfforts = append(activityEfforts, *bestElevationFor500m)
+	}
+	bestElevationFor1000m := calculateBestElevationForDistance(activity, 1000.0)
+	if bestElevationFor1000m != nil {
+		activityEfforts = append(activityEfforts, *bestElevationFor1000m)
+	}
+	bestElevationFor10000m := calculateBestElevationForDistance(activity, 10000.0)
+	if bestElevationFor10000m != nil {
+		activityEfforts = append(activityEfforts, *bestElevationFor10000m)
+	}
+
+	return activityEfforts
+}
+
+func toActivityEffort(effort *strava.SegmentEffort) business.ActivityEffort {
+
+	return business.ActivityEffort{
+		Distance:      effort.Distance,
+		Seconds:       effort.ElapsedTime,
+		DeltaAltitude: effort.Segment.ElevationHigh - effort.Segment.ElevationLow,
+		IdxStart:      effort.StartIndex,
+		IdxEnd:        effort.EndIndex,
+		AveragePower:  &effort.AverageWatts,
+		Label:         effort.Segment.Name,
+		ActivityShort: business.ActivityShort{
+			Id:   effort.Id,
+			Name: effort.Segment.Name,
+			Type: business.ActivityTypes[effort.Segment.ActivityType],
+		},
+	}
+}
+
+func calculateBestElevationForDistance(activity *strava.DetailedActivity, f float64) *business.ActivityEffort {
+	if activity.Stream == nil {
+		return nil
+	}
+	return statistics.BestElevationForDistance(activity.Id, activity.Name, activity.Type, activity.Stream, f)
+}
+
+func calculateBestDistanceForTime(activity *strava.DetailedActivity, i int) *business.ActivityEffort {
+	if activity.Stream == nil {
+		return nil
+	}
+	return statistics.BestDistanceForTime(activity.Id, activity.Name, activity.Type, activity.Stream, i)
+}
+
+func calculateBestTimeForDistance(activity *strava.DetailedActivity, f float64) *business.ActivityEffort {
+
+	if activity.Stream == nil {
+		return nil
+	}
+	return statistics.BestTimeForDistance(activity.Id, activity.Name, activity.Type, activity.Stream, f)
 }

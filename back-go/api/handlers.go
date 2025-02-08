@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"mystravastats/api/dto"
-	"mystravastats/domain"
 	"mystravastats/domain/business"
-	"mystravastats/domain/strava"
+	"mystravastats/domain/services"
 	"net/http"
 	"strconv"
 )
@@ -16,7 +15,7 @@ func getAthlete(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 
-	athlete := domain.FetchAthlete()
+	athlete := services.FetchAthlete()
 
 	athleteDto := toAthleteDto(athlete)
 
@@ -32,7 +31,7 @@ func getActivitiesByActivityType(w http.ResponseWriter, r *http.Request) {
 	year := getYearParam(r)
 	activityType := getActivityTypeParam(r)
 
-	activitiesByActivityTypeAndYear := domain.RetrieveActivitiesByActivityTypeAndYear(activityType, year)
+	activitiesByActivityTypeAndYear := services.RetrieveActivitiesByActivityTypeAndYear(activityType, year)
 	activitiesDto := make([]dto.ActivityDto, len(activitiesByActivityTypeAndYear))
 	for i, activity := range activitiesByActivityTypeAndYear {
 		activitiesDto[i] = toActivityDto(*activity)
@@ -53,15 +52,15 @@ func getDetailedActivity(writer http.ResponseWriter, request *http.Request) {
 		http.Error(writer, "Invalid activityId", http.StatusBadRequest)
 		return
 	}
-	activity, err := domain.RetrieveDetailedActivity(activityId)
+	activity, err := services.RetrieveDetailedActivity(activityId)
 	if err != nil {
 		http.Error(writer, fmt.Sprintf("Activity %d not found", activityId), http.StatusNotFound)
 		return
 	}
 
-	activityDto := toDetailedActivityDto(*activity)
+	detailedActivityDto := toDetailedActivityDto(activity)
 
-	if err := json.NewEncoder(writer).Encode(activityDto); err != nil {
+	if err := json.NewEncoder(writer).Encode(detailedActivityDto); err != nil {
 		panic(err)
 	}
 }
@@ -73,7 +72,7 @@ func getStatisticsByActivityType(w http.ResponseWriter, r *http.Request) {
 	year := getYearParam(r)
 	activityType := getActivityTypeParam(r)
 
-	statisticsByActivityTypeAndYear := domain.FetchStatisticsByActivityTypeAndYear(activityType, year)
+	statisticsByActivityTypeAndYear := services.FetchStatisticsByActivityTypeAndYear(activityType, year)
 	statisticsDto := make([]dto.StatisticDto, len(statisticsByActivityTypeAndYear))
 	for i, statistic := range statisticsByActivityTypeAndYear {
 		statisticsDto[i] = toStatisticDto(statistic)
@@ -91,7 +90,7 @@ func getMapsGPX(w http.ResponseWriter, r *http.Request) {
 	year := getYearParam(r)
 	activityType := getActivityTypeParam(r)
 
-	gpx := domain.RetrieveGPXByActivityTypeAndYear(activityType, year)
+	gpx := services.RetrieveGPXByActivityTypeAndYear(activityType, year)
 
 	if err := json.NewEncoder(w).Encode(gpx); err != nil {
 		panic(err)
@@ -106,7 +105,7 @@ func getChartsDistanceByPeriod(w http.ResponseWriter, r *http.Request) {
 	activityType := getActivityTypeParam(r)
 	period := getPeriodParam(r)
 
-	distanceByPeriod := domain.FetchChartsDistanceByPeriod(activityType, year, period)
+	distanceByPeriod := services.FetchChartsDistanceByPeriod(activityType, year, period)
 
 	if err := json.NewEncoder(w).Encode(distanceByPeriod); err != nil {
 		panic(err)
@@ -121,7 +120,7 @@ func getChartsElevationByPeriod(w http.ResponseWriter, r *http.Request) {
 	activityType := getActivityTypeParam(r)
 	period := getPeriodParam(r)
 
-	elevationByPeriod := domain.FetchChartsElevationByPeriod(activityType, year, period)
+	elevationByPeriod := services.FetchChartsElevationByPeriod(activityType, year, period)
 
 	if err := json.NewEncoder(w).Encode(elevationByPeriod); err != nil {
 		panic(err)
@@ -136,7 +135,7 @@ func getChartsAverageSpeedByPeriod(w http.ResponseWriter, r *http.Request) {
 	activityType := getActivityTypeParam(r)
 	period := getPeriodParam(r)
 
-	averageSpeedByPeriod := domain.FetchChartsAverageSpeedByPeriod(activityType, year, period)
+	averageSpeedByPeriod := services.FetchChartsAverageSpeedByPeriod(activityType, year, period)
 
 	if err := json.NewEncoder(w).Encode(averageSpeedByPeriod); err != nil {
 		panic(err)
@@ -149,7 +148,7 @@ func getDashboard(w http.ResponseWriter, r *http.Request) {
 
 	activityType := getActivityTypeParam(r)
 
-	dashboardData := domain.FetchDashboardData(activityType)
+	dashboardData := services.FetchDashboardData(activityType)
 	dashboardDataDto := toDashboardDataDto(dashboardData)
 
 	if err := json.NewEncoder(w).Encode(dashboardDataDto); err != nil {
@@ -164,8 +163,8 @@ func getDashboardCumulativeDataByYear(w http.ResponseWriter, r *http.Request) {
 
 	activityType := getActivityTypeParam(r)
 
-	cumulativeDistancePerYear := domain.GetCumulativeDistancePerYear(activityType)
-	cumulativeElevationPerYear := domain.GetCumulativeElevationPerYear(activityType)
+	cumulativeDistancePerYear := services.GetCumulativeDistancePerYear(activityType)
+	cumulativeElevationPerYear := services.GetCumulativeElevationPerYear(activityType)
 
 	cumulativeDataDto := dto.CumulativeDataPerYearDto{
 		Distance:  cumulativeDistancePerYear,
@@ -183,7 +182,7 @@ func getDashboardEddingtonNumber(w http.ResponseWriter, r *http.Request) {
 
 	activityType := getActivityTypeParam(r)
 
-	edNum := domain.FetchEddingtonNumber(activityType)
+	edNum := services.FetchEddingtonNumber(activityType)
 	edNumDto := dto.EddingtonNumberDto{
 		EddingtonNumber: edNum.Number,
 		EddingtonList:   edNum.List,
@@ -199,20 +198,20 @@ func getBadges(w http.ResponseWriter, r *http.Request) {
 	activityType := getActivityTypeParam(r)
 	badgeSetParam := r.URL.Query().Get("badgeSet")
 
-	var badgeSet strava.BadgeSetEnum
+	var badgeSet business.BadgeSetEnum
 	if badgeSetParam != "" {
-		badgeSet = strava.BadgeSetEnum(badgeSetParam)
+		badgeSet = business.BadgeSetEnum(badgeSetParam)
 	}
 
-	var badges []strava.BadgeCheckResult
+	var badges []business.BadgeCheckResult
 	switch badgeSet {
-	case strava.GENERAL:
-		badges = domain.GetGeneralBadges(activityType, year)
-	case strava.FAMOUS:
-		badges = domain.GetFamousBadges(activityType, year)
+	case business.GENERAL:
+		badges = services.GetGeneralBadges(activityType, year)
+	case business.FAMOUS:
+		badges = services.GetFamousBadges(activityType, year)
 	default:
-		generalBadges := domain.GetGeneralBadges(activityType, year)
-		famousBadges := domain.GetFamousBadges(activityType, year)
+		generalBadges := services.GetGeneralBadges(activityType, year)
+		famousBadges := services.GetFamousBadges(activityType, year)
 		badges = append(generalBadges, famousBadges...)
 	}
 

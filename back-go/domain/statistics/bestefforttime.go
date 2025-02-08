@@ -14,7 +14,7 @@ type BestEffortTimeStatistic struct {
 
 func NewBestEffortTimeStatistic(name string, activities []*strava.Activity, seconds int) *BestEffortTimeStatistic {
 
-	bestActivityEffort := findBestActivityEffortForTime(activities, seconds)
+	bestActivityEffort := findBestDistanceEffortForTime(activities, seconds)
 	var activity *business.ActivityShort
 	if bestActivityEffort != nil {
 		activity = &bestActivityEffort.ActivityShort
@@ -47,10 +47,10 @@ func (b *BestEffortTimeStatistic) Result(bestActivityEffort *business.ActivityEf
 	return fmt.Sprintf("%.0f m => %s", bestActivityEffort.Distance, bestActivityEffort.GetFormattedSpeed())
 }
 
-func findBestActivityEffortForTime(activities []*strava.Activity, seconds int) *business.ActivityEffort {
+func findBestDistanceEffortForTime(activities []*strava.Activity, seconds int) *business.ActivityEffort {
 	var bestEffort *business.ActivityEffort
 	for _, activity := range activities {
-		effort := calculateBestDistanceForTime(*activity, seconds)
+		effort := BestDistanceEffort(*activity, seconds)
 		if effort != nil && (bestEffort == nil || effort.Distance > bestEffort.Distance) {
 			bestEffort = effort
 		}
@@ -58,14 +58,14 @@ func findBestActivityEffortForTime(activities []*strava.Activity, seconds int) *
 	return bestEffort
 }
 
-func calculateBestDistanceForTime(activity strava.Activity, seconds int) *business.ActivityEffort {
+func BestDistanceEffort(activity strava.Activity, seconds int) *business.ActivityEffort {
 	if activity.Stream == nil || activity.Stream.Altitude == nil {
 		return nil
 	}
-	return activityEffort(activity.Id, activity.Name, activity.Type, activity.Stream, seconds)
+	return BestDistanceForTime(activity.Id, activity.Name, activity.Type, activity.Stream, seconds)
 }
 
-func activityEffort(id int64, name, activityType string, stream *strava.Stream, seconds int) *business.ActivityEffort {
+func BestDistanceForTime(id int64, name, activityType string, stream *strava.Stream, seconds int) *business.ActivityEffort {
 	var idxStart, idxEnd int
 	var maxDist float64
 	var bestEffort *business.ActivityEffort

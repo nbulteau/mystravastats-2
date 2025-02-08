@@ -1,7 +1,5 @@
 package strava
 
-import "mystravastats/domain/business"
-
 type MetaAthlete struct {
 	Id int64 `json:"id"`
 }
@@ -30,22 +28,4 @@ type SegmentEffort struct {
 	StartDateLocal   string        `json:"start_date_local"`
 	StartIndex       int           `json:"start_index"`
 	Visibility       *string       `json:"visibility,omitempty"`
-}
-
-func (effort *SegmentEffort) toActivityEffort() business.ActivityEffort {
-
-	return business.ActivityEffort{
-		Distance:      effort.Distance,
-		Seconds:       effort.ElapsedTime,
-		DeltaAltitude: effort.Segment.ElevationHigh - effort.Segment.ElevationLow,
-		IdxStart:      effort.StartIndex,
-		IdxEnd:        effort.EndIndex,
-		AveragePower:  &effort.AverageWatts,
-		Label:         effort.Segment.Name,
-		ActivityShort: business.ActivityShort{
-			Id:   effort.Id,
-			Name: effort.Segment.Name,
-			Type: business.ActivityTypes[effort.Segment.ActivityType],
-		},
-	}
 }

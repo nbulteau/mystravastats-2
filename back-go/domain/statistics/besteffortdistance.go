@@ -50,7 +50,7 @@ func NewBestEffortDistanceStatistic(name string, activities []*strava.Activity, 
 func findBestActivityEffort(activities []*strava.Activity, distance float64) *business.ActivityEffort {
 	var bestEffort *business.ActivityEffort
 	for _, activity := range activities {
-		effort := BestActivityEffort(*activity, distance)
+		effort := BestTimeEffort(*activity, distance)
 		if effort != nil && (bestEffort == nil || effort.Seconds < bestEffort.Seconds) {
 			bestEffort = effort
 		}
@@ -58,15 +58,15 @@ func findBestActivityEffort(activities []*strava.Activity, distance float64) *bu
 	return bestEffort
 }
 
-func BestActivityEffort(activity strava.Activity, distance float64) *business.ActivityEffort {
+func BestTimeEffort(activity strava.Activity, distance float64) *business.ActivityEffort {
 	if activity.Stream == nil || len(activity.Stream.Altitude.Data) == 0 {
 		return nil
 	}
 
-	return bestActivityEffortForDistance(activity.Id, activity.Name, activity.Type, activity.Stream, distance)
+	return BestTimeForDistance(activity.Id, activity.Name, activity.Type, activity.Stream, distance)
 }
 
-func bestActivityEffortForDistance(id int64, name, activityType string, stream *strava.Stream, distance float64) *business.ActivityEffort {
+func BestTimeForDistance(id int64, name, activityType string, stream *strava.Stream, distance float64) *business.ActivityEffort {
 	idxStart, idxEnd := 0, 0
 	bestTime := math.MaxFloat64
 	var bestEffort *business.ActivityEffort
