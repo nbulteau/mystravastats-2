@@ -268,7 +268,7 @@ func computeCommonStats(activities []*strava.Activity) []statistics.Statistic {
 		statistics.NewMaxElevationInADayStatistic(activities),
 		statistics.NewHighestPointStatistic(activities),
 		statistics.NewMaxMovingTimeStatistic(activities),
-		//statistics.NewMostActiveMonthStatistic(activities),
-		//statistics.NewEddingtonStatistic(activities),
+		statistics.NewMostActiveMonthStatistic(activities),
+		statistics.NewEddingtonStatistic(activities),
 	}
 }
