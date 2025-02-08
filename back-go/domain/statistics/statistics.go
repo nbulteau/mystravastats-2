@@ -71,12 +71,6 @@ func (stat *ActivityStatistic) Activity() *business.ActivityShort {
 	return stat.activity
 }
 
-func NewActivityStatistic(name string, activities []*strava.Activity) *ActivityStatistic {
-	return &ActivityStatistic{
-		BaseStatistic: BaseStatistic{name: name, Activities: activities},
-	}
-}
-
 func formatSeconds(seconds int) string {
 	return time.Duration(seconds * int(time.Second)).String()
 }

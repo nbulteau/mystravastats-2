@@ -85,15 +85,6 @@ type SmoothGradeStream struct {
 	SeriesType   string    `json:"series_type"`
 }
 
-func NewAltitudeStream(data []float64) *AltitudeStream {
-	return &AltitudeStream{
-		Data:         data,
-		OriginalSize: len(data),
-		Resolution:   "high",
-		SeriesType:   "distance",
-	}
-}
-
 type GpxPoint struct {
 	Latitude  float64
 	Longitude float64

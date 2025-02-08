@@ -66,16 +66,3 @@ func (ae ActivityEffort) GetDescription() string {
 func formatSeconds(seconds int) string {
 	return time.Duration(seconds * int(time.Second)).String()
 }
-
-func NewActivityEffort(distance float64, seconds int, deltaAltitude float64, idxStart int, idxEnd int, averagePower *float64, label string, activityShort ActivityShort) ActivityEffort {
-	return ActivityEffort{
-		Distance:      distance,
-		Seconds:       seconds,
-		DeltaAltitude: deltaAltitude,
-		IdxStart:      idxStart,
-		IdxEnd:        idxEnd,
-		AveragePower:  averagePower,
-		Label:         label,
-		ActivityShort: activityShort,
-	}
-}

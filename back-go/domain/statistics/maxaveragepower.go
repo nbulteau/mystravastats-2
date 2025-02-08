@@ -42,7 +42,7 @@ func NewMaxAveragePowerStatistic(activities []*strava.Activity) *MaxAveragePower
 
 func (stat *MaxAveragePowerStatistic) Value() string {
 	if stat.averageWatts != nil {
-		return fmt.Sprintf("%d W", *stat.averageWatts)
+		return fmt.Sprintf("%0.f W", *stat.averageWatts)
 	}
 	return "Not available"
 }

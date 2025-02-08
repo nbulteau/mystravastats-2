@@ -1,9 +1,8 @@
-package api
+package dto
 
 import (
 	"fmt"
 	"github.com/google/uuid"
-	"mystravastats/api/dto"
 	"mystravastats/domain/business"
 	"mystravastats/domain/statistics"
 	"mystravastats/domain/strava"
@@ -11,7 +10,7 @@ import (
 	"time"
 )
 
-func toActivityDto(activity strava.Activity) dto.ActivityDto {
+func ToActivityDto(activity strava.Activity) ActivityDto {
 	bestPowerFor20Minutes := statistics.BestPowerForTime(activity, 20*60)
 	bestPowerFor60Minutes := statistics.BestPowerForTime(activity, 60*60)
 
@@ -54,7 +53,7 @@ func toActivityDto(activity strava.Activity) dto.ActivityDto {
 		bestElevationForDistanceFor1000m = bestElevationForDistance.GetGradient()
 	}
 
-	return dto.ActivityDto{
+	return ActivityDto{
 		Id:                               activity.Id,
 		Name:                             activity.Name,
 		Type:                             activity.Type,
@@ -75,11 +74,11 @@ func toActivityDto(activity strava.Activity) dto.ActivityDto {
 	}
 }
 
-func toDetailedActivityDto(detailedActivity *strava.DetailedActivity) dto.DetailedActivityDto {
+func ToDetailedActivityDto(detailedActivity *strava.DetailedActivity) DetailedActivityDto {
 
 	activityEfforts := BuildActivityEfforts(detailedActivity)
 
-	return dto.DetailedActivityDto{
+	return DetailedActivityDto{
 		AverageCadence:       int(detailedActivity.AverageCadence),
 		AverageHeartrate:     int(detailedActivity.AverageHeartrate),
 		AverageWatts:         int(detailedActivity.AverageWatts),
@@ -110,10 +109,10 @@ func toDetailedActivityDto(detailedActivity *strava.DetailedActivity) dto.Detail
 	}
 }
 
-func toActivityEffortsDto(efforts []business.ActivityEffort) []dto.ActivityEffortDto {
-	var effortsDto []dto.ActivityEffortDto
+func toActivityEffortsDto(efforts []business.ActivityEffort) []ActivityEffortDto {
+	var effortsDto []ActivityEffortDto
 	for _, effort := range efforts {
-		effortsDto = append(effortsDto, dto.ActivityEffortDto{
+		effortsDto = append(effortsDto, ActivityEffortDto{
 			ID:            uuid.New().String(),
 			Label:         effort.Label,
 			Distance:      effort.Distance,
@@ -128,7 +127,7 @@ func toActivityEffortsDto(efforts []business.ActivityEffort) []dto.ActivityEffor
 	return effortsDto
 }
 
-func toStreamDto(stream *strava.Stream) *dto.StreamDto {
+func toStreamDto(stream *strava.Stream) *StreamDto {
 	if stream == nil {
 		return nil
 	}
@@ -183,7 +182,7 @@ func toStreamDto(stream *strava.Stream) *dto.StreamDto {
 		}
 	}
 
-	return &dto.StreamDto{
+	return &StreamDto{
 		Distance:       stream.Distance.Data,
 		Time:           stream.Time.Data,
 		Latlng:         Latlng,
@@ -199,8 +198,8 @@ func parseTime(value string) time.Time {
 	return parsedTime
 }
 
-func toAthleteDto(athlete strava.Athlete) dto.AthleteDto {
-	return dto.AthleteDto{
+func ToAthleteDto(athlete strava.Athlete) AthleteDto {
+	return AthleteDto{
 		BadgeTypeId:           getIntValue(athlete.BadgeTypeId),
 		City:                  getStringValue(athlete.City),
 		Country:               getStringValue(athlete.Country),
@@ -227,27 +226,27 @@ func toAthleteDto(athlete strava.Athlete) dto.AthleteDto {
 	}
 }
 
-func toStatisticDto(statistic statistics.Statistic) dto.StatisticDto {
+func ToStatisticDto(statistic statistics.Statistic) StatisticDto {
 	if statistic.Activity() != nil {
-		return dto.StatisticDto{
+		return StatisticDto{
 			Label: statistic.Label(),
 			Value: statistic.Value(),
-			Activity: &dto.ActivityShortDto{
+			Activity: &ActivityShortDto{
 				ID:   statistic.Activity().Id,
 				Name: statistic.Activity().Name,
 				Type: statistic.Activity().Type.String(),
 			},
 		}
 	} else {
-		return dto.StatisticDto{
+		return StatisticDto{
 			Label: statistic.Label(),
 			Value: statistic.Value(),
 		}
 	}
 }
 
-func toDashboardDataDto(data business.DashboardData) dto.DashboardDataDto {
-	return dto.DashboardDataDto{
+func ToDashboardDataDto(data business.DashboardData) DashboardDataDto {
+	return DashboardDataDto{
 		NbActivities:           data.NbActivities,
 		TotalDistanceByYear:    data.TotalDistanceByYear,
 		AverageDistanceByYear:  data.AverageDistanceByYear,

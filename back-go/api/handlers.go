@@ -17,7 +17,7 @@ func getAthlete(w http.ResponseWriter, _ *http.Request) {
 
 	athlete := services.FetchAthlete()
 
-	athleteDto := toAthleteDto(athlete)
+	athleteDto := dto.ToAthleteDto(athlete)
 
 	if err := json.NewEncoder(w).Encode(athleteDto); err != nil {
 		panic(err)
@@ -34,7 +34,7 @@ func getActivitiesByActivityType(w http.ResponseWriter, r *http.Request) {
 	activitiesByActivityTypeAndYear := services.RetrieveActivitiesByActivityTypeAndYear(activityType, year)
 	activitiesDto := make([]dto.ActivityDto, len(activitiesByActivityTypeAndYear))
 	for i, activity := range activitiesByActivityTypeAndYear {
-		activitiesDto[i] = toActivityDto(*activity)
+		activitiesDto[i] = dto.ToActivityDto(*activity)
 	}
 
 	if err := json.NewEncoder(w).Encode(activitiesDto); err != nil {
@@ -58,7 +58,7 @@ func getDetailedActivity(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	detailedActivityDto := toDetailedActivityDto(activity)
+	detailedActivityDto := dto.ToDetailedActivityDto(activity)
 
 	if err := json.NewEncoder(writer).Encode(detailedActivityDto); err != nil {
 		panic(err)
@@ -75,7 +75,7 @@ func getStatisticsByActivityType(w http.ResponseWriter, r *http.Request) {
 	statisticsByActivityTypeAndYear := services.FetchStatisticsByActivityTypeAndYear(activityType, year)
 	statisticsDto := make([]dto.StatisticDto, len(statisticsByActivityTypeAndYear))
 	for i, statistic := range statisticsByActivityTypeAndYear {
-		statisticsDto[i] = toStatisticDto(statistic)
+		statisticsDto[i] = dto.ToStatisticDto(statistic)
 	}
 
 	if err := json.NewEncoder(w).Encode(statisticsDto); err != nil {
@@ -149,7 +149,7 @@ func getDashboard(w http.ResponseWriter, r *http.Request) {
 	activityType := getActivityTypeParam(r)
 
 	dashboardData := services.FetchDashboardData(activityType)
-	dashboardDataDto := toDashboardDataDto(dashboardData)
+	dashboardDataDto := dto.ToDashboardDataDto(dashboardData)
 
 	if err := json.NewEncoder(w).Encode(dashboardDataDto); err != nil {
 		panic(err)

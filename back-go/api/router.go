@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/gorilla/mux"
+	"mystravastats/domain"
 	"net/http"
 )
 
@@ -12,7 +13,7 @@ func NewRouter() *mux.Router {
 		var handler http.Handler
 
 		handler = route.HandlerFunc
-		handler = Logger(handler, route.Name)
+		handler = domain.Logger(handler, route.Name)
 
 		router.
 			Methods(route.Method).
