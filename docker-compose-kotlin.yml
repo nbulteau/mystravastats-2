@@ -1,0 +1,29 @@
+services:
+  back:
+    name: back-kotlin
+    build: 
+      context: ./back-kotlin
+      target:  runtime
+    image: nbulteau/mystravastats-back-kotlin:latest
+    container_name: mystravastats-backend-kotlin
+    ports:
+      - "8080:8080"
+      - "8090:8090"
+    volumes:
+      - ${STRAVA_CACHE_PATH}:/app/strava-cache
+
+  ui:
+    build: ./ui
+    image: nbulteau/mystravastats-ui:latest
+    container_name: mystravastats-ui
+    ports:
+      - "80:80"
+    depends_on:
+      - back
+    networks: 
+      - ui-back     
+  
+networks: 
+  ui-back:
+    driver: bridge
+
