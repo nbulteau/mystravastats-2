@@ -60,7 +60,8 @@ export const useContextStore = defineStore('context', {
         }
     },
     getters: {
-        athleteName: (state) => state.athleteDisplayName
+        athleteName: (state) => state.athleteDisplayName,
+        hasBadges: (state) => state.generalBadgesCheckResults.length > 0 && state.famousClimbBadgesCheckResults.length > 0
     },
     actions: {
         url(path: string): string {
