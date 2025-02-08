@@ -7,4 +7,7 @@ require (
 	github.com/gorilla/mux v1.8.1
 )
 
-require github.com/rs/cors v1.11.1
+require (
+	github.com/NYTimes/gziphandler v1.1.1
+	github.com/rs/cors v1.11.1
+)

@@ -222,7 +222,7 @@ func openBrowser(url string) {
 		err = fmt.Errorf("unsupported platform")
 	}
 	if err != nil {
-		log.Fatalf("Failed to open browser: %v", err)
+		log.Printf("Failed to open browser: %v", err)
 	}
 }
 
