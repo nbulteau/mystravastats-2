@@ -6,7 +6,7 @@ import (
 	"log"
 	"mystravastats/api"
 	"net/http"
-	"path/filepath"
+	"strings"
 )
 
 func main() {
@@ -23,21 +23,28 @@ func main() {
 
 	// Serve static files from the "static" directory with Gzip compression and cache headers
 	staticFileDirectory := http.Dir("./static")
-	staticFileHandler := http.StripPrefix("/static/", http.FileServer(staticFileDirectory))
+	staticFileHandler := http.StripPrefix("/static", http.FileServer(staticFileDirectory))
 	gzipStaticFileHandler := gziphandler.GzipHandler(staticFileHandler)
 	cacheControlHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if filepath.Ext(r.URL.Path) == ".css" {
+		log.Printf("Requested path: %s", r.URL.Path)
+
+		if strings.HasSuffix(r.URL.Path, ".css") {
 			w.Header().Set("Content-Type", "text/css")
-		} else if filepath.Ext(r.URL.Path) == ".js" {
+			log.Println("Setting Content-Type to text/css")
+		} else if strings.HasSuffix(r.URL.Path, ".js") {
 			w.Header().Set("Content-Type", "application/javascript")
+			log.Println("Setting Content-Type to application/javascript")
 		}
-		w.Header().Set("Cache-Control", "public, max-age=31536000")
+
+		//		w.Header().Set("Cache-Control", "public, max-age=31536000")
+		w.Header().Set("Cache-Control", "no-store")
+
 		gzipStaticFileHandler.ServeHTTP(w, r)
 	})
-	router.Handle("/static/", cacheControlHandler)
+	router.PathPrefix("/static/").Handler(cacheControlHandler)
 
 	// Apply the CORS middleware to the router
 	handler := c.Handler(router)
 
-	log.Fatal(http.ListenAndServe(":8080", handler))
+	log.Fatal(http.ListenAndServe("localhost:8080", handler))
 }
