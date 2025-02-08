@@ -44,7 +44,7 @@ internal class StatisticsService(
         statistics.addAll(
             listOf(
                 CooperStatistic(runActivities),
-                VVO2maxStatistic(runActivities),
+                VO2maxStatistic(runActivities),
                 BestEffortDistanceStatistic("Best 200 m", runActivities, 200.0),
                 BestEffortDistanceStatistic("Best 400 m", runActivities, 400.0),
                 BestEffortDistanceStatistic("Best 1000 m", runActivities, 1000.0),

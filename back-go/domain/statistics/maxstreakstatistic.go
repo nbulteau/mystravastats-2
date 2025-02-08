@@ -22,6 +22,15 @@ func NewMaxStreakStatistic(activities []*strava.Activity) *MaxStreakStatistic {
 	var maxLen int
 
 	if len(activities) > 0 {
+		// sort activities by date
+		for i := 0; i < len(activities); i++ {
+			for j := i + 1; j < len(activities); j++ {
+				if activities[i].StartDateLocal < activities[j].StartDateLocal {
+					activities[i], activities[j] = activities[j], activities[i]
+				}
+			}
+		}
+
 		lastDate, _ := time.Parse("2006-01-02", activities[0].StartDateLocal[:10])
 		firstDate, _ := time.Parse("2006-01-02", activities[len(activities)-1].StartDateLocal[:10])
 		firstEpochDay := firstDate.Unix() / 86400

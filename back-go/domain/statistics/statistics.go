@@ -32,15 +32,11 @@ func (stat *BaseStatistic) Activity() *business.ActivityShort {
 
 type GlobalStatistic struct {
 	BaseStatistic
-	Function func([]strava.Activity) string
+	Function func([]*strava.Activity) string
 }
 
 func (stat *GlobalStatistic) Value() string {
-	activities := make([]strava.Activity, len(stat.Activities))
-	for i, activity := range stat.Activities {
-		activities[i] = *activity
-	}
-	return stat.Function(activities)
+	return stat.Function(stat.Activities)
 }
 
 func (stat *GlobalStatistic) Label() string {
@@ -51,7 +47,7 @@ func (stat *GlobalStatistic) Activity() *business.ActivityShort {
 	return nil
 }
 
-func NewGlobalStatistic(name string, activities []*strava.Activity, function func([]strava.Activity) string) *GlobalStatistic {
+func NewGlobalStatistic(name string, activities []*strava.Activity, function func([]*strava.Activity) string) *GlobalStatistic {
 	return &GlobalStatistic{
 		BaseStatistic: BaseStatistic{name: name, Activities: activities},
 		Function:      function,
