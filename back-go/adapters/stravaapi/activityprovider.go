@@ -4,6 +4,7 @@ import (
 	"log"
 	"mystravastats/adapters/localrepository"
 	"mystravastats/domain/business"
+	"mystravastats/domain/helpers"
 	"mystravastats/domain/strava"
 	"strconv"
 	"strings"
@@ -47,6 +48,10 @@ func NewStravaActivityProvider(stravaCache string) *StravaActivityProvider {
 	}
 
 	log.Printf("ActivityService initialized with clientId=%s and %d activities", provider.clientId, len(provider.activities))
+
+	// Open the browser
+	helpers.OpenBrowser("http://localhost:8080")
+
 	return provider
 }
 

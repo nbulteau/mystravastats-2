@@ -6,10 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"mystravastats/domain/helpers"
 	"mystravastats/domain/strava"
 	"net/http"
-	"os/exec"
-	"runtime"
 	"time"
 )
 
@@ -59,7 +58,7 @@ func (api *StravaApi) setAccessToken(clientId, clientSecret string) {
 		code := r.URL.Query().Get("code")
 		token := api.getToken(clientId, clientSecret, code)
 		api.accessToken = token.AccessToken
-		_, _ = fmt.Fprintf(w, buildResponseHtml(clientId))
+		_, _ = fmt.Fprint(w, buildResponseHtml(clientId))
 
 		// Signal that the token is set
 		close(tokenChan)
@@ -76,7 +75,7 @@ func (api *StravaApi) setAccessToken(clientId, clientSecret string) {
 	}()
 
 	// Open the browser
-	openBrowser(authURL)
+	helpers.OpenBrowser(authURL)
 
 	// Wait for the accessToken to be set
 	<-tokenChan
@@ -207,23 +206,6 @@ func (api *StravaApi) GetActivityStream(stravaActivity strava.Activity) (*strava
 	}
 
 	return &stream, nil
-}
-
-func openBrowser(url string) {
-	var err error
-	switch os := runtime.GOOS; os {
-	case "windows":
-		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
-	case "darwin":
-		err = exec.Command("open", url).Start()
-	case "linux":
-		err = exec.Command("xdg-open", url).Start()
-	default:
-		err = fmt.Errorf("unsupported platform")
-	}
-	if err != nil {
-		log.Printf("Failed to open browser: %v", err)
-	}
 }
 
 func buildResponseHtml(clientId string) string {
