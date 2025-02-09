@@ -16,6 +16,8 @@ func init() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("No .env file found")
+	} else {
+		log.Println("Loaded .env file")
 	}
 }
 
@@ -23,6 +25,9 @@ func getStravaCachePath() string {
 	cachePath := os.Getenv("STRAVA_CACHE_PATH")
 	if cachePath == "" {
 		cachePath = "strava-cache" // default value if environment variable is not set
+		log.Printf("STRAVA_CACHE_PATH not set. Using default cache path: %s\n", cachePath)
+	} else {
+		log.Printf("Using cache path: %s\n", cachePath)
 	}
 	return cachePath
 }
