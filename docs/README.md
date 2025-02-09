@@ -80,18 +80,36 @@ https://www.strava.com/api/v3/oauth/authorize?client_id=[YOUR_CLIENT_ID]&respons
 
 Login to Strava then click 'Authorize' and tick the required permissions if needed.
 
+## build command
+
+You need to have docker on your computer : it prevent you to install all the developpment environement stuffs.
+
+Launch the proper script :
+
+### macOS
+
+```shell
+./build-macos.sh
+```
+
+### Ubuntu
+
+```shell
+./build-ubuntu.sh
+```
+
+### Windows
+
+```shell
+./build-windows.sh
+```
+
 ## Setting Up Environment Variables
 
-Before running the `docker-compose` command, you need to set the `STRAVA_CACHE_PATH` environment variable. You can do this by creating a `.env` file in the root directory of your project with the following content:
+Before running the run command, you need to set the `STRAVA_CACHE_PATH` environment variable. You can do this by creating a `.env` file in the root directory of your project with the following content:
 
 ```shell
 STRAVA_CACHE_PATH=[path to the strava-cache directory]
-```
-
-## build command
-
-```shell
-docker compose build
 ```
 
 You can use .env file
@@ -101,75 +119,29 @@ echo STRAVA_CACHE_PATH=[path to the strava-cache directory] > .env
 docker compose build
 ```
 
-* "back end" container will be built.
-* "front end" container will be built.
-
 ## run command
 
+Launch the proper script :
+
+### macOS
+
 ```shell
-export STRAVA_CACHE_PATH=[path to the strava-cache directory]
-docker compose up
+./mystravastats-mac
 ```
 
-Open link in a browser : <http://localhost/>
-
-### Using GPX files
-
-mystravastats can work without Strava using the GPX files. Put GPX files in a directory structure 'gpx-xxxxx':
+### Ubuntu
 
 ```shell
-gpx-nicolas
-   |- 2022
-     |- XCVF234.gpx
-     |- XCVF235.gpx
-   |- 2021 
-    |- XCVF236.gpx
-``` 
-
-Launch mystravastats with providing the GPX repository.
-
-```shell
-export GPX_FILES_PATH=[path to the GPX directory]
-docker compose up back ui
+./bmystravastats-linux
 ```
 
-### Using FIT files
-
-mystravastats can work without Strava using the FIT files. Put FIT files in a directory structure 'fit-xxxxx':
+### Windows
 
 ```shell
-fit-nicolas
-   |- 2022
-     |- XCVF234.FIT
-     |- XCVF235.FIT
-   |- 2021
-     |- XCVF236.FIT
+mystravastats.exe
 ```
 
-Launch mystravastats with providing the FIT repository.
-```shell
-export FIT_FILES_PATH=[path to the FIT directory]
-docker compose up back ui
-```
-
-### Using SRTM Altitude Data
-Here’s a breakdown of how to utilize STRM files for GPX or FIT files without altitude data
-
-STRM files are used to store elevation data, specifically for Shuttle Radar Topography Mission (SRTM) data. 
-SRTM data is a digital elevation model (DEM) created from radar altimetry measurements. 
-It provides topographic information with a resolution of 30 meters (SRTM3) or 1 arc-second (approximately 30 meters) for global coverage. 
-The data is stored in HGT (height) files, which contain elevation values in meters relative to the WGS84 datum.
-
-Download the SRTM files from the following link: <https://dwtkns.com/srtm30m/>
-
-create a directory 'srtm30m' in the root directory of the project and put the HGT files in it.
-```shell
-srtm30m
-  |- N47E000.hgt
-  |- N47E001.hgt
-  |- N47E002.hgt 
-  |- N47E003.hgt    
-```
+Open link in a browser : <http://localhost:8080/>
 
 ## Provided Statistics
 
