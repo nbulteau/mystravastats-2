@@ -2,7 +2,7 @@
 
 # Build the UI project
 docker run --rm -v "$PWD:/app" -w /app/ui node:latest \
-    sh -c "npm install && npm run build"
+    sh -c "npm install -g npm@11.1.0 && npm run build"
 
 # Copy the UI build to the back-go/public directory
 mkdir -p back-go/public
