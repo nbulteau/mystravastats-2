@@ -8,8 +8,6 @@ require (
 )
 
 require (
-	github.com/NYTimes/gziphandler v1.1.1
 	github.com/rs/cors v1.11.1
+	github.com/joho/godotenv v1.5.1
 )
-
-require github.com/joho/godotenv v1.5.1 // indirect
