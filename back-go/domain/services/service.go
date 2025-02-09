@@ -11,7 +11,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func init() {
+func getStravaCachePath() string {
 	// Load environment variables from .env file if not already set
 	err := godotenv.Load()
 	if err != nil {
@@ -19,9 +19,7 @@ func init() {
 	} else {
 		log.Println("Loaded .env file")
 	}
-}
 
-func getStravaCachePath() string {
 	cachePath := os.Getenv("STRAVA_CACHE_PATH")
 	if cachePath == "" {
 		cachePath = "strava-cache" // default value if environment variable is not set
