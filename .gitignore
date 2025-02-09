@@ -3,7 +3,13 @@ strava-cache/.strava
 strava-*/
 .strava
 
+# Ignore public directory
+public/
+
 # Ignore mac files
 .DS_Store
 
 .env
+
+# Ignore build files
+mystravastats*
