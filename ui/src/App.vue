@@ -130,8 +130,6 @@ onMounted(async () => {
             </RouterLink>
           </button>
         </li>
-        <div v-if="contextStore.hasBadges">
-
         <li
           class="nav-item"
           role="presentation"
@@ -153,7 +151,6 @@ onMounted(async () => {
             </RouterLink>
           </button>
         </li>
-        </div>
       </ul>
     </nav>
   </div>

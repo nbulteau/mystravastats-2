@@ -11,6 +11,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
+var activityProvider = stravaapi.NewStravaActivityProvider(getStravaCachePath())
+
 func getStravaCachePath() string {
 	// Load environment variables from .env file if not already set
 	err := godotenv.Load()
@@ -29,8 +31,6 @@ func getStravaCachePath() string {
 	}
 	return cachePath
 }
-
-var activityProvider = stravaapi.NewStravaActivityProvider(getStravaCachePath())
 
 func groupActivitiesByDay(activities []*strava.Activity, year int) map[string][]*strava.Activity {
 	activitiesByDay := make(map[string][]*strava.Activity)
