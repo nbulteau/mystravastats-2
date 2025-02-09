@@ -20,7 +20,7 @@ type StravaActivityProvider struct {
 }
 
 func NewStravaActivityProvider(stravaCache string) *StravaActivityProvider {
-	log.Println("Initialize StravaActivityProvider ...")
+	log.Printf("Initialize StravaActivityProvider using %s ...", stravaCache)
 
 	provider := &StravaActivityProvider{
 		localStorageProvider: localrepository.NewStravaRepository(stravaCache),

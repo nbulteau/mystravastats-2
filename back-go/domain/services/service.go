@@ -1,13 +1,33 @@
 package services
 
 import (
+	"log"
 	"mystravastats/adapters/stravaapi"
 	"mystravastats/domain/strava"
+	"os"
 	"sort"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
-var activityProvider = stravaapi.NewStravaActivityProvider("strava-cache")
+func init() {
+	// Load environment variables from .env file if not already set
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("No .env file found")
+	}
+}
+
+func getStravaCachePath() string {
+	cachePath := os.Getenv("STRAVA_CACHE_PATH")
+	if cachePath == "" {
+		cachePath = "strava-cache" // default value if environment variable is not set
+	}
+	return cachePath
+}
+
+var activityProvider = stravaapi.NewStravaActivityProvider(getStravaCachePath())
 
 func groupActivitiesByDay(activities []*strava.Activity, year int) map[string][]*strava.Activity {
 	activitiesByDay := make(map[string][]*strava.Activity)
