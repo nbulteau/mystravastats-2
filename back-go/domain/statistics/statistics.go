@@ -60,7 +60,7 @@ type ActivityStatistic struct {
 }
 
 func (stat *ActivityStatistic) Value() string {
-	return fmt.Sprintf("%s - %v", stat.BaseStatistic.Label(), stat.Activity)
+	return fmt.Sprintf("%s - %v", stat.BaseStatistic.Label(), stat.Activity())
 }
 
 func (stat *ActivityStatistic) Label() string {
