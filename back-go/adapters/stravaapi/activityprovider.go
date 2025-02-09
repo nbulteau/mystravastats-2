@@ -283,11 +283,6 @@ func (provider *StravaActivityProvider) GetActivitiesByActivityTypeByYearGroupBy
 }
 
 func (provider *StravaActivityProvider) GetActivitiesByActivityTypeAndYear(activityType business.ActivityType, year *int) []*strava.Activity {
-	key := activityType.String()
-	if year != nil {
-		key = key + "-" + strconv.Itoa(*year)
-	}
-
 	filteredActivities := FilterActivitiesByYear(provider.activities, year)
 	filteredActivities = FilterActivitiesByType(filteredActivities, activityType)
 
