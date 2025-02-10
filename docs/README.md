@@ -89,7 +89,7 @@ Launch the proper script :
 ### MacOS
 
 ```shell
-./build-macos.sh
+./build-macos.zsh
 ```
 
 ### Ubuntu
@@ -101,7 +101,7 @@ Launch the proper script :
 ### Windows
 
 ```shell
-./build-windows.sh
+./build-windows.ps1
 ```
 
 ## Setting Up Environment Variables
