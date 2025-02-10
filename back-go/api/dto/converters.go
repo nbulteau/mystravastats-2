@@ -2,12 +2,14 @@ package dto
 
 import (
 	"fmt"
-	"github.com/google/uuid"
+	"mystravastats/domain/badges"
 	"mystravastats/domain/business"
 	"mystravastats/domain/statistics"
 	"mystravastats/domain/strava"
 	"strconv"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 func ToActivityDto(activity strava.Activity) ActivityDto {
@@ -372,4 +374,49 @@ func calculateBestTimeForDistance(activity *strava.DetailedActivity, f float64) 
 		return nil
 	}
 	return statistics.BestTimeForDistance(activity.Id, activity.Name, activity.Type, activity.Stream, f)
+}
+
+func ToBadgeCheckResultDto(result business.BadgeCheckResult, activityType business.ActivityType) BadgeCheckResultDto {
+	nbCheckedActivities := len(result.Activities)
+	activities := []ActivityDto{}
+	if nbCheckedActivities > 0 {
+		activities = append(activities, ToActivityDto(*result.Activities[nbCheckedActivities-1]))
+	}
+
+	return BadgeCheckResultDto{
+		Badge:               ToBadgeDto(result.Badge, activityType),
+		Activities:          activities,
+		NbCheckedActivities: nbCheckedActivities,
+	}
+}
+
+func ToBadgeDto(badge business.Badge, activityType business.ActivityType) BadgeDto {
+	switch b := badge.(type) {
+	case badges.DistanceBadge:
+		return BadgeDto{
+			Label:       b.Label,
+			Description: strconv.FormatFloat(b.Distance, 'f', 0, 64),
+			Type:        activityType.String() + "DistanceBadge",
+		}
+	case badges.ElevationBadge:
+		return BadgeDto{
+			Label:       b.Label,
+			Description: strconv.FormatFloat(b.TotalElevationGain, 'f', 0, 64),
+			Type:        activityType.String() + "ElevationBadge",
+		}
+	case badges.MovingTimeBadge:
+		return BadgeDto{
+			Label:       b.Label,
+			Description: strconv.Itoa(b.MovingTime),
+			Type:        activityType.String() + "MovingTimeBadge",
+		}
+	case badges.FamousClimbBadge:
+		return BadgeDto{
+			Label:       b.Label,
+			Description: b.Name,
+			Type:        activityType.String() + "FamousClimbBadge",
+		}
+	default:
+		return BadgeDto{}
+	}
 }

@@ -25,31 +25,31 @@ func (m MovingTimeBadge) String() string {
 
 var (
 	MovingTimeLevel1 = MovingTimeBadge{
-		Label:      "MovingStream time 1 hour",
+		Label:      "Moving 1 hour",
 		MovingTime: 3600,
 	}
 	MovingTimeLevel2 = MovingTimeBadge{
-		Label:      "MovingStream time 2 hours",
+		Label:      "Moving 2 hours",
 		MovingTime: 7200,
 	}
 	MovingTimeLevel3 = MovingTimeBadge{
-		Label:      "MovingStream time 3 hours",
+		Label:      "Moving 3 hours",
 		MovingTime: 10800,
 	}
 	MovingTimeLevel4 = MovingTimeBadge{
-		Label:      "MovingStream time 4 hours",
+		Label:      "Moving 4 hours",
 		MovingTime: 14400,
 	}
 	MovingTimeLevel5 = MovingTimeBadge{
-		Label:      "MovingStream time 5 hours",
+		Label:      "Moving 5 hours",
 		MovingTime: 18000,
 	}
 	MovingTimeLevel6 = MovingTimeBadge{
-		Label:      "MovingStream time 6 hours",
+		Label:      "Moving 6 hours",
 		MovingTime: 21600,
 	}
 	MovingTimeLevel7 = MovingTimeBadge{
-		Label:      "MovingStream time 7 hours",
+		Label:      "Moving 7 hours",
 		MovingTime: 25200,
 	}
 	MovingTimeBadgesSet = BadgeSet{
