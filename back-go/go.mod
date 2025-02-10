@@ -8,6 +8,6 @@ require (
 )
 
 require (
-	github.com/rs/cors v1.11.1
 	github.com/joho/godotenv v1.5.1
+	github.com/rs/cors v1.11.1
 )
