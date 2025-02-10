@@ -17,7 +17,7 @@ cp -r ui/dist/* back-go/public/
 
 echo "🔨 Building Ubuntu binary..."
 # Build for Ubuntu
-docker run --rm -v "$PWD:/app" -w /app golang:latest --user $(id -u):$(id -g) \
+docker run --rm --user $(id -u):$(id -g) -v "$PWD:/app" -w /app golang:latest \
  sh -c "cd back-go && GOOS=linux GOARCH=amd64 go build -o ../mystravastats-linux -buildvcs=false"
 
 # End time
