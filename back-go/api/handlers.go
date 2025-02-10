@@ -3,12 +3,13 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
 	"mystravastats/api/dto"
 	"mystravastats/domain/business"
 	"mystravastats/domain/services"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 func getAthlete(w http.ResponseWriter, _ *http.Request) {
@@ -215,8 +216,13 @@ func getBadges(w http.ResponseWriter, r *http.Request) {
 		badges = append(generalBadges, famousBadges...)
 	}
 
+	badgesDto := make([]dto.BadgeCheckResultDto, len(badges))
+	for i, badge := range badges {
+		badgesDto[i] = dto.ToBadgeCheckResultDto(badge, activityType)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(badges); err != nil {
+	if err := json.NewEncoder(w).Encode(badgesDto); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
 

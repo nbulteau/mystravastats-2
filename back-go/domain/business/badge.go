@@ -10,13 +10,13 @@ const (
 )
 
 type BadgeCheckResult struct {
-	Badge       Badge             `json:"badge"`
-	Activities  []strava.Activity `json:"activities"`
-	IsCompleted bool              `json:"isCompleted"`
+	Badge       Badge              `json:"badge"`
+	Activities  []*strava.Activity `json:"activities"`
+	IsCompleted bool               `json:"isCompleted"`
 }
 
 type Badge interface {
-	Check(activities []strava.Activity) (checkedActivities []strava.Activity, isCompleted bool)
+	Check(activities []*strava.Activity) (checkedActivities []*strava.Activity, isCompleted bool)
 	String() string
 }
 

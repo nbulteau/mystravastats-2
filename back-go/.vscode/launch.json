@@ -12,7 +12,7 @@
             "mode": "auto",
             "program": "${workspaceFolder}/main.go",
             "env": {},
-            "args": [],
+            "args": ["-debug"],
             "showLog": true
         }
     ]
