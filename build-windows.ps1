@@ -23,4 +23,4 @@ docker run --rm -v "${PWD}:/app" -w /app golang:latest `
 end_time=$(date +%s)
 elapsed_time=$((end_time - start_time))
 
-echo "Build process completed in $elapsed_time seconds."
+echo "✅ Build process completed in $elapsed_time seconds."

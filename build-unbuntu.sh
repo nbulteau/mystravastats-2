@@ -17,11 +17,14 @@ cp -r ui/dist/* back-go/public/
 
 echo "🔨 Building Ubuntu binary..."
 # Build for Ubuntu
-docker run --rm --user $(id -u):$(id -g) -v "$PWD:/app" -w /app golang:latest \
- sh -c "cd back-go && GOOS=linux GOARCH=amd64 go build -o ../mystravastats-linux -buildvcs=false"
+docker run --rm -v "$PWD:/app" -w /app golang:latest \
+ sh -c "cd back-go && GOOS=linux GOARCH=amd64 go build -o ../mystravastats -buildvcs=false"
 
 # End time
 end_time=$(date +%s)
 elapsed_time=$((end_time - start_time))
 
-echo "Build process completed in $elapsed_time seconds."
+echo "✅ Build process completed in $elapsed_time seconds."
+
+# Change owner of the built binary to the current user
+echo "🔄 Change owner of mystravastats to current user: 'sudo chown $(whoami):$(whoami) mystravastats'"

@@ -18,7 +18,7 @@ cp -r ui/dist/* back-go/public/
 echo "🔨 Building macOS binary..."
 # Build for macOS
 docker run --rm -v "$PWD:/app" -w /app golang:latest \
-    sh -c "cd back-go && GOOS=darwin GOARCH=amd64 go build -o ../mystravastats-mac"
+    sh -c "cd back-go && GOOS=darwin GOARCH=amd64 go build -o ../mystravastats"
 
 # End time
 end_time=$(date +%s)

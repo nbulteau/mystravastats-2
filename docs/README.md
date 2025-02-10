@@ -86,7 +86,7 @@ You need to have docker on your computer : it prevent you to install all the dev
 
 Launch the proper script :
 
-### macOS
+### MacOS
 
 ```shell
 ./build-macos.sh
@@ -123,16 +123,10 @@ docker compose build
 
 Launch the proper script :
 
-### macOS
+### MacOS or Ubuntu
 
 ```shell
-./mystravastats-mac
-```
-
-### Ubuntu
-
-```shell
-./bmystravastats-linux
+./mystravastats
 ```
 
 ### Windows
