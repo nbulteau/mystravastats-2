@@ -18,8 +18,8 @@ cp -r ui/dist/* back-go/public/
 echo "🔨 Building Ubuntu binary..."
 # Build for Ubuntu
 docker run --rm -v "$PWD:/app" -w /app golang:latest \
-    sh -c "cd back-go && GOOS=linux GOARCH=amd64 go build -o ../mystravastats-linux"
-
+ sh -c "cd back-go && GOOS=linux GOARCH=amd64 go build -o ../mystravastats-linux -buildvcs=false"
+ 
 # End time
 end_time=$(date +%s)
 elapsed_time=$((end_time - start_time))
