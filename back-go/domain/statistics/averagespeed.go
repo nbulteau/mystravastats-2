@@ -2,6 +2,8 @@ package statistics
 
 import (
 	"fmt"
+	"mystravastats/domain/business"
+	"mystravastats/domain/helpers"
 	"mystravastats/domain/strava"
 )
 
@@ -37,8 +39,16 @@ func NewAverageSpeedStatistic(activities []*strava.Activity) *AverageSpeedStatis
 }
 
 func (stat *AverageSpeedStatistic) Value() string {
+
 	if stat.averageSpeed != nil {
-		return fmt.Sprintf("%.02f km/h", *stat.averageSpeed*3.6)
+		return formatSpeed(*stat.averageSpeed*3.6, stat.Activity().Type)
 	}
 	return "Not available"
+}
+
+func formatSpeed(speed float64, activityType business.ActivityType) string {
+	if activityType == business.Run {
+		return fmt.Sprintf("%s/km", helpers.FormatSecondsFloat(1000/speed))
+	}
+	return fmt.Sprintf("%.02f km/h", speed*3.6)
 }

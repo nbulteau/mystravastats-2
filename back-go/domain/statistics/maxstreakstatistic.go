@@ -19,8 +19,6 @@ func NewMaxStreakStatistic(activities []*strava.Activity) *MaxStreakStatistic {
 		},
 	}
 
-	var maxLen int
-
 	if len(activities) > 0 {
 		// sort activities by date
 		for i := 0; i < len(activities); i++ {
@@ -41,26 +39,27 @@ func NewMaxStreakStatistic(activities []*strava.Activity) *MaxStreakStatistic {
 			activeDaysSet[int(date.Unix()/86400-firstEpochDay)] = true
 		}
 
-		days := int(lastDate.Unix()/86400 - firstDate.Unix()/86400)
+		days := int(lastDate.Unix()/86400-firstDate.Unix()/86400) + 1
 		activeDays := make([]bool, days)
 		for i := 0; i < days; i++ {
 			activeDays[i] = activeDaysSet[i]
 		}
 
-		var currLen int
+		var currLen, maxLen int
 		for k := 0; k < days; k++ {
 			if activeDays[k] {
 				currLen++
-			} else {
 				if currLen > maxLen {
 					maxLen = currLen
 				}
+			} else {
 				currLen = 0
 			}
 		}
+
+		stat.maxStreak = maxLen
 	}
 
-	stat.maxStreak = maxLen
 	return stat
 }
 
