@@ -17,9 +17,5 @@ internal class MaxMovingTimeStatistic(
     }
 
     override val value: String
-        get() = if (maxMovingTime != null) {
-            maxMovingTime.formatSeconds()
-        } else {
-            "Not available"
-        }
+        get() = maxMovingTime?.formatSeconds() ?: "Not available"
 }

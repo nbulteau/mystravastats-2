@@ -30,18 +30,18 @@ data class LatLngStream(
      * Calculate the distance between two points on the Earth's surface using the Haversine formula.
      */
     private fun haversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        val R = 6371e3 // Earth radius in meters
-        val φ1 = Math.toRadians(lat1)
-        val φ2 = Math.toRadians(lat2)
-        val Δφ = Math.toRadians(lat2 - lat1)
-        val Δλ = Math.toRadians(lon2 - lon1)
+        val earthRadius = 6371e3 // Earth radius in meters
+        val lat1InRadian = Math.toRadians(lat1) // Latitude in radians
+        val lat2InRadian = Math.toRadians(lat2) // Latitude in radians
+        val differenceInLatitude = Math.toRadians(lat2 - lat1) // Difference in latitude
+        val differenceInLongitude = Math.toRadians(lon2 - lon1) // Difference in longitude
 
-        val a = sin(Δφ / 2) * sin(Δφ / 2) +
-                cos(φ1) * cos(φ2) *
-                sin(Δλ / 2) * sin(Δλ / 2)
+        val a = sin(differenceInLatitude / 2) * sin(differenceInLatitude / 2) +
+                cos(lat1InRadian) * cos(lat2InRadian) *
+                sin(differenceInLongitude / 2) * sin(differenceInLongitude / 2)
         val c = 2 * atan2(sqrt(a), sqrt(1 - a))
 
-        return R * c // in meters
+        return earthRadius * c // in meters
     }
 
     fun correctInconsistentGpxPoints(threshold: Double): List<GpxPoint> {

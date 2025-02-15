@@ -233,7 +233,7 @@ class FITRepository(fitDirectory: String) {
         }
 
         // cadence
-        val dataCadence = this.mapNotNull { recordMesg ->
+        val dataCadence = this.map { recordMesg ->
             recordMesg.cadence.toInt()
         }
         val streamCadence = if (dataCadence.isNotEmpty()) {
@@ -248,7 +248,7 @@ class FITRepository(fitDirectory: String) {
         }
 
         // heart rate
-        val dataHeartRate = this.mapNotNull { recordMesg ->
+        val dataHeartRate = this.map { recordMesg ->
             recordMesg.heartRate.toInt()
         }
         val streamHeartRate = if (dataHeartRate.isNotEmpty()) {

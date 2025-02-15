@@ -1,6 +1,8 @@
 package me.nicolas.stravastats.domain.services.activityproviders
 
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import me.nicolas.stravastats.adapters.localrepositories.strava.StravaRepository
 import me.nicolas.stravastats.adapters.strava.StravaApi
@@ -16,7 +18,6 @@ import java.time.LocalDate
 import java.util.*
 import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
-
 
 class StravaActivityProvider(
     stravaCache: String = "strava-cache",
@@ -40,13 +41,13 @@ class StravaActivityProvider(
             clientId = id
             if (useCache == true) {
                 stravaAthlete = localStorageProvider.loadAthleteFromCache(clientId)
-                activities = loadFromLocalCache(clientId)
+                activities = runBlocking { loadFromLocalCache(clientId) }
             } else {
                 if (secret != null) {
                     localStorageProvider.initLocalStorageForClientId(clientId)
                     stravaApi = StravaApi(clientId, secret)
                     stravaAthlete = retrieveLoggedInAthlete(clientId)
-                    activities = loadCurrentYearFromStrava(clientId)
+                    activities = runBlocking { loadCurrentYearFromStrava(clientId) }
                 } else {
                     logger.error("Strava authentication not found")
                     exitProcess(-1)
@@ -94,60 +95,69 @@ class StravaActivityProvider(
         return Optional.of(stravaDetailedActivity)
     }
 
-    private fun loadFromLocalCache(clientId: String): List<StravaActivity> {
+    private suspend fun loadFromLocalCache(clientId: String): List<StravaActivity> = coroutineScope {
         logger.info("Load Strava activities from local cache ...")
 
         val loadedActivities = mutableListOf<StravaActivity>()
         val elapsed = measureTimeMillis {
-            runBlocking {
-                for (currentYear in LocalDate.now().year downTo 2010) {
-                    logger.info("Load $currentYear activities ...")
-                    loadedActivities.addAll(localStorageProvider.loadActivitiesFromCache(clientId, currentYear))
+            val deferredActivities = (LocalDate.now().year downTo 2010).map { year ->
+                async {
+                    try {
+                        logger.info("Load $year activities ...")
+                        localStorageProvider.loadActivitiesFromCache(clientId, year)
+                    } catch (e: Exception) {
+                        logger.error("Error loading activities for year $year from local cache", e)
+                        emptyList()
+                    }
                 }
             }
+            loadedActivities.addAll(deferredActivities.awaitAll().flatten())
         }
-        logger.info("${loadedActivities.size} activities loaded in ${elapsed / 1000} s.")
+        logger.info("${loadedActivities.size} activities loaded form local cache in ${elapsed / 1000} s.")
 
-        return loadedActivities
+        return@coroutineScope loadedActivities
     }
 
-    private fun loadCurrentYearFromStrava(clientId: String): List<StravaActivity> {
+    private suspend fun loadCurrentYearFromStrava(clientId: String): List<StravaActivity> = coroutineScope {
         logger.info("Load Strava activities from Strava ...")
 
         val loadedActivities = mutableListOf<StravaActivity>()
         val currentYear = LocalDate.now().year
         val elapsed = measureTimeMillis {
-            runBlocking<Unit> {
-                val currentYearActivities = async {
-                    retrieveActivities(clientId, currentYear)
-                }
 
-                val previousYearsActivities = async {
-                    val loadedActivities = mutableListOf<StravaActivity>()
-                    for (yearToLoad in currentYear - 1 downTo 2010) {
-                        if (localStorageProvider.isLocalCacheExistForYear(clientId, yearToLoad)) {
-                            localStorageProvider.loadActivitiesFromCache(clientId, yearToLoad).let { activities ->
-                                // Load missing activities streams
-                                loadActivitiesStreams(clientId, yearToLoad,
-                                    activities.filter { activity -> activity.stream == null })
-                                loadedActivities.addAll(activities)
-                            }
-                        } else {
-                            loadedActivities.addAll(retrieveActivities(clientId, yearToLoad))
+            val deferredActivities = (currentYear - 1 downTo 2010).map { year ->
+                if (year == currentYear) {
+                    async {
+                        try {
+                            retrieveActivities(clientId, currentYear)
+                        } catch (exception: Exception) {
+                            logger.error("Error loading activities for current year from Strava", exception)
+                            emptyList()
                         }
                     }
-
-                    loadedActivities
+                } else {
+                    async {
+                        try {
+                            if (localStorageProvider.isLocalCacheExistForYear(clientId, year)) {
+                                localStorageProvider.loadActivitiesFromCache(clientId, year).also { activities ->
+                                    // Load missing activities streams
+                                    loadActivitiesStreams(clientId, year, activities.filter { it.stream == null })
+                                }
+                            } else {
+                                retrieveActivities(clientId, year)
+                            }
+                        } catch (exception: Exception) {
+                            logger.error("Error loading activities for year $year from Strava", exception)
+                            emptyList()
+                        }
+                    }
                 }
-
-                loadedActivities.addAll(currentYearActivities.await())
-                loadedActivities.addAll(previousYearsActivities.await())
             }
-
+            loadedActivities.addAll(deferredActivities.awaitAll().flatten())
         }
         logger.info("${loadedActivities.size} activities loaded in ${elapsed / 1000} s.")
 
-        return loadedActivities
+        return@coroutineScope loadedActivities
     }
 
     private fun loadActivitiesStreams(clientId: String, year: Int, activities: List<StravaActivity>) {

@@ -39,7 +39,7 @@ class GpxActivityProvider(gpxCache: String, private val srtmProvider: SRTMProvid
 
         val loadedActivities = mutableListOf<StravaActivity>()
         val elapsed = measureTimeMillis {
-            runBlocking<Unit> {
+            runBlocking {
                 for (currentYear in LocalDate.now().year downTo 2010) {
                     logger.info("Load $currentYear activities ...")
                     loadedActivities.addAll(localStorageProvider.loadActivitiesFromCache(currentYear))
