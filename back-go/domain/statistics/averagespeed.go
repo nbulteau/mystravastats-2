@@ -41,7 +41,7 @@ func NewAverageSpeedStatistic(activities []*strava.Activity) *AverageSpeedStatis
 func (stat *AverageSpeedStatistic) Value() string {
 
 	if stat.averageSpeed != nil {
-		return formatSpeed(*stat.averageSpeed*3.6, stat.Activity().Type)
+		return formatSpeed(*stat.averageSpeed*3.6, business.ActivityTypes[stat.Activities[0].Type])
 	}
 	return "Not available"
 }

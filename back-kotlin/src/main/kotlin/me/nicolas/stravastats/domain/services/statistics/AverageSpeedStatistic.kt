@@ -1,6 +1,7 @@
 package me.nicolas.stravastats.domain.services.statistics
 
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
+import me.nicolas.stravastats.domain.utils.formatSpeed
 
 internal class AverageSpeedStatistic(
 activities: List<StravaActivity>,
@@ -18,9 +19,5 @@ activities: List<StravaActivity>,
     }
 
     override val value: String
-        get() = if (averageSpeed != null) {
-            "%.2f km/h".format(averageSpeed)
-        } else {
-            "Not available"
-        }
+        get() = averageSpeed?.formatSpeed(activities.first().type) ?: "Not available"
 }

@@ -5,7 +5,7 @@ import me.nicolas.stravastats.domain.business.DashboardData
 
 @Schema(description = "Dashboard data", name = "DashboardData")
 data class DashboardDataDto(
-    val nbActivities: Map<String, Int>,
+    val nbActivitiesByYear: Map<String, Int>,
     val totalDistanceByYear: Map<String, Float>,
     val averageDistanceByYear: Map<String, Float>,
     val maxDistanceByYear: Map<String, Float>,
@@ -18,12 +18,12 @@ data class DashboardDataDto(
     val maxHeartRateByYear: Map<String, Int>,
     val averageWattsByYear: Map<String, Int>,
     val maxWattsByYear: Map<String, Int>,
-    val averageCadence: List<List<Long>>,
+    val averageCadenceByYear: List<List<Long>>,
 )
 
 fun DashboardData.toDto(): DashboardDataDto {
     return DashboardDataDto(
-        nbActivities = this.nbActivities,
+        nbActivitiesByYear = this.nbActivitiesByYear,
         totalDistanceByYear = this.totalDistanceByYear,
         averageDistanceByYear = this.averageDistanceByYear,
         maxDistanceByYear = this.maxDistanceByYear,
@@ -36,6 +36,6 @@ fun DashboardData.toDto(): DashboardDataDto {
         maxHeartRateByYear = this.maxHeartRateByYear,
         averageWattsByYear = this.averageWattsByYear,
         maxWattsByYear = this.maxWattsByYear,
-        averageCadence = this.averageCadence,
+        averageCadenceByYear = this.averageCadenceByYear,
     )
 }
