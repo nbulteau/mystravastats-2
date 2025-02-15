@@ -125,7 +125,7 @@ class StravaActivityProvider(
         val currentYear = LocalDate.now().year
         val elapsed = measureTimeMillis {
 
-            val deferredActivities = (currentYear - 1 downTo 2010).map { year ->
+            val deferredActivities = (currentYear  downTo 2010).map { year ->
                 if (year == currentYear) {
                     async {
                         try {
