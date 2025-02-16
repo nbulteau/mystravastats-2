@@ -4,16 +4,16 @@
 start_time=$(date +%s)
 
 echo "🚀 Starting build process..."
-echo "⌛ Building UI project..."
+echo "⌛ Building front-vue project..."
 
 # Build the UI project
-docker run --rm -v "$PWD:/app" -w /app/ui node:latest \
+docker run --rm -v "$PWD:/app" -w /app/front-vue node:latest \
     sh -c "npm install -g npm@11.1.0 2>/dev/null && npm install && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build 2>/dev/null"
 
 echo "📦 Copying UI build to back-go/public..."
 # Copy the UI build to the back-go/public directory
 mkdir -p back-go/public
-cp -r ui/dist/* back-go/public/
+cp -r front-vue/dist/* back-go/public/
 
 echo "🔨 Building Ubuntu binary..."
 # Build for Ubuntu

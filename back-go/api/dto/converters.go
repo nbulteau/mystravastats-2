@@ -249,7 +249,7 @@ func ToStatisticDto(statistic statistics.Statistic) StatisticDto {
 
 func ToDashboardDataDto(data business.DashboardData) DashboardDataDto {
 	return DashboardDataDto{
-		NbActivities:           data.NbActivities,
+		NbActivitiesByYear:     data.NbActivities,
 		TotalDistanceByYear:    data.TotalDistanceByYear,
 		AverageDistanceByYear:  data.AverageDistanceByYear,
 		MaxDistanceByYear:      data.MaxDistanceByYear,
@@ -262,7 +262,7 @@ func ToDashboardDataDto(data business.DashboardData) DashboardDataDto {
 		MaxHeartRateByYear:     data.MaxHeartRateByYear,
 		AverageWattsByYear:     data.AverageWattsByYear,
 		MaxWattsByYear:         data.MaxWattsByYear,
-		AverageCadence:         data.AverageCadence,
+		AverageCadenceByYear:   data.AverageCadence,
 	}
 }
 

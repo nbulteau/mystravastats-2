@@ -1,7 +1,7 @@
 package dto
 
 type DashboardDataDto struct {
-	NbActivities           map[string]int     `json:"nbActivities"`
+	NbActivitiesByYear     map[string]int     `json:"nbActivitiesByYear"`
 	TotalDistanceByYear    map[string]float64 `json:"totalDistanceByYear"`
 	AverageDistanceByYear  map[string]float64 `json:"averageDistanceByYear"`
 	MaxDistanceByYear      map[string]float64 `json:"maxDistanceByYear"`
@@ -14,7 +14,7 @@ type DashboardDataDto struct {
 	MaxHeartRateByYear     map[string]float64 `json:"maxHeartRateByYear"`
 	AverageWattsByYear     map[string]float64 `json:"averageWattsByYear"`
 	MaxWattsByYear         map[string]float64 `json:"maxWattsByYear"`
-	AverageCadence         [][]int64          `json:"averageCadence"`
+	AverageCadenceByYear   [][]int64          `json:"averageCadenceByYear"`
 }
 
 type EddingtonNumberDto struct {

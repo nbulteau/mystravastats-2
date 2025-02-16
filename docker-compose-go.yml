@@ -11,18 +11,18 @@ services:
     volumes:
       - ${STRAVA_CACHE_PATH}:/app/strava-cache
 
-  ui:
-    build: ./ui
-    image: nbulteau/mystravastats-ui:latest
-    container_name: mystravastats-ui
+  front:
+    build: ./front-vue
+    image: nbulteau/mystravastats-front-vue:latest
+    container_name: mystravastats-front-vue
     ports:
       - "80:80"
     depends_on:
       - back
     networks: 
-      - ui-back     
+      - front-back     
   
 networks: 
-  ui-back:
+  front-back:
     driver: bridge
 

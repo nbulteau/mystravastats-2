@@ -1,7 +1,6 @@
 package statistics
 
 import (
-	"fmt"
 	"mystravastats/domain/business"
 	"mystravastats/domain/strava"
 )
@@ -42,7 +41,7 @@ func NewMaxSpeedStatistic(activities []*strava.Activity) *MaxSpeedStatistic {
 
 func (stat *MaxSpeedStatistic) Value() string {
 	if stat.maxSpeed != nil {
-		return fmt.Sprintf("%.02f km/h", *stat.maxSpeed*3.6)
+		return formatSpeed(*stat.maxSpeed*3.6, stat.activity.Type)
 	}
 	return "Not available"
 }

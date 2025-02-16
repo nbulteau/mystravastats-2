@@ -1,4 +1,4 @@
-# mystravastats-ui
+# mystravastats-front
 
 This template should help get you started developing with Vue 3 in Vite.
 
@@ -66,4 +66,4 @@ https://vite-plugin-components.netlify.app - Vite Plugin Components
 https://vite-plugin-checker.netlify.app - Vite Plugin Checker
 https://vite-plugin-pwa.netlify.app - Vite Plugin PWA
 
-# mystravastats-2-ui
+# mystravastats-2-front
