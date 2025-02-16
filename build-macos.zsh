@@ -18,7 +18,7 @@ cp -r front-vue/dist/* back-go/public/
 # Build back for macOS silently
 echo "🔨 Building macOS binary..."
 docker run --rm -v "$PWD:/app" -w /app golang:latest \
-    sh -c "cd back-go && GOOS=darwin GOARCH=amd64 go build -o ../mystravastats" >/dev/null 2>&1
+    sh -c "cd back-go && GOOS=darwin GOARCH=arm64 go build -o ../mystravastats" >/dev/null 2>&1
 
 # Ensure strava-cache directory exists
 if [ ! -d strava-cache ]; then
