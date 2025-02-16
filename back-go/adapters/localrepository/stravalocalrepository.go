@@ -72,7 +72,7 @@ func (repo *StravaRepository) SaveAthleteToCache(clientId string, stravaAthlete 
 }
 
 func (repo *StravaRepository) LoadActivitiesFromCache(clientId string, year int) []strava.Activity {
-	log.Printf("Load activities from cache for year %d", year)
+	log.Printf("⌛ Load activities from cache for year %d", year)
 
 	activitiesDirectory := filepath.Join(repo.cacheDirectory, fmt.Sprintf("strava-%s", clientId))
 	yearActivitiesDirectory := filepath.Join(activitiesDirectory, fmt.Sprintf("strava-%s-%d", clientId, year))

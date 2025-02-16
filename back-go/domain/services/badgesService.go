@@ -13,8 +13,8 @@ import (
 	"mystravastats/domain/helpers"
 )
 
-var alpes = loadBadgeSet("alpes", helpers.GetStravaCachePath()+"/famous-climb/alpes.json")
-var pyrenees = loadBadgeSet("pyrenees", helpers.GetStravaCachePath()+"/famous-climb/pyrenees.json")
+var alpes = loadBadgeSet("alpes", helpers.StravaCachePath+"/famous-climb/alpes.json")
+var pyrenees = loadBadgeSet("pyrenees", helpers.StravaCachePath+"/famous-climb/pyrenees.json")
 
 // GetGeneralBadges returns the general badges for the given activity type and year
 // The general badges are the ones that are not specific to a famous climb

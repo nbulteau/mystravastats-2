@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var activityProvider = stravaapi.NewStravaActivityProvider(helpers.GetStravaCachePath())
+var activityProvider = stravaapi.NewStravaActivityProvider(helpers.StravaCachePath)
 
 // groupActivitiesByDay groups activities by day and fills in missing days with empty slices of activities for the given year
 func groupActivitiesByDay(activities []*strava.Activity, year int) map[string][]*strava.Activity {

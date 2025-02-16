@@ -47,10 +47,10 @@ func NewStravaActivityProvider(stravaCache string) *StravaActivityProvider {
 		}
 	}
 
-	log.Printf("ActivityService initialized with clientId=%s and %d activities", provider.clientId, len(provider.activities))
-
 	// Open the browser
 	helpers.OpenBrowser("http://localhost:8080")
+
+	log.Printf("✅ MyStravastats ready with clientId=%s and %d activities", provider.clientId, len(provider.activities))
 
 	return provider
 }
@@ -93,7 +93,7 @@ func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *s
 
 func (provider *StravaActivityProvider) loadFromLocalCache(clientId string) []*strava.Activity {
 	startTime := time.Now()
-	log.Println("Load activities from local cache ...")
+	log.Println("⌛ Load activities from local cache ...")
 
 	var loadedActivities []*strava.Activity
 	activityCh := make(chan []strava.Activity, 20) // Buffered channel to collect results
@@ -129,7 +129,7 @@ func (provider *StravaActivityProvider) loadFromLocalCache(clientId string) []*s
 
 func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId string) []*strava.Activity {
 	startTime := time.Now()
-	log.Println("Load activities from Strava ...")
+	log.Println("⌛ Load activities from Strava ...")
 
 	var loadedActivities []*strava.Activity
 	activityCh := make(chan []strava.Activity, 20) // Buffered channel to collect results
@@ -171,7 +171,7 @@ func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId strin
 	}
 
 	duration := time.Since(startTime)
-	log.Printf("%d activities loaded in %s", len(loadedActivities), duration)
+	log.Printf("⏰ %d activities loaded in %s", len(loadedActivities), duration)
 	return loadedActivities
 }
 
@@ -197,7 +197,7 @@ func (provider *StravaActivityProvider) loadActivitiesStreams(clientId string, y
 }
 
 func (provider *StravaActivityProvider) retrieveLoggedInAthlete(clientId string) strava.Athlete {
-	log.Printf("Load loggedInAthlete with id %s description from Strava", clientId)
+	log.Printf("⌛ Load loggedInAthlete with id %s description from Strava", clientId)
 	var loggedInAthlete *strava.Athlete
 	if provider.StravaApi != nil {
 		athlete, err := provider.StravaApi.RetrieveLoggedInAthlete()
@@ -215,7 +215,7 @@ func (provider *StravaActivityProvider) retrieveLoggedInAthlete(clientId string)
 }
 
 func (provider *StravaActivityProvider) retrieveActivities(clientId string, year int) []strava.Activity {
-	log.Printf("Load activities from Strava for year %d", year)
+	log.Printf("⌛ Load activities from Strava for year %d", year)
 
 	if provider.StravaApi != nil {
 		retrievedActivities, err := provider.StravaApi.GetActivities(year)

@@ -7,10 +7,8 @@ import (
 	"log"
 	"mystravastats/api"
 	"net/http"
-	"os"
 	"strings"
 
-	"github.com/joho/godotenv"
 	"github.com/rs/cors"
 )
 
@@ -18,9 +16,6 @@ import (
 var public embed.FS
 
 func main() {
-	// Load environment variables from .env file if not already set
-	loadEnvironmentVariables()
-
 	// Define a debug flag
 	debug := flag.Bool("debug", false, "run in debug mode")
 	flag.Parse()
@@ -61,20 +56,4 @@ func main() {
 	handler := c.Handler(router)
 
 	log.Fatal(http.ListenAndServe("localhost:8080", handler))
-}
-
-func loadEnvironmentVariables() {
-	err := godotenv.Overload()
-	if err != nil {
-		log.Println("No .env file found")
-	} else {
-		log.Println("Loaded .env file")
-	}
-	cachePath := os.Getenv("STRAVA_CACHE_PATH")
-	if cachePath == "" {
-		cachePath = "strava-cache" // default value if environment variable is not set
-		log.Printf("STRAVA_CACHE_PATH not set. Using default cache path: %s\n", cachePath)
-	} else {
-		log.Printf("Using cache path: %s\n", cachePath)
-	}
 }

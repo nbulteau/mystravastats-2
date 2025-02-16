@@ -23,6 +23,7 @@ docker run --rm -v "$PWD:/app" -w /app golang:latest \
 # Ensure strava-cache directory exists
 if [ ! -d strava-cache ]; then
     mkdir strava-cache
+    echo "📁 Created strava-cache directory."
 fi
 
 # Copy the famous-climb directory to strava-cache
@@ -39,9 +40,8 @@ fi
 # Ensure .env file exists and add STRAVA_CACHE_PATH
 if [ ! -f .env ]; then
     touch .env
-    if ! grep -q "STRAVA_CACHE_PATH" .env; then
-        echo "STRAVA_CACHE_PATH=strava-cache" >> .env
-    fi
+    echo "STRAVA_CACHE_PATH=$PWD/strava-cache" >> .env
+    "📁 Created "📁 Created .env file."
 fi
 
 # End time
