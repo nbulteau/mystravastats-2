@@ -62,7 +62,7 @@ Launch mystravastats with providing the GPX repository.
 
 ```shell
 export GPX_FILES_PATH=[path to the GPX directory]
-docker compose up back ui
+docker compose up back front-vue
 ```
 
 ### Using FIT files
@@ -82,7 +82,7 @@ Launch mystravastats with providing the FIT repository.
 
 ```shell
 export FIT_FILES_PATH=[path to the FIT directory]
-docker compose up back ui
+docker compose up back front-vue
 ```
 
 ### Using SRTM Altitude Data

@@ -19,7 +19,7 @@ const currentActivityType = computed(() => contextStore.currentActivityType);
 const cumulativeDistancePerYear = computed(() => contextStore.cumulativeDistancePerYear);
 const cumulativeElevationPerYear = computed(() => contextStore.cumulativeElevationPerYear);
 const eddingtonNumber = computed(() => contextStore.eddingtonNumber);
-const activitiesCount = computed(() => contextStore.dashboardData.nbActivities);
+const activitiesCount = computed(() => contextStore.dashboardData.nbActivitiesByYear);
 const averageSpeedByYear = computed(() => contextStore.dashboardData.averageSpeedByYear);
 const maxSpeedByYear = computed(() => contextStore.dashboardData.maxSpeedByYear);
 const totalDistanceByYear = computed(() => contextStore.dashboardData.totalDistanceByYear);
@@ -32,7 +32,7 @@ const averageHeartRateByYear = computed(() => contextStore.dashboardData.average
 const maxHeartRateByYear = computed(() => contextStore.dashboardData.maxHeartRateByYear);
 const averageWattsByYear = computed(() => contextStore.dashboardData.averageWattsByYear);
 const maxWattsByYear = computed(() => sortDataByYear(contextStore.dashboardData.maxWattsByYear));
-const averageCadence = computed(() => contextStore.dashboardData.averageCadence);
+const averageCadence = computed(() => contextStore.dashboardData.averageCadenceByYear);
 
 function sortDataByYear(averageWattsByYear: Record<string, number>): Record<string, number> {
   return Object.keys(averageWattsByYear)
