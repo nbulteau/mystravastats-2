@@ -1,37 +1,16 @@
 package services
 
 import (
-	"log"
 	"mystravastats/adapters/stravaapi"
+	"mystravastats/domain/helpers"
 	"mystravastats/domain/strava"
-	"os"
 	"sort"
 	"time"
-
-	"github.com/joho/godotenv"
 )
 
-var activityProvider = stravaapi.NewStravaActivityProvider(getStravaCachePath())
+var activityProvider = stravaapi.NewStravaActivityProvider(helpers.GetStravaCachePath())
 
-func getStravaCachePath() string {
-	// Load environment variables from .env file if not already set
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("No .env file found")
-	} else {
-		log.Println("Loaded .env file")
-	}
-
-	cachePath := os.Getenv("STRAVA_CACHE_PATH")
-	if cachePath == "" {
-		cachePath = "strava-cache" // default value if environment variable is not set
-		log.Printf("STRAVA_CACHE_PATH not set. Using default cache path: %s\n", cachePath)
-	} else {
-		log.Printf("Using cache path: %s\n", cachePath)
-	}
-	return cachePath
-}
-
+// groupActivitiesByDay groups activities by day and fills in missing days with empty slices of activities for the given year
 func groupActivitiesByDay(activities []*strava.Activity, year int) map[string][]*strava.Activity {
 	activitiesByDay := make(map[string][]*strava.Activity)
 

@@ -10,11 +10,14 @@ import (
 
 	"mystravastats/domain/badges"
 	"mystravastats/domain/business"
+	"mystravastats/domain/helpers"
 )
 
-var alpes = loadBadgeSet("alpes", "famous-climb/alpes.json")
-var pyrenees = loadBadgeSet("pyrenees", "famous-climb/pyrenees.json")
+var alpes = loadBadgeSet("alpes", helpers.GetStravaCachePath()+"/famous-climb/alpes.json")
+var pyrenees = loadBadgeSet("pyrenees", helpers.GetStravaCachePath()+"/famous-climb/pyrenees.json")
 
+// GetGeneralBadges returns the general badges for the given activity type and year
+// The general badges are the ones that are not specific to a famous climb
 func GetGeneralBadges(activityType business.ActivityType, year *int) []business.BadgeCheckResult {
 	log.Printf("Checking general badges for %s in %v", activityType, year)
 
@@ -38,6 +41,8 @@ func GetGeneralBadges(activityType business.ActivityType, year *int) []business.
 	}
 }
 
+// GetFamousBadges returns the famous badges for the given activity type and year
+// The famous badges are the ones that are specific to a famous climb
 func GetFamousBadges(activityType business.ActivityType, year *int) []business.BadgeCheckResult {
 	log.Printf("Checking famous badges for %s in %v", activityType, year)
 
@@ -51,29 +56,33 @@ func GetFamousBadges(activityType business.ActivityType, year *int) []business.B
 	}
 }
 
+// loadBadgeSet loads the badge set from the given JSON file
 func loadBadgeSet(name string, climbsJsonFilePath string) badges.BadgeSet {
 	var famousClimbBadgeList []badges.Badge
 
 	filePath, err := filepath.Abs(climbsJsonFilePath)
 	if err != nil {
-		log.Fatalf("Error getting absolute path: %v", err)
+		log.Printf("Error getting absolute path: %v", err)
+		return badges.BadgeSet{Name: name, Badges: famousClimbBadgeList}
 	}
 
 	file, err := os.Open(filePath)
 	if err != nil {
-		log.Fatalf("Error opening file: %v", err)
+		log.Printf("Error opening file: %v", err)
+		return badges.BadgeSet{Name: name, Badges: famousClimbBadgeList}
 	}
 	defer file.Close()
 
 	byteValue, err := io.ReadAll(file)
 	if err != nil {
-		log.Fatalf("Error reading file: %v", err)
+		log.Printf("Error reading file: %v", err)
+		return badges.BadgeSet{Name: name, Badges: famousClimbBadgeList}
 	}
 
 	var famousClimbs []badges.FamousClimb
-	err = json.Unmarshal(byteValue, &famousClimbs)
-	if err != nil {
-		log.Fatalf("Error unmarshalling JSON: %v", err)
+	if err := json.Unmarshal(byteValue, &famousClimbs); err != nil {
+		log.Printf("Error unmarshalling JSON: %v", err)
+		return badges.BadgeSet{Name: name, Badges: famousClimbBadgeList}
 	}
 
 	for _, famousClimb := range famousClimbs {
