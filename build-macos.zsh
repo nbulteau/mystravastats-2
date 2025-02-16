@@ -5,20 +5,20 @@ start_time=$(date +%s)
 
 echo "🚀 Starting build process..."
 
-# Build the UI project
+# Build the UI project silently
 echo "⌛ Building front-vue project..."
 docker run --rm -v "$PWD:/app" -w /app/front-vue node:latest \
-    sh -c "npm install -g npm@11.1.0 2>/dev/null && npm install && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build 2>/dev/null" > $null 2>&1
+    sh -c "npm install -g npm@11.1.0 >/dev/null 2>&1 && npm install >/dev/null 2>&1 && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build >/dev/null 2>&1" 
 
 # Copy the UI build to the back-go/public directory
 echo "📦 Copying UI build to back-go/public..."
 mkdir -p back-go/public
 cp -r front-vue/dist/* back-go/public/
 
-# Build for macOS
+# Build back for macOS silently
 echo "🔨 Building macOS binary..."
 docker run --rm -v "$PWD:/app" -w /app golang:latest \
-    sh -c "cd back-go && GOOS=darwin GOARCH=amd64 go build -o ../mystravastats" > $null 2>&1
+    sh -c "cd back-go && GOOS=darwin GOARCH=amd64 go build -o ../mystravastats" >/dev/null 2>&1
 
 # Ensure strava-cache directory exists
 if [ ! -d strava-cache ]; then
@@ -27,7 +27,7 @@ if [ ! -d strava-cache ]; then
 fi
 
 # Copy the famous-climb directory to strava-cache
-cp -r famous-climb strava-cache/
+cp -r back-go/famous-climb strava-cache/
 
 # Ensure .strava file exists in strava-cache directory
 strava_file_path="strava-cache/.strava"
@@ -41,7 +41,7 @@ fi
 if [ ! -f .env ]; then
     touch .env
     echo "STRAVA_CACHE_PATH=$PWD/strava-cache" >> .env
-    "📁 Created "📁 Created .env file."
+    "📁 Created .env file."
 fi
 
 # End time
