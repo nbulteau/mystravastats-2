@@ -18,14 +18,14 @@ All statistics can be exported as a CSV file.
 
 ## User Interface
 
-<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-1.png?raw=true" width="45%" /> 
-<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-2.png?raw=true" width="45%" />
-<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-3.png?raw=true" width="45%" /> 
-<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-4.png?raw=true" width="45%" />
-<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-5.png?raw=true" width="45%" />
-<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-6.png?raw=true" width="45%" />
-<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-7.png?raw=true" width="45%" />
-<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-8.png?raw=true" width="45%" />
+<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-1.png?raw=true" width="40%" /> 
+<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-2.png?raw=true" width="40%" />
+<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-3.png?raw=true" width="40%" /> 
+<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-4.png?raw=true" width="40%" />
+<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-5.png?raw=true" width="40%" />
+<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-6.png?raw=true" width="40%" />
+<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-7.png?raw=true" width="40%" />
+<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-8.png?raw=true" width="40%" />
 
 
 Icons made by [Freepik](https://www.freepik.com) from [Flaticon](https://www.flaticon.com).
