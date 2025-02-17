@@ -27,57 +27,17 @@ Icons made by [Freepik](https://www.freepik.com) from [Flaticon](https://www.fla
 
 ## Table of Contents
 
-1. [Strava Access](#strava-access)
+1. [Build Command](#build-command)
 2. [Get Activities from Strava](#get-activities-from-strava)
-3. [Setting Up Environment Variables](#setting-up-environment-variables)
-4. [Build Command](#build-command)
-5. [Run Command](#run-command)
-6. [Provided Statistics](#provided-statistics)
+3. [Strava Access](#strava-access)
+4. [Run Command](#run-command)
+5. [Provided Statistics](#provided-statistics)
     1. [Global Statistics](#global-statistics)
     2. [Rides (Commute)](#rides-commute)
     3. [Rides (Sport)](#rides-sport)
     4. [Runs](#runs)
     5. [InlineSkate](#inlineskate)
     6. [Hikes](#hikes)
-
-### Strava Access
-
-All calls to the Strava API require an `access_token` defining the athlete and application making the call. Any registered Strava user can obtain an `access_token` by first creating an application at [Strava API Settings](https://www.strava.com/settings/api).
-
-The Strava API application settings page provides *mandatory parameters* for MyStravaStats:
-
-* `clientId`: Your application’s ID.
-* `clientSecret`: Your client secret.
-
-Create a directory `strava-cache` with a `.strava` file in it. Put your `clientId` and `clientSecret` in the file.
-
-```shell
-mkdir strava-cache
-cd strava-cache
-echo "clientId=[YOUR_CLIENT_ID]" > .strava
-echo "clientSecret=[YOUR_CLIENT_SECRET]" >> .strava
-export STRAVA_CACHE_PATH=$(pwd)
-```
-
-### Get activities from Strava
-
-Activities are download in a local directory (strava-cache), in that way only new and missing ones are downloaded from Strava.
-The first time you use My Strava Stats it will attempt to collect activities from 2010 to now.
-Due to rate limitations (100 requests every 15 minutes, with up to 1,000 requests per day) it may be necessary to do it
-in several attempts. (<https://developers.strava.com/docs/rate-limits/>)
-
-Note : If you do not provide your Client Secret MyStravaStats will use locally downloaded activities.
-
-A browser will open a browser on the Strava consent screen.
-If browser does not open, copy/past URL from your terminal in a browser to allow mystravastats to access your Strava
-data.
-This URL will look like :
-
-```link
-https://www.strava.com/api/v3/oauth/authorize?client_id=[YOUR_CLIENT_ID]&response_type=code&redirect_uri=http://localhost/exchange_token&approval_prompt=force&scope=read_all,profile:read_all,activity:read_all
-```
-
-Login to Strava then click 'Authorize' and tick the required permissions if needed.
 
 ## build command
 
@@ -109,20 +69,36 @@ sudo chown $(whoami):$(whoami) mystravastats
 ./build-windows.ps1
 ```
 
-## Setting Up Environment Variables
+## Strava Access
 
-Before running the run command, you need to set the `STRAVA_CACHE_PATH` environment variable. You can do this by creating a `.env` file in the root directory of your project with the following content:
+All calls to the Strava API require an `access_token` defining the athlete and application making the call. Any registered Strava user can obtain an `access_token` by first creating an application at [Strava API Settings](https://www.strava.com/settings/api).
 
-```shell
-STRAVA_CACHE_PATH=[path to the strava-cache directory]
+The Strava API application settings page provides *mandatory parameters* for MyStravaStats:
+
+* `clientId`: Your application’s ID.
+* `clientSecret`: Your client secret.
+
+The build script created a directory `strava-cache` with a `.strava` file in it. Put your `clientId` and `clientSecret` in the file.
+
+## Get activities from Strava
+
+Activities are download in a local directory (strava-cache), in that way only new and missing ones are downloaded from Strava.
+The first time you use My Strava Stats it will attempt to collect activities from 2010 to now.
+Due to rate limitations (100 requests every 15 minutes, with up to 1,000 requests per day) it may be necessary to do it
+in several attempts. (<https://developers.strava.com/docs/rate-limits/>)
+
+Note : If you do not provide your Client Secret MyStravaStats will use locally downloaded activities.
+
+A browser will open a browser on the Strava consent screen.
+If browser does not open, copy/past URL from your terminal in a browser to allow mystravastats to access your Strava
+data.
+This URL will look like :
+
+```link
+https://www.strava.com/api/v3/oauth/authorize?client_id=[YOUR_CLIENT_ID]&response_type=code&redirect_uri=http://localhost/exchange_token&approval_prompt=force&scope=read_all,profile:read_all,activity:read_all
 ```
 
-You can use .env file
-
-```shell
-echo STRAVA_CACHE_PATH=[path to the strava-cache directory] > .env
-docker compose build
-```
+Login to Strava then click 'Authorize' and tick the required permissions if needed.
 
 ## run command
 
