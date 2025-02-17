@@ -18,10 +18,10 @@ All statistics can be exported as a CSV file.
 
 ## User Interface
 
-<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-1.png?raw=true" width="45%" /> <img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-2.png?raw=true" width="45%" />
-
-<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-3.png?raw=true" width="45%" /> <img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-4.png?raw=true" width="45%" />
-
+<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-1.png?raw=true" width="45%" /> 
+<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-2.png?raw=true" width="45%" />
+<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-3.png?raw=true" width="45%" /> 
+<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-4.png?raw=true" width="45%" />
 <img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-5.png?raw=true" width="45%" />
 
 Icons made by [Freepik](https://www.freepik.com) from [Flaticon](https://www.flaticon.com).
@@ -97,6 +97,12 @@ Launch the proper script :
 ```shell
 ./build-ubuntu.sh
 ```
+
+🔄 Change owner of mystravastats to current user: 'sudo chown $(whoami):$(whoami) mystravastats'"
+
+```shell
+sudo chown $(whoami):$(whoami) mystravastats
+````
 
 ### Windows
 
