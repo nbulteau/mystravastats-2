@@ -1,19 +1,14 @@
 plugins {
     kotlin("jvm") version "2.1.0"
     kotlin("plugin.spring") version "2.1.0"
-    id("org.springframework.boot") version "3.4.2"
+    id("org.springframework.boot") version "3.4.3"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.ben-manes.versions") version "0.52.0"
+    id("org.graalvm.buildtools.native") version "0.10.5"
 }
 
 group = "me.nicolas"
 version = "0.0.1-SNAPSHOT"
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
 
 repositories {
     mavenCentral()
@@ -33,9 +28,9 @@ dependencies {
 
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.4")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5")
 
-    implementation("io.ktor:ktor-server-netty:3.1.0")
+    implementation("io.ktor:ktor-server-netty:3.1.1")
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
@@ -61,7 +56,29 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
-// Disable plain jar creation
-tasks.named<Jar>("jar") {
-    enabled = false
+
+
+graalvmNative {
+    binaries {
+        named("main") {
+            imageName.set("mystravastats")
+            mainClass.set("me.nicolas.stravastats.StravastatsApplicationKt")
+            debug.set(true)
+            verbose.set(true)
+            fallback.set(true)
+            sharedLibrary.set(false)
+            richOutput.set(false)
+            quickBuild.set(false)
+
+            // Advanced options
+            buildArgs.add("--link-at-build-time")
+
+            jvmArgs.add("-Xmx2g")
+
+            // Runtime options
+            runtimeArgs.add("--help")
+
+            useFatJar.set(true)
+        }
+    }
 }
