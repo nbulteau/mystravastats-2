@@ -50,5 +50,5 @@ func formatSpeed(speed float64, activityType business.ActivityType) string {
 	if activityType == business.Run {
 		return fmt.Sprintf("%s/km", helpers.FormatSecondsFloat(1000/speed))
 	}
-	return fmt.Sprintf("%.02f km/h", speed*3.6)
+	return fmt.Sprintf("%.02f km/h", speed)
 }

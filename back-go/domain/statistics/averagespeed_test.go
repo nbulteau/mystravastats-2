@@ -24,11 +24,11 @@ func TestNewAverageSpeedStatistic(t *testing.T) {
 	}
 }
 
-func TestAverageSpeedStatistic_Value(t *testing.T) {
+func TestAverageSpeedStatistic_for_Ride_activities_Value(t *testing.T) {
 	activities := []*strava.Activity{
-		{AverageSpeed: 5.0},
-		{AverageSpeed: 10.0},
-		{AverageSpeed: 15.0},
+		{AverageSpeed: 5.0, Type: "Ride"},
+		{AverageSpeed: 10.0, Type: "Ride"},
+		{AverageSpeed: 15.0, Type: "Ride"},
 	}
 
 	stat := NewAverageSpeedStatistic(activities)
@@ -40,7 +40,7 @@ func TestAverageSpeedStatistic_Value(t *testing.T) {
 }
 
 func TestAverageSpeedStatistic_NoActivities(t *testing.T) {
-	activities := []*strava.Activity{}
+	var activities []*strava.Activity
 
 	stat := NewAverageSpeedStatistic(activities)
 
