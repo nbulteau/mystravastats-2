@@ -37,12 +37,14 @@ func (stat *EddingtonStatistic) processEddingtonNumber() int {
 		return 0
 	}
 
+	// Group distances by day
 	activeDaysMap := make(map[string]int)
 	for _, activity := range stat.BaseStatistic.Activities {
 		date := strings.Split(activity.StartDateLocal, "T")[0]
 		activeDaysMap[date] += int(activity.Distance / 1000)
 	}
 
+	// Find maximum distance to determine the size of counts array
 	maxDistance := 0
 	for _, distance := range activeDaysMap {
 		if distance > maxDistance {
@@ -50,7 +52,10 @@ func (stat *EddingtonStatistic) processEddingtonNumber() int {
 		}
 	}
 
+	// Initialize counts array matching the expected size
 	stat.counts = make([]int, maxDistance)
+
+	// Count days with at least X kilometers
 	for _, distance := range activeDaysMap {
 		for day := distance; day > 0; day-- {
 			stat.counts[day-1]++
