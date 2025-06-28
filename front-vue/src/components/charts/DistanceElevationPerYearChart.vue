@@ -54,14 +54,6 @@ const chartOptions = reactive({
   },
 tooltip: {
   formatter: function (this: any): string {
-    // Use the xAxis categories to get the year label
-    const year =
-      this.series.chart.options.xAxis &&
-      Array.isArray(this.series.chart.options.xAxis.categories)
-        ? this.series.chart.options.xAxis.categories[this.point.index]
-        : this.x;
-        
-    let x = this.point.index;
 
     return this.points.reduce(function (
       s: any,
