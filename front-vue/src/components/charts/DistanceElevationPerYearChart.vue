@@ -33,7 +33,7 @@ const chartOptions = reactive({
   yAxis: [
     {
       title: {
-        text: `Elevation (km)`,
+        text: `Elevation (m)`,
       },
       labels: {
         format: "{value} m",
@@ -52,21 +52,37 @@ const chartOptions = reactive({
   legend: {
     enabled: true,
   },
-  tooltip: {
-    formatter: function (this: any): string {
-      return this.points.reduce(function (
-        s: any,
-        point: {
-          color: any;
-          series: { name: string };
-          y: number;
-        }
-      ) {
-        return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${point.y.toFixed(0)} m`;
-      }, "<b>" + this.x + "</b>");
-    },
-    shared: true,
+tooltip: {
+  formatter: function (this: any): string {
+    // Use the xAxis categories to get the year label
+    const year =
+      this.series.chart.options.xAxis &&
+      Array.isArray(this.series.chart.options.xAxis.categories)
+        ? this.series.chart.options.xAxis.categories[this.point.index]
+        : this.x;
+        
+    let x = this.point.index;
+
+    return this.points.reduce(function (
+      s: any,
+      point: {
+        color: any;
+        series: { name: string };
+        y: number;
+      }
+    ) {
+      let unit = "";
+      if (point.series.name === "Elevation") {
+        unit = "m";
+      } else if (point.series.name === "Distance") {
+        unit = "km";
+      }
+
+      return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${point.y.toFixed(0)} ${unit}`;
+    }, "<b>" + this.key + "</b>");
   },
+  shared: true,
+},
   series: [
     {
       name: "Elevation",

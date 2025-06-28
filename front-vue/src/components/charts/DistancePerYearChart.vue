@@ -47,8 +47,7 @@ const chartOptions = reactive({
               }
           ) {
             return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${point.y.toFixed(0)} km`;
-          },
-          "<b>" + this.x + "</b>");
+          }, "<b>" + this.key + "</b>");
     },
     shared: true,
   },

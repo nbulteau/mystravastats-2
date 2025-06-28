@@ -57,7 +57,7 @@ const chartOptions = reactive({
           ) {
         const speed = formatSpeedWithUnit(parseFloat(point.y), props.activityType);
         return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${speed}`; },
-          "<b>" + this.x + "</b>");
+          "<b>" + this.key + "</b>");
     },
     shared: true,
   },

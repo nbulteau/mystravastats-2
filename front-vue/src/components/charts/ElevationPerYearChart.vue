@@ -45,7 +45,7 @@ const chartOptions = reactive({
           ) {
             return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${point.y} m`;
           },
-          "<b>" + this.x + "</b>");
+          "<b>" + this.key + "</b>");
     },
     shared: true,
   },
