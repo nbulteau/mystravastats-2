@@ -6,20 +6,33 @@ Write-Output "🚀 Starting build process..."
 # Build the UI project
 Write-Output "⌛ Building front-vue project..."
 docker run --rm -v "${PWD}:/app" -w /app/front-vue node:latest `
-    sh -c "npm install -g npm@11.1.0 2>/dev/null && npm install && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build 2>/dev/null" > $null 2>&1
+    sh -c "npm install -g npm@11.4.2 2>/dev/null && npm install && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build 2>/dev/null" > $null 2>&1
 
 Write-Output "📦 Copying UI build to back-go/public..."
-# Copy the UI build to the back-go/public directory
-if (-Not (Test-Path -Path "back-go/public")) {
-    New-Item -ItemType Directory -Path "back-go/public"
-    Write-Output "📁 Created back-go/public directory."
+# Remove back-go/public if it exists, then recreate it
+if (Test-Path -Path "back-go/public") {
+    Remove-Item -Recurse -Force "back-go/public"
+    Write-Output "🗑️ Removed existing back-go/public directory."
 }
+New-Item -ItemType Directory -Path "back-go/public" | Out-Null
 Copy-Item -Recurse -Force -Path "front-vue/dist/*" -Destination "back-go/public/"
+
+# Remove old binary before building
+if (Test-Path -Path "mystravastats.exe") {
+    Remove-Item -Force "mystravastats.exe"
+    Write-Output "🗑️ Removed old mystravastats.exe binary."
+}
 
 # Build for Windows
 Write-Output "⌛ Building back-go project..."
-docker run --rm -v "${PWD}:/app" -w /app golang:latest `
+docker run --rm -v "${PWD}:/app" -w /app golang:1.24.4 `
     sh -c "cd back-go; GOOS=windows GOARCH=amd64 go build -o ../mystravastats.exe" > $null 2>&1
+
+# Check if new binary was created
+if (-Not (Test-Path -Path "mystravastats.exe")) {
+    Write-Output "❌ Build failed: mystravastats.exe binary not found."
+    exit 1
+}
 
 # Ensure strava-cache directory exists
 if (-Not (Test-Path -Path "strava-cache")) {
