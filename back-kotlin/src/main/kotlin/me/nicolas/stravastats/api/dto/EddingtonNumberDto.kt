@@ -5,9 +5,9 @@ import me.nicolas.stravastats.domain.business.EddingtonNumber
 
 @Schema(description = "Eddington number object", name = "EddingtonNumber")
 data class EddingtonNumberDto(
-    @Schema(description = "Eddington number")
+    @param:Schema(description = "Eddington number")
     val eddingtonNumber: Int,
-    @Schema(description = "Eddington list")
+    @param:Schema(description = "Eddington list")
     val eddingtonList: List<Int>,
 )
 

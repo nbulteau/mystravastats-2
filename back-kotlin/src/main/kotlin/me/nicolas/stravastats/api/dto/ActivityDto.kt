@@ -9,39 +9,39 @@ import me.nicolas.stravastats.domain.services.statistics.calculateBestTimeForDis
 
 @Schema(description = "Activity object", name = "Activity")
 data class ActivityDto(
-    @Schema(description = "Activity id")
+    @param:Schema(description = "Activity id")
     val id: Long = 0,
-    @Schema(description = "Activity name")
+    @param:Schema(description = "Activity name")
     val name: String,
-    @Schema(description = "Activity type")
+    @param:Schema(description = "Activity type")
     val type: String,
-    @Schema(description = "Activity link to ")
+    @param:Schema(description = "Activity link to ")
     val link: String,
-    @Schema(description = "Activity distance in meters")
+    @param:Schema(description = "Activity distance in meters")
     val distance: Int,
-    @Schema(description = "Activity elapsed time in seconds")
+    @param:Schema(description = "Activity elapsed time in seconds")
     val elapsedTime: Int,
-    @Schema(description = "Activity total elevation gain in meters")
+    @param:Schema(description = "Activity total elevation gain in meters")
     val totalElevationGain: Int,
-    @Schema(description = "Activity average speed in m/s")
+    @param:Schema(description = "Activity average speed in m/s")
     val averageSpeed: Double,
-    @Schema(description = "Activity best time for distance for 1000m in m/s")
+    @param:Schema(description = "Activity best time for distance for 1000m in m/s")
     val bestTimeForDistanceFor1000m: Double,
-    @Schema(description = "Activity best elevation for distance for 500m in %")
+    @param:Schema(description = "Activity best elevation for distance for 500m in %")
     val bestElevationForDistanceFor500m: Double,
-    @Schema(description = "Activity best elevation for distance for 1000m in %")
+    @param:Schema(description = "Activity best elevation for distance for 1000m in %")
     val bestElevationForDistanceFor1000m: Double,
-    @Schema(description = "Activity date")
+    @param:Schema(description = "Activity date")
     val date: String,
-    @Schema(description = "Activity average watts")
+    @param:Schema(description = "Activity average watts")
     val averageWatts: Int,
-    @Schema(description = "Activity weighted average watts")
+    @param:Schema(description = "Activity weighted average watts")
     val weightedAverageWatts: String,
-    @Schema(description = "Activity best power for 20 minutes in watts")
+    @param:Schema(description = "Activity best power for 20 minutes in watts")
     val bestPowerFor20minutes: String,
-    @Schema(description = "Activity best power for 60 minutes in watts")
+    @param:Schema(description = "Activity best power for 60 minutes in watts")
     val bestPowerFor60minutes: String,
-    @Schema(description = "Activity FTP (Functional Threshold Power) in watts")
+    @param:Schema(description = "Activity FTP (Functional Threshold Power) in watts")
     val ftp: String,
 )
 

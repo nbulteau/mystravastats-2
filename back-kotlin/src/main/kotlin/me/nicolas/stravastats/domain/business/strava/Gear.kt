@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 data class Gear(
     val distance: Long,
     val id: String,
-    @JsonProperty("converted_distance")
+    @param:JsonProperty("converted_distance")
     val convertedDistance: Double,
     val name: String,
     val nickname: String,

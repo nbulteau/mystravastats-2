@@ -8,38 +8,38 @@ data class StravaSegmentEffort(
     val achievements: List<Achievement>,
     val activity: MetaActivity,
     val athlete: MetaAthlete,
-    @JsonProperty("average_cadence")
+    @param:JsonProperty("average_cadence")
     val averageCadence: Double,
-    @JsonProperty("average_heartrate")
+    @param:JsonProperty("average_heartrate")
     val averageHeartRate: Double,
-    @JsonProperty("average_watts")
+    @param:JsonProperty("average_watts")
     val averageWatts: Double,
-    @JsonProperty("device_watts")
+    @param:JsonProperty("device_watts")
     val deviceWatts: Boolean,
     val distance: Double,
-    @JsonProperty("elapsed_time")
+    @param:JsonProperty("elapsed_time")
     val elapsedTime: Int,
-    @JsonProperty("end_index")
+    @param:JsonProperty("end_index")
     val endIndex: Int,
     val hidden: Boolean,
     val id: Long,
-    @JsonProperty("kom_rank")
+    @param:JsonProperty("kom_rank")
     val komRank: Int?,
-    @JsonProperty("max_heartrate")
+    @param:JsonProperty("max_heartrate")
     val maxHeartRate: Double,
-    @JsonProperty("moving_time")
+    @param:JsonProperty("moving_time")
     val movingTime: Int,
     val name: String,
-    @JsonProperty("pr_rank")
+    @param:JsonProperty("pr_rank")
     val prRank: Int?,
-    @JsonProperty("resource_state")
+    @param:JsonProperty("resource_state")
     val resourceState: Int,
     val segment: Segment,
-    @JsonProperty("start_date")
+    @param:JsonProperty("start_date")
     val startDate: String,
-    @JsonProperty("start_date_local")
+    @param:JsonProperty("start_date_local")
     val startDateLocal: String,
-    @JsonProperty("start_index")
+    @param:JsonProperty("start_index")
     val startIndex: Int,
     val visibility: String?,
 ) {

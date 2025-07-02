@@ -9,11 +9,11 @@ import me.nicolas.stravastats.domain.services.statistics.Statistic
 @Schema(description = "Statistics object", name = "Statistics")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class StatisticsDto(
-    @Schema(description = "Label of the statistic")
+    @param:Schema(description = "Label of the statistic")
     val label: String,
-    @Schema(description = "Value of the statistic")
+    @param:Schema(description = "Value of the statistic")
     val value: String,
-    @Schema(description = "StravaActivity related to the statistic")
+    @param:Schema(description = "StravaActivity related to the statistic")
     val activity: ActivityShortDto? = null,
 )
 

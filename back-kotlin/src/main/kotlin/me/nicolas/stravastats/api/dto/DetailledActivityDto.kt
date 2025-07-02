@@ -10,58 +10,58 @@ import kotlin.math.*
 
 @Schema(description = "Detailed activity object", name = "DetailedActivity")
 data class DetailedActivityDto(
-    @Schema(description = "Average cadence")
+    @param:Schema(description = "Average cadence")
     val averageCadence: Int,
-    @Schema(description = "Average heartrate")
+    @param:Schema(description = "Average heartrate")
     val averageHeartrate: Int,
-    @Schema(description = "Average power output in watts during this activity. Rides only.")
+    @param:Schema(description = "Average power output in watts during this activity. Rides only.")
     val averageWatts: Int,
-    @Schema(description = "Average speed")
+    @param:Schema(description = "Average speed")
     val averageSpeed: Float,
     val calories: Double,
-    @Schema(description = "Whether the activity was a commute.")
+    @param:Schema(description = "Whether the activity was a commute.")
     val commute: Boolean,
-    @Schema(description = "Whether the watts are from a power meter, false if estimated.")
+    @param:Schema(description = "Whether the watts are from a power meter, false if estimated.")
     val deviceWatts: Boolean = false,
-    @Schema(description = "DistanceStream in meters.")
+    @param:Schema(description = "DistanceStream in meters.")
     var distance: Double,
-    @Schema(description = "Elapsed time in seconds.")
+    @param:Schema(description = "Elapsed time in seconds.")
     var elapsedTime: Int,
-    @Schema(description = "Highest elevation in meters.")
+    @param:Schema(description = "Highest elevation in meters.")
     val elevHigh: Double,
-    @Schema(description = "Activity id.")
+    @param:Schema(description = "Activity id.")
     val id: Long,
-    @Schema(description = "The total work done in kilojoules during this activity. Rides only.")
+    @param:Schema(description = "The total work done in kilojoules during this activity. Rides only.")
     val kilojoules: Double,
-    @Schema(description = "Maximum heartrate")
+    @param:Schema(description = "Maximum heartrate")
     val maxHeartrate: Int,
-    @Schema(description = "Maximum speed.")
+    @param:Schema(description = "Maximum speed.")
     val maxSpeed: Float,
-    @Schema(description = "Maximum power output in watts during this activity. Rides only.")
+    @param:Schema(description = "Maximum power output in watts during this activity. Rides only.")
     val maxWatts: Int,
-    @Schema(description = "MovingStream time in seconds.")
+    @param:Schema(description = "MovingStream time in seconds.")
     val movingTime: Int,
-    @Schema(description = "Activity name.")
+    @param:Schema(description = "Activity name.")
     val name: String,
-    @Schema(description = "List of activity efforts.")
+    @param:Schema(description = "List of activity efforts.")
     val activityEfforts: List<ActivityEffortDto>,
-    @Schema(description = "The time at which the activity was started.")
+    @param:Schema(description = "The time at which the activity was started.")
     val startDate: String,
-    @Schema(description = "The time at which the activity was started in the local timezone.")
+    @param:Schema(description = "The time at which the activity was started in the local timezone.")
     val startDateLocal: String,
-    @Schema(description = "The start latitude and longitude of the activity.")
+    @param:Schema(description = "The start latitude and longitude of the activity.")
     val startLatlng: List<Double>?,
-    @Schema(description = "Stream object")
+    @param:Schema(description = "Stream object")
     val stream: StreamDto? = null,
-    @Schema(description = "The suffer score for the activity.")
+    @param:Schema(description = "The suffer score for the activity.")
     val sufferScore: Double?,
-    @Schema(description = "Total descent in meters")
+    @param:Schema(description = "Total descent in meters")
     val totalDescent: Double,
-    @Schema(description = "Total elevation gain in meters.")
+    @param:Schema(description = "Total elevation gain in meters.")
     val totalElevationGain: Int,
-    @Schema(description = "Activity type")
+    @param:Schema(description = "Activity type")
     val type: String,
-    @Schema(description = "Weighted average power output in watts during this activity. Rides only.")
+    @param:Schema(description = "Weighted average power output in watts during this activity. Rides only.")
     val weightedAverageWatts: Int,
 )
 

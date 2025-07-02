@@ -13,43 +13,43 @@ import kotlin.math.abs
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class StravaActivity(
     val athlete: AthleteRef,
-    @JsonProperty("average_speed")
+    @param:JsonProperty("average_speed")
     val averageSpeed: Double,
-    @JsonProperty("average_cadence")
+    @param:JsonProperty("average_cadence")
     val averageCadence: Double,
-    @JsonProperty("average_heartrate")
+    @param:JsonProperty("average_heartrate")
     val averageHeartrate: Double,
-    @JsonProperty("max_heartrate")
+    @param:JsonProperty("max_heartrate")
     val maxHeartrate: Int,
-    @JsonProperty("average_watts")
+    @param:JsonProperty("average_watts")
     val averageWatts: Int,
     val commute: Boolean,
     val distance: Double,
-    @JsonProperty("device_watts")
+    @param:JsonProperty("device_watts")
     val deviceWatts: Boolean = false,
-    @JsonProperty("elapsed_time")
+    @param:JsonProperty("elapsed_time")
     val elapsedTime: Int,
-    @JsonProperty("elev_high")
+    @param:JsonProperty("elev_high")
     val elevHigh: Double,
     val id: Long,
     val kilojoules: Double,
-    @JsonProperty("max_speed")
+    @param:JsonProperty("max_speed")
     val maxSpeed: Float,
-    @JsonProperty("moving_time")
+    @param:JsonProperty("moving_time")
     val movingTime: Int,
     val name: String,
-    @JsonProperty("start_date")
+    @param:JsonProperty("start_date")
     val startDate: String,
-    @JsonProperty("start_date_local")
+    @param:JsonProperty("start_date_local")
     val startDateLocal: String,
-    @JsonProperty("start_latlng")
+    @param:JsonProperty("start_latlng")
     val startLatlng: List<Double>?,
-    @JsonProperty("total_elevation_gain")
+    @param:JsonProperty("total_elevation_gain")
     val totalElevationGain: Double,
     val type: String,
-    @JsonProperty("upload_id")
+    @param:JsonProperty("upload_id")
     val uploadId: Long,
-    @JsonProperty("weighted_average_watts")
+    @param:JsonProperty("weighted_average_watts")
     val weightedAverageWatts: Int,
 
     var stream: Stream? = null

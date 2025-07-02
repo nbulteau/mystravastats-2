@@ -47,7 +47,7 @@ class StravaActivityProvider(
                     localStorageProvider.initLocalStorageForClientId(clientId)
                     stravaApi = StravaApi(clientId, secret)
                     stravaAthlete = retrieveLoggedInAthlete(clientId)
-                    activities = runBlocking { loadCurrentYearFromStrava(clientId) }
+                    activities = runBlocking { loadActivities(clientId) }
                 } else {
                     logger.error("Strava authentication not found")
                     exitProcess(-1)
@@ -118,46 +118,72 @@ class StravaActivityProvider(
         return@coroutineScope loadedActivities
     }
 
-    private suspend fun loadCurrentYearFromStrava(clientId: String): List<StravaActivity> = coroutineScope {
-        logger.info("Load Strava activities from Strava ...")
-
-        val loadedActivities = mutableListOf<StravaActivity>()
+    private suspend fun loadActivities(clientId: String): List<StravaActivity> = coroutineScope {
+        logger.info("Loading Strava activities ...")
         val currentYear = LocalDate.now().year
+        val loadedActivities = mutableListOf<StravaActivity>()
         val elapsed = measureTimeMillis {
-
-            val deferredActivities = (currentYear  downTo 2010).map { year ->
-                if (year == currentYear) {
-                    async {
-                        try {
-                            retrieveActivities(clientId, currentYear)
-                        } catch (exception: Exception) {
-                            logger.error("Error loading activities for current year from Strava", exception)
-                            emptyList()
+            val deferredActivities = (currentYear downTo 2010).map { year ->
+                async {
+                    try {
+                        if (shouldLoadFromCache(year, clientId)) {
+                            logger.info("Loading activities for $year from cache ...")
+                            val activities = localStorageProvider.loadActivitiesFromCache(clientId, year)
+                            loadMissingStreamsFromCache(clientId, year, activities)
+                            activities
+                        } else {
+                            logger.info("Loading activities for $year from Strava API ...")
+                            val activities = retrieveActivitiesFromApi(clientId, year)
+                            saveActivitiesToCache(clientId, year, activities)
+                            loadMissingStreamsFromApi(clientId, year, activities)
+                            activities
                         }
-                    }
-                } else {
-                    async {
-                        try {
-                            if (localStorageProvider.isLocalCacheExistForYear(clientId, year)) {
-                                localStorageProvider.loadActivitiesFromCache(clientId, year).also { activities ->
-                                    // Load missing activities streams
-                                    loadActivitiesStreams(clientId, year, activities.filter { it.stream == null })
-                                }
-                            } else {
-                                retrieveActivities(clientId, year)
-                            }
-                        } catch (exception: Exception) {
-                            logger.error("Error loading activities for year $year from Strava", exception)
-                            emptyList()
-                        }
+                    } catch (e: Exception) {
+                        logger.error("Error loading activities for year $year", e)
+                        emptyList()
                     }
                 }
             }
             loadedActivities.addAll(deferredActivities.awaitAll().flatten())
         }
         logger.info("${loadedActivities.size} activities loaded in ${elapsed / 1000} s.")
-
         return@coroutineScope loadedActivities
+    }
+
+    // Determines if activities should be loaded from cache
+    private fun shouldLoadFromCache(year: Int, clientId: String): Boolean {
+        return localStorageProvider.isLocalCacheExistForYear(clientId, year)
+    }
+
+    // Loads missing streams from cache
+    private fun loadMissingStreamsFromCache(clientId: String, year: Int, activities: List<StravaActivity>) {
+        activities.filter { it.stream == null }.forEach { activity ->
+            val stream = localStorageProvider.loadActivitiesStreamsFromCache(clientId, year, activity)
+            activity.stream = stream
+        }
+    }
+
+    // Loads missing streams from API
+    private fun loadMissingStreamsFromApi(clientId: String, year: Int, activities: List<StravaActivity>) {
+        activities.filter { it.stream == null }.forEach { activity ->
+            stravaApi?.getActivityStream(activity)?.let { optionalStream ->
+                if (optionalStream.isPresent) {
+                    val stream = optionalStream.get()
+                    localStorageProvider.saveActivitiesStreamsToCache(clientId, year, activity, stream)
+                    activity.stream = stream
+                }
+            }
+        }
+    }
+
+    // Retrieves activities from Strava API
+    private fun retrieveActivitiesFromApi(clientId: String, year: Int): List<StravaActivity> {
+        return stravaApi?.getActivities(year)?.filterByActivityTypes() ?: emptyList()
+    }
+
+    // Saves activities to cache
+    private fun saveActivitiesToCache(clientId: String, year: Int, activities: List<StravaActivity>) {
+        localStorageProvider.saveActivitiesToCache(clientId, year, activities)
     }
 
     private fun loadActivitiesStreams(clientId: String, year: Int, activities: List<StravaActivity>) {

@@ -4,12 +4,12 @@ import com.fasterxml.jackson.annotation.JsonProperty
 
 data class MovingStream(
     // The sequence of moving values for this stream, as boolean values
-    @JsonProperty("data")
+    @param:JsonProperty("data")
     val `data`: List<Boolean>,
-    @JsonProperty("original_size")
+    @param:JsonProperty("original_size")
     val originalSize: Int,
-    @JsonProperty("resolution")
+    @param:JsonProperty("resolution")
     val resolution: String,
-    @JsonProperty("series_type")
+    @param:JsonProperty("series_type")
     val seriesType: String,
 )

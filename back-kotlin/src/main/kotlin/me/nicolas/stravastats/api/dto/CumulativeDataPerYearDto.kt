@@ -7,8 +7,8 @@ import io.swagger.v3.oas.annotations.media.Schema
  */
 @Schema(description = "Cumulative data per year.", name = "CumulativeDataPerYear")
 data class CumulativeDataPerYearDto (
-    @Schema(description = "Distance by year and day (Map<Year, Map<Day, Value>>).", name = "Distance")
+    @param:Schema(description = "Distance by year and day (Map<Year, Map<Day, Value>>).", name = "Distance")
     val distance: Map<String, Map<String, Number>>,
-    @Schema(description = "Elevation by year and day (Map<Year, Map<Day, Value>>).", name = "Elevation")
+    @param:Schema(description = "Elevation by year and day (Map<Year, Map<Day, Value>>).", name = "Elevation")
     val elevation: Map<String, Map<String, Number>>
 )

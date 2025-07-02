@@ -13,9 +13,9 @@ data class Stream(
     val moving: MovingStream? = null,
     val altitude: AltitudeStream? = null,
     val watts: PowerStream? = null,
-    @JsonProperty("velocity_smooth")
+    @param:JsonProperty("velocity_smooth")
     val velocitySmooth: SmoothVelocityStream? = null,
-    @JsonProperty("grade_smooth")
+    @param:JsonProperty("grade_smooth")
     val gradeSmooth: SmoothGradeStream? = null,
 ) {
     fun hasLatLngStream() = latlng != null

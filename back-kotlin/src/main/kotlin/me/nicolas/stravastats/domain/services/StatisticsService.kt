@@ -21,7 +21,7 @@ internal class StatisticsService(
     private val logger = LoggerFactory.getLogger(AthleteController::class.java)
 
     override fun getStatistics(activityType: ActivityType, year: Int?): List<Statistic> {
-        logger.info("Compute statistics for $activityType for ${year ?: "all years"}")
+        logger.info("Compute $activityType statistics for ${year ?: "all years"}")
 
         val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityType, year)
 

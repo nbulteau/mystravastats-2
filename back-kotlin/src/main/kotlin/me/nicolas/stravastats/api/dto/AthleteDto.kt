@@ -9,51 +9,51 @@ import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 @Schema(description = "StravaAthlete object", name = "StravaAthlete")
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class AthleteDto(
-    @JsonProperty("badge_type_id")
+    @param:JsonProperty("badge_type_id")
     val badgeTypeId: Int,
-    @JsonProperty("city")
+    @param:JsonProperty("city")
     val city: String?,
-    @JsonProperty("country")
+    @param:JsonProperty("country")
     val country: String?,
-    @JsonProperty("created_at")
+    @param:JsonProperty("created_at")
     val createdAt: String?,
-    @JsonProperty("firstname")
+    @param:JsonProperty("firstname")
     val firstname: String?,
-    @JsonProperty("id")
+    @param:JsonProperty("id")
     val id: Long,
-    @JsonProperty("lastname")
+    @param:JsonProperty("lastname")
     val lastname: String?,
-    @JsonProperty("premium")
+    @param:JsonProperty("premium")
     val premium: Boolean?,
-    @JsonProperty("profile")
+    @param:JsonProperty("profile")
     val profile: String?,
-    @JsonProperty("profile_medium")
+    @param:JsonProperty("profile_medium")
     val profileMedium: String?,
-    @JsonProperty("resource_state")
+    @param:JsonProperty("resource_state")
     val resourceState: Int?,
-    @JsonProperty("sex")
+    @param:JsonProperty("sex")
     val sex: String?,
-    @JsonProperty("state")
+    @param:JsonProperty("state")
     val state: String?,
-    @JsonProperty("summit")
+    @param:JsonProperty("summit")
     val summit: Boolean?,
-    @JsonProperty("updated_at")
+    @param:JsonProperty("updated_at")
     val updatedAt: String?,
-    @JsonProperty("username")
+    @param:JsonProperty("username")
     val username: String?,
-    @JsonProperty("athlete_type")
+    @param:JsonProperty("athlete_type")
     val athleteType: Int?,
-    @JsonProperty("date_preference")
+    @param:JsonProperty("date_preference")
     val datePreference: String?,
-    @JsonProperty("follower_count")
+    @param:JsonProperty("follower_count")
     val followerCount: Int?,
-    @JsonProperty("friend_count")
+    @param:JsonProperty("friend_count")
     val friendCount: Int?,
-    @JsonProperty("measurement_preference")
+    @param:JsonProperty("measurement_preference")
     val measurementPreference: String?,
-    @JsonProperty("mutual_friend_count")
+    @param:JsonProperty("mutual_friend_count")
     val mutualFriendCount: Int?,
-    @JsonProperty("weight")
+    @param:JsonProperty("weight")
     val weight: Int?,
 )
 

@@ -6,62 +6,62 @@ import com.fasterxml.jackson.annotation.JsonProperty
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class StravaAthlete(
-    @JsonProperty("badge_type_id")
+    @param:JsonProperty("badge_type_id")
     val badgeTypeId: Int? = null,
-    @JsonProperty("city")
+    @param:JsonProperty("city")
     val city: String? = null,
-    @JsonProperty("country")
+    @param:JsonProperty("country")
     val country: String? = null,
-    @JsonProperty("created_at")
+    @param:JsonProperty("created_at")
     val createdAt: String? = null,
-    @JsonProperty("firstname")
+    @param:JsonProperty("firstname")
     val firstname: String? = null,
-    @JsonProperty("follower")
+    @param:JsonProperty("follower")
     val follower: Any? = null,
-    @JsonProperty("friend")
+    @param:JsonProperty("friend")
     val friend: Any? = null,
-    @JsonProperty("id")
+    @param:JsonProperty("id")
     val id: Long,
-    @JsonProperty("lastname")
+    @param:JsonProperty("lastname")
     val lastname: String? = null,
-    @JsonProperty("premium")
+    @param:JsonProperty("premium")
     val premium: Boolean? = null,
-    @JsonProperty("profile")
+    @param:JsonProperty("profile")
     val profile: String? = null,
-    @JsonProperty("profile_medium")
+    @param:JsonProperty("profile_medium")
     val profileMedium: String? = null,
-    @JsonProperty("resource_state")
+    @param:JsonProperty("resource_state")
     val resourceState: Int? = null,
-    @JsonProperty("sex")
+    @param:JsonProperty("sex")
     val sex: String? = null,
-    @JsonProperty("state")
+    @param:JsonProperty("state")
     val state: String? = null,
-    @JsonProperty("summit")
+    @param:JsonProperty("summit")
     val summit: Boolean? = null,
-    @JsonProperty("updated_at")
+    @param:JsonProperty("updated_at")
     val updatedAt: String? = null,
-    @JsonProperty("username")
+    @param:JsonProperty("username")
     val username: String? = null,
-    @JsonProperty("athlete_type")
+    @param:JsonProperty("athlete_type")
     val athleteType: Int? = null,
-    @JsonProperty("bikes")
+    @param:JsonProperty("bikes")
     val bikes: List<Bike>? = null,
-    @JsonProperty("clubs")
+    @param:JsonProperty("clubs")
     val clubs: List<Any>? = null,
-    @JsonProperty("date_preference")
+    @param:JsonProperty("date_preference")
     val datePreference: String? = null,
-    @JsonProperty("follower_count")
+    @param:JsonProperty("follower_count")
     val followerCount: Int? = null,
-    @JsonProperty("friend_count")
+    @param:JsonProperty("friend_count")
     val friendCount: Int? = null,
-    @JsonProperty("ftp")
+    @param:JsonProperty("ftp")
     val ftp: Any? = null,
-    @JsonProperty("measurement_preference")
+    @param:JsonProperty("measurement_preference")
     val measurementPreference: String? = null,
-    @JsonProperty("mutual_friend_count")
+    @param:JsonProperty("mutual_friend_count")
     val mutualFriendCount: Int? = null,
-    @JsonProperty("shoes")
+    @param:JsonProperty("shoes")
     val shoes: List<Shoe>? = null,
-    @JsonProperty("weight")
+    @param:JsonProperty("weight")
     val weight: Int? = null,
 )
