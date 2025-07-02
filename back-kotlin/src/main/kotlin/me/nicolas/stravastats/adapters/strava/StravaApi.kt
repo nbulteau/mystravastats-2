@@ -18,6 +18,7 @@ import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.interfaces.IStravaApi
+import me.nicolas.stravastats.domain.utils.BrowserUtils.openBrowser
 import okhttp3.Headers
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -26,7 +27,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
-import java.awt.Desktop
 import java.net.*
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -398,33 +398,4 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
     private fun buildRequestHeaders() =
         Headers.Builder().set("Accept", "application/json").set("ContentType", "application/json")
             .set("Authorization", "Bearer $accessToken").build()
-
-    private fun openBrowser(url: String) {
-        try {
-            if (Desktop.isDesktopSupported()) {
-                val desktop = Desktop.getDesktop()
-                if (desktop.isSupported(Desktop.Action.BROWSE)) {
-                    desktop.browse(URI(url))
-                    return
-                }
-            }
-            // Fallback to using Runtime exec
-            val os = System.getProperty("os.name").lowercase(Locale.getDefault())
-            when {
-                os.contains("win") -> Runtime.getRuntime().exec(arrayOf("rundll32", "url.dll,FileProtocolHandler", url))
-                os.contains("mac") -> Runtime.getRuntime().exec(arrayOf("open", url))
-                os.contains("nix") || os.contains("nux") -> {
-                    val process = Runtime.getRuntime().exec(arrayOf("xdg-open", url))
-                    val exitCode = process.waitFor()
-                    if (exitCode != 0) {
-                        println("Failed to open the browser with xdg-open. Exit code: $exitCode")
-                    }
-                }
-
-                else -> println("Unsupported operating system. Cannot open the browser.")
-            }
-        } catch (e: Exception) {
-            println("Failed to open the browser: ${e.message}")
-        }
-    }
 }
