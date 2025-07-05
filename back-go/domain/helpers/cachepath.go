@@ -15,7 +15,11 @@ func init() {
 }
 
 func loadEnvironmentVariables() string {
-	godotenv.Overload()
+	err := godotenv.Overload()
+	if err != nil {
+		log.Printf("Error loading environment variables: %v", err) // Log the error
+		return ""
+	}
 
 	cachePath := os.Getenv("STRAVA_CACHE_PATH")
 	if cachePath == "" {
