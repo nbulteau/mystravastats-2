@@ -1,9 +1,11 @@
 plugins {
     kotlin("jvm") version "2.2.0"
     kotlin("plugin.spring") version "2.2.0"
+
     id("org.springframework.boot") version "3.5.3"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.ben-manes.versions") version "0.52.0"
+    //id("org.graalvm.buildtools.native") version "0.10.6"
 }
 
 group = "me.nicolas"
@@ -13,6 +15,10 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(23)
     }
+}
+
+springBoot {
+    mainClass.set("me.nicolas.stravastats.StravastatsApplicationKt")
 }
 
 repositories {
@@ -35,9 +41,9 @@ dependencies {
 
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9")
 
-    implementation("io.ktor:ktor-server-netty:3.2.0")
+    implementation("io.ktor:ktor-server-netty:3.2.1")
 
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp:5.0.0")
 
     implementation("io.jenetics:jpx:3.2.1")
 
