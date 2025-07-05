@@ -8,6 +8,9 @@ import (
 	"time"
 )
 
+// DashboardService provides methods to fetch various dashboard data related to Strava activities.
+
+// FetchEddingtonNumber calculates the Eddington number for a given activity type.
 func FetchEddingtonNumber(activityType business.ActivityType) business.EddingtonNumber {
 	log.Printf("Get Eddington number for activity type %s", activityType)
 
@@ -43,6 +46,7 @@ func FetchEddingtonNumber(activityType business.ActivityType) business.Eddington
 	return business.EddingtonNumber{Number: eddingtonNumber, List: eddingtonList}
 }
 
+// GetCumulativeDistancePerYear calculates the cumulative distance per year for a given activity type.
 func GetCumulativeDistancePerYear(activityType business.ActivityType) map[string]map[string]float64 {
 	log.Printf("Get cumulative distance per year for activity type %s", activityType)
 
@@ -268,6 +272,7 @@ func averageHeartRate(activities []*strava.Activity) int {
 	return sum / count
 }
 
+// maxHeartRate calculates the maximum heart rate for a list of Strava activities.
 func maxHeartRate(activities []*strava.Activity) float64 {
 	var maxHeartRate float64
 	for _, activity := range activities {
@@ -278,6 +283,7 @@ func maxHeartRate(activities []*strava.Activity) float64 {
 	return maxHeartRate
 }
 
+// averageWatts calculates the average watts for a list of Strava activities.
 func averageWatts(activities []*strava.Activity) float64 {
 	var sum float64
 	var count float64
@@ -293,6 +299,7 @@ func averageWatts(activities []*strava.Activity) float64 {
 	return sum / count
 }
 
+// maxWatts calculates the maximum average watts for a list of Strava activities.
 func maxWatts(activities []*strava.Activity) float64 {
 	var maxWatts float64
 	for _, activity := range activities {
@@ -303,6 +310,7 @@ func maxWatts(activities []*strava.Activity) float64 {
 	return maxWatts
 }
 
+// calculateAverageCadence calculates the average cadence for a list of Strava activities.
 func calculateAverageCadence(activities []*strava.Activity) [][]int64 {
 	var cadenceData [][]int64
 	for _, activity := range activities {

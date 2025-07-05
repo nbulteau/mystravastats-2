@@ -15,6 +15,7 @@ func FetchAthlete() strava.Athlete {
 	return activityProvider.GetAthlete()
 }
 
+// RetrieveGPXByActivityTypeAndYear retrieves GPX coordinates for activities of a specific type and year.
 func RetrieveGPXByActivityTypeAndYear(activityType business.ActivityType, year *int) [][][]float64 {
 
 	activities := activityProvider.GetActivitiesByActivityTypeAndYear(activityType, year)
@@ -41,6 +42,7 @@ func RetrieveGPXByActivityTypeAndYear(activityType business.ActivityType, year *
 	return result
 }
 
+// RetrieveDetailedActivity fetches detailed information about a specific activity by its ID.
 func RetrieveDetailedActivity(activityId int64) (*strava.DetailedActivity, error) {
 	log.Printf("Get detailed activity %d", activityId)
 

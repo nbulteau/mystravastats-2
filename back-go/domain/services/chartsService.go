@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// FetchChartsDistanceByPeriod retrieves the total distance of activities by period for a given activity type and year.
 func FetchChartsDistanceByPeriod(activityType business.ActivityType, year *int, period business.Period) []map[string]float64 {
 	log.Printf("Get distance by %s by activity (%s) type by year (%d)", period, activityType, year)
 
@@ -27,6 +28,7 @@ func FetchChartsDistanceByPeriod(activityType business.ActivityType, year *int, 
 	return sortResultByKey(result)
 }
 
+// FetchChartsElevationByPeriod retrieves the total elevation gain of activities by period for a given activity type and year.
 func FetchChartsElevationByPeriod(activityType business.ActivityType, year *int, period business.Period) []map[string]float64 {
 	log.Printf("Get elevation by %s by activity (%s) type by year (%d)", period, activityType, year)
 
