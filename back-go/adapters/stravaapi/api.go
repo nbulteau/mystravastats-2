@@ -112,23 +112,49 @@ func (api *StravaApi) getToken(clientId, clientSecret, authorizationCode string)
 
 func (api *StravaApi) RetrieveLoggedInAthlete() (*strava.Athlete, error) {
 	url := fmt.Sprintf("%s/api/v3/athlete", api.properties.URL)
+
+	var athlete *strava.Athlete
+	var err error
+	retryCount := 3
+	backoffDelay := time.Second
+
+	for i := 0; i < retryCount; i++ {
+		athlete, err = api.retrieveAthlete(url)
+		if err == nil {
+			return athlete, nil
+		}
+
+		if errors.Is(err, errors.New("too many requests")) {
+			log.Printf("Too many requests, retrying in %v...", backoffDelay)
+			time.Sleep(backoffDelay)
+			backoffDelay *= 2 // Backoff exponentiel
+			continue
+		}
+
+		return nil, err // Retourne l'erreur pour les autres cas
+	}
+
+	return nil, fmt.Errorf("failed to retrieve athlete after %d retries: %v", retryCount, err)
+}
+
+func (api *StravaApi) retrieveAthlete(url string) (*strava.Athlete, error) {
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Authorization", "Bearer "+api.accessToken)
 	resp, err := api.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to connect to Strava API: %v", err)
 	}
-	defer func(Body interface{}) {
-		err := resp.Body.Close()
-		if err != nil {
-			log.Fatalf("Failed to close response body: %v", err)
-		}
-	}(resp.Body)
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return nil, errors.New("too many requests")
+	}
 
 	var athlete strava.Athlete
 	if err := json.NewDecoder(resp.Body).Decode(&athlete); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %v", err)
 	}
+
 	return &athlete, nil
 }
 
@@ -136,6 +162,32 @@ func (api *StravaApi) GetActivities(year int) ([]strava.Activity, error) {
 	before := time.Date(year, 12, 31, 23, 59, 0, 0, time.UTC).Unix()
 	after := time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
 	url := fmt.Sprintf("%s/api/v3/athlete/activities?per_page=%d&before=%d&after=%d", api.properties.URL, api.properties.PageSize, before, after)
+
+	var activities []strava.Activity
+	var err error
+	retryCount := 3
+	backoffDelay := time.Second
+
+	for i := 0; i < retryCount; i++ {
+		activities, err = api.getActivities(url)
+		if err == nil {
+			return activities, nil
+		}
+
+		if errors.Is(err, errors.New("too many requests")) {
+			log.Printf("Too many requests, retrying in %v...", backoffDelay)
+			time.Sleep(backoffDelay)
+			backoffDelay *= 2 // Exponential backoff
+			continue
+		}
+
+		return nil, err // Return on non-429 errors
+	}
+
+	return nil, fmt.Errorf("failed to retrieve activities after %d retries: %v", retryCount, err)
+}
+
+func (api *StravaApi) getActivities(url string) ([]strava.Activity, error) {
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Authorization", "Bearer "+api.accessToken)
 	resp, err := api.httpClient.Do(req)
@@ -148,6 +200,10 @@ func (api *StravaApi) GetActivities(year int) ([]strava.Activity, error) {
 			log.Fatalf("Failed to close response body: %v", err)
 		}
 	}(resp.Body)
+
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return nil, errors.New("too many requests")
+	}
 
 	var activities []strava.Activity
 	if err := json.NewDecoder(resp.Body).Decode(&activities); err != nil {
@@ -210,48 +266,48 @@ func (api *StravaApi) GetActivityStream(stravaActivity strava.Activity) (*strava
 
 func buildResponseHtml(clientId string) string {
 	return fmt.Sprintf(`
-		<!DOCTYPE html>
-		<html lang="en">
-		<head>
-			<meta charset="UTF-8">
-			<meta name="viewport" content="width=device-width, initial-scale=1.0">
-			<title>Access Granted</title>
-			<style>
-				body {
-					font-family: Arial, sans-serif;
-					background-color: #f4f4f4;
-					display: flex;
-					justify-content: center;
-					align-items: center;
-					height: 100vh;
-					margin: 0;
-				}
-				.container {
-					background-color: #fff;
-					padding: 20px;
-					border-radius: 8px;
-					box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-					text-align: center;
-				}
-				.custom-class {
-					color: #007bff;
-					font-weight: bold;
-				}
-				h1 {
-					color: #333;
-				}
-				p {
-					color: #666;
-				}
-			</style>
-		</head>
-		<body>
-			<div class="container">
-				<h1>Access Granted</h1>
-				<p class="custom-class">Access granted to read activities of clientId: %s.</p>
-				<p>You can now close this window.</p>
-			</div>
-		</body>
-		</html>
-	`, clientId)
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Access Granted</title>
+   <style>
+    body {
+     font-family: Arial, sans-serif;
+     background-color: #f4f4f4;
+     display: flex;
+     justify-content: center;
+     align-items: center;
+     height: 100vh;
+     margin: 0;
+    }
+    .container {
+     background-color: #fff;
+     padding: 20px;
+     border-radius: 8px;
+     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+     text-align: center;
+    }
+    .custom-class {
+     color: #007bff;
+     font-weight: bold;
+    }
+    h1 {
+     color: #333;
+    }
+    p {
+     color: #666;
+    }
+   </style>
+  </head>
+  <body>
+   <div class="container">
+    <h1>Access Granted</h1>
+    <p class="custom-class">Access granted to read activities of clientId: %s.</p>
+    <p>You can now close this window.</p>
+   </div>
+  </body>
+  </html>
+ `, clientId)
 }
