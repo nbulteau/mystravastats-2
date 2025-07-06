@@ -16,7 +16,7 @@ See [Vite Configuration Reference](https://vitejs.dev/config/).
 
 ## Project Setup
 
-```sh
+```shell
 npm install
 ```
 
@@ -38,6 +38,13 @@ npm run build
 npm run lint
 ```
 
+### 
+```shell
+npm update
+npm upgrade`
+npx npm-check-updates -u
+npm install
+``
 
 # Resources for Developers
 
