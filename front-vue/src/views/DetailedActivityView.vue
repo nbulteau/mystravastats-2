@@ -1,4 +1,17 @@
 <template>
+    <!-- Back arrow button at the top left -->
+  <button
+    class="back-arrow"
+    @click="goBack"
+    aria-label="Back to activities"
+    title="Back to activities"
+  >
+    <!-- SVG left arrow icon -->
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    
+  </button>
   <div
     id="title"
     style="text-align: center; margin-bottom: 20px"
@@ -116,6 +129,15 @@ import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css"; 
 import L from "leaflet";
 import "leaflet-defaulticon-compatibility";
+
+import { useRouter } from "vue-router"; // Import useRouter from vue-router
+
+const router = useRouter(); // Get router instance
+
+// Function to go back to previous page
+function goBack() {
+  router.back();
+}
 
 // Set the default icon options
 L.Icon.Default.mergeOptions({
@@ -591,5 +613,22 @@ watch([showPowerCurve, activity], () => {
 
 .switch-button.on::before {
   transform: translateX(25px);
+}
+
+/* Style for the back arrow button */
+.back-arrow {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  font-size: 2rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #333;
+  z-index: 10;
+  transition: color 0.2s;
+}
+.back-arrow:hover {
+  color: #007bff;
 }
 </style>
