@@ -21,7 +21,6 @@ coverage
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea
 *.suo
 *.ntvs*
 *.njsproj
@@ -29,3 +28,6 @@ coverage
 *.sw?
 
 *.tsbuildinfo
+
+# Ignore IntelliJ directory
+.idea
