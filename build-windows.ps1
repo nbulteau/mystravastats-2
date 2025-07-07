@@ -1,49 +1,66 @@
-﻿# Start time
+﻿param (
+    [switch]$Verbose
+)
+
+# Record the start time of the build process
 $start_time = Get-Date
 
 Write-Output "🚀 Starting build process..."
 
-# Build the UI project
-Write-Output "⌛ Building front-vue project..."
-docker run --rm -v "${PWD}:/app" -w /app/front-vue node:latest `
-    sh -c "npm install -g npm@11.4.2 2>/dev/null && npm install && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build 2>/dev/null" > $null 2>&1
+# Function to write output only if verbose mode is enabled
+function Write-VerboseOutput {
+    param (
+        [string]$Message
+    )
+    if ($Verbose) {
+        Write-Output $Message
+    }
+}
 
-Write-Output "📦 Copying UI build to back-go/public..."
-# Remove back-go/public if it exists, then recreate it
+# Build the UI project using Docker
+Write-VerboseOutput "⌛ Building front-vue project..."
+docker run --rm -v "${PWD}:/app" -w /app/front-vue node:latest `
+ sh -c "npm install -g npm@11.4.2 2>/dev/null && npm install && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build 2>/dev/null" > $null 2>&1
+
+# Copy the build artifacts to the back-go/public directory
+Write-VerboseOutput "📦 Copying UI build to back-go/public..."
+# Remove the existing back-go/public directory if it exists
 if (Test-Path -Path "back-go/public") {
     Remove-Item -Recurse -Force "back-go/public"
-    Write-Output "🗑️ Removed existing back-go/public directory."
+    Write-VerboseOutput "🗑️ Removed existing back-go/public directory."
 }
+# Recreate the back-go/public directory
 New-Item -ItemType Directory -Path "back-go/public" | Out-Null
+# Copy the build artifacts
 Copy-Item -Recurse -Force -Path "front-vue/dist/*" -Destination "back-go/public/"
 
-# Remove old binary before building
+# Remove the old binary before building the new one
 if (Test-Path -Path "mystravastats.exe") {
     Remove-Item -Force "mystravastats.exe"
-    Write-Output "🗑️ Removed old mystravastats.exe binary."
+    Write-VerboseOutput "🗑️ Removed old mystravastats.exe binary."
 }
 
-# Build for Windows
-Write-Output "⌛ Building back-go project..."
+# Build the back-go project for Windows using Docker
+Write-VerboseOutput "⌛ Building back-go project..."
 docker run --rm -v "${PWD}:/app" -w /app golang:1.24.4 `
-    sh -c "cd back-go; GOOS=windows GOARCH=amd64 go build -o ../mystravastats.exe" > $null 2>&1
+ sh -c "cd back-go; GOOS=windows GOARCH=amd64 go build -o ../mystravastats.exe" > $null 2>&1
 
-# Check if new binary was created
+# Check if the new binary was created successfully
 if (-Not (Test-Path -Path "mystravastats.exe")) {
     Write-Output "❌ Build failed: mystravastats.exe binary not found."
     exit 1
 }
 
-# Ensure strava-cache directory exists
+# Ensure the strava-cache directory exists
 if (-Not (Test-Path -Path "strava-cache")) {
     New-Item -ItemType Directory -Path "strava-cache"
-    Write-Output "📁 Created strava-cache directory."
+    Write-VerboseOutput "📁 Created strava-cache directory."
 }
 
-# Copy the famous-climb directory to strava-cache
+# Copy the famous-climb directory to the strava-cache directory
 Copy-Item -Recurse -Force -Path "back-go/famous-climb" -Destination "strava-cache/"
 
-# Ensure .strava file exists in strava-cache directory
+# Ensure the .strava file exists in the strava-cache directory
 $stravaFilePath = "strava-cache/.strava"
 if (-Not (Test-Path -Path $stravaFilePath)) {
     Set-Content -Path $stravaFilePath -Value "clientId=`nclientSecret="
@@ -51,15 +68,15 @@ if (-Not (Test-Path -Path $stravaFilePath)) {
     Write-Output "🔑 Please add your Strava API credentials to strava-cache/.strava file."
 }
 
-# Ensure .env file exists and add STRAVA_CACHE_PATH
+# Ensure the .env file exists and add the STRAVA_CACHE_PATH variable
 $envFilePath = ".env"
 if (-Not (Test-Path -Path $envFilePath)) {
     $currentDirectory = (Get-Location).Path
     Set-Content -Path $envFilePath -Value "STRAVA_CACHE_PATH=$currentDirectory\strava-cache"
-    Write-Output "📄 Created .env file."
+    Write-VerboseOutput "📄 Created .env file."
 }
 
-# End time
+# Record the end time and calculate the elapsed time
 $end_time = Get-Date
 $elapsed_time = $end_time - $start_time
 

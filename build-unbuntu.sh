@@ -1,14 +1,28 @@
 #!/bin/bash
 
+# Check for --verbose flag
+VERBOSE=0
+for arg in "$@"; do
+  if [[ "$arg" == "--verbose" ]]; then
+    VERBOSE=1
+    set -x  # Enable shell debug output
+  fi
+done
+
 # Start time
 start_time=$(date +%s)
 
 echo "🚀 Starting build process..."
 
-# Build the UI project silently
+# Build the UI project silently or verbosely
 echo "⌛ Building front-vue project..."
-docker run --rm -v "$PWD:/app" -w /app/front-vue node:latest \
-    sh -c "npm install -g npm@11.4.2 >/dev/null 2>&1 && npm install >/dev/null 2>&1 && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build >/dev/null 2>&1" 
+if [[ $VERBOSE -eq 1 ]]; then
+  docker run --rm -v "$PWD:/app" -w /app/front-vue node:latest \
+    sh -c "npm install -g npm@11.4.2 && npm install && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build"
+else
+  docker run --rm -v "$PWD:/app" -w /app/front-vue node:latest \
+    sh -c "npm install -g npm@11.4.2 >/dev/null 2>&1 && npm install >/dev/null 2>&1 && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build >/dev/null 2>&1"
+fi
 
 # Copy the UI build to the back-go/public directory
 echo "📦 Copying UI build to back-go/public..."
@@ -22,10 +36,15 @@ if [ -f mystravastats ]; then
     echo "🗑️ Removed old mystravastats binary."
 fi
 
-# Build back for Linux silently
+# Build back for Linux silently or verbosely
 echo "🔨 Building Linux binary..."
-docker run --rm -v "$PWD:/app" -w /app golang:1.24.4 \
+if [[ $VERBOSE -eq 1 ]]; then
+  docker run --rm -v "$PWD:/app" -w /app golang:1.24.4 \
+    sh -c "cd back-go && GOOS=linux GOARCH=amd64 go build -o ../mystravastats"
+else
+  docker run --rm -v "$PWD:/app" -w /app golang:1.24.4 \
     sh -c "cd back-go && GOOS=linux GOARCH=amd64 go build -o ../mystravastats" >/dev/null 2>&1
+fi
 
 # Check if new binary was created
 if [ ! -f mystravastats ]; then
