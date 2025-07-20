@@ -41,9 +41,9 @@ dependencies {
 
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9")
 
-    implementation("io.ktor:ktor-server-netty:3.2.1")
+    implementation("io.ktor:ktor-server-netty:3.2.2")
 
-    implementation("com.squareup.okhttp3:okhttp:5.0.0")
+    implementation("com.squareup.okhttp3:okhttp:5.1.0")
 
     implementation("io.jenetics:jpx:3.2.1")
 
