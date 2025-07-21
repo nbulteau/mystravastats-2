@@ -11,9 +11,9 @@ import org.springframework.stereotype.Service
 import java.nio.file.Path
 
 interface IBadgesService {
-    fun getGeneralBadges(activityType: ActivityType, year: Int?): List<BadgeCheckResult>
+    fun getGeneralBadges(activityTypes: Set<ActivityType>, year: Int?): List<BadgeCheckResult>
 
-    fun getFamousBadges(activityType: ActivityType, year: Int?): List<BadgeCheckResult>
+    fun getFamousBadges(activityTypes: Set<ActivityType>, year: Int?): List<BadgeCheckResult>
 }
 
 @Service
@@ -29,13 +29,12 @@ internal class BadgesService(
 
     private val pyrenees: BadgeSet = loadBadgeSet("pyrenees", "famous-climb/pyrenees.json")
 
-    override fun getGeneralBadges(activityType: ActivityType, year: Int?): List<BadgeCheckResult> {
-        logger.info("Checking general badges for $activityType in ${year ?: "all years"}")
+    override fun getGeneralBadges(activityTypes: Set<ActivityType>, year: Int?): List<BadgeCheckResult> {
+        logger.info("Checking general badges for $activityTypes in ${year ?: "all years"}")
 
-        // TODO: Handle a set of activity types
-        val activities = activityProvider.getActivitiesByActivityTypeAndYear(setOf(activityType), year)
+        val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
 
-        return when (activityType) {
+        return when (activityTypes.firstOrNull()) {
             ActivityType.Ride -> {
                 DistanceBadge.rideBadgeSet.check(activities) +
                         ElevationBadge.rideBadgeSet.check(activities) +
@@ -58,13 +57,12 @@ internal class BadgesService(
         }
     }
 
-    override fun getFamousBadges(activityType: ActivityType, year: Int?): List<BadgeCheckResult> {
-        logger.info("Checking famous badges for $activityType in ${year ?: "all years"}")
+    override fun getFamousBadges(activityTypes: Set<ActivityType>, year: Int?): List<BadgeCheckResult> {
+        logger.info("Checking famous badges for $activityTypes in ${year ?: "all years"}")
 
-        // TODO: Handle a set of activity types
-        val activities = activityProvider.getActivitiesByActivityTypeAndYear(setOf(activityType), year)
+        val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
 
-        return when (activityType) {
+        return when (activityTypes.firstOrNull()) {
             ActivityType.Ride -> {
                 alpes.check(activities) + pyrenees.check(activities)
             }

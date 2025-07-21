@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import me.nicolas.stravastats.api.dto.*
-import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.services.IDashboardService
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
@@ -37,9 +36,11 @@ class DashboardController(
     )
     @GetMapping
     fun getDashboardData(
-        activityType: ActivityType,
+        activityType: String,
     ): DashboardDataDto {
-        val dashboardData = dashboardService.getDashboardData(activityType)
+        val activityTypes = activityType.convertToActivityTypeSet()
+
+        val dashboardData = dashboardService.getDashboardData(activityTypes)
 
         return dashboardData.toDto()
     }
@@ -63,10 +64,11 @@ class DashboardController(
     )
     @GetMapping("/eddington-number")
     fun getEddingtonNumber(
-        activityType: ActivityType,
+        activityType: String,
     ): EddingtonNumberDto {
+        val activityTypes = activityType.convertToActivityTypeSet()
 
-        return dashboardService.getEddingtonNumber(activityType).toDto()
+        return dashboardService.getEddingtonNumber(activityTypes).toDto()
     }
 
     @Operation(
@@ -88,12 +90,13 @@ class DashboardController(
     )
     @GetMapping("/cumulative-data-per-year")
     fun getCumulativeDataPerYear(
-        activityType: ActivityType,
+        activityType: String,
     ): CumulativeDataPerYearDto {
+        val activityTypes = activityType.convertToActivityTypeSet()
 
         return CumulativeDataPerYearDto(
-            distance = dashboardService.getCumulativeDistancePerYear(activityType),
-            elevation = dashboardService.getCumulativeElevationPerYear(activityType)
+            distance = dashboardService.getCumulativeDistancePerYear(activityTypes),
+            elevation = dashboardService.getCumulativeElevationPerYear(activityTypes)
         )
     }
 }

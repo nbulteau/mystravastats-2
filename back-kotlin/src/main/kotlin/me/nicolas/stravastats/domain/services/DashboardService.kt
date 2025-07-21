@@ -12,13 +12,13 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 
 interface IDashboardService {
-    fun getCumulativeDistancePerYear(activityType: ActivityType): Map<String, Map<String, Number>>
+    fun getCumulativeDistancePerYear(activityTypes: Set<ActivityType>): Map<String, Map<String, Number>>
 
-    fun getCumulativeElevationPerYear(activityType: ActivityType): Map<String, Map<String, Number>>
+    fun getCumulativeElevationPerYear(activityTypes: Set<ActivityType>): Map<String, Map<String, Number>>
 
-    fun getEddingtonNumber(activityType: ActivityType): EddingtonNumber
+    fun getEddingtonNumber(activityTypes: Set<ActivityType>): EddingtonNumber
 
-    fun getDashboardData(activityType: ActivityType): DashboardData
+    fun getDashboardData(activityTypes: Set<ActivityType>): DashboardData
 }
 
 
@@ -31,33 +31,33 @@ class DashboardService(
 
     /**
      * Get cumulative distance per year for a specific stravaActivity type.
-     * It returns a map with the year as key and the cumulative distance in km as value.
-     * @param activityType the stravaActivity type
-     * @return a map with the year as key and the cumulative distance in km as value
+     * It returns a map with the year as a key and the cumulative distance in km as a value.
+     * @param activityTypes the stravaActivity type
+     * @return a map with the year as a key and the cumulative distance in km as value
      */
-    override fun getCumulativeDistancePerYear(activityType: ActivityType): Map<String, Map<String, Number>> {
-        logger.info("Get cumulative distance per year for stravaActivity type $activityType")
-        return getCumulativeDataPerYear(activityType) { activitiesByDay ->
+    override fun getCumulativeDistancePerYear(activityTypes: Set<ActivityType>): Map<String, Map<String, Number>> {
+        logger.info("Get cumulative distance per year for stravaActivity type $activityTypes")
+        return getCumulativeDataPerYear(activityTypes) { activitiesByDay ->
             cumulativeDistance(activitiesByDay)
         }
     }
 
-    override fun getCumulativeElevationPerYear(activityType: ActivityType): Map<String, Map<String, Number>> {
-        logger.info("Get cumulative elevation per year for stravaActivity type $activityType")
-        return getCumulativeDataPerYear(activityType) { activitiesByDay ->
+    override fun getCumulativeElevationPerYear(activityTypes: Set<ActivityType>): Map<String, Map<String, Number>> {
+        logger.info("Get cumulative elevation per year for stravaActivity type $activityTypes")
+        return getCumulativeDataPerYear(activityTypes) { activitiesByDay ->
             cumulativeElevation(activitiesByDay)
         }
     }
 
     /**
      * Get the Eddington number for a specific stravaActivity type.
-     * @param activityType the stravaActivity type
+     * @param activityTypes the stravaActivity type
      * @return the Eddington number structure
      */
-    override fun getEddingtonNumber(activityType: ActivityType): EddingtonNumber {
-        logger.info("Get Eddington number for activity type $activityType")
+    override fun getEddingtonNumber(activityTypes: Set<ActivityType>): EddingtonNumber {
+        logger.info("Get Eddington number for activity type $activityTypes")
 
-        val activitiesByActiveDays = activityProvider.getActivitiesByActivityTypeGroupByActiveDays(activityType)
+        val activitiesByActiveDays = activityProvider.getActivitiesByActivityTypeGroupByActiveDays(activityTypes)
 
         val eddingtonList: List<Int> = if (activitiesByActiveDays.isEmpty()) {
             emptyList()
@@ -85,11 +85,10 @@ class DashboardService(
         return EddingtonNumber(eddingtonNumber, eddingtonList)
     }
 
-    override fun getDashboardData(activityType: ActivityType): DashboardData {
-        logger.info("Get dashboard data for activity type $activityType")
+    override fun getDashboardData(activityTypes: Set<ActivityType>): DashboardData {
+        logger.info("Get dashboard data for activity type $activityTypes")
 
-        // TODO: Handle a set of activity types
-        val activitiesByYear = activityProvider.getActivitiesByActivityTypeAndYear(setOf(activityType))
+        val activitiesByYear = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes)
             .groupBy { activity -> activity.startDateLocal.subSequence(0, 4).toString() }
 
         // compute nb of activities for all years
@@ -189,8 +188,7 @@ class DashboardService(
             }
             .filter { it.value > 0 }
 
-        // TODO: Handle a set of activity types
-        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(setOf(activityType))
+        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes)
 
         val averageCadence = filteredActivities
             .filter { activity -> activity.averageCadence > 0 }
@@ -220,8 +218,8 @@ class DashboardService(
         )
     }
 
-    private fun getCumulativeDataPerYear(activityType: ActivityType, calculate: (Map<String, List<StravaActivity>>) -> Map<String, Number>): Map<String, Map<String, Number>> {
-        val activitiesByYear = activityProvider.getActivitiesByActivityTypeGroupByYear(activityType)
+    private fun getCumulativeDataPerYear(activityTypes: Set<ActivityType>, calculate: (Map<String, List<StravaActivity>>) -> Map<String, Number>): Map<String, Map<String, Number>> {
+        val activitiesByYear = activityProvider.getActivitiesByActivityTypeGroupByYear(activityTypes)
         return (2010..LocalDate.now().year).mapNotNull { year ->
             activitiesByYear[year.toString()]?.let { activities ->
                 val activitiesByDay = groupActivitiesByDay(activities, year)

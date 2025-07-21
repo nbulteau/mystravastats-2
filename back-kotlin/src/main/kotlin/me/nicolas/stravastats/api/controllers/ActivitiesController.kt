@@ -10,7 +10,6 @@ import me.nicolas.stravastats.api.dto.ActivityDto
 import me.nicolas.stravastats.api.dto.DetailedActivityDto
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
 import me.nicolas.stravastats.api.dto.toDto
-import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.services.IActivityService
 import org.springframework.data.domain.Page
@@ -104,11 +103,9 @@ class ActivitiesController(
         @RequestParam(required = true) activityType: String,
         @RequestParam(required = false) year: Int?,
     ): List<ActivityDto> {
-        val activityTypes = activityType
-            .split('_').map { ActivityType.valueOf(it) }
-            .takeIf { it.isNotEmpty() } ?: throw IllegalArgumentException("Activity type must not be empty")
+        val activityTypes = activityType.convertToActivityTypeSet()
 
-        return activityService.getActivitiesByActivityTypeAndYear(activityTypes.toSet(), year)
+        return activityService.getActivitiesByActivityTypeAndYear(activityTypes, year)
             .map { activity -> activity.toDto() }
     }
 
@@ -131,10 +128,11 @@ class ActivitiesController(
     )
     @GetMapping("/active-days")
     fun getActiveDaysByActivityType(
-        activityType: ActivityType,
+        activityType: String,
     ): Map<String, Int> {
+        val activityTypes = activityType.convertToActivityTypeSet()
 
-        return activityService.getActivitiesByActivityTypeGroupByActiveDays(activityType)
+        return activityService.getActivitiesByActivityTypeGroupByActiveDays(activityTypes)
     }
 
     @Operation(
@@ -160,9 +158,10 @@ class ActivitiesController(
         ]
     )
     @GetMapping("/csv", produces = [MediaType.TEXT_PLAIN_VALUE])
-    fun exportCSV(activityType: ActivityType, year: Int): String {
+    fun exportCSV(activityType: String, year: Int): String {
+        val activityTypes = activityType.convertToActivityTypeSet()
 
-        return activityService.exportCSV(activityType, year)
+        return activityService.exportCSV(activityTypes, year)
     }
 
     @Operation(
@@ -197,3 +196,4 @@ class ActivitiesController(
         }.toDto()
     }
 }
+

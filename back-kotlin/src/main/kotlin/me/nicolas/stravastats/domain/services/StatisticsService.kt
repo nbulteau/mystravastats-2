@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service
 
 
 interface IStatisticsService {
-    fun getStatistics(activityType: ActivityType, year: Int?): List<Statistic>
+    fun getStatistics(activityTypes: Set<ActivityType>, year: Int?): List<Statistic>
 }
 
 @Service
@@ -20,21 +20,18 @@ internal class StatisticsService(
 
     private val logger = LoggerFactory.getLogger(AthleteController::class.java)
 
-    override fun getStatistics(activityType: ActivityType, year: Int?): List<Statistic> {
-        logger.info("Compute $activityType statistics for ${year ?: "all years"}")
+    override fun getStatistics(activityTypes: Set<ActivityType>, year: Int?): List<Statistic> {
+        logger.info("Compute $activityTypes statistics for ${year ?: "all years"}")
 
-        // TODO: Handle a set of activity types
-        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(setOf(activityType), year)
+        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
 
-        return when (activityType) {
-            ActivityType.Ride -> computeRideStatistics(filteredActivities)
-            ActivityType.RideWithCommute -> computeRideStatistics(filteredActivities) // Same as ride
-            ActivityType.VirtualRide -> computeVirtualRideStatistics(filteredActivities)
-            ActivityType.Commute -> computeCommuteStatistics(filteredActivities)
+
+        return when (activityTypes.first()) {
             ActivityType.Run -> computeRunStatistics(filteredActivities)
             ActivityType.InlineSkate -> computeInlineSkateStatistics(filteredActivities)
             ActivityType.Hike -> computeHikeStatistics(filteredActivities)
             ActivityType.AlpineSki -> computeAlpineSkiStatistics(filteredActivities)
+            else -> computeRideStatistics(filteredActivities)
         }
     }
 
@@ -92,38 +89,10 @@ internal class StatisticsService(
                 BestElevationDistanceStatistic("Max gradient for 5 km", rideActivities, 5000.0),
                 BestElevationDistanceStatistic("Max gradient for 10 km", rideActivities, 10000.0),
                 BestElevationDistanceStatistic("Max gradient for 20 km", rideActivities, 20000.0),
-            )
-        )
-        return statistics
-    }
-
-    private fun computeVirtualRideStatistics(rideActivities: List<StravaActivity>): List<Statistic> {
-
-        val statistics = computeCommonStats(rideActivities).toMutableList()
-        statistics.addAll(
-            listOf(
-                MaxSpeedStatistic(rideActivities),
-                MaxMovingTimeStatistic(rideActivities),
-                MaxAveragePowerStatistic(rideActivities),
-                MaxWeightedAveragePowerStatistic(rideActivities),
-                BestEffortDistanceStatistic("Best 250 m", rideActivities, 250.0),
-                BestEffortDistanceStatistic("Best 500 m", rideActivities, 500.0),
-                BestEffortDistanceStatistic("Best 1000 m", rideActivities, 1000.0),
-                BestEffortDistanceStatistic("Best 5 km", rideActivities, 5000.0),
-                BestEffortDistanceStatistic("Best 10 km", rideActivities, 10000.0),
-                BestEffortDistanceStatistic("Best 20 km", rideActivities, 20000.0),
-                BestEffortDistanceStatistic("Best 50 km", rideActivities, 50000.0),
-                BestEffortDistanceStatistic("Best 100 km", rideActivities, 100000.0),
-                BestEffortTimeStatistic("Best 30 min", rideActivities, 30 * 60),
-                BestEffortTimeStatistic("Best 1 h", rideActivities, 60 * 60),
-                BestEffortTimeStatistic("Best 2 h", rideActivities, 2 * 60 * 60),
-                BestEffortTimeStatistic("Best 3 h", rideActivities, 3 * 60 * 60),
-                BestEffortTimeStatistic("Best 4 h", rideActivities, 4 * 60 * 60),
                 BestEffortPowerStatistic("Best average power for 20 min", rideActivities, 20 * 60),
                 BestEffortPowerStatistic("Best average power for 1 h", rideActivities, 60 * 60),
             )
         )
-
         return statistics
     }
 
@@ -147,28 +116,6 @@ internal class StatisticsService(
                 BestEffortTimeStatistic("Best 3 h", filteredActivities, 3 * 60 * 60),
                 BestEffortTimeStatistic("Best 4 h", filteredActivities, 4 * 60 * 60),
                 BestEffortTimeStatistic("Best 5 h", filteredActivities, 5 * 60 * 60),
-            )
-        )
-        return statistics
-    }
-
-    private fun computeCommuteStatistics(commuteActivities: List<StravaActivity>): List<Statistic> {
-
-        val statistics = computeCommonStats(commuteActivities).toMutableList()
-        statistics.addAll(
-            listOf(
-                MaxSpeedStatistic(commuteActivities),
-                MaxMovingTimeStatistic(commuteActivities),
-                BestEffortDistanceStatistic("Best 250 m", commuteActivities, 250.0),
-                BestEffortDistanceStatistic("Best 500 m", commuteActivities, 500.0),
-                BestEffortDistanceStatistic("Best 1000 m", commuteActivities, 1000.0),
-                BestEffortDistanceStatistic("Best 5 km", commuteActivities, 5000.0),
-                BestEffortDistanceStatistic("Best 10 km", commuteActivities, 10000.0),
-                BestEffortTimeStatistic("Best 30 min", commuteActivities, 30 * 60),
-                BestEffortTimeStatistic("Best 1 h", commuteActivities, 60 * 60),
-                BestElevationDistanceStatistic("Max gradient for 250 m", commuteActivities, 250.0),
-                BestElevationDistanceStatistic("Max gradient for 500 m", commuteActivities, 500.0),
-                BestElevationDistanceStatistic("Max gradient for 1000 m", commuteActivities, 1000.0),
             )
         )
         return statistics
@@ -243,7 +190,8 @@ internal class StatisticsService(
                 activities.sumOf { stravaActivity: StravaActivity -> stravaActivity.totalElevationGain }
             },
             GlobalStatistic("Km by activity", activities, "%.2f km") {
-                activities.sumOf { stravaActivity: StravaActivity -> stravaActivity.distance }.div(activities.size) / 1000
+                activities.sumOf { stravaActivity: StravaActivity -> stravaActivity.distance }
+                    .div(activities.size) / 1000
             },
 
             MaxDistanceStatistic(activities),

@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
 import me.nicolas.stravastats.api.dto.StatisticsDto
 import me.nicolas.stravastats.api.dto.toDto
-import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.services.IStatisticsService
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
@@ -46,11 +45,12 @@ class StatisticsController(
     )
     @GetMapping
     fun getStatistics(
-        @RequestParam(required = true) activityType: ActivityType,
+        @RequestParam(required = true) activityType: String,
         @RequestParam(required = false) year: Int?,
     ): List<StatisticsDto> {
+        val activityTypes = activityType.convertToActivityTypeSet()
 
-        return statisticsService.getStatistics(activityType, year)
+        return statisticsService.getStatistics(activityTypes, year)
             .map { activityStatistic -> activityStatistic.toDto() }
     }
 }
