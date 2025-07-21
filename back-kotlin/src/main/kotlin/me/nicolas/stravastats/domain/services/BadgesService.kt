@@ -32,7 +32,8 @@ internal class BadgesService(
     override fun getGeneralBadges(activityType: ActivityType, year: Int?): List<BadgeCheckResult> {
         logger.info("Checking general badges for $activityType in ${year ?: "all years"}")
 
-        val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityType, year)
+        // TODO: Handle a set of activity types
+        val activities = activityProvider.getActivitiesByActivityTypeAndYear(setOf(activityType), year)
 
         return when (activityType) {
             ActivityType.Ride -> {
@@ -60,7 +61,8 @@ internal class BadgesService(
     override fun getFamousBadges(activityType: ActivityType, year: Int?): List<BadgeCheckResult> {
         logger.info("Checking famous badges for $activityType in ${year ?: "all years"}")
 
-        val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityType, year)
+        // TODO: Handle a set of activity types
+        val activities = activityProvider.getActivitiesByActivityTypeAndYear(setOf(activityType), year)
 
         return when (activityType) {
             ActivityType.Ride -> {

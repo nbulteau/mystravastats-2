@@ -88,7 +88,8 @@ class DashboardService(
     override fun getDashboardData(activityType: ActivityType): DashboardData {
         logger.info("Get dashboard data for activity type $activityType")
 
-        val activitiesByYear = activityProvider.getActivitiesByActivityTypeAndYear(activityType)
+        // TODO: Handle a set of activity types
+        val activitiesByYear = activityProvider.getActivitiesByActivityTypeAndYear(setOf(activityType))
             .groupBy { activity -> activity.startDateLocal.subSequence(0, 4).toString() }
 
         // compute nb of activities for all years
@@ -188,7 +189,8 @@ class DashboardService(
             }
             .filter { it.value > 0 }
 
-        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityType)
+        // TODO: Handle a set of activity types
+        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(setOf(activityType))
 
         val averageCadence = filteredActivities
             .filter { activity -> activity.averageCadence > 0 }

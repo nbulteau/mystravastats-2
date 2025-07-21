@@ -101,10 +101,14 @@ class ActivitiesController(
 
     @GetMapping
     fun getActivitiesByActivityType(
-        @RequestParam(required = true) activityType: ActivityType,
+        @RequestParam(required = true) activityType: String,
         @RequestParam(required = false) year: Int?,
     ): List<ActivityDto> {
-        return activityService.getActivitiesByActivityTypeAndYear(activityType, year)
+        val activityTypes = activityType
+            .split('_').map { ActivityType.valueOf(it) }
+            .takeIf { it.isNotEmpty() } ?: throw IllegalArgumentException("Activity type must not be empty")
+
+        return activityService.getActivitiesByActivityTypeAndYear(activityTypes.toSet(), year)
             .map { activity -> activity.toDto() }
     }
 

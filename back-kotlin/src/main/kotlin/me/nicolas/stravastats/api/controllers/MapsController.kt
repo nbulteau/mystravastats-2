@@ -41,7 +41,8 @@ class MapsController(
         @RequestParam(required = false) year: Int?,
     ): List<List<List<Number>>> {
 
-        val activities = stravaProxy.getActivitiesByActivityTypeAndYear(activityType, year)
+        // TODO: Handle a set of activity types
+        val activities = stravaProxy.getActivitiesByActivityTypeAndYear(setOf(activityType), year)
 
         // Take 1 out 100 points for this map to avoid too many points
         val step = year?.let { 10 } ?: 100

@@ -91,12 +91,18 @@ abstract class AbstractActivityProvider : IActivityProvider {
             .toMap()
     }
 
-    override fun getActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int?): List<StravaActivity> {
+    override fun getActivitiesByActivityTypeAndYear(
+        activityTypes: Set<ActivityType>,
+        year: Int?
+    ): List<StravaActivity> {
 
-        val key: String = year?.let { "${activityType.name}-$it" } ?: activityType.name
+        val key: String = year?.let { "${activityTypes.sorted().joinToString("_") { type -> type.name }}-$it" }
+            ?: activityTypes.sorted().joinToString("_") { type -> type.name }
+
         val filteredActivities = filteredActivitiesCache[key] ?: activities
             .filterActivitiesByYear(year)
-            .filterActivitiesByType(activityType)
+            .filterActivitiesByTypes(activityTypes)
+        
         filteredActivitiesCache[key] = filteredActivities
 
         return filteredActivities
@@ -138,11 +144,30 @@ abstract class AbstractActivityProvider : IActivityProvider {
             ActivityType.Commute -> {
                 this.filter { activity -> activity.type == ActivityType.Ride.name && activity.commute }
             }
+
             ActivityType.RideWithCommute -> {
                 this.filter { activity -> activity.type == ActivityType.Ride.name }
             }
+
             else -> {
                 this.filter { activity -> (activity.type == activityType.name) && !activity.commute }
+            }
+        }
+    }
+
+    private fun List<StravaActivity>.filterActivitiesByTypes(activityTypes: Set<ActivityType>): List<StravaActivity> {
+        return this.filter { activity ->
+            activityTypes.any { activityType ->
+                when (activityType) {
+                    ActivityType.Commute ->
+                        activity.type == ActivityType.Ride.name && activity.commute
+
+                    ActivityType.RideWithCommute ->
+                        activity.type == ActivityType.Ride.name
+
+                    else ->
+                        activity.type == activityType.name && !activity.commute
+                }
             }
         }
     }

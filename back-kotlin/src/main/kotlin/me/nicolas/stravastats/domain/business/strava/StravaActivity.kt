@@ -12,6 +12,8 @@ import kotlin.math.abs
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class StravaActivity(
+    @param:JsonProperty("activity_type")
+    private val _activityType: String? = null,
     val athlete: AthleteRef,
     @param:JsonProperty("average_speed")
     val averageSpeed: Double,
@@ -54,6 +56,8 @@ data class StravaActivity(
 
     var stream: Stream? = null
 ) {
+    val activityType: String
+        get() = _activityType ?: type
 
     override fun toString() = "${name.trim()} (${startDateLocal.formatDate()})"
 

@@ -116,7 +116,8 @@ internal class ChartsService(
     override fun getAverageCadenceByPeriodByActivityTypeByYear(
         activityType: ActivityType,
     ): Map<String, Int> {
-        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityType)
+        // TODO: Handle a set of activity types
+        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(setOf(activityType))
 
         return filteredActivities
             .groupBy { activity -> activity.startDateLocal.substringBefore('T') }
@@ -138,7 +139,8 @@ internal class ChartsService(
         year: Int,
         period: Period,
     ): Map<String, List<StravaActivity>> {
-        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityType, year)
+        //TODO: Handle a set of activity types
+        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(setOf(activityType), year)
 
         val activitiesByPeriod = when (period) {
             Period.MONTHS -> groupActivitiesByMonth(filteredActivities)

@@ -23,7 +23,8 @@ internal class StatisticsService(
     override fun getStatistics(activityType: ActivityType, year: Int?): List<Statistic> {
         logger.info("Compute $activityType statistics for ${year ?: "all years"}")
 
-        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityType, year)
+        // TODO: Handle a set of activity types
+        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(setOf(activityType), year)
 
         return when (activityType) {
             ActivityType.Ride -> computeRideStatistics(filteredActivities)
