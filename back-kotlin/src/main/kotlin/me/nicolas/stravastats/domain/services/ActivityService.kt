@@ -57,6 +57,7 @@ internal class ActivityService(
         val clientId = activityProvider.athlete().id.toString()
 
         val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
+        // TODO: handle case multiple activity types
         val exporter = when (activityTypes.first()) {
             ActivityType.Ride -> RideCSVExporter(clientId = clientId, activities = activities, year = year)
             ActivityType.Run -> RunCSVExporter(clientId = clientId, activities = activities, year = year)

@@ -34,6 +34,7 @@ internal class BadgesService(
 
         val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
 
+        // TODO: handle case multiple activity types
         return when (activityTypes.firstOrNull()) {
             ActivityType.Ride -> {
                 DistanceBadge.rideBadgeSet.check(activities) +
@@ -62,6 +63,7 @@ internal class BadgesService(
 
         val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
 
+        // TODO: handle case multiple activity types
         return when (activityTypes.firstOrNull()) {
             ActivityType.Ride -> {
                 alpes.check(activities) + pyrenees.check(activities)

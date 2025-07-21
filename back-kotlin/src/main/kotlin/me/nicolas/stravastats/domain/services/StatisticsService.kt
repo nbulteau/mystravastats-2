@@ -25,7 +25,7 @@ internal class StatisticsService(
 
         val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
 
-
+        // TODO: handle case multiple activity types
         return when (activityTypes.first()) {
             ActivityType.Run -> computeRunStatistics(filteredActivities)
             ActivityType.InlineSkate -> computeInlineSkateStatistics(filteredActivities)

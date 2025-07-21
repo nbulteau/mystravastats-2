@@ -40,13 +40,16 @@ private fun ElevationBadge.toDto(activityTypes: Set<ActivityType>): BadgeDto {
 }
 
 private fun DistanceBadge.toDto(activityTypes: Set<ActivityType>): BadgeDto {
+    // TODO: handle case multiple activity types
     return BadgeDto(this.label, this.distance.toString(), activityTypes.first().name + this.javaClass.simpleName)
 }
 
 private fun MovingTimeBadge.toDto(activityTypes: Set<ActivityType>): BadgeDto {
+    // TODO: handle case multiple activity types
     return BadgeDto(this.label, this.movingTime.toString(), activityTypes.first().name + this.javaClass.simpleName)
 }
 
 private fun FamousClimbBadge.toDto(activityTypes: Set<ActivityType>): BadgeDto {
+    // TODO: handle case multiple activity types
     return BadgeDto(this.label, this.name, activityTypes.first().name + this.javaClass.simpleName)
 }
