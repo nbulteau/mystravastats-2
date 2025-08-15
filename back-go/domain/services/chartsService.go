@@ -10,10 +10,10 @@ import (
 )
 
 // FetchChartsDistanceByPeriod retrieves the total distance of activities by period for a given activity type and year.
-func FetchChartsDistanceByPeriod(activityType business.ActivityType, year *int, period business.Period) []map[string]float64 {
-	log.Printf("Get distance by %s by activity (%s) type by year (%d)", period, activityType, year)
+func FetchChartsDistanceByPeriod(year *int, period business.Period, activityTypes ...business.ActivityType) []map[string]float64 {
+	log.Printf("Get distance by %s by activity (%s) type by year (%d)", period, activityTypes, year)
 
-	activities := activityProvider.GetActivitiesByActivityTypeAndYear(activityType, year)
+	activities := activityProvider.GetActivitiesByActivityTypeAndYear(year, activityTypes...)
 	activitiesByPeriod := activitiesByPeriod(activities, *year, period)
 
 	result := make([]map[string]float64, 0)
@@ -29,10 +29,10 @@ func FetchChartsDistanceByPeriod(activityType business.ActivityType, year *int, 
 }
 
 // FetchChartsElevationByPeriod retrieves the total elevation gain of activities by period for a given activity type and year.
-func FetchChartsElevationByPeriod(activityType business.ActivityType, year *int, period business.Period) []map[string]float64 {
-	log.Printf("Get elevation by %s by activity (%s) type by year (%d)", period, activityType, year)
+func FetchChartsElevationByPeriod(year *int, period business.Period, activityTypes ...business.ActivityType) []map[string]float64 {
+	log.Printf("Get elevation by %s by activity (%s) type by year (%d)", period, activityTypes, year)
 
-	activities := activityProvider.GetActivitiesByActivityTypeAndYear(activityType, year)
+	activities := activityProvider.GetActivitiesByActivityTypeAndYear(year, activityTypes...)
 	activitiesByPeriod := activitiesByPeriod(activities, *year, period)
 
 	size := 12
@@ -54,10 +54,10 @@ func FetchChartsElevationByPeriod(activityType business.ActivityType, year *int,
 	return sortResultByKey(result)
 }
 
-func FetchChartsAverageSpeedByPeriod(activityType business.ActivityType, year *int, period business.Period) []map[string]float64 {
-	log.Printf("Get average speed by %s by activity (%s) type by year (%d)", period, activityType, year)
+func FetchChartsAverageSpeedByPeriod(year *int, period business.Period, activityTypes ...business.ActivityType) []map[string]float64 {
+	log.Printf("Get average speed by %s by activity (%s) type by year (%d)", period, activityTypes, year)
 
-	activities := activityProvider.GetActivitiesByActivityTypeAndYear(activityType, year)
+	activities := activityProvider.GetActivitiesByActivityTypeAndYear(year, activityTypes...)
 	activitiesByPeriod := activitiesByPeriod(activities, *year, period)
 
 	size := 12

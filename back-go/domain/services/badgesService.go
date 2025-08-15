@@ -18,11 +18,13 @@ var pyrenees = loadBadgeSet("pyrenees", helpers.StravaCachePath+"/famous-climb/p
 
 // GetGeneralBadges returns the general badges for the given activity type and year
 // The general badges are the ones that are not specific to a famous climb
-func GetGeneralBadges(activityType business.ActivityType, year *int) []business.BadgeCheckResult {
-	log.Printf("Checking general badges for %s in %v", activityType, year)
+func GetGeneralBadges(year *int, activityTypes ...business.ActivityType) []business.BadgeCheckResult {
+	log.Printf("Checking general badges for %s in %v", activityTypes, year)
 
-	activities := activityProvider.GetActivitiesByActivityTypeAndYear(activityType, year)
+	activities := activityProvider.GetActivitiesByActivityTypeAndYear(year, activityTypes...)
 
+	// TODO: handle case multiple activity types
+	activityType := activityTypes[0]
 	switch activityType {
 	case business.Ride:
 		return append(append(badges.DistanceRideBadgeSet.Check(activities),
@@ -43,10 +45,13 @@ func GetGeneralBadges(activityType business.ActivityType, year *int) []business.
 
 // GetFamousBadges returns the famous badges for the given activity type and year
 // The famous badges are the ones that are specific to a famous climb
-func GetFamousBadges(activityType business.ActivityType, year *int) []business.BadgeCheckResult {
-	log.Printf("Checking famous badges for %s in %v", activityType, year)
+func GetFamousBadges(year *int, activityTypes ...business.ActivityType) []business.BadgeCheckResult {
+	log.Printf("Checking famous badges for %s in %v", activityTypes, year)
 
-	activities := activityProvider.GetActivitiesByActivityTypeAndYear(activityType, year)
+	activities := activityProvider.GetActivitiesByActivityTypeAndYear(year, activityTypes...)
+
+	// TODO: handle case multiple activity types
+	activityType := activityTypes[0]
 
 	switch activityType {
 	case business.Ride:
@@ -71,7 +76,12 @@ func loadBadgeSet(name string, climbsJsonFilePath string) badges.BadgeSet {
 		log.Printf("Error opening file: %v", err)
 		return badges.BadgeSet{Name: name, Badges: famousClimbBadgeList}
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			log.Printf("Error closing file: %v", err)
+		}
+	}(file)
 
 	byteValue, err := io.ReadAll(file)
 	if err != nil {

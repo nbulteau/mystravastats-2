@@ -11,10 +11,10 @@ import (
 // DashboardService provides methods to fetch various dashboard data related to Strava activities.
 
 // FetchEddingtonNumber calculates the Eddington number for a given activity type.
-func FetchEddingtonNumber(activityType business.ActivityType) business.EddingtonNumber {
-	log.Printf("Get Eddington number for activity type %s", activityType)
+func FetchEddingtonNumber(activityTypes ...business.ActivityType) business.EddingtonNumber {
+	log.Printf("Get Eddington number for activity type %s", activityTypes)
 
-	activitiesByActiveDays := activityProvider.GetActivitiesByActivityTypeGroupByActiveDays(activityType)
+	activitiesByActiveDays := activityProvider.GetActivitiesByActivityTypeGroupByActiveDays(activityTypes...)
 
 	var eddingtonList []int
 	if len(activitiesByActiveDays) == 0 {
@@ -47,10 +47,10 @@ func FetchEddingtonNumber(activityType business.ActivityType) business.Eddington
 }
 
 // GetCumulativeDistancePerYear calculates the cumulative distance per year for a given activity type.
-func GetCumulativeDistancePerYear(activityType business.ActivityType) map[string]map[string]float64 {
-	log.Printf("Get cumulative distance per year for activity type %s", activityType)
+func GetCumulativeDistancePerYear(activityTypes ...business.ActivityType) map[string]map[string]float64 {
+	log.Printf("Get cumulative distance per year for activity type %s", activityTypes)
 
-	activitiesByYear := activityProvider.GetActivitiesByActivityTypeGroupByYear(activityType)
+	activitiesByYear := activityProvider.GetActivitiesByActivityTypeGroupByYear(activityTypes...)
 
 	currentYear := time.Now().Year()
 	result := make(map[string]map[string]float64)
@@ -81,10 +81,10 @@ func calculateCumulativeDistance(activitiesByDay map[string][]*strava.Activity) 
 	return result
 }
 
-func GetCumulativeElevationPerYear(activityType business.ActivityType) map[string]map[string]float64 {
-	log.Printf("Get cumulative elevation per year for activity type %s", activityType)
+func GetCumulativeElevationPerYear(activityTypes ...business.ActivityType) map[string]map[string]float64 {
+	log.Printf("Get cumulative elevation per year for activity type %s", activityTypes)
 
-	activitiesByYear := activityProvider.GetActivitiesByActivityTypeGroupByYear(activityType)
+	activitiesByYear := activityProvider.GetActivitiesByActivityTypeGroupByYear(activityTypes...)
 
 	result := make(map[string]map[string]float64)
 	currentYear := time.Now().Year()
@@ -112,10 +112,10 @@ func cumulativeElevation(activitiesByDay map[string][]*strava.Activity) map[stri
 	return result
 }
 
-func FetchDashboardData(activityType business.ActivityType) business.DashboardData {
-	log.Printf("Get dashboard data for activity type %s", activityType)
+func FetchDashboardData(activityTypes ...business.ActivityType) business.DashboardData {
+	log.Printf("Get dashboard data for activity type %s", activityTypes)
 
-	activitiesByYear := activityProvider.GetActivitiesByActivityTypeAndYear(activityType, nil)
+	activitiesByYear := activityProvider.GetActivitiesByActivityTypeAndYear(nil, activityTypes...)
 
 	nbActivitiesByYear := make(map[string]int)
 	totalDistanceByYear := make(map[string]float64)
@@ -150,7 +150,7 @@ func FetchDashboardData(activityType business.ActivityType) business.DashboardDa
 		maxWattsByYear[year] = maxWatts(activities)
 	}
 
-	filteredActivities := activityProvider.GetActivitiesByActivityTypeAndYear(activityType, nil)
+	filteredActivities := activityProvider.GetActivitiesByActivityTypeAndYear(nil, activityTypes...)
 	averageCadence = calculateAverageCadence(filteredActivities)
 
 	return business.DashboardData{

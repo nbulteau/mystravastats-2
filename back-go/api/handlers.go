@@ -1,52 +1,56 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"mystravastats/api/dto"
 	"mystravastats/domain/business"
 	"mystravastats/domain/services"
 	"net/http"
+	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 )
 
 func getAthlete(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-
 	athlete := services.FetchAthlete()
-
 	athleteDto := dto.ToAthleteDto(athlete)
 
-	if err := json.NewEncoder(w).Encode(athleteDto); err != nil {
-		panic(err)
+	if err := writeJSON(w, http.StatusOK, athleteDto); err != nil {
+		log.Printf("failed to write athlete response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
 }
 
 func getActivitiesByActivityType(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+	year, err := getYearParam(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	activityTypes, err := getActivityTypeParam(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-	year := getYearParam(r)
-	activityType := getActivityTypeParam(r)
-
-	activitiesByActivityTypeAndYear := services.RetrieveActivitiesByActivityTypeAndYear(activityType, year)
+	activitiesByActivityTypeAndYear := services.RetrieveActivitiesByActivityTypeAndYear(year, activityTypes...)
 	activitiesDto := make([]dto.ActivityDto, len(activitiesByActivityTypeAndYear))
 	for i, activity := range activitiesByActivityTypeAndYear {
 		activitiesDto[i] = dto.ToActivityDto(*activity)
 	}
 
-	if err := json.NewEncoder(w).Encode(activitiesDto); err != nil {
-		panic(err)
+	if err := writeJSON(w, http.StatusOK, activitiesDto); err != nil {
+		log.Printf("failed to write activities response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
 }
 
 func getDetailedActivity(writer http.ResponseWriter, request *http.Request) {
-	writer.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	writer.WriteHeader(http.StatusOK)
-
 	vars := mux.Vars(request)
 	activityId, err := strconv.ParseInt(vars["activityId"], 10, 64)
 	if err != nil {
@@ -61,142 +65,186 @@ func getDetailedActivity(writer http.ResponseWriter, request *http.Request) {
 
 	detailedActivityDto := dto.ToDetailedActivityDto(activity)
 
-	if err := json.NewEncoder(writer).Encode(detailedActivityDto); err != nil {
-		panic(err)
+	if err := writeJSON(writer, http.StatusOK, detailedActivityDto); err != nil {
+		log.Printf("failed to write detailed activity response: %v", err)
+		http.Error(writer, "Failed to encode response", http.StatusInternalServerError)
 	}
 }
 
 func getStatisticsByActivityType(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+	year, err := getYearParam(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	activityTypes, err := getActivityTypeParam(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-	year := getYearParam(r)
-	activityType := getActivityTypeParam(r)
-
-	statisticsByActivityTypeAndYear := services.FetchStatisticsByActivityTypeAndYear(activityType, year)
+	statisticsByActivityTypeAndYear := services.FetchStatisticsByActivityTypeAndYear(year, activityTypes...)
 	statisticsDto := make([]dto.StatisticDto, len(statisticsByActivityTypeAndYear))
 	for i, statistic := range statisticsByActivityTypeAndYear {
 		statisticsDto[i] = dto.ToStatisticDto(statistic)
 	}
 
-	if err := json.NewEncoder(w).Encode(statisticsDto); err != nil {
-		panic(err)
+	if err := writeJSON(w, http.StatusOK, statisticsDto); err != nil {
+		log.Printf("failed to write statistics response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
 }
 
 func getMapsGPX(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+	year, err := getYearParam(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	activityTypes, err := getActivityTypeParam(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-	year := getYearParam(r)
-	activityType := getActivityTypeParam(r)
+	gpx := services.RetrieveGPXByActivityTypeAndYear(year, activityTypes...)
 
-	gpx := services.RetrieveGPXByActivityTypeAndYear(activityType, year)
-
-	if err := json.NewEncoder(w).Encode(gpx); err != nil {
-		panic(err)
+	if err := writeJSON(w, http.StatusOK, gpx); err != nil {
+		log.Printf("failed to write gpx response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
 }
 
 func getChartsDistanceByPeriod(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-
-	year := getYearParam(r)
-	activityType := getActivityTypeParam(r)
+	year, err := getYearParam(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	activityTypes, err := getActivityTypeParam(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	period := getPeriodParam(r)
 
-	distanceByPeriod := services.FetchChartsDistanceByPeriod(activityType, year, period)
+	distanceByPeriod := services.FetchChartsDistanceByPeriod(year, period, activityTypes...)
 
-	if err := json.NewEncoder(w).Encode(distanceByPeriod); err != nil {
-		panic(err)
+	if err := writeJSON(w, http.StatusOK, distanceByPeriod); err != nil {
+		log.Printf("failed to write distance chart response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
 }
 
 func getChartsElevationByPeriod(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-
-	year := getYearParam(r)
-	activityType := getActivityTypeParam(r)
+	year, err := getYearParam(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	activityTypes, err := getActivityTypeParam(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	period := getPeriodParam(r)
 
-	elevationByPeriod := services.FetchChartsElevationByPeriod(activityType, year, period)
+	elevationByPeriod := services.FetchChartsElevationByPeriod(year, period, activityTypes...)
 
-	if err := json.NewEncoder(w).Encode(elevationByPeriod); err != nil {
-		panic(err)
+	if err := writeJSON(w, http.StatusOK, elevationByPeriod); err != nil {
+		log.Printf("failed to write elevation chart response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
 }
 
 func getChartsAverageSpeedByPeriod(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-
-	year := getYearParam(r)
-	activityType := getActivityTypeParam(r)
+	year, err := getYearParam(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	activityTypes, err := getActivityTypeParam(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	period := getPeriodParam(r)
 
-	averageSpeedByPeriod := services.FetchChartsAverageSpeedByPeriod(activityType, year, period)
+	averageSpeedByPeriod := services.FetchChartsAverageSpeedByPeriod(year, period, activityTypes...)
 
-	if err := json.NewEncoder(w).Encode(averageSpeedByPeriod); err != nil {
-		panic(err)
+	if err := writeJSON(w, http.StatusOK, averageSpeedByPeriod); err != nil {
+		log.Printf("failed to write average speed chart response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
 }
 
 func getDashboard(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-
-	activityType := getActivityTypeParam(r)
-
-	dashboardData := services.FetchDashboardData(activityType)
-	dashboardDataDto := dto.ToDashboardDataDto(dashboardData)
-
-	if err := json.NewEncoder(w).Encode(dashboardDataDto); err != nil {
-		panic(err)
+	activityTypes, err := getActivityTypeParam(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
+	dashboardData := services.FetchDashboardData(activityTypes...)
+	dashboardDataDto := dto.ToDashboardDataDto(dashboardData)
+
+	if err := writeJSON(w, http.StatusOK, dashboardDataDto); err != nil {
+		log.Printf("failed to write dashboard response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
 }
 
 func getDashboardCumulativeDataByYear(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+	activityTypes, err := getActivityTypeParam(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-	activityType := getActivityTypeParam(r)
-
-	cumulativeDistancePerYear := services.GetCumulativeDistancePerYear(activityType)
-	cumulativeElevationPerYear := services.GetCumulativeElevationPerYear(activityType)
+	cumulativeDistancePerYear := services.GetCumulativeDistancePerYear(activityTypes...)
+	cumulativeElevationPerYear := services.GetCumulativeElevationPerYear(activityTypes...)
 
 	cumulativeDataDto := dto.CumulativeDataPerYearDto{
 		Distance:  cumulativeDistancePerYear,
 		Elevation: cumulativeElevationPerYear,
 	}
 
-	if err := json.NewEncoder(w).Encode(cumulativeDataDto); err != nil {
-		panic(err)
+	if err := writeJSON(w, http.StatusOK, cumulativeDataDto); err != nil {
+		log.Printf("failed to write cumulative dashboard response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
 }
 
 func getDashboardEddingtonNumber(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+	activityTypes, err := getActivityTypeParam(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-	activityType := getActivityTypeParam(r)
-
-	edNum := services.FetchEddingtonNumber(activityType)
+	edNum := services.FetchEddingtonNumber(activityTypes...)
 	edNumDto := dto.EddingtonNumberDto{
 		EddingtonNumber: edNum.Number,
 		EddingtonList:   edNum.List,
 	}
 
-	if err := json.NewEncoder(w).Encode(edNumDto); err != nil {
-		panic(err)
+	if err := writeJSON(w, http.StatusOK, edNumDto); err != nil {
+		log.Printf("failed to write eddington response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
 }
 
 func getBadges(w http.ResponseWriter, r *http.Request) {
-	year := getYearParam(r)
-	activityType := getActivityTypeParam(r)
+	year, err := getYearParam(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	activityTypes, err := getActivityTypeParam(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	badgeSetParam := r.URL.Query().Get("badgeSet")
 
 	var badgeSet business.BadgeSetEnum
@@ -207,44 +255,67 @@ func getBadges(w http.ResponseWriter, r *http.Request) {
 	var badges []business.BadgeCheckResult
 	switch badgeSet {
 	case business.GENERAL:
-		badges = services.GetGeneralBadges(activityType, year)
+		badges = services.GetGeneralBadges(year, activityTypes...)
 	case business.FAMOUS:
-		badges = services.GetFamousBadges(activityType, year)
+		badges = services.GetFamousBadges(year, activityTypes...)
 	default:
-		generalBadges := services.GetGeneralBadges(activityType, year)
-		famousBadges := services.GetFamousBadges(activityType, year)
+		generalBadges := services.GetGeneralBadges(year, activityTypes...)
+		famousBadges := services.GetFamousBadges(year, activityTypes...)
 		badges = append(generalBadges, famousBadges...)
 	}
 
 	badgesDto := make([]dto.BadgeCheckResultDto, len(badges))
 	for i, badge := range badges {
-		badgesDto[i] = dto.ToBadgeCheckResultDto(badge, activityType)
+		badgesDto[i] = dto.ToBadgeCheckResultDto(badge, activityTypes...)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(badgesDto); err != nil {
+	if err := writeJSON(w, http.StatusOK, badgesDto); err != nil {
+		log.Printf("failed to write badges response: %v", err)
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
-
 }
 
-func getActivityTypeParam(r *http.Request) business.ActivityType {
-	var activityType business.ActivityType
+func getActivityTypeParam(r *http.Request) ([]business.ActivityType, error) {
 	activityTypeStr := r.URL.Query().Get("activityType")
-	if activityTypeStr != "" {
-		activityType = business.ActivityTypes[activityTypeStr]
+
+	if activityTypeStr == "" {
+		return nil, fmt.Errorf("Activity type must not be empty")
 	}
-	return activityType
+
+	parts := strings.Split(activityTypeStr, "_")
+	activityTypes := make(map[business.ActivityType]struct{}, len(parts))
+
+	for _, p := range parts {
+		if p == "" {
+			return nil, fmt.Errorf("Activity type must not be empty")
+		}
+		t, ok := business.ActivityTypes[p]
+		if !ok {
+			return nil, fmt.Errorf("unknown activity type: %s", p)
+		}
+		activityTypes[t] = struct{}{}
+	}
+
+	types := make([]business.ActivityType, 0, len(activityTypes))
+	for t := range activityTypes {
+		types = append(types, t)
+	}
+
+	sort.Slice(types, func(i, j int) bool { return types[i] < types[j] })
+
+	return types, nil
 }
 
-func getYearParam(r *http.Request) *int {
-	var year *int
+func getYearParam(r *http.Request) (*int, error) {
 	yearStr := r.URL.Query().Get("year")
-	if yearStr != "" {
-		y, _ := strconv.Atoi(yearStr)
-		year = &y
+	if yearStr == "" {
+		return nil, nil
 	}
-	return year
+	y, err := strconv.Atoi(yearStr)
+	if err != nil {
+		return nil, fmt.Errorf("Invalid year: %q", yearStr)
+	}
+	return &y, nil
 }
 
 func getPeriodParam(r *http.Request) business.Period {
@@ -254,4 +325,19 @@ func getPeriodParam(r *http.Request) business.Period {
 		period = business.Period(periodParam)
 	}
 	return period
+}
+
+func writeJSON(w http.ResponseWriter, status int, v any) error {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(true)
+
+	if err := enc.Encode(v); err != nil {
+		return err
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	_, _ = w.Write(buf.Bytes())
+	return nil
 }
