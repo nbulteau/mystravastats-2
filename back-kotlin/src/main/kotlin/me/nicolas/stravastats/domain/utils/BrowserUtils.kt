@@ -24,7 +24,8 @@ object BrowserUtils {
     private fun openBrowserWithRuntimeExec(url: String) {
         val os = System.getProperty("os.name").lowercase()
         val command = when {
-            os.contains("win") -> arrayOf("cmd", "/c", "start", url)
+            // Important: fournir un titre vide ("") et mettre l'URL entre guillemets
+            os.contains("win") -> arrayOf("cmd", "/c", "start", "\"\"", "\"$url\"")
             os.contains("mac") -> arrayOf("open", url)
             else -> arrayOf("xdg-open", url)  // Linux et autres
         }
