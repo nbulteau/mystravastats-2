@@ -11,6 +11,8 @@ import DateCellRenderer from "./cell-renderers/DateCellRenderer.vue";
 import GradientCellRenderer from "./cell-renderers/GradientCellRenderer.vue";
 import { useRouter } from 'vue-router';
 import { onMounted, ref } from "vue";
+import shareIcon from "@/assets/share-outline.svg";
+
 
 const props = defineProps<{
   activities: Activity[];
@@ -77,7 +79,7 @@ const columns = ref<ColumnRegular[]>([
           await csvExport();
         }
       }, createElement('img', {
-        src: "/icons/share-outline.svg",
+        src: shareIcon,
         alt: "CSV export",
         style: {
           width: '25px',

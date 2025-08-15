@@ -1,6 +1,6 @@
 <template>
   <div class="speed-cell">
-    <span>{{ formatSpeed(value, model.type) }}</span>
+    <span>{{ value }}</span>
   </div>
 </template>
 
@@ -10,7 +10,7 @@ import { defineProps } from "vue";
 
 
 defineProps<{
-  value: number;
+  value: string;
   model: Activity; 
 }>();
 
