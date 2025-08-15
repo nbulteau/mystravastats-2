@@ -126,7 +126,8 @@ class StravaActivityProvider(
             val deferredActivities = (currentYear downTo 2010).map { year ->
                 async {
                     try {
-                        if (shouldLoadFromCache(year, clientId)) {
+                        // Check if we should load from cache or API
+                        if (currentYear != year && localStorageProvider.isLocalCacheExistForYear(clientId, year)) {
                             logger.info("Loading activities for $year from cache ...")
                             val activities = localStorageProvider.loadActivitiesFromCache(clientId, year)
                             loadMissingStreamsFromCache(clientId, year, activities)

@@ -302,7 +302,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
                             ContentType.Text.Html
                         )
                         launch {
-                            // Get authorisation token with the code
+                            // Get an authorization token with the code
                             val token = getToken(clientId, clientSecret, authorizationCode)
                             channel.send(token.accessToken)
 
