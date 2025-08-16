@@ -38,7 +38,7 @@ func getActivitiesByActivityType(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	activitiesByActivityTypeAndYear := services.RetrieveActivitiesByActivityTypeAndYear(year, activityTypes...)
+	activitiesByActivityTypeAndYear := services.RetrieveActivitiesByYearAndActivityTypes(year, activityTypes...)
 	activitiesDto := make([]dto.ActivityDto, len(activitiesByActivityTypeAndYear))
 	for i, activity := range activitiesByActivityTypeAndYear {
 		activitiesDto[i] = dto.ToActivityDto(*activity)
@@ -107,7 +107,7 @@ func getMapsGPX(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gpx := services.RetrieveGPXByActivityTypeAndYear(year, activityTypes...)
+	gpx := services.RetrieveGPXByYearAndActivityTypes(year, activityTypes...)
 
 	if err := writeJSON(w, http.StatusOK, gpx); err != nil {
 		log.Printf("failed to write gpx response: %v", err)
@@ -279,7 +279,7 @@ func getActivityTypeParam(r *http.Request) ([]business.ActivityType, error) {
 	activityTypeStr := r.URL.Query().Get("activityType")
 
 	if activityTypeStr == "" {
-		return nil, fmt.Errorf("Activity type must not be empty")
+		return nil, fmt.Errorf("activity type must not be empty")
 	}
 
 	parts := strings.Split(activityTypeStr, "_")
@@ -287,7 +287,7 @@ func getActivityTypeParam(r *http.Request) ([]business.ActivityType, error) {
 
 	for _, p := range parts {
 		if p == "" {
-			return nil, fmt.Errorf("Activity type must not be empty")
+			return nil, fmt.Errorf("activity type must not be empty")
 		}
 		t, ok := business.ActivityTypes[p]
 		if !ok {
@@ -313,7 +313,7 @@ func getYearParam(r *http.Request) (*int, error) {
 	}
 	y, err := strconv.Atoi(yearStr)
 	if err != nil {
-		return nil, fmt.Errorf("Invalid year: %q", yearStr)
+		return nil, fmt.Errorf("invalid year: %q", yearStr)
 	}
 	return &y, nil
 }
