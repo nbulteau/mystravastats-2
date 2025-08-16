@@ -5,6 +5,7 @@ import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.services.statistics.calculateBestElevationForDistance
 import me.nicolas.stravastats.domain.services.statistics.calculateBestPowerForTime
 import me.nicolas.stravastats.domain.services.statistics.calculateBestTimeForDistance
+import me.nicolas.stravastats.domain.utils.formatSpeed
 
 
 @Schema(description = "Activity object", name = "Activity")
@@ -23,14 +24,14 @@ data class ActivityDto(
     val elapsedTime: Int,
     @param:Schema(description = "Activity total elevation gain in meters")
     val totalElevationGain: Int,
-    @param:Schema(description = "Activity average speed in m/s")
-    val averageSpeed: Double,
-    @param:Schema(description = "Activity best time for distance for 1000m in m/s")
-    val bestTimeForDistanceFor1000m: Double,
+    @param:Schema(description = "Activity average speed")
+    val averageSpeed: String,
+    @param:Schema(description = "Activity best time for distance for 1000m")
+    val bestTimeForDistanceFor1000m: String,
     @param:Schema(description = "Activity best elevation for distance for 500m in %")
-    val bestElevationForDistanceFor500m: Double,
+    val bestElevationForDistanceFor500m: String,
     @param:Schema(description = "Activity best elevation for distance for 1000m in %")
-    val bestElevationForDistanceFor1000m: Double,
+    val bestElevationForDistanceFor1000m: String,
     @param:Schema(description = "Activity date")
     val date: String,
     @param:Schema(description = "Activity average watts")
@@ -69,12 +70,10 @@ fun StravaActivity.toDto(): ActivityDto {
         distance = this.distance.toInt(),
         elapsedTime = this.elapsedTime,
         totalElevationGain = this.totalElevationGain.toInt(),
-        averageSpeed = this.averageSpeed,
-        bestTimeForDistanceFor1000m = calculateBestTimeForDistance(1000.0)?.getMSSpeed()?.toDouble() ?: Double.NaN,
-        bestElevationForDistanceFor500m = calculateBestElevationForDistance(500.0)?.getGradient()?.toDouble()
-            ?: Double.NaN,
-        bestElevationForDistanceFor1000m = calculateBestElevationForDistance(1000.0)?.getGradient()?.toDouble()
-            ?: Double.NaN,
+        averageSpeed = this.averageSpeed.formatSpeed(this.type),
+        bestTimeForDistanceFor1000m = calculateBestTimeForDistance(1000.0)?.getFormattedSpeed() ?: "",
+        bestElevationForDistanceFor500m = calculateBestElevationForDistance(500.0)?.getGradient() ?: "",
+        bestElevationForDistanceFor1000m = calculateBestElevationForDistance(1000.0)?.getGradient() ?: "",
         date = this.startDateLocal,
         averageWatts = this.averageWatts,
         weightedAverageWatts = "${this.weightedAverageWatts}",

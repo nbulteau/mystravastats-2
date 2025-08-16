@@ -29,7 +29,7 @@ func (g GeoCoordinate) HaversineInKM(lat2, long2 float64) float64 {
 	return equatorialEarthRadius * c
 }
 
-// Match checks if the distance from the geo location is less than 250 meters.
+// Match checks if the distance from the geolocation is less than 250 meters.
 func (g GeoCoordinate) Match(latitude, longitude float64) bool {
 	return g.HaversineInM(latitude, longitude) < 250
 }

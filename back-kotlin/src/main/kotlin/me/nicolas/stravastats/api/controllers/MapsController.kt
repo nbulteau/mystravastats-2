@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
-import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
@@ -37,11 +36,12 @@ class MapsController(
     )
     @GetMapping("/gpx")
     fun getGPX(
-        @RequestParam(required = true) activityType: ActivityType,
+        @RequestParam(required = true) activityType: String,
         @RequestParam(required = false) year: Int?,
     ): List<List<List<Number>>> {
+        val activityTypes = activityType.convertToActivityTypeSet()
 
-        val activities = stravaProxy.getActivitiesByActivityTypeAndYear(activityType, year)
+        val activities = stravaProxy.getActivitiesByActivityTypeAndYear(activityTypes, year)
 
         // Take 1 out 100 points for this map to avoid too many points
         val step = year?.let { 10 } ?: 100

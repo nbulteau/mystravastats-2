@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import me.nicolas.stravastats.api.dto.BadgeCheckResultDto
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
 import me.nicolas.stravastats.api.dto.toDto
-import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.badges.BadgeSetEnum
 import me.nicolas.stravastats.domain.services.IBadgesService
 import org.springframework.http.MediaType
@@ -44,16 +43,17 @@ class BadgesController(
     )
     @GetMapping
     fun getBadges(
-        @RequestParam(required = true) activityType: ActivityType,
+        @RequestParam(required = true) activityType: String,
         @RequestParam(required = false) year: Int? = null,
         @RequestParam(required = false) badgeSet: BadgeSetEnum? = null,
     ): List<BadgeCheckResultDto> {
+        val activityTypes = activityType.convertToActivityTypeSet()
 
         return when (badgeSet) {
-            BadgeSetEnum.GENERAL -> badgesService.getGeneralBadges(activityType, year)
-            BadgeSetEnum.FAMOUS -> badgesService.getFamousBadges(activityType, year)
-            else -> badgesService.getGeneralBadges(activityType, year) + badgesService.getFamousBadges(activityType, year)
-        }.map { badgeCheckResult ->  badgeCheckResult.toDto(activityType) }
+            BadgeSetEnum.GENERAL -> badgesService.getGeneralBadges(activityTypes, year)
+            BadgeSetEnum.FAMOUS -> badgesService.getFamousBadges(activityTypes, year)
+            else -> badgesService.getGeneralBadges(activityTypes, year) + badgesService.getFamousBadges(activityTypes, year)
+        }.map { badgeCheckResult ->  badgeCheckResult.toDto(activityTypes) }
     }
 }
 

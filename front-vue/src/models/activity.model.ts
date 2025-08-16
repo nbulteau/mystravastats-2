@@ -8,7 +8,7 @@ export class Activity  {
     elapsedTime: number;
     totalElevationGain: number;
     totalDescent: number;
-    averageSpeed: number;
+    averageSpeed: string;
     bestTimeForDistanceFor1000m: string;
     bestElevationForDistanceFor500m: string;
     bestElevationForDistanceFor1000m: string;
@@ -28,7 +28,7 @@ export class Activity  {
         elapsedTime: number,
         totalElevationGain: number,
         totalDescent: number,
-        averageSpeed: number,
+        averageSpeed: string,
         bestTimeForDistanceFor1000m: string,
         bestElevationForDistanceFor500m: string,
         bestElevationForDistanceFor1000m: string,

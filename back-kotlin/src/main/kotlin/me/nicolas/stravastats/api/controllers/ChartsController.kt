@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
-import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.Period
 import me.nicolas.stravastats.domain.services.IChartsService
 import org.springframework.http.MediaType
@@ -42,11 +41,13 @@ class ChartsController(
     )
     @GetMapping("/distance-by-period")
     fun getDistanceByPeriod(
-        activityType: ActivityType,
+        activityType: String,
         year: Int,
         period: Period,
     ): List<Map<String, Double>> {
-        return chartsService.getDistanceByPeriodByActivityTypeByYear(activityType, year, period)
+        val activityTypes = activityType.convertToActivityTypeSet()
+
+        return chartsService.getDistanceByPeriodByActivityTypeByYear(activityTypes, year, period)
             .map { mapOf(it.first to it.second) }
     }
 
@@ -69,11 +70,13 @@ class ChartsController(
     )
     @GetMapping("/elevation-by-period")
     fun getElevationByPeriod(
-        activityType: ActivityType,
+        activityType: String,
         year: Int,
         period: Period,
     ): List<Map<String, Double>> {
-        return chartsService.getElevationByPeriodByActivityTypeByYear(activityType, year, period)
+        val activityTypes = activityType.convertToActivityTypeSet()
+
+        return chartsService.getElevationByPeriodByActivityTypeByYear(activityTypes, year, period)
             .map { mapOf(it.first to it.second) }
     }
 
@@ -96,20 +99,24 @@ class ChartsController(
     )
     @GetMapping("/average-speed-by-period")
     fun getAverageSpeedByPeriod(
-        activityType: ActivityType,
+        activityType: String,
         year: Int,
         period: Period,
     ): List<Map<String, Double>> {
-        return chartsService.getAverageSpeedByPeriodByActivityTypeByYear(activityType, year, period)
+        val activityTypes = activityType.convertToActivityTypeSet()
+
+        return chartsService.getAverageSpeedByPeriodByActivityTypeByYear(activityTypes, year, period)
             .map { mapOf(it.first to it.second) }
     }
 
 
     @GetMapping("/average-cadence-by-period")
     fun getAverageCadenceByPeriod(
-        activityType: ActivityType,
+        activityType: String,
     ): List<List<Long>> {
-        return chartsService.getAverageCadenceByPeriodByActivityTypeByYear(activityType)
+        val activityTypes = activityType.convertToActivityTypeSet()
+
+        return chartsService.getAverageCadenceByPeriodByActivityTypeByYear(activityTypes)
             .map { (day, value) ->
                 // Convert the day to seconds
                 val seconds = LocalDate.parse(day).atStartOfDay(ZoneOffset.UTC).toEpochSecond()

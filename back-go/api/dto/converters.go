@@ -2,15 +2,43 @@ package dto
 
 import (
 	"fmt"
+	"math"
 	"mystravastats/domain/badges"
 	"mystravastats/domain/business"
 	"mystravastats/domain/statistics"
 	"mystravastats/domain/strava"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+func FormatSpeed(speed float64, activityType string) string {
+	if strings.EqualFold(activityType, "Run") {
+		if speed <= 0 {
+			return "-/km"
+		}
+		secondsPerKm := 1000.0 / speed
+		return fmt.Sprintf("%s/km", formatSeconds(secondsPerKm))
+	}
+	return fmt.Sprintf("%.02f km/h", speed*3.6)
+}
+
+func formatSeconds(totalSeconds float64) string {
+	secs := int(math.Round(totalSeconds))
+	if secs < 0 {
+		secs = 0
+	}
+	h := secs / 3600
+	m := (secs % 3600) / 60
+	s := secs % 60
+
+	if h > 0 {
+		return fmt.Sprintf("%d:%02d:%02d", h, m, s)
+	}
+	return fmt.Sprintf("%d:%02d", m, s)
+}
 
 func ToActivityDto(activity strava.Activity) ActivityDto {
 	bestPowerFor20Minutes := statistics.BestPowerForTime(activity, 20*60)
@@ -63,10 +91,10 @@ func ToActivityDto(activity strava.Activity) ActivityDto {
 		Distance:                         int(activity.Distance),
 		ElapsedTime:                      activity.ElapsedTime,
 		TotalElevationGain:               int(activity.TotalElevationGain),
-		AverageSpeed:                     activity.AverageSpeed,
-		BestTimeForDistanceFor1000m:      bestTimeForDistanceFor1000m,
-		BestElevationForDistanceFor500m:  bestElevationForDistanceFor500m,
-		BestElevationForDistanceFor1000m: bestElevationForDistanceFor1000m,
+		AverageSpeed:                     FormatSpeed(activity.AverageSpeed, activity.Type),
+		BestTimeForDistanceFor1000m:      FormatSpeed(bestTimeForDistanceFor1000m, activity.Type),
+		BestElevationForDistanceFor500m:  FormatSpeed(bestElevationForDistanceFor500m, activity.Type),
+		BestElevationForDistanceFor1000m: FormatSpeed(bestElevationForDistanceFor1000m, activity.Type),
 		Date:                             activity.StartDateLocal,
 		AverageWatts:                     int(activity.AverageWatts),
 		WeightedAverageWatts:             strconv.Itoa(activity.WeightedAverageWatts),
@@ -376,21 +404,25 @@ func calculateBestTimeForDistance(activity *strava.DetailedActivity, f float64) 
 	return statistics.BestTimeForDistance(activity.Id, activity.Name, activity.Type, activity.Stream, f)
 }
 
-func ToBadgeCheckResultDto(result business.BadgeCheckResult, activityType business.ActivityType) BadgeCheckResultDto {
+func ToBadgeCheckResultDto(result business.BadgeCheckResult, activityTypes ...business.ActivityType) BadgeCheckResultDto {
 	nbCheckedActivities := len(result.Activities)
-	activities := []ActivityDto{}
+	var activities []ActivityDto
 	if nbCheckedActivities > 0 {
 		activities = append(activities, ToActivityDto(*result.Activities[nbCheckedActivities-1]))
 	}
 
 	return BadgeCheckResultDto{
-		Badge:               ToBadgeDto(result.Badge, activityType),
+		Badge:               ToBadgeDto(result.Badge, activityTypes...),
 		Activities:          activities,
 		NbCheckedActivities: nbCheckedActivities,
 	}
 }
 
-func ToBadgeDto(badge business.Badge, activityType business.ActivityType) BadgeDto {
+func ToBadgeDto(badge business.Badge, activityTypes ...business.ActivityType) BadgeDto {
+
+	// TODO: handle case multiple activity types
+	activityType := activityTypes[0]
+
 	switch b := badge.(type) {
 	case badges.DistanceBadge:
 		return BadgeDto{

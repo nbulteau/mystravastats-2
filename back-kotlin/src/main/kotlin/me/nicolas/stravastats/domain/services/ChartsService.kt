@@ -12,25 +12,25 @@ import org.springframework.stereotype.Component
 
 interface IChartsService {
     fun getDistanceByPeriodByActivityTypeByYear(
-        activityType: ActivityType,
+        activityTypes: Set<ActivityType>,
         year: Int,
         period: Period,
     ): List<Pair<String, Double>>
 
     fun getElevationByPeriodByActivityTypeByYear(
-        activityType: ActivityType,
+        activityTypes: Set<ActivityType>,
         year: Int,
         period: Period,
     ): List<Pair<String, Double>>
 
     fun getAverageSpeedByPeriodByActivityTypeByYear(
-        activityType: ActivityType,
+        activityTypes: Set<ActivityType>,
         year: Int,
         period: Period
     ): List<Pair<String, Double>>
 
     fun getAverageCadenceByPeriodByActivityTypeByYear(
-        activityType: ActivityType,
+        activityTypes: Set<ActivityType>,
     ): Map<String, Int>
 
 }
@@ -45,19 +45,19 @@ internal class ChartsService(
     /**
      * Get distance by period by activity type by year.
      * It returns a list of pair with the period as key and the distance in km as value.
-     * @param activityType the activity type
+     * @param activityTypes the activity types
      * @param year the year
      * @param period the period (days, weeks or months)
      * @return a list of pair with the period as key and the distance in km as value
      */
     override fun getDistanceByPeriodByActivityTypeByYear(
-        activityType: ActivityType,
+        activityTypes: Set<ActivityType>,
         year: Int,
         period: Period,
     ): List<Pair<String, Double>> {
-        logger.info("Get distance by $period by activity ($activityType) type by year ($year)")
+        logger.info("Get distance by $period by activity ($activityTypes) type by year ($year)")
 
-        val activitiesByPeriod = this.activitiesByPeriod(activityType, year, period)
+        val activitiesByPeriod = this.activitiesByPeriod(activityTypes, year, period)
         return activitiesByPeriod.mapValues { (_, activities) ->
             activities.sumOf { activity ->
                 activity.distance / 1000
@@ -68,19 +68,19 @@ internal class ChartsService(
     /**
      * Get elevation by period by activity type by year.
      * It returns a list of pair with the period as key and the elevation in meters as value.
-     * @param activityType the activity type
+     * @param activityTypes the activity types
      * @param year the year
      * @param period the period (days, weeks or months)
      * @return a list of pair with the period as key and the elevation in meters as value
      */
     override fun getElevationByPeriodByActivityTypeByYear(
-        activityType: ActivityType,
+        activityTypes: Set<ActivityType>,
         year: Int,
         period: Period,
     ): List<Pair<String, Double>> {
-        logger.info("Get elevation by $period by activity ($activityType) type by year ($year)")
+        logger.info("Get elevation by $period by activity ($activityTypes) type by year ($year)")
 
-        val activitiesByPeriod = activitiesByPeriod(activityType, year, period)
+        val activitiesByPeriod = activitiesByPeriod(activityTypes, year, period)
         return activitiesByPeriod.mapValues { (_, activities) ->
             activities.sumOf { activity ->
                 activity.totalElevationGain
@@ -91,19 +91,19 @@ internal class ChartsService(
     /**
      * Get average speed by period by activity type by year.
      * It returns a list of pair with the period as key and the average speed in km/h as value.
-     * @param activityType the activity type
+     * @param activityTypes the activity types
      * @param year the year
      * @param period the period (days, weeks or months)
      * @return a list of pair with the period as key and the average speed in km/h as value
      */
     override fun getAverageSpeedByPeriodByActivityTypeByYear(
-        activityType: ActivityType,
+        activityTypes: Set<ActivityType>,
         year: Int,
         period: Period
     ): List<Pair<String, Double>> {
-        logger.info("Get average speed by $period by activity ($activityType) type by year ($year)")
+        logger.info("Get average speed by $period by activity ($activityTypes) type by year ($year)")
 
-        val activitiesByPeriod = activitiesByPeriod(activityType, year, period)
+        val activitiesByPeriod = activitiesByPeriod(activityTypes, year, period)
         return activitiesByPeriod.mapValues { (_, activities) ->
             if (activities.isEmpty()) {
                 0.0
@@ -114,9 +114,9 @@ internal class ChartsService(
     }
 
     override fun getAverageCadenceByPeriodByActivityTypeByYear(
-        activityType: ActivityType,
+        activityTypes: Set<ActivityType>,
     ): Map<String, Int> {
-        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityType)
+        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes)
 
         return filteredActivities
             .groupBy { activity -> activity.startDateLocal.substringBefore('T') }
@@ -128,17 +128,17 @@ internal class ChartsService(
 
     /**
      * Get filtered activities by activity type, year and period.
-     * @param activityType the activity type
+     * @param activityTypes the activity types
      * @param year the year
      * @param period the period
      * @return a map with the period as key and the list of activities as value
      */
     private fun activitiesByPeriod(
-        activityType: ActivityType,
+        activityTypes: Set<ActivityType>,
         year: Int,
         period: Period,
     ): Map<String, List<StravaActivity>> {
-        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityType, year)
+        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
 
         val activitiesByPeriod = when (period) {
             Period.MONTHS -> groupActivitiesByMonth(filteredActivities)

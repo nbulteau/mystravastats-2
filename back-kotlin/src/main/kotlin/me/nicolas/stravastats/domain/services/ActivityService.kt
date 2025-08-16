@@ -17,13 +17,13 @@ interface IActivityService {
 
     fun getDetailedActivity(activityId: Long): Optional<StravaDetailedActivity>
 
-    fun getActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int?): List<StravaActivity>
+    fun getActivitiesByActivityTypeAndYear(activityTypes: Set<ActivityType>, year: Int?): List<StravaActivity>
 
-    fun getActivitiesByActivityTypeGroupByActiveDays(activityType: ActivityType): Map<String, Int>
+    fun getActivitiesByActivityTypeGroupByActiveDays(activityTypes: Set<ActivityType>): Map<String, Int>
 
     fun listActivitiesPaginated(pageable: Pageable): Page<StravaActivity>
 
-    fun exportCSV(activityType: ActivityType, year: Int): String
+    fun exportCSV(activityTypes: Set<ActivityType>, year: Int): String
 }
 
 @Service
@@ -33,10 +33,10 @@ internal class ActivityService(
 
     private val logger = LoggerFactory.getLogger(ActivityService::class.java)
 
-    override fun getActivitiesByActivityTypeGroupByActiveDays(activityType: ActivityType): Map<String, Int> {
-        logger.info("Get activities by activity type ($activityType) group by active days")
+    override fun getActivitiesByActivityTypeGroupByActiveDays(activityTypes: Set<ActivityType>): Map<String, Int> {
+        logger.info("Get activities by activity type ($activityTypes) group by active days")
 
-        return activityProvider.getActivitiesByActivityTypeGroupByActiveDays(activityType)
+        return activityProvider.getActivitiesByActivityTypeGroupByActiveDays(activityTypes)
     }
 
     override fun listActivitiesPaginated(pageable: Pageable): Page<StravaActivity> {
@@ -45,19 +45,20 @@ internal class ActivityService(
         return activityProvider.listActivitiesPaginated(pageable)
     }
 
-    override fun getActivitiesByActivityTypeAndYear(activityType: ActivityType, year: Int?): List<StravaActivity> {
-        logger.info("Get activities by activity type ($activityType) for ${year ?: "all years"}")
+    override fun getActivitiesByActivityTypeAndYear(activityTypes: Set<ActivityType>, year: Int?): List<StravaActivity> {
+        logger.info("Get activities by activity type ($activityTypes) for ${year ?: "all years"}")
 
-        return activityProvider.getActivitiesByActivityTypeAndYear(activityType, year)
+        return activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
     }
 
-    override fun exportCSV(activityType: ActivityType, year: Int): String {
-        logger.info("Export CSV for activity type $activityType and year $year")
+    override fun exportCSV(activityTypes: Set<ActivityType>, year: Int): String {
+        logger.info("Export CSV for activity type $activityTypes and year $year")
 
         val clientId = activityProvider.athlete().id.toString()
 
-        val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityType, year)
-        val exporter = when (activityType) {
+        val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
+        // TODO: handle case multiple activity types
+        val exporter = when (activityTypes.first()) {
             ActivityType.Ride -> RideCSVExporter(clientId = clientId, activities = activities, year = year)
             ActivityType.Run -> RunCSVExporter(clientId = clientId, activities = activities, year = year)
             ActivityType.InlineSkate -> InlineSkateCSVExporter(
@@ -68,7 +69,7 @@ internal class ActivityService(
 
             ActivityType.Hike -> HikeCSVExporter(clientId = clientId, activities = activities, year = year)
             ActivityType.AlpineSki -> AlpineSkiCSVExporter(clientId = clientId, activities = activities, year = year)
-            else -> throw IllegalArgumentException("Unknown activity type: $activityType")
+            else -> RideCSVExporter(clientId = clientId, activities = activities, year = year)
         }
         return exporter.export()
     }

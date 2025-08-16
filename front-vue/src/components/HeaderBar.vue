@@ -20,21 +20,47 @@ const onChangeCurrentYear = (event: Event) => {
   contextStore.updateCurrentYear(year);
 };
 
+
+// Function to handle activity type changes:
 const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'Commute' | 'Run' | 'Hike' | 'AlpineSki') => {
-  if (activity === 'Ride' || activity === 'Commute') {
-    const otherActivity = activity === 'Ride' ? 'Commute' : 'Ride';
+  const cyclingActivities = ['Ride', 'Commute', 'VirtualRide'];
+
+  if (cyclingActivities.includes(activity)) {
     if (selectedActivitiesType.value.includes(activity)) {
-      selectedActivitiesType.value = selectedActivitiesType.value.length === 1 ? [activity] : [otherActivity];
+      // Remove the activity if it's already selected
+      selectedActivitiesType.value = selectedActivitiesType.value.filter(a => a !== activity);
+      // If no cycling activities left, default to 'Ride'
+      if (!selectedActivitiesType.value.some(a => cyclingActivities.includes(a))) {
+        selectedActivitiesType.value = ['Ride'];
+      }
     } else {
-      selectedActivitiesType.value = selectedActivitiesType.value.includes(otherActivity) ? ['Ride', 'Commute'] : [activity];
+      // Add the activity to the selection
+      selectedActivitiesType.value = [
+        ...selectedActivitiesType.value.filter(a => cyclingActivities.includes(a)), // Keep only cycling activities
+        activity
+      ];
     }
   } else {
+    // For non-cycling activities, select that single activity
     selectedActivitiesType.value = [activity];
   }
 
-  const activityType = selectedActivitiesType.value.length > 1 ? 'RideWithCommute' : selectedActivitiesType.value[0];
+  // Update the activity type in the store
+  let activityType;
+  const selectedCyclingActivities = selectedActivitiesType.value
+      .filter(a => cyclingActivities.includes(a))
+      .sort(); // Sort to ensure consistent ordering
+
+  if (selectedCyclingActivities.length > 1) {
+    // Create a combination name based on selected activities
+    activityType = selectedCyclingActivities.join('_');
+  } else {
+    activityType = selectedActivitiesType.value[0];
+  }
+
   contextStore.updateCurrentActivityType(activityType);
 };
+
 </script>
 
 <template>
@@ -98,6 +124,22 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'Commute' | 'Ru
               alt="Commute"
             >
           </button>
+
+          <button
+              id="virtual-ride"
+              type="button"
+              class="btn"
+              :class="{
+              'btn-outline-primary': !selectedActivitiesType.includes('VirtualRide'),
+              'btn-primary': selectedActivitiesType.includes('VirtualRide'),
+            }"
+              @click="onChangeActivityType('VirtualRide')"
+          >
+            <img
+                src="@/assets/buttons/virtualride.png"
+                alt="Virtual Ride"
+            >
+          </button>
         </div>
 
         <div
@@ -105,22 +147,6 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'Commute' | 'Ru
           role="group"
           aria-label="Activity"
         >
-          <button
-            id="virtual-ride"
-            type="button"
-            class="btn"
-            :class="{
-              'btn-outline-primary': !selectedActivitiesType.includes('VirtualRide'),
-              'btn-primary': selectedActivitiesType.includes('VirtualRide'),
-            }"
-            @click="onChangeActivityType('VirtualRide')"
-          >
-            <img
-              src="@/assets/buttons/virtualride.png"
-              alt="Virtual Ride"
-            >
-          </button>
-
           <button
             id="run"
             type="button"

@@ -8,19 +8,25 @@ import (
 	"mystravastats/domain/strava"
 )
 
-func FetchStatisticsByActivityTypeAndYear(activityType business.ActivityType, year *int) []statistics.Statistic {
+func FetchStatisticsByActivityTypeAndYear(year *int, activityTypes ...business.ActivityType) []statistics.Statistic {
 	if year == nil {
-		log.Printf("Compute statistics for %s for all years", activityType)
+		log.Printf("Compute statistics for %s for all years", activityTypes)
 	} else {
-		log.Printf("Compute statistics for %s for %v", activityType, *year)
+		log.Printf("Compute statistics for %s for %v", activityTypes, *year)
 	}
 
-	filteredActivities := activityProvider.GetActivitiesByActivityTypeAndYear(activityType, year)
+	filteredActivities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+
+	// If no activities are found, return an empty slice
+	if len(filteredActivities) == 0 {
+		log.Printf("No activities found for %s in year %v", activityTypes, year)
+		return []statistics.Statistic{}
+	}
+
+	activityType := activityTypes[0]
 
 	switch activityType {
 	case business.Ride:
-		return computeRideStatistics(filteredActivities)
-	case business.RideWithCommute:
 		return computeRideStatistics(filteredActivities)
 	case business.VirtualRide:
 		return computeVirtualRideStatistics(filteredActivities)

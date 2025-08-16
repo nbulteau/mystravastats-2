@@ -148,7 +148,7 @@ internal class StravaRepository(stravaCache: String) : ILocalStorageProvider {
     }
 
     /**
-     * Read Strava authentication from ".strava" file.
+     * Read Strava authentication from the ".strava" file.
      * The file must contain two properties: clientId and clientSecret.
      * @return a Triple with clientId, clientSecret and useCache
      */

@@ -118,6 +118,6 @@ srtm30m
 
 <http://localhost:8080/api/actuator/health>
 
-### Memory usage : get the max heap memory
+### Memory usage: get the max heap memory
 
 <http://localhost:8080/api/actuator/metrics/jvm.memory.max?tag=area:heap>

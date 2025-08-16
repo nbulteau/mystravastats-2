@@ -7,18 +7,17 @@ import (
 	"mystravastats/domain/strava"
 )
 
-func RetrieveActivitiesByActivityTypeAndYear(activityType business.ActivityType, year *int) []*strava.Activity {
-	return activityProvider.GetActivitiesByActivityTypeAndYear(activityType, year)
+func RetrieveActivitiesByYearAndActivityTypes(year *int, activityTypes ...business.ActivityType) []*strava.Activity {
+	return activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
 }
 
 func FetchAthlete() strava.Athlete {
 	return activityProvider.GetAthlete()
 }
 
-// RetrieveGPXByActivityTypeAndYear retrieves GPX coordinates for activities of a specific type and year.
-func RetrieveGPXByActivityTypeAndYear(activityType business.ActivityType, year *int) [][][]float64 {
+func RetrieveGPXByYearAndActivityTypes(year *int, activityTypes ...business.ActivityType) [][][]float64 {
 
-	activities := activityProvider.GetActivitiesByActivityTypeAndYear(activityType, year)
+	activities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
 
 	step := 100
 	if year != nil {

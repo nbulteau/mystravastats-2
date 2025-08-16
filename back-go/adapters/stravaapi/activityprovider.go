@@ -255,24 +255,10 @@ func (provider *StravaActivityProvider) GetActivity(activityId int64) *strava.Ac
 	return nil
 }
 
-func (provider *StravaActivityProvider) GetActivitiesByActivityTypeGroupByActiveDays(activityType business.ActivityType) map[string]int {
-	log.Printf("Get activities by stravaActivity type (%s) group by active days\n", activityType)
+func (provider *StravaActivityProvider) GetActivitiesByActivityTypeGroupByActiveDays(activityTypes ...business.ActivityType) map[string]int {
+	log.Printf("Get activities by stravaActivity type (%s) group by active days\n", activityTypes)
 
-	filteredActivities := FilterActivitiesByType(provider.activities, activityType)
-
-	result := make(map[string]int)
-	for _, activity := range filteredActivities {
-		date := strings.Split(activity.StartDateLocal, "T")[0]
-		result[date] += int(activity.Distance / 1000)
-	}
-	return result
-}
-
-func (provider *StravaActivityProvider) GetActivitiesByActivityTypeByYearGroupByActiveDays(activityType business.ActivityType, year *int) map[string]int {
-	log.Printf("Get activities by stravaActivity type (%s) group by active days for year %d\n", activityType, year)
-
-	filteredActivities := FilterActivitiesByYear(provider.activities, year)
-	filteredActivities = FilterActivitiesByType(filteredActivities, activityType)
+	filteredActivities := FilterActivitiesByType(provider.activities, activityTypes...)
 
 	result := make(map[string]int)
 	for _, activity := range filteredActivities {
@@ -282,17 +268,31 @@ func (provider *StravaActivityProvider) GetActivitiesByActivityTypeByYearGroupBy
 	return result
 }
 
-func (provider *StravaActivityProvider) GetActivitiesByActivityTypeAndYear(activityType business.ActivityType, year *int) []*strava.Activity {
+func (provider *StravaActivityProvider) GetActivitiesByActivityTypeByYearGroupByActiveDays(year *int, activityTypes ...business.ActivityType) map[string]int {
+	log.Printf("Get activities by stravaActivity type (%s) group by active days for year %d\n", activityTypes, year)
+
 	filteredActivities := FilterActivitiesByYear(provider.activities, year)
-	filteredActivities = FilterActivitiesByType(filteredActivities, activityType)
+	filteredActivities = FilterActivitiesByType(filteredActivities, activityTypes...)
+
+	result := make(map[string]int)
+	for _, activity := range filteredActivities {
+		date := strings.Split(activity.StartDateLocal, "T")[0]
+		result[date] += int(activity.Distance / 1000)
+	}
+	return result
+}
+
+func (provider *StravaActivityProvider) GetActivitiesByYearAndActivityTypes(year *int, activityTypes ...business.ActivityType) []*strava.Activity {
+	filteredActivities := FilterActivitiesByYear(provider.activities, year)
+	filteredActivities = FilterActivitiesByType(filteredActivities, activityTypes...)
 
 	return filteredActivities
 }
 
-func (provider *StravaActivityProvider) GetActivitiesByActivityTypeGroupByYear(activityType business.ActivityType) map[string][]*strava.Activity {
-	log.Printf("Get activities by stravaActivity type (%s) group by year\n", activityType)
+func (provider *StravaActivityProvider) GetActivitiesByActivityTypeGroupByYear(activityTypes ...business.ActivityType) map[string][]*strava.Activity {
+	log.Printf("Get activities by stravaActivity type (%s) group by year\n", activityTypes)
 
-	filteredActivities := FilterActivitiesByType(provider.activities, activityType)
+	filteredActivities := FilterActivitiesByType(provider.activities, activityTypes...)
 	return provider.groupActivitiesByYear(filteredActivities)
 }
 
@@ -333,17 +333,30 @@ func filterByActivityTypes(activities []strava.Activity) []strava.Activity {
 	return filtered
 }
 
-func FilterActivitiesByType(activities []*strava.Activity, activityType business.ActivityType) []*strava.Activity {
+func FilterActivitiesByType(activities []*strava.Activity, activityTypes ...business.ActivityType) []*strava.Activity {
+	if len(activityTypes) == 0 {
+		return []*strava.Activity{}
+	}
+
 	var filtered []*strava.Activity
+
 	for _, activity := range activities {
-		if activityType == business.Commute && activity.Type == business.Ride.String() && activity.Commute {
-			filtered = append(filtered, activity)
-		} else if activityType == business.RideWithCommute && activity.Type == business.Ride.String() {
-			filtered = append(filtered, activity)
-		} else if activity.Type == activityType.String() && !activity.Commute {
-			filtered = append(filtered, activity)
+		for _, activityType := range activityTypes {
+			if activityType == business.Commute {
+				if activity.Type == business.Ride.String() && activity.Commute {
+					filtered = append(filtered, activity)
+					break
+				}
+				continue
+			}
+
+			if activity.Type == activityType.String() && !activity.Commute {
+				filtered = append(filtered, activity)
+				break
+			}
 		}
 	}
+
 	return filtered
 }
 

@@ -70,7 +70,8 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
     override fun getActivities(year: Int): List<StravaActivity> {
         try {
             return doGetActivities(
-                before = LocalDateTime.of(year, 12, 31, 23, 59), after = LocalDateTime.of(year, 1, 1, 0, 0)
+                before = LocalDateTime.of(year, 12, 31, 23, 59),
+                after = LocalDateTime.of(year, 1, 1, 0, 0)
             )
         } catch (connectException: ConnectException) {
             throw RuntimeException("Unable to connect to Strava API : ${connectException.message}")
@@ -115,7 +116,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
                 logger.info("Set http proxy : $proxyUrl")
                 return Proxy(Proxy.Type.HTTP, InetSocketAddress(proxyUrl.host, proxyUrl.port))
             } catch (malformedURLException: MalformedURLException) {
-                logger.info("Error configuring proxy : malformedURLException")
+                logger.info("Error configuring proxy : $malformedURLException")
             }
         } else {
             logger.info("No https proxy defined")
@@ -133,12 +134,8 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
         okHttpClient.newCall(request).execute().use { response ->
             if (response.isSuccessful) {
                 try {
-                    val json = response.body?.string()
-                    return if (json != null) {
-                        Optional.of(objectMapper.readValue(json, StravaAthlete::class.java))
-                    } else {
-                        Optional.empty()
-                    }
+                    val json = response.body.string()
+                    return Optional.of(objectMapper.readValue(json, StravaAthlete::class.java))
                 } catch (jsonMappingException: JsonMappingException) {
                     throw RuntimeException("Something was wrong with Strava API", jsonMappingException)
                 }
@@ -172,7 +169,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
                     logger.info(QUOTA_EXCEED_LIMIT)
                     exitProcess(-1)
                 }
-                result = objectMapper.readValue(response.body?.string() ?: "")
+                result = objectMapper.readValue(response.body.string())
 
                 activities.addAll(result)
             }
@@ -211,14 +208,10 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
 
                 response.code == HttpStatus.OK.value() -> {
                     return try {
-                        val json = response.body?.string()
-                        return if (json != null) {
-                            Optional.of(objectMapper.readValue(json, Stream::class.java))
-                        } else {
-                            Optional.empty()
-                        }
+                        val json = response.body.string()
+                        return Optional.of(objectMapper.readValue(json, Stream::class.java))
                     } catch (jsonProcessingException: JsonProcessingException) {
-                        logger.info("Unable to load streams for stravaActivity : $stravaActivity")
+                        logger.info("Unable to load streams for stravaActivity : $stravaActivity: ${jsonProcessingException.message}")
                         Optional.empty()
                     }
                 }
@@ -260,12 +253,8 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
 
                 response.code == HttpStatus.OK.value() -> {
                     return try {
-                        val json = response.body?.string()
-                        return if (json != null) {
-                            Optional.of(objectMapper.readValue(json, StravaDetailedActivity::class.java))
-                        } else {
-                            Optional.empty()
-                        }
+                        val json = response.body.string()
+                        return Optional.of(objectMapper.readValue(json, StravaDetailedActivity::class.java))
                     } catch (jsonProcessingException: JsonProcessingException) {
                         logger.info("Unable to load stravaActivity : $activityId - ${jsonProcessingException.message}")
                         Optional.empty()
@@ -302,7 +291,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
                             ContentType.Text.Html
                         )
                         launch {
-                            // Get authorisation token with the code
+                            // Get an authorization token with the code
                             val token = getToken(clientId, clientSecret, authorizationCode)
                             channel.send(token.accessToken)
 
@@ -384,7 +373,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
         okHttpClient.newCall(request).execute().use { response ->
             try {
                 if (response.code == 200) {
-                    return objectMapper.readValue(response.body?.string() ?: "", Token::class.java)
+                    return objectMapper.readValue(response.body.string(), Token::class.java)
                 } else {
                     throw RuntimeException("Something was wrong with Strava API for url $url")
                 }
