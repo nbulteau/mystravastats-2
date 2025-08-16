@@ -282,7 +282,7 @@ func (provider *StravaActivityProvider) GetActivitiesByActivityTypeByYearGroupBy
 	return result
 }
 
-func (provider *StravaActivityProvider) GetActivitiesByActivityTypeAndYear(year *int, activityTypes ...business.ActivityType) []*strava.Activity {
+func (provider *StravaActivityProvider) GetActivitiesByYearAndActivityTypes(year *int, activityTypes ...business.ActivityType) []*strava.Activity {
 	filteredActivities := FilterActivitiesByYear(provider.activities, year)
 	filteredActivities = FilterActivitiesByType(filteredActivities, activityTypes...)
 
