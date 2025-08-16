@@ -189,7 +189,7 @@ class StravaActivityProvider(
 
     private fun loadActivitiesStreams(clientId: String, year: Int, activities: List<StravaActivity>) {
 
-        // stream id files list
+        // stream id file list
         val streamIdsSet = localStorageProvider.buildStreamIdsSet(clientId, year)
 
         activities.forEach { activity ->
