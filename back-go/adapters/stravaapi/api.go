@@ -2,6 +2,7 @@ package stravaapi
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -114,7 +115,7 @@ func (api *StravaApi) getToken(clientId, clientSecret, authorizationCode string)
 }
 
 func (api *StravaApi) RetrieveLoggedInAthlete() (*strava.Athlete, error) {
-	url := fmt.Sprintf("%s/api/v3/athlete", api.properties.URL)
+	baseAthleteUrl := fmt.Sprintf("%s/api/v3/athlete", api.properties.URL)
 
 	var athlete *strava.Athlete
 	var err error
@@ -122,7 +123,7 @@ func (api *StravaApi) RetrieveLoggedInAthlete() (*strava.Athlete, error) {
 	backoffDelay := time.Second
 
 	for i := 0; i < retryCount; i++ {
-		athlete, err = api.retrieveAthlete(url)
+		athlete, err = api.retrieveAthlete(baseAthleteUrl)
 		if err == nil {
 			return athlete, nil
 		}
@@ -130,7 +131,7 @@ func (api *StravaApi) RetrieveLoggedInAthlete() (*strava.Athlete, error) {
 		if errors.Is(err, errors.New("too many requests")) {
 			log.Printf("Too many requests, retrying in %v...", backoffDelay)
 			time.Sleep(backoffDelay)
-			backoffDelay *= 2 // Backoff exponentiel
+			backoffDelay *= 2 // Backoff exponential
 			continue
 		}
 
@@ -167,121 +168,141 @@ func (api *StravaApi) retrieveAthlete(url string) (*strava.Athlete, error) {
 }
 
 func (api *StravaApi) GetActivities(year int) ([]strava.Activity, error) {
-	loc, _ := time.LoadLocation("Europe/Paris")
+	// Use a stable timezone; fallback to UTC if the location cannot be loaded
+	loc, err := time.LoadLocation("Europe/Paris")
+	if err != nil {
+		loc = time.UTC
+	}
 
-	beforeEpoch := time.Date(year, 12, 31, 23, 59, 0, 0, loc).Unix()
-	afterEpoch := time.Date(year, 1, 1, 0, 0, 0, 0, loc).Unix()
-	//url := fmt.Sprintf("%s/api/v3/athlete/activities?per_page=%d&before=%d&after=%d", api.properties.URL, api.properties.PageSize, before, after)
+	// Define the interval as [Jan 1st year, Jan 1st next year) to avoid off-by-one issues
+	after := time.Date(year, 1, 1, 0, 0, 0, 0, loc).Unix()
+	before := time.Date(year+1, 1, 1, 0, 0, 0, 0, loc).Unix()
 
-	baseActivitiesURL := fmt.Sprintf("%s/api/v3/athlete/activities", api.properties.URL)
-	u, _ := url.Parse(baseActivitiesURL)
+	// Build the base URL
+	baseURL := fmt.Sprintf("%s/api/v3/athlete/activities", api.properties.URL)
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return nil, fmt.Errorf("URL de base invalide: %w", err)
+	}
+
+	// Use Strava's typical max page size (200) if the configured value is out of range
+	perPage := api.properties.PageSize
+	if perPage <= 0 || perPage > 200 {
+		perPage = 200
+	}
+
 	q := u.Query()
-	q.Set("per_page", strconv.Itoa(api.properties.PageSize))
-	q.Set("after", strconv.FormatInt(afterEpoch, 10))
-	q.Set("before", strconv.FormatInt(beforeEpoch, 10))
-	u.RawQuery = q.Encode()
+	q.Set("per_page", strconv.Itoa(perPage))
+	q.Set("after", strconv.FormatInt(after, 10))
+	q.Set("before", strconv.FormatInt(before, 10))
 
 	var activities []strava.Activity
 	page := 1
+	backoff := time.Second // exponential backoff base for 429
 
 	for {
-		pageURL, err := url.Parse(u.String())
-		if err != nil {
-			return nil, fmt.Errorf("URL de page invalide: %w", err)
-		}
-		pq := pageURL.Query()
-		pq.Set("page", strconv.Itoa(page))
-		pageURL.RawQuery = pq.Encode()
+		// Set the current page and encode the query into the URL
+		q.Set("page", strconv.Itoa(page))
+		u.RawQuery = q.Encode()
 
-		req, err := http.NewRequest(http.MethodGet, pageURL.String(), nil)
+		// Build the request with a per-call timeout
+		req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 		if err != nil {
 			return nil, fmt.Errorf("erreur création requête: %w", err)
 		}
 		req.Header.Set("Accept", "application/json")
-		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+api.accessToken)
 
+		ctx, cancel := context.WithTimeout(req.Context(), 15*time.Second)
+		req = req.WithContext(ctx)
+
 		resp, err := api.httpClient.Do(req)
+		cancel()
 		if err != nil {
 			return nil, fmt.Errorf("erreur appel HTTP: %w", err)
 		}
+
+		// Ensure the response body is closed before the next iteration
 		func() {
-			defer func(Body io.ReadCloser) {
-				err := Body.Close()
-				if err != nil {
-					log.Fatalf("Failed to close response body: %v", err)
+			defer func() {
+				if cerr := resp.Body.Close(); cerr != nil {
+					// Best-effort logging; do not crash nor override the main error path
+					log.Printf("warning: close response body failed: %v", cerr)
 				}
-			}(resp.Body)
+			}()
+
 			switch resp.StatusCode {
 			case http.StatusUnauthorized: // 401
 				err = fmt.Errorf("token invalide (401 Unauthorized)")
 				return
 			case http.StatusTooManyRequests: // 429
-				err = fmt.Errorf("limite de quota atteinte (429 Too Many Requests)")
+				// Respect Retry-After when provided, otherwise use exponential backoff
+				if ra := resp.Header.Get("Retry-After"); ra != "" {
+					if secs, err := strconv.Atoi(ra); err == nil && secs > 0 {
+						time.Sleep(time.Duration(secs) * time.Second)
+					} else {
+						time.Sleep(backoff)
+						if backoff < 30*time.Second {
+							backoff *= 2
+						}
+					}
+				} else {
+					time.Sleep(backoff)
+					if backoff < 30*time.Second {
+						backoff *= 2
+					}
+				}
+				// Retry the same page after waiting
+				err = nil
 				return
 			}
 
+			// Handle any non-2xx responses with a bounded error body read
 			if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-				body, _ := io.ReadAll(resp.Body)
+				limited := io.LimitReader(resp.Body, 4096)
+				body, _ := io.ReadAll(limited)
 				err = fmt.Errorf("appel Strava non réussi: %d - %s", resp.StatusCode, string(body))
 				return
 			}
 
+			// Decode the page
 			var pageItems []strava.Activity
-			dec := json.NewDecoder(resp.Body)
-			if derr := dec.Decode(&pageItems); derr != nil {
-				err = fmt.Errorf("erreur de décodage JSON: %w", derr)
+			if err := json.NewDecoder(resp.Body).Decode(&pageItems); err != nil {
+				err = fmt.Errorf("erreur de décodage JSON: %w", err)
 				return
 			}
 
-			// Fin de pagination si la page est vide
-			if len(pageItems) == 0 {
-				err = io.EOF // signal d’arrêt de boucle
-				return
-			}
-
+			// Append items to the aggregated list
 			activities = append(activities, pageItems...)
+
+			// Break conditions:
+			// - Empty page => no more data
+			// - Partial page (< perPage) => last page
+			if len(pageItems) == 0 || len(pageItems) < perPage {
+				// Use a sentinel (nil error) and track completion outside the closure
+				err = io.EOF
+				return
+			}
 		}()
+
+		// Exit or propagate errors decided inside the scoped closure
 		if err != nil {
 			if err == io.EOF {
 				break
 			}
 			return nil, err
 		}
+
+		// Prepare the next page
 		page++
 	}
 
 	return activities, nil
 }
 
-func (api *StravaApi) getActivities(url string) ([]strava.Activity, error) {
-	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Set("Authorization", "Bearer "+api.accessToken)
-	resp, err := api.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("unable to connect to Strava API: %v", err)
-	}
-	defer func(Body interface{}) {
-		err := resp.Body.Close()
-		if err != nil {
-			log.Fatalf("Failed to close response body: %v", err)
-		}
-	}(resp.Body)
-
-	if resp.StatusCode == http.StatusTooManyRequests {
-		return nil, errors.New("too many requests")
-	}
-
-	var activities []strava.Activity
-	if err := json.NewDecoder(resp.Body).Decode(&activities); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %v", err)
-	}
-	return activities, nil
-}
-
 func (api *StravaApi) GetDetailedActivity(activityId int64) (*strava.DetailedActivity, error) {
-	url := fmt.Sprintf("%s/api/v3/activities/%d?include_all_efforts=true", api.properties.URL, activityId)
-	req, _ := http.NewRequest("GET", url, nil)
+	baseActivitiesUel := fmt.Sprintf("%s/api/v3/activities/%d?include_all_efforts=true", api.properties.URL, activityId)
+	req, _ := http.NewRequest("GET", baseActivitiesUel, nil)
 	req.Header.Set("Authorization", "Bearer "+api.accessToken)
 	resp, err := api.httpClient.Do(req)
 	if err != nil {
@@ -307,8 +328,8 @@ func (api *StravaApi) GetActivityStream(stravaActivity strava.Activity) (*strava
 		return nil, nil
 	}
 
-	url := fmt.Sprintf("https://www.strava.com/api/v3/activities/%d/streams?keys=time,distance,latlng,altitude,velocity_smooth,heartrate,cadence,watts,moving,grade_smooth&key_by_type=true", stravaActivity.Id)
-	req, _ := http.NewRequest("GET", url, nil)
+	baseStreamsUrl := fmt.Sprintf("https://www.strava.com/api/v3/activities/%d/streams?keys=time,distance,latlng,altitude,velocity_smooth,heartrate,cadence,watts,moving,grade_smooth&key_by_type=true", stravaActivity.Id)
+	req, _ := http.NewRequest("GET", baseStreamsUrl, nil)
 	req.Header.Set("Authorization", "Bearer "+api.accessToken)
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
