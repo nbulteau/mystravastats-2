@@ -2,7 +2,6 @@ package stravaapi
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -168,132 +167,115 @@ func (api *StravaApi) retrieveAthlete(url string) (*strava.Athlete, error) {
 }
 
 func (api *StravaApi) GetActivities(year int) ([]strava.Activity, error) {
-	// Use a stable timezone; fallback to UTC if the location cannot be loaded
-	loc, err := time.LoadLocation("Europe/Paris")
-	if err != nil {
-		loc = time.UTC
-	}
+	// Use UTC boundaries for predictable server-side filtering
+	after := time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
+	before := time.Date(year+1, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
 
-	// Define the interval as [Jan 1st year, Jan 1st next year) to avoid off-by-one issues
-	after := time.Date(year, 1, 1, 0, 0, 0, 0, loc).Unix()
-	before := time.Date(year+1, 1, 1, 0, 0, 0, 0, loc).Unix()
-
-	// Build the base URL
 	baseURL := fmt.Sprintf("%s/api/v3/athlete/activities", api.properties.URL)
-	u, err := url.Parse(baseURL)
+	activitiesURL, err := url.Parse(baseURL)
 	if err != nil {
-		return nil, fmt.Errorf("URL de base invalide: %w", err)
+		return nil, fmt.Errorf("invalid base URL: %w", err)
 	}
 
-	// Use Strava's typical max page size (200) if the configured value is out of range
+	// Clamp perPage to Strava's documented max
 	perPage := api.properties.PageSize
 	if perPage <= 0 || perPage > 200 {
 		perPage = 200
 	}
 
-	q := u.Query()
-	q.Set("per_page", strconv.Itoa(perPage))
-	q.Set("after", strconv.FormatInt(after, 10))
+	q := activitiesURL.Query()
 	q.Set("before", strconv.FormatInt(before, 10))
+	q.Set("after", strconv.FormatInt(after, 10))
+	q.Set("per_page", strconv.Itoa(perPage))
 
 	var activities []strava.Activity
 	page := 1
-	backoff := time.Second // exponential backoff base for 429
+	backoff := time.Second // base backoff for 429
+	maxBackoff := 30 * time.Second
 
 	for {
-		// Set the current page and encode the query into the URL
+		// Build page URL
 		q.Set("page", strconv.Itoa(page))
-		u.RawQuery = q.Encode()
+		activitiesURL.RawQuery = q.Encode()
 
-		// Build the request with a per-call timeout
-		req, err := http.NewRequest(http.MethodGet, u.String(), nil)
+		// Build request
+		req, err := http.NewRequest(http.MethodGet, activitiesURL.String(), nil)
 		if err != nil {
-			return nil, fmt.Errorf("erreur création requête: %w", err)
+			return nil, fmt.Errorf("request build error: %w", err)
 		}
 		req.Header.Set("Accept", "application/json")
 		req.Header.Set("Authorization", "Bearer "+api.accessToken)
 
-		ctx, cancel := context.WithTimeout(req.Context(), 15*time.Second)
-		req = req.WithContext(ctx)
+		// Per-call timeout without changing the shared client
+		client := *api.httpClient
+		client.Timeout = 15 * time.Second
 
-		resp, err := api.httpClient.Do(req)
-		cancel()
+		resp, err := client.Do(req)
 		if err != nil {
-			return nil, fmt.Errorf("erreur appel HTTP: %w", err)
+			return nil, fmt.Errorf("http call error: %w", err)
 		}
 
-		// Ensure the response body is closed before the next iteration
-		func() {
-			defer func() {
-				if cerr := resp.Body.Close(); cerr != nil {
-					// Best-effort logging; do not crash nor override the main error path
-					log.Printf("warning: close response body failed: %v", cerr)
-				}
-			}()
-
-			switch resp.StatusCode {
-			case http.StatusUnauthorized: // 401
-				err = fmt.Errorf("token invalide (401 Unauthorized)")
-				return
-			case http.StatusTooManyRequests: // 429
-				// Respect Retry-After when provided, otherwise use exponential backoff
-				if ra := resp.Header.Get("Retry-After"); ra != "" {
-					if secs, err := strconv.Atoi(ra); err == nil && secs > 0 {
-						time.Sleep(time.Duration(secs) * time.Second)
-					} else {
-						time.Sleep(backoff)
-						if backoff < 30*time.Second {
-							backoff *= 2
-						}
-					}
-				} else {
-					time.Sleep(backoff)
-					if backoff < 30*time.Second {
-						backoff *= 2
-					}
-				}
-				// Retry the same page after waiting
-				err = nil
-				return
-			}
-
-			// Handle any non-2xx responses with a bounded error body read
-			if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-				limited := io.LimitReader(resp.Body, 4096)
-				body, _ := io.ReadAll(limited)
-				err = fmt.Errorf("appel Strava non réussi: %d - %s", resp.StatusCode, string(body))
-				return
-			}
-
-			// Decode the page
-			var pageItems []strava.Activity
-			if err := json.NewDecoder(resp.Body).Decode(&pageItems); err != nil {
-				err = fmt.Errorf("erreur de décodage JSON: %w", err)
-				return
-			}
-
-			// Append items to the aggregated list
-			activities = append(activities, pageItems...)
-
-			// Break conditions:
-			// - Empty page => no more data
-			// - Partial page (< perPage) => last page
-			if len(pageItems) == 0 || len(pageItems) < perPage {
-				// Use a sentinel (nil error) and track completion outside the closure
-				err = io.EOF
-				return
-			}
-		}()
-
-		// Exit or propagate errors decided inside the scoped closure
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return nil, err
+		// Handle HTTP status codes first
+		if resp.StatusCode == http.StatusUnauthorized {
+			_ = resp.Body.Close()
+			return nil, fmt.Errorf("invalid token (401 Unauthorized)")
 		}
 
-		// Prepare the next page
+		if resp.StatusCode == http.StatusTooManyRequests {
+			// Respect Retry-After (seconds or HTTP-date)
+			wait := backoff
+			if ra := resp.Header.Get("Retry-After"); ra != "" {
+				if secs, aerr := strconv.Atoi(ra); aerr == nil && secs > 0 {
+					wait = time.Duration(secs) * time.Second
+				} else if t, perr := http.ParseTime(ra); perr == nil {
+					now := time.Now()
+					if t.After(now) {
+						wait = t.Sub(now)
+					}
+				}
+			}
+			_ = resp.Body.Close()
+			time.Sleep(wait)
+			// Exponential backoff with cap
+			if backoff < maxBackoff {
+				backoff *= 2
+				if backoff > maxBackoff {
+					backoff = maxBackoff
+				}
+			}
+			// Retry the same page (do not increment)
+			continue
+		}
+
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			limited := io.LimitReader(resp.Body, 4096)
+			body, _ := io.ReadAll(limited)
+			_ = resp.Body.Close()
+			return nil, fmt.Errorf("strava call failed: %d - %s", resp.StatusCode, string(body))
+		}
+
+		// Decode page
+		var pageItems []strava.Activity
+		if derr := json.NewDecoder(resp.Body).Decode(&pageItems); derr != nil {
+			_ = resp.Body.Close()
+			return nil, fmt.Errorf("json decoding error: %w", derr)
+		}
+		if cerr := resp.Body.Close(); cerr != nil {
+			log.Printf("warning: closing response body failed: %v", cerr)
+		}
+
+		// Append to aggregate
+		activities = append(activities, pageItems...)
+
+		// Reset backoff after a successful page
+		backoff = time.Second
+
+		// Stop when last page reached
+		if len(pageItems) == 0 || len(pageItems) < perPage {
+			break
+		}
+
+		// Next page
 		page++
 	}
 
