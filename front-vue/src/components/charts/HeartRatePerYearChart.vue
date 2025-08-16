@@ -105,15 +105,31 @@ function updateChartData() {
     const maxMaxHeartRate = Math.max(...maxHeartRateByYear);
     const maxMaxHeartRateIndex = maxHeartRateByYear.indexOf(maxMaxHeartRate);
 
-    (chartOptions.series[0] as SeriesColumnOptions).data = averageHeartRateByYear.map((value, index) => ({
-      y: value,
-      marker: index === maxAverageHeartRateIndex ? {enabled: true, radius: 6, fillColor: 'red'} : undefined
-    }));
+    (chartOptions.series[0] as SeriesColumnOptions).data = averageHeartRateByYear.map((value, index) => {
+      if (index === maxAverageHeartRateIndex) {
+        return {
+          y: value,
+          marker: { enabled: true, radius: 6, fillColor: 'red' }
+        };
+      } else {
+        return {
+          y: value
+        };
+      }
+    });
 
-    (chartOptions.series[1] as SeriesColumnOptions).data = maxHeartRateByYear.map((value, index) => ({
-      y: value,
-      marker: index === maxMaxHeartRateIndex ? {enabled: true, radius: 6, fillColor: 'red'} : undefined
-    }));
+    (chartOptions.series[1] as SeriesColumnOptions).data = maxHeartRateByYear.map((value, index) => {
+      if (index === maxMaxHeartRateIndex) {
+        return {
+          y: value,
+          marker: { enabled: true, radius: 6, fillColor: 'red' }
+        };
+      } else {
+        return {
+          y: value
+        };
+      }
+    });
 
     (chartOptions.series[2] as SeriesLineOptions).data = calculateTrendLine(averageHeartRateByYear);
   }

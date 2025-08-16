@@ -134,23 +134,25 @@ function updateChartData() {
     const maxDistanceIndex = distanceByYear.indexOf(maxDistance);
 
     (chartOptions.series[0] as SeriesColumnOptions).data = alevationByYear.map(
-      (value, index) => ({
-        y: value,
-        marker:
-          index === maxElevationIndex
-            ? { enabled: true, radius: 6, fillColor: "red" }
-            : undefined,
-      })
+      (value, index) =>
+        index === maxElevationIndex
+          ? { y: value, marker: { enabled: true, radius: 6, fillColor: "red" } }
+          : { y: value }
     );
 
     (chartOptions.series[1] as SeriesColumnOptions).data = distanceByYear.map(
-      (value, index) => ({
-        y: value,
-        marker:
-          index === maxDistanceIndex
-            ? { enabled: true, radius: 6, fillColor: "red" }
-            : undefined,
-      })
+      (value, index) => {
+        if (index === maxDistanceIndex) {
+          return {
+            y: value,
+            marker: { enabled: true, radius: 6, fillColor: "red" }
+          };
+        } else {
+          return {
+            y: value
+          };
+        }
+      }
     );
 
     (chartOptions.series[2] as SeriesLineOptions).data = calculateTrendLine(

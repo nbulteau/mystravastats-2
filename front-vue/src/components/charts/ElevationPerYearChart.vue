@@ -105,15 +105,25 @@ function updateChartData() {
     const maxMaxElevation = Math.max(...maxElevationByYear);
     const maxMaxElevationIndex = maxElevationByYear.indexOf(maxMaxElevation);
 
-    (chartOptions.series[0] as SeriesColumnOptions).data = averageElevationByYear.map((value, index) => ({
-      y: value,
-      marker: index === maxAverageElevationIndex ? {enabled: true, radius: 6, fillColor: 'red'} : undefined
-    }));
+    (chartOptions.series[0] as SeriesColumnOptions).data = averageElevationByYear.map((value, index) => {
+      if (index === maxAverageElevationIndex) {
+        return {
+          y: value,
+          marker: { enabled: true, radius: 6, fillColor: 'red' }
+        };
+      }
+      return { y: value };
+    });
 
-    (chartOptions.series[1] as SeriesColumnOptions).data = maxElevationByYear.map((value, index) => ({
-      y: value,
-      marker: index === maxMaxElevationIndex ? {enabled: true, radius: 6, fillColor: 'red'} : undefined
-    }));
+    (chartOptions.series[1] as SeriesColumnOptions).data = maxElevationByYear.map((value, index) => {
+      if (index === maxMaxElevationIndex) {
+        return {
+          y: value,
+          marker: { enabled: true, radius: 6, fillColor: 'red' }
+        };
+      }
+      return { y: value };
+    });
 
     (chartOptions.series[2] as SeriesLineOptions).data = calculateTrendLine(averageElevationByYear);
   }

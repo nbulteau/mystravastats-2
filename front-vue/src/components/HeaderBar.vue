@@ -58,7 +58,7 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'Commute' | 'Ru
     activityType = selectedActivitiesType.value[0];
   }
 
-  contextStore.updateCurrentActivityType(activityType);
+  contextStore.updateCurrentActivityType(activityType ?? "");
 };
 
 </script>

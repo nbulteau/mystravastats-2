@@ -159,7 +159,7 @@ class Stream {
     altitude: number[] | null;
     latlng: number[][] | null;
     watts: number[] | null;
-    velocitySmooth?: number[] | null;
+    velocitySmooth?: number[] | null | undefined;
 
     constructor(
         distance: number[],

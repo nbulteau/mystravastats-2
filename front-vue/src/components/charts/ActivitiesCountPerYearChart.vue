@@ -85,10 +85,18 @@ function updateChartData() {
     const maxActivitiesCount = Math.max(...activitiesCount);
     const maxActivitiesCountIndex = activitiesCount.indexOf(maxActivitiesCount);
 
-    (chartOptions.series[0] as SeriesColumnOptions).data = activitiesCount.map((value, index) => ({
-      y: value,
-      marker: index === maxActivitiesCountIndex ? {enabled: true, radius: 6, fillColor: 'red'} : undefined
-    }));
+    (chartOptions.series[0] as SeriesColumnOptions).data = activitiesCount.map((value, index) => {
+      if (index === maxActivitiesCountIndex) {
+        return {
+          y: value,
+          marker: { enabled: true, radius: 6, fillColor: 'red' }
+        };
+      } else {
+        return {
+          y: value
+        };
+      }
+    });
 
     (chartOptions.series[1] as SeriesLineOptions).data = calculateTrendLine(activitiesCount);
   }

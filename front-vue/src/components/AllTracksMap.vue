@@ -33,7 +33,9 @@ const updateMap = () => {
     // Create a polyline from the GPX coordinates and add it to the map
     const polylines = props.gpxCoordinates.map((coords: number[][]) => {
       if (map.value) {
-        const latLngs = coords.map((coord) => L.latLng(coord[0], coord[1]));
+        const latLngs = coords
+          .filter((coord) => typeof coord[0] === "number" && typeof coord[1] === "number")
+          .map((coord) => L.latLng(coord[0] as number, coord[1] as number));
         return L.polyline(latLngs, { color: "red" }).addTo(map.value);
       }
     });

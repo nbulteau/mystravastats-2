@@ -38,7 +38,7 @@ function sortDataByYear(averageWattsByYear: Record<string, number>): Record<stri
   return Object.keys(averageWattsByYear)
     .sort((a, b) => parseInt(a) - parseInt(b))
     .reduce((acc, key) => {
-      acc[key] = averageWattsByYear[key];
+      acc[key] = averageWattsByYear[key] ?? 0;
       return acc;
     }, {} as Record<string, number>);
 }

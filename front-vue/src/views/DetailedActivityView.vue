@@ -210,11 +210,14 @@ const updateMap = () => {
   if (map.value) {
     // Add a polyline
     const latlngs = activity.value?.stream?.latlng?.map((latlng: number[]) =>
-      L.latLng(latlng[0], latlng[1])
+      (typeof latlng[0] === "number" && typeof latlng[1] === "number")
+        ? L.latLng(latlng[0], latlng[1])
+        : null
     );
 
     if (latlngs) {
-      const polyline = L.polyline(latlngs, { color: "red" }).addTo(map.value);
+      const filteredLatlngs = latlngs.filter((latlng): latlng is L.LatLng => latlng !== null);
+      const polyline = L.polyline(filteredLatlngs, { color: "red" }).addTo(map.value);
       // Fit the map to the bounds of all polylines
       const bounds = L.latLngBounds(polyline.getLatLngs() as L.LatLng[]);
       map.value.fitBounds(bounds);
@@ -354,7 +357,7 @@ const initChart = () => {
   ) {
     (chartOptions.series[0] as SeriesLineOptions).data = speedStream.map(
       (speed, index) => ({
-        x: distanceStream[index] / 1000,
+        x: (distanceStream?.[index] ?? 0) / 1000,
         y: speed,
       })
     );
@@ -368,7 +371,7 @@ const initChart = () => {
   ) {
     (chartOptions.series[1] as SeriesAreaOptions).data = altitudeStream.map(
       (altitude, index) => ({
-        x: distanceStream[index] / 1000,
+        x: (distanceStream?.[index] ?? 0) / 1000,
         y: altitude,
       })
     );
@@ -388,25 +391,37 @@ const initChart = () => {
     chartInstance = Highcharts.chart(chartContainer, chartOptions);
 
     chartContainer.addEventListener("mousemove", function (e: MouseEvent) {
-      if (chartInstance) {
-        // Find coordinates within the chart
-        const event: Highcharts.PointerEventObject = chartInstance.pointer.normalize(e);
-        // Get the hovered point
-        const point: Highcharts.Point | undefined = chartInstance.series[0].searchPoint(event, true);
+      if (!chartInstance || !map.value) return;
 
-        if (point) {
-          const mapContainer = document.getElementById("map-container");
-          if (mapContainer) {
-            const latlng = activity.value?.stream?.latlng?.[point.index];
-            if (latlng) {
-              // Remove previous marker
-              map.value?.eachLayer((layer) => {
-                if (layer instanceof L.Marker) {
-                  map.value?.removeLayer(layer);
-                }
-              });
-              // Add a marker
-              L.marker(L.latLng(latlng[0], latlng[1])).addTo(map.value!);
+      // Find coordinates within the chart
+      const event: Highcharts.PointerEventObject = chartInstance.pointer.normalize(e);
+      // Get the hovered point
+      let point: Highcharts.Point | undefined = undefined;
+      if (chartInstance.series[0]) {
+        point = chartInstance.series[0].searchPoint(event, true);
+      }
+
+      if (point) {
+        const mapContainer = document.getElementById("map-container");
+        if (mapContainer) {
+          const latlng = activity.value?.stream?.latlng?.[point.index];
+          if (latlng) {
+            // Remove previous marker
+            map.value.eachLayer((layer) => {
+              if (layer instanceof L.Marker) {
+                map.value?.removeLayer(layer);
+              }
+            });
+            // Add a marker
+            if (
+              Array.isArray(latlng) &&
+              typeof latlng[0] === "number" &&
+              typeof latlng[1] === "number"
+            ) {
+              const marker = L.marker(L.latLng(latlng[0], latlng[1]));
+              if (map.value) {
+                marker.addTo(map.value);
+              }
             }
           }
         }
@@ -451,9 +466,13 @@ const handleRadioClick = (key: string) => {
   });
 
   if (map.value) {
-    const latlngs = selectedStream.latitudeLongitude.map((latlng: number[]) =>
-      L.latLng(latlng[0], latlng[1])
-    );
+    const latlngs = selectedStream.latitudeLongitude
+      .map((latlng: number[]) =>
+        typeof latlng[0] === "number" && typeof latlng[1] === "number"
+          ? L.latLng(latlng[0], latlng[1])
+          : null
+      )
+      .filter((latlng): latlng is L.LatLng => latlng !== null);
     if (latlngs) {
       const polyline = L.polyline(latlngs, { color: "blue" }).addTo(map.value);
       // Fit the map to the bounds of all polylines
@@ -462,26 +481,26 @@ const handleRadioClick = (key: string) => {
     }
   }
 
-  // 4 - Update the chart with the new stream data
-  if (
-    selectedStream.altitude &&
-    selectedStream.distance &&
-    chartOptions.series &&
-    chartOptions.series.length > 0
-  ) {
-    (chartOptions.series[2] as SeriesAreaOptions).data = selectedStream.altitude.map(
-      (altitude, index) => ({
-        x: selectedStream.distance[index] / 1000,
-        y: altitude,
-        color: "blue",
-      })
-    );
-  }
+// 4 - Update the chart with the new stream data
+if (
+  selectedStream.altitude &&
+  selectedStream.distance &&
+  chartOptions.series &&
+  chartOptions.series.length > 0
+) {
+  (chartOptions.series[2] as SeriesAreaOptions).data = selectedStream.altitude.map(
+    (altitude, index) => ({
+      x: (selectedStream.distance?.[index] ?? 0) / 1000,
+      y: altitude,
+      color: "blue",
+    })
+  );
+}
 };
 
 onMounted(async () => {
   initMap();
-  await fetchDetailedActivity(activityId).then(async () => {
+  await fetchDetailedActivity(activityId ?? "").then(async () => {
     updateMap();
     initChart();
     buildRadioOptions();

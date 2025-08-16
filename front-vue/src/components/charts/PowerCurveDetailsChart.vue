@@ -26,7 +26,9 @@ const powerCurveData = computed(() => {
   // fill power curve data
   watts.forEach((watt) => {
     for (let i = watt; i >= 0; i--) {
-      counts[i] += 1;
+      if (typeof counts[i] === 'number') {
+        counts[i]! += 1;
+      }
     }
   });
 

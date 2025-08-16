@@ -59,6 +59,20 @@ async function csvExport() {
   }
 }
 
+const numericCompare = (prop: ColumnProp, a: { [x: string]: any }, b: { [x: string]: any }) => {
+  if (a[prop] === undefined || a[prop] === null) return -1;
+  if (b[prop] === undefined || b[prop] === null) return 1;
+  
+  const aValue = parseFloat(a[prop].toString());
+  const bValue = parseFloat(b[prop].toString());
+  
+  if (isNaN(aValue) && isNaN(bValue)) return 0;
+  if (isNaN(aValue)) return -1;
+  if (isNaN(bValue)) return 1;
+  
+  return aValue - bValue;
+};
+
 const columns = ref<ColumnRegular[]>([
   {
     prop: "name", name: "Activity", size: 500, pin: "colPinStart", cellTemplate: VGridVueTemplate(NameCellRenderer), sortable: false, columnType: 'string',
@@ -89,73 +103,66 @@ const columns = ref<ColumnRegular[]>([
     },
   },
   {
-    prop: "distance", name: "Distance", size: 100, cellTemplate: VGridVueTemplate(DistanceCellRenderer),
+    prop: "distance",
+    name: "Distance",
+    size: 100,
+    cellTemplate: VGridVueTemplate(DistanceCellRenderer),
     sortable: true,
-    cellCompare: (prop: ColumnProp, a: { [x: string]: { toString: () => string; }; }, b: { [x: string]: { toString: () => string; }; }) => {
-      const aValue = a[prop]?.toString();
-      const bValue = b[prop]?.toString();
-      return parseFloat(aValue) - parseFloat(bValue);
-    },
+    cellCompare: numericCompare,
     columnType: 'number'
   },
   {
-    prop: "elapsedTime", name: "Elapsed time", size: 150, cellTemplate: VGridVueTemplate(ElapsedTimeCellRenderer),
+    prop: "elapsedTime",
+    name: "Elapsed time",
+    size: 150,
+    cellTemplate: VGridVueTemplate(ElapsedTimeCellRenderer),
     sortable: true,
-    cellCompare: (prop: ColumnProp, a: { [x: string]: { toString: () => string; }; }, b: { [x: string]: { toString: () => string; }; }) => {
-      const aValue = a[prop]?.toString();
-      const bValue = b[prop]?.toString();
-      return parseFloat(aValue) - parseFloat(bValue);
-    },
+    cellCompare: numericCompare,
     columnType: 'number'
   },
   {
-    prop: "totalElevationGain", name: "Total elevation gain", size: 160, cellTemplate: VGridVueTemplate(ElevationGainCellRenderer),
+    prop: "totalElevationGain",
+    name: "Total elevation gain",
+    size: 160,
+    cellTemplate: VGridVueTemplate(ElevationGainCellRenderer),
     sortable: true,
-    cellCompare: (prop: ColumnProp, a: { [x: string]: { toString: () => string; }; }, b: { [x: string]: { toString: () => string; }; }) => {
-      const aValue = a[prop]?.toString();
-      const bValue = b[prop]?.toString();
-      return parseFloat(aValue) - parseFloat(bValue);
-    },
+    cellCompare: numericCompare,
     columnType: 'number'
   },
   {
-    prop: "averageSpeed", name: "Average speed", size: 140, cellTemplate: VGridVueTemplate(SpeedCellRenderer),
+    prop: "averageSpeed",
+    name: "Average speed",
+    size: 140,
+    cellTemplate: VGridVueTemplate(SpeedCellRenderer),
     sortable: true,
-    cellCompare: (prop: ColumnProp, a: { [x: string]: { toString: () => string; }; }, b: { [x: string]: { toString: () => string; }; }) => {
-      const aValue = a[prop]?.toString();
-      const bValue = b[prop]?.toString();
-      return parseFloat(aValue) - parseFloat(bValue);
-    },
+    cellCompare: numericCompare,
     columnType: 'number'
   },
   {
-    prop: "bestTimeForDistanceFor1000m", name: "Best speed for 1000m", size: 200, cellTemplate: VGridVueTemplate(SpeedCellRenderer),
+    prop: "bestTimeForDistanceFor1000m",
+    name: "Best speed for 1000m",
+    size: 200,
+    cellTemplate: VGridVueTemplate(SpeedCellRenderer),
     sortable: true,
-    cellCompare: (prop: ColumnProp, a: { [x: string]: { toString: () => string; }; }, b: { [x: string]: { toString: () => string; }; }) => {
-      const aValue = a[prop]?.toString();
-      const bValue = b[prop]?.toString();
-      return parseFloat(aValue) - parseFloat(bValue);
-    },
+    cellCompare: numericCompare,
     columnType: 'number'
   },
   {
-    prop: "bestElevationForDistanceFor500m", name: "Best gradient for 500m", size: 180, cellTemplate: VGridVueTemplate(GradientCellRenderer),
+    prop: "bestElevationForDistanceFor500m",
+    name: "Best gradient for 500m",
+    size: 180,
+    cellTemplate: VGridVueTemplate(GradientCellRenderer),
     sortable: true,
-    cellCompare: (prop: ColumnProp, a: { [x: string]: { toString: () => string; }; }, b: { [x: string]: { toString: () => string; }; }) => {
-      const aValue = a[prop]?.toString();
-      const bValue = b[prop]?.toString();
-      return parseFloat(aValue) - parseFloat(bValue);
-    },
+    cellCompare: numericCompare,
     columnType: 'number'
   },
   {
-    prop: "bestElevationForDistanceFor1000m", name: "Best gradient for 1000m", size: 180, cellTemplate: VGridVueTemplate(GradientCellRenderer),
+    prop: "bestElevationForDistanceFor1000m",
+    name: "Best gradient for 1000m",
+    size: 180,
+    cellTemplate: VGridVueTemplate(GradientCellRenderer),
     sortable: true,
-    cellCompare: (prop: ColumnProp, a: { [x: string]: { toString: () => string; }; }, b: { [x: string]: { toString: () => string; }; }) => {
-      const aValue = a[prop]?.toString();
-      const bValue = b[prop]?.toString();
-      return parseFloat(aValue) - parseFloat(bValue);
-    },
+    cellCompare: numericCompare,
     columnType: 'number'
   },
   {

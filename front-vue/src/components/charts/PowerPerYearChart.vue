@@ -105,15 +105,27 @@ function updateChartData() {
     const maxMaxWatts = Math.max(...maxWattsByYear);
     const maxMaxWattsIndex = maxWattsByYear.indexOf(maxMaxWatts);
 
-    (chartOptions.series[0] as SeriesColumnOptions).data = averageWattsByYear.map((value, index) => ({
-      y: value,
-      marker: index === maxAverageWattsIndex ? {enabled: true, radius: 6, fillColor: 'red'} : undefined
-    }));
+    (chartOptions.series[0] as SeriesColumnOptions).data = averageWattsByYear.map((value, index) => {
+      if (index === maxAverageWattsIndex) {
+        return {
+          y: value,
+          marker: { enabled: true, radius: 6, fillColor: 'red' }
+        };
+      } else {
+        return { y: value };
+      }
+    });
 
-    (chartOptions.series[1] as SeriesColumnOptions).data = maxWattsByYear.map((value, index) => ({
-      y: value,
-      marker: index === maxMaxWattsIndex ? {enabled: true, radius: 6, fillColor: 'red'} : undefined
-    }));
+    (chartOptions.series[1] as SeriesColumnOptions).data = maxWattsByYear.map((value, index) => {
+      if (index === maxMaxWattsIndex) {
+        return {
+          y: value,
+          marker: { enabled: true, radius: 6, fillColor: 'red' }
+        };
+      } else {
+        return { y: value };
+      }
+    });
 
     (chartOptions.series[2] as SeriesLineOptions).data = calculateTrendLine(averageWattsByYear);
   }

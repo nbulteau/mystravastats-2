@@ -23,6 +23,9 @@ const powerDistributionChartOptions = computed<Options>(() => {
     // Count seconds in each zone
     powerData.forEach((power) => {
         const zoneLower = Math.floor(power / 25) * 25;
+        if (zones[zoneLower] === undefined) {
+            zones[zoneLower] = 0;
+        }
         zones[zoneLower]++;
     });
 

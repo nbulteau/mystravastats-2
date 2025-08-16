@@ -107,15 +107,27 @@ function updateChartData() {
     const maxMaxDistance = Math.max(...maxDistanceByYear);
     const maxMaxDistanceIndex = maxDistanceByYear.indexOf(maxMaxDistance);
 
-    (chartOptions.series[0] as SeriesColumnOptions).data = averageDistanceByYear.map((value, index) => ({
-      y: value,
-      marker: index === maxAverageDistanceIndex ? {enabled: true, radius: 6, fillColor: 'red'} : undefined
-    }));
+    (chartOptions.series[0] as SeriesColumnOptions).data = averageDistanceByYear.map((value, index) => {
+      if (index === maxAverageDistanceIndex) {
+        return {
+          y: value,
+          marker: { enabled: true, radius: 6, fillColor: 'red' }
+        };
+      } else {
+        return value;
+      }
+    });
 
-    (chartOptions.series[1] as SeriesColumnOptions).data = maxDistanceByYear.map((value, index) => ({
-      y: value,
-      marker: index === maxMaxDistanceIndex ? {enabled: true, radius: 6, fillColor: 'red'} : undefined
-    }));
+    (chartOptions.series[1] as SeriesColumnOptions).data = maxDistanceByYear.map((value, index) => {
+      if (index === maxMaxDistanceIndex) {
+        return {
+          y: value,
+          marker: { enabled: true, radius: 6, fillColor: 'red' }
+        };
+      } else {
+        return { y: value };
+      }
+    });
 
     (chartOptions.series[2] as SeriesLineOptions).data = calculateTrendLine(averageDistanceByYear);
   }

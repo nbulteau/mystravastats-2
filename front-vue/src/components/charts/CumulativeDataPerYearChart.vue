@@ -31,7 +31,9 @@ const monthNames = [
 
 function formatTooltip(dateString: string): string {
       const [month, day] = dateString.split('-').map(Number);
-      return `${day} ${monthNames[month - 1]}`;
+      return month && day
+        ? `${day} ${monthNames[month - 1]}`
+        : dateString;
     }
 
 const chartOptions = reactive({
