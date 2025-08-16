@@ -92,7 +92,7 @@ func (repo *StravaRepository) LoadActivitiesFromCache(clientId string, year int)
 		log.Fatalf("Failed to unmarshal activities data: %v", err)
 	}
 
-	// Load streams from cache
+	// Load streams from a cache
 	for i, activity := range activities {
 		streamFile := filepath.Join(yearActivitiesDirectory, fmt.Sprintf("stream-%d", activity.Id))
 		if _, err := os.Stat(streamFile); err == nil {
