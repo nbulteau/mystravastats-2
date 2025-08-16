@@ -13,7 +13,7 @@ import (
 func FetchChartsDistanceByPeriod(year *int, period business.Period, activityTypes ...business.ActivityType) []map[string]float64 {
 	log.Printf("Get distance by %s by activity (%s) type by year (%d)", period, activityTypes, year)
 
-	activities := activityProvider.GetActivitiesByActivityTypeAndYear(year, activityTypes...)
+	activities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
 	activitiesByPeriod := activitiesByPeriod(activities, *year, period)
 
 	result := make([]map[string]float64, 0)
@@ -32,7 +32,7 @@ func FetchChartsDistanceByPeriod(year *int, period business.Period, activityType
 func FetchChartsElevationByPeriod(year *int, period business.Period, activityTypes ...business.ActivityType) []map[string]float64 {
 	log.Printf("Get elevation by %s by activity (%s) type by year (%d)", period, activityTypes, year)
 
-	activities := activityProvider.GetActivitiesByActivityTypeAndYear(year, activityTypes...)
+	activities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
 	activitiesByPeriod := activitiesByPeriod(activities, *year, period)
 
 	size := 12
@@ -57,7 +57,7 @@ func FetchChartsElevationByPeriod(year *int, period business.Period, activityTyp
 func FetchChartsAverageSpeedByPeriod(year *int, period business.Period, activityTypes ...business.ActivityType) []map[string]float64 {
 	log.Printf("Get average speed by %s by activity (%s) type by year (%d)", period, activityTypes, year)
 
-	activities := activityProvider.GetActivitiesByActivityTypeAndYear(year, activityTypes...)
+	activities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
 	activitiesByPeriod := activitiesByPeriod(activities, *year, period)
 
 	size := 12
