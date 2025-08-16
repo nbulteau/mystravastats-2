@@ -115,7 +115,7 @@ func cumulativeElevation(activitiesByDay map[string][]*strava.Activity) map[stri
 func FetchDashboardData(activityTypes ...business.ActivityType) business.DashboardData {
 	log.Printf("Get dashboard data for activity type %s", activityTypes)
 
-	activitiesByYear := activityProvider.GetActivitiesByActivityTypeAndYear(nil, activityTypes...)
+	activitiesByYear := activityProvider.GetActivitiesByYearAndActivityTypes(nil, activityTypes...)
 
 	nbActivitiesByYear := make(map[string]int)
 	totalDistanceByYear := make(map[string]float64)
@@ -150,7 +150,7 @@ func FetchDashboardData(activityTypes ...business.ActivityType) business.Dashboa
 		maxWattsByYear[year] = maxWatts(activities)
 	}
 
-	filteredActivities := activityProvider.GetActivitiesByActivityTypeAndYear(nil, activityTypes...)
+	filteredActivities := activityProvider.GetActivitiesByYearAndActivityTypes(nil, activityTypes...)
 	averageCadence = calculateAverageCadence(filteredActivities)
 
 	return business.DashboardData{
