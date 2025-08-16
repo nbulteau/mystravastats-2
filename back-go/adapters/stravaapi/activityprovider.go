@@ -341,8 +341,8 @@ func FilterActivitiesByType(activities []*strava.Activity, activityTypes ...busi
 	var filtered []*strava.Activity
 
 	for _, activity := range activities {
-		for _, t := range activityTypes {
-			if t == business.Commute {
+		for _, activityType := range activityTypes {
+			if activityType == business.Commute {
 				if activity.Type == business.Ride.String() && activity.Commute {
 					filtered = append(filtered, activity)
 					break
@@ -350,7 +350,7 @@ func FilterActivitiesByType(activities []*strava.Activity, activityTypes ...busi
 				continue
 			}
 
-			if activity.Type == t.String() && !activity.Commute {
+			if activity.Type == activityType.String() && !activity.Commute {
 				filtered = append(filtered, activity)
 				break
 			}
