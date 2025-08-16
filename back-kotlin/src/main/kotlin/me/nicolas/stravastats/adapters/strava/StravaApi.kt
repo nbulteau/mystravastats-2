@@ -166,8 +166,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
                     exitProcess(-1)
                 }
                 if (response.code == 429) {
-                    logger.info(QUOTA_EXCEED_LIMIT)
-                    exitProcess(-1)
+                    quotaExceedLimit()
                 }
                 result = objectMapper.readValue(response.body.string())
 
@@ -176,6 +175,11 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
         } while (result.isNotEmpty())
 
         return activities
+    }
+
+    private fun quotaExceedLimit(): Nothing {
+        logger.info(QUOTA_EXCEED_LIMIT)
+        exitProcess(-1)
     }
 
     private fun doGetActivityStream(stravaActivity: StravaActivity): Optional<Stream> {
@@ -192,15 +196,14 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
         okHttpClient.newCall(request).execute().use { response ->
             when {
                 response.code >= HttpStatus.BAD_REQUEST.value() -> {
-                    logger.info("Unable to load streams for stravaActivity : ${stravaActivity.id}")
                     when (response.code) {
                         HttpStatus.TOO_MANY_REQUESTS.value() -> {
-                            logger.info(QUOTA_EXCEED_LIMIT)
+                            logger.error("Unable to load streams for stravaActivity : ${stravaActivity.id} - $QUOTA_EXCEED_LIMIT")
                             return Optional.empty()
                         }
 
                         else -> {
-                            logger.info("Something was wrong with Strava API for url ${response.request.url} : ${response.code} - ${response.body}")
+                            logger.error("Something was wrong with Strava API for url ${response.request.url} : ${response.code} - ${response.body}")
                             return Optional.empty()
                         }
                     }
@@ -211,7 +214,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
                         val json = response.body.string()
                         return Optional.of(objectMapper.readValue(json, Stream::class.java))
                     } catch (jsonProcessingException: JsonProcessingException) {
-                        logger.info("Unable to load streams for stravaActivity : $stravaActivity: ${jsonProcessingException.message}")
+                        logger.error("Unable to load streams for stravaActivity : $stravaActivity: ${jsonProcessingException.message}")
                         Optional.empty()
                     }
                 }
@@ -232,10 +235,9 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
         okHttpClient.newCall(request).execute().use { response ->
             when {
                 response.code >= HttpStatus.BAD_REQUEST.value() -> {
-                    logger.info("Unable to load stravaActivity : $activityId")
                     when (response.code) {
                         HttpStatus.TOO_MANY_REQUESTS.value() -> {
-                            logger.info(QUOTA_EXCEED_LIMIT)
+                            logger.error("Unable to load stravaActivity : $activityId - $QUOTA_EXCEED_LIMIT")
                             return Optional.empty()
                         }
 
@@ -245,7 +247,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
                         }
 
                         else -> {
-                            logger.info("Something was wrong with Strava API while getting stravaActivity ${response.request.url} : ${response.code} - ${response.body}")
+                            logger.error("Something was wrong with Strava API while getting stravaActivity ${response.request.url} : ${response.code} - ${response.body}")
                             return Optional.empty()
                         }
                     }
