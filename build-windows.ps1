@@ -17,6 +17,17 @@ function Write-VerboseOutput {
     }
 }
 
+# Clean the front-vue directory
+Write-VerboseOutput "🧹 Cleaning front-vue directory..."
+if (Test-Path -Path "front-vue/node_modules") {
+    Remove-Item -Recurse -Force "front-vue/node_modules"
+    Write-VerboseOutput "🗑️ Removed node_modules directory."
+}
+if (Test-Path -Path "front-vue/package-lock.json") {
+    Remove-Item -Force "front-vue/package-lock.json"
+    Write-VerboseOutput "🗑️ Removed package-lock.json file."
+}
+
 # Build the UI project using Docker
 Write-VerboseOutput "⌛ Building front-vue project..."
 docker run --rm -v "${PWD}:/app" -w /app/front-vue node:latest `
