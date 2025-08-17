@@ -25,6 +25,8 @@ interface ILocalStorageProvider {
 
     fun isLocalCacheExistForYear(clientId: String, year: Int): Boolean
 
+    fun getLocalCacheLastModified(clientId: String, year: Int): Long
+
     fun loadDetailedActivityFromCache(clientId: String, year: Int, activityId: Long): StravaDetailedActivity?
 
     fun saveDetailedActivityToCache(clientId: String, year: Int, stravaDetailedActivity: StravaDetailedActivity)
