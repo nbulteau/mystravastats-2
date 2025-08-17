@@ -1,11 +1,14 @@
 package me.nicolas.stravastats.domain.business
 
 enum class ActivityType {
-    Run,
-    Ride,
-    InlineSkate,
-    Hike,
-    Commute,
     AlpineSki,
+    GravelRide,
+    Hike,
+    InlineSkate,
+    MountainBikeRide,
+    Ride,
+    Run,
+    Commute,
+    TrailRun,
     VirtualRide
 }
