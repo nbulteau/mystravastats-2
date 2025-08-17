@@ -5,7 +5,6 @@ type AthleteRef struct {
 }
 
 type Activity struct {
-	ActivityType         string     `json:"activity_type"`
 	Athlete              AthleteRef `json:"athlete"`
 	AverageSpeed         float64    `json:"average_speed"`
 	AverageCadence       float64    `json:"average_cadence"`
@@ -22,6 +21,7 @@ type Activity struct {
 	MaxSpeed             float64    `json:"max_speed"`
 	MovingTime           int        `json:"moving_time"`
 	Name                 string     `json:"name"`
+	SportType            string     `json:"sport_type"`
 	StartDate            string     `json:"start_date"`
 	StartDateLocal       string     `json:"start_date_local"`
 	StartLatlng          []float64  `json:"start_latlng"`
