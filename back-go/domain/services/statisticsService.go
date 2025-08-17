@@ -26,13 +26,13 @@ func FetchStatisticsByActivityTypeAndYear(year *int, activityTypes ...business.A
 	activityType := activityTypes[0]
 
 	switch activityType {
-	case business.Ride:
+	case business.Ride, business.GravelRide, business.MountainBikeRide:
 		return computeRideStatistics(filteredActivities)
 	case business.VirtualRide:
 		return computeVirtualRideStatistics(filteredActivities)
 	case business.Commute:
 		return computeCommuteStatistics(filteredActivities)
-	case business.Run:
+	case business.Run, business.TrailRun:
 		return computeRunStatistics(filteredActivities)
 	case business.InlineSkate:
 		return computeInlineSkateStatistics(filteredActivities)
