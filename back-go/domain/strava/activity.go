@@ -78,7 +78,7 @@ func (activity *Activity) ToStravaDetailedActivity() *DetailedActivity {
 		SegmentEfforts:           []SegmentEffort{},
 		SegmentLeaderboardOptOut: false,
 		SplitsMetric:             nil,
-		SportType:                activity.Type,
+		SportType:                activity.SportType,
 		StartDate:                activity.StartDate,
 		StartDateLocal:           activity.StartDateLocal,
 		StartLatLng:              activity.StartLatlng,
