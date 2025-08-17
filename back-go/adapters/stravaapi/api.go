@@ -34,7 +34,7 @@ type Token struct {
 
 func NewStravaApi(clientId, clientSecret string) *StravaApi {
 	properties := StravaProperties{
-		PageSize: 150,
+		PageSize: 200,
 		URL:      "https://www.strava.com",
 	}
 	api := &StravaApi{
