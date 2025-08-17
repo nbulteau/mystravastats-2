@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration
 @ConfigurationProperties(prefix = "strava")
 class StravaProperties {
 
-    var pagesize: Int = 150
+    var pageSize: Int = 200
 
     var url: String = "https://www.strava.com"
 }
