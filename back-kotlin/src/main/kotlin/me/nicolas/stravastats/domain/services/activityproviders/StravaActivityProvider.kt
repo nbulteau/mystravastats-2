@@ -84,9 +84,8 @@ class StravaActivityProvider(
         // load stream from cache or retrieve from Strava
         var stream = localStorageProvider.loadActivitiesStreamsFromCache(clientId, year, activity)
         if (stravaApi != null && stream == null) {
-            val optionalStream = stravaApi!!.getActivityStream(activity)
-            if (optionalStream.isPresent) {
-                stream = optionalStream.get()
+            stream = stravaApi!!.getActivityStream(activity)
+            if (stream != null) {
                 localStorageProvider.saveActivitiesStreamsToCache(clientId, year, activity, stream)
             }
         }
@@ -127,20 +126,22 @@ class StravaActivityProvider(
                 async {
                     try {
                         // Check if we should load from cache or API
-                        if (currentYear != year && localStorageProvider.isLocalCacheExistForYear(clientId, year)) {
+                        if (currentYear != year
+                            && localStorageProvider.isLocalCacheExistForYear(clientId, year)
+                            && !shouldReloadFromStravaAPI(clientId, year)) {
                             logger.info("Loading activities for $year from cache ...")
                             val activities = localStorageProvider.loadActivitiesFromCache(clientId, year)
                             loadMissingStreamsFromCache(clientId, year, activities)
-                            activities
+                            loadMissingStreamsFromApi(clientId, year, activities)
                         } else {
                             logger.info("Loading activities for $year from Strava API ...")
                             val activities = retrieveActivitiesFromApi(clientId, year)
                             saveActivitiesToCache(clientId, year, activities)
+                            loadMissingStreamsFromCache(clientId, year, activities)
                             loadMissingStreamsFromApi(clientId, year, activities)
-                            activities
                         }
-                    } catch (e: Exception) {
-                        logger.error("Error loading activities for year $year", e)
+                    } catch (exception: Exception) {
+                        logger.error("Error loading activities for year $year", exception)
                         emptyList()
                     }
                 }
@@ -151,30 +152,46 @@ class StravaActivityProvider(
         return@coroutineScope loadedActivities
     }
 
-    // Determines if activities should be loaded from cache
-    private fun shouldLoadFromCache(year: Int, clientId: String): Boolean {
-        return localStorageProvider.isLocalCacheExistForYear(clientId, year)
+    // Determines if activities should be reloaded from Strava API
+    private fun shouldReloadFromStravaAPI(clientId: String, year: Int): Boolean {
+        // If the file is older than 17 August 2025, it needs to be reloaded
+        return localStorageProvider.getLocalCacheLastModified(clientId, year) < 1755408900L // 17 August 2025 in milliseconds
     }
 
-    // Loads missing streams from cache
-    private fun loadMissingStreamsFromCache(clientId: String, year: Int, activities: List<StravaActivity>) {
-        activities.filter { it.stream == null }.forEach { activity ->
-            val stream = localStorageProvider.loadActivitiesStreamsFromCache(clientId, year, activity)
-            activity.stream = stream
-        }
+    // Loads missing streams from the cache
+    private fun loadMissingStreamsFromCache(
+        clientId: String,
+        year: Int,
+        activities: List<StravaActivity>
+    ): List<StravaActivity> {
+        activities
+            // Filter activities that do not have a stream
+            .filter { it.stream == null }
+            .forEach { activity ->
+                val stream = localStorageProvider.loadActivitiesStreamsFromCache(clientId, year, activity)
+                activity.stream = stream
+            }
+
+        return activities
     }
 
     // Loads missing streams from API
-    private fun loadMissingStreamsFromApi(clientId: String, year: Int, activities: List<StravaActivity>) {
-        activities.filter { it.stream == null }.forEach { activity ->
-            stravaApi?.getActivityStream(activity)?.let { optionalStream ->
-                if (optionalStream.isPresent) {
-                    val stream = optionalStream.get()
+    private fun loadMissingStreamsFromApi(
+        clientId: String,
+        year: Int,
+        activities: List<StravaActivity>
+    ): List<StravaActivity> {
+        activities
+            // Filter activities that do not have a stream
+            .filter { activity -> activity.stream == null }
+            .forEach { activity ->
+                stravaApi?.getActivityStream(activity)?.let { stream ->
                     localStorageProvider.saveActivitiesStreamsToCache(clientId, year, activity, stream)
                     activity.stream = stream
                 }
             }
-        }
+
+        return activities
     }
 
     // Retrieves activities from Strava API
@@ -199,12 +216,11 @@ class StravaActivityProvider(
                 stream = localStorageProvider.loadActivitiesStreamsFromCache(clientId, year, activity)
             } else {
                 if (stravaApi != null) {
-                    val optionalStream = stravaApi!!.getActivityStream(activity)
-                    if (optionalStream.isPresent) {
-                        stream = optionalStream.get()
+                    stream = stravaApi!!.getActivityStream(activity)
+                    if (stream != null) {
                         localStorageProvider.saveActivitiesStreamsToCache(clientId, year, activity, stream)
                     } else {
-                        stream = null
+                        logger.warn("Stream for activity ${activity.id} not found in Strava API")
                     }
                 } else {
                     stream = null
