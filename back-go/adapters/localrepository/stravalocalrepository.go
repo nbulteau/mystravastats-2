@@ -92,22 +92,6 @@ func (repo *StravaRepository) LoadActivitiesFromCache(clientId string, year int)
 		log.Fatalf("Failed to unmarshal activities data: %v", err)
 	}
 
-	// Load streams from a cache
-	for i, activity := range activities {
-		streamFile := filepath.Join(yearActivitiesDirectory, fmt.Sprintf("stream-%d", activity.Id))
-		if _, err := os.Stat(streamFile); err == nil {
-			data, err := os.ReadFile(streamFile)
-			if err != nil {
-				log.Fatalf("Failed to read stream file: %v", err)
-			}
-			var stream strava.Stream
-			if err := json.Unmarshal(data, &stream); err != nil {
-				log.Fatalf("Failed to unmarshal stream %s data: %v", streamFile, err)
-			}
-			activities[i].Stream = &stream
-		}
-	}
-
 	return activities
 }
 
@@ -117,6 +101,15 @@ func (repo *StravaRepository) IsLocalCacheExistForYear(clientId string, year int
 	yearActivitiesJsonFile := filepath.Join(yearActivitiesDirectory, fmt.Sprintf("activities-%s-%d.json", clientId, year))
 
 	return fileExists(yearActivitiesJsonFile)
+}
+
+// GetLocalCacheLastModified returns the last modified date of the cache file for the given year.
+func (repo *StravaRepository) GetLocalCacheLastModified(clientId string, year int) int64 {
+	activitiesDirectory := filepath.Join(repo.cacheDirectory, fmt.Sprintf("strava-%s", clientId))
+	yearActivitiesDirectory := filepath.Join(activitiesDirectory, fmt.Sprintf("strava-%s-%d", clientId, year))
+	yearActivitiesJsonFile := filepath.Join(yearActivitiesDirectory, fmt.Sprintf("activities-%s-%d.json", clientId, year))
+
+	return lastModified(yearActivitiesJsonFile)
 }
 
 func (repo *StravaRepository) SaveActivitiesToCache(clientId string, year int, activities []strava.Activity) {
@@ -268,6 +261,15 @@ func fileExists(filename string) bool {
 		return false
 	}
 	return !info.IsDir()
+}
+
+func lastModified(filename string) int64 {
+	info, err := os.Stat(filename)
+	if err != nil {
+		return 0
+	}
+
+	return info.ModTime().UnixMilli()
 }
 
 func (repo *StravaRepository) loadActivitiesStreams(activities []strava.Activity, activitiesDirectory string) {
