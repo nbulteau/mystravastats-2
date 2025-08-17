@@ -93,7 +93,6 @@ func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *s
 
 func (provider *StravaActivityProvider) loadFromLocalCache(clientId string) []*strava.Activity {
 	startTime := time.Now()
-	log.Println("⌛ Load activities from local cache ...")
 
 	var loadedActivities []*strava.Activity
 	activityCh := make(chan []strava.Activity, 20) // Buffered channel to collect results
@@ -105,6 +104,7 @@ func (provider *StravaActivityProvider) loadFromLocalCache(clientId string) []*s
 		go func(year int) {
 			defer wg.Done()
 			activities := provider.localStorageProvider.LoadActivitiesFromCache(clientId, year)
+			activities = provider.loadActivitiesStreams(clientId, year, activities)
 			activityCh <- activities
 		}(year)
 	}
@@ -124,12 +124,12 @@ func (provider *StravaActivityProvider) loadFromLocalCache(clientId string) []*s
 
 	duration := time.Since(startTime)
 	log.Printf("Loaded activities from local cache in %s", duration)
+
 	return loadedActivities
 }
 
 func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId string) []*strava.Activity {
 	startTime := time.Now()
-	log.Println("⌛ Load activities from Strava ...")
 
 	var loadedActivities []*strava.Activity
 	activityCh := make(chan []strava.Activity, 20) // Buffered channel to collect results
@@ -140,6 +140,12 @@ func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId strin
 	go func() {
 		defer wg.Done()
 		activities := provider.retrieveActivities(clientId, currentYear)
+		if len(activities) > 0 {
+			activities = provider.loadActivitiesStreams(clientId, currentYear, activities)
+		} else {
+			activities = []strava.Activity{}
+		}
+
 		activityCh <- activities
 	}()
 
@@ -148,10 +154,20 @@ func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId strin
 		go func(year int) {
 			defer wg.Done()
 			var activities []strava.Activity
-			if provider.localStorageProvider.IsLocalCacheExistForYear(clientId, year) {
+			if provider.localStorageProvider.IsLocalCacheExistForYear(clientId, year) && !provider.shouldReloadFromStravaAPI(clientId, year) {
 				activities = provider.localStorageProvider.LoadActivitiesFromCache(clientId, year)
+				if len(activities) > 0 {
+					activities = provider.loadActivitiesStreams(clientId, year, activities)
+				} else {
+					activities = []strava.Activity{}
+				}
 			} else {
 				activities = provider.retrieveActivities(clientId, year)
+				if len(activities) > 0 {
+					activities = provider.loadActivitiesStreams(clientId, year, activities)
+				} else {
+					activities = []strava.Activity{}
+				}
 			}
 			activityCh <- activities
 		}(year)
@@ -172,7 +188,15 @@ func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId strin
 
 	duration := time.Since(startTime)
 	log.Printf("⏰ %d activities loaded in %s", len(loadedActivities), duration)
+
 	return loadedActivities
+}
+
+// Determine if the local cache should be reloaded from Strava API
+func (provider *StravaActivityProvider) shouldReloadFromStravaAPI(clientId string, year int) bool {
+	const cutoffMillis int64 = 1755408900 // 17 August 2025 in milliseconds (UTC)
+	lastModifiedMillis := provider.localStorageProvider.GetLocalCacheLastModified(clientId, year)
+	return lastModifiedMillis < cutoffMillis
 }
 
 func (provider *StravaActivityProvider) loadActivitiesStreams(clientId string, year int, activities []strava.Activity) []strava.Activity {
@@ -223,7 +247,7 @@ func (provider *StravaActivityProvider) retrieveActivities(clientId string, year
 			filteredActivities := filterByActivityTypes(retrievedActivities)
 			provider.localStorageProvider.SaveActivitiesToCache(clientId, year, filteredActivities)
 
-			return provider.loadActivitiesStreams(clientId, year, filteredActivities)
+			return filteredActivities
 		} else {
 			log.Printf("Failed to load activities from Strava: %v", err)
 		}
@@ -341,16 +365,21 @@ func FilterActivitiesByType(activities []*strava.Activity, activityTypes ...busi
 	var filtered []*strava.Activity
 
 	for _, activity := range activities {
+		sportType := activity.SportType
+		if sportType == "" {
+			sportType = activity.Type
+		}
+
 		for _, activityType := range activityTypes {
 			if activityType == business.Commute {
-				if activity.Type == business.Ride.String() && activity.Commute {
+				if sportType == business.Ride.String() && activity.Commute {
 					filtered = append(filtered, activity)
 					break
 				}
 				continue
 			}
 
-			if activity.Type == activityType.String() && !activity.Commute {
+			if sportType == activityType.String() && !activity.Commute {
 				filtered = append(filtered, activity)
 				break
 			}
