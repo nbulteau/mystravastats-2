@@ -38,7 +38,7 @@ export const useContextStore = defineStore('context', {
         return {
             athleteDisplayName: '',
             currentYear: new Date().getFullYear().toString(),
-            currentActivityType: 'Ride',
+            currentActivityType: 'Commute_GravelRide_MountainBikeRide_Ride_VirtualRide', // Default activity types (all cycling types)
 
             statistics: [],
             activities: [],
