@@ -1,14 +1,30 @@
 <script setup lang="ts">
 import { useContextStore } from "@/stores/context.js";
-import { computed } from "vue";
+import {computed, ref, watch} from "vue";
 
 const contextStore = useContextStore();
 const athleteDisplayName = computed(() => contextStore.athleteDisplayName);
-const selectedYear = contextStore.currentYear;
+const selectedYear = computed({
+  get: () => contextStore.currentYear,
+  set: (year: string) => contextStore.updateCurrentYear(year),
+});
 const selectedActivity = computed(() => contextStore.currentActivityType);
-import { ref } from "vue";
 
-const selectedActivitiesType = ref<string[]>([selectedActivity.value as string]);
+const cyclingActivities = ['Ride', 'Commute', 'GravelRide', 'MountainBikeRide', 'VirtualRide'];
+
+const runningActivities = ['Run', 'TrailRun'];
+
+const splitActivities = (v?: string) =>
+    v && v.length > 0 ? v.split('_') as string[] : ['Ride'];
+
+const selectedActivitiesType = ref<string[]>(splitActivities(selectedActivity.value));
+
+watch(
+    () => selectedActivity.value,
+    (v) => {
+      selectedActivitiesType.value = splitActivities(v);
+    }
+);
 
 const currentYear = new Date().getFullYear();
 const years: string[] = Array.from({ length: currentYear - 2010 + 1 }, (_, i) => (currentYear - i).toString());
@@ -38,7 +54,6 @@ onBeforeUnmount(() => {
 
 // Function to handle an activity type changes:
 const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 'MountainBikeRide' | 'Commute' | 'Run' | 'TrailRun' | 'Hike' | 'AlpineSki') => {
-  const cyclingActivities = ['Ride', 'Commute', 'GravelRide', 'MountainBikeRide', 'VirtualRide'];
 
   if (cyclingActivities.includes(activity)) {
     if (selectedActivitiesType.value.includes(activity)) {
@@ -139,7 +154,7 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
               data-bs-toggle="tooltip"
               data-bs-placement="bottom"
               title="Mountain bike"
-              aria-label="mountain bike<<<"
+              aria-label="mountain bike"
               @click="onChangeActivityType('MountainBikeRide')"
           >
             <img
