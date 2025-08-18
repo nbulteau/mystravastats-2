@@ -19,20 +19,23 @@ func FetchStatisticsByActivityTypeAndYear(year *int, activityTypes ...business.A
 
 	// If no activities are found, return an empty slice
 	if len(filteredActivities) == 0 {
-		log.Printf("No activities found for %s in year %v", activityTypes, year)
-		return []statistics.Statistic{}
+		if year == nil {
+			log.Printf("No activities found for %v in all years", activityTypes)
+		} else {
+			log.Printf("No activities found for %v in year %v", activityTypes, *year)
+		}
 	}
 
 	activityType := activityTypes[0]
 
 	switch activityType {
-	case business.Ride:
+	case business.Ride, business.GravelRide, business.MountainBikeRide:
 		return computeRideStatistics(filteredActivities)
 	case business.VirtualRide:
 		return computeVirtualRideStatistics(filteredActivities)
 	case business.Commute:
 		return computeCommuteStatistics(filteredActivities)
-	case business.Run:
+	case business.Run, business.TrailRun:
 		return computeRunStatistics(filteredActivities)
 	case business.InlineSkate:
 		return computeInlineSkateStatistics(filteredActivities)
@@ -267,6 +270,9 @@ func computeCommonStats(activities []*strava.Activity) []statistics.Statistic {
 			totalDistance := 0.0
 			for _, activity := range activities {
 				totalDistance += activity.Distance
+			}
+			if len(activities) == 0 {
+				return "Not available"
 			}
 			return fmt.Sprintf("%.2f km", totalDistance/float64(len(activities))/1000)
 		}),

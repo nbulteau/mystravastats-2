@@ -81,6 +81,14 @@ internal class StravaRepository(stravaCache: String) : ILocalStorageProvider {
         return yearActivitiesJsonFile.exists()
     }
 
+    override fun getLocalCacheLastModified(clientId: String, year: Int): Long {
+        val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
+        val yearActivitiesDirectory = File(activitiesDirectory, "strava-$clientId-$year")
+        val yearActivitiesJsonFile = File(yearActivitiesDirectory, "activities-$clientId-$year.json")
+
+        return yearActivitiesJsonFile.lastModified()
+    }
+
     override fun saveActivitiesToCache(clientId: String, year: Int, activities: List<StravaActivity>) {
         val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
         val yearActivitiesDirectory = File(activitiesDirectory, "strava-$clientId-$year")

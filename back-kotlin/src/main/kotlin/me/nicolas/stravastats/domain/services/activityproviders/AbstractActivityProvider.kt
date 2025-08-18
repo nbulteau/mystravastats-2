@@ -1,6 +1,7 @@
 package me.nicolas.stravastats.domain.services.activityproviders
 
 import me.nicolas.stravastats.domain.business.ActivityType
+import me.nicolas.stravastats.domain.business.SportType
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.utils.GenericCache
@@ -65,7 +66,7 @@ abstract class AbstractActivityProvider : IActivityProvider {
         logger.info("Get activities by stravaActivity type ($activityTypes) group by active days")
 
         val filteredActivities = activities
-            .filterActivitiesByTypes(activityTypes)
+            .filterActivitiesByActivityTypes(activityTypes)
 
         return filteredActivities
             .groupBy { activity -> activity.startDateLocal.substringBefore('T') }
@@ -82,7 +83,7 @@ abstract class AbstractActivityProvider : IActivityProvider {
 
         val filteredActivities = activities
             .filterActivitiesByYear(year)
-            .filterActivitiesByTypes(activityTypes)
+            .filterActivitiesByActivityTypes(activityTypes)
 
         return filteredActivities
             .groupBy { activity -> activity.startDateLocal.substringBefore('T') }
@@ -101,8 +102,8 @@ abstract class AbstractActivityProvider : IActivityProvider {
 
         val filteredActivities = filteredActivitiesCache[key] ?: activities
             .filterActivitiesByYear(year)
-            .filterActivitiesByTypes(activityTypes)
-        
+            .filterActivitiesByActivityTypes(activityTypes)
+
         filteredActivitiesCache[key] = filteredActivities
 
         return filteredActivities
@@ -111,7 +112,7 @@ abstract class AbstractActivityProvider : IActivityProvider {
     override fun getActivitiesByActivityTypeGroupByYear(activityTypes: Set<ActivityType>): Map<String, List<StravaActivity>> {
         logger.info("Get activities by stravaActivity type ($activityTypes) group by year")
 
-        val filteredActivities = activities.filterActivitiesByTypes(activityTypes)
+        val filteredActivities = activities.filterActivitiesByActivityTypes(activityTypes)
 
         return groupActivitiesByYear(filteredActivities)
     }
@@ -119,7 +120,7 @@ abstract class AbstractActivityProvider : IActivityProvider {
     /**
      * Group activities by year
      * @param activities list of activities
-     * @return a map with the year as key and the list of activities as value
+     * @return a map with the year as a key and the list of activities as value
      * @see StravaActivity
      */
     private fun groupActivitiesByYear(activities: List<StravaActivity>): Map<String, List<StravaActivity>> {
@@ -139,15 +140,15 @@ abstract class AbstractActivityProvider : IActivityProvider {
         return activitiesByYear.toSortedMap()
     }
 
-    private fun List<StravaActivity>.filterActivitiesByTypes(activityTypes: Set<ActivityType>): List<StravaActivity> {
+    private fun List<StravaActivity>.filterActivitiesByActivityTypes(activityTypes: Set<ActivityType>): List<StravaActivity> {
         return this.filter { activity ->
             activityTypes.any { activityType ->
                 when (activityType) {
                     ActivityType.Commute ->
-                        activity.type == ActivityType.Ride.name && activity.commute
+                        activity.commute && (activity.sportType == ActivityType.Ride.name || activity.sportType == SportType.MountainBikeRide.name || activity.sportType == SportType.GravelRide.name)
 
                     else ->
-                        activity.type == activityType.name && !activity.commute
+                        !activity.commute && activity.sportType == activityType.name
                 }
             }
         }

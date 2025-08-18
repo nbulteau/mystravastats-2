@@ -12,9 +12,7 @@ interface IStravaApi {
 
     fun getActivities(year: Int): List<StravaActivity>
 
-    fun getActivities(after: LocalDateTime): List<StravaActivity>
-
-    fun getActivityStream(stravaActivity: StravaActivity): Optional<Stream>
+    fun getActivityStream(stravaActivity: StravaActivity): Stream?
 
     fun getDetailedActivity(activityId: Long): Optional<StravaDetailedActivity>
 }
