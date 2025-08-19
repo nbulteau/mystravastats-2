@@ -3,11 +3,8 @@ package me.nicolas.stravastats.domain.services
 import me.nicolas.stravastats.domain.business.ActivityEffort
 import me.nicolas.stravastats.domain.business.ActivityShort
 import me.nicolas.stravastats.domain.business.ActivityType
-import me.nicolas.stravastats.domain.business.strava.Gear
-import me.nicolas.stravastats.domain.business.strava.MetaActivity
-import me.nicolas.stravastats.domain.business.strava.StravaActivity
-import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
-import me.nicolas.stravastats.domain.business.strava.StravaSegmentEffort
+import me.nicolas.stravastats.domain.business.SlopeType
+import me.nicolas.stravastats.domain.business.strava.*
 import me.nicolas.stravastats.domain.services.statistics.calculateBestDistanceForTime
 import me.nicolas.stravastats.domain.services.statistics.calculateBestElevationForDistance
 import me.nicolas.stravastats.domain.services.statistics.calculateBestTimeForDistance
@@ -17,7 +14,7 @@ import java.time.LocalDateTime
 import java.time.Month
 import java.time.format.TextStyle
 import java.time.temporal.WeekFields
-import java.util.Locale
+import java.util.*
 
 object ActivityHelper {
     /**
@@ -72,7 +69,20 @@ object ActivityHelper {
             this.calculateBestElevationForDistance(10000.0)
         )
 
-        return activityEfforts + activityEffortsFromSegmentSegments
+        val slopes = this.stream?.listSlopes()?.filter { slope -> slope.type == SlopeType.ASCENT } ?: emptyList()
+        val slopesEfforts = slopes.map { slope ->
+            ActivityEffort(
+                distance = slope.distance,
+                seconds = slope.duration,
+                deltaAltitude = slope.endAltitude - slope.startAltitude,
+                idxStart = slope.startIndex,
+                idxEnd = slope.endIndex,
+                averagePower = slope.averageSpeed.toInt(),
+                label = "Slope: ${String.format("%.1f", slope.grade)} - max ${String.format("%.1f", slope.maxGrade)} %",
+                activityShort = ActivityShort(id = this.id, name = this.name, type = this.sportType)
+            )
+        }
+        return activityEfforts + activityEffortsFromSegmentSegments + slopesEfforts
     }
 
     /**
@@ -133,7 +143,7 @@ object ActivityHelper {
 
         // Add days without activities
         var currentDate = LocalDate.ofYearDay(year, 1)
-        for (i in (0..365 + if (currentDate.isLeapYear) 1 else 0)) {
+        (0..(365 + if (currentDate.isLeapYear) 1 else 0)).forEach { _ ->
             currentDate = currentDate.plusDays(1L)
             val dayString =
                 "${currentDate.monthValue}".padStart(2, '0') + "-" + "${currentDate.dayOfMonth}".padStart(2, '0')
