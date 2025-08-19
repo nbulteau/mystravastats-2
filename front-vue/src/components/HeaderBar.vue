@@ -282,7 +282,7 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
             @click="onChangeActivityType('AlpineSki')"
           >
             <img
-              src="@/assets/buttons/alpineski.png"
+              src="../assets/buttons/alpine-ski.png"
               alt="Alpine Ski"
             >
           </button>
