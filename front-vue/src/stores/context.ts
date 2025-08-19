@@ -65,14 +65,14 @@ export const useContextStore = defineStore('context', {
     },
     actions: {
         url(path: string): string {
-            const url = `http://localhost:8080/api/${path}?activityType=${this.currentActivityType}`
+            const url = `/api/${path}?activityType=${this.currentActivityType}`
             if (this.currentYear === "All years") {
                 return url
             }
             return `${url}&year=${this.currentYear}`
         },
         async fetchAthlete() {
-            const response = await fetch(`http://localhost:8080/api/athletes/me`)
+            const response = await fetch(`/api/athletes/me`)
             if (!response.ok) {
                 await ErrorService.catchError(response)
             }
