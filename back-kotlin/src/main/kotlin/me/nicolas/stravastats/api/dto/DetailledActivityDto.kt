@@ -67,7 +67,7 @@ data class DetailedActivityDto(
 
 fun StravaDetailedActivity.toDto(): DetailedActivityDto {
 
-    val activityEfforts = buildActivityEfforts()
+    val activityEfforts = this.buildActivityEfforts()
 
     return DetailedActivityDto(
         averageSpeed = this.averageSpeed.toFloat(),
@@ -87,7 +87,7 @@ fun StravaDetailedActivity.toDto(): DetailedActivityDto {
         maxWatts = this.maxWatts,
         movingTime = this.movingTime,
         name = this.name,
-        activityEfforts = activityEfforts.map { it.toDto() },
+        activityEfforts = activityEfforts.map { activityEffort -> activityEffort.toDto() },
         startDate = this.startDate,
         startDateLocal = this.startDateLocal,
         startLatlng = this.startLatLng,
