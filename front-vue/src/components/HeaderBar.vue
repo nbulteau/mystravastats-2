@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { useContextStore } from "@/stores/context.js";
-import {computed, ref, watch} from "vue";
+import {useContextStore} from "@/stores/context.js";
+import {computed, onBeforeUnmount, onMounted, ref, watch} from "vue";
+import Tooltip from "bootstrap/js/dist/tooltip";
 
 const contextStore = useContextStore();
 const athleteDisplayName = computed(() => contextStore.athleteDisplayName);
@@ -27,7 +28,7 @@ watch(
 );
 
 const currentYear = new Date().getFullYear();
-const years: string[] = Array.from({ length: currentYear - 2010 + 1 }, (_, i) => (currentYear - i).toString());
+const years: string[] = Array.from({length: currentYear - 2010 + 1}, (_, i) => (currentYear - i).toString());
 years.push("All years");
 
 const onChangeCurrentYear = (event: Event) => {
@@ -35,9 +36,6 @@ const onChangeCurrentYear = (event: Event) => {
   const year = target.value;
   contextStore.updateCurrentYear(year);
 };
-
-import { onMounted, onBeforeUnmount } from "vue";
-import Tooltip from "bootstrap/js/dist/tooltip";
 
 let tooltipInstances: Tooltip[] = [];
 
@@ -70,6 +68,21 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
         activity
       ];
     }
+  } else if (runningActivities.includes(activity)) {
+    if (selectedActivitiesType.value.includes(activity)) {
+      // Remove the activity if it's already selected
+      selectedActivitiesType.value = selectedActivitiesType.value.filter(a => a !== activity);
+      // If no running activities left, default to 'Run'
+      if (!selectedActivitiesType.value.some(a => runningActivities.includes(a))) {
+        selectedActivitiesType.value = ['Run'];
+      }
+    } else {
+      // Add the activity to the selection
+      selectedActivitiesType.value = [
+        ...selectedActivitiesType.value.filter(a => runningActivities.includes(a)), // Keep only running activities
+        activity
+      ];
+    }
   } else {
     // For non-cycling activities, select that single activity
     selectedActivitiesType.value = [activity];
@@ -95,51 +108,51 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
 
 <template>
   <nav
-    class="navbar"
-    style="background-color: #e3f2fd"
+      class="navbar"
+      style="background-color: #e3f2fd"
   >
     <div class="container">
       <span class="athlete-name">{{ athleteDisplayName }}</span>
 
       <div class="d-flex align-items-center">
         <select
-          id="year"
-          v-model="selectedYear"
-          name="year"
-          class="form-select-lg me-3"
-          @change="onChangeCurrentYear"
+            id="year"
+            v-model="selectedYear"
+            name="year"
+            class="form-select-lg me-3"
+            @change="onChangeCurrentYear"
         >
           <option
-            v-for="year in years"
-            :key="year"
-            :value="year"
+              v-for="year in years"
+              :key="year"
+              :value="year"
           >
             {{ year }}
           </option>
         </select>
 
         <div
-          class="btn-group btn-group-lg"
-          role="group"
-          aria-label="Activity"
+            class="btn-group btn-group-lg"
+            role="group"
+            aria-label="RideActivity"
         >
           <button
-            id="ride"
-            type="button"
-            class="btn icon-btn"
-            :class="{
+              id="ride"
+              type="button"
+              class="btn icon-btn"
+              :class="{
               'btn-outline-primary': !selectedActivitiesType.includes('Ride'),
               'btn-primary': selectedActivitiesType.includes('Ride'),
             }"
-            data-bs-toggle="tooltip"
-            data-bs-placement="bottom"
-            title="Ride"
-            aria-label="Ride"
-            @click="onChangeActivityType('Ride')"
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              title="Ride"
+              aria-label="Ride"
+              @click="onChangeActivityType('Ride')"
           >
             <img
-              src="@/assets/buttons/road-bike.png"
-              alt="Ride"
+                src="@/assets/buttons/road-bike.png"
+                alt="Ride"
             >
           </button>
 
@@ -164,41 +177,41 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
           </button>
 
           <button
-            id="commute"
-            type="button"
-            class="btn icon-btn"
-            :class="{
+              id="commute"
+              type="button"
+              class="btn icon-btn"
+              :class="{
               'btn-outline-primary': !selectedActivitiesType.includes('Commute'),
               'btn-primary': selectedActivitiesType.includes('Commute'),
             }"
-            data-bs-toggle="tooltip"
-            data-bs-placement="bottom"
-            title="Commute"
-            aria-label="Commute"
-            @click="onChangeActivityType('Commute')"
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              title="Commute"
+              aria-label="Commute"
+              @click="onChangeActivityType('Commute')"
           >
             <img
-              src="@/assets/buttons/city-bike.png"
-              alt="Commute"
+                src="@/assets/buttons/city-bike.png"
+                alt="Commute"
             >
           </button>
           <button
-            id="gravel-ride"
-            type="button"
-            class="btn icon-btn"
-            :class="{
+              id="gravel-ride"
+              type="button"
+              class="btn icon-btn"
+              :class="{
               'btn-outline-primary': !selectedActivitiesType.includes('GravelRide'),
               'btn-primary': selectedActivitiesType.includes('GravelRide'),
             }"
-            data-bs-toggle="tooltip"
-            data-bs-placement="bottom"
-            title="Gravel"
-            aria-label="Gravel"
-            @click="onChangeActivityType('GravelRide')"
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              title="Gravel"
+              aria-label="Gravel"
+              @click="onChangeActivityType('GravelRide')"
           >
             <img
-              src="@/assets/buttons/touring-bike.png"
-              alt="Gravel Ride"
+                src="@/assets/buttons/touring-bike.png"
+                alt="Gravel Ride"
             >
           </button>
           <button
@@ -223,67 +236,93 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
         </div>
 
         <div
-          class="btn-group btn-group-lg"
-          role="group"
-          aria-label="Activity"
+            class="btn-group btn-group-lg"
+            role="group"
+            aria-label="RunActivity"
         >
           <button
-            id="run"
-            type="button"
-            class="btn icon-btn"
-            :class="{
+              id="run"
+              type="button"
+              class="btn icon-btn"
+              :class="{
               'btn-outline-primary': !selectedActivitiesType.includes('Run'),
               'btn-primary': selectedActivitiesType.includes('Run'),
             }"
-            data-bs-toggle="tooltip"
-            data-bs-placement="bottom"
-            title="Run"
-            aria-label="Run"
-            @click="onChangeActivityType('Run')"
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              title="Run"
+              aria-label="Run"
+              @click="onChangeActivityType('Run')"
           >
             <img
-              src="@/assets/buttons/run.png"
-              alt="Run"
+                src="@/assets/buttons/run.png"
+                alt="Run"
             >
           </button>
 
           <button
-            id="hike"
-            type="button"
-            class="btn icon-btn"
-            :class="{
+              id="trail-run"
+              type="button"
+              class="btn icon-btn"
+              :class="{
+              'btn-outline-primary': !selectedActivitiesType.includes('TrailRun'),
+              'btn-primary': selectedActivitiesType.includes('TrailRun'),
+            }"
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              title="Trail run"
+              aria-label="Trail rin"
+              @click="onChangeActivityType('TrailRun')"
+          >
+            <img
+                src="@/assets/buttons/trail-run.png"
+                alt="trail run"
+            >
+          </button>
+        </div>
+
+        <div
+            class="btn-group btn-group-lg"
+            role="group"
+            aria-label="Activity"
+        >
+          <button
+              id="hike"
+              type="button"
+              class="btn icon-btn"
+              :class="{
               'btn-outline-primary': !selectedActivitiesType.includes('Hike'),
               'btn-primary': selectedActivitiesType.includes('Hike'),
             }"
-            data-bs-toggle="tooltip"
-            data-bs-placement="bottom"
-            title="Hike"
-            aria-label="Hike"
-            @click="onChangeActivityType('Hike')"
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              title="Hike"
+              aria-label="Hike"
+              @click="onChangeActivityType('Hike')"
           >
             <img
-              src="@/assets/buttons/hike.png"
-              alt="Hike"
+                src="@/assets/buttons/hike.png"
+                alt="Hike"
             >
           </button>
 
           <button
-            id="alpine-ski"
-            type="button"
-            class="btn icon-btn"
-            :class="{
+              id="alpine-ski"
+              type="button"
+              class="btn icon-btn"
+              :class="{
               'btn-outline-primary': !selectedActivitiesType.includes('AlpineSki'),
               'btn-primary': selectedActivitiesType.includes('AlpineSki'),
             }"
-            data-bs-toggle="tooltip"
-            data-bs-placement="bottom"
-            title="Alpine ski"
-            aria-label="Alpine ski"
-            @click="onChangeActivityType('AlpineSki')"
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              title="Alpine ski"
+              aria-label="Alpine ski"
+              @click="onChangeActivityType('AlpineSki')"
           >
             <img
-              src="../assets/buttons/alpine-ski.png"
-              alt="Alpine Ski"
+                src="../assets/buttons/alpine-ski.png"
+                alt="Alpine Ski"
             >
           </button>
         </div>
