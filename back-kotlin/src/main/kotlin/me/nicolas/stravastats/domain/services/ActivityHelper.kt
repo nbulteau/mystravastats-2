@@ -82,6 +82,7 @@ object ActivityHelper {
                 activityShort = ActivityShort(id = this.id, name = this.name, type = this.sportType)
             )
         }
+
         return activityEfforts + activityEffortsFromSegmentSegments + slopesEfforts
     }
 
