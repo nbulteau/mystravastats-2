@@ -361,6 +361,36 @@ func BuildActivityEfforts(activity *strava.DetailedActivity) []business.Activity
 		activityEfforts = append(activityEfforts, *bestElevationFor10000m)
 	}
 
+	slopes := activity.Stream.ListSlopesDefault()
+	//.filter { slope.type == SlopeType.ASCENT }
+	ascentSlopes := make([]strava.Slope, 0, len(slopes))
+	for _, slope := range slopes {
+		if slope.Type == strava.ASCENT {
+			ascentSlopes = append(ascentSlopes, slope)
+		}
+	}
+
+	for _, s := range ascentSlopes {
+		// Kotlin used toInt(); mirror semantics by truncating to int then back to float64
+		avg := float64(int(s.AverageSpeed))
+
+		e := business.ActivityEffort{
+			Distance:      s.Distance,
+			Seconds:       s.Duration,
+			DeltaAltitude: s.EndAltitude - s.StartAltitude,
+			IdxStart:      s.StartIndex,
+			IdxEnd:        s.EndIndex,
+			AveragePower:  &avg,
+			Label:         fmt.Sprintf("Slope: %.1f - max %.1f %%", s.Grade, s.MaxGrade),
+			ActivityShort: business.ActivityShort{
+				Id:   activity.Id,
+				Name: activity.Name,
+				Type: business.ActivityTypes[activity.Type],
+			},
+		}
+		activityEfforts = append(activityEfforts, e)
+	}
+
 	return activityEfforts
 }
 
