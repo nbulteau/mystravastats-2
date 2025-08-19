@@ -40,7 +40,7 @@ class BadgesControllerTest {
     @Test
     fun `get badges return general badges when badgeset is general`() {
         // GIVEN
-        val activityType = ActivityType.Run
+        val activityTypes = setOf(ActivityType.Run)
         val year = 2021
         val badgeCheckResults = listOf(
             BadgeCheckResult(
@@ -49,14 +49,14 @@ class BadgesControllerTest {
                 isCompleted = true,
             ),
         )
-        val badgeCheckResultDtos = badgeCheckResults.map { it.toDto(activityType) }
+        val badgeCheckResultDtos = badgeCheckResults.map { badgeCheckResult -> badgeCheckResult.toDto(activityTypes) }
 
-        every { badgesService.getGeneralBadges(activityType, year) } returns badgeCheckResults
+        every { badgesService.getGeneralBadges(activityTypes, year) } returns badgeCheckResults
 
         // WHEN
         mockMvc.perform(
             get("/badges")
-                .param("activityType", activityType.name)
+                .param("activityType", activityTypes.joinToString("_"))
                 .param("year", year.toString())
                 .param("badgeSet", BadgeSetEnum.GENERAL.name)
         )
@@ -65,13 +65,13 @@ class BadgesControllerTest {
             // THEN
             .andExpect(content().json(objectMapper.writeValueAsString(badgeCheckResultDtos)))
 
-        verify { badgesService.getGeneralBadges(activityType, year) }
+        verify { badgesService.getGeneralBadges(activityTypes, year) }
     }
 
     @Test
     fun `get badges return famous badges when badgeset is famous`() {
         // GIVEN
-        val activityType = ActivityType.Run
+        val activityTypes = setOf(ActivityType.Run)
         val year = 2021
         val badgeCheckResults = listOf(
             BadgeCheckResult(
@@ -90,14 +90,14 @@ class BadgesControllerTest {
                 isCompleted = false,
             ),
         )
-        val badgeCheckResultDtos = badgeCheckResults.map { it.toDto(activityType) }
+        val badgeCheckResultDtos = badgeCheckResults.map { it.toDto(activityTypes) }
 
-        every { badgesService.getFamousBadges(activityType, year) } returns badgeCheckResults
+        every { badgesService.getFamousBadges(activityTypes, year) } returns badgeCheckResults
 
         // WHEN
         mockMvc.perform(
             get("/badges")
-                .param("activityType", activityType.name)
+                .param("activityType", activityTypes.joinToString("_"))
                 .param("year", year.toString())
                 .param("badgeSet", BadgeSetEnum.FAMOUS.name)
         )
@@ -106,6 +106,6 @@ class BadgesControllerTest {
             // THEN
             .andExpect(content().json(objectMapper.writeValueAsString(badgeCheckResultDtos)))
 
-        verify { badgesService.getFamousBadges(activityType, year) }
+        verify { badgesService.getFamousBadges(activityTypes, year) }
     }
 }

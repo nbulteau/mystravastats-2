@@ -18,7 +18,7 @@ class BadgesServiceTest {
     fun setUp() {
         val activities = TestHelper.loadActivities()
 
-        every { activityProvider.getActivitiesByActivityTypeAndYear(ActivityType.Ride, 2021) } returns activities
+        every { activityProvider.getActivitiesByActivityTypeAndYear(setOf(ActivityType.Ride), 2021) } returns activities
 
         badgesService = BadgesService(activityProvider)
     }
@@ -26,9 +26,10 @@ class BadgesServiceTest {
     @Test
     fun `getGeneralBadges should return the right badges for a ride`() {
         // GIVEN
+        val activityTypes = setOf(ActivityType.Ride)
 
         // WHEN
-        val badges = badgesService.getGeneralBadges(ActivityType.Ride, 2021)
+        val badges = badgesService.getGeneralBadges(activityTypes, 2021)
 
         // THEN
         // Check the badges

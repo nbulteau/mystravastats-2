@@ -29,16 +29,16 @@ class MapsControllerTest{
     @Test
     fun `get GPX returns GPX coordinates when valid activity type and year`() {
         // GIVEN
-        val activityType = ActivityType.Run
+        val activityTypes = setOf(ActivityType.Run)
         val year = 2022
         val activities = listOf(TestHelper.stravaActivity)
 
-        every { stravaProxy.getActivitiesByActivityTypeAndYear(activityType, year) } returns activities
+        every { stravaProxy.getActivitiesByActivityTypeAndYear(activityTypes, year) } returns activities
 
         // WHEN
         mockMvc.perform(
             get("/maps/gpx")
-                .param("activityType", activityType.name)
+                .param("activityType", activityTypes.joinToString("_"))
                 .param("year", year.toString())
                 .accept(MediaType.APPLICATION_JSON)
         )
@@ -51,15 +51,15 @@ class MapsControllerTest{
     @Test
     fun `get GPX returns empty list when no activities found`() {
         // GIVEN
-        val activityType = ActivityType.Run
+        val activityTypes = setOf(ActivityType.Run)
         val year = 2022
 
-        every { stravaProxy.getActivitiesByActivityTypeAndYear(activityType, year) } returns emptyList()
+        every { stravaProxy.getActivitiesByActivityTypeAndYear(activityTypes, year) } returns emptyList()
 
         // WHEN
         mockMvc.perform(
             get("/maps/gpx")
-                .param("activityType", activityType.name)
+                .param("activityType", activityTypes.joinToString("_"))
                 .param("year", year.toString())
                 .accept(MediaType.APPLICATION_JSON)
         )
@@ -81,7 +81,7 @@ class MapsControllerTest{
             // THEN
             .andExpect(status().isBadRequest)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message").value("Unknown stravaActivity type"))
+            .andExpect(jsonPath("$.message").value("Illegal argument"))
     }
 
     @Test

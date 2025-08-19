@@ -36,14 +36,14 @@ class ChartsServiceTest {
     @Test
     fun `get distance by period by activity type by year returns distances when valid activity type, year, and period`() {
         // GIVEN
-        val activityType = ActivityType.Run
+        val activityTypes = setOf(ActivityType.Run)
         val year = 2020
         val period = Period.MONTHS
 
-        every { activityProvider.getActivitiesByActivityTypeAndYear(ActivityType.Run, 2020) } returns run2020Activities
+        every { activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, 2020) } returns run2020Activities
 
         // WHEN
-        val result = chartsStravaService.getDistanceByPeriodByActivityTypeByYear(activityType, year, period)
+        val result = chartsStravaService.getDistanceByPeriodByActivityTypeByYear(activityTypes, year, period)
 
         // THEN
         val delta = 0.01
@@ -54,14 +54,14 @@ class ChartsServiceTest {
     @Test
     fun `get distance by period by activity type by year returns empty list when no activities found`() {
         // GIVEN
-        val activityType = ActivityType.Run
+        val activityTypes = setOf(ActivityType.Run)
         val year = 2023
         val period = Period.MONTHS
 
-        every { activityProvider.getActivitiesByActivityTypeAndYear(ActivityType.Run, 2023) } returns run2023Activities
+        every { activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, 2023) } returns run2023Activities
 
         // WHEN
-        val result = chartsStravaService.getDistanceByPeriodByActivityTypeByYear(activityType, year, period)
+        val result = chartsStravaService.getDistanceByPeriodByActivityTypeByYear(activityTypes, year, period)
 
         // THEN
         assertTrue(result[0].second == 0.0)

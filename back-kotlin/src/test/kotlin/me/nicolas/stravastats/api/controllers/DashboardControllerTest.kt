@@ -27,7 +27,7 @@ class DashboardControllerTest{
     @Test
     fun `get cumulative distance per year returns distances when valid activity type`() {
         // GIVEN
-        val activityType = ActivityType.Run
+        val activityTypes = setOf(ActivityType.Run)
         val cumulativeDistances = mapOf(
             "2021" to mapOf("January" to 100.0, "February" to 150.0),
             "2022" to mapOf("January" to 200.0, "February" to 250.0)
@@ -38,13 +38,13 @@ class DashboardControllerTest{
             "2022" to mapOf("January" to 300, "February" to 2500)
         )
 
-        every { dashboardService.getCumulativeDistancePerYear(activityType) } returns cumulativeDistances
-        every { dashboardService.getCumulativeElevationPerYear(activityType) } returns cumulativeElevations
+        every { dashboardService.getCumulativeDistancePerYear(activityTypes) } returns cumulativeDistances
+        every { dashboardService.getCumulativeElevationPerYear(activityTypes) } returns cumulativeElevations
 
         // WHEN
         mockMvc.perform(
             get("/dashboard/cumulative-data-per-year")
-                .param("activityType", activityType.name)
+                .param("activityType", activityTypes.joinToString("_"))
                 .accept(MediaType.APPLICATION_JSON)
         )
             // THEN
@@ -59,15 +59,15 @@ class DashboardControllerTest{
     @Test
     fun `get cumulative distance per year returns empty map when no distances found`() {
         // GIVEN
-        val activityType = ActivityType.Run
+        val activityTypes = setOf(ActivityType.Run)
 
-        every { dashboardService.getCumulativeDistancePerYear(activityType) } returns emptyMap()
-        every { dashboardService.getCumulativeElevationPerYear(activityType) } returns emptyMap()
+        every { dashboardService.getCumulativeDistancePerYear(activityTypes) } returns emptyMap()
+        every { dashboardService.getCumulativeElevationPerYear(activityTypes) } returns emptyMap()
 
         // WHEN
         mockMvc.perform(
             get("/dashboard/cumulative-data-per-year")
-                .param("activityType", activityType.name)
+                .param("activityType", activityTypes.joinToString("_"))
                 .accept(MediaType.APPLICATION_JSON)
         )
             // THEN
@@ -89,6 +89,6 @@ class DashboardControllerTest{
             // THEN
             .andExpect(status().isBadRequest)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message").value("Unknown stravaActivity type"))
+            .andExpect(jsonPath("$.message").value("Illegal argument"))
     }
 }
