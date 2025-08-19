@@ -40,10 +40,10 @@ fi
 echo "🔨 Building Linux binary..."
 if [[ $VERBOSE -eq 1 ]]; then
   docker run --rm -v "$PWD:/app" -w /app golang:1.24.4 \
-    sh -c "cd back-go && GOOS=linux GOARCH=amd64 go build -o ../mystravastats"
+    sh -c "cd back-go && GOOS=linux GOARCH=amd64 go build -buildvcs=false -o ../mystravastats"
 else
   docker run --rm -v "$PWD:/app" -w /app golang:1.24.4 \
-    sh -c "cd back-go && GOOS=linux GOARCH=amd64 go build -o ../mystravastats" >/dev/null 2>&1
+    sh -c "cd back-go && GOOS=linux GOARCH=amd64 go build -buildvcs=false -o ../mystravastats" >/dev/null 2>&1
 fi
 
 # Check if new binary was created
