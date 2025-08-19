@@ -44,7 +44,7 @@ npm update
 npm upgrade`
 npx npm-check-updates -u
 npm install
-``
+```
 
 # Resources for Developers
 
