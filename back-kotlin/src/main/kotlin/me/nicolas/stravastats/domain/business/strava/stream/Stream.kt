@@ -92,7 +92,9 @@ data class Stream(
                         // Calculate average grade for the segment using smoothed data
                         val averageGrade = if (totalDistance > 0) {
                             ((endAltitude - startAltitude) / totalDistance) * 100
-                        } else 0.0
+                        } else {
+                            0.0
+                        }
 
                         // Apply specific criteria for ascents
                         val shouldIncludeSlope = when (type) {
@@ -126,13 +128,19 @@ data class Stream(
                                 if (segmentDistanceDiff > 0) {
                                     val segmentGrade =
                                         ((smoothedAltitudeData[j + 1] - smoothedAltitudeData[j]) / segmentDistanceDiff) * 100
-                                    maxGrade = maxOf(maxGrade, kotlin.math.abs(segmentGrade))
+                                    maxGrade = if(currentSlopeType == SlopeType.DESCENT) {
+                                        minOf(maxGrade, segmentGrade)
+                                    } else {
+                                        maxOf(maxGrade, segmentGrade)
+                                    }
                                 }
                             }
 
                             val averageSpeed = if (totalDuration > 0) {
                                 totalDistance / totalDuration
-                            } else 0.0
+                            } else {
+                                0.0
+                            }
 
                             slopes.add(
                                 Slope(
@@ -162,13 +170,16 @@ data class Stream(
     }
 
 
+
     /**
      * Merges consecutive slope segments of the same type into a single segment.
+     * Also merges small slopes with different types when they are between two slopes of the same type.
      * This is useful to reduce noise and provide a cleaner representation of the activity's slopes.
      */
     private fun mergeConsecutiveSegments(slopes: List<Slope>): List<Slope> {
         if (slopes.isEmpty()) return emptyList()
 
+        // First pass: merge consecutive segments of the same type
         val mergedSlopes = mutableListOf<Slope>()
         var currentSlope = slopes[0]
 
@@ -191,7 +202,7 @@ data class Stream(
                     averageSpeed = (currentSlope.averageSpeed * currentSlope.distance + slope.averageSpeed * slope.distance) / (currentSlope.distance + slope.distance)
                 )
             } else {
-                // Cannot merge, add current slope to results and start a new one
+                // Cannot merge, add the current slope to results and start a new one
                 mergedSlopes.add(currentSlope)
                 currentSlope = slope
             }
@@ -200,7 +211,57 @@ data class Stream(
         // Remember to add the last slope
         mergedSlopes.add(currentSlope)
 
-        return mergedSlopes
+        // Second pass: merge small slopes between two slopes of the same type
+        return mergeSmallIntermediateSlopes(mergedSlopes)
+    }
+
+    /**
+     * Identifies small intermediate slopes and merges them with surrounding slopes of the same type.
+     * A small slope is considered for merging if it's shorter than 500m and is between two slopes of the same type.
+     */
+    private fun mergeSmallIntermediateSlopes(slopes: List<Slope>): List<Slope> {
+        if (slopes.size < 3) return slopes
+
+        val result = mutableListOf<Slope>()
+        var i = 0
+
+        while (i < slopes.size) {
+            // Check if we have a pattern: slope1 - smallSlope - slope2 where slope1.type == slope2.type
+            if (i < slopes.size - 2 &&
+                slopes[i].type == slopes[i + 2].type &&
+                slopes[i + 1].type != slopes[i].type &&
+                slopes[i + 1].distance < 500.0) { // Small slope threshold: 500m
+
+                // Merge all three slopes into one
+                val slope1 = slopes[i]
+                val smallSlope = slopes[i + 1]
+                val slope2 = slopes[i + 2]
+
+                val totalDistance = slope1.distance + smallSlope.distance + slope2.distance
+                val totalDuration = slope1.duration + smallSlope.duration + slope2.duration
+
+                val mergedSlope = Slope(
+                    type = slope1.type, // Use the type of the surrounding slopes
+                    startIndex = slope1.startIndex,
+                    endIndex = slope2.endIndex,
+                    startAltitude = slope1.startAltitude,
+                    endAltitude = slope2.endAltitude,
+                    grade = (slope1.grade * slope1.distance + smallSlope.grade * smallSlope.distance + slope2.grade * slope2.distance) / totalDistance,
+                    maxGrade = maxOf(slope1.maxGrade, smallSlope.maxGrade, slope2.maxGrade),
+                    distance = totalDistance,
+                    duration = totalDuration,
+                    averageSpeed = (slope1.averageSpeed * slope1.distance + smallSlope.averageSpeed * smallSlope.distance + slope2.averageSpeed * slope2.distance) / totalDistance
+                )
+
+                result.add(mergedSlope)
+                i += 3 // Skip the next two slopes as they've been merged
+            } else {
+                result.add(slopes[i])
+                i += 1
+            }
+        }
+
+        return result
     }
 }
 
