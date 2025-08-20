@@ -38,7 +38,7 @@ object ActivityHelper {
     }
 
     /**
-     * Remove activities that are not in the list of activity types to consider (i.e. Run, Ride, Hike, etc.)
+     * Remove activities that are not in the list of activity types to consider (i.e.: Run, Ride, Hike, etc.)
      * @return a list of activities filtered by type
      * @see StravaActivity
      */
@@ -77,19 +77,19 @@ object ActivityHelper {
                 deltaAltitude = slope.endAltitude - slope.startAltitude,
                 idxStart = slope.startIndex,
                 idxEnd = slope.endIndex,
-                averagePower = slope.averageSpeed.toInt(),
+                averagePower = 0,
                 label = "Slope: $index - max gradient ${String.format("%.1f", slope.maxGrade)} %",
                 activityShort = ActivityShort(id = this.id, name = this.name, type = this.sportType)
             )
         }
 
-        return activityEfforts + activityEffortsFromSegmentSegments + slopesEfforts
+        return slopesEfforts + activityEfforts + activityEffortsFromSegmentSegments
     }
 
     /**
      * Group activities by month
      * @param activities list of activities
-     * @return a map with the month as key and the list of activities as value
+     * @return a map with the month as a key and the list of activities as a value
      * @see StravaActivity
      */
     fun groupActivitiesByMonth(activities: List<StravaActivity>): Map<String, List<StravaActivity>> {
@@ -111,7 +111,7 @@ object ActivityHelper {
     /**
      * Group activities by week
      * @param activities list of activities
-     * @return a map with the week as key and the list of activities as value
+     * @return a map with the week as a key and the list of activities as value
      * @see StravaActivity
      */
     fun groupActivitiesByWeek(activities: List<StravaActivity>): Map<String, List<StravaActivity>> {
@@ -135,7 +135,7 @@ object ActivityHelper {
     /**
      * Group activities by day
      * @param activities list of activities
-     * @return a map with the day as key and the list of activities as value
+     * @return a map with the day as a key and the list of activities as a value
      * @see StravaActivity
      */
     fun groupActivitiesByDay(activities: List<StravaActivity>, year: Int): Map<String, List<StravaActivity>> {
