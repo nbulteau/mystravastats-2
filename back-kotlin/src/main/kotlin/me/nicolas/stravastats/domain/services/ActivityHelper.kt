@@ -70,7 +70,7 @@ object ActivityHelper {
         )
 
         val slopes = this.stream?.listSlopes()?.filter { slope -> slope.type == SlopeType.ASCENT } ?: emptyList()
-        val slopesEfforts = slopes.map { slope ->
+        val slopesEfforts = slopes.mapIndexed { index, slope ->
             ActivityEffort(
                 distance = slope.distance,
                 seconds = slope.duration,
@@ -78,7 +78,7 @@ object ActivityHelper {
                 idxStart = slope.startIndex,
                 idxEnd = slope.endIndex,
                 averagePower = slope.averageSpeed.toInt(),
-                label = "Slope: ${String.format("%.1f", slope.grade)} - max ${String.format("%.1f", slope.maxGrade)} %",
+                label = "Slope: $index - max gradient ${String.format("%.1f", slope.maxGrade)} %",
                 activityShort = ActivityShort(id = this.id, name = this.name, type = this.sportType)
             )
         }
