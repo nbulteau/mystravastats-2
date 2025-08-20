@@ -75,14 +75,16 @@ func formatSeconds(seconds int) string {
 	return time.Duration(seconds * int(time.Second)).String()
 }
 
-func averagePower(watts []float64, idxStart int, idxEnd int) float64 {
-	averagePower := 0.0
+func averagePower(watts []float64, idxStart int, idxEnd int) *float64 {
 	if watts != nil && len(watts) > 0 {
 		sumPower := 0.0
 		for i := idxStart; i <= idxEnd; i++ {
 			sumPower += watts[i]
 		}
-		averagePower = sumPower / float64(idxEnd-idxStart+1)
+		averagePower := sumPower / float64(idxEnd-idxStart+1)
+
+		return &averagePower
+	} else {
+		return nil
 	}
-	return averagePower
 }
