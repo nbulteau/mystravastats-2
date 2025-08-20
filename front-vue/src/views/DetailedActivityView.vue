@@ -62,8 +62,7 @@
             :for="option.value"
             class="radio-label"
             :title="option.description"
-          >{{ option.label
-          }}</label>
+          >{{ option.label }}</label>
         </div>
       </form>
     </div>
