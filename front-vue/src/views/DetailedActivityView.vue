@@ -482,20 +482,27 @@ const handleRadioClick = (key: string) => {
   }
 
 // 4 - Update the chart with the new stream data
-if (
-  selectedStream.altitude &&
-  selectedStream.distance &&
-  chartOptions.series &&
-  chartOptions.series.length > 0
-) {
-  (chartOptions.series[2] as SeriesAreaOptions).data = selectedStream.altitude.map(
-    (altitude, index) => ({
-      x: (selectedStream.distance?.[index] ?? 0) / 1000,
-      y: altitude,
-      color: "blue",
-    })
-  );
-}
+  if (
+      selectedStream.altitude &&
+      selectedStream.distance &&
+      chartOptions.series &&
+      chartOptions.series.length > 0
+  ) {
+    (chartOptions.series[2] as SeriesAreaOptions).data = selectedStream.altitude.map(
+        (altitude, index) => ({
+          x: (selectedStream.distance?.[index] ?? 0) / 1000,
+          y: altitude,
+          color: "blue",
+        })
+    );
+
+    // Forcer la mise à jour du graphique
+    if (chartInstance) {
+      chartInstance.update({
+        series: chartOptions.series,
+      });
+    }
+  }
 };
 
 onMounted(async () => {
