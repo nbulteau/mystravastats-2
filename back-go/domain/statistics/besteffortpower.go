@@ -115,7 +115,7 @@ func bestPowerForTimeForTime(id int64, name, activityType string, stream *strava
 					DeltaAltitude: totalAltitude,
 					IdxStart:      idxStart,
 					IdxEnd:        idxEnd,
-					AveragePower:  &averagePower,
+					AveragePower:  averagePower,
 					Label:         fmt.Sprintf("Best power for %s", formatSeconds(seconds)),
 					ActivityShort: business.ActivityShort{
 						Id:   id,

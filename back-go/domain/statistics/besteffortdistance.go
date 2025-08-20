@@ -100,7 +100,7 @@ func BestTimeForDistance(id int64, name, activityType string, stream *strava.Str
 					DeltaAltitude: totalAltitude,
 					IdxStart:      idxStart,
 					IdxEnd:        idxEnd,
-					AveragePower:  &averagePower,
+					AveragePower:  averagePower,
 					Label:         fmt.Sprintf("Best speed for %.0fm", distance),
 					ActivityShort: business.ActivityShort{
 						Id:   id,
