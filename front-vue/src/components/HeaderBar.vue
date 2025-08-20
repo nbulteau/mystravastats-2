@@ -94,10 +94,17 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
       .filter(a => cyclingActivities.includes(a))
       .sort(); // Sort to ensure consistent ordering
 
+  const selectedRunningActivities = selectedActivitiesType.value
+      .filter(a => runningActivities.includes(a))
+      .sort(); // Sort to ensure consistent ordering
+
   if (selectedCyclingActivities.length > 1) {
     // Create a combination name based on selected activities
     activityType = selectedCyclingActivities.join('_');
-  } else {
+  } else if (selectedRunningActivities.length > 1) {
+    // Create a combination name based on selected activities
+    activityType = selectedRunningActivities.join('_');
+  } else  {
     activityType = selectedActivitiesType.value[0];
   }
 
