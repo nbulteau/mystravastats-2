@@ -7,8 +7,8 @@
     title="Back to activities"
   >
     <!-- SVG left arrow icon -->
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
     </svg>
     
   </button>
@@ -557,10 +557,6 @@ watch([showPowerCurve, activity], () => {
 </script>
 
 <style scoped>
-.chart-container {
-  margin-top: 20px;
-}
-
 .radio-input {
   margin-right: 5px;
 }
@@ -569,19 +565,6 @@ watch([showPowerCurve, activity], () => {
   font-weight: bold;
   text-align: left;
   /* Align text to the left */
-}
-
-.tooltip-inner {
-  --bs-tooltip-max-width: 300px; /* Define the custom property for max-width */
-  max-width: var(--bs-tooltip-max-width); /* Apply the custom property */
-  background-color: #343a40; /* Dark background color */
-  color: #ffffff;
-  /* White text color */
-  font-size: 1rem; /* Increase font size */
-  padding: 10px;
-  /* Add padding */
-  border-radius: 5px; /* Rounded corners */
-  text-align: left;
 }
 
 .tooltip-inner ul,
@@ -600,37 +583,6 @@ watch([showPowerCurve, activity], () => {
   justify-content: center;
   align-items: center;
   height: 100%;
-  /* Adjust as needed */
-}
-
-.switch-button {
-  /* Example styles */
-  width: 50px;
-  height: 25px;
-  background-color: #ccc;
-  border-radius: 25px;
-  position: relative;
-  cursor: pointer;
-}
-
-.switch-button::before {
-  content: '';
-  position: absolute;
-  width: 23px;
-  height: 23px;
-  background-color: white;
-  border-radius: 50%;
-  top: 1px;
-  left: 1px;
-  transition: transform 0.3s;
-}
-
-.switch-button.on {
-  background-color: #4caf50;
-}
-
-.switch-button.on::before {
-  transform: translateX(25px);
 }
 
 /* Style for the back arrow button */
