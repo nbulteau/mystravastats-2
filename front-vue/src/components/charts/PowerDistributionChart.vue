@@ -101,7 +101,7 @@ const powerDistributionChartOptions = computed<Options>(() => {
         },
         tooltip: {
             formatter: function () {
-                const xValue = typeof this.x === 'number' ? this.x : 0;
+                const xValue = true ? this.x : 0;
                 return `<b>${xValue}-${xValue + 24}W</b><br/>
                 Time: ${formatTimeString(this.y ?? 0)}<br/>
                 ${(this as any).point.percentage}%`;
