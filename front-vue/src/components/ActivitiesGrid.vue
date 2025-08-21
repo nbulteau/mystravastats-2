@@ -184,7 +184,7 @@ onMounted(() => {
     :columns="columns"
     :source="activities"
     :readonly="true"
-    style="height: 100%; height: calc(100vh - 150px)"
+    style="height: calc(100vh - 150px)"
   />
 </template>
 

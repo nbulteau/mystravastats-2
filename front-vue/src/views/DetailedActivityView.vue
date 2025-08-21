@@ -558,7 +558,7 @@ watch([showPowerCurve, activity], () => {
 
 <style scoped>
 .chart-container {
-  margin-top: 20px 0;
+  margin-top: 20px;
 }
 
 .radio-input {
@@ -572,34 +572,27 @@ watch([showPowerCurve, activity], () => {
 }
 
 .tooltip-inner {
-  --bs-tooltip-max-width: 300px;
-  /* Define the custom property for max-width */
-  max-width: var(--bs-tooltip-max-width);
-  /* Apply the custom property */
-  background-color: #343a40;
-  /* Dark background color */
+  --bs-tooltip-max-width: 300px; /* Define the custom property for max-width */
+  max-width: var(--bs-tooltip-max-width); /* Apply the custom property */
+  background-color: #343a40; /* Dark background color */
   color: #ffffff;
   /* White text color */
-  font-size: 1rem;
-  /* Increase font size */
+  font-size: 1rem; /* Increase font size */
   padding: 10px;
   /* Add padding */
-  border-radius: 5px;
-  /* Rounded corners */
+  border-radius: 5px; /* Rounded corners */
+  text-align: left;
 }
 
 .tooltip-inner ul,
 .tooltip-inner li {
-  text-align: left;
-  /* Ensure list items are left-aligned */
+  text-align: left; /* Ensure list items are left-aligned */
 }
 
 /* Scrollable container for radio buttons */
 .radio-scroll-container {
-  height: 100%;
-  /* Set height to 100% to match the map container */
-  overflow-y: auto;
-  /* Enable vertical scrolling */
+  height: 100%; /* Set height to 100% to match the map container */
+  overflow-y: auto; /* Enable vertical scrolling */
 }
 
 .switch-container {
