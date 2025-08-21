@@ -133,16 +133,19 @@ import { useRouter } from "vue-router"; // Import useRouter from vue-router
 
 const router = useRouter(); // Get router instance
 
-// Function to go back to previous page
+// Function to go back to the previous page
 function goBack() {
   router.back();
 }
 
-// Set the default icon options
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "/markers/marker-icon-2x.png",
-  iconUrl: "/markers/marker-icon.png",
-  shadowUrl: "/markers/marker-shadow.png",
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
 });
 
 const showPowerCurve = ref(false);
