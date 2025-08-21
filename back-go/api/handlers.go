@@ -82,12 +82,8 @@ func getExportCSV(writer http.ResponseWriter, request *http.Request) {
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
-	csvData, err := services.ExportCSV(year, activityTypes...)
-	if err != nil {
-		log.Printf("failed to export CSV: %v", err)
-		http.Error(writer, "Failed to export CSV", http.StatusInternalServerError)
-		return
-	}
+	csvData := services.ExportCSV(year, activityTypes...)
+
 	writer.Header().Set("Content-Type", "text/csv")
 	writer.Header().Set("Content-Disposition", "attachment; filename=\"activities.csv\"")
 	writer.WriteHeader(http.StatusOK)
@@ -97,9 +93,9 @@ func getExportCSV(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 	log.Println("CSV export successful")
-	writer.Write([]byte(csvData))
-	log.Println("CSV export successful")
-	writer.WriteHeader(http.StatusOK)
+	if _, err = writer.Write([]byte(csvData)); err != nil {
+		log.Printf("failed to write CSV response: %v", err)
+	}
 	if _, err := writer.Write([]byte(csvData)); err != nil {
 		log.Printf("failed to write CSV response: %v", err)
 		http.Error(writer, "Failed to write CSV response", http.StatusInternalServerError)
