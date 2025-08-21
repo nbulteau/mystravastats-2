@@ -33,9 +33,7 @@ const powerCurveData = computed(() => {
   });
 
   // reverse power curve data
-  const powerCurve = counts.map((value, index) => [value, index]);
-
-  return powerCurve
+  return counts.map((value, index) => [value, index]);
 });
 
 
