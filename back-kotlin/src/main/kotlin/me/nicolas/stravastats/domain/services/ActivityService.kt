@@ -1,6 +1,8 @@
 package me.nicolas.stravastats.domain.services
 
 import me.nicolas.stravastats.domain.business.ActivityType
+import me.nicolas.stravastats.domain.business.rideActivities
+import me.nicolas.stravastats.domain.business.runActivities
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
@@ -57,8 +59,22 @@ internal class ActivityService(
         val clientId = activityProvider.athlete().id.toString()
 
         val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
-        // TODO: handle case multiple activity types
-        val exporter = when (activityTypes.first()) {
+
+        // activityTypes must not be empty, otherwise we cannot determine the activity type
+        if (activityTypes.isEmpty()) {
+            logger.warn("No activity types provided, defaulting to Ride")
+            return RideCSVExporter(clientId, activities, year).export()
+        }
+
+        // Determine the activity type based on the first activity type in the set
+        // This is a simplification, as we assume all activities in the set are of the same type
+        val activityType = when {
+            rideActivities.contains(activityTypes.first()) -> ActivityType.Ride
+            runActivities.contains(activityTypes.first()) -> ActivityType.Run
+            else -> activityTypes.firstOrNull()
+        }
+
+        val exporter = when (activityType) {
             ActivityType.Ride -> RideCSVExporter(clientId = clientId, activities = activities, year = year)
             ActivityType.Run -> RunCSVExporter(clientId = clientId, activities = activities, year = year)
             ActivityType.InlineSkate -> InlineSkateCSVExporter(
