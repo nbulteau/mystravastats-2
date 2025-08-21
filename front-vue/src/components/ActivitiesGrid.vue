@@ -89,7 +89,7 @@ const columns = ref<ColumnRegular[]>([
         }
       }, column.name), createElement('button', {
         class: 'btn btn-sm btn-outline-secondary ms-2',
-        onClick: async () => {
+        async onClick() {
           await csvExport();
         }
       }, createElement('img', {
