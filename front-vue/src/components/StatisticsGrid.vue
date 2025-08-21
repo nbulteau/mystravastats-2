@@ -32,7 +32,7 @@ const columns = ref([
     :columns="columns"
     :source="statistics"
     :readonly="true"
-    style="height: 100%; height: calc(100vh - 150px);"
+    style="height: calc(100vh - 150px);"
   />
 </template>
 

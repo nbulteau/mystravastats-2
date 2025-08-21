@@ -46,7 +46,7 @@ func (ae ActivityEffort) GetFormattedPower() string {
 	if ae.AveragePower != nil {
 		return fmt.Sprintf(`%d W`, int(*ae.AveragePower))
 	}
-	return ""
+	return "Not available"
 }
 
 func (ae ActivityEffort) GetGradient() float64 {

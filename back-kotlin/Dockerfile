@@ -1,5 +1,5 @@
 # Use an official Gradle image to build the application
-FROM gradle:8.10.1-jdk21 AS build
+FROM gradle:9.0.0-jdk23 AS build
 
 # Set the working directory
 WORKDIR /app
@@ -18,7 +18,7 @@ COPY src/ src/
 RUN gradle build --no-daemon -x test
 
 # Use an official OpenJDK runtime as a parent image
-FROM openjdk:21-jdk-slim AS runtime
+FROM openjdk:23-jdk-slim AS runtime
 
 # Install xdg-utils
 RUN apt-get update && apt-get install -y xdg-utils

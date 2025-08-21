@@ -7,8 +7,8 @@
     title="Back to activities"
   >
     <!-- SVG left arrow icon -->
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
     </svg>
     
   </button>
@@ -62,8 +62,7 @@
             :for="option.value"
             class="radio-label"
             :title="option.description"
-          >{{ option.label
-          }}</label>
+          >{{ option.label }}</label>
         </div>
       </form>
     </div>
@@ -134,16 +133,19 @@ import { useRouter } from "vue-router"; // Import useRouter from vue-router
 
 const router = useRouter(); // Get router instance
 
-// Function to go back to previous page
+// Function to go back to the previous page
 function goBack() {
   router.back();
 }
 
-// Set the default icon options
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "/markers/marker-icon-2x.png",
-  iconUrl: "/markers/marker-icon.png",
-  shadowUrl: "/markers/marker-shadow.png",
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
 });
 
 const showPowerCurve = ref(false);
@@ -482,20 +484,27 @@ const handleRadioClick = (key: string) => {
   }
 
 // 4 - Update the chart with the new stream data
-if (
-  selectedStream.altitude &&
-  selectedStream.distance &&
-  chartOptions.series &&
-  chartOptions.series.length > 0
-) {
-  (chartOptions.series[2] as SeriesAreaOptions).data = selectedStream.altitude.map(
-    (altitude, index) => ({
-      x: (selectedStream.distance?.[index] ?? 0) / 1000,
-      y: altitude,
-      color: "blue",
-    })
-  );
-}
+  if (
+      selectedStream.altitude &&
+      selectedStream.distance &&
+      chartOptions.series &&
+      chartOptions.series.length > 0
+  ) {
+    (chartOptions.series[2] as SeriesAreaOptions).data = selectedStream.altitude.map(
+        (altitude, index) => ({
+          x: (selectedStream.distance?.[index] ?? 0) / 1000,
+          y: altitude,
+          color: "blue",
+        })
+    );
+
+    // Forcer la mise à jour du graphique
+    if (chartInstance) {
+      chartInstance.update({
+        series: chartOptions.series,
+      });
+    }
+  }
 };
 
 onMounted(async () => {
@@ -551,10 +560,6 @@ watch([showPowerCurve, activity], () => {
 </script>
 
 <style scoped>
-.chart-container {
-  margin-top: 20px 0;
-}
-
 .radio-input {
   margin-right: 5px;
 }
@@ -565,35 +570,15 @@ watch([showPowerCurve, activity], () => {
   /* Align text to the left */
 }
 
-.tooltip-inner {
-  --bs-tooltip-max-width: 300px;
-  /* Define the custom property for max-width */
-  max-width: var(--bs-tooltip-max-width);
-  /* Apply the custom property */
-  background-color: #343a40;
-  /* Dark background color */
-  color: #ffffff;
-  /* White text color */
-  font-size: 1rem;
-  /* Increase font size */
-  padding: 10px;
-  /* Add padding */
-  border-radius: 5px;
-  /* Rounded corners */
-}
-
 .tooltip-inner ul,
 .tooltip-inner li {
-  text-align: left;
-  /* Ensure list items are left-aligned */
+  text-align: left; /* Ensure list items are left-aligned */
 }
 
 /* Scrollable container for radio buttons */
 .radio-scroll-container {
-  height: 100%;
-  /* Set height to 100% to match the map container */
-  overflow-y: auto;
-  /* Enable vertical scrolling */
+  height: 100%; /* Set height to 100% to match the map container */
+  overflow-y: auto; /* Enable vertical scrolling */
 }
 
 .switch-container {
@@ -601,37 +586,6 @@ watch([showPowerCurve, activity], () => {
   justify-content: center;
   align-items: center;
   height: 100%;
-  /* Adjust as needed */
-}
-
-.switch-button {
-  /* Example styles */
-  width: 50px;
-  height: 25px;
-  background-color: #ccc;
-  border-radius: 25px;
-  position: relative;
-  cursor: pointer;
-}
-
-.switch-button::before {
-  content: '';
-  position: absolute;
-  width: 23px;
-  height: 23px;
-  background-color: white;
-  border-radius: 50%;
-  top: 1px;
-  left: 1px;
-  transition: transform 0.3s;
-}
-
-.switch-button.on {
-  background-color: #4caf50;
-}
-
-.switch-button.on::before {
-  transform: translateX(25px);
 }
 
 /* Style for the back arrow button */

@@ -33,13 +33,13 @@ class StatisticsServiceTest {
     @Test
     fun `compute statistics for Run activity type`() {
         // GIVEN
-        val activityType = ActivityType.Run
+        val activityTypes = setOf(ActivityType.Run)
         val year = 2020
 
-        every { activityProvider.getActivitiesByActivityTypeAndYear(ActivityType.Run, 2020) } returns run2020Activities
+        every { activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, 2020) } returns run2020Activities
 
         // WHEN
-        val result = statisticsService.getStatistics(activityType, year)
+        val result = statisticsService.getStatistics(activityTypes, year)
 
         // THEN
         assertEquals(29, result.size)
@@ -49,29 +49,29 @@ class StatisticsServiceTest {
     @Test
     fun `compute statistics for Ride activity type`() {
         // GIVEN
-        val activityType = ActivityType.Ride
+        val activityTypes = setOf(ActivityType.Ride)
         val year = 2020
 
-        every { activityProvider.getActivitiesByActivityTypeAndYear(ActivityType.Ride, 2020) } returns ride2020Activities
+        every { activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, 2020) } returns ride2020Activities
 
         // WHEN
-        val result = statisticsService.getStatistics(activityType, year)
+        val result = statisticsService.getStatistics(activityTypes, year)
 
         // THEN
-        assertEquals(36, result.size)
+        assertEquals(38, result.size)
         assertEquals(44, result.find { statistic -> statistic.name == "Nb activities" }?.value?.toInt())
     }
 
     @Test
     fun `compute statistics for Hike activity type`() {
         // GIVEN
-        val activityType = ActivityType.Hike
+        val activityTypes = setOf(ActivityType.Hike)
         val year = 2020
 
-        every { activityProvider.getActivitiesByActivityTypeAndYear(ActivityType.Hike, 2020) } returns hike2020Activities
+        every { activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, 2020) } returns hike2020Activities
 
         // WHEN
-        val result = statisticsService.getStatistics(activityType, year)
+        val result = statisticsService.getStatistics(activityTypes, year)
 
         // THEN
         assertEquals(16, result.size)

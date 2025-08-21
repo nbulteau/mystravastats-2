@@ -29,16 +29,16 @@ class ChartsControllerTest {
     @Test
     fun `get distance by period returns distances when valid activity type, year, and period`() {
         // GIVEN
-        val activityType = ActivityType.Run
+        val activityTypes = setOf(ActivityType.Run)
         val year = 2022
         val period = Period.MONTHS
 
-        every { chartsService.getDistanceByPeriodByActivityTypeByYear(activityType, year, period) } returns listOf(Pair("January", 100.0))
+        every { chartsService.getDistanceByPeriodByActivityTypeByYear(activityTypes, year, period) } returns listOf(Pair("January", 100.0))
 
         // WHEN
         mockMvc.perform(
             get("/charts/distance-by-period")
-                .param("activityType", activityType.name)
+                .param("activityType", activityTypes.joinToString("_"))
                 .param("year", year.toString())
                 .param("period", period.name)
                 .accept(MediaType.APPLICATION_JSON)
@@ -52,16 +52,16 @@ class ChartsControllerTest {
     @Test
     fun `get distance by period returns empty list when no distances found`() {
         // GIVEN
-        val activityType = ActivityType.Run
+        val activityTypes = setOf(ActivityType.Run)
         val year = 2022
         val period = Period.MONTHS
 
-        every { chartsService.getDistanceByPeriodByActivityTypeByYear(activityType, year, period) } returns emptyList()
+        every { chartsService.getDistanceByPeriodByActivityTypeByYear(activityTypes, year, period) } returns emptyList()
 
         // WHEN
         mockMvc.perform(
             get("/charts/distance-by-period")
-                .param("activityType", activityType.name)
+                .param("activityType", activityTypes.joinToString("_"))
                 .param("year", year.toString())
                 .param("period", period.name)
                 .accept(MediaType.APPLICATION_JSON)
@@ -85,7 +85,7 @@ class ChartsControllerTest {
             // THEN
             .andExpect(status().isBadRequest)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message").value("Unknown stravaActivity type"))
+            .andExpect(jsonPath("$.message").value("Illegal argument"))
     }
 
     @Test
@@ -123,16 +123,16 @@ class ChartsControllerTest {
     @Test
     fun `get elevation by period returns elevations when valid activity type, year, and period`() {
         // GIVEN
-        val activityType = ActivityType.Run
+        val activityTypes = setOf(ActivityType.Run)
         val year = 2022
         val period = Period.MONTHS
 
-        every { chartsService.getElevationByPeriodByActivityTypeByYear(activityType, year, period) } returns listOf(Pair("January", 500.0))
+        every { chartsService.getElevationByPeriodByActivityTypeByYear(activityTypes, year, period) } returns listOf(Pair("January", 500.0))
 
         // WHEN
         mockMvc.perform(
             get("/charts/elevation-by-period")
-                .param("activityType", activityType.name)
+                .param("activityType", activityTypes.joinToString("_"))
                 .param("year", year.toString())
                 .param("period", period.name)
                 .accept(MediaType.APPLICATION_JSON)
@@ -146,16 +146,16 @@ class ChartsControllerTest {
     @Test
     fun `get elevation by period returns empty list when no elevations found`() {
         // GIVEN
-        val activityType = ActivityType.Run
+        val activityTypes = setOf(ActivityType.Run)
         val year = 2022
         val period = Period.MONTHS
 
-        every { chartsService.getElevationByPeriodByActivityTypeByYear(activityType, year, period) } returns emptyList()
+        every { chartsService.getElevationByPeriodByActivityTypeByYear(activityTypes, year, period) } returns emptyList()
 
         // WHEN
         mockMvc.perform(
             get("/charts/elevation-by-period")
-                .param("activityType", activityType.name)
+                .param("activityType", activityTypes.joinToString("_"))
                 .param("year", year.toString())
                 .param("period", period.name)
                 .accept(MediaType.APPLICATION_JSON)
@@ -179,7 +179,7 @@ class ChartsControllerTest {
             // THEN
             .andExpect(status().isBadRequest)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message").value("Unknown stravaActivity type"))
+            .andExpect(jsonPath("$.message").value("Illegal argument"))
     }
 
     @Test

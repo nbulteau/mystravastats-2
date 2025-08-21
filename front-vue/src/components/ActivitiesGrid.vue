@@ -89,7 +89,7 @@ const columns = ref<ColumnRegular[]>([
         }
       }, column.name), createElement('button', {
         class: 'btn btn-sm btn-outline-secondary ms-2',
-        onClick: async () => {
+        async onClick() {
           await csvExport();
         }
       }, createElement('img', {
@@ -184,7 +184,7 @@ onMounted(() => {
     :columns="columns"
     :source="activities"
     :readonly="true"
-    style="height: 100%; height: calc(100vh - 150px)"
+    style="height: calc(100vh - 150px)"
   />
 </template>
 

@@ -2,7 +2,6 @@ package statistics
 
 import (
 	"fmt"
-	"math"
 	"mystravastats/domain/business"
 	"mystravastats/domain/strava"
 )
@@ -68,7 +67,7 @@ func BestElevationEffort(activity strava.Activity, distance float64) *business.A
 func BestElevationForDistance(id int64, name, activityType string, stream *strava.Stream, distance float64) *business.ActivityEffort {
 	idxStart := 0
 	idxEnd := 0
-	bestElevation := -math.MaxFloat64
+	bestElevation := -1.0
 	var bestEffort *business.ActivityEffort
 
 	distances := stream.Distance
@@ -96,7 +95,7 @@ func BestElevationForDistance(id int64, name, activityType string, stream *strav
 					DeltaAltitude: bestElevation,
 					IdxStart:      idxStart,
 					IdxEnd:        idxEnd,
-					AveragePower:  &averagePower,
+					AveragePower:  averagePower,
 					Label:         "Best gradient for " + fmt.Sprintf("%dm", int(distance)),
 					ActivityShort: business.ActivityShort{
 						Id:   id,

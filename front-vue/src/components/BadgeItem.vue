@@ -161,15 +161,4 @@ onMounted(() => {
   margin: auto;
   /* Center the image */
 }
-
-/* Custom Tooltip Styles */
-.tooltip-inner {
-  --bs-tooltip-max-width: 300px; /* Define the custom property for max-width */
-  max-width: var(--bs-tooltip-max-width); /* Apply the custom property */
-  background-color: #343a40; /* Dark background color */
-  color: #ffffff; /* White text color */
-  font-size: 1rem; /* Increase font size */
-  padding: 10px; /* Add padding */
-  border-radius: 5px; /* Rounded corners */
-}
 </style>

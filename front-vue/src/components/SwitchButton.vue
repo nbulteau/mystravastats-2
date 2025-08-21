@@ -24,24 +24,5 @@
   </script>
   
   <style scoped>
-  .switch-button {
-    width: 50px;
-    height: 25px;
-    background-color: #ccc;
-    border-radius: 25px;
-    position: relative;
-    cursor: pointer;
-  }
-  
-  .switch-button::before {
-    content: '';
-    position: absolute;
-    width: 23px;
-    height: 23px;
-    background-color: white;
-    border-radius: 50%;
-    top: 1px;
-    left: 1px;
-    transition: transform 0.3s;
-  }
+
   </style>

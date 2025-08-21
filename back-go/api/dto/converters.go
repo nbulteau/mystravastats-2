@@ -25,6 +25,10 @@ func FormatSpeed(speed float64, activityType string) string {
 	return fmt.Sprintf("%.02f km/h", speed*3.6)
 }
 
+func FormatGradient(gradient float64) string {
+	return fmt.Sprintf("%.02f", gradient)
+}
+
 func formatSeconds(totalSeconds float64) string {
 	secs := int(math.Round(totalSeconds))
 	if secs < 0 {
@@ -93,8 +97,8 @@ func ToActivityDto(activity strava.Activity) ActivityDto {
 		TotalElevationGain:               int(activity.TotalElevationGain),
 		AverageSpeed:                     FormatSpeed(activity.AverageSpeed, activity.Type),
 		BestTimeForDistanceFor1000m:      FormatSpeed(bestTimeForDistanceFor1000m, activity.Type),
-		BestElevationForDistanceFor500m:  FormatSpeed(bestElevationForDistanceFor500m, activity.Type),
-		BestElevationForDistanceFor1000m: FormatSpeed(bestElevationForDistanceFor1000m, activity.Type),
+		BestElevationForDistanceFor500m:  FormatGradient(bestElevationForDistanceFor500m),
+		BestElevationForDistanceFor1000m: FormatGradient(bestElevationForDistanceFor1000m),
 		Date:                             activity.StartDateLocal,
 		AverageWatts:                     int(activity.AverageWatts),
 		WeightedAverageWatts:             strconv.Itoa(activity.WeightedAverageWatts),
@@ -325,10 +329,32 @@ func getIntValueFromFloat(value *float64) int {
 func BuildActivityEfforts(activity *strava.DetailedActivity) []business.ActivityEffort {
 	var activityEfforts []business.ActivityEffort
 
-	for _, segmentEffort := range activity.SegmentEfforts {
-		if segmentEffort.Segment.ClimbCategory > 2 || segmentEffort.Segment.Starred {
-			activityEfforts = append(activityEfforts, toActivityEffort(&segmentEffort))
+	slopes := activity.Stream.ListSlopesDefault()
+	//.filter { slope.type == SlopeType.ASCENT }
+	ascentSlopes := make([]strava.Slope, 0, len(slopes))
+	for _, slope := range slopes {
+		if slope.Type == strava.ASCENT {
+			ascentSlopes = append(ascentSlopes, slope)
 		}
+	}
+
+	for index, s := range ascentSlopes {
+
+		e := business.ActivityEffort{
+			Distance:      s.Distance,
+			Seconds:       s.Duration,
+			DeltaAltitude: s.EndAltitude - s.StartAltitude,
+			IdxStart:      s.StartIndex,
+			IdxEnd:        s.EndIndex,
+			AveragePower:  nil,
+			Label:         fmt.Sprintf("Slope %.1d - max %.1f %%", index, s.MaxGrade),
+			ActivityShort: business.ActivityShort{
+				Id:   activity.Id,
+				Name: activity.Name,
+				Type: business.ActivityTypes[activity.Type],
+			},
+		}
+		activityEfforts = append(activityEfforts, e)
 	}
 
 	// Add additional efforts based on specific criteria
@@ -359,6 +385,12 @@ func BuildActivityEfforts(activity *strava.DetailedActivity) []business.Activity
 	bestElevationFor10000m := calculateBestElevationForDistance(activity, 10000.0)
 	if bestElevationFor10000m != nil {
 		activityEfforts = append(activityEfforts, *bestElevationFor10000m)
+	}
+
+	for _, segmentEffort := range activity.SegmentEfforts {
+		if segmentEffort.Segment.ClimbCategory > 2 || segmentEffort.Segment.Starred {
+			activityEfforts = append(activityEfforts, toActivityEffort(&segmentEffort))
+		}
 	}
 
 	return activityEfforts

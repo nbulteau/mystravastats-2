@@ -96,14 +96,14 @@ class ActivitiesControllerTest {
     @Test
     fun `get activities by activity type returns activities when valid activity type`() {
         // GIVEN
-        val activityType = ActivityType.Run
+        val activityTypes = setOf(ActivityType.Run)
 
-        every { activityService.getActivitiesByActivityTypeGroupByActiveDays(activityType) } returns mapOf("2022-01-01" to 1)
+        every { activityService.getActivitiesByActivityTypeGroupByActiveDays(activityTypes) } returns mapOf("2022-01-01" to 1)
 
         // WHEN
         mockMvc.perform(
             get("/activities/active-days")
-                .param("activityType", activityType.name)
+                .param("activityType", activityTypes.joinToString("_") { activityType -> activityType.name })
                 .accept(MediaType.APPLICATION_JSON)
         )
             // THEN
@@ -115,14 +115,14 @@ class ActivitiesControllerTest {
     @Test
     fun `get activities by activity type returns empty map when no activities found`() {
         // GIVEN
-        val activityType = ActivityType.Run
+        val activityTypes = setOf(ActivityType.Run)
 
-        every { activityService.getActivitiesByActivityTypeGroupByActiveDays(activityType) } returns emptyMap()
+        every { activityService.getActivitiesByActivityTypeGroupByActiveDays(activityTypes) } returns emptyMap()
 
         // WHEN
         mockMvc.perform(
             get("/activities/active-days")
-                .param("activityType", activityType.name)
+                .param("activityType", activityTypes.joinToString("_") { activityType -> activityType.name })
                 .accept(MediaType.APPLICATION_JSON)
         )
             // THEN
@@ -142,7 +142,8 @@ class ActivitiesControllerTest {
             // THEN
             .andExpect(status().isBadRequest)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message").value("Unknown stravaActivity type"))
+            .andExpect(jsonPath("$.message").value("Illegal argument"))
+            .andExpect(jsonPath("$.description").value("Illegal argument : 'No enum constant me.nicolas.stravastats.domain.business.ActivityType.InvalidType'"))
     }
 
 }

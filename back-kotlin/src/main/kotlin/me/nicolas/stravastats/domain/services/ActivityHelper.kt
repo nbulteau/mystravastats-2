@@ -3,11 +3,8 @@ package me.nicolas.stravastats.domain.services
 import me.nicolas.stravastats.domain.business.ActivityEffort
 import me.nicolas.stravastats.domain.business.ActivityShort
 import me.nicolas.stravastats.domain.business.ActivityType
-import me.nicolas.stravastats.domain.business.strava.Gear
-import me.nicolas.stravastats.domain.business.strava.MetaActivity
-import me.nicolas.stravastats.domain.business.strava.StravaActivity
-import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
-import me.nicolas.stravastats.domain.business.strava.StravaSegmentEffort
+import me.nicolas.stravastats.domain.business.SlopeType
+import me.nicolas.stravastats.domain.business.strava.*
 import me.nicolas.stravastats.domain.services.statistics.calculateBestDistanceForTime
 import me.nicolas.stravastats.domain.services.statistics.calculateBestElevationForDistance
 import me.nicolas.stravastats.domain.services.statistics.calculateBestTimeForDistance
@@ -17,7 +14,7 @@ import java.time.LocalDateTime
 import java.time.Month
 import java.time.format.TextStyle
 import java.time.temporal.WeekFields
-import java.util.Locale
+import java.util.*
 
 object ActivityHelper {
     /**
@@ -41,7 +38,7 @@ object ActivityHelper {
     }
 
     /**
-     * Remove activities that are not in the list of activity types to consider (i.e. Run, Ride, Hike, etc.)
+     * Remove activities that are not in the list of activity types to consider (i.e.: Run, Ride, Hike, etc.)
      * @return a list of activities filtered by type
      * @see StravaActivity
      */
@@ -72,13 +69,27 @@ object ActivityHelper {
             this.calculateBestElevationForDistance(10000.0)
         )
 
-        return activityEfforts + activityEffortsFromSegmentSegments
+        val slopes = this.stream?.listSlopes()?.filter { slope -> slope.type == SlopeType.ASCENT } ?: emptyList()
+        val slopesEfforts = slopes.mapIndexed { index, slope ->
+            ActivityEffort(
+                distance = slope.distance,
+                seconds = slope.duration,
+                deltaAltitude = slope.endAltitude - slope.startAltitude,
+                idxStart = slope.startIndex,
+                idxEnd = slope.endIndex,
+                averagePower = 0,
+                label = "Slope: $index - max gradient ${String.format("%.1f", slope.maxGrade)} %",
+                activityShort = ActivityShort(id = this.id, name = this.name, type = this.sportType)
+            )
+        }
+
+        return slopesEfforts + activityEfforts + activityEffortsFromSegmentSegments
     }
 
     /**
      * Group activities by month
      * @param activities list of activities
-     * @return a map with the month as key and the list of activities as value
+     * @return a map with the month as a key and the list of activities as a value
      * @see StravaActivity
      */
     fun groupActivitiesByMonth(activities: List<StravaActivity>): Map<String, List<StravaActivity>> {
@@ -100,7 +111,7 @@ object ActivityHelper {
     /**
      * Group activities by week
      * @param activities list of activities
-     * @return a map with the week as key and the list of activities as value
+     * @return a map with the week as a key and the list of activities as value
      * @see StravaActivity
      */
     fun groupActivitiesByWeek(activities: List<StravaActivity>): Map<String, List<StravaActivity>> {
@@ -124,7 +135,7 @@ object ActivityHelper {
     /**
      * Group activities by day
      * @param activities list of activities
-     * @return a map with the day as key and the list of activities as value
+     * @return a map with the day as a key and the list of activities as a value
      * @see StravaActivity
      */
     fun groupActivitiesByDay(activities: List<StravaActivity>, year: Int): Map<String, List<StravaActivity>> {
@@ -133,7 +144,7 @@ object ActivityHelper {
 
         // Add days without activities
         var currentDate = LocalDate.ofYearDay(year, 1)
-        for (i in (0..365 + if (currentDate.isLeapYear) 1 else 0)) {
+        (0..(365 + if (currentDate.isLeapYear) 1 else 0)).forEach { _ ->
             currentDate = currentDate.plusDays(1L)
             val dayString =
                 "${currentDate.monthValue}".padStart(2, '0') + "-" + "${currentDate.dayOfMonth}".padStart(2, '0')

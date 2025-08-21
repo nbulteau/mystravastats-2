@@ -31,18 +31,18 @@ class StatisticsControllerTest {
     @Test
     fun getStatistics_returnsStatistics_whenStatisticsExist() {
         // GIVEN
-        val activityType = ActivityType.Run
+        val activityTypes = setOf(ActivityType.Run)
         val year = 2023
         val activities = listOf<StravaActivity>()
         val statistic = GlobalStatistic("Nb activities", activities, "%d", List<StravaActivity>::size)
         val statistics = listOf<Statistic>(statistic)
 
-        every { statisticsService.getStatistics(activityType, year) } returns (statistics)
+        every { statisticsService.getStatistics(activityTypes, year) } returns (statistics)
 
         // WHEN
         mockMvc.perform(
             get("/statistics")
-                .param("activityType", activityType.name)
+                .param("activityType", activityTypes.joinToString("_"))
                 .param("year", year.toString())
                 .accept(MediaType.APPLICATION_JSON)
         )
@@ -56,17 +56,17 @@ class StatisticsControllerTest {
     @Test
     fun getStatistics_returnsBadRequest_whenYearIsMissing() {
         // GIVEN
-        val activityType = ActivityType.Run
+        val activityTypes = setOf(ActivityType.Run)
         val activities = listOf<StravaActivity>()
         val statistic = GlobalStatistic("Nb activities", activities, "%d", List<StravaActivity>::size)
         val statistics = listOf<Statistic>(statistic)
 
-        every { statisticsService.getStatistics(activityType, null) } returns statistics
+        every { statisticsService.getStatistics(activityTypes, null) } returns statistics
 
         // WHEN
         mockMvc.perform(
             get("/statistics")
-                .param("activityType", activityType.name)
+                .param("activityType", activityTypes.joinToString("_"))
                 .accept(MediaType.APPLICATION_JSON)
         )
             // THEN
@@ -91,7 +91,7 @@ class StatisticsControllerTest {
             // THEN
             .andExpect(status().isBadRequest)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message").value("Unknown stravaActivity type")) // replace with actual error message
+            .andExpect(jsonPath("$.message").value("Illegal argument")) // replace with actual error message
     }
 
 }
