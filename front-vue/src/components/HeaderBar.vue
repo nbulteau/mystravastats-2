@@ -49,40 +49,27 @@ onBeforeUnmount(() => {
   tooltipInstances = [];
 });
 
+const toggleActivity = (activity: string, activities: string[], defaultActivity: string) => {
+  if (selectedActivitiesType.value.includes(activity)) {
+    selectedActivitiesType.value = selectedActivitiesType.value.filter(a => a !== activity);
+    if (!selectedActivitiesType.value.some(a => activities.includes(a))) {
+      selectedActivitiesType.value = [defaultActivity];
+    }
+  } else {
+    selectedActivitiesType.value = [
+      ...selectedActivitiesType.value.filter(a => activities.includes(a)),
+      activity,
+    ];
+  }
+};
 
 // Function to handle an activity type changes:
 const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 'MountainBikeRide' | 'Commute' | 'Run' | 'TrailRun' | 'Hike' | 'AlpineSki') => {
 
   if (cyclingActivities.includes(activity)) {
-    if (selectedActivitiesType.value.includes(activity)) {
-      // Remove the activity if it's already selected
-      selectedActivitiesType.value = selectedActivitiesType.value.filter(a => a !== activity);
-      // If no cycling activities left, default to 'Ride'
-      if (!selectedActivitiesType.value.some(a => cyclingActivities.includes(a))) {
-        selectedActivitiesType.value = ['Ride'];
-      }
-    } else {
-      // Add the activity to the selection
-      selectedActivitiesType.value = [
-        ...selectedActivitiesType.value.filter(a => cyclingActivities.includes(a)), // Keep only cycling activities
-        activity
-      ];
-    }
+    toggleActivity(activity, cyclingActivities, 'cycling');
   } else if (runningActivities.includes(activity)) {
-    if (selectedActivitiesType.value.includes(activity)) {
-      // Remove the activity if it's already selected
-      selectedActivitiesType.value = selectedActivitiesType.value.filter(a => a !== activity);
-      // If no running activities left, default to 'Run'
-      if (!selectedActivitiesType.value.some(a => runningActivities.includes(a))) {
-        selectedActivitiesType.value = ['Run'];
-      }
-    } else {
-      // Add the activity to the selection
-      selectedActivitiesType.value = [
-        ...selectedActivitiesType.value.filter(a => runningActivities.includes(a)), // Keep only running activities
-        activity
-      ];
-    }
+    toggleActivity(activity, runningActivities, 'running');
   } else {
     // For non-cycling activities, select that single activity
     selectedActivitiesType.value = [activity];
