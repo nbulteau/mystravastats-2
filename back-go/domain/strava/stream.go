@@ -192,7 +192,7 @@ func smooth(data []float64, size int) []float64 {
 
 // ListSlopesDefault provides a convenient wrapper with default parameters.
 func (s *Stream) ListSlopesDefault() []Slope {
-	return s.ListSlopes(3.0, 500.0, 3500.0, 50)
+	return s.ListSlopes(3.0, 500.0, 3500.0, 25)
 }
 
 // ListSlopes extracts slope segments (ascents/descents/plateaus) from the stream data.
