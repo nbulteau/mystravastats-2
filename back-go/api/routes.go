@@ -25,6 +25,12 @@ var routes = Routes{
 		getActivitiesByActivityType,
 	},
 	Route{
+		"GetExportCSV",
+		"GET",
+		"/api/activities/csv",
+		getExportCSV,
+	},
+	Route{
 		"GetDetailedActivity",
 		"GET",
 		"/api/activities/{activityId}",

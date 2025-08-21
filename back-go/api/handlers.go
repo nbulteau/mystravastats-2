@@ -71,6 +71,42 @@ func getDetailedActivity(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+func getExportCSV(writer http.ResponseWriter, request *http.Request) {
+	year, err := getYearParam(request)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+	activityTypes, err := getActivityTypeParam(request)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+	csvData, err := services.ExportCSV(year, activityTypes...)
+	if err != nil {
+		log.Printf("failed to export CSV: %v", err)
+		http.Error(writer, "Failed to export CSV", http.StatusInternalServerError)
+		return
+	}
+	writer.Header().Set("Content-Type", "text/csv")
+	writer.Header().Set("Content-Disposition", "attachment; filename=\"activities.csv\"")
+	writer.WriteHeader(http.StatusOK)
+	if _, err := writer.Write([]byte(csvData)); err != nil {
+		log.Printf("failed to write CSV response: %v", err)
+		http.Error(writer, "Failed to write CSV response", http.StatusInternalServerError)
+		return
+	}
+	log.Println("CSV export successful")
+	writer.Write([]byte(csvData))
+	log.Println("CSV export successful")
+	writer.WriteHeader(http.StatusOK)
+	if _, err := writer.Write([]byte(csvData)); err != nil {
+		log.Printf("failed to write CSV response: %v", err)
+		http.Error(writer, "Failed to write CSV response", http.StatusInternalServerError)
+		return
+	}
+}
+
 func getStatisticsByActivityType(w http.ResponseWriter, r *http.Request) {
 	year, err := getYearParam(r)
 	if err != nil {
