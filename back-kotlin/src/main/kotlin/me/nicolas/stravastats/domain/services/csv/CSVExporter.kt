@@ -19,7 +19,7 @@ internal abstract class CSVExporter(
     private val writer: FileWriter = FileWriter(File("$clientId-$activityType-$year.csv"))
 
     fun export(): String {
-        // if no activities : nothing to do
+        // if no activities: nothing to do
         if (activities.isNotEmpty()) {
             writer.use {
                 return generateHeader() + generateActivities() + generateFooter()
