@@ -12,3 +12,7 @@ enum class ActivityType {
     TrailRun,
     VirtualRide
 }
+
+val rideActivities = setOf(ActivityType.Ride, ActivityType.GravelRide, ActivityType.MountainBikeRide, ActivityType.VirtualRide, ActivityType.Commute)
+
+val runActivities = setOf(ActivityType.Run, ActivityType.TrailRun)
