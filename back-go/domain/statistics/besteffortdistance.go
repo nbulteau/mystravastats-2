@@ -59,7 +59,7 @@ func findBestActivityEffort(activities []*strava.Activity, distance float64) *bu
 }
 
 func BestTimeEffort(activity strava.Activity, distance float64) *business.ActivityEffort {
-	if activity.Stream == nil || len(activity.Stream.Altitude.Data) == 0 {
+	if activity.Stream == nil || activity.Stream.Altitude == nil || len(activity.Stream.Altitude.Data) == 0 {
 		return nil
 	}
 
