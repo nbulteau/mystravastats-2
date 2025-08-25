@@ -15,7 +15,7 @@ import (
 )
 
 func FormatSpeed(speed float64, activityType string) string {
-	if strings.EqualFold(activityType, "Run") {
+	if strings.EqualFold(activityType, "Run") || strings.EqualFold(activityType, "TrailRun") {
 		if speed <= 0 {
 			return "-/km"
 		}
