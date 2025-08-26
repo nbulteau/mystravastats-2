@@ -247,7 +247,7 @@ func maxSpeed(activities []*strava.Activity) float64 {
 	for _, activity := range activities {
 		if activity.MaxSpeed > maxSpeed {
 			maxSpeed = activity.MaxSpeed
-			log.Printf("maxSpeed=%f : %s - %s", maxSpeed, activity.Name, activity.StartDate)
+			//log.Printf("maxSpeed=%f : %s - %s", maxSpeed, activity.Name, activity.StartDate)
 		}
 	}
 	return maxSpeed
