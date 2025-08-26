@@ -220,7 +220,6 @@ export const useContextStore = defineStore('context', {
         removeToast(toast: Toast) {
             this.toasts = this.toasts.filter((t) => t.id !== toast.id)
         },
-
     }
 })
 

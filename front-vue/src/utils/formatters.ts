@@ -26,7 +26,8 @@ export function formatDate(value: string): string {
 
 export function formatSpeedWithUnit(speed: number, activityType: string): string {
     const formatedSpeed = formatSpeed(speed, activityType);
-    if (activityType === "Run") {
+
+    if (activityType.endsWith("Run"))  {
         return `${formatedSpeed}/km`;
     } else {
         return `${formatedSpeed} km/h`;
@@ -34,7 +35,7 @@ export function formatSpeedWithUnit(speed: number, activityType: string): string
 }
 
 export function formatSpeed(speed: number, activityType: string): string {
-    if (activityType === "Run") {
+    if (activityType.endsWith("Run"))  {
       return `${formatSeconds(1000 / speed)}`;
     } else {
       return `${(speed * 3.6).toFixed(2)}`;
