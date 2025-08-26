@@ -47,7 +47,7 @@ func (stat *AverageSpeedStatistic) Value() string {
 }
 
 func formatSpeed(speed float64, activityType business.ActivityType) string {
-	if activityType == business.Run {
+	if activityType == business.Run || activityType == business.TrailRun {
 		return fmt.Sprintf("%s/km", helpers.FormatSecondsFloat(1000/speed))
 	}
 	return fmt.Sprintf("%.02f km/h", speed)

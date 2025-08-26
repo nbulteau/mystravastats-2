@@ -130,7 +130,6 @@ func FetchDashboardData(activityTypes ...business.ActivityType) business.Dashboa
 	maxHeartRateByYear := make(map[string]float64)
 	averageWattsByYear := make(map[string]float64)
 	maxWattsByYear := make(map[string]float64)
-	var averageCadence [][]int64
 
 	activitiesGroupedByYear := groupActivitiesByYear(activitiesByYear)
 
@@ -150,9 +149,6 @@ func FetchDashboardData(activityTypes ...business.ActivityType) business.Dashboa
 		maxWattsByYear[year] = maxWatts(activities)
 	}
 
-	filteredActivities := activityProvider.GetActivitiesByYearAndActivityTypes(nil, activityTypes...)
-	averageCadence = calculateAverageCadence(filteredActivities)
-
 	return business.DashboardData{
 		NbActivities:           nbActivitiesByYear,
 		TotalDistanceByYear:    totalDistanceByYear,
@@ -167,7 +163,6 @@ func FetchDashboardData(activityTypes ...business.ActivityType) business.Dashboa
 		MaxHeartRateByYear:     maxHeartRateByYear,
 		AverageWattsByYear:     averageWattsByYear,
 		MaxWattsByYear:         maxWattsByYear,
-		AverageCadence:         averageCadence,
 	}
 }
 
@@ -252,6 +247,7 @@ func maxSpeed(activities []*strava.Activity) float64 {
 	for _, activity := range activities {
 		if activity.MaxSpeed > maxSpeed {
 			maxSpeed = activity.MaxSpeed
+			log.Printf("maxSpeed=%f : %s - %s", maxSpeed, activity.Name, activity.StartDate)
 		}
 	}
 	return maxSpeed
@@ -308,18 +304,4 @@ func maxWatts(activities []*strava.Activity) float64 {
 		}
 	}
 	return maxWatts
-}
-
-// calculateAverageCadence calculates the average cadence for a list of Strava activities.
-func calculateAverageCadence(activities []*strava.Activity) [][]int64 {
-	var cadenceData [][]int64
-	for _, activity := range activities {
-		if activity.AverageCadence > 0 {
-			date, _ := time.Parse("2006-01-02T15:04:05Z", activity.StartDateLocal)
-			milliseconds := date.UnixNano() / int64(time.Millisecond)
-			cadence := int64(activity.AverageCadence * 2)
-			cadenceData = append(cadenceData, []int64{milliseconds, cadence})
-		}
-	}
-	return cadenceData
 }

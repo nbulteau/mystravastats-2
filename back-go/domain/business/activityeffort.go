@@ -19,14 +19,14 @@ type ActivityEffort struct {
 
 func (ae ActivityEffort) GetFormattedSpeed() string {
 	speed := ae.GetSpeed()
-	if ae.ActivityShort.Type == Run {
+	if ae.ActivityShort.Type == Run || ae.ActivityShort.Type == TrailRun {
 		return fmt.Sprintf("%s/km", speed)
 	}
 	return fmt.Sprintf("%s km/h", speed)
 }
 
 func (ae ActivityEffort) GetSpeed() string {
-	if ae.ActivityShort.Type == Run {
+	if ae.ActivityShort.Type == Run || ae.ActivityShort.Type == TrailRun {
 		return formatSeconds(ae.Seconds * 1000 / int(ae.Distance))
 	}
 	return fmt.Sprintf("%.02f", ae.Distance/float64(ae.Seconds)*3600/1000)
