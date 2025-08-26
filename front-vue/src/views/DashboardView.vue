@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import {useContextStore} from "@/stores/context.js";
-import {computed} from "vue";
+import { useContextStore } from "@/stores/context.js";
+import { computed } from "vue";
 import CumulativeDistancePerYearChart from "@/components/charts/CumulativeDataPerYearChart.vue";
 import EddingtonNumberChart from "@/components/charts/EddingtonNumberChart.vue";
 import SpeedPerYearChart from "@/components/charts/SpeedPerYearChart.vue";
@@ -10,31 +10,45 @@ import HeartRatePerYearChart from "@/components/charts/HeartRatePerYearChart.vue
 import PowerPerYearChart from "@/components/charts/PowerPerYearChart.vue";
 import ActivitiesCountPerYearChart from "@/components/charts/ActivitiesCountPerYearChart.vue";
 import DistanceElevationPerYearChart from "@/components/charts/DistanceElevationPerYearChart.vue";
-import AverageCadenceChart from "@/components/charts/AverageCadenceChart.vue";
 
 const contextStore = useContextStore();
 contextStore.updateCurrentView("dashboard");
 
 const currentActivityType = computed(() => contextStore.currentActivityType);
 const cumulativeDistancePerYear = computed(() => contextStore.cumulativeDistancePerYear);
-const cumulativeElevationPerYear = computed(() => contextStore.cumulativeElevationPerYear);
+const cumulativeElevationPerYear = computed(
+  () => contextStore.cumulativeElevationPerYear
+);
 const eddingtonNumber = computed(() => contextStore.eddingtonNumber);
 const activitiesCount = computed(() => contextStore.dashboardData.nbActivitiesByYear);
 const averageSpeedByYear = computed(() => contextStore.dashboardData.averageSpeedByYear);
 const maxSpeedByYear = computed(() => contextStore.dashboardData.maxSpeedByYear);
-const totalDistanceByYear = computed(() => contextStore.dashboardData.totalDistanceByYear);
-const averageDistanceByYear = computed(() => contextStore.dashboardData.averageDistanceByYear);
+const totalDistanceByYear = computed(
+  () => contextStore.dashboardData.totalDistanceByYear
+);
+const averageDistanceByYear = computed(
+  () => contextStore.dashboardData.averageDistanceByYear
+);
 const maxDistanceByYear = computed(() => contextStore.dashboardData.maxDistanceByYear);
-const totalElevationByYear = computed(() => contextStore.dashboardData.totalElevationByYear);
-const averageElevationByYear = computed(() => contextStore.dashboardData.averageElevationByYear);
+const totalElevationByYear = computed(
+  () => contextStore.dashboardData.totalElevationByYear
+);
+const averageElevationByYear = computed(
+  () => contextStore.dashboardData.averageElevationByYear
+);
 const maxElevationByYear = computed(() => contextStore.dashboardData.maxElevationByYear);
-const averageHeartRateByYear = computed(() => contextStore.dashboardData.averageHeartRateByYear);
+const averageHeartRateByYear = computed(
+  () => contextStore.dashboardData.averageHeartRateByYear
+);
 const maxHeartRateByYear = computed(() => contextStore.dashboardData.maxHeartRateByYear);
 const averageWattsByYear = computed(() => contextStore.dashboardData.averageWattsByYear);
-const maxWattsByYear = computed(() => sortDataByYear(contextStore.dashboardData.maxWattsByYear));
-const averageCadence = computed(() => contextStore.dashboardData.averageCadenceByYear);
+const maxWattsByYear = computed(() =>
+  sortDataByYear(contextStore.dashboardData.maxWattsByYear)
+);
 
-function sortDataByYear(averageWattsByYear: Record<string, number>): Record<string, number> {
+function sortDataByYear(
+  averageWattsByYear: Record<string, number>
+): Record<string, number> {
   return Object.keys(averageWattsByYear)
     .sort((a, b) => parseInt(a) - parseInt(b))
     .reduce((acc, key) => {
@@ -42,14 +56,10 @@ function sortDataByYear(averageWattsByYear: Record<string, number>): Record<stri
       return acc;
     }, {} as Record<string, number>);
 }
-
 </script>
 
-
 <template>
-  <ActivitiesCountPerYearChart
-    :activities-count="activitiesCount"
-  />
+  <ActivitiesCountPerYearChart :activities-count="activitiesCount" />
   <EddingtonNumberChart
     :title="`Eddington number for ${currentActivityType}: ${eddingtonNumber.eddingtonNumber}`"
     :eddington-number="eddingtonNumber"
@@ -82,9 +92,5 @@ function sortDataByYear(averageWattsByYear: Record<string, number>): Record<stri
     :activity-type="currentActivityType"
     :average-speed-by-year="averageSpeedByYear"
     :max-speed-by-year="maxSpeedByYear"
-  />
-  <AverageCadenceChart
-    v-if="currentActivityType === 'Run'"
-    :average-cadence="averageCadence"  
   />
 </template>

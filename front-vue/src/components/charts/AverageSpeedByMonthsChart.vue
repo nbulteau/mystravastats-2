@@ -9,7 +9,7 @@ const props = defineProps<{
   dataByMonths: Map<string, number>[];
 }>();
 
-const unit = computed(() => (props.activityType === "Run" ? "min/km" : "km/h"));
+const unit = computed(() => ((props.activityType === "Run" || props.activityType === "TrailRun") ? "min/km" : "km/h"));
 
 const chartOptions: Highcharts.Options = reactive({
   chart: { type: "column" },

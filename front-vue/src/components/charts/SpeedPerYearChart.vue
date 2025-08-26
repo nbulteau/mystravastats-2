@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import {computed, reactive, watch} from "vue";
-import {Chart} from "highcharts-vue";
-import type {SeriesColumnOptions, SeriesLineOptions, SeriesOptionsType, YAxisOptions} from "highcharts";
-import {formatSpeedWithUnit} from "@/utils/formatters";
+import { computed, reactive, watch } from "vue";
+import { Chart } from "highcharts-vue";
+import type {
+  SeriesColumnOptions,
+  SeriesLineOptions,
+  SeriesOptionsType,
+  YAxisOptions,
+} from "highcharts";
+import { formatSpeedWithUnit } from "@/utils/formatters";
 
 const props = defineProps<{
   activityType: string;
@@ -10,11 +15,11 @@ const props = defineProps<{
   maxSpeedByYear: Record<string, number>;
 }>();
 
-const unit = computed(() => (props.activityType === "Run" ? "min/km" : "km/h"));
+const unit = computed(() => ((props.activityType === "Run" || props.activityType === "TrailRun") ? "min/km" : "km/h"));
 
 const chartOptions = reactive({
   chart: {
-    type: 'line',
+    type: "line",
   },
   title: {
     text: "Speed",
@@ -28,7 +33,7 @@ const chartOptions = reactive({
       },
     },
     categories: [] as string[],
-    crosshair: true
+    crosshair: true,
   },
   yAxis: {
     min: 0,
@@ -38,8 +43,8 @@ const chartOptions = reactive({
     labels: {
       formatter: function (this: any): string {
         if (this.isFirst) {
-            return "";
-          }
+          return "";
+        }
         return formatSpeedWithUnit(this.value, props.activityType);
       },
     },
@@ -50,14 +55,16 @@ const chartOptions = reactive({
   tooltip: {
     formatter: function (this: any): string {
       return this.points.reduce(function (
-              s: any,
-              point: {
-                color: any; series: { name: string }; y: string
-              }
-          ) {
+        s: any,
+        point: {
+          color: any;
+          series: { name: string };
+          y: string;
+        }
+      ) {
         const speed = formatSpeedWithUnit(parseFloat(point.y), props.activityType);
-        return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${speed}`; },
-          "<b>" + this.key + "</b>");
+        return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${speed}`;
+      }, "<b>" + this.key + "</b>");
     },
     shared: true,
   },
@@ -91,11 +98,11 @@ const chartOptions = reactive({
       type: "line",
       dashStyle: "ShortDash",
       marker: {
-        enabled: false
+        enabled: false,
       },
       enableMouseTracking: false,
       data: [], // Initialize with an empty array
-    }
+    },
   ] as SeriesOptionsType[],
 });
 
@@ -119,22 +126,28 @@ function updateChartData() {
     const maxMaxSpeed = Math.max(...maxSpeedByYear);
     const maxMaxSpeedIndex = maxSpeedByYear.indexOf(maxMaxSpeed);
 
-    (chartOptions.series[0] as SeriesColumnOptions).data = averageSpeedByYear.map((value, index) => {
-      const point: any = { y: value };
-      if (index === maxAverageSpeedIndex) {
-        point.marker = { enabled: true, radius: 6, fillColor: 'red' };
+    (chartOptions.series[0] as SeriesColumnOptions).data = averageSpeedByYear.map(
+      (value, index) => {
+        const point: any = { y: value };
+        if (index === maxAverageSpeedIndex) {
+          point.marker = { enabled: true, radius: 6, fillColor: "red" };
+        }
+        return point;
       }
-      return point;
-    });
+    );
 
-    (chartOptions.series[1] as SeriesColumnOptions).data = maxSpeedByYear.map((value, index) => {
-      if (index === maxMaxSpeedIndex) {
-        return { y: value, marker: { enabled: true, radius: 6, fillColor: 'red' } };
+    (chartOptions.series[1] as SeriesColumnOptions).data = maxSpeedByYear.map(
+      (value, index) => {
+        if (index === maxMaxSpeedIndex) {
+          return { y: value, marker: { enabled: true, radius: 6, fillColor: "red" } };
+        }
+        return { y: value };
       }
-      return { y: value };
-    });
+    );
 
-    (chartOptions.series[2] as SeriesLineOptions).data = calculateTrendLine(averageSpeedByYear);
+    (chartOptions.series[2] as SeriesLineOptions).data = calculateTrendLine(
+      averageSpeedByYear
+    );
   }
 
   if (chartOptions.yAxis && (chartOptions.yAxis as YAxisOptions).title) {
@@ -155,14 +168,11 @@ function calculateTrendLine(data: number[]): number[] {
   return data.map((_, index) => slope * index + intercept);
 }
 
-
-
 watch(
-    () => props.averageSpeedByYear || props.maxSpeedByYear || props.activityType,
-    updateChartData,
-    {immediate: true}
+  () => props.averageSpeedByYear || props.maxSpeedByYear || props.activityType,
+  updateChartData,
+  { immediate: true }
 );
-
 </script>
 
 <template>
@@ -171,6 +181,4 @@ watch(
   </div>
 </template>
 
-<style scoped>
-
-</style>
+<style scoped></style>
