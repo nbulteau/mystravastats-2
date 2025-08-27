@@ -10,11 +10,10 @@ import (
 
 	"mystravastats/domain/badges"
 	"mystravastats/domain/business"
-	"mystravastats/domain/helpers"
 )
 
-var alpes = loadBadgeSet("alpes", helpers.StravaCachePath+"/famous-climb/alpes.json")
-var pyrenees = loadBadgeSet("pyrenees", helpers.StravaCachePath+"/famous-climb/pyrenees.json")
+var alpes = loadBadgeSet("alpes", "strava-cache/famous-climb/alpes.json")
+var pyrenees = loadBadgeSet("pyrenees", "strava-cache/famous-climb/pyrenees.json")
 
 // GetGeneralBadges returns the general badges for the given activity type and year
 // The general badges are the ones that are not specific to a famous climb
@@ -50,12 +49,12 @@ func GetFamousBadges(year *int, activityTypes ...business.ActivityType) []busine
 
 	activities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
 
-	// TODO: handle case multiple activity types
 	activityType := activityTypes[0]
 
 	switch activityType {
 	case business.Ride:
 		return append(alpes.Check(activities), pyrenees.Check(activities)...)
+
 	default:
 		return []business.BadgeCheckResult{}
 	}
