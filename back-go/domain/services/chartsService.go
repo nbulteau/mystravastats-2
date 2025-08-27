@@ -36,9 +36,10 @@ func FetchChartsElevationByPeriod(year *int, period business.Period, activityTyp
 	activitiesByPeriod := activitiesByPeriod(activities, *year, period)
 
 	size := 12
-	if period == business.PeriodWeeks {
+	switch period {
+	case business.PeriodWeeks:
 		size = 52
-	} else if period == business.PeriodDays {
+	case business.PeriodDays:
 		size = 365
 	}
 
@@ -61,9 +62,10 @@ func FetchChartsAverageSpeedByPeriod(year *int, period business.Period, activity
 	activitiesByPeriod := activitiesByPeriod(activities, *year, period)
 
 	size := 12
-	if period == business.PeriodWeeks {
+	switch period {
+	case business.PeriodWeeks:
 		size = 52
-	} else if period == business.PeriodDays {
+	case business.PeriodDays:
 		size = 365
 	}
 
