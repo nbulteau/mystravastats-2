@@ -6,10 +6,10 @@ import me.nicolas.stravastats.domain.business.EddingtonNumber
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.services.ActivityHelper.groupActivitiesByDay
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
+import me.nicolas.stravastats.domain.services.statistics.BestEffortDistanceStatistic
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDate
-import java.time.ZoneOffset
 
 interface IDashboardService {
     fun getCumulativeDistancePerYear(activityTypes: Set<ActivityType>): Map<String, Map<String, Number>>
@@ -134,24 +134,26 @@ class DashboardService(
             .mapValues { (_, activities) ->
                 activities.maxOf { activity -> activity.totalElevationGain.toInt() }
             }
-            .filter { it.value > 0 }
+            .filter { entry -> entry.value > 0 }
 
         // compute average speed for all years
         val averageSpeedByYear = activitiesByYear
             .mapValues { (_, activities) ->
-                val count = activities.count { it.averageSpeed > 0.0 }
+                val count = activities.count { activity -> activity.averageSpeed > 0.0 }
                 if (count == 0) return@mapValues 0F
-                (activities.filter { it.averageSpeed > 0.0 }
+                (activities.filter { activity -> activity.averageSpeed > 0.0 }
                     .sumOf { activity -> activity.averageSpeed } / count).toFloat()
             }
-            .filter { it.value > 0 }
+            .filter { entry -> entry.value > 0 }
 
         // compute max speed for all years
         val maxSpeedByYear = activitiesByYear
-            .mapValues { (_, activities) ->
-                activities.maxOf { activity -> activity.maxSpeed }
+            .mapValues { (foo, activities) ->
+                println("$foo  ${BestEffortDistanceStatistic("", activities, 200.0).getSpeed()}")
+                (BestEffortDistanceStatistic("", activities, 200.0).getSpeed())!!.toFloat()
             }
-            .filter { it.value > 0 }
+            .filter { entry -> entry.value > 0.0 }
+
 
         // compute average heart rate for all years
         val averageHeartRateByYear = activitiesByYear
@@ -162,7 +164,7 @@ class DashboardService(
                     .sumOf { activity -> activity.averageHeartrate } / count)
                     .toInt()
             }
-            .filter { it.value > 0 }
+            .filter { entry -> entry.value > 0 }
 
         // compute max heart rate for all years
         val maxHeartRateByYear = activitiesByYear
@@ -188,18 +190,6 @@ class DashboardService(
             }
             .filter { it.value > 0 }
 
-        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes)
-
-        val averageCadence = filteredActivities
-            .filter { activity -> activity.averageCadence > 0 }
-            .groupBy { activity -> activity.startDateLocal.substringBefore('T') }
-            .map { (day, activities) ->
-                val milliseconds = LocalDate.parse(day).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
-                val averageCadence =
-                    (activities.sumOf { activity -> activity.averageCadence * 2 } / activities.size).toLong()
-                listOf(milliseconds, averageCadence)
-            }
-
         return DashboardData(
             nbActivitiesByYear,
             totalDistanceByYear,
@@ -213,8 +203,7 @@ class DashboardService(
             averageHeartRateByYear,
             maxHeartRateByYear,
             averageWattsByYear,
-            maxWattsByYear,
-            averageCadence
+            maxWattsByYear
         )
     }
 

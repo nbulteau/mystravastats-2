@@ -3,7 +3,6 @@ package me.nicolas.stravastats.domain.business.strava
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
-import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.strava.stream.AltitudeStream
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.utils.formatDate
@@ -62,7 +61,7 @@ data class StravaActivity(
     override fun toString() = "${name.trim()} (${startDateLocal.formatDate()})"
 
     fun processAverageSpeed(): String {
-        return if (type == ActivityType.Run.name) {
+        return if (type.endsWith("Run")) {
             (elapsedTime * 1000 / distance).formatSeconds()
         } else {
             "%.02f".format(distance / elapsedTime * 3600 / 1000)

@@ -84,13 +84,13 @@ function sortDataByYear(
     :average-heart-rate-by-year="averageHeartRateByYear"
     :max-heart-rate-by-year="maxHeartRateByYear"
   />
-  <PowerPerYearChart
-    :average-watts-by-year="averageWattsByYear"
-    :max-watts-by-year="maxWattsByYear"
-  />
   <SpeedPerYearChart
     :activity-type="currentActivityType"
     :average-speed-by-year="averageSpeedByYear"
     :max-speed-by-year="maxSpeedByYear"
+  />
+  <PowerPerYearChart
+      :average-watts-by-year="averageWattsByYear"
+      :max-watts-by-year="maxWattsByYear"
   />
 </template>

@@ -26,9 +26,9 @@ internal open class BestEffortTimeStatistic(
     override val value: String
         get() = if (bestActivityEffort != null) {
             if (bestActivityEffort.distance > 1000) {
-                "%.2f km => ${bestActivityEffort.getFormattedSpeed()}".format(bestActivityEffort.distance / 1000)
+                "%.2f km => ${bestActivityEffort.getFormattedSpeedWithUnits()}".format(bestActivityEffort.distance / 1000)
             } else {
-                "%.0f m => ${bestActivityEffort.getFormattedSpeed()}".format(bestActivityEffort.distance)
+                "%.0f m => ${bestActivityEffort.getFormattedSpeedWithUnits()}".format(bestActivityEffort.distance)
             }
         } else {
             "Not available"
@@ -36,9 +36,9 @@ internal open class BestEffortTimeStatistic(
 
     protected open fun result(bestActivityEffort: ActivityEffort) =
         if (bestActivityEffort.distance > 1000) {
-            "%.2f km => ${bestActivityEffort.getFormattedSpeed()}".format(bestActivityEffort.distance / 1000)
+            "%.2f km => ${bestActivityEffort.getFormattedSpeedWithUnits()}".format(bestActivityEffort.distance / 1000)
         } else {
-            "%.0f m => ${bestActivityEffort.getFormattedSpeed()}".format(bestActivityEffort.distance)
+            "%.0f m => ${bestActivityEffort.getFormattedSpeedWithUnits()}".format(bestActivityEffort.distance)
         }
 }
 

@@ -19,23 +19,25 @@ internal open class BestEffortDistanceStatistic(
         .minByOrNull { activityEffort -> activityEffort.seconds }
 
     init {
-        require(distance > 100) { "DistanceStream must be > 100 meters" }
+        require(distance >= 100) { "DistanceStream must be >= 100 meters" }
         activity = bestActivityEffort?.activityShort
     }
 
     override val value: String
         get() = if (bestActivityEffort != null) {
-            "${bestActivityEffort.seconds.formatSeconds()} => ${bestActivityEffort.getFormattedSpeed()}"
+            "${bestActivityEffort.seconds.formatSeconds()} => ${bestActivityEffort.getFormattedSpeedWithUnits()}"
         } else {
             "Not available"
         }
+
+    fun getSpeed(): Double? = bestActivityEffort?.getMSSpeed()
 }
 
 
 fun StravaActivity.calculateBestTimeForDistance(distance: Double): ActivityEffort? {
 
     // no stream -> return null
-    return if (stream == null || stream?.distance == null) {
+    return if (stream == null) {
         null
     } else {
         activityEffort(this.id, this.name, this.type, this.stream!!, distance)

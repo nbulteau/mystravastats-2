@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test
 internal class StravaActivityEffortTest {
 
     @Test
-    fun getSpeed() {
+    fun getFormatedSpeed() {
 
         // Given
         val colAgnelActivity = loadColAgnelActivity()
@@ -26,8 +26,8 @@ internal class StravaActivityEffortTest {
         )
 
         // Then
-        assertEquals("15.48 km/h", colAgnelActivityEffort.getFormattedSpeed())
-        assertEquals("15.48", colAgnelActivityEffort.getSpeed())
+        assertEquals("15.48 km/h", colAgnelActivityEffort.getFormattedSpeedWithUnits())
+        assertEquals("15.48", colAgnelActivityEffort.getFormatedSpeed())
 
         assertEquals("2.33 %", colAgnelActivityEffort.getFormattedGradient())
         assertEquals("2.33", colAgnelActivityEffort.getGradient())

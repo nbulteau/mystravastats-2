@@ -3,6 +3,7 @@ package services
 import (
 	"log"
 	"mystravastats/domain/business"
+	"mystravastats/domain/statistics"
 	"mystravastats/domain/strava"
 	"strconv"
 	"time"
@@ -243,14 +244,13 @@ func averageSpeed(activities []*strava.Activity) float64 {
 }
 
 func maxSpeed(activities []*strava.Activity) float64 {
-	var maxSpeed float64
-	for _, activity := range activities {
-		if activity.MaxSpeed > maxSpeed {
-			maxSpeed = activity.MaxSpeed
-			//log.Printf("maxSpeed=%f : %s - %s", maxSpeed, activity.Name, activity.StartDate)
-		}
+	activityEffort := statistics.FindBestActivityEffort(activities, 200.0)
+
+	if activityEffort == nil {
+		return 0.0
 	}
-	return maxSpeed
+
+	return activityEffort.GetMSSpeed()
 }
 
 func averageHeartRate(activities []*strava.Activity) int {

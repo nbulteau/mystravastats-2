@@ -37,7 +37,7 @@ func NewBestEffortDistanceStatistic(name string, activities []*strava.Activity, 
 		panic("DistanceStream must be > 100 meters")
 	}
 
-	bestActivityEffort := findBestActivityEffort(activities, distance)
+	bestActivityEffort := FindBestActivityEffort(activities, distance)
 
 	return &BestEffortDistanceStatistic{
 		name:               name,
@@ -47,7 +47,7 @@ func NewBestEffortDistanceStatistic(name string, activities []*strava.Activity, 
 	}
 }
 
-func findBestActivityEffort(activities []*strava.Activity, distance float64) *business.ActivityEffort {
+func FindBestActivityEffort(activities []*strava.Activity, distance float64) *business.ActivityEffort {
 	var bestEffort *business.ActivityEffort
 	for _, activity := range activities {
 		effort := BestTimeEffort(*activity, distance)

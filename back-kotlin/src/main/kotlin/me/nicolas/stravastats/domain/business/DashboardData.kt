@@ -14,5 +14,4 @@ data class DashboardData(
     val maxHeartRateByYear: Map<String, Int>,
     val averageWattsByYear: Map<String, Int>,
     val maxWattsByYear: Map<String, Int>,
-    val averageCadenceByYear: List<List<Long>>,
 )

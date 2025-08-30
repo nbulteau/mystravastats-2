@@ -71,7 +71,7 @@ fun StravaActivity.toDto(): ActivityDto {
         elapsedTime = this.elapsedTime,
         totalElevationGain = this.totalElevationGain.toInt(),
         averageSpeed = this.averageSpeed.formatSpeed(this.type),
-        bestTimeForDistanceFor1000m = calculateBestTimeForDistance(1000.0)?.getFormattedSpeed() ?: "",
+        bestTimeForDistanceFor1000m = calculateBestTimeForDistance(1000.0)?.getFormattedSpeedWithUnits() ?: "",
         bestElevationForDistanceFor500m = calculateBestElevationForDistance(500.0)?.getGradient() ?: "",
         bestElevationForDistanceFor1000m = calculateBestElevationForDistance(1000.0)?.getGradient() ?: "",
         date = this.startDateLocal,

@@ -53,7 +53,7 @@ fun Double.formatSpeed(activityType: ActivityType): String {
 }
 
 fun Double.formatSpeed(activityType: String): String {
-    return if (activityType == ActivityType.Run.name) {
+    return if (activityType.endsWith("Run")) {
         "${(1000 / this).formatSeconds()}/km"
     } else {
         "%.02f km/h".format(this * 3.6)

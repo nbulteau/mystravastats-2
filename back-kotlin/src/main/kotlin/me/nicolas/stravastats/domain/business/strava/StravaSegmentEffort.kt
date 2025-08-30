@@ -1,8 +1,6 @@
 package me.nicolas.stravastats.domain.business.strava
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import me.nicolas.stravastats.domain.business.ActivityType
-import me.nicolas.stravastats.domain.utils.formatSeconds
 
 data class StravaSegmentEffort(
     val achievements: List<Achievement>,
@@ -43,14 +41,6 @@ data class StravaSegmentEffort(
     val startIndex: Int,
     val visibility: String?,
 ) {
-    fun getFormattedSpeed(type: ActivityType): String {
-        return if (type == ActivityType.Run) {
-            "${(elapsedTime * 1000 / distance).formatSeconds()}/km"
-        } else {
-            "%.02f km/h".format(distance / elapsedTime * 3600 / 1000)
-        }
-    }
-
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
