@@ -24,7 +24,7 @@ export const useContextStore = defineStore('context', {
         averageSpeedByMonths: Map<string, number>[],
         distanceByWeeks: Map<string, number>[],
         elevationByWeeks: Map<string, number>[],
-        cadenceByWeeks: Map<String, number>[],
+        cadenceByWeeks: Map<string, number>[],
         cumulativeDistancePerYear: Map<string, Map<string, number>>,
         cumulativeElevationPerYear: Map<string, Map<string, number>>,
         eddingtonNumber: EddingtonNumber,
