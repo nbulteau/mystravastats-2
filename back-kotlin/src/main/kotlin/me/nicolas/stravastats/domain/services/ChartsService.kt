@@ -2,6 +2,7 @@ package me.nicolas.stravastats.domain.services
 
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.Period
+import me.nicolas.stravastats.domain.business.runActivities
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.services.ActivityHelper.groupActivitiesByDay
 import me.nicolas.stravastats.domain.services.ActivityHelper.groupActivitiesByMonth
@@ -31,7 +32,9 @@ interface IChartsService {
 
     fun getAverageCadenceByPeriodByActivityTypeByYear(
         activityTypes: Set<ActivityType>,
-    ): Map<String, Int>
+        year: Int,
+        period: Period
+    ): List<Pair<String, Double>>
 
 }
 
@@ -44,11 +47,11 @@ internal class ChartsService(
 
     /**
      * Get distance by period by activity type by year.
-     * It returns a list of pair with the period as key and the distance in km as value.
+     * It returns a list of a pair with the period as a key and the distance in km as a value.
      * @param activityTypes the activity types
      * @param year the year
      * @param period the period (days, weeks or months)
-     * @return a list of pair with the period as key and the distance in km as value
+     * @return a list of a pair with the period as a key and the distance in km as value
      */
     override fun getDistanceByPeriodByActivityTypeByYear(
         activityTypes: Set<ActivityType>,
@@ -67,11 +70,11 @@ internal class ChartsService(
 
     /**
      * Get elevation by period by activity type by year.
-     * It returns a list of pair with the period as key and the elevation in meters as value.
+     * It returns a list of a pair with the period as a key and the elevation in meters as a value.
      * @param activityTypes the activity types
      * @param year the year
      * @param period the period (days, weeks or months)
-     * @return a list of pair with the period as key and the elevation in meters as value
+     * @return a list of a pair with the period as a key and the elevation in meters as value
      */
     override fun getElevationByPeriodByActivityTypeByYear(
         activityTypes: Set<ActivityType>,
@@ -90,11 +93,11 @@ internal class ChartsService(
 
     /**
      * Get average speed by period by activity type by year.
-     * It returns a list of pair with the period as key and the average speed in km/h as value.
+     * It returns a list of a pair with the period as a key and the average speed in km/h as a value.
      * @param activityTypes the activity types
      * @param year the year
      * @param period the period (days, weeks or months)
-     * @return a list of pair with the period as key and the average speed in km/h as value
+     * @return a list of a pair with the period as a key and the average speed in km/h as value
      */
     override fun getAverageSpeedByPeriodByActivityTypeByYear(
         activityTypes: Set<ActivityType>,
@@ -115,14 +118,21 @@ internal class ChartsService(
 
     override fun getAverageCadenceByPeriodByActivityTypeByYear(
         activityTypes: Set<ActivityType>,
-    ): Map<String, Int> {
-        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes)
+        year: Int,
+        period: Period
+    ): List<Pair<String, Double>>
+    {
+        logger.info("Get average cadence by $period by activity ($activityTypes) type by year ($year)")
 
-        return filteredActivities
-            .groupBy { activity -> activity.startDateLocal.substringBefore('T') }
-            .mapValues { (_, activities) -> activities.sumOf { activity -> activity.averageCadence * 2 } }
-            .mapValues { entry -> entry.value.toInt() }
-            .toMap()
+        val activitiesByPeriod = activitiesByPeriod(activityTypes, year, period)
+        return activitiesByPeriod.mapValues { (_, activities) ->
+            if (activities.isEmpty()) {
+                0.0
+            } else {
+                val cadence = activities.sumOf { activity -> activity.averageCadence } / activities.size
+                if (activityTypes.first() in runActivities) cadence * 2 else cadence
+            }
+        }.toList()
     }
 
 
@@ -131,7 +141,7 @@ internal class ChartsService(
      * @param activityTypes the activity types
      * @param year the year
      * @param period the period
-     * @return a map with the period as key and the list of activities as value
+     * @return a map with the period as a key and the list of activities as a value
      */
     private fun activitiesByPeriod(
         activityTypes: Set<ActivityType>,

@@ -48,7 +48,7 @@ const chartOptions: Highcharts.Options = reactive({
       dataLabels: {
         enabled: true,
         rotation: -90,
-        color: "#FFFFFF",
+        //color: "#FFFFFF",
         inside: true,
         verticalAlign: "top",
         format: "{point.y:.1f}", // one decimal

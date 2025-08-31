@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { reactive, watch } from "vue";
-import { Chart } from "highcharts-vue";
-import type { SeriesColumnOptions, Point } from "highcharts"; // Import Point here
-import { calculateAverageLine } from "@/utils/charts";
+import {reactive, watch} from "vue";
+import {Chart} from "highcharts-vue";
+import type {SeriesColumnOptions, Point} from "highcharts"; // Import Point here
+import {calculateAverageLine} from "@/utils/charts";
 
 const props = defineProps<{
   title: string;
@@ -11,8 +11,8 @@ const props = defineProps<{
 }>();
 
 const chartOptions: Highcharts.Options = reactive({
-  chart: { type: "column" },
-  title: { text: props.title + " by months" },
+  chart: {type: "column"},
+  title: {text: props.title + " by months"},
   xAxis: {
     labels: {
       autoRotation: [-45, -90],
@@ -58,32 +58,33 @@ const chartOptions: Highcharts.Options = reactive({
       name: "Distance",
       type: "column",
       colors: [
-        "#9b20d9",
-        "#9215ac",
-        "#861ec9",
-        "#7a17e6",
-        "#7010f9",
-        "#691af3",
-        "#6225ed",
-        "#5b30e7",
-        "#533be1",
-        "#4c46db",
-        "#4551d5",
-        "#3e5ccf",
+        `#FF5733`,
+        `#33C4FF`,
+        `#9B59B6`,
+        `#E67E22`,
+        `#28B463`,
+        `#F39C12`,
+        `#8E44AD`,
+        `#1ABC9C`,
+        `#2ECC71`,
+        `#3498DB`,
+        `#D35400`,
+        `#34495E`,
+
       ],
       colorByPoint: true,
       groupPadding: 0,
       dataLabels: {
         enabled: true,
         rotation: -90,
-        color: "#FFFFFF",
+        color: "#000000",
         inside: true,
         verticalAlign: "top",
-        format: "{point.y:.1f}", // one decimal
+        format: "{point.y:.0f}",  // No decimal
         y: 10, // 10 pixels down from the top
         style: {
           fontSize: "13px",
-          fontFamily: "Verdana, sans-serif",
+          //fontFamily: "Verdana, sans-serif",
         },
       },
       data: [], // Initialize with an empty array
@@ -107,8 +108,8 @@ const chartOptions: Highcharts.Options = reactive({
           return null;
         },
         style: {
-          fontSize: "13px",
-          fontFamily: "Verdana, sans-serif",
+          //fontSize: "13px",
+          //fontFamily: "Verdana, sans-serif",
         },
       },
       data: [], // Initialize with an empty array
@@ -123,21 +124,21 @@ function convertToNumberArray(data: Map<string, number>[]): number[] {
 
 // Watch for changes in distanceByMonths and update the chart data
 watch(
-  () => props.dataByMonths,
-  (newData) => {
-    if (chartOptions.series && chartOptions.series.length > 0) {
-      const data = convertToNumberArray(newData);
-      (chartOptions.series[0] as SeriesColumnOptions).data = data;
+    () => props.dataByMonths,
+    (newData) => {
+      if (chartOptions.series && chartOptions.series.length > 0) {
+        const data = convertToNumberArray(newData);
+        (chartOptions.series[0] as SeriesColumnOptions).data = data;
 
-      (chartOptions.series[1] as SeriesColumnOptions).data = calculateAverageLine(data);
-    }
-  },
-  { immediate: true }
+        (chartOptions.series[1] as SeriesColumnOptions).data = calculateAverageLine(data);
+      }
+    },
+    {immediate: true}
 );
 </script>
 
 <template>
-  <Chart :options="chartOptions" />
+  <Chart :options="chartOptions"/>
 </template>
 
 <style scoped></style>

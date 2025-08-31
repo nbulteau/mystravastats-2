@@ -17,8 +17,8 @@ const chartOptions: Highcharts.Options = reactive({
     labels: {
       autoRotation: [-45, -90],
       style: {
-        fontSize: "13px",
-        fontFamily: "Verdana, sans-serif",
+        //fontSize: "13px",
+        //fontFamily: "Verdana, sans-serif",
       },
     },
   },
@@ -50,14 +50,14 @@ const chartOptions: Highcharts.Options = reactive({
       dataLabels: {
         enabled: true,
         rotation: -90,
-        color: "#FFFFFF",
+        color: "#000000",
         inside: true,
         verticalAlign: "top",
-        format: "{point.y:.1f}", // one decimal
+        format: "{point.y:.0f}", // No decimal
         y: 10, // 10 pixels down from the top
         style: {
           fontSize: "13px",
-          fontFamily: "Verdana, sans-serif",
+          //fontFamily: "Verdana, sans-serif",
         },
       },
       data: [], // Initialize with an empty array
@@ -81,8 +81,8 @@ const chartOptions: Highcharts.Options = reactive({
           return null;
         },
         style: {
-          fontSize: "13px",
-          fontFamily: "Verdana, sans-serif",
+          //fontSize: "13px",
+          //fontFamily: "Verdana, sans-serif",
         },
       },
       data: [], // Initialize with an empty array

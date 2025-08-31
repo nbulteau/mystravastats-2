@@ -168,45 +168,66 @@ func getChartsDistanceByPeriod(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getChartsElevationByPeriod(w http.ResponseWriter, r *http.Request) {
-	year, err := getYearParam(r)
+func getChartsElevationByPeriod(writer http.ResponseWriter, request *http.Request) {
+	year, err := getYearParam(request)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
-	activityTypes, err := getActivityTypeParam(r)
+	activityTypes, err := getActivityTypeParam(request)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
-	period := getPeriodParam(r)
+	period := getPeriodParam(request)
 
 	elevationByPeriod := services.FetchChartsElevationByPeriod(year, period, activityTypes...)
 
-	if err := writeJSON(w, http.StatusOK, elevationByPeriod); err != nil {
+	if err := writeJSON(writer, http.StatusOK, elevationByPeriod); err != nil {
 		log.Printf("failed to write elevation chart response: %v", err)
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		http.Error(writer, "Failed to encode response", http.StatusInternalServerError)
 	}
 }
 
-func getChartsAverageSpeedByPeriod(w http.ResponseWriter, r *http.Request) {
-	year, err := getYearParam(r)
+func getChartsAverageSpeedByPeriod(writer http.ResponseWriter, request *http.Request) {
+	year, err := getYearParam(request)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
-	activityTypes, err := getActivityTypeParam(r)
+	activityTypes, err := getActivityTypeParam(request)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
-	period := getPeriodParam(r)
+	period := getPeriodParam(request)
 
 	averageSpeedByPeriod := services.FetchChartsAverageSpeedByPeriod(year, period, activityTypes...)
 
-	if err := writeJSON(w, http.StatusOK, averageSpeedByPeriod); err != nil {
+	if err := writeJSON(writer, http.StatusOK, averageSpeedByPeriod); err != nil {
 		log.Printf("failed to write average speed chart response: %v", err)
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		http.Error(writer, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+func getChartsAverageCadenceByPeriod(writer http.ResponseWriter, request *http.Request) {
+	year, err := getYearParam(request)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+	activityTypes, err := getActivityTypeParam(request)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+	period := getPeriodParam(request)
+
+	averageCadenceByPeriod := services.FetchChartsAverageCadenceByPeriod(year, period, activityTypes...)
+
+	if err := writeJSON(writer, http.StatusOK, averageCadenceByPeriod); err != nil {
+		log.Printf("failed to write average cadence chart response: %v", err)
+		http.Error(writer, "Failed to encode response", http.StatusInternalServerError)
 	}
 }
 

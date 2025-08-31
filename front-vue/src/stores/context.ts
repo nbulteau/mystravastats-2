@@ -24,6 +24,7 @@ export const useContextStore = defineStore('context', {
         averageSpeedByMonths: Map<string, number>[],
         distanceByWeeks: Map<string, number>[],
         elevationByWeeks: Map<string, number>[],
+        cadenceByWeeks: Map<String, number>[],
         cumulativeDistancePerYear: Map<string, Map<string, number>>,
         cumulativeElevationPerYear: Map<string, Map<string, number>>,
         eddingtonNumber: EddingtonNumber,
@@ -48,6 +49,7 @@ export const useContextStore = defineStore('context', {
             averageSpeedByMonths: [],
             distanceByWeeks: [],
             elevationByWeeks: [],
+            cadenceByWeeks: [],
             eddingtonNumber: new EddingtonNumber(),
             dashboardData: new DashboardData({},  {},  {},  {},  {},  {},  {},  {},  {},  {},  {},  {},  {}, []),
             cumulativeDistancePerYear: new Map<string, Map<string, number>>(),
@@ -119,6 +121,11 @@ export const useContextStore = defineStore('context', {
                 .then(response => response.json())
             this.elevationByWeeks = elevationByWeeks;
         },
+        async fetchCadenceByWeeks() {
+            const cadenceByWeeks = await fetch(this.url("charts/average-cadence-by-period") + '&period=WEEKS')
+                .then(response => response.json())
+            this.cadenceByWeeks = cadenceByWeeks;
+        },
         async fetchCumulativeDataPerYear() {
             const data = await fetch(this.url("dashboard/cumulative-data-per-year"))
                 .then(response => response.json())
@@ -188,6 +195,7 @@ export const useContextStore = defineStore('context', {
                         await this.fetchAverageSpeedByMonths()
                         await this.fetchDistanceByWeeks()
                         await this.fetchElevationByWeeks()
+                        await this.fetchCadenceByWeeks()
                     }
                     break
                 case 'dashboard':

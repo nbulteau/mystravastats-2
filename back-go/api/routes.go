@@ -67,6 +67,12 @@ var routes = Routes{
 		getChartsAverageSpeedByPeriod,
 	},
 	Route{
+		"GetChartsAverageCadenceByPeriod",
+		"GET",
+		"/api/charts/average-cadence-by-period",
+		getChartsAverageCadenceByPeriod,
+	},
+	Route{
 		"GetDashboard",
 		"GET",
 		"/api/dashboard",

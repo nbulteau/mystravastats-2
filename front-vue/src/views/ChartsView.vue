@@ -15,6 +15,15 @@ const elevationByMonths = computed(() => contextStore.elevationByMonths);
 const averageSpeedByMonths = computed(() => contextStore.averageSpeedByMonths); 
 const distanceByWeeks = computed(() => contextStore.distanceByWeeks);
 const elevationByWeeks = computed(() => contextStore.elevationByWeeks);
+const cadenceByWeeks = computed(() => contextStore.cadenceByWeeks);
+
+
+const cadenceUnit = computed(() => {
+  if (currentActivity.value.endsWith("Run") ) return "ppm";
+  if (currentActivity.value.endsWith("Ride")) return "rpm";
+  return null;
+});
+
 </script>
 
 <template>
@@ -44,5 +53,12 @@ const elevationByWeeks = computed(() => contextStore.elevationByWeeks);
       unit="m"
       :distance-by-weeks="elevationByWeeks"
     />
+    <ByWeeksChart
+        title="Cadence"
+        :unit="cadenceUnit"
+        :distance-by-weeks="cadenceByWeeks"
+        v-if="cadenceUnit"
+    />
+
   </div>
 </template>

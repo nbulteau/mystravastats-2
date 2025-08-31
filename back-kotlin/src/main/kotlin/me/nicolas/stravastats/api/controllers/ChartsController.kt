@@ -23,16 +23,16 @@ class ChartsController(
 ) {
 
     @Operation(
-        description = "Get the distance by months for a specific stravaActivity type and year",
-        summary = "Get the distance by months for a specific stravaActivity type and year",
+        description = "Get the distance for a specific stravaActivity type and year",
+        summary = "Get the distance for a specific stravaActivity type and year",
         responses = [ApiResponse(
-            responseCode = "200", description = "DistanceStream by months found",
+            responseCode = "200", description = "DistanceStream found",
             content = [Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
                 array = ArraySchema(schema = Schema(implementation = Map::class))
             )]
         ), ApiResponse(
-            responseCode = "404", description = "DistanceStream by months not found",
+            responseCode = "404", description = "DistanceStream not found",
             content = [Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
                 schema = Schema(implementation = ErrorResponseMessageDto::class)
@@ -52,16 +52,16 @@ class ChartsController(
     }
 
     @Operation(
-        description = "Get the elevation by months for a specific stravaActivity type and year",
-        summary = "Get the elevation by months for a specific stravaActivity type and year",
+        description = "Get the elevation for a specific stravaActivity type and year",
+        summary = "Get the elevation for a specific stravaActivity type and year",
         responses = [ApiResponse(
-            responseCode = "200", description = "Elevation by months found",
+            responseCode = "200", description = "Elevation found",
             content = [Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
                 array = ArraySchema(schema = Schema(implementation = Map::class))
             )]
         ), ApiResponse(
-            responseCode = "404", description = "Elevation by months not found",
+            responseCode = "404", description = "Elevation not found",
             content = [Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
                 schema = Schema(implementation = ErrorResponseMessageDto::class)
@@ -81,16 +81,16 @@ class ChartsController(
     }
 
     @Operation(
-        description = "Get the average speed by months for a specific stravaActivity type and year",
-        summary = "Get the average speed by months for a specific stravaActivity type and year",
+        description = "Get the average speed for a specific stravaActivity type and year",
+        summary = "Get the average speed for a specific stravaActivity type and year",
         responses = [ApiResponse(
-            responseCode = "200", description = "Average speed by months found",
+            responseCode = "200", description = "Average speed found",
             content = [Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
                 array = ArraySchema(schema = Schema(implementation = Map::class))
             )]
         ), ApiResponse(
-            responseCode = "404", description = "Average speed by months not found",
+            responseCode = "404", description = "Average speed not found",
             content = [Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
                 schema = Schema(implementation = ErrorResponseMessageDto::class)
@@ -113,15 +113,13 @@ class ChartsController(
     @GetMapping("/average-cadence-by-period")
     fun getAverageCadenceByPeriod(
         activityType: String,
-    ): List<List<Long>> {
+        year: Int,
+        period: Period,
+    ): List<Map<String, Double>> {
         val activityTypes = activityType.convertToActivityTypeSet()
 
-        return chartsService.getAverageCadenceByPeriodByActivityTypeByYear(activityTypes)
-            .map { (day, value) ->
-                // Convert the day to seconds
-                val seconds = LocalDate.parse(day).atStartOfDay(ZoneOffset.UTC).toEpochSecond()
-                listOf(seconds, value.toLong())
-            }
+        return chartsService.getAverageCadenceByPeriodByActivityTypeByYear(activityTypes, year, period)
+            .map { mapOf(it.first to it.second) }
     }
 }
 

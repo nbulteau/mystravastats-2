@@ -85,6 +85,39 @@ func FetchChartsAverageSpeedByPeriod(year *int, period business.Period, activity
 
 	return sortResultByKey(result)
 }
+func FetchChartsAverageCadenceByPeriod(year *int, period business.Period, activityTypes ...business.ActivityType) []map[string]float64 {
+	log.Printf("Get average cadence by %s by activity (%s) type by year (%d)", period, activityTypes, *year)
+
+	activities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	activitiesByPeriod := activitiesByPeriod(activities, *year, period)
+
+	size := 12
+	switch period {
+	case business.PeriodWeeks:
+		size = 52
+	case business.PeriodDays:
+		size = 365
+	}
+
+	result := make([]map[string]float64, size)
+	for period, activities := range activitiesByPeriod {
+		if len(activities) == 0 {
+			result = append(result, map[string]float64{period: 0.0})
+			continue
+		}
+		totalCadence := 0.0
+		for _, activity := range activities {
+			totalCadence += activity.AverageCadence
+		}
+		averageCadence := totalCadence / float64(len(activities))
+		if activityTypes[0] == business.Run || activityTypes[0] == business.TrailRun {
+			averageCadence = averageCadence * 2 // Strava reports a half-cadence for running activities
+		}
+		result = append(result, map[string]float64{period: averageCadence})
+	}
+
+	return sortResultByKey(result)
+}
 
 func activitiesByPeriod(activities []*strava.Activity, year int, period business.Period) map[string][]*strava.Activity {
 	switch period {
