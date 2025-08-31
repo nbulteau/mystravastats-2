@@ -7,7 +7,7 @@ import { calculateAverageLine } from "@/utils/charts";
 const props = defineProps<{
   title: string;
   unit: string;
-  distanceByWeeks: Map<string, number>[];
+  itemsByWeeks: Map<string, number>[];
 }>();
 
 const chartOptions: Highcharts.Options = reactive({
@@ -95,8 +95,8 @@ function convertToNumberArray(data: Map<string, number>[]): number[] {
   return data.map((item) => Object.values(item)[0]);
 }
 
-// Watch for changes in distanceByWeeks and update the chart data
-watch(() => props.distanceByWeeks, (newData) => {
+// Watch for changes in itemsByWeeks and update the chart data
+watch(() => props.itemsByWeeks, (newData) => {
   if (chartOptions.series && chartOptions.series.length > 0) {
     const data = convertToNumberArray(newData);
 

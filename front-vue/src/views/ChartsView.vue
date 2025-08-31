@@ -46,18 +46,18 @@ const cadenceUnit = computed(() => {
     <ByWeeksChart
       title="Distances"
       unit="km"
-      :distance-by-weeks="distanceByWeeks"
+      :items-by-weeks="distanceByWeeks"
     />
     <ByWeeksChart
       title="Elevation"
       unit="m"
-      :distance-by-weeks="elevationByWeeks"
+      :items-by-weeks="elevationByWeeks"
     />
     <ByWeeksChart
+        v-if="cadenceUnit"
         title="Cadence"
         :unit="cadenceUnit"
-        :distance-by-weeks="cadenceByWeeks"
-        v-if="cadenceUnit"
+        :items-by-weeks="cadenceByWeeks"
     />
 
   </div>
