@@ -41,7 +41,7 @@ npm run lint
 ### 
 ```shell
 npm update
-npm upgrade`
+npm upgrade
 npx npm-check-updates -u
 npm install
 ```
