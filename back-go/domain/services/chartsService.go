@@ -106,10 +106,24 @@ func FetchChartsAverageCadenceByPeriod(year *int, period business.Period, activi
 			continue
 		}
 		totalCadence := 0.0
+		nbActivitiesWithCadence := 0
 		for _, activity := range activities {
+			if activity.AverageCadence == 0 {
+				continue
+			}
+			nbActivitiesWithCadence++
 			totalCadence += activity.AverageCadence
 		}
-		averageCadence := totalCadence / float64(len(activities))
+		if nbActivitiesWithCadence == 0 {
+			result = append(result, map[string]float64{period: 0.0})
+			continue
+		}
+		averageCadence := totalCadence / float64(nbActivitiesWithCadence)
+		// For running activities, Strava reports a half-cadence
+		// See https://developers.strava.com/docs/reference/#api-models-Activity
+		// "Average cadence of the activity in revolutions per minute. For running cadence is reported as steps per minute."
+		// "Cadence only appears for activities where cadence was recorded."
+		// "For running activities, cadence is reported as steps per minute, so a value of 90 would indicate 90 steps per minute, or 45 full revolutions per minute."
 		if activityTypes[0] == business.Run || activityTypes[0] == business.TrailRun {
 			averageCadence = averageCadence * 2 // Strava reports a half-cadence for running activities
 		}
