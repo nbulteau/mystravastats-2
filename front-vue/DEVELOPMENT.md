@@ -38,7 +38,7 @@ npm run build
 npm run lint
 ```
 
-### 
+### Update dependencies
 ```shell
 npm update
 npm upgrade
@@ -72,5 +72,3 @@ https://vite-plugin-md.netlify.app - Vite Plugin Markdown
 https://vite-plugin-components.netlify.app - Vite Plugin Components
 https://vite-plugin-checker.netlify.app - Vite Plugin Checker
 https://vite-plugin-pwa.netlify.app - Vite Plugin PWA
-
-# mystravastats-2-front

@@ -26,6 +26,7 @@ http://localhost:8080/api/charts/average-speed-by-period?activityType=Ride&year=
 http://localhost:8080/api/dashboard/cumulative-data-per-year?activityType=Ride&year=2025
 
 
+### Update dependencies
 
 ```shell
 go get -u ./...
