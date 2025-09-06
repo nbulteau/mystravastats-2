@@ -37,17 +37,11 @@ func FormatSeconds(seconds int) string {
 }
 
 func FormatSecondsFloat(seconds float64) string {
-	minutes := int(seconds) / 60
-	secs := int(seconds) % 60
-	hundredths := int((seconds - float64(minutes*60+secs)) * 100)
+	// Round to the nearest second first
+	roundedSeconds := int(seconds + 0.5)
 
-	if hundredths == 100 {
-		secs++
-		if secs == 60 {
-			secs = 0
-			minutes++
-		}
-	}
+	minutes := roundedSeconds / 60
+	secs := roundedSeconds % 60
 
 	return fmt.Sprintf("%d'%02d", minutes, secs)
 }
