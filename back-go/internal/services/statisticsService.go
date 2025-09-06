@@ -9,10 +9,15 @@ import (
 )
 
 func FetchStatisticsByActivityTypeAndYear(year *int, activityTypes ...business.ActivityType) []statistics.Statistic {
+	if len(activityTypes) == 0 {
+		log.Printf("No activity types provided")
+		return nil
+	}
+
 	if year == nil {
-		log.Printf("Compute statistics for %s for all years", activityTypes)
+		log.Printf("Compute statistics for %v for all years", activityTypes)
 	} else {
-		log.Printf("Compute statistics for %s for %v", activityTypes, *year)
+		log.Printf("Compute statistics for %v for %v", activityTypes, *year)
 	}
 
 	filteredActivities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
@@ -43,6 +48,7 @@ func FetchStatisticsByActivityTypeAndYear(year *int, activityTypes ...business.A
 		return computeHikeStatistics(filteredActivities)
 	case business.AlpineSki:
 		return computeAlpineSkiStatistics(filteredActivities)
+
 	default:
 		return nil
 	}
@@ -238,6 +244,13 @@ func computeInlineSkateStatistics(inlineSkateActivities []*strava.Activity) []st
 }
 
 func computeCommonStats(activities []*strava.Activity) []statistics.Statistic {
+	totalDistance := 0.0
+	totalElevation := 0.0
+	for _, activity := range activities {
+		totalDistance += activity.Distance
+		totalElevation += activity.TotalElevationGain
+	}
+
 	return []statistics.Statistic{
 		statistics.NewGlobalStatistic("Nb activities", activities, func(activities []*strava.Activity) string {
 			return fmt.Sprintf("%d", len(activities))
@@ -252,25 +265,12 @@ func computeCommonStats(activities []*strava.Activity) []statistics.Statistic {
 		}),
 		statistics.NewMaxStreakStatistic(activities),
 		statistics.NewGlobalStatistic("Total distance", activities, func(activities []*strava.Activity) string {
-			totalDistance := 0.0
-			for _, activity := range activities {
-				totalDistance += activity.Distance
-			}
-
 			return fmt.Sprintf("%.2f km", totalDistance/1000)
 		}),
 		statistics.NewGlobalStatistic("Total elevation", activities, func(activities []*strava.Activity) string {
-			totalElevation := 0.0
-			for _, activity := range activities {
-				totalElevation += activity.TotalElevationGain
-			}
 			return fmt.Sprintf("%.2f m", totalElevation)
 		}),
 		statistics.NewGlobalStatistic("Km by activity", activities, func(activities []*strava.Activity) string {
-			totalDistance := 0.0
-			for _, activity := range activities {
-				totalDistance += activity.Distance
-			}
 			if len(activities) == 0 {
 				return "Not available"
 			}
