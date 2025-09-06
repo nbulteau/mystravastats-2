@@ -4,8 +4,8 @@ import (
 	"log"
 	"mystravastats/adapters/localrepository"
 	"mystravastats/domain/business"
-	"mystravastats/domain/helpers"
 	"mystravastats/domain/strava"
+	"mystravastats/internal/helpers"
 	"strconv"
 	"strings"
 	"sync"
@@ -82,7 +82,7 @@ func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *s
 	stream := provider.localStorageProvider.LoadActivitiesStreamsFromCache(provider.clientId, year, *activity)
 	if provider.StravaApi != nil && stream == nil {
 		stream, err := provider.StravaApi.GetActivityStream(*activity)
-		if err == nil {
+		if err == nil && stream != nil {
 			provider.localStorageProvider.SaveActivitiesStreamsToCache(provider.clientId, year, *activity, *stream)
 		}
 	}

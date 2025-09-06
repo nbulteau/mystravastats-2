@@ -2,8 +2,8 @@ package services
 
 import (
 	"mystravastats/adapters/stravaapi"
-	"mystravastats/domain/helpers"
 	"mystravastats/domain/strava"
+	"mystravastats/internal/helpers"
 	"sort"
 	"time"
 )

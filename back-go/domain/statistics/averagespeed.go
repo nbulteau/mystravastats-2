@@ -3,8 +3,8 @@ package statistics
 import (
 	"fmt"
 	"mystravastats/domain/business"
-	"mystravastats/domain/helpers"
 	"mystravastats/domain/strava"
+	"mystravastats/internal/helpers"
 )
 
 type AverageSpeedStatistic struct {

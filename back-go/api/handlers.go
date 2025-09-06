@@ -7,7 +7,7 @@ import (
 	"log"
 	"mystravastats/api/dto"
 	"mystravastats/domain/business"
-	"mystravastats/domain/services"
+	services2 "mystravastats/internal/services"
 	"net/http"
 	"sort"
 	"strconv"
@@ -17,7 +17,7 @@ import (
 )
 
 func getAthlete(w http.ResponseWriter, _ *http.Request) {
-	athlete := services.FetchAthlete()
+	athlete := services2.FetchAthlete()
 	athleteDto := dto.ToAthleteDto(athlete)
 
 	if err := writeJSON(w, http.StatusOK, athleteDto); err != nil {
@@ -38,7 +38,7 @@ func getActivitiesByActivityType(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	activitiesByActivityTypeAndYear := services.RetrieveActivitiesByYearAndActivityTypes(year, activityTypes...)
+	activitiesByActivityTypeAndYear := services2.RetrieveActivitiesByYearAndActivityTypes(year, activityTypes...)
 	activitiesDto := make([]dto.ActivityDto, len(activitiesByActivityTypeAndYear))
 	for i, activity := range activitiesByActivityTypeAndYear {
 		activitiesDto[i] = dto.ToActivityDto(*activity)
@@ -57,7 +57,7 @@ func getDetailedActivity(writer http.ResponseWriter, request *http.Request) {
 		http.Error(writer, "Invalid activityId", http.StatusBadRequest)
 		return
 	}
-	activity, err := services.RetrieveDetailedActivity(activityId)
+	activity, err := services2.RetrieveDetailedActivity(activityId)
 	if err != nil {
 		http.Error(writer, fmt.Sprintf("Activity %d not found", activityId), http.StatusNotFound)
 		return
@@ -82,7 +82,7 @@ func getExportCSV(writer http.ResponseWriter, request *http.Request) {
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
-	csvData := services.ExportCSV(year, activityTypes...)
+	csvData := services2.ExportCSV(year, activityTypes...)
 
 	writer.Header().Set("Content-Type", "text/csv")
 	writer.Header().Set("Content-Disposition", "attachment; filename=\"activities.csv\"")
@@ -115,7 +115,7 @@ func getStatisticsByActivityType(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	statisticsByActivityTypeAndYear := services.FetchStatisticsByActivityTypeAndYear(year, activityTypes...)
+	statisticsByActivityTypeAndYear := services2.FetchStatisticsByActivityTypeAndYear(year, activityTypes...)
 	statisticsDto := make([]dto.StatisticDto, len(statisticsByActivityTypeAndYear))
 	for i, statistic := range statisticsByActivityTypeAndYear {
 		statisticsDto[i] = dto.ToStatisticDto(statistic)
@@ -139,7 +139,7 @@ func getMapsGPX(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gpx := services.RetrieveGPXByYearAndActivityTypes(year, activityTypes...)
+	gpx := services2.RetrieveGPXByYearAndActivityTypes(year, activityTypes...)
 
 	if err := writeJSON(w, http.StatusOK, gpx); err != nil {
 		log.Printf("failed to write gpx response: %v", err)
@@ -160,7 +160,7 @@ func getChartsDistanceByPeriod(w http.ResponseWriter, r *http.Request) {
 	}
 	period := getPeriodParam(r)
 
-	distanceByPeriod := services.FetchChartsDistanceByPeriod(year, period, activityTypes...)
+	distanceByPeriod := services2.FetchChartsDistanceByPeriod(year, period, activityTypes...)
 
 	if err := writeJSON(w, http.StatusOK, distanceByPeriod); err != nil {
 		log.Printf("failed to write distance chart response: %v", err)
@@ -181,7 +181,7 @@ func getChartsElevationByPeriod(writer http.ResponseWriter, request *http.Reques
 	}
 	period := getPeriodParam(request)
 
-	elevationByPeriod := services.FetchChartsElevationByPeriod(year, period, activityTypes...)
+	elevationByPeriod := services2.FetchChartsElevationByPeriod(year, period, activityTypes...)
 
 	if err := writeJSON(writer, http.StatusOK, elevationByPeriod); err != nil {
 		log.Printf("failed to write elevation chart response: %v", err)
@@ -202,7 +202,7 @@ func getChartsAverageSpeedByPeriod(writer http.ResponseWriter, request *http.Req
 	}
 	period := getPeriodParam(request)
 
-	averageSpeedByPeriod := services.FetchChartsAverageSpeedByPeriod(year, period, activityTypes...)
+	averageSpeedByPeriod := services2.FetchChartsAverageSpeedByPeriod(year, period, activityTypes...)
 
 	if err := writeJSON(writer, http.StatusOK, averageSpeedByPeriod); err != nil {
 		log.Printf("failed to write average speed chart response: %v", err)
@@ -223,7 +223,7 @@ func getChartsAverageCadenceByPeriod(writer http.ResponseWriter, request *http.R
 	}
 	period := getPeriodParam(request)
 
-	averageCadenceByPeriod := services.FetchChartsAverageCadenceByPeriod(year, period, activityTypes...)
+	averageCadenceByPeriod := services2.FetchChartsAverageCadenceByPeriod(year, period, activityTypes...)
 
 	if err := writeJSON(writer, http.StatusOK, averageCadenceByPeriod); err != nil {
 		log.Printf("failed to write average cadence chart response: %v", err)
@@ -238,7 +238,7 @@ func getDashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dashboardData := services.FetchDashboardData(activityTypes...)
+	dashboardData := services2.FetchDashboardData(activityTypes...)
 	dashboardDataDto := dto.ToDashboardDataDto(dashboardData)
 
 	if err := writeJSON(w, http.StatusOK, dashboardDataDto); err != nil {
@@ -254,8 +254,8 @@ func getDashboardCumulativeDataByYear(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cumulativeDistancePerYear := services.GetCumulativeDistancePerYear(activityTypes...)
-	cumulativeElevationPerYear := services.GetCumulativeElevationPerYear(activityTypes...)
+	cumulativeDistancePerYear := services2.GetCumulativeDistancePerYear(activityTypes...)
+	cumulativeElevationPerYear := services2.GetCumulativeElevationPerYear(activityTypes...)
 
 	cumulativeDataDto := dto.CumulativeDataPerYearDto{
 		Distance:  cumulativeDistancePerYear,
@@ -275,7 +275,7 @@ func getDashboardEddingtonNumber(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	edNum := services.FetchEddingtonNumber(activityTypes...)
+	edNum := services2.FetchEddingtonNumber(activityTypes...)
 	edNumDto := dto.EddingtonNumberDto{
 		EddingtonNumber: edNum.Number,
 		EddingtonList:   edNum.List,
@@ -308,12 +308,12 @@ func getBadges(w http.ResponseWriter, r *http.Request) {
 	var badges []business.BadgeCheckResult
 	switch badgeSet {
 	case business.GENERAL:
-		badges = services.GetGeneralBadges(year, activityTypes...)
+		badges = services2.GetGeneralBadges(year, activityTypes...)
 	case business.FAMOUS:
-		badges = services.GetFamousBadges(year, activityTypes...)
+		badges = services2.GetFamousBadges(year, activityTypes...)
 	default:
-		generalBadges := services.GetGeneralBadges(year, activityTypes...)
-		famousBadges := services.GetFamousBadges(year, activityTypes...)
+		generalBadges := services2.GetGeneralBadges(year, activityTypes...)
+		famousBadges := services2.GetFamousBadges(year, activityTypes...)
 		badges = append(generalBadges, famousBadges...)
 	}
 

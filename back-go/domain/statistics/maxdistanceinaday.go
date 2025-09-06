@@ -2,8 +2,8 @@ package statistics
 
 import (
 	"fmt"
-	"mystravastats/domain/helpers"
 	"mystravastats/domain/strava"
+	"mystravastats/internal/helpers"
 	"time"
 )
 

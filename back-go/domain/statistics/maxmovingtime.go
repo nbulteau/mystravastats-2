@@ -2,8 +2,8 @@ package statistics
 
 import (
 	"mystravastats/domain/business"
-	"mystravastats/domain/helpers"
 	"mystravastats/domain/strava"
+	"mystravastats/internal/helpers"
 )
 
 type MaxMovingTimeStatistic struct {
