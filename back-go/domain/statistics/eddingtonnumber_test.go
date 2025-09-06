@@ -10,7 +10,7 @@ func TestEddingtonStatistic_processEddingtonNumber(t *testing.T) {
 		name       string
 		activities []*strava.Activity
 		expected   int
-		// Expected counts for detailed verification
+		// Expected daysWithAtLeastXKm for detailed verification
 		expectedCounts []int
 	}{
 		{
@@ -72,18 +72,18 @@ func TestEddingtonStatistic_processEddingtonNumber(t *testing.T) {
 			}
 
 			// Check if empty activities case is handled correctly
-			if len(tt.activities) == 0 && len(stat.counts) != 0 {
-				t.Errorf("For empty activities, counts should be empty, got %v", stat.counts)
+			if len(tt.activities) == 0 && len(stat.daysWithAtLeastXKm) != 0 {
+				t.Errorf("For empty activities, daysWithAtLeastXKm should be empty, got %v", stat.daysWithAtLeastXKm)
 			}
 
-			// Check if counts are calculated correctly when expected counts are provided
-			if len(tt.expectedCounts) > 0 && len(stat.counts) > 0 {
-				if len(stat.counts) != len(tt.expectedCounts) {
-					t.Errorf("Length of counts mismatch: got %d, expected %d", len(stat.counts), len(tt.expectedCounts))
+			// Check if daysWithAtLeastXKm are calculated correctly when expected daysWithAtLeastXKm are provided
+			if len(tt.expectedCounts) > 0 && len(stat.daysWithAtLeastXKm) > 0 {
+				if len(stat.daysWithAtLeastXKm) != len(tt.expectedCounts) {
+					t.Errorf("Length of daysWithAtLeastXKm mismatch: got %d, expected %d", len(stat.daysWithAtLeastXKm), len(tt.expectedCounts))
 				} else {
-					for i := range stat.counts {
-						if stat.counts[i] != tt.expectedCounts[i] {
-							t.Errorf("counts[%d] = %d, expected %d", i, stat.counts[i], tt.expectedCounts[i])
+					for i := range stat.daysWithAtLeastXKm {
+						if stat.daysWithAtLeastXKm[i] != tt.expectedCounts[i] {
+							t.Errorf("daysWithAtLeastXKm[%d] = %d, expected %d", i, stat.daysWithAtLeastXKm[i], tt.expectedCounts[i])
 						}
 					}
 				}
