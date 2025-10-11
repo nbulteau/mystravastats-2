@@ -42,6 +42,10 @@ func (ae ActivityEffort) GetFormattedGradient() string {
 	return fmt.Sprintf("%.02f%%", ae.GetGradient())
 }
 
+func (ae ActivityEffort) GetGradient() float64 {
+	return 100 * ae.DeltaAltitude / ae.Distance
+}
+
 func (ae ActivityEffort) GetFormattedPower() string {
 	if ae.AveragePower != nil {
 		return fmt.Sprintf(`%d W`, int(*ae.AveragePower))
@@ -49,9 +53,7 @@ func (ae ActivityEffort) GetFormattedPower() string {
 	return "Not available"
 }
 
-func (ae ActivityEffort) GetGradient() float64 {
-	return 100 * ae.DeltaAltitude / ae.Distance
-}
+func (ae ActivityEffort) GetPower() int { return int(*ae.AveragePower) }
 
 func (ae ActivityEffort) GetDescription() string {
 	return fmt.Sprintf("%s:<ul><li>Distance : %.1f km</li><li>Time : %s</li><li>Speed : %s</li><li>Gradient: %.02f%%</li><li>Power: %s</li></ul>",

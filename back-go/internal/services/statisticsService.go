@@ -6,6 +6,7 @@ import (
 	"mystravastats/domain/business"
 	"mystravastats/domain/statistics"
 	"mystravastats/domain/strava"
+	"mystravastats/internal/helpers"
 )
 
 func FetchStatisticsByActivityTypeAndYear(year *int, activityTypes ...business.ActivityType) []statistics.Statistic {
@@ -246,8 +247,10 @@ func computeInlineSkateStatistics(inlineSkateActivities []*strava.Activity) []st
 func computeCommonStats(activities []*strava.Activity) []statistics.Statistic {
 	totalDistance := 0.0
 	totalElevation := 0.0
+	elapsedTime := 0
 	for _, activity := range activities {
 		totalDistance += activity.Distance
+		elapsedTime += activity.ElapsedTime
 		totalElevation += activity.TotalElevationGain
 	}
 
@@ -266,6 +269,9 @@ func computeCommonStats(activities []*strava.Activity) []statistics.Statistic {
 		statistics.NewMaxStreakStatistic(activities),
 		statistics.NewGlobalStatistic("Total distance", activities, func(activities []*strava.Activity) string {
 			return fmt.Sprintf("%.2f km", totalDistance/1000)
+		}),
+		statistics.NewGlobalStatistic("Elapsed time", activities, func(activities []*strava.Activity) string {
+			return helpers.FormatSeconds(elapsedTime)
 		}),
 		statistics.NewGlobalStatistic("Total elevation", activities, func(activities []*strava.Activity) string {
 			return fmt.Sprintf("%.2f m", totalElevation)

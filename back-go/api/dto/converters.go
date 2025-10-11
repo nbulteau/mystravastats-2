@@ -48,28 +48,23 @@ func ToActivityDto(activity strava.Activity) ActivityDto {
 	bestPowerFor20Minutes := statistics.BestPowerForTime(activity, 20*60)
 	bestPowerFor60Minutes := statistics.BestPowerForTime(activity, 60*60)
 
-	var ftp string
+	var ftp = 0
+	// FTP is defined as the highest power you can maintain in a quasi-steady state for approximately one hour without fatiguing.
+	// If a 60-minute effort is not available, it is common practice to estimate FTP as 95% of a 20-minute effort.
+	// https://www.trainingpeaks.com/blog/functional-threshold-power-ftp-what-is-it-and-how-to-test-it/
+	// https://www.peakendurancesport.com/endurance-training/training-plans/functional-threshold-power-ftp/
+	// https://www.cyclingnews.com/features/ask-cyclingnews-com-what-is-functional-threshold-power-ftp/
+	// https://www.trainerroad.com/blog/what-is-functional-threshold-power/
+	// https://www.strava.com/support/athlete/activities/what-is-functional-threshold-power-ftp
 	if bestPowerFor60Minutes != nil {
-		ftp = fmt.Sprintf("%d", bestPowerFor60Minutes.AveragePower)
+		ftp = int(*bestPowerFor60Minutes.AveragePower)
 	} else if bestPowerFor20Minutes != nil {
-		ftp = fmt.Sprintf("%d", int(float64(*bestPowerFor20Minutes.AveragePower)*0.95))
-	} else {
-		ftp = ""
+		ftp = int(float64(*bestPowerFor20Minutes.AveragePower) * 0.95)
 	}
 
 	link := ""
 	if activity.UploadId != 0 {
 		link = fmt.Sprintf("https://www.strava.com/activities/%d", activity.Id)
-	}
-
-	bestPowerFor20MinutesStr := ""
-	if bestPowerFor20Minutes != nil {
-		bestPowerFor20MinutesStr = bestPowerFor20Minutes.GetFormattedPower()
-	}
-
-	bestPowerFor60MinutesStr := ""
-	if bestPowerFor60Minutes != nil {
-		bestPowerFor60MinutesStr = bestPowerFor60Minutes.GetFormattedPower()
 	}
 
 	bestTimeForDistanceFor1000m := 0.0
@@ -94,17 +89,30 @@ func ToActivityDto(activity strava.Activity) ActivityDto {
 		Link:                             link,
 		Distance:                         int(activity.Distance),
 		ElapsedTime:                      activity.ElapsedTime,
+		MovingTime:                       activity.MovingTime,
 		TotalElevationGain:               int(activity.TotalElevationGain),
-		AverageSpeed:                     FormatSpeed(activity.AverageSpeed, activity.Type),
-		BestTimeForDistanceFor1000m:      FormatSpeed(bestTimeForDistanceFor1000m, activity.Type),
-		BestElevationForDistanceFor500m:  FormatGradient(bestElevationForDistanceFor500m),
-		BestElevationForDistanceFor1000m: FormatGradient(bestElevationForDistanceFor1000m),
+		AverageSpeed:                     activity.AverageSpeed,       // in m/s
+		BestSpeedForDistanceFor1000m:     bestTimeForDistanceFor1000m, // in m/s
+		BestElevationForDistanceFor500m:  bestElevationForDistanceFor500m,
+		BestElevationForDistanceFor1000m: bestElevationForDistanceFor1000m,
 		Date:                             activity.StartDateLocal,
 		AverageWatts:                     int(activity.AverageWatts),
-		WeightedAverageWatts:             strconv.Itoa(activity.WeightedAverageWatts),
-		BestPowerFor20Minutes:            bestPowerFor20MinutesStr,
-		BestPowerFor60Minutes:            bestPowerFor60MinutesStr,
-		FTP:                              ftp,
+		WeightedAverageWatts:             activity.WeightedAverageWatts,
+		BestPowerFor20Minutes: func() int {
+			if bestPowerFor20Minutes != nil {
+				return bestPowerFor20Minutes.GetPower()
+			} else {
+				return 0
+			}
+		}(),
+		BestPowerFor60Minutes: func() int {
+			if bestPowerFor60Minutes != nil {
+				return bestPowerFor60Minutes.GetPower()
+			} else {
+				return 0
+			}
+		}(),
+		FTP: ftp,
 	}
 }
 
