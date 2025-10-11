@@ -5,6 +5,7 @@ import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.strava.*
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import me.nicolas.stravastats.domain.services.statistics.*
+import me.nicolas.stravastats.domain.utils.formatSeconds
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
@@ -126,23 +127,23 @@ internal class StatisticsService(
 
         statistics.addAll(
             listOf(
-                BestDayStatistic("Max distance in a day", hikeActivities, formatString = "%s => %.02f km")
-                {
-                    hikeActivities
-                        .groupBy { stravaActivity: StravaActivity -> stravaActivity.startDateLocal.substringBefore('T') }
-                        .mapValues { it.value.sumOf { activity -> activity.distance / 1000 } }
-                        .maxByOrNull { entry: Map.Entry<String, Double> -> entry.value }
-                        ?.toPair()
-                },
-                BestDayStatistic("Max elevation in a day", hikeActivities, formatString = "%s => %.02f m")
-                {
-                    hikeActivities
-                        .groupBy { stravaActivity: StravaActivity -> stravaActivity.startDateLocal.substringBefore('T') }
-                        .mapValues { it.value.sumOf { activity -> activity.totalElevationGain } }
-                        .maxByOrNull { entry: Map.Entry<String, Double> -> entry.value }
-                        ?.toPair()
-                }
-            )
+                BestDayStatistic(
+                "Max distance in a day", hikeActivities, formatString = "%s => %.02f km"
+            ) {
+                hikeActivities.groupBy { stravaActivity: StravaActivity ->
+                    stravaActivity.startDateLocal.substringBefore(
+                        'T'
+                    )
+                }.mapValues { it.value.sumOf { activity -> activity.distance / 1000 } }
+                    .maxByOrNull { entry: Map.Entry<String, Double> -> entry.value }?.toPair()
+            }, BestDayStatistic("Max elevation in a day", hikeActivities, formatString = "%s => %.02f m") {
+                hikeActivities.groupBy { stravaActivity: StravaActivity ->
+                    stravaActivity.startDateLocal.substringBefore(
+                        'T'
+                    )
+                }.mapValues { it.value.sumOf { activity -> activity.totalElevationGain } }
+                    .maxByOrNull { entry: Map.Entry<String, Double> -> entry.value }?.toPair()
+            })
         )
 
         return statistics
@@ -170,29 +171,31 @@ internal class StatisticsService(
         return statistics
     }
 
-
     private fun computeCommonStats(activities: List<StravaActivity>): List<Statistic> {
 
         return listOf(
-            GlobalStatistic("Nb activities", activities, "%d", List<StravaActivity>::size),
+            GlobalStatistic("Nb activities", activities, { number -> "%d".format(number) }, List<StravaActivity>::size),
 
-            GlobalStatistic("Nb actives days", activities, "%d") {
-                activities
-                    .groupBy { stravaActivity: StravaActivity -> stravaActivity.startDateLocal.substringBefore('T') }
+            GlobalStatistic("Nb actives days", activities, { number -> "%d".format(number) }) {
+                activities.groupBy { stravaActivity: StravaActivity -> stravaActivity.startDateLocal.substringBefore('T') }
                     .count()
             },
             MaxStreakStatistic(activities),
-            GlobalStatistic("Total distance", activities, "%.2f km") {
+            GlobalStatistic("Total distance", activities, { number -> "%.2f km".format(number) }, {
                 activities.sumOf { stravaActivity: StravaActivity -> stravaActivity.distance } / 1000
-            },
-            GlobalStatistic("Total elevation", activities, "%.2f m") {
+            }),
+            GlobalStatistic("Elapsed time", activities, { number -> number.toInt().formatSeconds() }, {
+                activities.sumOf { stravaActivity: StravaActivity -> stravaActivity.elapsedTime }
+            }),
+            GlobalStatistic("Total elevation", activities, { number -> "%.2f m".format(number) }, {
                 activities.sumOf { stravaActivity: StravaActivity -> stravaActivity.totalElevationGain }
-            },
-            GlobalStatistic("Km by activity", activities, "%.2f km") {
+            }),
+            GlobalStatistic("Km by activity", activities, { number -> "%.2f km".format(number) }, {
                 activities.sumOf { stravaActivity: StravaActivity -> stravaActivity.distance }
                     .div(activities.size) / 1000
-            },
+            }),
 
+            AverageSpeedStatistic(activities),
             MaxDistanceStatistic(activities),
             MaxDistanceInADayStatistic(activities),
 

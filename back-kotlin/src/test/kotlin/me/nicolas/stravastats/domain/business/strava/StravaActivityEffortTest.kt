@@ -29,7 +29,7 @@ internal class StravaActivityEffortTest {
         assertEquals("15.48 km/h", colAgnelActivityEffort.getFormattedSpeedWithUnits())
         assertEquals("15.48", colAgnelActivityEffort.getFormatedSpeed())
 
-        assertEquals("2.33 %", colAgnelActivityEffort.getFormattedGradient())
-        assertEquals("2.33", colAgnelActivityEffort.getGradient())
+        assertEquals("2.33 %", colAgnelActivityEffort.getFormattedGradientWithUnit())
+        assertEquals("2.33", colAgnelActivityEffort.getFormattedGradient())
     }
 }

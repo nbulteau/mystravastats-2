@@ -12,12 +12,12 @@ abstract class Statistic(val name: String, protected val activities: List<Strava
 class GlobalStatistic(
     name: String,
     activities: List<StravaActivity>,
-    private val formatString: String,
+    private val formatString:(Number) -> String,
     private val function: (List<StravaActivity>) -> Number,
 ) : Statistic(name, activities) {
 
     override val value: String
-        get() = formatString.format(function(activities))
+        get() = formatString(function(activities))
 }
 
 abstract class ActivityStatistic(

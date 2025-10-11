@@ -69,12 +69,12 @@ internal class RideCSVExporter(clientId: String, activities: List<StravaActivity
                     activity.calculateBestDistanceForTime(3 * 60 * 60)?.getFormatedSpeed() ?: "",
                     activity.calculateBestDistanceForTime(4 * 60 * 60)?.getFormatedSpeed() ?: "",
                     activity.calculateBestDistanceForTime(5 * 60 * 60)?.getFormatedSpeed() ?: "",
-                    activity.calculateBestElevationForDistance(250.0)?.getGradient() ?: "",
-                    activity.calculateBestElevationForDistance(500.0)?.getGradient() ?: "",
-                    activity.calculateBestElevationForDistance(1000.0)?.getGradient() ?: "",
-                    activity.calculateBestElevationForDistance(5000.0)?.getGradient() ?: "",
-                    activity.calculateBestElevationForDistance(10000.0)?.getGradient() ?: "",
-                    activity.calculateBestElevationForDistance(20000.0)?.getGradient() ?: "",
+                    activity.calculateBestElevationForDistance(250.0)?.getFormattedGradient() ?: "",
+                    activity.calculateBestElevationForDistance(500.0)?.getFormattedGradient() ?: "",
+                    activity.calculateBestElevationForDistance(1000.0)?.getFormattedGradient() ?: "",
+                    activity.calculateBestElevationForDistance(5000.0)?.getFormattedGradient() ?: "",
+                    activity.calculateBestElevationForDistance(10000.0)?.getFormattedGradient() ?: "",
+                    activity.calculateBestElevationForDistance(20000.0)?.getFormattedGradient() ?: "",
                 )
             )
         }

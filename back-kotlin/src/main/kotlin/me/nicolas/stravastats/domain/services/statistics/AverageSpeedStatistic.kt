@@ -10,9 +10,14 @@ activities: List<StravaActivity>,
     private val averageSpeed: Double?
 
     init {
-        val totalAverageSpeed = activities.sumOf { activity -> activity.averageSpeed }
+        val totalDistance = activities.sumOf { activity -> activity.distance }
+        val totalMovingTime = activities.sumOf { activity -> activity.movingTime }
         averageSpeed = if (activities.isNotEmpty()) {
-            totalAverageSpeed.div(activities.size)
+            if (totalMovingTime > 0) {
+                totalDistance / totalMovingTime
+            } else {
+                0.0
+            }
         } else {
             null
         }

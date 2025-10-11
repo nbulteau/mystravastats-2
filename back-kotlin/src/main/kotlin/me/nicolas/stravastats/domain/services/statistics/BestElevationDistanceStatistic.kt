@@ -23,7 +23,7 @@ internal open class BestElevationDistanceStatistic(
     }
 
     override val value: String
-        get() = bestActivityEffort?.getFormattedGradient() ?: "Not available"
+        get() = bestActivityEffort?.getFormattedGradientWithUnit() ?: "Not available"
 }
 
 fun StravaActivity.calculateBestElevationForDistance(distance: Double): ActivityEffort? {
