@@ -106,6 +106,13 @@ srtm30m
   |- N47E003.hgt    
 ```
 
+## Development
+
+### Update the gradle wrapper to the latest version
+```shell
+./gradlew wrapper --gradle-version latest   
+```
+
 ### Swagger
 
 <http://localhost:8080/api/swagger-ui/index.html>
