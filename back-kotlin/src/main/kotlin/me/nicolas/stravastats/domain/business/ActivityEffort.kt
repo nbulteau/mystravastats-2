@@ -38,18 +38,22 @@ class ActivityEffort(
         return distance / seconds
     }
 
-    fun getFormattedGradient() = "${this.getGradient()} %"
+    fun getFormattedGradientWithUnit() = "${this.getFormattedGradient()} %"
 
     fun getFormattedPower() = if (this.averagePower != null) "${this.averagePower} W" else ""
 
-    fun getGradient() = "%.02f".format(Locale.ENGLISH, 100 * deltaAltitude / distance)
+    fun getPower() = this.averagePower
+
+    fun getFormattedGradient() = "%.02f".format(Locale.ENGLISH, getGradient())
+
+    fun getGradient() =100 * deltaAltitude / distance
 
     fun getDescription() = "${this.label}:" +
             "<ul>" +
             "<li>Distance : %.1f km</li>".format(distance / 1000) +
             "<li>Time : ${seconds.formatSeconds()}</li>" +
             "<li>Speed : ${getFormattedSpeedWithUnits()}</li>" +
-            "<li>Gradient: ${getGradient()}%</li>" +
+            "<li>Gradient: ${getFormattedGradient()}%</li>" +
             "<li>Power: ${if (averagePower != null) getFormattedPower() else "Not available"}</li>" +
             "</ul>"
 }

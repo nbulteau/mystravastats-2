@@ -5,7 +5,6 @@ import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.services.statistics.calculateBestElevationForDistance
 import me.nicolas.stravastats.domain.services.statistics.calculateBestPowerForTime
 import me.nicolas.stravastats.domain.services.statistics.calculateBestTimeForDistance
-import me.nicolas.stravastats.domain.utils.formatSpeed
 
 
 @Schema(description = "Activity object", name = "Activity")
@@ -24,26 +23,27 @@ data class ActivityDto(
     val elapsedTime: Int,
     @param:Schema(description = "Activity total elevation gain in meters")
     val totalElevationGain: Int,
-    @param:Schema(description = "Activity average speed")
-    val averageSpeed: String,
+    @param:Schema(description = "Activity average speed (m/s)")
+    val averageSpeed: Double,
     @param:Schema(description = "Activity best time for distance for 1000m")
-    val bestTimeForDistanceFor1000m: String,
+    val bestSpeedForDistanceFor1000m: Double,
     @param:Schema(description = "Activity best elevation for distance for 500m in %")
-    val bestElevationForDistanceFor500m: String,
+    val bestElevationForDistanceFor500m: Double,
     @param:Schema(description = "Activity best elevation for distance for 1000m in %")
-    val bestElevationForDistanceFor1000m: String,
+    val bestElevationForDistanceFor1000m: Double,
     @param:Schema(description = "Activity date")
     val date: String,
     @param:Schema(description = "Activity average watts")
     val averageWatts: Int,
     @param:Schema(description = "Activity weighted average watts")
-    val weightedAverageWatts: String,
+    val weightedAverageWatts: Int,
     @param:Schema(description = "Activity best power for 20 minutes in watts")
-    val bestPowerFor20minutes: String,
+    val bestPowerFor20minutes: Int,
     @param:Schema(description = "Activity best power for 60 minutes in watts")
-    val bestPowerFor60minutes: String,
+    val bestPowerFor60minutes: Int,
     @param:Schema(description = "Activity FTP (Functional Threshold Power) in watts")
-    val ftp: String,
+    val ftp: Int,
+    val movingTime: Int,
 )
 
 fun StravaActivity.toDto(): ActivityDto {
@@ -52,11 +52,11 @@ fun StravaActivity.toDto(): ActivityDto {
     val bestPowerFor60Minutes = calculateBestPowerForTime(60 * 60)
 
     val ftp = if (bestPowerFor60Minutes != null) {
-        "${bestPowerFor60Minutes.averagePower}"
+        bestPowerFor60Minutes.averagePower
     } else if (bestPowerFor20Minutes != null) {
-        "${(bestPowerFor20Minutes.averagePower?.times(0.95))?.toInt()}"
+        (bestPowerFor20Minutes.averagePower?.times(0.95))?.toInt()
     } else {
-        ""
+        null
     }
 
     // If the activity is not uploaded, the link is not available
@@ -69,16 +69,17 @@ fun StravaActivity.toDto(): ActivityDto {
         link = link,
         distance = this.distance.toInt(),
         elapsedTime = this.elapsedTime,
+        movingTime = this.movingTime,
         totalElevationGain = this.totalElevationGain.toInt(),
-        averageSpeed = this.averageSpeed.formatSpeed(this.type),
-        bestTimeForDistanceFor1000m = calculateBestTimeForDistance(1000.0)?.getFormattedSpeedWithUnits() ?: "",
-        bestElevationForDistanceFor500m = calculateBestElevationForDistance(500.0)?.getGradient() ?: "",
-        bestElevationForDistanceFor1000m = calculateBestElevationForDistance(1000.0)?.getGradient() ?: "",
+        averageSpeed = this.averageSpeed,
+        bestSpeedForDistanceFor1000m = calculateBestTimeForDistance(1000.0)?.getMSSpeed() ?: 0.0,
+        bestElevationForDistanceFor500m = calculateBestElevationForDistance(500.0)?.getGradient() ?: 0.0,
+        bestElevationForDistanceFor1000m = calculateBestElevationForDistance(1000.0)?.getGradient() ?: 0.0,
         date = this.startDateLocal,
         averageWatts = this.averageWatts,
-        weightedAverageWatts = "${this.weightedAverageWatts}",
-        bestPowerFor20minutes = bestPowerFor20Minutes?.getFormattedPower() ?: "",
-        bestPowerFor60minutes = bestPowerFor60Minutes?.getFormattedPower() ?: "",
-        ftp = ftp,
+        weightedAverageWatts = this.weightedAverageWatts,
+        bestPowerFor20minutes = bestPowerFor20Minutes?.getPower() ?: 0,
+        bestPowerFor60minutes = bestPowerFor60Minutes?.getPower() ?: 0,
+        ftp = ftp ?: 0,
     )
 }
