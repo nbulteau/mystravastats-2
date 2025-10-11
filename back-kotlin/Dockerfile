@@ -1,5 +1,5 @@
 # Use an official Gradle image to build the application
-FROM gradle:9.0.0-jdk23 AS build
+FROM gradle:9.1.0-jdk23 AS build
 
 # Set the working directory
 WORKDIR /app
