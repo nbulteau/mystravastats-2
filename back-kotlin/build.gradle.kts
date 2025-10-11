@@ -1,10 +1,12 @@
-plugins {
-    kotlin("jvm") version "2.2.0"
-    kotlin("plugin.spring") version "2.2.0"
+import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 
-    id("org.springframework.boot") version "3.5.5"
+plugins {
+    kotlin("jvm") version "2.2.20"
+    kotlin("plugin.spring") version "2.2.20"
+
+    id("org.springframework.boot") version "3.5.6"
     id("io.spring.dependency-management") version "1.1.7"
-    id("com.github.ben-manes.versions") version "0.52.0"
+    id("com.github.ben-manes.versions") version "0.53.0"
     //id("org.graalvm.buildtools.native") version "0.10.6"
 }
 
@@ -39,11 +41,11 @@ dependencies {
 
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13")
 
-    implementation("io.ktor:ktor-server-netty:3.2.3")
+    implementation("io.ktor:ktor-server-netty:3.3.1")
 
-    implementation("com.squareup.okhttp3:okhttp:5.1.0")
+    implementation("com.squareup.okhttp3:okhttp:5.2.1")
 
     implementation("io.jenetics:jpx:3.2.1")
 
@@ -70,4 +72,18 @@ tasks.withType<Test> {
 // Disable plain jar creation
 tasks.named<Jar>("jar") {
     enabled = false
+}
+
+// https://github.com/ben-manes/gradle-versions-plugin
+fun isNonStable(version: String): Boolean {
+    val stableKeyword = listOf("RELEASE", "FINAL", "GA").any { version.uppercase().contains(it) }
+    val regex = "^[0-9,.v-]+(-r)?$".toRegex()
+    val isStable = stableKeyword || regex.matches(version)
+    return isStable.not()
+}
+
+tasks.withType<DependencyUpdatesTask> {
+    rejectVersionIf {
+        isNonStable(candidate.version) && !isNonStable(currentVersion)
+    }
 }
