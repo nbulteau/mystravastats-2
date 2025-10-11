@@ -31,7 +31,7 @@ if (Test-Path -Path "front-vue/package-lock.json") {
 # Build the UI project using Docker
 Write-VerboseOutput "⌛ Building front-vue project..."
 docker run --rm -v "${PWD}:/app" -w /app/front-vue node:latest `
- sh -c "npm install -g npm@11.4.2 2>/dev/null && npm install && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build 2>/dev/null" > $null 2>&1
+ sh -c "npm install -g npm@11.6.2 2>/dev/null && npm install && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build 2>/dev/null" > $null 2>&1
 
 # Copy the build artifacts to the back-go/public directory
 Write-VerboseOutput "📦 Copying UI build to back-go/public..."
@@ -53,7 +53,7 @@ if (Test-Path -Path "mystravastats.exe") {
 
 # Build the back-go project for Windows using Docker
 Write-VerboseOutput "⌛ Building back-go project..."
-docker run --rm -v "${PWD}:/app" -w /app golang:1.24.4 `
+docker run --rm -v "${PWD}:/app" -w /app golang:1.25.2 `
  sh -c "cd back-go; GOOS=windows GOARCH=amd64 go build -o ../mystravastats.exe" > $null 2>&1
 
 # Check if the new binary was created successfully

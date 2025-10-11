@@ -18,10 +18,10 @@ echo "🚀 Starting build process..."
 echo "⌛ Building front-vue project..."
 if [[ $VERBOSE -eq 1 ]]; then
   docker run --rm -v "$PWD:/app" -w /app/front-vue node:latest \
-    sh -c "npm install -g npm@11.4.2 && npm install && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build"
+    sh -c "npm install -g npm@11.6.2 && npm install && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build"
 else
   docker run --rm -v "$PWD:/app" -w /app/front-vue node:latest \
-    sh -c "npm install -g npm@11.4.2 >/dev/null 2>&1 && npm install >/dev/null 2>&1 && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build >/dev/null 2>&1"
+    sh -c "npm install -g npm@11.6.2 >/dev/null 2>&1 && npm install >/dev/null 2>&1 && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build >/dev/null 2>&1"
 fi
 
 # Copy the UI build to the back-go/public directory
