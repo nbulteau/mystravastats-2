@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { eventBus } from "@/main";
-import VGrid, { VGridVueTemplate, type ColumnRegular, type ColumnProp, } from "@revolist/vue3-datagrid";
-import type { Activity } from "@/models/activity.model";
+import {eventBus} from "@/main";
+import VGrid, {type ColumnProp, type ColumnRegular, VGridVueTemplate,} from "@revolist/vue3-datagrid";
+import type {Activity} from "@/models/activity.model";
 import DistanceCellRenderer from "@/components/cell-renderers/DistanceCellRenderer.vue";
 import ElapsedTimeCellRenderer from "@/components/cell-renderers/ElapsedTimeCellRenderer.vue";
 import ElevationGainCellRenderer from "@/components/cell-renderers/ElevationGainCellRenderer.vue";
@@ -9,9 +9,11 @@ import SpeedCellRenderer from "@/components/cell-renderers/SpeedCellRenderer.vue
 import NameCellRenderer from "./cell-renderers/NameCellRenderer.vue";
 import DateCellRenderer from "./cell-renderers/DateCellRenderer.vue";
 import GradientCellRenderer from "./cell-renderers/GradientCellRenderer.vue";
-import { useRouter } from 'vue-router';
-import { onMounted, ref } from "vue";
+import {useRouter} from 'vue-router';
+import {computed, onMounted, ref} from "vue";
 import shareIcon from "@/assets/share-outline.svg";
+import AverageSpeedCellRenderer from "@/components/cell-renderers/AverageSpeedCellRenderer.vue";
+import BestSpeedFor1000mCellRenderer from "@/components/cell-renderers/BestSpeedFor1000mCellRenderer.vue";
 
 
 const props = defineProps<{
@@ -133,16 +135,16 @@ const columns = ref<ColumnRegular[]>([
     prop: "averageSpeed",
     name: "Average speed",
     size: 140,
-    cellTemplate: VGridVueTemplate(SpeedCellRenderer),
+    cellTemplate: VGridVueTemplate(AverageSpeedCellRenderer),
     sortable: true,
     cellCompare: numericCompare,
     columnType: 'number'
   },
   {
-    prop: "bestTimeForDistanceFor1000m",
+    prop: "bestSpeedForDistanceFor1000m",
     name: "Best speed for 1000m",
     size: 200,
-    cellTemplate: VGridVueTemplate(SpeedCellRenderer),
+    cellTemplate: VGridVueTemplate(BestSpeedFor1000mCellRenderer),
     sortable: true,
     cellCompare: numericCompare,
     columnType: 'number'
@@ -172,6 +174,38 @@ const columns = ref<ColumnRegular[]>([
   },
 ]);
 
+const footerData = computed(() => {
+  if (!props.activities.length) return {};
+
+  const totalDistance = props.activities.reduce((sum, activity) => sum + (Number(activity.distance) || 0), 0);
+  const totalElapsedTime = props.activities.reduce((sum, activity) => sum + (Number(activity.elapsedTime) || 0), 0);
+  const totalMovingTime = props.activities.reduce((sum, activity) => sum + (Number(activity.movingTime) || 0), 0);
+  const totalElevationGain = props.activities.reduce((sum, activity) => sum + (Number(activity.totalElevationGain) || 0), 0);
+
+  let avgSpeed = 0.0;
+  if (totalMovingTime > 0) {
+     // speed in m/s
+    avgSpeed = totalDistance / totalMovingTime
+  }
+
+  const bestSpeed1000m = Math.max(...props.activities.map(a => Number(a.bestSpeedForDistanceFor1000m) || 0));
+  const bestGradient500m = Math.max(...props.activities.map(a => Number(a.bestElevationForDistanceFor500m) || 0));
+  const bestGradient1000m = Math.max(...props.activities.map(a => Number(a.bestElevationForDistanceFor1000m) || 0));
+
+  return {
+    name: "",
+    type: props.currentActivity,
+    distance: totalDistance,
+    elapsedTime: totalElapsedTime,
+    totalElevationGain: totalElevationGain,
+    averageSpeed: avgSpeed,
+    bestSpeedForDistanceFor1000m: bestSpeed1000m,
+    bestElevationForDistanceFor500m: bestGradient500m,
+    bestElevationForDistanceFor1000m: bestGradient1000m,
+    date: ""
+  };
+});
+
 onMounted(() => {
   eventBus.on("detailledActivityClick", (event: any) => showDetailedActivity(event as string));
 });
@@ -179,12 +213,13 @@ onMounted(() => {
 
 <template>
   <VGrid
-    name="activitiesGrid"
-    theme="material"
-    :columns="columns"
-    :source="activities"
-    :readonly="true"
-    style="height: calc(100vh - 150px)"
+      name="activitiesGrid"
+      theme="material"
+      :columns="columns"
+      :source="activities"
+      :pinnedBottomSource="[footerData]"
+      :readonly="true"
+      style="height: calc(100vh - 150px)"
   />
 </template>
 

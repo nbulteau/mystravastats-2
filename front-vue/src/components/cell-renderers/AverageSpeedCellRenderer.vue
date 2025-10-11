@@ -1,17 +1,17 @@
 <template>
   <div class="speed-cell">
-    <span>{{ formatSpeedWithUnit(value, type) }}</span>
+    <span>{{ formatSpeedWithUnit(model.averageSpeed, model.type) }}</span>
   </div>
 </template>
 
 <script setup lang="ts">
 import { defineProps } from "vue";
+import type {Activity} from "@/models/activity.model.ts";
 import {formatSpeedWithUnit} from "@/utils/formatters.ts";
 
 
 defineProps<{
-  value: number;
-  type: string;
+  model: Activity;
 }>();
 
 

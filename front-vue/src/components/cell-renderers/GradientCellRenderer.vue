@@ -1,6 +1,6 @@
 <template>
   <div class="gradient-cell">
-    {{ bestGradient }}
+    {{ gradient }}
   </div>
 </template>
 
@@ -8,10 +8,10 @@
 import { computed } from 'vue';
 
 const props = defineProps<{
-  value: string; 
+  value: number;
 }>();
 
-const bestGradient = computed(() => props.value ? props.value + ' %' : 'Not available');
+const gradient = computed(() => props.value ? props.value.toFixed(1) + ' %' : 'Not available');
 </script>
 
 <style scoped>

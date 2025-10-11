@@ -6,18 +6,19 @@ export class Activity  {
     link: string;
     distance: number;
     elapsedTime: number;
+    movingTime: number;
     totalElevationGain: number;
     totalDescent: number;
-    averageSpeed: string;
-    bestTimeForDistanceFor1000m: string;
-    bestElevationForDistanceFor500m: string;
-    bestElevationForDistanceFor1000m: string;
+    averageSpeed: number;
+    bestSpeedForDistanceFor1000m: number;
+    bestElevationForDistanceFor500m: number;
+    bestElevationForDistanceFor1000m: number;
     date: string;
-    averageWatts: string;
-    weightedAverageWatts: string;
-    bestPowerFor20minutes: string;
-    bestPowerFor60minutes: string;
-    ftp: string;
+    averageWatts: number;
+    weightedAverageWatts: number;
+    bestPowerFor20minutes: number;
+    bestPowerFor60minutes: number;
+    ftp: number;
 
     constructor(
         id: number,
@@ -26,18 +27,19 @@ export class Activity  {
         link: string,
         distance: number,
         elapsedTime: number,
+        movingTime: number,
         totalElevationGain: number,
         totalDescent: number,
-        averageSpeed: string,
-        bestTimeForDistanceFor1000m: string,
-        bestElevationForDistanceFor500m: string,
-        bestElevationForDistanceFor1000m: string,
+        averageSpeed: number,
+        bestTimeForDistanceFor1000m: number,
+        bestElevationForDistanceFor500m: number,
+        bestElevationForDistanceFor1000m: number,
         date: string,
-        averageWatts: string,
-        weightedAverageWatts: string,
-        bestPowerFor20minutes: string,
-        bestPowerFor60minutes: string,
-        ftp: string
+        averageWatts: number,
+        weightedAverageWatts: number,
+        bestPowerFor20minutes: number,
+        bestPowerFor60minutes: number,
+        ftp: number
     ) {
         this.id = id;
         this.name = name;
@@ -45,10 +47,11 @@ export class Activity  {
         this.link = link;
         this.distance = distance;
         this.elapsedTime = elapsedTime;
+        this.movingTime = movingTime;
         this.totalElevationGain = totalElevationGain;
         this.totalDescent = totalDescent;
         this.averageSpeed = averageSpeed;
-        this.bestTimeForDistanceFor1000m = bestTimeForDistanceFor1000m;
+        this.bestSpeedForDistanceFor1000m = bestTimeForDistanceFor1000m;
         this.bestElevationForDistanceFor500m = bestElevationForDistanceFor500m;
         this.bestElevationForDistanceFor1000m = bestElevationForDistanceFor1000m;
         this.date = date;

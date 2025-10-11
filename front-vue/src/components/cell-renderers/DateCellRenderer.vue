@@ -21,6 +21,9 @@ const options: Intl.DateTimeFormatOptions = {
 };
 
 const formattedDate = computed(() => {
+  if (props.value === null || props.value === undefined || props.value === '') {
+    return '';
+  }
   const date = new Date(props.value);
 
   return new Intl.DateTimeFormat(navigator.language, options).format(date);
