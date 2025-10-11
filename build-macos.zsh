@@ -39,10 +39,10 @@ fi
 # Build back for macOS silently or verbosely
 echo "🔨 Building macOS binary..."
 if [[ $VERBOSE -eq 1 ]]; then
-  docker run --rm -v "$PWD:/app" -w /app golang:1.24.4 \
+  docker run --rm -v "$PWD:/app" -w /app golang:1.25.2 \
     sh -c "cd back-go && GOOS=darwin GOARCH=arm64 go build -o ../mystravastats"
 else
-  docker run --rm -v "$PWD:/app" -w /app golang:1.24.4 \
+  docker run --rm -v "$PWD:/app" -w /app golang:1.25.2 \
     sh -c "cd back-go && GOOS=darwin GOARCH=arm64 go build -o ../mystravastats" >/dev/null 2>&1
 fi
 
