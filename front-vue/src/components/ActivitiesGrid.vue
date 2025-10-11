@@ -5,7 +5,6 @@ import type {Activity} from "@/models/activity.model";
 import DistanceCellRenderer from "@/components/cell-renderers/DistanceCellRenderer.vue";
 import ElapsedTimeCellRenderer from "@/components/cell-renderers/ElapsedTimeCellRenderer.vue";
 import ElevationGainCellRenderer from "@/components/cell-renderers/ElevationGainCellRenderer.vue";
-import SpeedCellRenderer from "@/components/cell-renderers/SpeedCellRenderer.vue";
 import NameCellRenderer from "./cell-renderers/NameCellRenderer.vue";
 import DateCellRenderer from "./cell-renderers/DateCellRenderer.vue";
 import GradientCellRenderer from "./cell-renderers/GradientCellRenderer.vue";
