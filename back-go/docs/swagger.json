@@ -1,0 +1,1186 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "API for Strava statistics",
+        "title": "MyStravaStats API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.swagger.io/support",
+            "email": "support@swagger.io"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/api/activities": {
+            "get": {
+                "description": "Returns activities filtered by year and type",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "activities"
+                ],
+                "summary": "List activities by type",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Year",
+                        "name": "year",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Activity type",
+                        "name": "activityType",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.ActivityDto"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/activities/csv": {
+            "get": {
+                "description": "Generates and returns a CSV file containing activities filtered by year and type",
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "activities"
+                ],
+                "summary": "Export activities to CSV",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Year",
+                        "name": "year",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Activity type",
+                        "name": "activityType",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CSV file of activities",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/activities/{activityId}": {
+            "get": {
+                "description": "Returns detailed information about a specific activity",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "activities"
+                ],
+                "summary": "Get activity details",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Activity ID",
+                        "name": "activityId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.DetailedActivityDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid activity ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Activity not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/athletes/me": {
+            "get": {
+                "description": "Returns the current athlete information",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "athlete"
+                ],
+                "summary": "Get athlete information",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.AthleteDto"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/badges": {
+            "get": {
+                "description": "Returns badges earned or in progress for a given year and activity types",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "badges"
+                ],
+                "summary": "Get badges",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Year",
+                        "name": "year",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Activity type",
+                        "name": "activityType",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Badge set (GENERAL, FAMOUS)",
+                        "name": "badgeSet",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.BadgeCheckResultDto"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/charts/average-cadence-by-period": {
+            "get": {
+                "description": "Returns average cadence data aggregated by period for charts",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "charts"
+                ],
+                "summary": "Get average cadence data by period",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Year",
+                        "name": "year",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Activity type",
+                        "name": "activityType",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Aggregation period",
+                        "name": "period",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Average cadence data by period",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/charts/average-speed-by-period": {
+            "get": {
+                "description": "Returns average speed data aggregated by period for charts",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "charts"
+                ],
+                "summary": "Get average speed data by period",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Year",
+                        "name": "year",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Activity type",
+                        "name": "activityType",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Aggregation period",
+                        "name": "period",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Average speed data by period",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/charts/distance-by-period": {
+            "get": {
+                "description": "Returns distance data aggregated by period for charts",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "charts"
+                ],
+                "summary": "Get distance data by period",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Year",
+                        "name": "year",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Activity type",
+                        "name": "activityType",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Aggregation period",
+                        "name": "period",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Distance data by period",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/charts/elevation-by-period": {
+            "get": {
+                "description": "Returns elevation data aggregated by period for charts",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "charts"
+                ],
+                "summary": "Get elevation data by period",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Year",
+                        "name": "year",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Activity type",
+                        "name": "activityType",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Aggregation period",
+                        "name": "period",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Elevation data by period",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/dashboard": {
+            "get": {
+                "description": "Returns main data for dashboard display",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dashboard"
+                ],
+                "summary": "Get dashboard data",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Activity type",
+                        "name": "activityType",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.DashboardDataDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/dashboard/cumulative-data-per-year": {
+            "get": {
+                "description": "Returns cumulative distance and elevation data by year",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dashboard"
+                ],
+                "summary": "Get cumulative data by year",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Activity type",
+                        "name": "activityType",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CumulativeDataPerYearDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/dashboard/eddington-number": {
+            "get": {
+                "description": "Returns the Eddington number and associated list",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dashboard"
+                ],
+                "summary": "Get Eddington number",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Activity type",
+                        "name": "activityType",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EddingtonNumberDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/maps/gpx": {
+            "get": {
+                "description": "Returns GPX data from activities for map display",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "maps"
+                ],
+                "summary": "Get GPX data for maps",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Year",
+                        "name": "year",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Activity type",
+                        "name": "activityType",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "GPX data",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/statistics": {
+            "get": {
+                "description": "Returns calculated statistics for a given year and activity types",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "statistics"
+                ],
+                "summary": "Get statistics by activity type",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Year",
+                        "name": "year",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Activity type",
+                        "name": "activityType",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.StatisticDto"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "dto.ActivityDto": {
+            "type": "object",
+            "properties": {
+                "averageSpeed": {
+                    "type": "string"
+                },
+                "averageWatts": {
+                    "type": "integer"
+                },
+                "bestElevationForDistanceFor1000m": {
+                    "type": "string"
+                },
+                "bestElevationForDistanceFor500m": {
+                    "type": "string"
+                },
+                "bestPowerFor20Minutes": {
+                    "type": "string"
+                },
+                "bestPowerFor60Minutes": {
+                    "type": "string"
+                },
+                "bestTimeForDistanceFor1000m": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "distance": {
+                    "type": "integer"
+                },
+                "elapsedTime": {
+                    "type": "integer"
+                },
+                "ftp": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "link": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "totalElevationGain": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "weightedAverageWatts": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ActivityEffortDto": {
+            "type": "object",
+            "properties": {
+                "averagePower": {
+                    "type": "number"
+                },
+                "deltaAltitude": {
+                    "type": "number"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "distance": {
+                    "type": "number"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "idxEnd": {
+                    "type": "integer"
+                },
+                "idxStart": {
+                    "type": "integer"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "seconds": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.ActivityShortDto": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AthleteDto": {
+            "type": "object",
+            "properties": {
+                "athlete_type": {
+                    "type": "integer"
+                },
+                "badge_type_id": {
+                    "type": "integer"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "country": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "date_preference": {
+                    "type": "string"
+                },
+                "firstname": {
+                    "type": "string"
+                },
+                "follower_count": {
+                    "type": "integer"
+                },
+                "friend_count": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "lastname": {
+                    "type": "string"
+                },
+                "measurement_preference": {
+                    "type": "string"
+                },
+                "mutual_friend_count": {
+                    "type": "integer"
+                },
+                "premium": {
+                    "type": "boolean"
+                },
+                "profile": {
+                    "type": "string"
+                },
+                "profile_medium": {
+                    "type": "string"
+                },
+                "resource_state": {
+                    "type": "integer"
+                },
+                "sex": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "summit": {
+                    "type": "boolean"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "weight": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.BadgeCheckResultDto": {
+            "type": "object",
+            "properties": {
+                "activities": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ActivityDto"
+                    }
+                },
+                "badge": {
+                    "$ref": "#/definitions/dto.BadgeDto"
+                },
+                "nbCheckedActivities": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.BadgeDto": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CumulativeDataPerYearDto": {
+            "type": "object",
+            "properties": {
+                "distance": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "number",
+                            "format": "float64"
+                        }
+                    }
+                },
+                "elevation": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "number",
+                            "format": "float64"
+                        }
+                    }
+                }
+            }
+        },
+        "dto.DashboardDataDto": {
+            "type": "object",
+            "properties": {
+                "averageCadenceByYear": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                },
+                "averageDistanceByYear": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "number",
+                        "format": "float64"
+                    }
+                },
+                "averageElevationByYear": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "averageHeartRateByYear": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "averageSpeedByYear": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "number",
+                        "format": "float64"
+                    }
+                },
+                "averageWattsByYear": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "number",
+                        "format": "float64"
+                    }
+                },
+                "maxDistanceByYear": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "number",
+                        "format": "float64"
+                    }
+                },
+                "maxElevationByYear": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "maxHeartRateByYear": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "number",
+                        "format": "float64"
+                    }
+                },
+                "maxSpeedByYear": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "number",
+                        "format": "float64"
+                    }
+                },
+                "maxWattsByYear": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "number",
+                        "format": "float64"
+                    }
+                },
+                "nbActivitiesByYear": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "totalDistanceByYear": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "number",
+                        "format": "float64"
+                    }
+                },
+                "totalElevationByYear": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "dto.DetailedActivityDto": {
+            "type": "object",
+            "properties": {
+                "activityEfforts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ActivityEffortDto"
+                    }
+                },
+                "averageCadence": {
+                    "type": "integer"
+                },
+                "averageHeartrate": {
+                    "type": "integer"
+                },
+                "averageSpeed": {
+                    "type": "number"
+                },
+                "averageWatts": {
+                    "type": "integer"
+                },
+                "calories": {
+                    "type": "number"
+                },
+                "commute": {
+                    "type": "boolean"
+                },
+                "deviceWatts": {
+                    "type": "boolean"
+                },
+                "distance": {
+                    "type": "number"
+                },
+                "elapsedTime": {
+                    "type": "integer"
+                },
+                "elevHigh": {
+                    "type": "number"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "kilojoules": {
+                    "type": "number"
+                },
+                "maxHeartrate": {
+                    "type": "integer"
+                },
+                "maxSpeed": {
+                    "type": "number"
+                },
+                "maxWatts": {
+                    "type": "integer"
+                },
+                "movingTime": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "startDate": {
+                    "type": "string"
+                },
+                "startDateLocal": {
+                    "type": "string"
+                },
+                "startLatlng": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "stream": {
+                    "$ref": "#/definitions/dto.StreamDto"
+                },
+                "sufferScore": {
+                    "type": "number"
+                },
+                "totalDescent": {
+                    "type": "number"
+                },
+                "totalElevationGain": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "weightedAverageWatts": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.EddingtonNumberDto": {
+            "type": "object",
+            "properties": {
+                "eddingtonList": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "eddingtonNumber": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.StatisticDto": {
+            "type": "object",
+            "properties": {
+                "activity": {
+                    "$ref": "#/definitions/dto.ActivityShortDto"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.StreamDto": {
+            "type": "object",
+            "properties": {
+                "altitude": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "distance": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "latlng": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "type": "number",
+                            "format": "float64"
+                        }
+                    }
+                },
+                "moving": {
+                    "type": "array",
+                    "items": {
+                        "type": "boolean"
+                    }
+                },
+                "time": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "velocitySmooth": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "watts": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                }
+            }
+        }
+    }
+}

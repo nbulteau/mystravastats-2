@@ -1,0 +1,789 @@
+basePath: /
+definitions:
+  dto.ActivityDto:
+    properties:
+      averageSpeed:
+        type: string
+      averageWatts:
+        type: integer
+      bestElevationForDistanceFor500m:
+        type: string
+      bestElevationForDistanceFor1000m:
+        type: string
+      bestPowerFor20Minutes:
+        type: string
+      bestPowerFor60Minutes:
+        type: string
+      bestTimeForDistanceFor1000m:
+        type: string
+      date:
+        type: string
+      distance:
+        type: integer
+      elapsedTime:
+        type: integer
+      ftp:
+        type: string
+      id:
+        type: integer
+      link:
+        type: string
+      name:
+        type: string
+      totalElevationGain:
+        type: integer
+      type:
+        type: string
+      weightedAverageWatts:
+        type: string
+    type: object
+  dto.ActivityEffortDto:
+    properties:
+      averagePower:
+        type: number
+      deltaAltitude:
+        type: number
+      description:
+        type: string
+      distance:
+        type: number
+      id:
+        type: string
+      idxEnd:
+        type: integer
+      idxStart:
+        type: integer
+      label:
+        type: string
+      seconds:
+        type: integer
+    type: object
+  dto.ActivityShortDto:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      type:
+        type: string
+    type: object
+  dto.AthleteDto:
+    properties:
+      athlete_type:
+        type: integer
+      badge_type_id:
+        type: integer
+      city:
+        type: string
+      country:
+        type: string
+      created_at:
+        type: string
+      date_preference:
+        type: string
+      firstname:
+        type: string
+      follower_count:
+        type: integer
+      friend_count:
+        type: integer
+      id:
+        type: integer
+      lastname:
+        type: string
+      measurement_preference:
+        type: string
+      mutual_friend_count:
+        type: integer
+      premium:
+        type: boolean
+      profile:
+        type: string
+      profile_medium:
+        type: string
+      resource_state:
+        type: integer
+      sex:
+        type: string
+      state:
+        type: string
+      summit:
+        type: boolean
+      updated_at:
+        type: string
+      username:
+        type: string
+      weight:
+        type: integer
+    type: object
+  dto.BadgeCheckResultDto:
+    properties:
+      activities:
+        items:
+          $ref: '#/definitions/dto.ActivityDto'
+        type: array
+      badge:
+        $ref: '#/definitions/dto.BadgeDto'
+      nbCheckedActivities:
+        type: integer
+    type: object
+  dto.BadgeDto:
+    properties:
+      description:
+        type: string
+      label:
+        type: string
+      type:
+        type: string
+    type: object
+  dto.CumulativeDataPerYearDto:
+    properties:
+      distance:
+        additionalProperties:
+          additionalProperties:
+            format: float64
+            type: number
+          type: object
+        type: object
+      elevation:
+        additionalProperties:
+          additionalProperties:
+            format: float64
+            type: number
+          type: object
+        type: object
+    type: object
+  dto.DashboardDataDto:
+    properties:
+      averageCadenceByYear:
+        items:
+          items:
+            format: int64
+            type: integer
+          type: array
+        type: array
+      averageDistanceByYear:
+        additionalProperties:
+          format: float64
+          type: number
+        type: object
+      averageElevationByYear:
+        additionalProperties:
+          type: integer
+        type: object
+      averageHeartRateByYear:
+        additionalProperties:
+          type: integer
+        type: object
+      averageSpeedByYear:
+        additionalProperties:
+          format: float64
+          type: number
+        type: object
+      averageWattsByYear:
+        additionalProperties:
+          format: float64
+          type: number
+        type: object
+      maxDistanceByYear:
+        additionalProperties:
+          format: float64
+          type: number
+        type: object
+      maxElevationByYear:
+        additionalProperties:
+          type: integer
+        type: object
+      maxHeartRateByYear:
+        additionalProperties:
+          format: float64
+          type: number
+        type: object
+      maxSpeedByYear:
+        additionalProperties:
+          format: float64
+          type: number
+        type: object
+      maxWattsByYear:
+        additionalProperties:
+          format: float64
+          type: number
+        type: object
+      nbActivitiesByYear:
+        additionalProperties:
+          type: integer
+        type: object
+      totalDistanceByYear:
+        additionalProperties:
+          format: float64
+          type: number
+        type: object
+      totalElevationByYear:
+        additionalProperties:
+          type: integer
+        type: object
+    type: object
+  dto.DetailedActivityDto:
+    properties:
+      activityEfforts:
+        items:
+          $ref: '#/definitions/dto.ActivityEffortDto'
+        type: array
+      averageCadence:
+        type: integer
+      averageHeartrate:
+        type: integer
+      averageSpeed:
+        type: number
+      averageWatts:
+        type: integer
+      calories:
+        type: number
+      commute:
+        type: boolean
+      deviceWatts:
+        type: boolean
+      distance:
+        type: number
+      elapsedTime:
+        type: integer
+      elevHigh:
+        type: number
+      id:
+        type: integer
+      kilojoules:
+        type: number
+      maxHeartrate:
+        type: integer
+      maxSpeed:
+        type: number
+      maxWatts:
+        type: integer
+      movingTime:
+        type: integer
+      name:
+        type: string
+      startDate:
+        type: string
+      startDateLocal:
+        type: string
+      startLatlng:
+        items:
+          type: number
+        type: array
+      stream:
+        $ref: '#/definitions/dto.StreamDto'
+      sufferScore:
+        type: number
+      totalDescent:
+        type: number
+      totalElevationGain:
+        type: integer
+      type:
+        type: string
+      weightedAverageWatts:
+        type: integer
+    type: object
+  dto.EddingtonNumberDto:
+    properties:
+      eddingtonList:
+        items:
+          type: integer
+        type: array
+      eddingtonNumber:
+        type: integer
+    type: object
+  dto.StatisticDto:
+    properties:
+      activity:
+        $ref: '#/definitions/dto.ActivityShortDto'
+      label:
+        type: string
+      value:
+        type: string
+    type: object
+  dto.StreamDto:
+    properties:
+      altitude:
+        items:
+          type: number
+        type: array
+      distance:
+        items:
+          type: number
+        type: array
+      latlng:
+        items:
+          items:
+            format: float64
+            type: number
+          type: array
+        type: array
+      moving:
+        items:
+          type: boolean
+        type: array
+      time:
+        items:
+          type: integer
+        type: array
+      velocitySmooth:
+        items:
+          type: number
+        type: array
+      watts:
+        items:
+          type: number
+        type: array
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: API for Strava statistics
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: MyStravaStats API
+  version: "1.0"
+paths:
+  /api/activities:
+    get:
+      description: Returns activities filtered by year and type
+      parameters:
+      - description: Year
+        in: query
+        name: year
+        type: integer
+      - description: Activity type
+        in: query
+        name: activityType
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.ActivityDto'
+            type: array
+        "400":
+          description: Invalid parameters
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: List activities by type
+      tags:
+      - activities
+  /api/activities/{activityId}:
+    get:
+      description: Returns detailed information about a specific activity
+      parameters:
+      - description: Activity ID
+        in: path
+        name: activityId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.DetailedActivityDto'
+        "400":
+          description: Invalid activity ID
+          schema:
+            type: string
+        "404":
+          description: Activity not found
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get activity details
+      tags:
+      - activities
+  /api/activities/csv:
+    get:
+      description: Generates and returns a CSV file containing activities filtered
+        by year and type
+      parameters:
+      - description: Year
+        in: query
+        name: year
+        type: integer
+      - description: Activity type
+        in: query
+        name: activityType
+        required: true
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: CSV file of activities
+          schema:
+            type: file
+        "400":
+          description: Invalid parameters
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Export activities to CSV
+      tags:
+      - activities
+  /api/athletes/me:
+    get:
+      description: Returns the current athlete information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AthleteDto'
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get athlete information
+      tags:
+      - athlete
+  /api/badges:
+    get:
+      description: Returns badges earned or in progress for a given year and activity
+        types
+      parameters:
+      - description: Year
+        in: query
+        name: year
+        type: integer
+      - description: Activity type
+        in: query
+        name: activityType
+        required: true
+        type: string
+      - description: Badge set (GENERAL, FAMOUS)
+        in: query
+        name: badgeSet
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.BadgeCheckResultDto'
+            type: array
+        "400":
+          description: Invalid parameters
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get badges
+      tags:
+      - badges
+  /api/charts/average-cadence-by-period:
+    get:
+      description: Returns average cadence data aggregated by period for charts
+      parameters:
+      - description: Year
+        in: query
+        name: year
+        type: integer
+      - description: Activity type
+        in: query
+        name: activityType
+        required: true
+        type: string
+      - description: Aggregation period
+        in: query
+        name: period
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Average cadence data by period
+          schema:
+            type: object
+        "400":
+          description: Invalid parameters
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get average cadence data by period
+      tags:
+      - charts
+  /api/charts/average-speed-by-period:
+    get:
+      description: Returns average speed data aggregated by period for charts
+      parameters:
+      - description: Year
+        in: query
+        name: year
+        type: integer
+      - description: Activity type
+        in: query
+        name: activityType
+        required: true
+        type: string
+      - description: Aggregation period
+        in: query
+        name: period
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Average speed data by period
+          schema:
+            type: object
+        "400":
+          description: Invalid parameters
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get average speed data by period
+      tags:
+      - charts
+  /api/charts/distance-by-period:
+    get:
+      description: Returns distance data aggregated by period for charts
+      parameters:
+      - description: Year
+        in: query
+        name: year
+        type: integer
+      - description: Activity type
+        in: query
+        name: activityType
+        required: true
+        type: string
+      - description: Aggregation period
+        in: query
+        name: period
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Distance data by period
+          schema:
+            type: object
+        "400":
+          description: Invalid parameters
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get distance data by period
+      tags:
+      - charts
+  /api/charts/elevation-by-period:
+    get:
+      description: Returns elevation data aggregated by period for charts
+      parameters:
+      - description: Year
+        in: query
+        name: year
+        type: integer
+      - description: Activity type
+        in: query
+        name: activityType
+        required: true
+        type: string
+      - description: Aggregation period
+        in: query
+        name: period
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Elevation data by period
+          schema:
+            type: object
+        "400":
+          description: Invalid parameters
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get elevation data by period
+      tags:
+      - charts
+  /api/dashboard:
+    get:
+      description: Returns main data for dashboard display
+      parameters:
+      - description: Activity type
+        in: query
+        name: activityType
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.DashboardDataDto'
+        "400":
+          description: Invalid parameters
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get dashboard data
+      tags:
+      - dashboard
+  /api/dashboard/cumulative-data-per-year:
+    get:
+      description: Returns cumulative distance and elevation data by year
+      parameters:
+      - description: Activity type
+        in: query
+        name: activityType
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CumulativeDataPerYearDto'
+        "400":
+          description: Invalid parameters
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get cumulative data by year
+      tags:
+      - dashboard
+  /api/dashboard/eddington-number:
+    get:
+      description: Returns the Eddington number and associated list
+      parameters:
+      - description: Activity type
+        in: query
+        name: activityType
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EddingtonNumberDto'
+        "400":
+          description: Invalid parameters
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get Eddington number
+      tags:
+      - dashboard
+  /api/maps/gpx:
+    get:
+      description: Returns GPX data from activities for map display
+      parameters:
+      - description: Year
+        in: query
+        name: year
+        type: integer
+      - description: Activity type
+        in: query
+        name: activityType
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: GPX data
+          schema:
+            type: object
+        "400":
+          description: Invalid parameters
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get GPX data for maps
+      tags:
+      - maps
+  /api/statistics:
+    get:
+      description: Returns calculated statistics for a given year and activity types
+      parameters:
+      - description: Year
+        in: query
+        name: year
+        type: integer
+      - description: Activity type
+        in: query
+        name: activityType
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.StatisticDto'
+            type: array
+        "400":
+          description: Invalid parameters
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get statistics by activity type
+      tags:
+      - statistics
+swagger: "2.0"
