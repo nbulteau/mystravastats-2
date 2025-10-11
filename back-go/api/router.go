@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/gorilla/mux"
+	"github.com/swaggo/http-swagger"
 	"mystravastats/domain"
 	"net/http"
 )
@@ -22,6 +23,9 @@ func NewRouter() *mux.Router {
 			Handler(handler)
 
 	}
+
+	// Ajout de la route Swagger UI
+	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
 	return router
 }

@@ -16,6 +16,14 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// getAthlete godoc
+// @Summary Get athlete information
+// @Description Returns the current athlete information
+// @Tags athlete
+// @Produce json
+// @Success 200 {object} dto.AthleteDto
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/athletes/me [get]
 func getAthlete(w http.ResponseWriter, _ *http.Request) {
 	athlete := services2.FetchAthlete()
 	athleteDto := dto.ToAthleteDto(athlete)
@@ -26,6 +34,17 @@ func getAthlete(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
+// getActivitiesByActivityType godoc
+// @Summary List activities by type
+// @Description Returns activities filtered by year and type
+// @Tags activities
+// @Produce json
+// @Param year query int false "Year"
+// @Param activityType query string true "Activity type"
+// @Success 200 {array} dto.ActivityDto
+// @Failure 400 {string} string "Invalid parameters"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/activities [get]
 func getActivitiesByActivityType(w http.ResponseWriter, r *http.Request) {
 	year, err := getYearParam(r)
 	if err != nil {
@@ -50,6 +69,17 @@ func getActivitiesByActivityType(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getDetailedActivity godoc
+// @Summary Get activity details
+// @Description Returns detailed information about a specific activity
+// @Tags activities
+// @Produce json
+// @Param activityId path int true "Activity ID"
+// @Success 200 {object} dto.DetailedActivityDto
+// @Failure 400 {string} string "Invalid activity ID"
+// @Failure 404 {string} string "Activity not found"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/activities/{activityId} [get]
 func getDetailedActivity(writer http.ResponseWriter, request *http.Request) {
 	vars := mux.Vars(request)
 	activityId, err := strconv.ParseInt(vars["activityId"], 10, 64)
@@ -71,6 +101,17 @@ func getDetailedActivity(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+// getExportCSV godoc
+// @Summary Export activities to CSV
+// @Description Generates and returns a CSV file containing activities filtered by year and type
+// @Tags activities
+// @Produce text/csv
+// @Param year query int false "Year"
+// @Param activityType query string true "Activity type"
+// @Success 200 {file} file "CSV file of activities"
+// @Failure 400 {string} string "Invalid parameters"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/activities/csv [get]
 func getExportCSV(writer http.ResponseWriter, request *http.Request) {
 	year, err := getYearParam(request)
 	if err != nil {
@@ -103,6 +144,17 @@ func getExportCSV(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+// getStatisticsByActivityType godoc
+// @Summary Get statistics by activity type
+// @Description Returns calculated statistics for a given year and activity types
+// @Tags statistics
+// @Produce json
+// @Param year query int false "Year"
+// @Param activityType query string true "Activity type"
+// @Success 200 {array} dto.StatisticDto
+// @Failure 400 {string} string "Invalid parameters"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/statistics [get]
 func getStatisticsByActivityType(w http.ResponseWriter, r *http.Request) {
 	year, err := getYearParam(r)
 	if err != nil {
@@ -127,6 +179,17 @@ func getStatisticsByActivityType(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getMapsGPX godoc
+// @Summary Get GPX data for maps
+// @Description Returns GPX data from activities for map display
+// @Tags maps
+// @Produce json
+// @Param year query int false "Year"
+// @Param activityType query string true "Activity type"
+// @Success 200 {object} object "GPX data"
+// @Failure 400 {string} string "Invalid parameters"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/maps/gpx [get]
 func getMapsGPX(w http.ResponseWriter, r *http.Request) {
 	year, err := getYearParam(r)
 	if err != nil {
@@ -147,6 +210,18 @@ func getMapsGPX(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getChartsDistanceByPeriod godoc
+// @Summary Get distance data by period
+// @Description Returns distance data aggregated by period for charts
+// @Tags charts
+// @Produce json
+// @Param year query int false "Year"
+// @Param activityType query string true "Activity type"
+// @Param period query string false "Aggregation period"
+// @Success 200 {object} object "Distance data by period"
+// @Failure 400 {string} string "Invalid parameters"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/charts/distance-by-period [get]
 func getChartsDistanceByPeriod(w http.ResponseWriter, r *http.Request) {
 	year, err := getYearParam(r)
 	if err != nil {
@@ -168,6 +243,18 @@ func getChartsDistanceByPeriod(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getChartsElevationByPeriod godoc
+// @Summary Get elevation data by period
+// @Description Returns elevation data aggregated by period for charts
+// @Tags charts
+// @Produce json
+// @Param year query int false "Year"
+// @Param activityType query string true "Activity type"
+// @Param period query string false "Aggregation period"
+// @Success 200 {object} object "Elevation data by period"
+// @Failure 400 {string} string "Invalid parameters"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/charts/elevation-by-period [get]
 func getChartsElevationByPeriod(writer http.ResponseWriter, request *http.Request) {
 	year, err := getYearParam(request)
 	if err != nil {
@@ -189,6 +276,18 @@ func getChartsElevationByPeriod(writer http.ResponseWriter, request *http.Reques
 	}
 }
 
+// getChartsAverageSpeedByPeriod godoc
+// @Summary Get average speed data by period
+// @Description Returns average speed data aggregated by period for charts
+// @Tags charts
+// @Produce json
+// @Param year query int false "Year"
+// @Param activityType query string true "Activity type"
+// @Param period query string false "Aggregation period"
+// @Success 200 {object} object "Average speed data by period"
+// @Failure 400 {string} string "Invalid parameters"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/charts/average-speed-by-period [get]
 func getChartsAverageSpeedByPeriod(writer http.ResponseWriter, request *http.Request) {
 	year, err := getYearParam(request)
 	if err != nil {
@@ -210,6 +309,18 @@ func getChartsAverageSpeedByPeriod(writer http.ResponseWriter, request *http.Req
 	}
 }
 
+// getChartsAverageCadenceByPeriod godoc
+// @Summary Get average cadence data by period
+// @Description Returns average cadence data aggregated by period for charts
+// @Tags charts
+// @Produce json
+// @Param year query int false "Year"
+// @Param activityType query string true "Activity type"
+// @Param period query string false "Aggregation period"
+// @Success 200 {object} object "Average cadence data by period"
+// @Failure 400 {string} string "Invalid parameters"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/charts/average-cadence-by-period [get]
 func getChartsAverageCadenceByPeriod(writer http.ResponseWriter, request *http.Request) {
 	year, err := getYearParam(request)
 	if err != nil {
@@ -231,6 +342,16 @@ func getChartsAverageCadenceByPeriod(writer http.ResponseWriter, request *http.R
 	}
 }
 
+// getDashboard godoc
+// @Summary Get dashboard data
+// @Description Returns main data for dashboard display
+// @Tags dashboard
+// @Produce json
+// @Param activityType query string true "Activity type"
+// @Success 200 {object} dto.DashboardDataDto
+// @Failure 400 {string} string "Invalid parameters"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/dashboard [get]
 func getDashboard(w http.ResponseWriter, r *http.Request) {
 	activityTypes, err := getActivityTypeParam(r)
 	if err != nil {
@@ -247,6 +368,16 @@ func getDashboard(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getDashboardCumulativeDataByYear godoc
+// @Summary Get cumulative data by year
+// @Description Returns cumulative distance and elevation data by year
+// @Tags dashboard
+// @Produce json
+// @Param activityType query string true "Activity type"
+// @Success 200 {object} dto.CumulativeDataPerYearDto
+// @Failure 400 {string} string "Invalid parameters"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/dashboard/cumulative-data-per-year [get]
 func getDashboardCumulativeDataByYear(w http.ResponseWriter, r *http.Request) {
 	activityTypes, err := getActivityTypeParam(r)
 	if err != nil {
@@ -268,6 +399,16 @@ func getDashboardCumulativeDataByYear(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getDashboardEddingtonNumber godoc
+// @Summary Get Eddington number
+// @Description Returns the Eddington number and associated list
+// @Tags dashboard
+// @Produce json
+// @Param activityType query string true "Activity type"
+// @Success 200 {object} dto.EddingtonNumberDto
+// @Failure 400 {string} string "Invalid parameters"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/dashboard/eddington-number [get]
 func getDashboardEddingtonNumber(w http.ResponseWriter, r *http.Request) {
 	activityTypes, err := getActivityTypeParam(r)
 	if err != nil {
@@ -287,6 +428,18 @@ func getDashboardEddingtonNumber(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getBadges godoc
+// @Summary Get badges
+// @Description Returns badges earned or in progress for a given year and activity types
+// @Tags badges
+// @Produce json
+// @Param year query int false "Year"
+// @Param activityType query string true "Activity type"
+// @Param badgeSet query string false "Badge set (GENERAL, FAMOUS)"
+// @Success 200 {array} dto.BadgeCheckResultDto
+// @Failure 400 {string} string "Invalid parameters"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/badges [get]
 func getBadges(w http.ResponseWriter, r *http.Request) {
 	year, err := getYearParam(r)
 	if err != nil {
