@@ -17,18 +17,18 @@ To install npm (Node Package Manager), you first need to install Node.js, as npm
 - Open a terminal or command prompt.
 - Run the following commands to check if Node.js and npm are installed correctly:
 
-    ```sh
-    node -v
-    npm -v
-    ```
+```sh
+node -v
+npm -v
+```
 
 To get started with MyStravaStats, follow these steps:
 
 ### Clone the repository
 
 ```sh
-   git clone https://github.com/yourusername/mystravastats.git
-   cd mystravastats
+git clone https://github.com/yourusername/mystravastats.git
+cd mystravastats
 ```
 
 ### Install npm dependencies
