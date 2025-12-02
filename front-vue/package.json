@@ -14,33 +14,33 @@
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.1.0",
-    "@revolist/vue3-datagrid": "^4.17.3",
+    "@revolist/vue3-datagrid": "^4.19.4",
     "bootstrap": "^5.3.8",
     "highcharts": "^12.4.0",
     "highcharts-vue": "^2.0.1",
     "leaflet": "^1.9.4",
     "leaflet-defaulticon-compatibility": "^0.1.2",
-    "pinia": "^3.0.3",
-    "sass": "^1.93.2",
-    "vue": "^3.5.22",
-    "vue-router": "^4.5.1"
+    "pinia": "^3.0.4",
+    "sass": "^1.94.2",
+    "vue": "^3.5.25",
+    "vue-router": "^4.6.3"
   },
   "devDependencies": {
-    "@rushstack/eslint-patch": "^1.13.0",
-    "@tsconfig/node20": "^20.1.6",
+    "@rushstack/eslint-patch": "^1.15.0",
+    "@tsconfig/node20": "^20.1.8",
     "@types/bootstrap": "^5.2.10",
     "@types/leaflet": "^1.9.21",
-    "@types/node": "^24.7.1",
+    "@types/node": "^24.10.1",
     "@types/uuid": "^11.0.0",
-    "@vitejs/plugin-vue": "^6.0.1",
+    "@vitejs/plugin-vue": "^6.0.2",
     "@vue/tsconfig": "^0.8.1",
-    "eslint": "^9.37.0",
-    "eslint-plugin-vue": "^10.5.0",
+    "eslint": "^9.39.1",
+    "eslint-plugin-vue": "^10.6.2",
     "npm-run-all2": "^8.0.4",
     "typescript": "~5.9.3",
-    "vite": "^7.1.9",
-    "vite-plugin-vue-devtools": "^8.0.2",
-    "vue-tsc": "^3.1.1",
-    "webpack-bundle-analyzer": "^4.10.2"
+    "vite": "^7.2.6",
+    "vite-plugin-vue-devtools": "^8.0.5",
+    "vue-tsc": "^3.1.5",
+    "webpack-bundle-analyzer": "^5.0.1"
   }
 }
