@@ -42,7 +42,7 @@ class StatisticsServiceTest {
         val result = statisticsService.getStatistics(activityTypes, year)
 
         // THEN
-        assertEquals(29, result.size)
+        assertEquals(31, result.size)
         assertEquals(53, result.find { statistic -> statistic.name == "Nb activities" }?.value?.toInt())
     }
 
@@ -58,7 +58,7 @@ class StatisticsServiceTest {
         val result = statisticsService.getStatistics(activityTypes, year)
 
         // THEN
-        assertEquals(38, result.size)
+        assertEquals(40, result.size)
         assertEquals(44, result.find { statistic -> statistic.name == "Nb activities" }?.value?.toInt())
     }
 
@@ -74,7 +74,7 @@ class StatisticsServiceTest {
         val result = statisticsService.getStatistics(activityTypes, year)
 
         // THEN
-        assertEquals(16, result.size)
+        assertEquals(18, result.size)
         assertEquals(8, result.find { statistic -> statistic.name == "Nb activities" }?.value?.toInt())
     }
 }

@@ -11,7 +11,7 @@ import me.nicolas.stravastats.domain.services.statistics.Statistic
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.http.MediaType
 import org.springframework.test.context.junit.jupiter.SpringExtension
 import org.springframework.test.web.servlet.MockMvc
@@ -34,7 +34,7 @@ class StatisticsControllerTest {
         val activityTypes = setOf(ActivityType.Run)
         val year = 2023
         val activities = listOf<StravaActivity>()
-        val statistic = GlobalStatistic("Nb activities", activities, "%d", List<StravaActivity>::size)
+        val statistic = GlobalStatistic("Nb activities", activities, {"%d"}, List<StravaActivity>::size)
         val statistics = listOf<Statistic>(statistic)
 
         every { statisticsService.getStatistics(activityTypes, year) } returns (statistics)
@@ -58,7 +58,7 @@ class StatisticsControllerTest {
         // GIVEN
         val activityTypes = setOf(ActivityType.Run)
         val activities = listOf<StravaActivity>()
-        val statistic = GlobalStatistic("Nb activities", activities, "%d", List<StravaActivity>::size)
+        val statistic = GlobalStatistic("Nb activities", activities, {"%d"}, List<StravaActivity>::size)
         val statistics = listOf<Statistic>(statistic)
 
         every { statisticsService.getStatistics(activityTypes, null) } returns statistics

@@ -13,7 +13,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 
 @ControllerAdvice
-class RestResponseEntityExceptionHandler
+ class RestResponseEntityExceptionHandler
 
     : ResponseEntityExceptionHandler() {
     @ExceptionHandler(value = [ResourceNotFoundException::class])

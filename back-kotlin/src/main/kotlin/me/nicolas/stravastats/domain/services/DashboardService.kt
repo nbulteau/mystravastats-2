@@ -148,8 +148,7 @@ class DashboardService(
 
         // compute max speed for all years
         val maxSpeedByYear = activitiesByYear
-            .mapValues { (foo, activities) ->
-                println("$foo  ${BestEffortDistanceStatistic("", activities, 200.0).getSpeed()}")
+            .mapValues { (_, activities) ->
                 (BestEffortDistanceStatistic("", activities, 200.0).getSpeed())!!.toFloat()
             }
             .filter { entry -> entry.value > 0.0 }
