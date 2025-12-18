@@ -1,7 +1,7 @@
 package me.nicolas.stravastats.domain.business.strava
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
+import tools.jackson.module.kotlin.jacksonObjectMapper
 import java.io.File
 
 

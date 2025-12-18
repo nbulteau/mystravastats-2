@@ -1,9 +1,6 @@
 package me.nicolas.stravastats.adapters.strava
 
-import com.fasterxml.jackson.core.JsonProcessingException
-import com.fasterxml.jackson.databind.JsonMappingException
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
+
 import io.ktor.http.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
@@ -27,6 +24,9 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
+import tools.jackson.databind.DatabindException
+import tools.jackson.module.kotlin.jacksonObjectMapper
+import tools.jackson.module.kotlin.readValue
 import java.net.*
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -128,8 +128,8 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
                 try {
                     val json = response.body.string()
                     return Optional.of(objectMapper.readValue(json, StravaAthlete::class.java))
-                } catch (jsonMappingException: JsonMappingException) {
-                    throw RuntimeException("Something was wrong with Strava API", jsonMappingException)
+                } catch (databindException: DatabindException) {
+                    throw RuntimeException("Something was wrong with Strava API", databindException)
                 }
             } else {
                 throw RuntimeException("Something was wrong with Strava API for url $url : ${response.body.string()}")
@@ -205,8 +205,8 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
                     return try {
                         val json = response.body.string()
                         return objectMapper.readValue(json, Stream::class.java)
-                    } catch (jsonProcessingException: JsonProcessingException) {
-                        logger.error("Unable to load streams for stravaActivity : $stravaActivity: ${jsonProcessingException.message}")
+                    } catch (databindException: DatabindException) {
+                        logger.error("Unable to load streams for stravaActivity : $stravaActivity: ${databindException.message}")
                         null
                     }
                 }
@@ -249,8 +249,8 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
                     return try {
                         val json = response.body.string()
                         return Optional.of(objectMapper.readValue(json, StravaDetailedActivity::class.java))
-                    } catch (jsonProcessingException: JsonProcessingException) {
-                        logger.info("Unable to load stravaActivity : $activityId - ${jsonProcessingException.message}")
+                    } catch (databindException: DatabindException) {
+                        logger.info("Unable to load stravaActivity : $activityId - ${databindException.message}")
                         Optional.empty()
                     }
                 }

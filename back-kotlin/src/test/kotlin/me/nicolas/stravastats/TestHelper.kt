@@ -1,11 +1,11 @@
 package me.nicolas.stravastats
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.ActivityType
 
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.AthleteRef
+import tools.jackson.module.kotlin.jacksonObjectMapper
 import java.io.File
 
 class TestHelper {

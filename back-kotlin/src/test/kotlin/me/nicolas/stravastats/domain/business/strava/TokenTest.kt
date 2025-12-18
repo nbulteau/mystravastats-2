@@ -1,9 +1,9 @@
 package me.nicolas.stravastats.domain.business.strava
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import me.nicolas.stravastats.adapters.strava.business.Token
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
+import tools.jackson.module.kotlin.jacksonObjectMapper
 
 internal class TokenTest {
 

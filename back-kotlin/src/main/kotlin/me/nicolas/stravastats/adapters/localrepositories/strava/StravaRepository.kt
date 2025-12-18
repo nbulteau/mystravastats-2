@@ -1,8 +1,6 @@
 package me.nicolas.stravastats.adapters.localrepositories.strava
 
-import com.fasterxml.jackson.core.util.DefaultPrettyPrinter
-import com.fasterxml.jackson.databind.ObjectWriter
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
@@ -10,6 +8,9 @@ import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.interfaces.ILocalStorageProvider
 import me.nicolas.stravastats.domain.services.ActivityHelper.filterByActivityTypes
 import org.slf4j.LoggerFactory
+import tools.jackson.core.util.DefaultPrettyPrinter
+import tools.jackson.databind.ObjectWriter
+import tools.jackson.module.kotlin.jacksonObjectMapper
 import java.io.File
 import java.io.FileInputStream
 import java.nio.file.Files
@@ -24,7 +25,7 @@ internal class StravaRepository(stravaCache: String) : ILocalStorageProvider {
 
     private val writer: ObjectWriter = objectMapper.writer()
 
-    private val prettyWriter: ObjectWriter = objectMapper.writer(DefaultPrettyPrinter())
+    private val prettyWriter = objectMapper.writerWithDefaultPrettyPrinter()
 
     private val cacheDirectory = File(stravaCache)
 

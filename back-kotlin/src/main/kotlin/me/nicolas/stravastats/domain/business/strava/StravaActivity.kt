@@ -15,13 +15,13 @@ data class StravaActivity(
     @param:JsonProperty("average_speed")
     val averageSpeed: Double,
     @param:JsonProperty("average_cadence")
-    val averageCadence: Double,
+    val averageCadence: Double = 0.0,
     @param:JsonProperty("average_heartrate")
-    val averageHeartrate: Double,
+    val averageHeartrate: Double = 0.0,
     @param:JsonProperty("max_heartrate")
-    val maxHeartrate: Int,
+    val maxHeartrate: Int = 0,
     @param:JsonProperty("average_watts")
-    val averageWatts: Int,
+    val averageWatts: Int = 0,
     val commute: Boolean,
     val distance: Double,
     @param:JsonProperty("device_watts")
@@ -31,7 +31,7 @@ data class StravaActivity(
     @param:JsonProperty("elev_high")
     val elevHigh: Double,
     val id: Long,
-    val kilojoules: Double,
+    val kilojoules: Double = 0.0,
     @param:JsonProperty("max_speed")
     val maxSpeed: Float,
     @param:JsonProperty("moving_time")
@@ -51,7 +51,7 @@ data class StravaActivity(
     @param:JsonProperty("upload_id")
     val uploadId: Long,
     @param:JsonProperty("weighted_average_watts")
-    val weightedAverageWatts: Int,
+    val weightedAverageWatts: Int = 0,
 
     var stream: Stream? = null
 ) {

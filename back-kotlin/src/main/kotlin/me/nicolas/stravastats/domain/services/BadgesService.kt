@@ -1,13 +1,13 @@
 package me.nicolas.stravastats.domain.services
 
-import com.fasterxml.jackson.databind.JsonMappingException
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import me.nicolas.stravastats.domain.business.badges.*
-import me.nicolas.stravastats.domain.business.ActivityType
 
+import me.nicolas.stravastats.domain.business.ActivityType
+import me.nicolas.stravastats.domain.business.badges.*
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import tools.jackson.databind.DatabindException
+import tools.jackson.module.kotlin.jacksonObjectMapper
 import java.nio.file.Path
 
 interface IBadgesService {
@@ -77,7 +77,7 @@ internal class BadgesService(
         var famousClimbBadgeList: List<Badge>
 
         try {
-            val url = Path.of(climbsJsonFilePath).toUri().toURL()
+            val url = Path.of(climbsJsonFilePath)
             val famousClimbs = objectMapper.readValue(url, Array<FamousClimb>::class.java).toList()
             famousClimbBadgeList = famousClimbs.flatMap { famousClimb ->
                 famousClimb.alternatives.map { alternative ->
@@ -94,8 +94,8 @@ internal class BadgesService(
                     )
                 }
             }.toList()
-        } catch (jsonMappingException: JsonMappingException) {
-            logger.error("Something was wrong while reading BadgeSet : ${jsonMappingException.message}")
+        } catch (databindException: DatabindException) {
+            logger.error("Something was wrong while reading BadgeSet : ${databindException.message}")
             famousClimbBadgeList = emptyList()
         }
 

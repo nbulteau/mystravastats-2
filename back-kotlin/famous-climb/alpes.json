@@ -36,7 +36,8 @@
         },
         "length": 36.3,
         "totalAscent": 1897,
-        "difficulty": 1269
+        "difficulty": 1269,
+        "averageGradient": 0.0
       }
     ]
   },

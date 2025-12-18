@@ -4,7 +4,7 @@ plugins {
     kotlin("jvm") version "2.2.20"
     kotlin("plugin.spring") version "2.2.20"
 
-    id("org.springframework.boot") version "4.0.0"
+    id("org.springframework.boot") version "4.0.1"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.ben-manes.versions") version "0.53.0"
     //id("org.graalvm.buildtools.native") version "0.10.6"
@@ -40,7 +40,7 @@ dependencies {
     //developmentOnly("org.springframework.boot:spring-boot-devtools")
     //providedRuntime("org.springframework.boot:spring-boot-starter-tomcat")
 
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("tools.jackson.module:jackson-module-kotlin")
 
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.0")
 
