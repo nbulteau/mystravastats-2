@@ -19,9 +19,9 @@ type EddingtonStatistic struct {
 // NewEddingtonStatistic creates a new EddingtonStatistic from a list of activities.
 // Returns nil if activities slice is nil.
 func NewEddingtonStatistic(activities []*strava.Activity) *EddingtonStatistic {
-	if activities == nil {
-		return nil
-	}
+	//if activities == nil {
+	//	return nil
+	//}
 
 	stat := &EddingtonStatistic{
 		BaseStatistic: BaseStatistic{
