@@ -1,10 +1,11 @@
 package api
 
 import (
-	"github.com/gorilla/mux"
-	"github.com/swaggo/http-swagger"
 	"mystravastats/domain"
 	"net/http"
+
+	"github.com/gorilla/mux"
+	"github.com/swaggo/http-swagger"
 )
 
 func NewRouter() *mux.Router {
