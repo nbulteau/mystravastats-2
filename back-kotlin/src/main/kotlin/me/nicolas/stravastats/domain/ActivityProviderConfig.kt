@@ -5,6 +5,7 @@ import me.nicolas.stravastats.domain.services.activityproviders.FitActivityProvi
 import me.nicolas.stravastats.domain.services.activityproviders.GpxActivityProvider
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import me.nicolas.stravastats.domain.services.activityproviders.StravaActivityProvider
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -24,11 +25,24 @@ class ActivityProviderConfig {
         val activityProvider = if (fitCache == null && gpxCache == null) {
             logger.info("Using Strava Activity Provider")
 
-            if (stravaCache == null) {
+            val provider = if (stravaCache == null) {
                 StravaActivityProvider()
             } else {
-                StravaActivityProvider(stravaCache)
+                // use named parameter to match constructor
+                StravaActivityProvider(stravaCache = stravaCache)
             }
+
+            // initialize activity provider (suspend function) in a controlled blocking context
+            try {
+                runBlocking {
+                    provider.initializeAndLoadActivities()
+                }
+            } catch (e: Exception) {
+                logger.error("Failed to initialize StravaActivityProvider", e)
+                throw e
+            }
+
+            provider
         } else {
             // Build a SRTM provider to get elevation data
             val srtmProvider = SRTMProvider()
