@@ -17,11 +17,11 @@ type EddingtonStatistic struct {
 }
 
 // NewEddingtonStatistic creates a new EddingtonStatistic from a list of activities.
-// Returns nil if activities slice is nil.
+// If activities is nil it's treated as an empty slice.
 func NewEddingtonStatistic(activities []*strava.Activity) *EddingtonStatistic {
-	//if activities == nil {
-	//	return nil
-	//}
+	if activities == nil {
+		activities = []*strava.Activity{}
+	}
 
 	stat := &EddingtonStatistic{
 		BaseStatistic: BaseStatistic{
@@ -64,6 +64,7 @@ func (stat *EddingtonStatistic) processEddingtonNumber() int {
 			continue // Skip activities with invalid dates
 		}
 
+		// Note: integer kilometers (truncated). Adjust if you prefer rounding.
 		km := int(activity.Distance / 1000)
 		if km > 0 {
 			activeDaysMap[date] += km
@@ -93,7 +94,7 @@ func (stat *EddingtonStatistic) processEddingtonNumber() int {
 		}
 	}
 
-	// Build daysWithAtLeastXKm array for compatibility
+	// Build daysWithAtLeastXKm array for compatibility (optimized)
 	stat.buildDaysWithAtLeastXKmArray(dailyDistances)
 
 	return eddingtonNumber
@@ -101,22 +102,33 @@ func (stat *EddingtonStatistic) processEddingtonNumber() int {
 
 // parseActivityDate extracts date from activity start date string.
 func parseActivityDate(startDateLocal string) (string, error) {
-	if startDateLocal == "" {
+	s := strings.TrimSpace(startDateLocal)
+	if s == "" {
 		return "", fmt.Errorf("empty date string")
 	}
 
-	// Try parsing ISO format first
-	if t, err := time.Parse(time.RFC3339, startDateLocal); err == nil {
-		return t.Format("2006-01-02"), nil
+	// Try several common layouts
+	layouts := []string{
+		time.RFC3339Nano,
+		time.RFC3339,
+		"2006-01-02 15:04:05", // fallback with space
+		"2006-01-02",          // date only
+	}
+	for _, layout := range layouts {
+		if t, err := time.Parse(layout, s); err == nil {
+			return t.Format("2006-01-02"), nil
+		}
 	}
 
-	// Fallback to simple string split
-	parts := strings.Split(startDateLocal, "T")
-	if len(parts) == 0 || parts[0] == "" {
-		return "", fmt.Errorf("invalid date format: %s", startDateLocal)
+	// Fallback to splitting on 'T' or space if parsing failed
+	if parts := strings.Split(s, "T"); len(parts) > 0 && parts[0] != "" {
+		return parts[0], nil
+	}
+	if parts := strings.Split(s, " "); len(parts) > 0 && parts[0] != "" {
+		return parts[0], nil
 	}
 
-	return parts[0], nil
+	return "", fmt.Errorf("invalid date format: %s", startDateLocal)
 }
 
 // buildDaysWithAtLeastXKmArray constructs the daysWithAtLeastXKm array from sorted distances.
@@ -127,18 +139,27 @@ func (stat *EddingtonStatistic) buildDaysWithAtLeastXKmArray(sortedDistances []i
 	}
 
 	maxDistance := sortedDistances[0]
-	stat.daysWithAtLeastXKm = make([]int, maxDistance)
+	if maxDistance <= 0 {
+		stat.daysWithAtLeastXKm = []int{}
+		return
+	}
 
-	// Count days with at least X km using sorted array
-	for km := 1; km <= maxDistance; km++ {
-		count := 0
-		for _, distance := range sortedDistances {
-			if distance >= km {
-				count++
-			} else {
-				break // Since array is sorted in descending order
-			}
+	// Use counting + cumulative sum to build the array in O(n + maxDistance)
+	counts := make([]int, maxDistance+1) // index = km, counts[0] unused
+	for _, d := range sortedDistances {
+		if d <= 0 {
+			continue
 		}
-		stat.daysWithAtLeastXKm[km-1] = count
+		if d > maxDistance {
+			d = maxDistance
+		}
+		counts[d]++
+	}
+
+	stat.daysWithAtLeastXKm = make([]int, maxDistance)
+	cumulative := 0
+	for km := maxDistance; km >= 1; km-- {
+		cumulative += counts[km]
+		stat.daysWithAtLeastXKm[km-1] = cumulative
 	}
 }
