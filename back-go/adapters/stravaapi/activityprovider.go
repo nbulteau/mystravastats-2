@@ -248,9 +248,9 @@ func (provider *StravaActivityProvider) retrieveActivities(clientId string, year
 			provider.localStorageProvider.SaveActivitiesToCache(clientId, year, filteredActivities)
 
 			return filteredActivities
-		} else {
-			log.Printf("Failed to load activities from Strava: %v", err)
 		}
+
+		log.Printf("Failed to load activities from Strava: %v", err)
 	}
 	return nil
 }
