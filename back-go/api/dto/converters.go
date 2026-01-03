@@ -101,16 +101,16 @@ func ToActivityDto(activity strava.Activity) ActivityDto {
 		BestPowerFor20Minutes: func() int {
 			if bestPowerFor20Minutes != nil {
 				return bestPowerFor20Minutes.GetPower()
-			} else {
-				return 0
 			}
+
+			return 0
 		}(),
 		BestPowerFor60Minutes: func() int {
 			if bestPowerFor60Minutes != nil {
 				return bestPowerFor60Minutes.GetPower()
-			} else {
-				return 0
 			}
+
+			return 0
 		}(),
 		FTP: ftp,
 	}
@@ -279,11 +279,11 @@ func ToStatisticDto(statistic statistics.Statistic) StatisticDto {
 				Type: statistic.Activity().Type.String(),
 			},
 		}
-	} else {
-		return StatisticDto{
-			Label: statistic.Label(),
-			Value: statistic.Value(),
-		}
+	}
+
+	return StatisticDto{
+		Label: statistic.Label(),
+		Value: statistic.Value(),
 	}
 }
 
