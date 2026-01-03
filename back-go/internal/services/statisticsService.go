@@ -12,7 +12,7 @@ import (
 func FetchStatisticsByActivityTypeAndYear(year *int, activityTypes ...business.ActivityType) []statistics.Statistic {
 	if len(activityTypes) == 0 {
 		log.Printf("No activity types provided")
-		return nil
+		return []statistics.Statistic{}
 	}
 
 	if year == nil {
@@ -30,6 +30,7 @@ func FetchStatisticsByActivityTypeAndYear(year *int, activityTypes ...business.A
 		} else {
 			log.Printf("No activities found for %v in year %v", activityTypes, *year)
 		}
+		return []statistics.Statistic{}
 	}
 
 	activityType := activityTypes[0]
@@ -51,7 +52,7 @@ func FetchStatisticsByActivityTypeAndYear(year *int, activityTypes ...business.A
 		return computeAlpineSkiStatistics(filteredActivities)
 
 	default:
-		return nil
+		return []statistics.Statistic{}
 	}
 }
 
@@ -194,7 +195,10 @@ func computeHikeStatistics(hikeActivities []*strava.Activity) []statistics.Stati
 			func(activities []*strava.Activity) *statistics.Pair {
 				activityMap := make(map[string]float64)
 				for _, activity := range activities {
-					date := activity.StartDateLocal[:10]
+					date := activity.StartDateLocal
+					if len(date) >= 10 {
+						date = date[:10]
+					}
 					activityMap[date] += activity.Distance / 1000
 				}
 				var maxPair *statistics.Pair
@@ -209,7 +213,10 @@ func computeHikeStatistics(hikeActivities []*strava.Activity) []statistics.Stati
 			func(activities []*strava.Activity) *statistics.Pair {
 				activityMap := make(map[string]float64)
 				for _, activity := range activities {
-					date := activity.StartDateLocal[:10]
+					date := activity.StartDateLocal
+					if len(date) >= 10 {
+						date = date[:10]
+					}
 					activityMap[date] += activity.TotalElevationGain
 				}
 				var maxPair *statistics.Pair
@@ -261,7 +268,10 @@ func computeCommonStats(activities []*strava.Activity) []statistics.Statistic {
 		statistics.NewGlobalStatistic("Nb actives days", activities, func(activities []*strava.Activity) string {
 			activeDays := make(map[string]struct{})
 			for _, activity := range activities {
-				date := activity.StartDateLocal[:10]
+				date := activity.StartDateLocal
+				if len(date) >= 10 {
+					date = date[:10]
+				}
 				activeDays[date] = struct{}{}
 			}
 			return fmt.Sprintf("%d", len(activeDays))
@@ -274,7 +284,7 @@ func computeCommonStats(activities []*strava.Activity) []statistics.Statistic {
 			return helpers.FormatSeconds(elapsedTime)
 		}),
 		statistics.NewGlobalStatistic("Total elevation", activities, func(activities []*strava.Activity) string {
-			return fmt.Sprintf("%.2f m", totalElevation)
+			return fmt.Sprintf("%.02f m", totalElevation)
 		}),
 		statistics.NewGlobalStatistic("Km by activity", activities, func(activities []*strava.Activity) string {
 			if len(activities) == 0 {
