@@ -84,7 +84,7 @@ func averagePower(watts []float64, idxStart int, idxEnd int) *float64 {
 		averagePower := sumPower / float64(idxEnd-idxStart+1)
 
 		return &averagePower
-	} else {
-		return nil
 	}
+
+	return nil
 }
