@@ -8,9 +8,10 @@ import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.interfaces.ILocalStorageProvider
 import me.nicolas.stravastats.domain.services.ActivityHelper.filterByActivityTypes
 import org.slf4j.LoggerFactory
-import tools.jackson.core.util.DefaultPrettyPrinter
+import tools.jackson.databind.DeserializationFeature
 import tools.jackson.databind.ObjectWriter
-import tools.jackson.module.kotlin.jacksonObjectMapper
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.module.kotlin.KotlinModule
 import java.io.File
 import java.io.FileInputStream
 import java.nio.file.Files
@@ -21,7 +22,10 @@ internal class StravaRepository(stravaCache: String) : ILocalStorageProvider {
 
     private val logger = LoggerFactory.getLogger(StravaRepository::class.java)
 
-    private val objectMapper = jacksonObjectMapper()
+    private val objectMapper = JsonMapper.builder()
+        .addModule(KotlinModule.Builder().build())
+        .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+        .build()
 
     private val writer: ObjectWriter = objectMapper.writer()
 
@@ -65,7 +69,7 @@ internal class StravaRepository(stravaCache: String) : ILocalStorageProvider {
             activities = objectMapper.readValue(yearActivitiesJsonFile, Array<StravaActivity>::class.java)
                 .toList()
                 .filterByActivityTypes()
-            logger.info("${activities.size} activities loaded")
+            logger.info("${activities.size} activities loaded for year $year from cache")
 
             // Load activities streams
             loadActivitiesStreams(activities, yearActivitiesDirectory)

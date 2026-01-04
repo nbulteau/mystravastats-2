@@ -18,23 +18,28 @@ import java.util.*
 
 object ActivityHelper {
     /**
-     * Smooth a list of doubles
-     * @param size the size of the smoothing window
+     * Smooth a list of doubles using a centered sliding window.
+     * @param size radius of the smoothing window (number of elements on each side). If <= 0 the original list is returned.
      * @return a list of smoothed doubles
      */
-    fun List<Double>.smooth(size: Int = 5): List<Double> {
-        val smooth = DoubleArray(this.size)
-        for (i in 0 until size) {
-            smooth[i] = this[i]
-        }
-        for (i in size until this.size - size) {
-            smooth[i] = this.subList(i - size, i + size).sum() / (2 * size + 1)
-        }
-        for (i in this.size - size until this.size) {
-            smooth[i] = this[i]
+    fun List<Double>.smooth(size: Int = 2): List<Double> {
+        if (size <= 0) return this.toList()
+        if (this.isEmpty()) return emptyList()
+
+        val n = this.size
+        val result = MutableList(n) { 0.0 }
+
+        for (i in 0 until n) {
+            val left = maxOf(0, i - size)
+            val right = minOf(n - 1, i + size)
+            var sum = 0.0
+            for (j in left..right) {
+                sum += this[j]
+            }
+            result[i] = sum / (right - left + 1)
         }
 
-        return smooth.toList()
+        return result
     }
 
     /**
@@ -48,7 +53,8 @@ object ActivityHelper {
 
     fun StravaDetailedActivity.buildActivityEfforts(): List<ActivityEffort> {
 
-        // Filter segments efforts to keep only the ones with a climbCategory > 0
+        // Filter segment efforts to keep only the ones with a climbCategory > 2 (hard climbs),
+        // or starred segments, or top PR ranks
         val activityEffortsFromSegmentSegments = this.segmentEfforts
             .filter { segmentEffort ->
                 segmentEffort.segment.climbCategory > 2
@@ -122,8 +128,8 @@ object ActivityHelper {
             "$week".padStart(2, '0')
         }.toMutableMap()
 
-        // Add weeks without activities
-        for (week in (1..52)) {
+        // Add weeks without activities (use 1..53 to cover years with 53 weeks)
+        for (week in (1..53)) {
             if (!activitiesByWeek.contains("$week".padStart(2, '0'))) {
                 activitiesByWeek["$week".padStart(2, '0')] = emptyList()
             }
@@ -142,12 +148,11 @@ object ActivityHelper {
         val activitiesByDay =
             activities.groupBy { activity -> activity.startDateLocal.subSequence(5, 10).toString() }.toMutableMap()
 
-        // Add days without activities
-        var currentDate = LocalDate.ofYearDay(year, 1)
-        (0..(365 + if (currentDate.isLeapYear) 1 else 0)).forEach { _ ->
-            currentDate = currentDate.plusDays(1L)
-            val dayString =
-                "${currentDate.monthValue}".padStart(2, '0') + "-" + "${currentDate.dayOfMonth}".padStart(2, '0')
+        // Add days without activities: iterate every day of the given year
+        val daysInYear = if (LocalDate.of(year, 1, 1).isLeapYear) 366 else 365
+        for (dayOfYear in 1..daysInYear) {
+            val date = LocalDate.ofYearDay(year, dayOfYear)
+            val dayString = "${date.monthValue}".padStart(2, '0') + "-" + "${date.dayOfMonth}".padStart(2, '0')
             if (!activitiesByDay.containsKey(dayString)) {
                 activitiesByDay[dayString] = emptyList()
             }
@@ -247,4 +252,3 @@ private fun StravaSegmentEffort.toActivityEffort(): ActivityEffort {
         )
     )
 }
-

@@ -25,7 +25,9 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import tools.jackson.databind.DatabindException
-import tools.jackson.module.kotlin.jacksonObjectMapper
+import tools.jackson.databind.DeserializationFeature
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.module.kotlin.KotlinModule
 import tools.jackson.module.kotlin.readValue
 import java.net.*
 import java.time.LocalDateTime
@@ -43,7 +45,10 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
 
     private val logger: Logger = LoggerFactory.getLogger(StravaApi::class.java)
 
-    private val objectMapper = jacksonObjectMapper()
+    private val objectMapper = JsonMapper.builder()
+        .addModule(KotlinModule.Builder().build())
+        .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+        .build()
 
     private val properties: StravaProperties = StravaProperties()
 
@@ -127,7 +132,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
             if (response.isSuccessful) {
                 try {
                     val json = response.body.string()
-                    return Optional.of(objectMapper.readValue(json, StravaAthlete::class.java))
+                    return Optional.of(objectMapper.readValue<StravaAthlete>(json))
                 } catch (databindException: DatabindException) {
                     throw RuntimeException("Something was wrong with Strava API", databindException)
                 }
@@ -160,7 +165,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
                 if (response.code == 429) {
                     quotaExceedLimit()
                 }
-                result = objectMapper.readValue(response.body.string())
+                result = objectMapper.readValue<List<StravaActivity>>(response.body.string())
 
                 activities.addAll(result)
             }
@@ -204,7 +209,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
                 response.code == HttpStatus.OK.value() -> {
                     return try {
                         val json = response.body.string()
-                        return objectMapper.readValue(json, Stream::class.java)
+                        return objectMapper.readValue<Stream>(json)
                     } catch (databindException: DatabindException) {
                         logger.error("Unable to load streams for stravaActivity : $stravaActivity: ${databindException.message}")
                         null
@@ -248,7 +253,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
                 response.code == HttpStatus.OK.value() -> {
                     return try {
                         val json = response.body.string()
-                        return Optional.of(objectMapper.readValue(json, StravaDetailedActivity::class.java))
+                        return Optional.of(objectMapper.readValue<StravaDetailedActivity>(json))
                     } catch (databindException: DatabindException) {
                         logger.info("Unable to load stravaActivity : $activityId - ${databindException.message}")
                         Optional.empty()
@@ -367,7 +372,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
         okHttpClient.newCall(request).execute().use { response ->
             try {
                 if (response.code == 200) {
-                    return objectMapper.readValue(response.body.string(), Token::class.java)
+                    return objectMapper.readValue<Token>(response.body.string())
                 } else {
                     throw RuntimeException("Something was wrong with Strava API for url $url")
                 }

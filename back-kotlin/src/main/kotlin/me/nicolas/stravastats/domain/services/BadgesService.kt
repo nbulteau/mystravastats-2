@@ -7,7 +7,10 @@ import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvide
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import tools.jackson.databind.DatabindException
-import tools.jackson.module.kotlin.jacksonObjectMapper
+import tools.jackson.databind.DeserializationFeature
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.module.kotlin.KotlinModule
+import tools.jackson.module.kotlin.readValue
 import java.nio.file.Path
 
 interface IBadgesService {
@@ -23,7 +26,10 @@ internal class BadgesService(
 
     private val logger = LoggerFactory.getLogger(ActivityService::class.java)
 
-    private val objectMapper = jacksonObjectMapper()
+    private val objectMapper = JsonMapper.builder()
+        .addModule(KotlinModule.Builder().build())
+        .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+        .build()
 
     private val alpes: BadgeSet = loadBadgeSet("alpes", "famous-climb/alpes.json")
 
@@ -78,7 +84,7 @@ internal class BadgesService(
 
         try {
             val url = Path.of(climbsJsonFilePath)
-            val famousClimbs = objectMapper.readValue(url, Array<FamousClimb>::class.java).toList()
+            val famousClimbs = objectMapper.readValue<Array<FamousClimb>>(url.toFile()).toList()
             famousClimbBadgeList = famousClimbs.flatMap { famousClimb ->
                 famousClimb.alternatives.map { alternative ->
                     FamousClimbBadge(

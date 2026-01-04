@@ -29,7 +29,7 @@ data class StravaActivity(
     @param:JsonProperty("elapsed_time")
     val elapsedTime: Int,
     @param:JsonProperty("elev_high")
-    val elevHigh: Double,
+    val elevHigh: Double = 0.0,
     val id: Long,
     val kilojoules: Double = 0.0,
     @param:JsonProperty("max_speed")
