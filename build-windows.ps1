@@ -53,7 +53,7 @@ if (Test-Path -Path "mystravastats.exe") {
 
 # Build the back-go project for Windows using Docker
 Write-VerboseOutput "⌛ Building back-go project..."
-docker run --rm -v "${PWD}:/app" -w /app golang:1.25.2 `
+docker run --rm -v "${PWD}:/app" -w /app golang:1.25.5 `
  sh -c "cd back-go; GOOS=windows GOARCH=amd64 go build -o ../mystravastats.exe" > $null 2>&1
 
 # Check if the new binary was created successfully
