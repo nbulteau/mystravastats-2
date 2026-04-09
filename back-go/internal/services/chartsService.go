@@ -9,12 +9,26 @@ import (
 	"time"
 )
 
+func resolveChartYear(year *int, period business.Period, activityTypes []business.ActivityType, metric string) (int, bool) {
+	if year == nil {
+		log.Printf("Skip %s by %s by activity (%v): missing year", metric, period, activityTypes)
+		return 0, false
+	}
+
+	return *year, true
+}
+
 // FetchChartsDistanceByPeriod retrieves the total distance of activities by period for a given activity type and year.
 func FetchChartsDistanceByPeriod(year *int, period business.Period, activityTypes ...business.ActivityType) []map[string]float64 {
-	log.Printf("Get distance by %s by activity (%s) type by year (%d)", period, activityTypes, *year)
+	resolvedYear, ok := resolveChartYear(year, period, activityTypes, "distance")
+	if !ok {
+		return []map[string]float64{}
+	}
+
+	log.Printf("Get distance by %s by activity (%v) type by year (%d)", period, activityTypes, resolvedYear)
 
 	activities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
-	activitiesByPeriod := activitiesByPeriod(activities, *year, period)
+	activitiesByPeriod := activitiesByPeriod(activities, resolvedYear, period)
 
 	result := make([]map[string]float64, 0, len(activitiesByPeriod))
 	for _, period := range sortedPeriodKeys(activitiesByPeriod) {
@@ -31,10 +45,15 @@ func FetchChartsDistanceByPeriod(year *int, period business.Period, activityType
 
 // FetchChartsElevationByPeriod retrieves the total elevation gain of activities by period for a given activity type and year.
 func FetchChartsElevationByPeriod(year *int, period business.Period, activityTypes ...business.ActivityType) []map[string]float64 {
-	log.Printf("Get elevation by %s by activity (%s) type by year (%d)", period, activityTypes, *year)
+	resolvedYear, ok := resolveChartYear(year, period, activityTypes, "elevation")
+	if !ok {
+		return []map[string]float64{}
+	}
+
+	log.Printf("Get elevation by %s by activity (%v) type by year (%d)", period, activityTypes, resolvedYear)
 
 	activities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
-	activitiesByPeriod := activitiesByPeriod(activities, *year, period)
+	activitiesByPeriod := activitiesByPeriod(activities, resolvedYear, period)
 
 	size := 12
 	switch period {
@@ -58,10 +77,15 @@ func FetchChartsElevationByPeriod(year *int, period business.Period, activityTyp
 }
 
 func FetchChartsAverageSpeedByPeriod(year *int, period business.Period, activityTypes ...business.ActivityType) []map[string]float64 {
-	log.Printf("Get average speed by %s by activity (%s) type by year (%d)", period, activityTypes, *year)
+	resolvedYear, ok := resolveChartYear(year, period, activityTypes, "average speed")
+	if !ok {
+		return []map[string]float64{}
+	}
+
+	log.Printf("Get average speed by %s by activity (%v) type by year (%d)", period, activityTypes, resolvedYear)
 
 	activities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
-	activitiesByPeriod := activitiesByPeriod(activities, *year, period)
+	activitiesByPeriod := activitiesByPeriod(activities, resolvedYear, period)
 
 	size := 12
 	switch period {
@@ -89,10 +113,15 @@ func FetchChartsAverageSpeedByPeriod(year *int, period business.Period, activity
 	return result
 }
 func FetchChartsAverageCadenceByPeriod(year *int, period business.Period, activityTypes ...business.ActivityType) []map[string]float64 {
-	log.Printf("Get average cadence by %s by activity (%s) type by year (%d)", period, activityTypes, *year)
+	resolvedYear, ok := resolveChartYear(year, period, activityTypes, "average cadence")
+	if !ok {
+		return []map[string]float64{}
+	}
+
+	log.Printf("Get average cadence by %s by activity (%v) type by year (%d)", period, activityTypes, resolvedYear)
 
 	activities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
-	activitiesByPeriod := activitiesByPeriod(activities, *year, period)
+	activitiesByPeriod := activitiesByPeriod(activities, resolvedYear, period)
 
 	size := 12
 	switch period {
