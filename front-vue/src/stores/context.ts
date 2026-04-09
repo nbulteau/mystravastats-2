@@ -66,6 +66,13 @@ export const useContextStore = defineStore('context', {
         hasBadges: (state) => state.generalBadgesCheckResults.length > 0 && state.famousClimbBadgesCheckResults.length > 0
     },
     actions: {
+        async fetchJson<T>(url: string): Promise<T> {
+            const response = await fetch(url)
+            if (!response.ok) {
+                await ErrorService.catchError(response)
+            }
+            return response.json() as Promise<T>
+        },
         url(path: string): string {
             const url = `/api/${path}?activityType=${this.currentActivityType}`
             if (this.currentYear === "All years") {
@@ -74,61 +81,47 @@ export const useContextStore = defineStore('context', {
             return `${url}&year=${this.currentYear}`
         },
         async fetchAthlete() {
-            const response = await fetch(`/api/athletes/me`)
-            if (!response.ok) {
-                await ErrorService.catchError(response)
-            }
-            const data = await response.json()
+            const data = await this.fetchJson<Record<string, string>>(`/api/athletes/me`)
             this.athleteDisplayName = `${data["firstname"]} ${data["lastname"]}`
         },
         async fetchStatistics() {
-            const statistics = await fetch(this.url("statistics"))
-                .then(response => response.json())
+            const statistics = await this.fetchJson<Statistics[]>(this.url("statistics"))
             this.statistics = statistics
         },
         async fetchActivities() {
-            const activities = await fetch(this.url("activities"))
-                .then(response => response.json())
+            const activities = await this.fetchJson<Activity[]>(this.url("activities"))
             this.activities = activities
         },
         async fetchGPXCoordinates() {
-            const gpxCoordinates = await fetch(this.url("maps/gpx"))
-                .then(response => response.json())
+            const gpxCoordinates = await this.fetchJson<number[][][]>(this.url("maps/gpx"))
             this.gpxCoordinates = gpxCoordinates
         },
         async fetchDistanceByMonths() {
-            const distanceByMonths = await fetch(this.url("charts/distance-by-period") + '&period=MONTHS').
-                then(response => response.json())
+            const distanceByMonths = await this.fetchJson<Map<string, number>[]>(this.url("charts/distance-by-period") + '&period=MONTHS')
             this.distanceByMonths = distanceByMonths;
         },
         async fetchElevationByMonths() {
-            const elevationByMonths = await fetch(this.url("charts/elevation-by-period") + '&period=MONTHS')
-                .then(response => response.json())
+            const elevationByMonths = await this.fetchJson<Map<string, number>[]>(this.url("charts/elevation-by-period") + '&period=MONTHS')
             this.elevationByMonths = elevationByMonths;
         },
         async fetchAverageSpeedByMonths() {
-            const averageSpeedByMonths = await fetch(this.url("charts/average-speed-by-period") + '&period=MONTHS')
-                .then(response => response.json())
+            const averageSpeedByMonths = await this.fetchJson<Map<string, number>[]>(this.url("charts/average-speed-by-period") + '&period=MONTHS')
             this.averageSpeedByMonths = averageSpeedByMonths;
         },
         async fetchDistanceByWeeks() {
-            const distanceByWeeks = await fetch(this.url("charts/distance-by-period") + '&period=WEEKS')
-                .then(response => response.json())
+            const distanceByWeeks = await this.fetchJson<Map<string, number>[]>(this.url("charts/distance-by-period") + '&period=WEEKS')
             this.distanceByWeeks = distanceByWeeks;
         },
         async fetchElevationByWeeks() {
-            const elevationByWeeks = await fetch(this.url("charts/elevation-by-period") + '&period=WEEKS')
-                .then(response => response.json())
+            const elevationByWeeks = await this.fetchJson<Map<string, number>[]>(this.url("charts/elevation-by-period") + '&period=WEEKS')
             this.elevationByWeeks = elevationByWeeks;
         },
         async fetchCadenceByWeeks() {
-            const cadenceByWeeks = await fetch(this.url("charts/average-cadence-by-period") + '&period=WEEKS')
-                .then(response => response.json())
+            const cadenceByWeeks = await this.fetchJson<Map<string, number>[]>(this.url("charts/average-cadence-by-period") + '&period=WEEKS')
             this.cadenceByWeeks = cadenceByWeeks;
         },
         async fetchCumulativeDataPerYear() {
-            const data = await fetch(this.url("dashboard/cumulative-data-per-year"))
-                .then(response => response.json())
+            const data = await this.fetchJson<any>(this.url("dashboard/cumulative-data-per-year"))
 
             // Convert the fetched data to a Map<string, Map<string, number>>
             const cumulativeDistancePerYear = new Map<string, Map<string, number>>();
@@ -154,18 +147,15 @@ export const useContextStore = defineStore('context', {
             }
         },
         async fetchEddingtonNumber() {
-            const eddingtonNumber = await fetch(this.url("dashboard/eddington-number"))
-                .then(response => response.json())
+            const eddingtonNumber = await this.fetchJson<EddingtonNumber>(this.url("dashboard/eddington-number"))
             this.eddingtonNumber = eddingtonNumber;
         },
         async fetchDashboardData() {
-            const dashboardData = await fetch(this.url("dashboard"))
-                .then(response => response.json())
+            const dashboardData = await this.fetchJson<DashboardData>(this.url("dashboard"))
             this.dashboardData = dashboardData;
         },
         async fetchBadges() {
-            const generalBadgesCheckResults = await fetch(this.url("badges"))
-                .then(response => response.json())
+            const generalBadgesCheckResults = await this.fetchJson<BadgeCheckResult[]>(this.url("badges"))
             this.generalBadgesCheckResults = generalBadgesCheckResults.filter((badgeCheckResult: BadgeCheckResult) => { return !badgeCheckResult.badge.type.endsWith('FamousClimbBadge') });
             this.famousClimbBadgesCheckResults = generalBadgesCheckResults.filter((badgeCheckResult: BadgeCheckResult) => { return badgeCheckResult.badge.type.endsWith('FamousClimbBadge') });
         },
@@ -190,18 +180,22 @@ export const useContextStore = defineStore('context', {
                     break
                 case 'charts':
                     if (this.currentYear != 'All years') {
-                        await this.fetchDistanceByMonths()
-                        await this.fetchElevationByMonths()
-                        await this.fetchAverageSpeedByMonths()
-                        await this.fetchDistanceByWeeks()
-                        await this.fetchElevationByWeeks()
-                        await this.fetchCadenceByWeeks()
+                        await Promise.all([
+                            this.fetchDistanceByMonths(),
+                            this.fetchElevationByMonths(),
+                            this.fetchAverageSpeedByMonths(),
+                            this.fetchDistanceByWeeks(),
+                            this.fetchElevationByWeeks(),
+                            this.fetchCadenceByWeeks(),
+                        ])
                     }
                     break
                 case 'dashboard':
-                    await this.fetchEddingtonNumber()
-                    await this.fetchCumulativeDataPerYear()
-                    await this.fetchDashboardData()
+                    await Promise.all([
+                        this.fetchEddingtonNumber(),
+                        this.fetchCumulativeDataPerYear(),
+                        this.fetchDashboardData(),
+                    ])
                     break
                 case 'badges':
                     await this.fetchBadges()
@@ -230,4 +224,3 @@ export const useContextStore = defineStore('context', {
         },
     }
 })
-

@@ -1,7 +1,9 @@
 package stravaapi
 
 import (
+	"fmt"
 	"log"
+	"runtime"
 	"mystravastats/adapters/localrepository"
 	"mystravastats/domain/business"
 	"mystravastats/domain/strava"
@@ -17,6 +19,9 @@ type StravaActivityProvider struct {
 	StravaApi            *StravaApi
 	localStorageProvider *localrepository.StravaRepository
 	activities           []*strava.Activity
+	activityByID         map[int64]*strava.Activity
+	filteredActivities   map[string][]*strava.Activity
+	cacheMutex           sync.RWMutex
 	stravaAthlete        strava.Athlete
 }
 
@@ -49,6 +54,7 @@ func NewStravaActivityProvider(stravaCache string) *StravaActivityProvider {
 
 	// Open the browser
 	helpers.OpenBrowser("http://localhost:8080")
+	provider.indexActivities()
 
 	log.Printf("✅ MyStravastats ready with clientId=%s and %d activities", provider.clientId, len(provider.activities))
 
@@ -94,7 +100,7 @@ func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *s
 func (provider *StravaActivityProvider) loadFromLocalCache(clientId string) []*strava.Activity {
 	startTime := time.Now()
 
-	var loadedActivities []*strava.Activity
+	loadedActivities := make([]*strava.Activity, 0)
 	activityCh := make(chan []strava.Activity, 20) // Buffered channel to collect results
 	var wg sync.WaitGroup
 
@@ -117,9 +123,7 @@ func (provider *StravaActivityProvider) loadFromLocalCache(clientId string) []*s
 
 	// Collect results from the channel
 	for activities := range activityCh {
-		for _, activity := range activities {
-			loadedActivities = append(loadedActivities, &activity)
-		}
+		loadedActivities = appendActivityPointers(loadedActivities, activities)
 	}
 
 	duration := time.Since(startTime)
@@ -131,7 +135,7 @@ func (provider *StravaActivityProvider) loadFromLocalCache(clientId string) []*s
 func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId string) []*strava.Activity {
 	startTime := time.Now()
 
-	var loadedActivities []*strava.Activity
+	loadedActivities := make([]*strava.Activity, 0)
 	activityCh := make(chan []strava.Activity, 20) // Buffered channel to collect results
 	var wg sync.WaitGroup
 
@@ -181,9 +185,7 @@ func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId strin
 
 	// Collect results from the channel
 	for activities := range activityCh {
-		for _, activity := range activities {
-			loadedActivities = append(loadedActivities, &activity)
-		}
+		loadedActivities = appendActivityPointers(loadedActivities, activities)
 	}
 
 	duration := time.Since(startTime)
@@ -201,21 +203,39 @@ func (provider *StravaActivityProvider) shouldReloadFromStravaAPI(clientId strin
 
 func (provider *StravaActivityProvider) loadActivitiesStreams(clientId string, year int, activities []strava.Activity) []strava.Activity {
 	streamIdsSet := provider.localStorageProvider.BuildStreamIdsSet(clientId, year)
-
-	for i, activity := range activities {
-		var stream *strava.Stream
-		if streamIdsSet[activity.Id] {
-			stream = provider.localStorageProvider.LoadActivitiesStreamsFromCache(clientId, year, activity)
-		} else {
-			if provider.StravaApi != nil {
-				stream, _ = provider.StravaApi.GetActivityStream(activity)
-				if stream != nil {
-					provider.localStorageProvider.SaveActivitiesStreamsToCache(clientId, year, activity, *stream)
-				}
-			}
-		}
-		activities[i].Stream = stream
+	if len(activities) == 0 {
+		return activities
 	}
+
+	workerCount := min(len(activities), max(2, runtime.NumCPU()))
+	indexCh := make(chan int, len(activities))
+	var wg sync.WaitGroup
+
+	for worker := 0; worker < workerCount; worker++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := range indexCh {
+				activity := activities[i]
+				var stream *strava.Stream
+				if streamIdsSet[activity.Id] {
+					stream = provider.localStorageProvider.LoadActivitiesStreamsFromCache(clientId, year, activity)
+				} else if provider.StravaApi != nil {
+					stream, _ = provider.StravaApi.GetActivityStream(activity)
+					if stream != nil {
+						provider.localStorageProvider.SaveActivitiesStreamsToCache(clientId, year, activity, *stream)
+					}
+				}
+				activities[i].Stream = stream
+			}
+		}()
+	}
+
+	for i := range activities {
+		indexCh <- i
+	}
+	close(indexCh)
+	wg.Wait()
 
 	return activities
 }
@@ -256,8 +276,8 @@ func (provider *StravaActivityProvider) retrieveActivities(clientId string, year
 }
 
 func (provider *StravaActivityProvider) findActivityById(activityId int64) *strava.Activity {
-	for _, activity := range provider.activities {
-		if activity.Id == activityId {
+	if provider.activityByID != nil {
+		if activity, ok := provider.activityByID[activityId]; ok {
 			return activity
 		}
 	}
@@ -271,12 +291,7 @@ func (provider *StravaActivityProvider) Athlete() strava.Athlete {
 func (provider *StravaActivityProvider) GetActivity(activityId int64) *strava.Activity {
 	log.Printf("Get stravaActivity for stravaActivity id %d\n", activityId)
 
-	for _, activity := range provider.activities {
-		if activity.Id == activityId {
-			return activity
-		}
-	}
-	return nil
+	return provider.findActivityById(activityId)
 }
 
 func (provider *StravaActivityProvider) GetActivitiesByActivityTypeGroupByActiveDays(activityTypes ...business.ActivityType) map[string]int {
@@ -307,8 +322,20 @@ func (provider *StravaActivityProvider) GetActivitiesByActivityTypeByYearGroupBy
 }
 
 func (provider *StravaActivityProvider) GetActivitiesByYearAndActivityTypes(year *int, activityTypes ...business.ActivityType) []*strava.Activity {
+	cacheKey := buildFilterCacheKey(year, activityTypes...)
+	provider.cacheMutex.RLock()
+	if cachedActivities, ok := provider.filteredActivities[cacheKey]; ok {
+		provider.cacheMutex.RUnlock()
+		return cachedActivities
+	}
+	provider.cacheMutex.RUnlock()
+
 	filteredActivities := FilterActivitiesByYear(provider.activities, year)
 	filteredActivities = FilterActivitiesByType(filteredActivities, activityTypes...)
+
+	provider.cacheMutex.Lock()
+	provider.filteredActivities[cacheKey] = filteredActivities
+	provider.cacheMutex.Unlock()
 
 	return filteredActivities
 }
@@ -422,4 +449,42 @@ func maxKey(m map[string][]*strava.Activity) string {
 		}
 	}
 	return maxKey
+}
+
+func (provider *StravaActivityProvider) indexActivities() {
+	provider.activityByID = make(map[int64]*strava.Activity, len(provider.activities))
+	provider.filteredActivities = make(map[string][]*strava.Activity)
+	for _, activity := range provider.activities {
+		provider.activityByID[activity.Id] = activity
+	}
+}
+
+func appendActivityPointers(destination []*strava.Activity, activities []strava.Activity) []*strava.Activity {
+	for i := range activities {
+		destination = append(destination, &activities[i])
+	}
+	return destination
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func buildFilterCacheKey(year *int, activityTypes ...business.ActivityType) string {
+	yearKey := "all"
+	if year != nil {
+		yearKey = strconv.Itoa(*year)
+	}
+
+	return fmt.Sprintf("%s:%v", yearKey, activityTypes)
 }

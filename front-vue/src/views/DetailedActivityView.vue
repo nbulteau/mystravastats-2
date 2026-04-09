@@ -110,7 +110,7 @@
 import "bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Tooltip } from "bootstrap"; // Import Bootstrap Tooltip
-import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { ActivityEffort, DetailedActivity } from "@/models/activity.model"; 
 import { formatSpeedWithUnit, formatTime } from "@/utils/formatters";
@@ -167,6 +167,10 @@ const activityId = Array.isArray(route.params.id) ? route.params.id[0] : route.p
 const activity = ref<DetailedActivity | null>(null);
 
 const map = ref<L.Map>();
+const basePolyline = ref<L.Polyline | null>(null);
+const selectedPolyline = ref<L.Polyline | null>(null);
+const hoverMarker = ref<L.Marker | null>(null);
+const lastHoveredPointIndex = ref<number | null>(null);
 
 const radioOptions = ref<{ label: string; value: string; description: string }[]>([]);
 
@@ -194,7 +198,7 @@ const buildRadioOptions = () => {
 };
 
 async function fetchDetailedActivity(id: string) {
-  const url = `http://localhost:8080/api/activities/${id}`;
+  const url = `/api/activities/${id}`;
   activity.value = await fetch(url).then((response) => response.json());
 }
 
@@ -210,7 +214,6 @@ const initMap = () => {
 
 const updateMap = () => {
   if (map.value) {
-    // Add a polyline
     const latlngs = activity.value?.stream?.latlng?.map((latlng: number[]) =>
       (typeof latlng[0] === "number" && typeof latlng[1] === "number")
         ? L.latLng(latlng[0], latlng[1])
@@ -219,9 +222,12 @@ const updateMap = () => {
 
     if (latlngs) {
       const filteredLatlngs = latlngs.filter((latlng): latlng is L.LatLng => latlng !== null);
-      const polyline = L.polyline(filteredLatlngs, { color: "red" }).addTo(map.value);
-      // Fit the map to the bounds of all polylines
-      const bounds = L.latLngBounds(polyline.getLatLngs() as L.LatLng[]);
+      if (basePolyline.value) {
+        basePolyline.value.setLatLngs(filteredLatlngs);
+      } else {
+        basePolyline.value = L.polyline(filteredLatlngs, { color: "red" }).addTo(map.value);
+      }
+      const bounds = L.latLngBounds(basePolyline.value.getLatLngs() as L.LatLng[]);
       map.value.fitBounds(bounds);
     }
   }
@@ -345,6 +351,7 @@ const chartOptions: Options = reactive({
 });
 
 let chartInstance: Highcharts.Chart | null = null;
+let chartMouseMoveHandler: ((e: MouseEvent) => void) | null = null;
 
 const initChart = () => {
   const altitudeStream = activity.value?.stream?.altitude;
@@ -392,43 +399,38 @@ const initChart = () => {
   if (chartContainer) {
     chartInstance = Highcharts.chart(chartContainer, chartOptions);
 
-    chartContainer.addEventListener("mousemove", function (e: MouseEvent) {
+    chartMouseMoveHandler = (e: MouseEvent) => {
       if (!chartInstance || !map.value) return;
 
-      // Find coordinates within the chart
       const event: Highcharts.PointerEventObject = chartInstance.pointer.normalize(e);
-      // Get the hovered point
       let point: Highcharts.Point | undefined = undefined;
       if (chartInstance.series[0]) {
         point = chartInstance.series[0].searchPoint(event, true);
       }
 
       if (point) {
-        const mapContainer = document.getElementById("map-container");
-        if (mapContainer) {
-          const latlng = activity.value?.stream?.latlng?.[point.index];
-          if (latlng) {
-            // Remove previous marker
-            map.value.eachLayer((layer) => {
-              if (layer instanceof L.Marker) {
-                map.value?.removeLayer(layer);
-              }
-            });
-            // Add a marker
-            if (
-              Array.isArray(latlng) &&
-              typeof latlng[0] === "number" &&
-              typeof latlng[1] === "number"
-            ) {
-              const marker = L.marker(L.latLng(latlng[0], latlng[1]));
-              if (map.value) {
-                marker.addTo(map.value);
-              }
-            }
+        if (lastHoveredPointIndex.value === point.index) {
+          return;
+        }
+
+        const latlng = activity.value?.stream?.latlng?.[point.index];
+        if (
+          latlng &&
+          Array.isArray(latlng) &&
+          typeof latlng[0] === "number" &&
+          typeof latlng[1] === "number"
+        ) {
+          const nextLatLng = L.latLng(latlng[0], latlng[1]);
+          if (hoverMarker.value) {
+            hoverMarker.value.setLatLng(nextLatLng);
+          } else if (map.value) {
+            hoverMarker.value = L.marker(nextLatLng).addTo(map.value);
           }
+          lastHoveredPointIndex.value = point.index;
         }
       }
-    });
+    };
+    chartContainer.addEventListener("mousemove", chartMouseMoveHandler);
   }
 };
 
@@ -459,14 +461,6 @@ const handleRadioClick = (key: string) => {
     time: stream.time.slice(startIndex, endIndex),
   };
 
-  // 3 - Update the map with the new stream data
-  // Remove previous blue polyline
-  map.value?.eachLayer((layer) => {
-    if (layer instanceof L.Polyline && layer.options.color === "blue") {
-      map.value?.removeLayer(layer);
-    }
-  });
-
   if (map.value) {
     const latlngs = selectedStream.latitudeLongitude
       .map((latlng: number[]) =>
@@ -476,9 +470,12 @@ const handleRadioClick = (key: string) => {
       )
       .filter((latlng): latlng is L.LatLng => latlng !== null);
     if (latlngs) {
-      const polyline = L.polyline(latlngs, { color: "blue" }).addTo(map.value);
-      // Fit the map to the bounds of all polylines
-      const bounds = L.latLngBounds(polyline.getLatLngs() as L.LatLng[]);
+      if (selectedPolyline.value) {
+        selectedPolyline.value.setLatLngs(latlngs);
+      } else {
+        selectedPolyline.value = L.polyline(latlngs, { color: "blue" }).addTo(map.value);
+      }
+      const bounds = L.latLngBounds(selectedPolyline.value.getLatLngs() as L.LatLng[]);
       map.value.fitBounds(bounds);
     }
   }
@@ -525,6 +522,25 @@ onMounted(async () => {
       });
     });
   });
+});
+
+onBeforeUnmount(() => {
+  const chartContainer = document.getElementById("chart-container");
+  if (chartContainer && chartMouseMoveHandler) {
+    chartContainer.removeEventListener("mousemove", chartMouseMoveHandler);
+  }
+  if (chartInstance) {
+    chartInstance.destroy();
+    chartInstance = null;
+  }
+  if (map.value) {
+    map.value.remove();
+    map.value = undefined;
+  }
+  basePolyline.value = null;
+  selectedPolyline.value = null;
+  hoverMarker.value = null;
+  lastHoveredPointIndex.value = null;
 });
 
 // Watcher to update chart options when showPowerCurve changes

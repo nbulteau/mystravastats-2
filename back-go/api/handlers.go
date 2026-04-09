@@ -134,14 +134,6 @@ func getExportCSV(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 	log.Println("CSV export successful")
-	if _, err = writer.Write([]byte(csvData)); err != nil {
-		log.Printf("failed to write CSV response: %v", err)
-	}
-	if _, err := writer.Write([]byte(csvData)); err != nil {
-		log.Printf("failed to write CSV response: %v", err)
-		http.Error(writer, "Failed to write CSV response", http.StatusInternalServerError)
-		return
-	}
 }
 
 // getStatisticsByActivityType godoc
@@ -228,6 +220,10 @@ func getChartsDistanceByPeriod(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	if year == nil {
+		http.Error(w, "year is required", http.StatusBadRequest)
+		return
+	}
 	activityTypes, err := getActivityTypeParam(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -259,6 +255,10 @@ func getChartsElevationByPeriod(writer http.ResponseWriter, request *http.Reques
 	year, err := getYearParam(request)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if year == nil {
+		http.Error(writer, "year is required", http.StatusBadRequest)
 		return
 	}
 	activityTypes, err := getActivityTypeParam(request)
@@ -294,6 +294,10 @@ func getChartsAverageSpeedByPeriod(writer http.ResponseWriter, request *http.Req
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
+	if year == nil {
+		http.Error(writer, "year is required", http.StatusBadRequest)
+		return
+	}
 	activityTypes, err := getActivityTypeParam(request)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusBadRequest)
@@ -325,6 +329,10 @@ func getChartsAverageCadenceByPeriod(writer http.ResponseWriter, request *http.R
 	year, err := getYearParam(request)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if year == nil {
+		http.Error(writer, "year is required", http.StatusBadRequest)
 		return
 	}
 	activityTypes, err := getActivityTypeParam(request)

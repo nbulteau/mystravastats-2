@@ -16,8 +16,9 @@ func FetchChartsDistanceByPeriod(year *int, period business.Period, activityType
 	activities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
 	activitiesByPeriod := activitiesByPeriod(activities, *year, period)
 
-	result := make([]map[string]float64, 0)
-	for period, activities := range activitiesByPeriod {
+	result := make([]map[string]float64, 0, len(activitiesByPeriod))
+	for _, period := range sortedPeriodKeys(activitiesByPeriod) {
+		activities := activitiesByPeriod[period]
 		totalDistance := 0.0
 		for _, activity := range activities {
 			totalDistance += activity.Distance / 1000
@@ -25,7 +26,7 @@ func FetchChartsDistanceByPeriod(year *int, period business.Period, activityType
 		result = append(result, map[string]float64{period: totalDistance})
 	}
 
-	return sortResultByKey(result)
+	return result
 }
 
 // FetchChartsElevationByPeriod retrieves the total elevation gain of activities by period for a given activity type and year.
@@ -43,8 +44,9 @@ func FetchChartsElevationByPeriod(year *int, period business.Period, activityTyp
 		size = 365
 	}
 
-	result := make([]map[string]float64, size)
-	for period, activities := range activitiesByPeriod {
+	result := make([]map[string]float64, 0, size)
+	for _, period := range sortedPeriodKeys(activitiesByPeriod) {
+		activities := activitiesByPeriod[period]
 		totalElevation := 0.0
 		for _, activity := range activities {
 			totalElevation += activity.TotalElevationGain
@@ -52,7 +54,7 @@ func FetchChartsElevationByPeriod(year *int, period business.Period, activityTyp
 		result = append(result, map[string]float64{period: totalElevation})
 	}
 
-	return sortResultByKey(result)
+	return result
 }
 
 func FetchChartsAverageSpeedByPeriod(year *int, period business.Period, activityTypes ...business.ActivityType) []map[string]float64 {
@@ -69,8 +71,9 @@ func FetchChartsAverageSpeedByPeriod(year *int, period business.Period, activity
 		size = 365
 	}
 
-	result := make([]map[string]float64, size)
-	for period, activities := range activitiesByPeriod {
+	result := make([]map[string]float64, 0, size)
+	for _, period := range sortedPeriodKeys(activitiesByPeriod) {
+		activities := activitiesByPeriod[period]
 		if len(activities) == 0 {
 			result = append(result, map[string]float64{period: 0.0})
 			continue
@@ -83,7 +86,7 @@ func FetchChartsAverageSpeedByPeriod(year *int, period business.Period, activity
 		result = append(result, map[string]float64{period: averageSpeed})
 	}
 
-	return sortResultByKey(result)
+	return result
 }
 func FetchChartsAverageCadenceByPeriod(year *int, period business.Period, activityTypes ...business.ActivityType) []map[string]float64 {
 	log.Printf("Get average cadence by %s by activity (%s) type by year (%d)", period, activityTypes, *year)
@@ -99,8 +102,9 @@ func FetchChartsAverageCadenceByPeriod(year *int, period business.Period, activi
 		size = 365
 	}
 
-	result := make([]map[string]float64, size)
-	for period, activities := range activitiesByPeriod {
+	result := make([]map[string]float64, 0, size)
+	for _, period := range sortedPeriodKeys(activitiesByPeriod) {
+		activities := activitiesByPeriod[period]
 		if len(activities) == 0 {
 			result = append(result, map[string]float64{period: 0.0})
 			continue
@@ -130,7 +134,7 @@ func FetchChartsAverageCadenceByPeriod(year *int, period business.Period, activi
 		result = append(result, map[string]float64{period: averageCadence})
 	}
 
-	return sortResultByKey(result)
+	return result
 }
 
 func activitiesByPeriod(activities []*strava.Activity, year int, period business.Period) map[string][]*strava.Activity {
@@ -184,24 +188,11 @@ func groupActivitiesByWeek(activities []*strava.Activity) map[string][]*strava.A
 	return activitiesByWeek
 }
 
-func sortResultByKey(result []map[string]float64) []map[string]float64 {
-	// Extract keys and sort them
-	keys := make([]string, 0)
-	for _, m := range result {
-		for k := range m {
-			keys = append(keys, k)
-		}
+func sortedPeriodKeys(periods map[string][]*strava.Activity) []string {
+	keys := make([]string, 0, len(periods))
+	for k := range periods {
+		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-
-	// Create a new sorted slice of maps
-	sortedResult := make([]map[string]float64, 0, len(result))
-	for _, k := range keys {
-		for _, m := range result {
-			if val, ok := m[k]; ok {
-				sortedResult = append(sortedResult, map[string]float64{k: val})
-			}
-		}
-	}
-	return sortedResult
+	return keys
 }

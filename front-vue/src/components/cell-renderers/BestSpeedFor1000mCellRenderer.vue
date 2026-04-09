@@ -5,7 +5,6 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps } from "vue";
 import type {Activity} from "@/models/activity.model.ts";
 import {formatSpeedWithUnit} from "@/utils/formatters.ts";
 

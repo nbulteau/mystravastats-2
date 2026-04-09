@@ -9,7 +9,7 @@ import NameCellRenderer from "./cell-renderers/NameCellRenderer.vue";
 import DateCellRenderer from "./cell-renderers/DateCellRenderer.vue";
 import GradientCellRenderer from "./cell-renderers/GradientCellRenderer.vue";
 import {useRouter} from 'vue-router';
-import {computed, onMounted, ref} from "vue";
+import {computed, onBeforeUnmount, onMounted, ref} from "vue";
 import shareIcon from "@/assets/share-outline.svg";
 import AverageSpeedCellRenderer from "@/components/cell-renderers/AverageSpeedCellRenderer.vue";
 import BestSpeedFor1000mCellRenderer from "@/components/cell-renderers/BestSpeedFor1000mCellRenderer.vue";
@@ -36,7 +36,7 @@ function showDetailedActivity(activityId: string) {
 }
 
 async function csvExport() {
-  let url = `http://localhost:8080/api/activities/csv?activityType=${props.currentActivity}`;
+  let url = `/api/activities/csv?activityType=${props.currentActivity}`;
   if (props.currentYear != "All years") {
     url = `${url}&year=${props.currentYear}`;
   }
@@ -206,7 +206,11 @@ const footerData = computed(() => {
 });
 
 onMounted(() => {
-  eventBus.on("detailledActivityClick", (event: any) => showDetailedActivity(event as string));
+  eventBus.on("detailledActivityClick", (event) => showDetailedActivity(String(event)));
+});
+
+onBeforeUnmount(() => {
+  eventBus.off("detailledActivityClick");
 });
 </script>
 

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type {Activity} from "@/models/activity.model";
-import {defineProps} from "vue";
 import {eventBus} from "@/main";
 
 defineProps<{

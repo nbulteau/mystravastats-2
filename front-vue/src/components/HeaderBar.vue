@@ -31,12 +31,6 @@ const currentYear = new Date().getFullYear();
 const years: string[] = Array.from({length: currentYear - 2010 + 1}, (_, i) => (currentYear - i).toString());
 years.push("All years");
 
-const onChangeCurrentYear = (event: Event) => {
-  const target = event.currentTarget as HTMLInputElement;
-  const year = target.value;
-  contextStore.updateCurrentYear(year);
-};
-
 let tooltipInstances: Tooltip[] = [];
 
 onMounted(() => {
@@ -114,7 +108,6 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
             v-model="selectedYear"
             name="year"
             class="form-select-lg me-3"
-            @change="onChangeCurrentYear"
         >
           <option
               v-for="year in years"

@@ -11,7 +11,11 @@ import (
 )
 
 func ExportCSV(year *int, activityTypes ...business.ActivityType) string {
-	log.Printf("Get export CSV by activity (%s) type by year (%d)", activityTypes, *year)
+	if year == nil {
+		log.Printf("Get export CSV by activity (%s) type for all years", activityTypes)
+	} else {
+		log.Printf("Get export CSV by activity (%s) type by year (%d)", activityTypes, *year)
+	}
 
 	activities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
 

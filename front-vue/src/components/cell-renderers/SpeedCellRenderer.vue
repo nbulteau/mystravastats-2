@@ -5,7 +5,6 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps } from "vue";
 import {formatSpeedWithUnit} from "@/utils/formatters.ts";
 
 

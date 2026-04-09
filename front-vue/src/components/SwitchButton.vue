@@ -3,26 +3,25 @@
     class="btn btn-primary"
     @click="toggle"
   >
-    {{ buttonText }} {{ isOn ? 'on' : 'off' }}
+    {{ buttonText }} {{ modelValue ? 'on' : 'off' }}
   </button>
 </template>
   
-  <script setup lang="ts">
-  import { ref, watch, defineEmits } from 'vue';
+<script setup lang="ts">
+const emit = defineEmits<{
+  'update:modelValue': [value: boolean]
+}>();
 
-  const emit = defineEmits(['update:modelValue']);
-  defineProps<{ buttonText: string }>();
-  const isOn = ref(false);
+const props = defineProps<{
+  buttonText: string;
+  modelValue: boolean;
+}>();
+
+const toggle = () => {
+  emit('update:modelValue', !props.modelValue);
+};
+</script>
   
-  const toggle = () => {
-    isOn.value = !isOn.value;
-  };
+<style scoped>
 
-  watch(isOn, (newVal) => {
-  emit('update:modelValue', newVal);
-});
-  </script>
-  
-  <style scoped>
-
-  </style>
+</style>
