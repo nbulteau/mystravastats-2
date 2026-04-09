@@ -204,11 +204,7 @@ export const useContextStore = defineStore('context', {
         },
         updateCurrentView(view: 'statistics' | 'activities' | 'activity' | 'map' | 'badges' | 'charts' | 'dashboard') {
             this.currentView = view
-            this.updateData().then(
-                () => {
-                    console.log(`Data updated for view ${view}`)
-                }
-            );
+            void this.updateData()
         },
 
         showToast(toast: Toast) {

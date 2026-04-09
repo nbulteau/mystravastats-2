@@ -2,6 +2,7 @@ package stravaapi
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -55,24 +57,33 @@ func (api *StravaApi) setAccessToken(clientId, clientSecret string) {
 
 	// Create a channel to signal when the accessToken is set
 	tokenChan := make(chan struct{})
+	var tokenReady sync.Once
+	mux := http.NewServeMux()
+	server := &http.Server{
+		Addr:    ":8090",
+		Handler: mux,
+	}
 
 	// Start a local server to handle the OAuth callback
-	http.HandleFunc("/exchange_token", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/exchange_token", func(w http.ResponseWriter, r *http.Request) {
 		code := r.URL.Query().Get("code")
 		token := api.getToken(clientId, clientSecret, code)
 		api.accessToken = token.AccessToken
 		_, _ = fmt.Fprint(w, buildResponseHtml(clientId))
 
-		// Signal that the token is set
-		close(tokenChan)
-
-		// Remove port binding
-		_ = http.ListenAndServe(":8090", nil)
+		tokenReady.Do(func() {
+			close(tokenChan)
+		})
+		go func() {
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_ = server.Shutdown(shutdownCtx)
+		}()
 	})
 
 	go func() {
-		err := http.ListenAndServe(":8090", nil)
-		if err != nil {
+		err := server.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Failed to start local server: %v", err)
 		}
 	}()

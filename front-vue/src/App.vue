@@ -1,19 +1,14 @@
 <script setup lang="ts">
 import "../node_modules/bootstrap/scss/bootstrap.scss";
 import HeaderBar from "@/components/HeaderBar.vue";
-import { onMounted } from "vue";
 import { RouterLink } from "vue-router";
 import { useContextStore } from "@/stores/context.js";
+
 const contextStore = useContextStore();
 
 const isCurrent = (name: string) => {
   return contextStore.currentView === name;
 };
-
-onMounted(async () => {
-  await contextStore.updateData();
-});
-
 </script>
 
 <template>
@@ -29,127 +24,97 @@ onMounted(async () => {
           class="nav-item"
           role="presentation"
         >
-          <button
+          <RouterLink
             id="statistics-tab"
             class="nav-link"
             :class="{ active: isCurrent('statistics') }"
-            data-bs-toggle="tab"
-            data-bs-target="#statistics-tab-pane"
-            type="button"
             role="tab"
             aria-controls="home-tab-pane"
             aria-selected="true"
-            href="/statistics"
+            to="/"
           >
-            <RouterLink to="/">
-              Statistics
-            </RouterLink>
-          </button>
+            Statistics
+          </RouterLink>
         </li>
         <li
           class="nav-item"
           role="presentation"
         >
-          <button
+          <RouterLink
             id="activities-tab"
             class="nav-link"
             :class="{ active: isCurrent('activities') }"
-            data-bs-toggle="tab"
-            data-bs-target="#activities-tab-pane"
-            type="button"
             role="tab"
             aria-controls="activities-tab-pane"
             aria-selected="false"
-            href="/activities"
+            to="/activities"
           >
-            <RouterLink to="/activities">
-              Activities
-            </RouterLink>
-          </button>
+            Activities
+          </RouterLink>
         </li>
         <li
           class="nav-item"
           role="presentation"
         >
-          <button
+          <RouterLink
             id="map-tab"
             class="nav-link"
             :class="{ active: isCurrent('map') }"
-            data-bs-toggle="tab"
-            data-bs-target="#map-tab-pane"
-            type="button"
             role="tab"
             aria-controls="map-tab-pane"
             aria-selected="false"
-            href="/map"
+            to="/map"
           >
-            <RouterLink to="/map">
-              Map
-            </RouterLink>
-          </button>
+            Map
+          </RouterLink>
         </li>
         <li
           class="nav-item"
           role="presentation"
         >
-          <button
+          <RouterLink
             id="charts-tab"
             class="nav-link"
             :class="{ active: isCurrent('charts') }"
-            data-bs-toggle="tab"
-            data-bs-target="#charts-tab-pane"
-            type="button"
             role="tab"
             aria-controls="chart-tab-pane"
             aria-selected="false"
-            href="/charts"
+            to="/charts"
           >
-            <RouterLink to="/charts">
-              Charts
-            </RouterLink>
-          </button>
+            Charts
+          </RouterLink>
         </li>
         <li
           class="nav-item"
           role="presentation"
         >
-          <button
+          <RouterLink
             id="dashboard-tab"
             class="nav-link"
             :class="{ active: isCurrent('dashboard') }"
-            data-bs-toggle="tab"
-            data-bs-target="#dashboard-tab-pane"
-            type="button"
             role="tab"
             aria-controls="dashboard-tab-pane"
             aria-selected="false"
-            href="/dashboard"
+            to="/dashboard"
           >
-            <RouterLink to="/dashboard">
-              Dashboard
-            </RouterLink>
-          </button>
+            Dashboard
+          </RouterLink>
         </li>
         <li
           class="nav-item"
           role="presentation"
         >
-          <button
+          <RouterLink
             id="badges-tab"
             class="nav-link"
             :class="{ active: isCurrent('badges') }"
-            data-bs-toggle="tab"
-            data-bs-target="#badges-tab-pane"
-            type="button"
             role="tab"
             aria-controls="badges-tab-pane"
             aria-selected="false"
-            href="/badges"
+            to="/badges"
           >
-            <RouterLink to="/badges">
-              Badges
-            </RouterLink>
-          </button>
+            Badges
+          </RouterLink>
         </li>
       </ul>
     </nav>

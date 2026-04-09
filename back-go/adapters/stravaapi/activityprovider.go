@@ -3,11 +3,11 @@ package stravaapi
 import (
 	"fmt"
 	"log"
-	"runtime"
 	"mystravastats/adapters/localrepository"
 	"mystravastats/domain/business"
 	"mystravastats/domain/strava"
 	"mystravastats/internal/helpers"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -44,21 +44,41 @@ func NewStravaActivityProvider(stravaCache string) *StravaActivityProvider {
 	} else {
 		if secret != "" {
 			provider.localStorageProvider.InitLocalStorageForClientId(id)
-			provider.StravaApi = NewStravaApi(id, secret)
-			provider.stravaAthlete = provider.retrieveLoggedInAthlete(id)
-			provider.activities = provider.loadCurrentYearFromStrava(id)
+			if provider.shouldBootstrapFromStravaAPI(id) {
+				provider.StravaApi = NewStravaApi(id, secret)
+				provider.stravaAthlete = provider.retrieveLoggedInAthlete(id)
+				provider.activities = provider.loadCurrentYearFromStrava(id)
+			} else {
+				log.Printf("Using local Strava cache for startup; OAuth skipped")
+				provider.stravaAthlete = provider.localStorageProvider.LoadAthleteFromCache(id)
+				provider.activities = provider.loadFromLocalCache(id)
+			}
 		} else {
 			log.Fatal("Strava authentication not found")
 		}
 	}
 
-	// Open the browser
 	helpers.OpenBrowser("http://localhost:8080")
 	provider.indexActivities()
 
 	log.Printf("✅ MyStravastats ready with clientId=%s and %d activities", provider.clientId, len(provider.activities))
 
 	return provider
+}
+
+func (provider *StravaActivityProvider) shouldBootstrapFromStravaAPI(clientId string) bool {
+	currentYear := time.Now().Year()
+
+	if !provider.localStorageProvider.IsLocalCacheExistForYear(clientId, currentYear) {
+		return true
+	}
+
+	if provider.shouldReloadFromStravaAPI(clientId, currentYear) {
+		return true
+	}
+
+	athlete := provider.localStorageProvider.LoadAthleteFromCache(clientId)
+	return athlete.Id == 0
 }
 
 func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *strava.DetailedActivity {
@@ -196,7 +216,7 @@ func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId strin
 
 // Determine if the local cache should be reloaded from Strava API
 func (provider *StravaActivityProvider) shouldReloadFromStravaAPI(clientId string, year int) bool {
-	const cutoffMillis int64 = 1755408900 // 17 August 2025 in milliseconds (UTC)
+	const cutoffMillis int64 = 1755408900000 // 17 August 2025 in milliseconds (UTC)
 	lastModifiedMillis := provider.localStorageProvider.GetLocalCacheLastModified(clientId, year)
 	return lastModifiedMillis < cutoffMillis
 }
