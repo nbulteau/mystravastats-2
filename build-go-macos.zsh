@@ -1,4 +1,4 @@
-#!/bin/zsh
+ #!/bin/zsh
 
 # Check for --verbose flag
 VERBOSE=0
