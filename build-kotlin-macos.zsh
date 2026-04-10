@@ -178,8 +178,6 @@ fi
 # Ensure .env file exists and add STRAVA_CACHE_PATH if missing
 if [[ ! -f "$ROOT_DIR/.env" ]]; then
   touch "$ROOT_DIR/.env"
-fi
-if ! rg -q "^STRAVA_CACHE_PATH=" "$ROOT_DIR/.env" 2>/dev/null; then
   echo "STRAVA_CACHE_PATH=$ROOT_DIR/strava-cache" >> "$ROOT_DIR/.env"
   echo "📄 Added STRAVA_CACHE_PATH to .env"
 fi
