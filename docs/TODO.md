@@ -1,7 +1,5 @@
 # Product Backlog
 
-This backlog focuses on user-facing features that can make MyStravaStats more useful, more engaging, and easier to use regularly.
-
 ## P0 - High Impact
 
 ### 1. Activity Comparison
