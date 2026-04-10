@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { watch, ref, onMounted } from "vue";
+import { watch, ref, onBeforeUnmount, onMounted } from "vue";
 
 const props = defineProps<{
   gpxCoordinates: number[][][];
@@ -43,9 +43,13 @@ const updateMap = () => {
     // Fit the map to the bounds of all polylines
     // const bounds = L.latLngBounds(polylines.flatMap((polyline) => polyline.getLatLngs()));
     const bounds = L.latLngBounds(
-      polylines.flatMap((polyline) => polyline!.getLatLngs().flat() as L.LatLng[])
+      polylines
+        .filter((polyline): polyline is L.Polyline => polyline !== undefined)
+        .flatMap((polyline) => polyline.getLatLngs().flat() as L.LatLng[])
     );
-    map.value.fitBounds(bounds);
+    if (bounds.isValid()) {
+      map.value.fitBounds(bounds);
+    }
   }
 };
 
@@ -62,6 +66,13 @@ watch(
 
 onMounted(() => {
   initMap();
+});
+
+onBeforeUnmount(() => {
+  if (map.value) {
+    map.value.remove();
+    map.value = undefined;
+  }
 });
 </script>
 

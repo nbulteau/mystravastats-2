@@ -61,9 +61,9 @@ const toggleActivity = (activity: string, activities: string[], defaultActivity:
 const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 'MountainBikeRide' | 'Commute' | 'Run' | 'TrailRun' | 'Hike' | 'AlpineSki') => {
 
   if (cyclingActivities.includes(activity)) {
-    toggleActivity(activity, cyclingActivities, 'cycling');
+    toggleActivity(activity, cyclingActivities, 'Ride');
   } else if (runningActivities.includes(activity)) {
-    toggleActivity(activity, runningActivities, 'running');
+    toggleActivity(activity, runningActivities, 'Run');
   } else {
     // For non-cycling activities, select that single activity
     selectedActivitiesType.value = [activity];

@@ -13,6 +13,14 @@
     
   </button>
   <div
+    v-if="loadError"
+    class="alert alert-danger"
+    role="alert"
+  >
+    {{ loadError }}
+  </div>
+  <template v-else>
+  <div
     id="title"
     style="text-align: center; margin-bottom: 20px"
   >
@@ -104,6 +112,7 @@
     v-if="activity"
     :activity="activity"
   />
+  </template>
 </template>
 
 <script setup lang="ts">
@@ -115,6 +124,7 @@ import { useRoute } from "vue-router";
 import { ActivityEffort, DetailedActivity } from "@/models/activity.model"; 
 import { formatSpeedWithUnit, formatTime } from "@/utils/formatters";
 import { useContextStore } from "@/stores/context.js";
+import { ErrorService } from "@/services/error.service";
 import type { Options, SeriesAreaOptions, SeriesLineOptions } from "highcharts";
 import Highcharts from "highcharts";
 import { Chart } from "highcharts-vue";
@@ -165,6 +175,7 @@ const activityId = Array.isArray(route.params.id) ? route.params.id[0] : route.p
 
 
 const activity = ref<DetailedActivity | null>(null);
+const loadError = ref<string | null>(null);
 
 const map = ref<L.Map>();
 const basePolyline = ref<L.Polyline | null>(null);
@@ -199,7 +210,12 @@ const buildRadioOptions = () => {
 
 async function fetchDetailedActivity(id: string) {
   const url = `/api/activities/${id}`;
-  activity.value = await fetch(url).then((response) => response.json());
+  const response = await fetch(url);
+  if (!response.ok) {
+    await ErrorService.catchError(response);
+  }
+  activity.value = await response.json();
+  loadError.value = null;
 }
 
 const initMap = () => {
@@ -506,7 +522,8 @@ const handleRadioClick = (key: string) => {
 
 onMounted(async () => {
   initMap();
-  await fetchDetailedActivity(activityId ?? "").then(async () => {
+  try {
+    await fetchDetailedActivity(activityId ?? "");
     updateMap();
     initChart();
     buildRadioOptions();
@@ -521,7 +538,10 @@ onMounted(async () => {
         html: true,
       });
     });
-  });
+  } catch (error) {
+    activity.value = null;
+    loadError.value = "Unable to load this activity.";
+  }
 });
 
 onBeforeUnmount(() => {

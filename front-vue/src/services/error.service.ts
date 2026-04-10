@@ -24,36 +24,19 @@ export class ErrorService {
                 timestamp: `${Date.now()}`,
             }
         }
-        if (response.status < 500) {
-            if (apiError.code) {
-                const toast: Toast = {
-                    id: `toast-${Date.now()}`,
-                    message: `${apiError.description}`,
-                    apiErrorCode: apiError.code,
-                    type: ToastTypeEnum.ERROR,
-                }
-                contextStore.showToast(toast)
-                // program toast disapear
-                setTimeout(() => {
-                    contextStore.removeToast(toast)
-                }, 5000)
-            } else {
-                // error outside server
-
-                const toast: Toast = {
-                    id: `toast-${Date.now()}`,
-                    message: 'Une erreur s\'est produite, veuillez réessayer ultérieurement',
-                    type: ToastTypeEnum.ERROR,
-                }
-                contextStore.showToast(toast)
-
-                // program toast disapear
-                setTimeout(() => {
-                    contextStore.removeToast(toast)
-                }, 5000)
-            }
-
-            throw new Error(apiError.message)
+        const toast: Toast = {
+            id: `toast-${Date.now()}`,
+            message: apiError.code
+                ? `${apiError.description}`
+                : 'Une erreur s\'est produite, veuillez réessayer ultérieurement',
+            apiErrorCode: apiError.code,
+            type: ToastTypeEnum.ERROR,
         }
+        contextStore.showToast(toast)
+        setTimeout(() => {
+            contextStore.removeToast(toast)
+        }, 5000)
+
+        throw new Error(apiError.message)
     }
 }
