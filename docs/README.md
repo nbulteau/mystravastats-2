@@ -1,256 +1,505 @@
-# MyStravaStats-2
+# MyStravaStats
 
-A tool to calculate and display various statistics on Strava activities.
+MyStravaStats is a personal analytics application for Strava activities.
+It lets you explore rides, runs, hikes, inline skating sessions, ski activities, maps, charts, badges, dashboards, and best-effort statistics computed from your historical data.
 
-## Features
+## What The Product Does
 
-This tool scans through activities and provides the following statistics:
+MyStravaStats can:
+- load activities from Strava
+- reuse a local cache to avoid downloading the full history every time
+- work from GPX or FIT files in the Kotlin backend
+- compute global statistics and sport-specific statistics
+- calculate best efforts from activity streams
+- show dashboards, charts, maps, badges, and detailed activity views
+- export filtered activities to CSV
 
-* **Best Effort**: Finds the fastest consecutive 1 km, 5 km, 10 km you've run, or the fastest 2 hours, 3 hours in ride activities.
-* **Eddington Number**: Calculates the Eddington number for rides, runs, inline skating, and hikes. The Eddington number is the largest number, E, such that you have ridden at least E km on at least E days. [Learn more](https://en.wikipedia.org/wiki/Arthur_Eddington#Eddington_number_for_cycling)
-* **Best Cooper (12 min)**: Finds the best effort for the given time (12 minutes) on running activities using a 'sliding window'. [Learn more](https://fr.wikipedia.org/wiki/Test_de_Cooper)
-* **Best vVO2max (6 min)**: Finds the best effort for the given time (6 minutes) on running activities using a 'sliding window'. [Learn more](https://en.wikipedia.org/wiki/VVO2max)
-* **FTP (Functional Threshold Power)**: Finds the best effort for the given time (1 hour) on bike activities using a 'sliding window'. The easiest way to calculate your FTP is to test your best average power for 20 minutes and then subtract 5%.
+Examples of metrics already available:
+- total distance, elevation, moving time, active days, streaks
+- Eddington number
+- best effort by distance or by time
+- best climbing gradient on a target distance
+- dashboard trends by year
+- route visualisation and activity detail charts
 
-And many other statistics.
+## Repository Layout
 
-All statistics can be exported as a CSV file.
+The repository currently contains three major parts:
 
-## User Interface
+- [front-vue](/Users/nicolas/Workspace/mystravastats-2/front-vue): Vue 3 frontend
+- [back-kotlin](/Users/nicolas/Workspace/mystravastats-2/back-kotlin): Spring Boot + Kotlin backend
+- [back-go](/Users/nicolas/Workspace/mystravastats-2/back-go): Go backend with a similar API to the Kotlin backend
+
+In practice:
+- the Kotlin backend is the richer and more extensible backend
+- the Go backend still exists and is still wired into some packaging scripts
+- the frontend talks to a backend through `/api/...`
+
+## Architecture Overview
+
+### Frontend
+
+The frontend is implemented in Vue 3 with Vite and Pinia.
+
+Main areas:
+- statistics
+- activities
+- map
+- charts
+- dashboard
+- badges
+- detailed activity view
+
+Useful entry points:
+- [main.ts](/Users/nicolas/Workspace/mystravastats-2/front-vue/src/main.ts)
+- [App.vue](/Users/nicolas/Workspace/mystravastats-2/front-vue/src/App.vue)
+- [context.ts](/Users/nicolas/Workspace/mystravastats-2/front-vue/src/stores/context.ts)
+
+### Kotlin backend
+
+The Kotlin backend is a Spring Boot application with:
+- REST controllers in [api/controllers](/Users/nicolas/Workspace/mystravastats-2/back-kotlin/src/main/kotlin/me/nicolas/stravastats/api/controllers)
+- business services in [domain/services](/Users/nicolas/Workspace/mystravastats-2/back-kotlin/src/main/kotlin/me/nicolas/stravastats/domain/services)
+- data providers in [activityproviders](/Users/nicolas/Workspace/mystravastats-2/back-kotlin/src/main/kotlin/me/nicolas/stravastats/domain/services/activityproviders)
+- Strava and local-cache adapters in [adapters](/Users/nicolas/Workspace/mystravastats-2/back-kotlin/src/main/kotlin/me/nicolas/stravastats/adapters)
+
+It supports three data sources:
+- Strava API + local cache
+- GPX files
+- FIT files
+
+### Go backend
+
+The Go backend exposes a similar API and is still relevant for some build flows.
+It is simpler architecturally, but less flexible than the Kotlin backend.
+
+## Screenshots
+
+Statistics and activities:
 
 <img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-1.png?raw=true" width="45%" /> <img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-2.png?raw=true" width="45%" />
+
+Maps and dashboard:
+
 <img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-4.png?raw=true" width="45%" /> <img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-7.png?raw=true" width="45%" />
+
+Badges and detailed activity:
+
 <img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-5.png?raw=true" width="45%" /><img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-8.png?raw=true" width="45%" />
+
+Charts and route view:
+
 <img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-6.png?raw=true" width="45%" /><img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-3.png?raw=true" width="45%" />
 
 Icons made by [Freepik](https://www.freepik.com) from [Flaticon](https://www.flaticon.com).
 
-## Table of Contents
+## Quick Start For Non-Developers
 
-1. [Build Command](#build-command)
-2. [Get Activities from Strava](#get-activities-from-strava)
-3. [Strava Access](#strava-access)
-4. [Run Command](#run-command)
-5. [Provided Statistics](#provided-statistics)
-    1. [Global Statistics](#global-statistics)
-    2. [Rides (Commute)](#rides-commute)
-    3. [Rides (Sport)](#rides-sport)
-    4. [Runs](#runs)
-    5. [InlineSkate](#inlineskate)
-    6. [Hikes](#hikes)
+If you simply want to build and run the application, the easiest path is to use one of the provided build scripts:
 
-## build command
+- [build-macos.zsh](/Users/nicolas/Workspace/mystravastats-2/build-macos.zsh)
+- [build-ubuntu.sh](/Users/nicolas/Workspace/mystravastats-2/build-ubuntu.sh)
+- [build-windows.ps1](/Users/nicolas/Workspace/mystravastats-2/build-windows.ps1)
 
-You need to have docker on your computer : it prevent you to install all the developpment environement stuffs.
+These scripts are designed to prepare the application for your platform.
+They rely on Docker, so Docker must be installed and running before you launch them.
 
-Launch the proper script :
+### Step 1: Install Docker
 
-### MacOS
+#### macOS
 
-```shell
+Install Docker Desktop for Mac:
+- official guide: [Install Docker Desktop on Mac](https://docs.docker.com/desktop/setup/install/mac-install/)
+
+Beginner-friendly summary:
+- download Docker Desktop for your Mac
+- open the installer
+- move Docker to the Applications folder
+- launch Docker Desktop once
+- wait until Docker says it is running
+
+#### Ubuntu
+
+Install Docker Engine on Ubuntu:
+- official guide: [Install Docker Engine on Ubuntu](https://docs.docker.com/engine/install/ubuntu/)
+
+Beginner-friendly summary:
+- install Docker following the official Ubuntu instructions
+- make sure the Docker service is started
+- verify Docker works with `docker --version`
+
+#### Windows
+
+Install Docker Desktop for Windows:
+- official guide: [Install Docker Desktop on Windows](https://docs.docker.com/desktop/setup/install/windows-install/)
+
+Beginner-friendly summary:
+- install Docker Desktop
+- enable WSL 2 if Docker asks for it
+- launch Docker Desktop once
+- wait until Docker says it is running
+
+### Step 2: Run the build script for your platform
+
+#### macOS
+
+```sh
 ./build-macos.zsh
 ```
 
-### Ubuntu
+#### Ubuntu
 
-```shell
+```sh
 ./build-ubuntu.sh
 ```
 
-🔄 Change owner of mystravastats to current user: 'sudo chown $(whoami):$(whoami) mystravastats'"
+If needed, fix ownership of the generated binary:
 
-```shell
+```sh
 sudo chown $(whoami):$(whoami) mystravastats
-````
+```
 
-### Windows
+#### Windows
 
-```shell
+```powershell
 ./build-windows.ps1
 ```
 
-## Strava Access
+### Step 3: Run the generated application
 
-All calls to the Strava API require an `access_token` defining the athlete and application making the call. Any registered Strava user can obtain an `access_token` by first creating an application at [Strava API Settings](https://www.strava.com/settings/api).
+#### macOS or Ubuntu
 
-The Strava API application settings page provides *mandatory parameters* for MyStravaStats:
-
-* `clientId`: Your application’s ID.
-* `clientSecret`: Your client secret.
-
-The build script created a directory `strava-cache` with a `.strava` file in it. Put your `clientId` and `clientSecret` in the file.
-
-## Get activities from Strava
-
-Activities are download in a local directory (strava-cache), in that way only new and missing ones are downloaded from Strava.
-The first time you use My Strava Stats it will attempt to collect activities from 2010 to now.
-Due to rate limitations (100 requests every 15 minutes, with up to 1,000 requests per day) it may be necessary to do it
-in several attempts. (<https://developers.strava.com/docs/rate-limits/>)
-
-Note : If you do not provide your Client Secret MyStravaStats will use locally downloaded activities.
-
-A browser will open a browser on the Strava consent screen.
-If browser does not open, copy/past URL from your terminal in a browser to allow mystravastats to access your Strava
-data.
-This URL will look like :
-
-```link
-https://www.strava.com/api/v3/oauth/authorize?client_id=[YOUR_CLIENT_ID]&response_type=code&redirect_uri=http://localhost/exchange_token&approval_prompt=force&scope=read_all,profile:read_all,activity:read_all
-```
-
-Login to Strava then click 'Authorize' and tick the required permissions if needed.
-
-## run command
-
-Launch the proper script :
-
-### MacOS or Ubuntu
-
-```shell
+```sh
 ./mystravastats
 ```
 
-### Windows
+#### Windows
 
-```shell
+```powershell
 mystravastats.exe
 ```
 
-Open link in a browser : <http://localhost:8080/>
+Then open:
+- [http://localhost:8080/](http://localhost:8080/)
 
-## Provided Statistics
+## Running The Project As A Developer
 
-### Global Statistics
+## Option 1: Kotlin backend
 
-| Global Statistics  ||
-|--------------------|---|
-| Nb activities      | Total of all activities.|
-| Nb actives days    | Number of active days for all activities.|
-| Max streak         | Max streak of activities for consecutive days.|
-| Most active month. | The most active month of the year.|
+Run the frontend and Kotlin backend stack:
 
-### Rides (commute)
+- Docker Compose: [docker-compose-kotlin.yml](/Users/nicolas/Workspace/mystravastats-2/docker-compose-kotlin.yml)
+- Backend project: [back-kotlin](/Users/nicolas/Workspace/mystravastats-2/back-kotlin)
 
-| Rides (commute)   ||
-|-------------------|---|
-| Nb activities     | Total of all commute rides.|
-| Nb actives days   | Number of active days for all commute rides.|
-| Max streak        | Max streak of commute rides for consecutive days.|
-| Total distance    | Total elevation accumulated on all commute rides.|
-| Total elevation   | Total elevation accumulated on all commute rides.|
-| Max distance      | Max distance calculated by Strava for commute rides.|
-| Max elevation     | Max elevation calculated by Strava for commute rides.|
-| Max moving time   | Max moving time for commute rides. Moving time, is a measure of how long you were active. Strava attempt to calculate this based on the GPS locations, distance, and speed of your activity.|
-| Most active month | The most active month of the year for commute rides.|
-| Eddington number  | The Eddington number in the context of cycling is defined as the maximum number E such that the cyclist has cycled E km on E days.|
+Typical local command:
 
-### Rides (sport)
+```sh
+cd back-kotlin
+./gradlew build
+./gradlew bootRun
+```
 
-| Rides (sport)           ||
-|-------------------------| --- |
-| Nb activities           | Total of all bike rides.|
-| Nb actives days         | Number of active days for all bike rides.|
-| Max streak              | Max streak of bike rides for a consecutive days. |
-| Total distance          | Total elevation accumulated on all bike rides. |
-| Total elevation         | Total elevation accumulated on all bike rides. |
-| Max distance            | Max distance calculated by Strava for bike rides.|
-| Max elevation           | Max elevation calculated by Strava for bike rides.|
-| Max moving time         | Max moving time for bike rides. Moving time, is a measure of how long you were active. Strava attempt to calculate this based on the GPS locations, distance, and speed of your activity.|
-| Most active month       | The most active month of the year for bike rides. |
-| Eddington number        | The Eddington number in the context of cycling is defined as the maximum number E such that the cyclist has cycled E km on E days.|
-| Max speed               | Max speed calculated by Strava for bike rides.|
-| Max moving time         | Max moving time calculated by Strava for bike rides|
-| Best 250 m              | Sliding window best effort for a given distance.|
-| Best 500 m              | Sliding window best effort for a given distance.|
-| Best 1000 m             | Sliding window best effort for a given distance.|
-| Best 5 km               | Sliding window best effort for a given distance.|
-| Best 10 km              | Sliding window best effort for a given distance.|
-| Best 20 km              | Sliding window best effort for a given distance.|  
-| Best 50 km              | Sliding window best effort for a given distance.|  
-| Best 100 km             | Sliding window best effort for a given distance.|  
-| Best 30 min             | Sliding window best effort for a given time.|
-| Best 1 h                | Sliding window best effort for a given time.|
-| Best 2 h                | Sliding window best effort for a given time.|  
-| Best 3 h                | Sliding window best effort for a given time.|
-| Best 4 h                | Sliding window best effort for a given time.|  
-| Best 5 h                | Sliding window best effort for a given time.|  
-| Max gradient for 250 m  | Sliding window max gradient for a given distance.|
-| Max gradient for 500 m  | Sliding window max gradient for a given distance.|
-| Max gradient for 1000 m | Sliding window max gradient for a given distance.|
-| Max gradient for 5 km   | Sliding window max gradient for a given distance.|
-| Max gradient for 10 km  | Sliding window max gradient for a given distance.|
-| Max gradient for 20 km  | Sliding window max gradient for a given distance.|
+## Option 2: Go backend
 
-### Runs
+Run the frontend and Go backend stack:
 
-| Runs ||
-|---|--|
-| Nb activities | Total of all bike rides.|
-| Nb actives days | Number of active days for all running.|
-| Max streak | Max streak of bike rides for a running days.|
-| Total distance | Total elevation accumulated on all running.|
-| Total elevation | Total elevation accumulated on all running.|
-| Max distance | Max distance calculated by Strava for running.|
-| Max elevation | Max elevation calculated by Strava for running.|
-| Max moving time | Max moving time for running. Moving time, is a measure of how long you were active. Strava attempt to calculate this based on the GPS locations, distance, and speed of your activity.|
-| Most active month | The most active month of the year for running.|
-| Eddington number | The Eddington number in the context of running is defined as the maximum number E such that the runner has run E km on E days.|
-| Best Cooper (12 min) | best effort for the given time (12 minutes) on running activities|
-| Best vVO2max (6 min) | best effort for the given time (6 minutes) on running activities|
-| Best 200 m | Sliding window best effort for a given distance.|
-| Best 400 m | Sliding window best effort for a given distance.|
-| Best 1000 m | Sliding window best effort for a given distance.|
-| Best 5000 m | Sliding window best effort for a given distance.|
-| Best 10000 m | Sliding window best effort for a given distance.|
-| Best half Marathon | Sliding window best effort for a given distance.|
-| Best Marathon | Sliding window best effort for a given distance.|
-| Best 1 h | Sliding window best effort for a given time.|
-| Best 2 h | Sliding window best effort for a given time.|
-| Best 3 h | Sliding window best effort for a given time.|
-| Best 4 h | Sliding window best effort for a given time.|
-| Best 5 h | Sliding window best effort for a given time.|
-| Best 6 h | Sliding window best effort for a given time.|
+- Docker Compose: [docker-compose-go.yml](/Users/nicolas/Workspace/mystravastats-2/docker-compose-go.yml)
+- Backend project: [back-go](/Users/nicolas/Workspace/mystravastats-2/back-go)
 
-### InlineSkate
+Typical local command:
 
-| InlineSkate        ||
-|--------------------| --- |
-| Nb activities      | Total of all InlineSkate rides.|
-| Nb actives days    | Number of active days for all InlineSkate rides.|
-| Max streak         | Max streak of InlineSkate rides for a consecutive days. |
-| Total distance     | Total elevation accumulated on all InlineSkate rides. |
-| Total elevation    | Total elevation accumulated on all InlineSkate rides. |
-| Max distance       | Max distance calculated by Strava for InlineSkate rides.|
-| Max elevation      | Max elevation calculated by Strava for InlineSkate rides.|
-| Max moving time    | Max moving time for InlineSkate rides. Moving time, is a measure of how long you were active. Strava attempt to calculate this based on the GPS locations, distance, and speed of your activity.|
-| Most active month  | The most active month of the year for InlineSkate rides. |
-| Eddington number   | The Eddington number in the context of InlineSkate is defined as the maximum number E such that the cyclist has cycled E km on E days.|
-| Max speed          | Max speed calculated by Strava for InlineSkate rides.|
-| Max moving time    | Max moving time calculated by Strava for InlineSkate rides|
-| Best 200 m         | Sliding window best effort for a given distance.|
-| Best 400 m         | Sliding window best effort for a given distance.|
-| Best 1000 m        | Sliding window best effort for a given distance.|
-| Best 10000 m       | Sliding window best effort for a given distance.|
-| Best half Marathon | Sliding window best effort for a given distance.|
-| Best Marathon      | Sliding window best effort for a given distance.|
-| Best 1 h           | Sliding window best effort for a given time.|
-| Best 2 h           | Sliding window best effort for a given time.|  
-| Best 3 h           | Sliding window best effort for a given time.|
-| Best 4 h           | Sliding window best effort for a given time.|  
+```sh
+cd back-go
+go test ./...
+go run .
+```
 
-### Hikes
+## Frontend Development
 
-| Hikes ||
-|---|--|
-| Nb activities | Total of all hikes.|
-| Nb actives days | Number of active days for all hikes.|
-| Max streak | Max streak of hikes for consecutive days.|
-| Total distance | Total elevation accumulated on all hikes.|
-| Total elevation | Total elevation accumulated on all hikes.|
-| Max distance | Max distance calculated by Strava for hikes.|
-| Max elevation | Max elevation calculated by Strava for hikes.|
-| Max moving time | Max moving time for hikes. Moving time, is a measure of how long you were active. Strava attempt to calculate this based on the GPS locations, distance, and speed of your activity.|
-| Most active month | The most active month of the year for hikes.|
-| Eddington number | The Eddington number in the context of cycling is defined as the maximum number E such that the cyclist has cycled E km on E days.|
-| Max distance in a day | Max walked distance in a day for hikes.|
-| Max elevation in a day | Max elevation in a day for hikes.|
+```sh
+cd front-vue
+npm install
+npm run dev
+```
+
+Useful checks:
+
+```sh
+npm run type-check
+```
+
+## Strava Configuration
+
+To access your Strava data, MyStravaStats needs a Strava API application linked to your own Strava account.
+
+Create it from:
+- [Strava API Settings](https://www.strava.com/settings/api)
+
+### Step 1: Create your Strava application
+
+On the Strava API settings page, create an application and fill the required information.
+
+The most important values for MyStravaStats are:
+- `clientId`
+- `clientSecret`
+
+You can usually use any valid values for the descriptive fields of the Strava application, but you must keep the generated `clientId` and `clientSecret`.
+
+### Step 2: Locate the cache directory
+
+By default, MyStravaStats uses:
+- `strava-cache`
+
+If you define `STRAVA_CACHE_PATH`, then the application uses that directory instead.
+
+### Step 3: Create the `.strava` file
+
+Inside the cache directory, create a file named:
+- `.strava`
+
+Example:
+
+```text
+strava-cache/.strava
+```
+
+or, if you use a custom cache path:
+
+```text
+/your/custom/cache/.strava
+```
+
+### Step 4: Put your Strava credentials in the file
+
+Typical `.strava` content:
+
+```properties
+clientId=YOUR_CLIENT_ID
+clientSecret=YOUR_CLIENT_SECRET
+useCache=false
+```
+
+### Meaning of each property
+
+`clientId`
+- the Strava application identifier
+- mandatory if you want to connect MyStravaStats to Strava
+
+`clientSecret`
+- the secret of your Strava application
+- required when the application must download fresh data from Strava
+
+`useCache`
+- `false`: MyStravaStats is allowed to call Strava and refresh missing data
+- `true`: MyStravaStats prefers the local cache and avoids a live Strava bootstrap
+
+### Recommended values
+
+For a first import:
+
+```properties
+clientId=YOUR_CLIENT_ID
+clientSecret=YOUR_CLIENT_SECRET
+useCache=false
+```
+
+For offline or cache-first usage after data has already been downloaded:
+
+```properties
+clientId=YOUR_CLIENT_ID
+clientSecret=YOUR_CLIENT_SECRET
+useCache=true
+```
+
+### First launch: what happens
+
+On the first real Strava-enabled launch:
+- MyStravaStats reads the `.strava` file
+- it opens a browser to the Strava authorization screen
+- you log in and approve access
+- Strava redirects back to a local callback URL
+- MyStravaStats receives an access token
+- the application starts downloading activities into the local cache
+
+If the browser does not open automatically, MyStravaStats prints the authorization URL in the terminal so you can open it manually.
+
+### Important notes
+
+- The first import may take time if you have many years of activities.
+- Streams and detailed activities may be filled progressively.
+- Because of Strava rate limits, a full import may require more than one run.
+- If `clientSecret` is missing, MyStravaStats can only rely on already cached data.
+- If `useCache=true` but the cache is empty, you will not get a full live import experience.
+
+### Typical cache content after synchronization
+
+The cache directory may contain:
+- athlete profile data
+- yearly activities JSON files
+- detailed activity files
+- stream files
+
+This is why later launches are faster than the first one.
+
+## Environment Variables
+
+Important environment variables used by the project:
+
+- `STRAVA_CACHE_PATH`: overrides the default Strava cache directory
+- `FIT_FILES_PATH`: makes the Kotlin backend use FIT files as data source
+- `GPX_FILES_PATH`: makes the Kotlin backend use GPX files as data source
+- `https_proxy` / `HTTPS_PROXY`: proxy support for Strava API access in the Kotlin backend
+
+## Cache Behavior
+
+The project stores data locally to avoid re-downloading everything from Strava.
+
+What is cached:
+- athlete profile
+- yearly activity lists
+- activity details
+- activity streams
+
+General behavior:
+- the first import can take time if the history is large
+- yearly activity files are reused when possible
+- missing details and streams are loaded progressively
+- some data may need several runs because of Strava API rate limits
+
+Default cache directory:
+- `strava-cache`
+
+## Strava OAuth Flow
+
+When the application needs access to Strava:
+- it opens a browser on the Strava consent page
+- Strava redirects back to a local callback server
+- the backend exchanges the authorization code for an access token
+
+If the browser does not open automatically, the application prints the authorization URL in the terminal.
+
+## Troubleshooting
+
+### Browser does not open
+
+Copy the OAuth URL shown in the terminal and open it manually in a browser.
+
+### Rate limit reached
+
+Strava applies request limits.
+If you are importing a long history, let the cache fill progressively and retry later.
+
+Reference:
+- [Strava rate limits](https://developers.strava.com/docs/rate-limits/)
+
+### Empty or partial cache
+
+Check:
+- the `.strava` file exists in the selected cache directory
+- `clientId` is correct
+- `clientSecret` is correct if live Strava access is expected
+- `useCache` is not forcing stale local-only behavior unexpectedly
+
+### Wrong backend or wrong ports
+
+If the frontend loads but API calls fail, verify:
+- which backend is running
+- which Docker Compose file or build script you used
+- whether the backend is exposing `/api`
+
+### Build succeeds in one environment but not another
+
+Check:
+- local Java / Node / Go versions
+- Gradle wrapper availability
+- network access for Gradle dependency downloads
+- local filesystem permissions for `~/.gradle` or cache directories
+
+## Metrics And Statistics
+
+The application exposes several families of metrics:
+- global statistics
+- activity-type-specific statistics
+- best efforts by distance
+- best efforts by duration
+- climbing and elevation metrics
+- yearly dashboard summaries
+- badges and famous climbs
+
+### Global Metrics
+
+Examples:
+- total number of activities
+- number of active days
+- total distance
+- total elevation
+- elapsed time
+- longest streak
+- most active month
+
+### Best Efforts
+
+Best efforts are computed with sliding-window analysis on activity streams.
+That means the application does not only look at laps or manually split sections: it scans the full activity stream to find the strongest continuous segment for a target distance or duration.
+
+Examples:
+- best 1 km
+- best 5 km
+- best 1 hour
+- best 2 hours
+- best average power for 20 minutes
+- best climbing gradient for 1 km
+
+### Eddington Number
+
+The Eddington number is one of the signature metrics of the project and deserves a clear explanation.
+
+Definition:
+- your Eddington number is the largest number `E` such that you completed at least `E` days with at least `E` kilometers on each of those days
+
+Example:
+- if you have ridden at least `50 km` on `50` different days, your Eddington number is at least `50`
+- if you only have `49` days at `51 km` or more, then your Eddington number is still `50`, not `51`
+
+How to interpret it:
+- it rewards consistency, not only one-off long rides
+- it is harder and harder to increase over time
+- it gives a simple summary of how deep your endurance history is
+
+In MyStravaStats:
+- the metric is available for multiple sports
+- it is computed from active days, not from the total number of activities
+- multiple activities on the same day contribute to the day total
+
+Why it is interesting:
+- total distance can grow quickly with volume, but the Eddington number grows only if you repeat solid days many times
+- it is a strong long-term progression metric for endurance athletes
+- it is especially motivating because each new level requires one more qualifying day than the previous level
+
+### Dashboard Metrics
+
+The dashboard summarizes yearly progression with metrics such as:
+- number of activities per year
+- total distance per year
+- average distance per year
+- max distance per year
+- total elevation per year
+- average elevation per year
+- average speed per year
+- average heart rate per year
+- average watts per year
+
+### Badges
+
+The badge system highlights milestones and famous climbs.
+It turns some statistics into more visual progression markers.
+
+## Documentation Improvements Still Worth Adding
+
+Good next documentation additions would be:
+- a dedicated architecture diagram
+- a backend comparison page: Go vs Kotlin
+- a contributor setup guide
+- a troubleshooting page for OAuth and cache issues
+- a statistics reference page with formulas
+- a developer page explaining the cache layout on disk
