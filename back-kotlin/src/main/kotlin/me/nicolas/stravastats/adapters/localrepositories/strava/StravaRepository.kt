@@ -15,7 +15,8 @@ import tools.jackson.module.kotlin.KotlinModule
 import java.io.File
 import java.io.FileInputStream
 import java.nio.file.Files
-import java.util.*
+import java.util.Collections
+import java.util.Properties
 import kotlin.io.path.name
 
 internal class StravaRepository(stravaCache: String) : ILocalStorageProvider {
@@ -184,11 +185,24 @@ internal class StravaRepository(stravaCache: String) : ILocalStorageProvider {
     }
 
     private fun loadActivitiesStreams(activities: List<StravaActivity>, activitiesDirectory: File) {
-        activities.forEach { activity ->
+        if (activities.isEmpty()) {
+            return
+        }
+
+        val failures = Collections.synchronizedList(mutableListOf<Pair<Long, Exception>>())
+        activities.parallelStream().forEach { activity ->
             val streamFile = File(activitiesDirectory, "stream-${activity.id}")
             if (streamFile.exists()) {
-                activity.stream = objectMapper.readValue(streamFile, Stream::class.java)
+                try {
+                    activity.stream = objectMapper.readValue(streamFile, Stream::class.java)
+                } catch (exception: Exception) {
+                    failures.add(activity.id to exception)
+                }
             }
+        }
+
+        failures.forEach { (activityId, exception) ->
+            logger.error("Unable to load stream from cache for activity $activityId", exception)
         }
     }
 }

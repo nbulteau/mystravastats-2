@@ -1,9 +1,12 @@
 package me.nicolas.stravastats.domain.services.activityproviders
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import me.nicolas.stravastats.adapters.strava.StravaApi
@@ -22,6 +25,7 @@ import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.LocalDate
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.system.measureTimeMillis
 
 class StravaActivityProvider(
@@ -42,6 +46,8 @@ class StravaActivityProvider(
     private val authSecret: String?
     private val useCacheAuth: Boolean?
     private val streamIdsCache: GenericCache<Int, Set<Long>> = SoftCache()
+    private val startupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val backgroundBackfillStarted = AtomicBoolean(false)
 
     companion object {
         // Threshold instant: 2025-08-17T00:00:00Z (replace with desired date/time)
@@ -61,11 +67,6 @@ class StravaActivityProvider(
         authSecret = secret
         useCacheAuth = useCache
 
-        // if an API implementation wasn't injected but we have credentials, create the default API
-        if (stravaApi == null && authSecret != null) {
-            stravaApi = StravaApi(clientId, authSecret)
-        }
-
         // Load athlete from cache immediately if cache flag is set (this is cheap/local)
         if (useCacheAuth == true) {
             stravaAthlete = storageProvider.loadAthleteFromCache(clientId)
@@ -75,24 +76,34 @@ class StravaActivityProvider(
     }
 
     suspend fun initializeAndLoadActivities() = coroutineScope {
-        // If configured to use cache, load from local cache
+        storageProvider.initLocalStorageForClientId(clientId)
+        stravaAthlete = storageProvider.loadAthleteFromCache(clientId)
+
+        // Fast startup path: load only from local cache first.
+        activities = loadFromLocalCache()
+        logger.info("ActivityService initialized with clientId=$clientId and ${activities.size} activities (cache-first)")
+
+        // If cache mode is forced, never hit Strava API at startup.
         if (useCacheAuth == true) {
-            activities = loadFromLocalCache()
-            logger.info("ActivityService initialized with clientId=$clientId and ${activities.size} activities (from cache)")
             return@coroutineScope
         }
 
-        // If we have credentials, initialize storage and load from Strava
-        if (authSecret != null) {
-            storageProvider.initLocalStorageForClientId(clientId)
-            // retrieve athlete and activities from Strava
+        // No credentials: keep cache-only behavior.
+        if (authSecret == null) {
+            logger.warn("No Strava credentials found; keeping cache-only startup mode")
+            return@coroutineScope
+        }
+
+        // First start (empty cache): fallback to the full bootstrap to keep a functional first run.
+        if (activities.isEmpty()) {
+            logger.info("No activities found in cache; bootstrapping from Strava API")
             stravaAthlete = retrieveLoggedInAthlete()
             activities = loadActivities()
             logger.info("ActivityService initialized with clientId=$clientId and ${activities.size} activities (from Strava)")
             return@coroutineScope
         }
 
-        throw IllegalStateException("No valid Strava authentication available to load activities")
+        launchBackgroundStreamsBackfill()
     }
 
     override fun getDetailedActivity(activityId: Long): Optional<StravaDetailedActivity> {
@@ -101,12 +112,13 @@ class StravaActivityProvider(
         // find detailed activity in cache or retrieve from Strava
         val activity = getActivity(activityId).orElse(null) ?: return Optional.empty()
         val year = activity.startDate.take(4).toInt()
+        val api = stravaApi ?: createStravaApiIfNeeded()
 
         // load detailed activity from cache or retrieve from Strava
         var stravaDetailedActivity = storageProvider.loadDetailedActivityFromCache(clientId, year, activityId)
-        if (stravaApi != null && stravaDetailedActivity == null) {
+        if (api != null && stravaDetailedActivity == null) {
             // It's not in local cache, retrieve from Strava
-            val detailedActivity = stravaApi!!.getDetailedActivity(activityId)
+            val detailedActivity = api.getDetailedActivity(activityId)
             if (detailedActivity.isPresent) {
                 storageProvider.saveDetailedActivityToCache(clientId, year, detailedActivity.get())
                 stravaDetailedActivity = detailedActivity.get()
@@ -120,8 +132,8 @@ class StravaActivityProvider(
 
         // load stream from cache or retrieve from Strava
         var stream = storageProvider.loadActivitiesStreamsFromCache(clientId, year, activity)
-        if (stravaApi != null && stream == null) {
-            stream = stravaApi!!.getActivityStream(activity)
+        if (api != null && stream == null) {
+            stream = api.getActivityStream(activity)
             if (stream != null) {
                 storageProvider.saveActivitiesStreamsToCache(clientId, year, activity, stream)
             }
@@ -219,7 +231,7 @@ class StravaActivityProvider(
         year: Int,
         activities: List<StravaActivity>
     ): List<StravaActivity> = coroutineScope {
-        val api = stravaApi ?: return@coroutineScope activities
+        val api = stravaApi ?: createStravaApiIfNeeded() ?: return@coroutineScope activities
         val semaphore = Semaphore(MAX_CONCURRENT_STREAM_LOADS)
 
         val deferred = activities
@@ -246,7 +258,8 @@ class StravaActivityProvider(
 
     // Retrieves activities from Strava API
     private fun retrieveActivitiesFromApi(year: Int): List<StravaActivity> {
-        return stravaApi?.getActivities(year)?.filterByActivityTypes() ?: emptyList()
+        val api = stravaApi ?: createStravaApiIfNeeded() ?: return emptyList()
+        return api.getActivities(year).filterByActivityTypes()
     }
 
     // Saves activities to cache
@@ -290,15 +303,62 @@ class StravaActivityProvider(
 
     private fun retrieveLoggedInAthlete(): StravaAthlete {
         logger.info("Load stravaAthlete with id $clientId description from Strava")
+        val api = stravaApi ?: createStravaApiIfNeeded()
 
-        return if (stravaApi != null) {
-            val athlete = stravaApi!!.retrieveLoggedInAthlete()
+        return if (api != null) {
+            val athlete = api.retrieveLoggedInAthlete()
             if (athlete.isPresent) {
                 storageProvider.saveAthleteToCache(clientId, athlete.get())
             }
             athlete.get()
         } else {
             storageProvider.loadAthleteFromCache(clientId)
+        }
+    }
+
+    @Synchronized
+    private fun createStravaApiIfNeeded(): IStravaApi? {
+        val existing = stravaApi
+        if (existing != null) {
+            return existing
+        }
+        val secret = authSecret ?: return null
+        return StravaApi(clientId, secret).also { created ->
+            stravaApi = created
+        }
+    }
+
+    private fun launchBackgroundStreamsBackfill() {
+        if (activities.none { activity -> activity.stream == null }) {
+            logger.info("All cached activities already have streams; skipping background backfill")
+            return
+        }
+
+        if (!backgroundBackfillStarted.compareAndSet(false, true)) {
+            return
+        }
+
+        startupScope.launch {
+            try {
+                logger.info("Background stream backfill started")
+                val activitiesByYear = activities.groupBy { activity ->
+                    activity.startDateLocal.take(4).toIntOrNull() ?: LocalDate.now().year
+                }
+
+                val tasks = activitiesByYear.map { (year, yearActivities) ->
+                    async(Dispatchers.IO) {
+                        loadMissingStreamsFromCache(year, yearActivities)
+                        loadMissingStreamsFromApi(year, yearActivities)
+                    }
+                }
+
+                tasks.awaitAll()
+                logger.info("Background stream backfill completed")
+            } catch (exception: Exception) {
+                logger.error("Background stream backfill failed", exception)
+            } finally {
+                backgroundBackfillStarted.set(false)
+            }
         }
     }
 
