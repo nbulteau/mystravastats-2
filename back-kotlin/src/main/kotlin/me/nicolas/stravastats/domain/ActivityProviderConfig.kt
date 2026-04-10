@@ -92,7 +92,7 @@ class ActivityProviderConfig {
         }
 
         println()
-        println("To access MyStravaStats: copy paste this url http://localhost:80 in a browser")
+        println("To access MyStravaStats: copy paste this url http://localhost:8080 in a browser")
         println()
 
         return activityProvider
