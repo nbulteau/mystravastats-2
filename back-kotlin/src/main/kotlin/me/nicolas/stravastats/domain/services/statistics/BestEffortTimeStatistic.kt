@@ -47,7 +47,9 @@ fun StravaActivity.calculateBestDistanceForTime(seconds: Int): ActivityEffort? {
     return if (stream == null || stream?.altitude == null) {
         null
     } else {
-        activityEffort(this.id, this.name, this.type, this.stream!!, seconds)
+        BestEffortCache.getOrCompute(this.id, "best-distance-time", seconds.toString(), this.stream!!) {
+            activityEffort(this.id, this.name, this.type, this.stream!!, seconds)
+        }
     }
 }
 
@@ -56,7 +58,9 @@ fun StravaDetailedActivity.calculateBestDistanceForTime(seconds: Int): ActivityE
     return if (stream == null || stream?.altitude == null) {
         null
     } else {
-        activityEffort(this.id, this.name, this.type, this.stream!!, seconds)
+        BestEffortCache.getOrCompute(this.id, "best-distance-time", seconds.toString(), this.stream!!) {
+            activityEffort(this.id, this.name, this.type, this.stream!!, seconds)
+        }
     }
 }
 

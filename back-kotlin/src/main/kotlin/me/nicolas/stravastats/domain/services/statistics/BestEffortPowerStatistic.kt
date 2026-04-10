@@ -48,7 +48,9 @@ fun StravaDetailedActivity.calculateBestPowerForTime(seconds: Int): ActivityEffo
     return if (stream == null || stream?.altitude == null) {
         null
     } else {
-        activityEffort(this.id, this.name, this.type, this.stream!!, seconds)
+        BestEffortCache.getOrCompute(this.id, "best-power-time", seconds.toString(), this.stream!!) {
+            activityEffort(this.id, this.name, this.type, this.stream!!, seconds)
+        }
     }
 }
 
@@ -58,7 +60,9 @@ fun StravaActivity.calculateBestPowerForTime(seconds: Int): ActivityEffort? {
     return if (stream == null || stream?.altitude == null) {
         null
     } else {
-        activityEffort(this.id, this.name, this.type, this.stream!!, seconds)
+        BestEffortCache.getOrCompute(this.id, "best-power-time", seconds.toString(), this.stream!!) {
+            activityEffort(this.id, this.name, this.type, this.stream!!, seconds)
+        }
     }
 }
 

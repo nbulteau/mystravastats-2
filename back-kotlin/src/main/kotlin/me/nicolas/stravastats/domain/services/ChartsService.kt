@@ -8,6 +8,8 @@ import me.nicolas.stravastats.domain.services.ActivityHelper.groupActivitiesByDa
 import me.nicolas.stravastats.domain.services.ActivityHelper.groupActivitiesByMonth
 import me.nicolas.stravastats.domain.services.ActivityHelper.groupActivitiesByWeek
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
+import me.nicolas.stravastats.domain.utils.GenericCache
+import me.nicolas.stravastats.domain.utils.SoftCache
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
@@ -44,6 +46,7 @@ internal class ChartsService(
 ) : IChartsService, AbstractStravaService(activityProvider) {
 
     private val logger = LoggerFactory.getLogger(ChartsService::class.java)
+    private val activitiesByPeriodCache: GenericCache<String, Map<String, List<StravaActivity>>> = SoftCache()
 
     /**
      * Get distance by period by activity type by year.
@@ -148,6 +151,16 @@ internal class ChartsService(
         year: Int,
         period: Period,
     ): Map<String, List<StravaActivity>> {
+        val key = buildString {
+            append(year)
+            append('-')
+            append(period.name)
+            append('-')
+            append(activityTypes.sorted().joinToString("_") { it.name })
+        }
+
+        activitiesByPeriodCache[key]?.let { return it }
+
         val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
 
         val activitiesByPeriod = when (period) {
@@ -155,6 +168,7 @@ internal class ChartsService(
             Period.WEEKS -> groupActivitiesByWeek(filteredActivities)
             Period.DAYS -> groupActivitiesByDay(filteredActivities, year)
         }
+        activitiesByPeriodCache[key] = activitiesByPeriod
         return activitiesByPeriod
     }
 }

@@ -29,6 +29,22 @@ class DashboardService(
 
     private val logger = LoggerFactory.getLogger(DashboardService::class.java)
 
+    private data class YearAccumulator(
+        var nbActivities: Int = 0,
+        var totalDistanceKm: Double = 0.0,
+        var maxDistanceKm: Double = 0.0,
+        var totalElevation: Double = 0.0,
+        var maxElevation: Int = 0,
+        var speedCount: Int = 0,
+        var speedSum: Double = 0.0,
+        var averageHeartRateCount: Int = 0,
+        var averageHeartRateSum: Double = 0.0,
+        var maxHeartRate: Int = 0,
+        var averageWattsCount: Int = 0,
+        var averageWattsSum: Int = 0,
+        var maxWatts: Int = 0,
+    )
+
     /**
      * Get cumulative distance per year for a specific stravaActivity type.
      * It returns a map with the year as a key and the cumulative distance in km as a value.
@@ -91,102 +107,72 @@ class DashboardService(
         val activitiesByYear = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes)
             .groupBy { activity -> activity.startDateLocal.subSequence(0, 4).toString() }
 
-        // compute nb of activities for all years
-        val nbActivitiesByYear = activitiesByYear
-            .mapValues { (_, activities) -> activities.size }
+        val yearlyAccumulators = activitiesByYear.mapValues { (_, activities) ->
+            aggregateYear(activities)
+        }
+
+        val nbActivitiesByYear = yearlyAccumulators
+            .mapValues { (_, stats) -> stats.nbActivities }
             .filter { it.value > 0 }
 
-        // compute total distance for all years
-        val totalDistanceByYear = activitiesByYear
-            .mapValues { (_, activities) ->
-                activities.sumOf { activity -> activity.distance / 1000 }.toFloat()
+        val totalDistanceByYear = yearlyAccumulators
+            .mapValues { (_, stats) -> stats.totalDistanceKm.toFloat() }
+            .filter { it.value > 0 }
+
+        val averageDistanceByYear = yearlyAccumulators
+            .mapValues { (_, stats) ->
+                (stats.totalDistanceKm / stats.nbActivities).toFloat()
             }
             .filter { it.value > 0 }
 
-        // compute average distance for all years
-        val averageDistanceByYear = activitiesByYear
-            .mapValues { (_, activities) ->
-                (activities.sumOf { activity -> activity.distance / 1000 } / activities.size).toFloat()
+        val maxDistanceByYear = yearlyAccumulators
+            .mapValues { (_, stats) -> stats.maxDistanceKm.toFloat() }
+            .filter { it.value > 0 }
+
+        val totalElevationByYear = yearlyAccumulators
+            .mapValues { (_, stats) -> stats.totalElevation.toInt() }
+            .filter { it.value > 0 }
+
+        val averageElevationByYear = yearlyAccumulators
+            .mapValues { (_, stats) ->
+                (stats.totalElevation / stats.nbActivities).toInt()
             }
             .filter { it.value > 0 }
 
-        // compute max distance for all years
-        val maxDistanceByYear = activitiesByYear
-            .mapValues { (_, activities) ->
-                activities.maxOf { activity -> activity.distance / 1000 }.toFloat()
-            }
-            .filter { it.value > 0 }
+        val maxElevationByYear = yearlyAccumulators
+            .mapValues { (_, stats) -> stats.maxElevation }
+            .filter { entry -> entry.value > 0 }
 
-        // compute total elevation for all years
-        val totalElevationByYear = activitiesByYear
-            .mapValues { (_, activities) -> activities.sumOf { activity -> activity.totalElevationGain.toInt() } }
-            .filter { it.value > 0 }
-
-        // compute average elevation for all years
-        val averageElevationByYear = activitiesByYear
-            .mapValues { (_, activities) ->
-                (activities.sumOf { activity -> activity.totalElevationGain } / activities.size).toInt()
-            }
-            .filter { it.value > 0 }
-
-        // compute max elevation for all years
-        val maxElevationByYear = activitiesByYear
-            .mapValues { (_, activities) ->
-                activities.maxOf { activity -> activity.totalElevationGain.toInt() }
+        val averageSpeedByYear = yearlyAccumulators
+            .mapValues { (_, stats) ->
+                if (stats.speedCount == 0) 0F else (stats.speedSum / stats.speedCount).toFloat()
             }
             .filter { entry -> entry.value > 0 }
 
-        // compute average speed for all years
-        val averageSpeedByYear = activitiesByYear
-            .mapValues { (_, activities) ->
-                val count = activities.count { activity -> activity.averageSpeed > 0.0 }
-                if (count == 0) return@mapValues 0F
-                (activities.filter { activity -> activity.averageSpeed > 0.0 }
-                    .sumOf { activity -> activity.averageSpeed } / count).toFloat()
-            }
-            .filter { entry -> entry.value > 0 }
-
-        // compute max speed for all years
         val maxSpeedByYear = activitiesByYear
             .mapValues { (_, activities) ->
                 (BestEffortDistanceStatistic("", activities, 200.0).getSpeed())!!.toFloat()
             }
             .filter { entry -> entry.value > 0.0 }
 
-
-        // compute average heart rate for all years
-        val averageHeartRateByYear = activitiesByYear
-            .mapValues { (_, activities) ->
-                val count = activities.count { it.averageHeartrate > 0.0 }
-                if (count == 0) return@mapValues 0
-                (activities.filter { it.averageHeartrate > 0.0 }
-                    .sumOf { activity -> activity.averageHeartrate } / count)
-                    .toInt()
+        val averageHeartRateByYear = yearlyAccumulators
+            .mapValues { (_, stats) ->
+                if (stats.averageHeartRateCount == 0) 0 else (stats.averageHeartRateSum / stats.averageHeartRateCount).toInt()
             }
             .filter { entry -> entry.value > 0 }
 
-        // compute max heart rate for all years
-        val maxHeartRateByYear = activitiesByYear
-            .mapValues { (_, activities) ->
-                activities.maxOf { activity -> activity.maxHeartrate }
+        val maxHeartRateByYear = yearlyAccumulators
+            .mapValues { (_, stats) -> stats.maxHeartRate }
+            .filter { it.value > 0 }
+
+        val averageWattsByYear = yearlyAccumulators
+            .mapValues { (_, stats) ->
+                if (stats.averageWattsCount == 0) 0 else stats.averageWattsSum / stats.averageWattsCount
             }
             .filter { it.value > 0 }
 
-        // compute average watts for all years
-        val averageWattsByYear = activitiesByYear
-            .mapValues { (_, activities) ->
-                val count = activities.count { it.averageWatts > 0 }
-                if (count == 0) return@mapValues 0
-                (activities.filter { it.averageWatts > 0 }
-                    .sumOf { activity -> activity.averageWatts } / count)
-            }
-            .filter { it.value > 0 }
-
-        // compute max watts for all years
-        val maxWattsByYear = activitiesByYear
-            .mapValues { entry: Map.Entry<String, List<StravaActivity>> ->
-                entry.value.maxOf { activity -> activity.averageWatts }
-            }
+        val maxWattsByYear = yearlyAccumulators
+            .mapValues { (_, stats) -> stats.maxWatts }
             .filter { it.value > 0 }
 
         return DashboardData(
@@ -204,6 +190,35 @@ class DashboardService(
             averageWattsByYear,
             maxWattsByYear
         )
+    }
+
+    private fun aggregateYear(activities: List<StravaActivity>): YearAccumulator {
+        val stats = YearAccumulator()
+        for (activity in activities) {
+            val distanceKm = activity.distance / 1000
+            stats.nbActivities++
+            stats.totalDistanceKm += distanceKm
+            stats.maxDistanceKm = maxOf(stats.maxDistanceKm, distanceKm)
+            stats.totalElevation += activity.totalElevationGain
+            stats.maxElevation = maxOf(stats.maxElevation, activity.totalElevationGain.toInt())
+
+            if (activity.averageSpeed > 0.0) {
+                stats.speedCount++
+                stats.speedSum += activity.averageSpeed
+            }
+            if (activity.averageHeartrate > 0.0) {
+                stats.averageHeartRateCount++
+                stats.averageHeartRateSum += activity.averageHeartrate
+            }
+            stats.maxHeartRate = maxOf(stats.maxHeartRate, activity.maxHeartrate)
+
+            if (activity.averageWatts > 0) {
+                stats.averageWattsCount++
+                stats.averageWattsSum += activity.averageWatts
+            }
+            stats.maxWatts = maxOf(stats.maxWatts, activity.averageWatts)
+        }
+        return stats
     }
 
     private fun getCumulativeDataPerYear(activityTypes: Set<ActivityType>, calculate: (Map<String, List<StravaActivity>>) -> Map<String, Number>): Map<String, Map<String, Number>> {

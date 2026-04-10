@@ -4,6 +4,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import me.nicolas.stravastats.adapters.strava.StravaApi
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
@@ -14,6 +16,8 @@ import me.nicolas.stravastats.domain.interfaces.IStravaApi
 import me.nicolas.stravastats.adapters.localrepositories.strava.StravaRepository
 import me.nicolas.stravastats.domain.services.ActivityHelper.filterByActivityTypes
 import me.nicolas.stravastats.domain.services.toStravaDetailedActivity
+import me.nicolas.stravastats.domain.utils.GenericCache
+import me.nicolas.stravastats.domain.utils.SoftCache
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.LocalDate
@@ -37,10 +41,12 @@ class StravaActivityProvider(
     // keep auth info for deferred initialization
     private val authSecret: String?
     private val useCacheAuth: Boolean?
+    private val streamIdsCache: GenericCache<Int, Set<Long>> = SoftCache()
 
     companion object {
         // Threshold instant: 2025-08-17T00:00:00Z (replace with desired date/time)
         private val CACHE_RELOAD_THRESHOLD: Instant = Instant.parse("2025-08-17T00:00:00Z")
+        private const val MAX_CONCURRENT_STREAM_LOADS = 8
     }
 
     init {
@@ -93,7 +99,7 @@ class StravaActivityProvider(
         logger.info("Get detailed activity for activity id $activityId")
 
         // find detailed activity in cache or retrieve from Strava
-        val activity = activities.find { it.id == activityId } ?: return Optional.empty()
+        val activity = getActivity(activityId).orElse(null) ?: return Optional.empty()
         val year = activity.startDate.take(4).toInt()
 
         // load detailed activity from cache or retrieve from Strava
@@ -196,9 +202,10 @@ class StravaActivityProvider(
         year: Int,
         activities: List<StravaActivity>
     ): List<StravaActivity> {
+        val cachedStreamIds = getCachedStreamIds(year)
         activities
             // Filter activities that do not have a stream
-            .filter { it.stream == null }
+            .filter { activity -> activity.stream == null && cachedStreamIds.contains(activity.id) }
             .forEach { activity ->
                 val stream = storageProvider.loadActivitiesStreamsFromCache(clientId, year, activity)
                 activity.stream = stream
@@ -213,18 +220,21 @@ class StravaActivityProvider(
         activities: List<StravaActivity>
     ): List<StravaActivity> = coroutineScope {
         val api = stravaApi ?: return@coroutineScope activities
+        val semaphore = Semaphore(MAX_CONCURRENT_STREAM_LOADS)
 
         val deferred = activities
             .filter { activity -> activity.stream == null }
             .map { activity ->
                 async(Dispatchers.IO) {
-                    try {
-                        api.getActivityStream(activity)?.let { stream ->
-                            storageProvider.saveActivitiesStreamsToCache(clientId, year, activity, stream)
-                            activity.stream = stream
+                    semaphore.withPermit {
+                        try {
+                            api.getActivityStream(activity)?.let { stream ->
+                                storageProvider.saveActivitiesStreamsToCache(clientId, year, activity, stream)
+                                activity.stream = stream
+                            }
+                        } catch (exception: Exception) {
+                            logger.error("Error loading stream for activity ${activity.id}", exception)
                         }
-                    } catch (exception: Exception) {
-                        logger.error("Error loading stream for activity ${activity.id}", exception)
                     }
                     activity
                 }
@@ -242,6 +252,12 @@ class StravaActivityProvider(
     // Saves activities to cache
     private fun saveActivitiesToCache(year: Int, activities: List<StravaActivity>) {
         storageProvider.saveActivitiesToCache(clientId, year, activities)
+    }
+
+    private fun getCachedStreamIds(year: Int): Set<Long> {
+        return streamIdsCache[year] ?: storageProvider.buildStreamIdsSet(clientId, year).also { streamIds ->
+            streamIdsCache[year] = streamIds
+        }
     }
 
     private fun loadActivitiesStreams(year: Int, activities: List<StravaActivity>) {

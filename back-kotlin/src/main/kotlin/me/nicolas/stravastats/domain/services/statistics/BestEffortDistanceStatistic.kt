@@ -40,7 +40,9 @@ fun StravaActivity.calculateBestTimeForDistance(distance: Double): ActivityEffor
     return if (stream == null) {
         null
     } else {
-        activityEffort(this.id, this.name, this.type, this.stream!!, distance)
+        BestEffortCache.getOrCompute(this.id, "best-time-distance", distance.toString(), this.stream!!) {
+            activityEffort(this.id, this.name, this.type, this.stream!!, distance)
+        }
     }
 }
 
@@ -50,7 +52,9 @@ fun StravaDetailedActivity.calculateBestTimeForDistance(distance: Double): Activ
     return if (this.stream == null || this.stream?.altitude == null) {
         null
     } else {
-        activityEffort(this.id, this.name, this.type, this.stream!!, distance)
+        BestEffortCache.getOrCompute(this.id, "best-time-distance", distance.toString(), this.stream!!) {
+            activityEffort(this.id, this.name, this.type, this.stream!!, distance)
+        }
     }
 }
 
@@ -74,6 +78,13 @@ private fun activityEffort(
     val times = stream.time.data
     val altitudes = stream.altitude?.data ?: emptyList()
     val nonNullWatts = stream.watts?.data?.map { it ?: 0 }
+    val wattsPrefixSum = nonNullWatts?.let { watts ->
+        IntArray(watts.size + 1).also { prefix ->
+            watts.forEachIndexed { index, value ->
+                prefix[index + 1] = prefix[index] + value
+            }
+        }
+    }
 
     val streamDataSize = distances.size
 
@@ -88,7 +99,10 @@ private fun activityEffort(
             val estimatedTimeForDistance = distance / totalDistance * totalTime
             if (estimatedTimeForDistance < bestTime && estimatedTimeForDistance > 1) {
                 bestTime = estimatedTimeForDistance
-                val averagePower = nonNullWatts?.subList(idxStart, idxEnd + 1)?.average()?.toInt()
+                val averagePower = wattsPrefixSum?.let { prefix ->
+                    val sampleCount = idxEnd - idxStart + 1
+                    if (sampleCount == 0) null else (prefix[idxEnd + 1] - prefix[idxStart]) / sampleCount
+                }
                 bestEffort = ActivityEffort(
                     distance, bestTime.toInt(), totalAltitude, idxStart, idxEnd, averagePower,
                     label = "Best speed for ${distance.toInt()}m",

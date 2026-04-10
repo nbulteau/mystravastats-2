@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
 import java.util.*
+import kotlin.LazyThreadSafetyMode
 
 abstract class AbstractActivityProvider : IActivityProvider {
 
@@ -21,6 +22,12 @@ abstract class AbstractActivityProvider : IActivityProvider {
     protected lateinit var activities: List<StravaActivity>
 
     private val filteredActivitiesCache: GenericCache<String, List<StravaActivity>> = SoftCache()
+    private val activityByIdCache by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        activities.associateBy { activity -> activity.id }
+    }
+    private val activitiesSortedByDateCache by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        activities.sortedBy { activity -> activity.startDateLocal }
+    }
 
     override fun athlete(): StravaAthlete {
         return stravaAthlete
@@ -39,7 +46,7 @@ abstract class AbstractActivityProvider : IActivityProvider {
 
         val sortedActivities = pageable.sort.let { sort ->
             if (sort.isSorted) {
-                activities.sortedWith(compareBy { it.startDateLocal }).toList()
+                activitiesSortedByDateCache
             } else {
                 activities
             }
@@ -53,13 +60,7 @@ abstract class AbstractActivityProvider : IActivityProvider {
     override fun getActivity(activityId: Long): Optional<StravaActivity> {
         logger.info("Get stravaActivity for stravaActivity id $activityId")
 
-        return activities.find { activity -> activity.id == activityId }.let {
-            if (it != null) {
-                Optional.of(it)
-            } else {
-                Optional.empty()
-            }
-        }
+        return Optional.ofNullable(activityByIdCache[activityId])
     }
 
     override fun getActivitiesByActivityTypeGroupByActiveDays(activityTypes: Set<ActivityType>): Map<String, Int> {

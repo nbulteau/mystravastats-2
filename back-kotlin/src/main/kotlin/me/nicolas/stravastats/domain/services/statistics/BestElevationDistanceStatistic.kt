@@ -32,7 +32,9 @@ fun StravaActivity.calculateBestElevationForDistance(distance: Double): Activity
     return if (stream == null || stream?.altitude == null) {
         null
     } else {
-        activityEffort(this.id, this.name, this.type, this.stream!!, distance)
+        BestEffortCache.getOrCompute(this.id, "best-elevation-distance", distance.toString(), this.stream!!) {
+            activityEffort(this.id, this.name, this.type, this.stream!!, distance)
+        }
     }
 }
 
@@ -42,7 +44,9 @@ fun StravaDetailedActivity.calculateBestElevationForDistance(distance: Double): 
     return if (stream == null || stream?.altitude == null) {
         null
     } else {
-        activityEffort(this.id, this.name, this.type, this.stream!!, distance)
+        BestEffortCache.getOrCompute(this.id, "best-elevation-distance", distance.toString(), this.stream!!) {
+            activityEffort(this.id, this.name, this.type, this.stream!!, distance)
+        }
     }
 }
 
@@ -66,6 +70,13 @@ private fun activityEffort(
     val times = stream.time.data
     val altitudes = stream.altitude?.data!!
     val nonNullWatts: List<Int>? = stream.watts?.data?.map { it ?: 0 }
+    val wattsPrefixSum = nonNullWatts?.let { watts ->
+        IntArray(watts.size + 1).also { prefix ->
+            watts.forEachIndexed { index, value ->
+                prefix[index + 1] = prefix[index] + value
+            }
+        }
+    }
 
     val streamDataSize = stream.distance.originalSize
 
@@ -83,8 +94,9 @@ private fun activityEffort(
         } else {
             if (totalAltitude > bestElevation) {
                 bestElevation = totalAltitude
-                val averagePower = nonNullWatts?.let {
-                    (idxStart..idxEnd).sumOf { nonNullWatts[it] } / (idxEnd - idxStart)
+                val averagePower = wattsPrefixSum?.let { prefix ->
+                    val sampleCount = idxEnd - idxStart + 1
+                    if (sampleCount == 0) null else (prefix[idxEnd + 1] - prefix[idxStart]) / sampleCount
                 }
                 bestEffort = ActivityEffort(
                     distance, totalTime, bestElevation, idxStart, idxEnd, averagePower,
