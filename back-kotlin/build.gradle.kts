@@ -1,11 +1,12 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 
 plugins {
-    kotlin("jvm") version "2.3.0"
-    kotlin("plugin.spring") version "2.3.0"
+    kotlin("jvm") version "2.3.20"
+    kotlin("plugin.spring") version "2.3.20"
 
-    id("org.springframework.boot") version "4.0.1"
+    id("org.springframework.boot") version "4.0.5"
     id("io.spring.dependency-management") version "1.1.7"
+    id("org.graalvm.buildtools.native") version "1.0.0"
     id("com.github.ben-manes.versions") version "0.53.0"
 }
 
@@ -39,16 +40,16 @@ dependencies {
     //developmentOnly("org.springframework.boot:spring-boot-devtools")
     //providedRuntime("org.springframework.boot:spring-boot-starter-tomcat")
 
-    implementation("tools.jackson.module:jackson-module-kotlin")
+    implementation("tools.jackson.module:jackson-module-kotlin:3.1.1")
 
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.1")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2")
 
 
-    implementation("io.ktor:ktor-server-netty:3.3.3")
+    implementation("io.ktor:ktor-server-netty:3.4.2")
 
     implementation("com.squareup.okhttp3:okhttp:5.3.2")
 
-    implementation("io.jenetics:jpx:3.2.1")
+    implementation("io.jenetics:jpx:4.0.0")
 
     implementation(files("libs/fit.jar"))
 
@@ -69,9 +70,9 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
-// Disable plain jar creation
+// Keep plain jar enabled: Spring AOT/native compile relies on the application artifact/classpath.
 tasks.named<Jar>("jar") {
-    enabled = false
+    enabled = true
 }
 
 // https://github.com/ben-manes/gradle-versions-plugin
@@ -85,5 +86,15 @@ fun isNonStable(version: String): Boolean {
 tasks.withType<DependencyUpdatesTask> {
     rejectVersionIf {
         isNonStable(candidate.version) && !isNonStable(currentVersion)
+    }
+}
+
+graalvmNative {
+    binaries {
+        named("main") {
+            imageName.set("mystravastats-kotlin")
+            // Keep a strict native binary without JVM fallback.
+            buildArgs.add("--no-fallback")
+        }
     }
 }
