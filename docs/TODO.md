@@ -20,82 +20,76 @@
 - Surface fatigue, form, and consistency indicators.
 - Add alerts for overload or undertraining periods.
 
-### 4. Personal Records Timeline
-- Build a chronological history of personal records instead of only showing current best efforts.
-- Show when each PR was set, then beaten, and by how much.
-- Make it possible to filter by sport, year, and metric.
-- Great fit for the existing best-effort engine.
-
 ## P1 - Strong Product Extensions
 
-### 5. Heart Rate Zone Analysis
+### 4. Heart Rate Zone Analysis
 - Show time spent in each heart rate zone per activity, month, and year.
 - Support custom zones based on max HR, threshold HR, or reserve HR.
 - Add charts for zone distribution and trends over time.
 - Surface "easy vs hard" training balance.
 
-### 6. Power and Efficiency Metrics
+### 5. Power and Efficiency Metrics
 - Add normalized power, intensity factor, variability index, and power-to-weight ratio when data is available.
 - Add cycling efficiency views combining heart rate, power, speed, and elevation.
 - Show best power curve by duration.
 - Support missing data gracefully when the athlete has no power meter.
 
-### 7. Route Library and Route Reuse
+### 6. Route Library and Route Reuse
 - Detect recurring routes and group similar activities together.
 - Show route frequency, best attempt, average attempt, and last attempt.
 - Add route difficulty indicators and favorite route badges.
 - Make it possible to start from a route page to analyze all attempts.
 
-### 8. Segment and Climb Progression
+### 7. Segment and Climb Progression
 - Create dedicated pages for favorite climbs and segments.
 - Show all attempts, PR progression, consistency, pacing, and weather context if available later.
 - Highlight "close to PR" efforts and best recent trends.
 
-### 9. Multi-Sport Dashboard
+### 8. Multi-Sport Dashboard
 - Build a single dashboard mixing ride, run, hike, ski, and skate activity families.
 - Show distribution of training time across sports.
 - Make transitions between sports visible over the year.
 
 ## P2 - Discovery and Engagement
 
-### 10. Calendar Heatmap
+### 9. Calendar Heatmap
 - Add a GitHub-style training calendar.
 - Support overlays for distance, elevation, duration, and intensity.
 - Make it clickable to drill down into the activities of a given day.
 
-### 11. Milestones and Badges 2.0
+### 10. Milestones and Badges 2.0
 - Expand the badge system with streaks, seasonal challenges, route milestones, and PR milestones.
 - Add "almost unlocked" badges for motivation.
 - Make badge progress visible instead of binary.
 
-### 12. Weather and Conditions Overlay
+### 11. Weather and Conditions Overlay
 - Enrich activities with temperature, wind, and rain context when the data source is available.
 - Show how conditions affect speed, power, or heart rate.
 - Enable questions such as "best climbs in hot weather" or "pace drop in windy runs".
 
-### 13. Nutrition and Fueling Notes
+### 12. Nutrition and Fueling Notes
 - Allow athletes to attach fueling notes to long activities.
 - Correlate fueling strategy with performance and fatigue.
 - Especially useful for endurance rides, races, and long runs.
 
 ## P3 - Quality of Life
 
-### 14. Saved Filters and Custom Views
+### 13. Saved Filters and Custom Views
 - Let users save common filters such as "All gravel rides in 2025" or "Long runs over 20 km".
 - Support shareable URLs and named presets.
 - Reduce friction for repeated analysis.
 
-### 15. Export Center
+### 14. Export Center
 - Centralize CSV and future export options in one place.
 - Add JSON export and printable summary reports.
 - Support exporting a selection of activities, not only one current filter.
 
-### 16. Explain This Metric
+### 15. Explain This Metric
 - Add inline help for advanced metrics and formulas.
 - Explain how each statistic is computed and when it is meaningful.
 - Reduce the learning curve for non-expert users.
 
-### 17. Mobile-Friendly Detail Experience
+### 16. Mobile-Friendly Detail Experience
 - Improve activity detail pages for smaller screens.
 - Focus on quick scrolling between overview, charts, map, efforts, and segments.
 

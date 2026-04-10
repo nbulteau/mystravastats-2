@@ -43,6 +43,12 @@ var routes = Routes{
 		getStatisticsByActivityType,
 	},
 	Route{
+		"GetPersonalRecordsTimelineByActivityType",
+		"GET",
+		"/api/statistics/personal-records-timeline",
+		getPersonalRecordsTimelineByActivityType,
+	},
+	Route{
 		"GetMapsGPX",
 		"GET",
 		"/api/maps/gpx",

@@ -4,6 +4,7 @@ import { defineStore } from 'pinia'
 import { ErrorService } from "@/services/error.service";
 import { type Toast } from '@/models/toast.model'
 import type { Statistics } from '@/models/statistics.model';
+import type { PersonalRecordTimeline } from '@/models/personal-record-timeline.model';
 import type { Activity } from '@/models/activity.model';
 import { EddingtonNumber } from '@/models/eddington-number.model';
 import type { BadgeCheckResult } from '@/models/badge-check-result.model';
@@ -17,6 +18,7 @@ export const useContextStore = defineStore('context', {
         currentActivityType: string,
 
         statistics: Statistics[]
+        personalRecordsTimeline: PersonalRecordTimeline[]
         activities: Activity[],
         gpxCoordinates: number[][][],
         distanceByMonths: Map<string, number>[],
@@ -42,6 +44,7 @@ export const useContextStore = defineStore('context', {
             currentActivityType: 'Commute_GravelRide_MountainBikeRide_Ride_VirtualRide', // Default activity types (all cycling types)
 
             statistics: [],
+            personalRecordsTimeline: [],
             activities: [],
             gpxCoordinates: [],
             distanceByMonths: [],
@@ -87,6 +90,10 @@ export const useContextStore = defineStore('context', {
         async fetchStatistics() {
             const statistics = await this.fetchJson<Statistics[]>(this.url("statistics"))
             this.statistics = statistics
+        },
+        async fetchPersonalRecordsTimeline() {
+            const personalRecordsTimeline = await this.fetchJson<PersonalRecordTimeline[]>(this.url("statistics/personal-records-timeline"))
+            this.personalRecordsTimeline = personalRecordsTimeline
         },
         async fetchActivities() {
             const activities = await this.fetchJson<Activity[]>(this.url("activities"))
@@ -170,7 +177,10 @@ export const useContextStore = defineStore('context', {
         async updateData() {
             switch (this.currentView) {
                 case 'statistics':
-                    await this.fetchStatistics()
+                    await Promise.all([
+                        this.fetchStatistics(),
+                        this.fetchPersonalRecordsTimeline(),
+                    ])
                     break
                 case 'activities':
                     await this.fetchActivities()

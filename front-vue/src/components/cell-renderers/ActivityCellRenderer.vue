@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import type { Statistics } from "@/models/statistics.model";
+import type { ActivityShort } from "@/models/activity.model";
 
 const props = defineProps<{
-  model: Statistics; 
+  model: {
+    activity?: ActivityShort;
+  };
 }>();
 </script>
 

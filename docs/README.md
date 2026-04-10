@@ -11,6 +11,7 @@ MyStravaStats can:
 - work from GPX or FIT files in the Kotlin backend
 - compute global statistics and sport-specific statistics
 - calculate best efforts from activity streams
+- build a chronological personal-records timeline (when each PR was set, then improved)
 - show dashboards, charts, maps, badges, and detailed activity views
 - export filtered activities to CSV
 
@@ -18,6 +19,7 @@ Examples of metrics already available:
 - total distance, elevation, moving time, active days, streaks
 - Eddington number
 - best effort by distance or by time
+- personal-records timeline events by sport, year, and metric
 - best climbing gradient on a target distance
 - dashboard trends by year
 - route visualisation and activity detail charts
@@ -471,6 +473,7 @@ The application exposes several families of metrics:
 - activity-type-specific statistics
 - best efforts by distance
 - best efforts by duration
+- chronological personal-records timeline events
 - climbing and elevation metrics
 - yearly dashboard summaries
 - badges and famous climbs
@@ -498,6 +501,23 @@ Examples:
 - best 2 hours
 - best average power for 20 minutes
 - best climbing gradient for 1 km
+
+### Personal Records Timeline
+
+The statistics page also exposes a chronological timeline of PR events.
+For each metric, the timeline shows:
+- when the metric first got a valid PR
+- when that PR was beaten later
+- the previous value and the improvement amount
+- the activity that set the PR
+
+You can filter the timeline by:
+- sport (via activity type selection)
+- year
+- metric key
+
+Useful API endpoint:
+- `/api/statistics/personal-records-timeline?activityType=...&year=...`
 
 ### Eddington Number
 

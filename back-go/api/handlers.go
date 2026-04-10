@@ -171,6 +171,43 @@ func getStatisticsByActivityType(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getPersonalRecordsTimelineByActivityType godoc
+// @Summary Get personal records timeline by activity type
+// @Description Returns chronological personal record events for a given year and activity types
+// @Tags statistics
+// @Produce json
+// @Param year query int false "Year"
+// @Param activityType query string true "Activity type"
+// @Param metric query string false "Metric key"
+// @Success 200 {array} dto.PersonalRecordTimelineDto
+// @Failure 400 {string} string "Invalid parameters"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/statistics/personal-records-timeline [get]
+func getPersonalRecordsTimelineByActivityType(w http.ResponseWriter, r *http.Request) {
+	year, err := getYearParam(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	activityTypes, err := getActivityTypeParam(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	metric := getMetricParam(r)
+
+	timeline := services2.FetchPersonalRecordsTimelineByActivityTypeAndYear(year, metric, activityTypes...)
+	timelineDto := make([]dto.PersonalRecordTimelineDto, len(timeline))
+	for i, entry := range timeline {
+		timelineDto[i] = dto.ToPersonalRecordTimelineDto(entry)
+	}
+
+	if err := writeJSON(w, http.StatusOK, timelineDto); err != nil {
+		log.Printf("failed to write personal records timeline response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
 // getMapsGPX godoc
 // @Summary Get GPX data for maps
 // @Description Returns GPX data from activities for map display
@@ -539,6 +576,14 @@ func getPeriodParam(r *http.Request) business.Period {
 		period = business.Period(periodParam)
 	}
 	return period
+}
+
+func getMetricParam(r *http.Request) *string {
+	metric := strings.TrimSpace(r.URL.Query().Get("metric"))
+	if metric == "" {
+		return nil
+	}
+	return &metric
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) error {

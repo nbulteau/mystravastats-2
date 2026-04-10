@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
+import me.nicolas.stravastats.api.dto.PersonalRecordTimelineDto
 import me.nicolas.stravastats.api.dto.StatisticsDto
 import me.nicolas.stravastats.api.dto.toDto
 import me.nicolas.stravastats.domain.services.IStatisticsService
@@ -53,5 +54,38 @@ class StatisticsController(
         return statisticsService.getStatistics(activityTypes, year)
             .map { activityStatistic -> activityStatistic.toDto() }
     }
-}
 
+    @Operation(
+        description = "Get chronological personal record (PR) events for selected sport and year",
+        summary = "Get personal records timeline",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Timeline found",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = PersonalRecordTimelineDto::class)
+                )]
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "Timeline not found",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponseMessageDto::class)
+                )]
+            )
+        ]
+    )
+    @GetMapping("/personal-records-timeline")
+    fun getPersonalRecordsTimeline(
+        @RequestParam(required = true) activityType: String,
+        @RequestParam(required = false) year: Int?,
+        @RequestParam(required = false) metric: String?,
+    ): List<PersonalRecordTimelineDto> {
+        val activityTypes = activityType.convertToActivityTypeSet()
+
+        return statisticsService.getPersonalRecordsTimeline(activityTypes, year, metric)
+            .map { timelineEntry -> timelineEntry.toDto() }
+    }
+}

@@ -4,10 +4,13 @@ import VGrid, { VGridVueTemplate, type CellProps } from "@revolist/vue3-datagrid
 import type { Statistics } from "@/models/statistics.model";
 import ActivityCellRenderer from "./cell-renderers/ActivityCellRenderer.vue";
 
-defineProps<{
+const props = withDefaults(defineProps<{
   year: string;
   statistics: Statistics[];
-}>();
+  height?: string;
+}>(), {
+  height: "calc(100vh - 150px)",
+});
 
 const columns = ref([
   {
@@ -32,7 +35,7 @@ const columns = ref([
     :columns="columns"
     :source="statistics"
     :readonly="true"
-    style="height: calc(100vh - 150px);"
+    :style="{ height: props.height }"
   />
 </template>
 

@@ -287,6 +287,22 @@ func ToStatisticDto(statistic statistics.Statistic) StatisticDto {
 	}
 }
 
+func ToPersonalRecordTimelineDto(entry business.PersonalRecordTimelineEntry) PersonalRecordTimelineDto {
+	return PersonalRecordTimelineDto{
+		MetricKey:     entry.MetricKey,
+		MetricLabel:   entry.MetricLabel,
+		ActivityDate:  entry.ActivityDate,
+		Value:         entry.Value,
+		PreviousValue: entry.PreviousValue,
+		Improvement:   entry.Improvement,
+		Activity: ActivityShortDto{
+			ID:   entry.Activity.Id,
+			Name: entry.Activity.Name,
+			Type: entry.Activity.Type.String(),
+		},
+	}
+}
+
 func ToDashboardDataDto(data business.DashboardData) DashboardDataDto {
 	return DashboardDataDto{
 		NbActivitiesByYear:     data.NbActivities,

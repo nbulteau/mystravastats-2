@@ -1,17 +1,22 @@
 package me.nicolas.stravastats.domain.services
 
 import me.nicolas.stravastats.api.controllers.AthleteController
+import me.nicolas.stravastats.domain.business.ActivityEffort
 import me.nicolas.stravastats.domain.business.ActivityType
+import me.nicolas.stravastats.domain.business.PersonalRecordTimelineEntry
+import me.nicolas.stravastats.domain.business.runActivities
 import me.nicolas.stravastats.domain.business.strava.*
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import me.nicolas.stravastats.domain.services.statistics.*
 import me.nicolas.stravastats.domain.utils.formatSeconds
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.util.Locale
 
 
 interface IStatisticsService {
     fun getStatistics(activityTypes: Set<ActivityType>, year: Int?): List<Statistic>
+    fun getPersonalRecordsTimeline(activityTypes: Set<ActivityType>, year: Int?, metric: String?): List<PersonalRecordTimelineEntry>
 }
 
 @Service
@@ -26,13 +31,60 @@ internal class StatisticsService(
 
         val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
 
-        return when (activityTypes.first()) {
+        return when (resolvePrimaryActivityType(activityTypes)) {
             ActivityType.Run -> computeRunStatistics(filteredActivities)
             ActivityType.InlineSkate -> computeInlineSkateStatistics(filteredActivities)
             ActivityType.Hike -> computeHikeStatistics(filteredActivities)
             ActivityType.AlpineSki -> computeAlpineSkiStatistics(filteredActivities)
             else -> computeRideStatistics(filteredActivities)
         }
+    }
+
+    override fun getPersonalRecordsTimeline(
+        activityTypes: Set<ActivityType>,
+        year: Int?,
+        metric: String?
+    ): List<PersonalRecordTimelineEntry> {
+        logger.info("Compute personal records timeline for $activityTypes in ${year ?: "all years"}")
+
+        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
+            .sortedBy { activity -> activity.startDateLocal }
+
+        if (filteredActivities.isEmpty()) {
+            return emptyList()
+        }
+
+        val selectedMetrics = getPersonalRecordMetricDefinitions(activityTypes)
+            .filter { definition -> metric.isNullOrBlank() || definition.key == metric }
+
+        val timeline = mutableListOf<PersonalRecordTimelineEntry>()
+
+        selectedMetrics.forEach { definition ->
+            var bestEffort: ActivityEffort? = null
+
+            filteredActivities.forEach { activity ->
+                val effort = definition.effortExtractor(activity) ?: return@forEach
+                if (effort.activityShort.id != activity.id) {
+                    return@forEach
+                }
+
+                val previousBest = bestEffort
+                if (previousBest == null || definition.isBetter(definition.score(effort), definition.score(previousBest))) {
+                    timeline += PersonalRecordTimelineEntry(
+                        metricKey = definition.key,
+                        metricLabel = definition.label,
+                        activityDate = activity.startDateLocal,
+                        value = definition.valueFormatter(effort),
+                        previousValue = previousBest?.let(definition.valueFormatter),
+                        improvement = previousBest?.let { previous -> definition.improvementFormatter(previous, effort) },
+                        activity = effort.activityShort
+                    )
+                    bestEffort = effort
+                }
+            }
+        }
+
+        return timeline.sortedBy { entry -> entry.activityDate }
     }
 
     private fun computeRunStatistics(runActivities: List<StravaActivity>): List<Statistic> {
@@ -207,5 +259,182 @@ internal class StatisticsService(
             MostActiveMonthStatistic(activities),
             EddingtonStatistic(activities),
         )
+    }
+
+    private fun resolvePrimaryActivityType(activityTypes: Set<ActivityType>): ActivityType {
+        return when {
+            activityTypes.any { type -> type in runActivities } -> ActivityType.Run
+            activityTypes.contains(ActivityType.InlineSkate) -> ActivityType.InlineSkate
+            activityTypes.contains(ActivityType.Hike) -> ActivityType.Hike
+            activityTypes.contains(ActivityType.AlpineSki) -> ActivityType.AlpineSki
+            else -> ActivityType.Ride
+        }
+    }
+
+    private data class PersonalRecordMetricDefinition(
+        val key: String,
+        val label: String,
+        val effortExtractor: (StravaActivity) -> ActivityEffort?,
+        val score: (ActivityEffort) -> Double,
+        val isBetter: (Double, Double) -> Boolean,
+        val valueFormatter: (ActivityEffort) -> String,
+        val improvementFormatter: (ActivityEffort, ActivityEffort) -> String,
+    )
+
+    private fun getPersonalRecordMetricDefinitions(activityTypes: Set<ActivityType>): List<PersonalRecordMetricDefinition> {
+        return when (resolvePrimaryActivityType(activityTypes)) {
+            ActivityType.Run -> buildRunMetricDefinitions()
+            ActivityType.InlineSkate -> buildInlineSkateMetricDefinitions()
+            ActivityType.AlpineSki -> buildAlpineSkiMetricDefinitions()
+            ActivityType.Hike -> emptyList()
+            else -> buildRideMetricDefinitions()
+        }
+    }
+
+    private fun buildRunMetricDefinitions(): List<PersonalRecordMetricDefinition> {
+        return listOf(
+            bestTimeForDistanceMetric("best-time-200m", "Best 200 m", 200.0),
+            bestTimeForDistanceMetric("best-time-400m", "Best 400 m", 400.0),
+            bestTimeForDistanceMetric("best-time-1000m", "Best 1000 m", 1000.0),
+            bestTimeForDistanceMetric("best-time-5000m", "Best 5000 m", 5000.0),
+            bestTimeForDistanceMetric("best-time-10000m", "Best 10000 m", 10000.0),
+            bestTimeForDistanceMetric("best-time-half-marathon", "Best half Marathon", 21097.0),
+            bestTimeForDistanceMetric("best-time-marathon", "Best Marathon", 42195.0),
+            bestDistanceForTimeMetric("best-distance-1h", "Best 1 h", 60 * 60),
+            bestDistanceForTimeMetric("best-distance-2h", "Best 2 h", 2 * 60 * 60),
+            bestDistanceForTimeMetric("best-distance-3h", "Best 3 h", 3 * 60 * 60),
+            bestDistanceForTimeMetric("best-distance-4h", "Best 4 h", 4 * 60 * 60),
+            bestDistanceForTimeMetric("best-distance-5h", "Best 5 h", 5 * 60 * 60),
+            bestDistanceForTimeMetric("best-distance-6h", "Best 6 h", 6 * 60 * 60),
+        )
+    }
+
+    private fun buildRideMetricDefinitions(): List<PersonalRecordMetricDefinition> {
+        return listOf(
+            bestTimeForDistanceMetric("best-time-250m", "Best 250 m", 250.0),
+            bestTimeForDistanceMetric("best-time-500m", "Best 500 m", 500.0),
+            bestTimeForDistanceMetric("best-time-1000m", "Best 1000 m", 1000.0),
+            bestTimeForDistanceMetric("best-time-5km", "Best 5 km", 5000.0),
+            bestTimeForDistanceMetric("best-time-10km", "Best 10 km", 10000.0),
+            bestTimeForDistanceMetric("best-time-20km", "Best 20 km", 20000.0),
+            bestTimeForDistanceMetric("best-time-50km", "Best 50 km", 50000.0),
+            bestTimeForDistanceMetric("best-time-100km", "Best 100 km", 100000.0),
+            bestDistanceForTimeMetric("best-distance-30min", "Best 30 min", 30 * 60),
+            bestDistanceForTimeMetric("best-distance-1h", "Best 1 h", 60 * 60),
+            bestDistanceForTimeMetric("best-distance-2h", "Best 2 h", 2 * 60 * 60),
+            bestDistanceForTimeMetric("best-distance-3h", "Best 3 h", 3 * 60 * 60),
+            bestDistanceForTimeMetric("best-distance-4h", "Best 4 h", 4 * 60 * 60),
+            bestDistanceForTimeMetric("best-distance-5h", "Best 5 h", 5 * 60 * 60),
+            bestGradientForDistanceMetric("best-gradient-250m", "Max gradient for 250 m", 250.0),
+            bestGradientForDistanceMetric("best-gradient-500m", "Max gradient for 500 m", 500.0),
+            bestGradientForDistanceMetric("best-gradient-1000m", "Max gradient for 1000 m", 1000.0),
+            bestGradientForDistanceMetric("best-gradient-5km", "Max gradient for 5 km", 5000.0),
+            bestGradientForDistanceMetric("best-gradient-10km", "Max gradient for 10 km", 10000.0),
+            bestGradientForDistanceMetric("best-gradient-20km", "Max gradient for 20 km", 20000.0),
+            bestPowerForTimeMetric("best-power-20min", "Best average power for 20 min", 20 * 60),
+            bestPowerForTimeMetric("best-power-1h", "Best average power for 1 h", 60 * 60),
+        )
+    }
+
+    private fun buildAlpineSkiMetricDefinitions(): List<PersonalRecordMetricDefinition> {
+        return listOf(
+            bestTimeForDistanceMetric("best-time-250m", "Best 250 m", 250.0),
+            bestTimeForDistanceMetric("best-time-500m", "Best 500 m", 500.0),
+            bestTimeForDistanceMetric("best-time-1000m", "Best 1000 m", 1000.0),
+            bestTimeForDistanceMetric("best-time-5km", "Best 5 km", 5000.0),
+            bestTimeForDistanceMetric("best-time-10km", "Best 10 km", 10000.0),
+            bestTimeForDistanceMetric("best-time-20km", "Best 20 km", 20000.0),
+            bestTimeForDistanceMetric("best-time-50km", "Best 50 km", 50000.0),
+            bestTimeForDistanceMetric("best-time-100km", "Best 100 km", 100000.0),
+            bestDistanceForTimeMetric("best-distance-30min", "Best 30 min", 30 * 60),
+            bestDistanceForTimeMetric("best-distance-1h", "Best 1 h", 60 * 60),
+            bestDistanceForTimeMetric("best-distance-2h", "Best 2 h", 2 * 60 * 60),
+            bestDistanceForTimeMetric("best-distance-3h", "Best 3 h", 3 * 60 * 60),
+            bestDistanceForTimeMetric("best-distance-4h", "Best 4 h", 4 * 60 * 60),
+            bestDistanceForTimeMetric("best-distance-5h", "Best 5 h", 5 * 60 * 60),
+        )
+    }
+
+    private fun buildInlineSkateMetricDefinitions(): List<PersonalRecordMetricDefinition> {
+        return listOf(
+            bestTimeForDistanceMetric("best-time-200m", "Best 200 m", 200.0),
+            bestTimeForDistanceMetric("best-time-400m", "Best 400 m", 400.0),
+            bestTimeForDistanceMetric("best-time-1000m", "Best 1000 m", 1000.0),
+            bestTimeForDistanceMetric("best-time-10000m", "Best 10000 m", 10000.0),
+            bestTimeForDistanceMetric("best-time-half-marathon", "Best half Marathon", 21097.0),
+            bestTimeForDistanceMetric("best-time-marathon", "Best Marathon", 42195.0),
+            bestDistanceForTimeMetric("best-distance-1h", "Best 1 h", 60 * 60),
+            bestDistanceForTimeMetric("best-distance-2h", "Best 2 h", 2 * 60 * 60),
+            bestDistanceForTimeMetric("best-distance-3h", "Best 3 h", 3 * 60 * 60),
+            bestDistanceForTimeMetric("best-distance-4h", "Best 4 h", 4 * 60 * 60),
+        )
+    }
+
+    private fun bestTimeForDistanceMetric(key: String, label: String, distance: Double): PersonalRecordMetricDefinition {
+        return PersonalRecordMetricDefinition(
+            key = key,
+            label = label,
+            effortExtractor = { activity -> activity.calculateBestTimeForDistance(distance) },
+            score = { effort -> effort.seconds.toDouble() },
+            isBetter = { score, previousScore -> score < previousScore },
+            valueFormatter = { effort -> "${effort.seconds.formatSeconds()} (${effort.getFormattedSpeedWithUnits()})" },
+            improvementFormatter = { previous, current ->
+                val gainedSeconds = previous.seconds - current.seconds
+                "${gainedSeconds.formatSeconds()} faster"
+            }
+        )
+    }
+
+    private fun bestDistanceForTimeMetric(key: String, label: String, seconds: Int): PersonalRecordMetricDefinition {
+        return PersonalRecordMetricDefinition(
+            key = key,
+            label = label,
+            effortExtractor = { activity -> activity.calculateBestDistanceForTime(seconds) },
+            score = { effort -> effort.distance },
+            isBetter = { score, previousScore -> score > previousScore },
+            valueFormatter = { effort -> "${formatDistance(effort.distance)} (${effort.getFormattedSpeedWithUnits()})" },
+            improvementFormatter = { previous, current ->
+                "${formatDistance(current.distance - previous.distance)} farther"
+            }
+        )
+    }
+
+    private fun bestPowerForTimeMetric(key: String, label: String, seconds: Int): PersonalRecordMetricDefinition {
+        return PersonalRecordMetricDefinition(
+            key = key,
+            label = label,
+            effortExtractor = { activity -> activity.calculateBestPowerForTime(seconds) },
+            score = { effort -> effort.averagePower?.toDouble() ?: Double.NEGATIVE_INFINITY },
+            isBetter = { score, previousScore -> score > previousScore },
+            valueFormatter = { effort -> effort.getFormattedPower() },
+            improvementFormatter = { previous, current ->
+                val previousPower = previous.averagePower ?: 0
+                val currentPower = current.averagePower ?: 0
+                "+${currentPower - previousPower} W"
+            }
+        )
+    }
+
+    private fun bestGradientForDistanceMetric(key: String, label: String, distance: Double): PersonalRecordMetricDefinition {
+        return PersonalRecordMetricDefinition(
+            key = key,
+            label = label,
+            effortExtractor = { activity -> activity.calculateBestElevationForDistance(distance) },
+            score = { effort -> effort.getGradient() },
+            isBetter = { score, previousScore -> score > previousScore },
+            valueFormatter = { effort -> effort.getFormattedGradientWithUnit() },
+            improvementFormatter = { previous, current ->
+                val deltaGradient = current.getGradient() - previous.getGradient()
+                String.format(Locale.ENGLISH, "+%.2f %%", deltaGradient)
+            }
+        )
+    }
+
+    private fun formatDistance(distanceInMeters: Double): String {
+        return if (distanceInMeters >= 1000) {
+            String.format(Locale.ENGLISH, "%.2f km", distanceInMeters / 1000.0)
+        } else {
+            String.format(Locale.ENGLISH, "%.0f m", distanceInMeters)
+        }
     }
 }

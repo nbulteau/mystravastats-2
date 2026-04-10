@@ -6,6 +6,8 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
+import me.nicolas.stravastats.api.dto.PersonalRecordTimelineDto
+import me.nicolas.stravastats.domain.business.PersonalRecordTimelineEntry
 import me.nicolas.stravastats.domain.business.strava.Achievement
 import me.nicolas.stravastats.domain.business.strava.AthleteRef
 import me.nicolas.stravastats.domain.business.strava.Bike
@@ -79,6 +81,8 @@ import org.springframework.boot.runApplication
         Schema.SchemaResolution::class,
         ApiResponse::class,
         Tag::class,
+        PersonalRecordTimelineEntry::class,
+        PersonalRecordTimelineDto::class,
     ]
 )
 class StravastatsApplication
