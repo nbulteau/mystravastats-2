@@ -1,4 +1,5 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
+import org.gradle.jvm.toolchain.JvmVendorSpec
 
 plugins {
     kotlin("jvm") version "2.3.20"
@@ -90,11 +91,18 @@ tasks.withType<DependencyUpdatesTask> {
 }
 
 graalvmNative {
+    toolchainDetection.set(true)
     binaries {
         named("main") {
             imageName.set("mystravastats-kotlin")
             // Keep a strict native binary without JVM fallback.
             buildArgs.add("--no-fallback")
+            javaLauncher.set(
+                javaToolchains.launcherFor {
+                    languageVersion = JavaLanguageVersion.of(25)
+                    vendor = JvmVendorSpec.GRAAL_VM
+                }
+            )
         }
     }
 }
