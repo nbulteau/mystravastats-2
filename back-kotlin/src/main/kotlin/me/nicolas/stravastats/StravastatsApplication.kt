@@ -1,5 +1,11 @@
 package me.nicolas.stravastats
 
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.media.ArraySchema
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.tags.Tag
 import me.nicolas.stravastats.domain.business.strava.Achievement
 import me.nicolas.stravastats.domain.business.strava.AthleteRef
 import me.nicolas.stravastats.domain.business.strava.Bike
@@ -63,6 +69,16 @@ import org.springframework.boot.runApplication
         TimeStream::class,
         FamousClimb::class,
         Alternative::class,
+        Operation::class,
+        ArraySchema::class,
+        Content::class,
+        Schema::class,
+        Schema.AccessMode::class,
+        Schema.AdditionalPropertiesValue::class,
+        Schema.RequiredMode::class,
+        Schema.SchemaResolution::class,
+        ApiResponse::class,
+        Tag::class,
     ]
 )
 class StravastatsApplication
