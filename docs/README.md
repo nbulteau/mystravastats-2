@@ -144,13 +144,13 @@ Beginner-friendly summary:
 #### macOS
 
 ```sh
-./build-macos.zsh
+./build-go-macos.zsh
 ```
 
 #### Ubuntu
 
 ```sh
-./build-ubuntu.sh
+./build-go-ubuntu.sh
 ```
 
 If needed, fix ownership of the generated binary:
