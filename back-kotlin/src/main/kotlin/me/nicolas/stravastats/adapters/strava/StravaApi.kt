@@ -9,7 +9,6 @@ import io.ktor.server.routing.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import me.nicolas.stravastats.adapters.strava.business.Token
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
@@ -291,8 +290,8 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
                         )
                         launch {
                             // Get an authorization token with the code
-                            val token = getToken(clientId, clientSecret, authorizationCode)
-                            channel.send(token.accessToken)
+                            val accessToken = getAccessToken(clientId, clientSecret, authorizationCode)
+                            channel.send(accessToken)
 
                         }
                     }
@@ -356,7 +355,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
         </html>
     """.trimIndent()
 
-    private fun getToken(clientId: String, clientSecret: String, authorizationCode: String): Token {
+    private fun getAccessToken(clientId: String, clientSecret: String, authorizationCode: String): String {
 
         val url = "${properties.url}/api/v3/oauth/token"
 
@@ -370,11 +369,17 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
         val request: Request = Request.Builder().url(url).post(body).build()
 
         okHttpClient.newCall(request).execute().use { response ->
+            val responseBody = response.body.string()
             try {
                 if (response.code == 200) {
-                    return objectMapper.readValue<Token>(response.body.string())
+                    val tokenPayload: Map<String, Any?> = objectMapper.readValue(responseBody)
+                    val accessToken = tokenPayload["access_token"]?.toString().orEmpty()
+                    if (accessToken.isBlank()) {
+                        throw RuntimeException("Missing access_token in Strava response")
+                    }
+                    return accessToken
                 } else {
-                    throw RuntimeException("Something was wrong with Strava API for url $url")
+                    throw RuntimeException("Something was wrong with Strava API for url $url (status=${response.code})")
                 }
             } catch (ex: Exception) {
                 logger.error("Something was wrong with Strava API for url $url. ${ex.cause?.message ?: ex.message}")

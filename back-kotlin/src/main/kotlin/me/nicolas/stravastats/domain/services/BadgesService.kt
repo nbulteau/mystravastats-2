@@ -10,7 +10,6 @@ import tools.jackson.databind.DatabindException
 import tools.jackson.databind.DeserializationFeature
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.KotlinModule
-import tools.jackson.module.kotlin.readValue
 import java.nio.file.Path
 
 interface IBadgesService {
@@ -84,7 +83,7 @@ internal class BadgesService(
 
         try {
             val url = Path.of(climbsJsonFilePath)
-            val famousClimbs = objectMapper.readValue<Array<FamousClimb>>(url.toFile()).toList()
+            val famousClimbs = objectMapper.readValue(url.toFile(), Array<FamousClimb>::class.java).toList()
             famousClimbBadgeList = famousClimbs.flatMap { famousClimb ->
                 famousClimb.alternatives.map { alternative ->
                     FamousClimbBadge(
