@@ -6,6 +6,7 @@ import MapView from "@/views/MapView.vue";
 import BadgesView from "@/views/BadgesView.vue";
 import DetailedActivityView from "@/views/DetailedActivityView.vue";
 import DashboardView from "@/views/DashboardView.vue";
+import SegmentClimbProgressionView from "@/views/SegmentClimbProgressionView.vue";
 
 
 const router: Router = createRouter({
@@ -42,6 +43,11 @@ const router: Router = createRouter({
       component: BadgesView
     },
     {
+      path: '/segments',
+      name: 'segments',
+      component: SegmentClimbProgressionView
+    },
+    {
       path: '/activities/:id',
       name: 'activity',
       component: DetailedActivityView
@@ -50,5 +56,4 @@ const router: Router = createRouter({
 })
 
 export default router
-
 

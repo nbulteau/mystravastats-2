@@ -117,6 +117,26 @@ func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *s
 	return stravaDetailedActivity
 }
 
+func (provider *StravaActivityProvider) GetCachedDetailedActivity(activityId int64) *strava.DetailedActivity {
+	activity := provider.findActivityById(activityId)
+	if activity == nil {
+		return nil
+	}
+
+	year := time.Now().Year()
+	if len(activity.StartDate) >= 4 {
+		if parsedYear, err := strconv.Atoi(activity.StartDate[:4]); err == nil {
+			year = parsedYear
+		}
+	}
+
+	if detailed := provider.localStorageProvider.LoadDetailedActivityFromCache(provider.clientId, year, activityId); detailed != nil {
+		return detailed
+	}
+
+	return activity.ToStravaDetailedActivity()
+}
+
 func (provider *StravaActivityProvider) loadFromLocalCache(clientId string) []*strava.Activity {
 	startTime := time.Now()
 

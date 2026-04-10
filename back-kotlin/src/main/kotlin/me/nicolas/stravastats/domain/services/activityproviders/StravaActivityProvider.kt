@@ -143,6 +143,14 @@ class StravaActivityProvider(
         return Optional.of(stravaDetailedActivity)
     }
 
+    override fun getCachedDetailedActivity(activityId: Long): Optional<StravaDetailedActivity> {
+        val activity = getActivity(activityId).orElse(null) ?: return Optional.empty()
+        val year = activity.startDate.take(4).toInt()
+        val cached = storageProvider.loadDetailedActivityFromCache(clientId, year, activityId)
+
+        return Optional.ofNullable(cached ?: activity.toStravaDetailedActivity())
+    }
+
     private suspend fun loadFromLocalCache(): List<StravaActivity> = coroutineScope {
         logger.info("Load Strava activities from local cache ...")
 

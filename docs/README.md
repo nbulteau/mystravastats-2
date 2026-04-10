@@ -12,6 +12,7 @@ MyStravaStats can:
 - compute global statistics and sport-specific statistics
 - calculate best efforts from activity streams
 - build a chronological personal-records timeline (when each PR was set, then improved)
+- track progression on favorite segments and climbs (attempt history, PR progression, consistency, trend)
 - show dashboards, charts, maps, badges, and detailed activity views
 - export filtered activities to CSV
 
@@ -450,6 +451,7 @@ Check:
 - `clientId` is correct
 - `clientSecret` is correct if live Strava access is expected
 - `useCache` is not forcing stale local-only behavior unexpectedly
+- for the Segments tab specifically: detailed activity files (`stravaActivity-*`) must exist for the years you expect
 
 ### Wrong backend or wrong ports
 
@@ -518,6 +520,24 @@ You can filter the timeline by:
 
 Useful API endpoint:
 - `/api/statistics/personal-records-timeline?activityType=...&year=...`
+
+### Segment and Climb Progression
+
+The Segments tab is powered by:
+- `/api/statistics/segment-climb-progression?activityType=...&year=...&metric=TIME|SPEED&targetType=ALL|SEGMENT|CLIMB`
+
+How targets are selected:
+- activities are first filtered by selected sport (`activityType`) and selected year
+- for each activity, the backend reads detailed activity data (`segment_efforts`) from local cache
+- an effort is kept if at least one condition is true:
+- `segment.starred == true`
+- `segment.climbCategory > 0`
+- `prRank <= 3`
+- target type is computed from Strava metadata:
+- `CLIMB` when `climbCategory > 0`
+- `SEGMENT` otherwise
+- targets are grouped by Strava segment id (`targetId`)
+- target list is sorted by `attemptsCount` (descending), then by name
 
 ### Eddington Number
 

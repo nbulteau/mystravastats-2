@@ -208,6 +208,48 @@ func getPersonalRecordsTimelineByActivityType(w http.ResponseWriter, r *http.Req
 	}
 }
 
+// getSegmentClimbProgressionByActivityType godoc
+// @Summary Get segment and climb progression
+// @Description Returns progression for favorite segments and climbs (attempts, PR progression, consistency, pacing and trends)
+// @Tags statistics
+// @Produce json
+// @Param year query int false "Year"
+// @Param activityType query string true "Activity type"
+// @Param metric query string false "Metric (TIME or SPEED)"
+// @Param targetType query string false "Target type filter (ALL, SEGMENT, CLIMB)"
+// @Param targetId query int false "Target id"
+// @Success 200 {object} dto.SegmentClimbProgressionDto
+// @Failure 400 {string} string "Invalid parameters"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/statistics/segment-climb-progression [get]
+func getSegmentClimbProgressionByActivityType(w http.ResponseWriter, r *http.Request) {
+	year, err := getYearParam(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	activityTypes, err := getActivityTypeParam(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	metric := getMetricParam(r)
+	targetType := getTargetTypeParam(r)
+	targetId, err := getTargetIDParam(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	progression := services2.FetchSegmentClimbProgressionByActivityTypeAndYear(year, metric, targetType, targetId, activityTypes...)
+	progressionDto := dto.ToSegmentClimbProgressionDto(progression)
+
+	if err := writeJSON(w, http.StatusOK, progressionDto); err != nil {
+		log.Printf("failed to write segment/climb progression response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
 // getMapsGPX godoc
 // @Summary Get GPX data for maps
 // @Description Returns GPX data from activities for map display
@@ -584,6 +626,28 @@ func getMetricParam(r *http.Request) *string {
 		return nil
 	}
 	return &metric
+}
+
+func getTargetTypeParam(r *http.Request) *string {
+	targetType := strings.TrimSpace(r.URL.Query().Get("targetType"))
+	if targetType == "" {
+		return nil
+	}
+	return &targetType
+}
+
+func getTargetIDParam(r *http.Request) (*int64, error) {
+	targetID := strings.TrimSpace(r.URL.Query().Get("targetId"))
+	if targetID == "" {
+		return nil, nil
+	}
+
+	id, err := strconv.ParseInt(targetID, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid targetId: %q", targetID)
+	}
+
+	return &id, nil
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) error {

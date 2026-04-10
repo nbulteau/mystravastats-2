@@ -18,6 +18,8 @@ interface IActivityProvider {
 
     fun getDetailedActivity(activityId: Long): Optional<StravaDetailedActivity>
 
+    fun getCachedDetailedActivity(activityId: Long): Optional<StravaDetailedActivity> = Optional.empty()
+
     fun getActivitiesByActivityTypeGroupByActiveDays(activityTypes: Set<ActivityType>): Map<String, Int>
 
     fun getActivitiesByActivityTypeByYearGroupByActiveDays(activityTypes: Set<ActivityType>, year: Int): Map<String, Int>

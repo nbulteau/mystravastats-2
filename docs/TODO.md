@@ -40,11 +40,6 @@
 - Add route difficulty indicators and favorite route badges.
 - Make it possible to start from a route page to analyze all attempts.
 
-### 7. Segment and Climb Progression
-- Create dedicated pages for favorite climbs and segments.
-- Show all attempts, PR progression, consistency, pacing, and weather context if available later.
-- Highlight "close to PR" efforts and best recent trends.
-
 ### 8. Multi-Sport Dashboard
 - Build a single dashboard mixing ride, run, hike, ski, and skate activity families.
 - Show distribution of training time across sports.

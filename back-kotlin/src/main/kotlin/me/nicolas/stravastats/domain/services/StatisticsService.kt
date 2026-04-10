@@ -2,8 +2,12 @@ package me.nicolas.stravastats.domain.services
 
 import me.nicolas.stravastats.api.controllers.AthleteController
 import me.nicolas.stravastats.domain.business.ActivityEffort
+import me.nicolas.stravastats.domain.business.ActivityShort
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.PersonalRecordTimelineEntry
+import me.nicolas.stravastats.domain.business.SegmentClimbAttempt
+import me.nicolas.stravastats.domain.business.SegmentClimbProgression
+import me.nicolas.stravastats.domain.business.SegmentClimbTargetSummary
 import me.nicolas.stravastats.domain.business.runActivities
 import me.nicolas.stravastats.domain.business.strava.*
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
@@ -12,11 +16,20 @@ import me.nicolas.stravastats.domain.utils.formatSeconds
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.util.Locale
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 
 interface IStatisticsService {
     fun getStatistics(activityTypes: Set<ActivityType>, year: Int?): List<Statistic>
     fun getPersonalRecordsTimeline(activityTypes: Set<ActivityType>, year: Int?, metric: String?): List<PersonalRecordTimelineEntry>
+    fun getSegmentClimbProgression(
+        activityTypes: Set<ActivityType>,
+        year: Int?,
+        metric: String?,
+        targetType: String?,
+        targetId: Long?
+    ): SegmentClimbProgression
 }
 
 @Service
@@ -85,6 +98,97 @@ internal class StatisticsService(
         }
 
         return timeline.sortedBy { entry -> entry.activityDate }
+    }
+
+    override fun getSegmentClimbProgression(
+        activityTypes: Set<ActivityType>,
+        year: Int?,
+        metric: String?,
+        targetType: String?,
+        targetId: Long?
+    ): SegmentClimbProgression {
+        val resolvedMetric = parseSegmentMetric(metric)
+        val resolvedTargetTypeFilter = parseSegmentTargetType(targetType)
+        logger.info(
+            "Compute segment/climb progression for {} in {} with metric={} targetType={} targetId={}",
+            activityTypes,
+            year ?: "all years",
+            resolvedMetric,
+            resolvedTargetTypeFilter,
+            targetId
+        )
+
+        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
+            .sortedBy { activity -> activity.startDateLocal }
+
+        val rawAttempts = filteredActivities.flatMap { activity ->
+            val detailedActivity = activityProvider.getCachedDetailedActivity(activity.id)
+                .orElseGet { activityProvider.getDetailedActivity(activity.id).orElse(null) }
+                ?: return@flatMap emptyList()
+
+            detailedActivity.segmentEfforts
+                .asSequence()
+                .filter { effort -> isFavoriteEffort(effort) }
+                .map { effort ->
+                    val effortTargetType =
+                        if (effort.segment.climbCategory > 0) SegmentTargetType.CLIMB else SegmentTargetType.SEGMENT
+                    SegmentAttemptRaw(
+                        targetId = effort.segment.id,
+                        targetName = effort.segment.name,
+                        targetType = effortTargetType,
+                        climbCategory = effort.segment.climbCategory,
+                        distance = effort.distance,
+                        averageGrade = effort.segment.averageGrade,
+                        elapsedTimeSeconds = effort.elapsedTime,
+                        speedKph = computeSpeedKph(effort.distance, effort.elapsedTime),
+                        activityDate = effort.startDateLocal,
+                        prRank = effort.prRank,
+                        activity = ActivityShort(activity.id, activity.name, activity.type)
+                    )
+                }
+                .filter { raw ->
+                    resolvedTargetTypeFilter == SegmentTargetType.ALL || raw.targetType == resolvedTargetTypeFilter
+                }
+                .toList()
+        }
+
+        if (rawAttempts.isEmpty()) {
+            return SegmentClimbProgression(
+                metric = resolvedMetric.name,
+                targetTypeFilter = resolvedTargetTypeFilter.name,
+                weatherContextAvailable = false,
+                targets = emptyList(),
+                selectedTargetId = null,
+                selectedTargetType = null,
+                attempts = emptyList()
+            )
+        }
+
+        val attemptsByTarget = rawAttempts.groupBy { raw -> raw.targetId }
+        val targetSummaries = attemptsByTarget.values
+            .map { attempts -> buildTargetSummary(attempts, resolvedMetric) }
+            .sortedWith(
+                compareByDescending<SegmentClimbTargetSummary> { summary -> summary.attemptsCount }
+                    .thenBy { summary -> summary.targetName.lowercase(Locale.getDefault()) }
+            )
+
+        val selectedTarget = targetSummaries.firstOrNull { summary -> summary.targetId == targetId }
+            ?: targetSummaries.firstOrNull()
+
+        val selectedAttempts = selectedTarget?.let { summary ->
+            val attempts = attemptsByTarget[summary.targetId].orEmpty()
+            buildAttempts(attempts, resolvedMetric)
+        } ?: emptyList()
+
+        return SegmentClimbProgression(
+            metric = resolvedMetric.name,
+            targetTypeFilter = resolvedTargetTypeFilter.name,
+            weatherContextAvailable = false,
+            targets = targetSummaries,
+            selectedTargetId = selectedTarget?.targetId,
+            selectedTargetType = selectedTarget?.targetType,
+            attempts = selectedAttempts
+        )
     }
 
     private fun computeRunStatistics(runActivities: List<StravaActivity>): List<Statistic> {
@@ -261,6 +365,185 @@ internal class StatisticsService(
         )
     }
 
+    private fun isFavoriteEffort(effort: StravaSegmentEffort): Boolean {
+        return effort.segment.starred || effort.segment.climbCategory > 0 || (effort.prRank != null && effort.prRank <= 3)
+    }
+
+    private fun computeSpeedKph(distanceInMeters: Double, elapsedTimeSeconds: Int): Double {
+        if (distanceInMeters <= 0.0 || elapsedTimeSeconds <= 0) {
+            return 0.0
+        }
+        val metersPerSecond = distanceInMeters / elapsedTimeSeconds.toDouble()
+        return metersPerSecond * 3.6
+    }
+
+    private fun buildAttempts(attempts: List<SegmentAttemptRaw>, metric: SegmentMetric): List<SegmentClimbAttempt> {
+        val sortedAttempts = attempts.sortedBy { attempt -> attempt.activityDate }
+        val bestValue = when (metric) {
+            SegmentMetric.TIME -> sortedAttempts.minOf { attempt -> attempt.elapsedTimeSeconds }.toDouble()
+            SegmentMetric.SPEED -> sortedAttempts.maxOf { attempt -> attempt.speedKph }
+        }
+
+        var bestSoFar = when (metric) {
+            SegmentMetric.TIME -> Double.POSITIVE_INFINITY
+            SegmentMetric.SPEED -> Double.NEGATIVE_INFINITY
+        }
+
+        return sortedAttempts.map { attempt ->
+            val currentMetricValue = when (metric) {
+                SegmentMetric.TIME -> attempt.elapsedTimeSeconds.toDouble()
+                SegmentMetric.SPEED -> attempt.speedKph
+            }
+            val setsNewPr = when (metric) {
+                SegmentMetric.TIME -> currentMetricValue < bestSoFar
+                SegmentMetric.SPEED -> currentMetricValue > bestSoFar
+            }
+            if (setsNewPr) {
+                bestSoFar = currentMetricValue
+            }
+
+            val closeToPr = when (metric) {
+                SegmentMetric.TIME -> !setsNewPr && currentMetricValue <= bestValue * 1.03
+                SegmentMetric.SPEED -> !setsNewPr && currentMetricValue >= bestValue * 0.97
+            }
+
+            val deltaToPr = when (metric) {
+                SegmentMetric.TIME -> {
+                    val delta = (currentMetricValue - bestValue).roundToInt()
+                    if (delta <= 0) "PR"
+                    else "+${delta.formatSeconds()}"
+                }
+
+                SegmentMetric.SPEED -> {
+                    val delta = bestValue - currentMetricValue
+                    if (delta <= 0.0) "PR"
+                    else String.format(Locale.ENGLISH, "-%.1f%%", (delta / bestValue) * 100.0)
+                }
+            }
+
+            SegmentClimbAttempt(
+                targetId = attempt.targetId,
+                targetName = attempt.targetName,
+                targetType = attempt.targetType.name,
+                activityDate = attempt.activityDate,
+                elapsedTimeSeconds = attempt.elapsedTimeSeconds,
+                speedKph = attempt.speedKph,
+                distance = attempt.distance,
+                averageGrade = attempt.averageGrade,
+                elevationGain = (attempt.distance * attempt.averageGrade) / 100.0,
+                prRank = attempt.prRank,
+                setsNewPr = setsNewPr,
+                closeToPr = closeToPr,
+                deltaToPr = deltaToPr,
+                weatherSummary = null,
+                activity = attempt.activity
+            )
+        }
+    }
+
+    private fun buildTargetSummary(attempts: List<SegmentAttemptRaw>, metric: SegmentMetric): SegmentClimbTargetSummary {
+        val progressionAttempts = buildAttempts(attempts, metric)
+        val latestAttempt = progressionAttempts.last()
+        val bestAttempt = when (metric) {
+            SegmentMetric.TIME -> progressionAttempts.minBy { attempt -> attempt.elapsedTimeSeconds }
+            SegmentMetric.SPEED -> progressionAttempts.maxBy { attempt -> attempt.speedKph }
+        }
+        val averageSpeedKph = progressionAttempts.map { attempt -> attempt.speedKph }.average()
+
+        val consistency = when (metric) {
+            SegmentMetric.TIME -> {
+                val values = progressionAttempts.map { attempt -> attempt.elapsedTimeSeconds.toDouble() }
+                consistencyLabel(values)
+            }
+
+            SegmentMetric.SPEED -> {
+                val values = progressionAttempts.map { attempt -> attempt.speedKph }
+                consistencyLabel(values)
+            }
+        }
+
+        val recentTrend = when (metric) {
+            SegmentMetric.TIME -> {
+                val values = progressionAttempts.map { attempt -> attempt.elapsedTimeSeconds.toDouble() }
+                trendLabel(values, lowerIsBetter = true, unit = "time")
+            }
+
+            SegmentMetric.SPEED -> {
+                val values = progressionAttempts.map { attempt -> attempt.speedKph }
+                trendLabel(values, lowerIsBetter = false, unit = "speed")
+            }
+        }
+
+        val bestValue = when (metric) {
+            SegmentMetric.TIME -> bestAttempt.elapsedTimeSeconds.formatSeconds()
+            SegmentMetric.SPEED -> String.format(Locale.ENGLISH, "%.1f km/h", bestAttempt.speedKph)
+        }
+        val latestValue = when (metric) {
+            SegmentMetric.TIME -> latestAttempt.elapsedTimeSeconds.formatSeconds()
+            SegmentMetric.SPEED -> String.format(Locale.ENGLISH, "%.1f km/h", latestAttempt.speedKph)
+        }
+
+        return SegmentClimbTargetSummary(
+            targetId = latestAttempt.targetId,
+            targetName = latestAttempt.targetName,
+            targetType = latestAttempt.targetType,
+            climbCategory = attempts.first().climbCategory,
+            distance = attempts.first().distance,
+            averageGrade = attempts.first().averageGrade,
+            attemptsCount = progressionAttempts.size,
+            bestValue = bestValue,
+            latestValue = latestValue,
+            consistency = consistency,
+            averagePacing = String.format(Locale.ENGLISH, "%.1f km/h", averageSpeedKph),
+            closeToPrCount = progressionAttempts.count { attempt -> attempt.closeToPr },
+            recentTrend = recentTrend
+        )
+    }
+
+    private fun consistencyLabel(values: List<Double>): String {
+        if (values.size < 3) {
+            return "-"
+        }
+        val mean = values.average()
+        if (mean == 0.0) {
+            return "-"
+        }
+        val variance = values.map { value -> (value - mean) * (value - mean) }.average()
+        val coefficientOfVariation = sqrt(variance) / mean * 100.0
+        return String.format(Locale.ENGLISH, "CV %.1f%%", coefficientOfVariation)
+    }
+
+    private fun trendLabel(values: List<Double>, lowerIsBetter: Boolean, unit: String): String {
+        if (values.size < 6) {
+            return "Not enough data"
+        }
+        val recentAverage = values.takeLast(3).average()
+        val previousAverage = values.dropLast(3).takeLast(3).average()
+        if (previousAverage == 0.0) {
+            return "Stable"
+        }
+        val ratio = (recentAverage - previousAverage) / previousAverage
+        val isImproving = if (lowerIsBetter) ratio < 0 else ratio > 0
+        val percentage = kotlin.math.abs(ratio * 100.0)
+        return when {
+            percentage < 1.0 -> "Stable"
+            isImproving -> String.format(Locale.ENGLISH, "Improving %.1f%% (%s)", percentage, unit)
+            else -> String.format(Locale.ENGLISH, "Declining %.1f%% (%s)", percentage, unit)
+        }
+    }
+
+    private fun parseSegmentMetric(metric: String?): SegmentMetric {
+        return SegmentMetric.entries.firstOrNull { candidate ->
+            candidate.name.equals(metric, ignoreCase = true)
+        } ?: SegmentMetric.TIME
+    }
+
+    private fun parseSegmentTargetType(targetType: String?): SegmentTargetType {
+        return SegmentTargetType.entries.firstOrNull { candidate ->
+            candidate.name.equals(targetType, ignoreCase = true)
+        } ?: SegmentTargetType.ALL
+    }
+
     private fun resolvePrimaryActivityType(activityTypes: Set<ActivityType>): ActivityType {
         return when {
             activityTypes.any { type -> type in runActivities } -> ActivityType.Run
@@ -280,6 +563,31 @@ internal class StatisticsService(
         val valueFormatter: (ActivityEffort) -> String,
         val improvementFormatter: (ActivityEffort, ActivityEffort) -> String,
     )
+
+    private data class SegmentAttemptRaw(
+        val targetId: Long,
+        val targetName: String,
+        val targetType: SegmentTargetType,
+        val climbCategory: Int,
+        val distance: Double,
+        val averageGrade: Double,
+        val elapsedTimeSeconds: Int,
+        val speedKph: Double,
+        val activityDate: String,
+        val prRank: Int?,
+        val activity: ActivityShort,
+    )
+
+    private enum class SegmentMetric {
+        TIME,
+        SPEED
+    }
+
+    private enum class SegmentTargetType {
+        ALL,
+        SEGMENT,
+        CLIMB
+    }
 
     private fun getPersonalRecordMetricDefinitions(activityTypes: Set<ActivityType>): List<PersonalRecordMetricDefinition> {
         return when (resolvePrimaryActivityType(activityTypes)) {

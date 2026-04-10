@@ -1,0 +1,467 @@
+package services
+
+import (
+	"fmt"
+	"math"
+	"mystravastats/domain/business"
+	"mystravastats/domain/strava"
+	"mystravastats/internal/helpers"
+	"sort"
+	"strings"
+)
+
+type segmentMetric string
+
+const (
+	segmentMetricTime  segmentMetric = "TIME"
+	segmentMetricSpeed segmentMetric = "SPEED"
+)
+
+type segmentTargetType string
+
+const (
+	segmentTargetTypeAll     segmentTargetType = "ALL"
+	segmentTargetTypeSegment segmentTargetType = "SEGMENT"
+	segmentTargetTypeClimb   segmentTargetType = "CLIMB"
+)
+
+type segmentAttemptRaw struct {
+	targetId           int64
+	targetName         string
+	targetType         segmentTargetType
+	climbCategory      int
+	distance           float64
+	averageGrade       float64
+	elapsedTimeSeconds int
+	speedKph           float64
+	activityDate       string
+	prRank             *int
+	activity           business.ActivityShort
+}
+
+func FetchSegmentClimbProgressionByActivityTypeAndYear(
+	year *int,
+	metric *string,
+	targetType *string,
+	targetId *int64,
+	activityTypes ...business.ActivityType,
+) business.SegmentClimbProgression {
+	resolvedMetric := parseSegmentMetric(metric)
+	resolvedTargetType := parseSegmentTargetType(targetType)
+
+	if len(activityTypes) == 0 {
+		return emptySegmentClimbProgression(resolvedMetric, resolvedTargetType)
+	}
+
+	filteredActivities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	sort.Slice(filteredActivities, func(i, j int) bool {
+		return filteredActivities[i].StartDateLocal < filteredActivities[j].StartDateLocal
+	})
+
+	rawAttempts := make([]segmentAttemptRaw, 0)
+	for _, activity := range filteredActivities {
+		detailedActivity := activityProvider.GetCachedDetailedActivity(activity.Id)
+		if detailedActivity == nil {
+			continue
+		}
+
+		for _, effort := range detailedActivity.SegmentEfforts {
+			if !isFavoriteEffort(effort) {
+				continue
+			}
+
+			effortTargetType := segmentTargetTypeSegment
+			if effort.Segment.ClimbCategory > 0 {
+				effortTargetType = segmentTargetTypeClimb
+			}
+			if resolvedTargetType != segmentTargetTypeAll && effortTargetType != resolvedTargetType {
+				continue
+			}
+
+			rawAttempts = append(rawAttempts, segmentAttemptRaw{
+				targetId:           effort.Segment.Id,
+				targetName:         effort.Segment.Name,
+				targetType:         effortTargetType,
+				climbCategory:      effort.Segment.ClimbCategory,
+				distance:           effort.Distance,
+				averageGrade:       effort.Segment.AverageGrade,
+				elapsedTimeSeconds: effort.ElapsedTime,
+				speedKph:           computeSpeedKph(effort.Distance, effort.ElapsedTime),
+				activityDate:       effort.StartDateLocal,
+				prRank:             effort.PrRank,
+				activity:           toActivityShort(activity),
+			})
+		}
+	}
+
+	if len(rawAttempts) == 0 {
+		return emptySegmentClimbProgression(resolvedMetric, resolvedTargetType)
+	}
+
+	attemptsByTarget := make(map[int64][]segmentAttemptRaw)
+	for _, attempt := range rawAttempts {
+		attemptsByTarget[attempt.targetId] = append(attemptsByTarget[attempt.targetId], attempt)
+	}
+
+	targetSummaries := make([]business.SegmentClimbTargetSummary, 0, len(attemptsByTarget))
+	for _, attempts := range attemptsByTarget {
+		targetSummaries = append(targetSummaries, buildTargetSummary(attempts, resolvedMetric))
+	}
+
+	sort.Slice(targetSummaries, func(i, j int) bool {
+		if targetSummaries[i].AttemptsCount != targetSummaries[j].AttemptsCount {
+			return targetSummaries[i].AttemptsCount > targetSummaries[j].AttemptsCount
+		}
+		return strings.ToLower(targetSummaries[i].TargetName) < strings.ToLower(targetSummaries[j].TargetName)
+	})
+
+	selectedTarget := resolveSelectedTarget(targetSummaries, targetId)
+	selectedAttempts := []business.SegmentClimbAttempt{}
+	var selectedTargetID *int64
+	var selectedTargetTypeValue *string
+	if selectedTarget != nil {
+		selectedAttempts = buildAttempts(attemptsByTarget[selectedTarget.TargetId], resolvedMetric)
+		id := selectedTarget.TargetId
+		kind := selectedTarget.TargetType
+		selectedTargetID = &id
+		selectedTargetTypeValue = &kind
+	}
+
+	return business.SegmentClimbProgression{
+		Metric:                  string(resolvedMetric),
+		TargetTypeFilter:        string(resolvedTargetType),
+		WeatherContextAvailable: false,
+		Targets:                 targetSummaries,
+		SelectedTargetId:        selectedTargetID,
+		SelectedTargetType:      selectedTargetTypeValue,
+		Attempts:                selectedAttempts,
+	}
+}
+
+func emptySegmentClimbProgression(metric segmentMetric, targetType segmentTargetType) business.SegmentClimbProgression {
+	return business.SegmentClimbProgression{
+		Metric:                  string(metric),
+		TargetTypeFilter:        string(targetType),
+		WeatherContextAvailable: false,
+		Targets:                 []business.SegmentClimbTargetSummary{},
+		SelectedTargetId:        nil,
+		SelectedTargetType:      nil,
+		Attempts:                []business.SegmentClimbAttempt{},
+	}
+}
+
+func resolveSelectedTarget(
+	targets []business.SegmentClimbTargetSummary,
+	targetId *int64,
+) *business.SegmentClimbTargetSummary {
+	if targetId != nil {
+		for i := range targets {
+			if targets[i].TargetId == *targetId {
+				return &targets[i]
+			}
+		}
+	}
+	if len(targets) == 0 {
+		return nil
+	}
+	return &targets[0]
+}
+
+func isFavoriteEffort(effort strava.SegmentEffort) bool {
+	return effort.Segment.Starred ||
+		effort.Segment.ClimbCategory > 0 ||
+		(effort.PrRank != nil && *effort.PrRank <= 3)
+}
+
+func computeSpeedKph(distanceInMeters float64, elapsedTimeSeconds int) float64 {
+	if distanceInMeters <= 0 || elapsedTimeSeconds <= 0 {
+		return 0
+	}
+	return (distanceInMeters / float64(elapsedTimeSeconds)) * 3.6
+}
+
+func buildAttempts(attempts []segmentAttemptRaw, metric segmentMetric) []business.SegmentClimbAttempt {
+	sortedAttempts := append([]segmentAttemptRaw(nil), attempts...)
+	sort.Slice(sortedAttempts, func(i, j int) bool {
+		return sortedAttempts[i].activityDate < sortedAttempts[j].activityDate
+	})
+
+	bestValue := 0.0
+	switch metric {
+	case segmentMetricSpeed:
+		bestValue = math.Inf(-1)
+		for _, attempt := range sortedAttempts {
+			if attempt.speedKph > bestValue {
+				bestValue = attempt.speedKph
+			}
+		}
+	default:
+		bestValue = math.Inf(1)
+		for _, attempt := range sortedAttempts {
+			value := float64(attempt.elapsedTimeSeconds)
+			if value < bestValue {
+				bestValue = value
+			}
+		}
+	}
+
+	bestSoFar := math.Inf(1)
+	if metric == segmentMetricSpeed {
+		bestSoFar = math.Inf(-1)
+	}
+
+	progression := make([]business.SegmentClimbAttempt, 0, len(sortedAttempts))
+	for _, attempt := range sortedAttempts {
+		currentMetricValue := float64(attempt.elapsedTimeSeconds)
+		if metric == segmentMetricSpeed {
+			currentMetricValue = attempt.speedKph
+		}
+
+		setsNewPr := currentMetricValue < bestSoFar
+		if metric == segmentMetricSpeed {
+			setsNewPr = currentMetricValue > bestSoFar
+		}
+		if setsNewPr {
+			bestSoFar = currentMetricValue
+		}
+
+		closeToPr := false
+		switch metric {
+		case segmentMetricSpeed:
+			closeToPr = !setsNewPr && currentMetricValue >= bestValue*0.97
+		default:
+			closeToPr = !setsNewPr && currentMetricValue <= bestValue*1.03
+		}
+
+		deltaToPr := "PR"
+		switch metric {
+		case segmentMetricSpeed:
+			if bestValue > 0 {
+				delta := bestValue - currentMetricValue
+				if delta > 0 {
+					deltaToPr = fmt.Sprintf("-%.1f%%", (delta/bestValue)*100.0)
+				}
+			}
+		default:
+			delta := int(math.Round(currentMetricValue - bestValue))
+			if delta > 0 {
+				deltaToPr = fmt.Sprintf("+%s", helpers.FormatSeconds(delta))
+			}
+		}
+
+		progression = append(progression, business.SegmentClimbAttempt{
+			TargetId:           attempt.targetId,
+			TargetName:         attempt.targetName,
+			TargetType:         string(attempt.targetType),
+			ActivityDate:       attempt.activityDate,
+			ElapsedTimeSeconds: attempt.elapsedTimeSeconds,
+			SpeedKph:           attempt.speedKph,
+			Distance:           attempt.distance,
+			AverageGrade:       attempt.averageGrade,
+			ElevationGain:      (attempt.distance * attempt.averageGrade) / 100.0,
+			PrRank:             attempt.prRank,
+			SetsNewPr:          setsNewPr,
+			CloseToPr:          closeToPr,
+			DeltaToPr:          deltaToPr,
+			WeatherSummary:     nil,
+			Activity:           attempt.activity,
+		})
+	}
+
+	return progression
+}
+
+func buildTargetSummary(attempts []segmentAttemptRaw, metric segmentMetric) business.SegmentClimbTargetSummary {
+	progressionAttempts := buildAttempts(attempts, metric)
+	latestAttempt := progressionAttempts[len(progressionAttempts)-1]
+
+	bestAttempt := progressionAttempts[0]
+	for _, attempt := range progressionAttempts[1:] {
+		switch metric {
+		case segmentMetricSpeed:
+			if attempt.SpeedKph > bestAttempt.SpeedKph {
+				bestAttempt = attempt
+			}
+		default:
+			if attempt.ElapsedTimeSeconds < bestAttempt.ElapsedTimeSeconds {
+				bestAttempt = attempt
+			}
+		}
+	}
+
+	averageSpeedKph := average(mapAttemptsToSpeeds(progressionAttempts))
+
+	values := mapAttemptsToMetricValues(progressionAttempts, metric)
+	lowerIsBetter := metric == segmentMetricTime
+	consistency := consistencyLabel(values)
+	recentTrend := trendLabel(values, lowerIsBetter, metricUnit(metric))
+
+	bestValue := fmt.Sprintf("%.1f km/h", bestAttempt.SpeedKph)
+	latestValue := fmt.Sprintf("%.1f km/h", latestAttempt.SpeedKph)
+	if metric == segmentMetricTime {
+		bestValue = helpers.FormatSeconds(bestAttempt.ElapsedTimeSeconds)
+		latestValue = helpers.FormatSeconds(latestAttempt.ElapsedTimeSeconds)
+	}
+
+	firstAttempt := attempts[0]
+	closeToPrCount := 0
+	for _, attempt := range progressionAttempts {
+		if attempt.CloseToPr {
+			closeToPrCount++
+		}
+	}
+
+	return business.SegmentClimbTargetSummary{
+		TargetId:       latestAttempt.TargetId,
+		TargetName:     latestAttempt.TargetName,
+		TargetType:     latestAttempt.TargetType,
+		ClimbCategory:  firstAttempt.climbCategory,
+		Distance:       firstAttempt.distance,
+		AverageGrade:   firstAttempt.averageGrade,
+		AttemptsCount:  len(progressionAttempts),
+		BestValue:      bestValue,
+		LatestValue:    latestValue,
+		Consistency:    consistency,
+		AveragePacing:  fmt.Sprintf("%.1f km/h", averageSpeedKph),
+		CloseToPrCount: closeToPrCount,
+		RecentTrend:    recentTrend,
+	}
+}
+
+func mapAttemptsToMetricValues(attempts []business.SegmentClimbAttempt, metric segmentMetric) []float64 {
+	values := make([]float64, 0, len(attempts))
+	for _, attempt := range attempts {
+		if metric == segmentMetricSpeed {
+			values = append(values, attempt.SpeedKph)
+		} else {
+			values = append(values, float64(attempt.ElapsedTimeSeconds))
+		}
+	}
+	return values
+}
+
+func mapAttemptsToSpeeds(attempts []business.SegmentClimbAttempt) []float64 {
+	speeds := make([]float64, 0, len(attempts))
+	for _, attempt := range attempts {
+		speeds = append(speeds, attempt.SpeedKph)
+	}
+	return speeds
+}
+
+func consistencyLabel(values []float64) string {
+	if len(values) < 3 {
+		return "-"
+	}
+	mean := average(values)
+	if mean == 0 {
+		return "-"
+	}
+
+	var varianceSum float64
+	for _, value := range values {
+		diff := value - mean
+		varianceSum += diff * diff
+	}
+	variance := varianceSum / float64(len(values))
+	coefficientOfVariation := math.Sqrt(variance) / mean * 100.0
+
+	return fmt.Sprintf("CV %.1f%%", coefficientOfVariation)
+}
+
+func trendLabel(values []float64, lowerIsBetter bool, unit string) string {
+	if len(values) < 6 {
+		return "Not enough data"
+	}
+
+	recentValues := values[len(values)-3:]
+	previousValues := values[len(values)-6 : len(values)-3]
+	recentAverage := average(recentValues)
+	previousAverage := average(previousValues)
+	if previousAverage == 0 {
+		return "Stable"
+	}
+
+	ratio := (recentAverage - previousAverage) / previousAverage
+	isImproving := ratio > 0
+	if lowerIsBetter {
+		isImproving = ratio < 0
+	}
+
+	percentage := math.Abs(ratio * 100.0)
+	switch {
+	case percentage < 1.0:
+		return "Stable"
+	case isImproving:
+		return fmt.Sprintf("Improving %.1f%% (%s)", percentage, unit)
+	default:
+		return fmt.Sprintf("Declining %.1f%% (%s)", percentage, unit)
+	}
+}
+
+func average(values []float64) float64 {
+	if len(values) == 0 {
+		return 0
+	}
+	total := 0.0
+	for _, value := range values {
+		total += value
+	}
+	return total / float64(len(values))
+}
+
+func metricUnit(metric segmentMetric) string {
+	if metric == segmentMetricSpeed {
+		return "speed"
+	}
+	return "time"
+}
+
+func parseSegmentMetric(metric *string) segmentMetric {
+	if metric != nil && strings.EqualFold(strings.TrimSpace(*metric), string(segmentMetricSpeed)) {
+		return segmentMetricSpeed
+	}
+	return segmentMetricTime
+}
+
+func parseSegmentTargetType(targetType *string) segmentTargetType {
+	if targetType == nil {
+		return segmentTargetTypeAll
+	}
+
+	switch strings.ToUpper(strings.TrimSpace(*targetType)) {
+	case string(segmentTargetTypeSegment):
+		return segmentTargetTypeSegment
+	case string(segmentTargetTypeClimb):
+		return segmentTargetTypeClimb
+	default:
+		return segmentTargetTypeAll
+	}
+}
+
+func toActivityShort(activity *strava.Activity) business.ActivityShort {
+	return business.ActivityShort{
+		Id:   activity.Id,
+		Name: activity.Name,
+		Type: resolveActivityType(activity),
+	}
+}
+
+func resolveActivityType(activity *strava.Activity) business.ActivityType {
+	sportType := activity.SportType
+	if sportType == "" {
+		sportType = activity.Type
+	}
+
+	if activity.Commute && strings.EqualFold(sportType, business.Ride.String()) {
+		return business.Commute
+	}
+
+	if activityType, ok := business.ActivityTypes[sportType]; ok {
+		return activityType
+	}
+	if activityType, ok := business.ActivityTypes[activity.Type]; ok {
+		return activityType
+	}
+
+	return business.Ride
+}

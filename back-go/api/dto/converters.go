@@ -303,6 +303,62 @@ func ToPersonalRecordTimelineDto(entry business.PersonalRecordTimelineEntry) Per
 	}
 }
 
+func ToSegmentClimbProgressionDto(progression business.SegmentClimbProgression) SegmentClimbProgressionDto {
+	targets := make([]SegmentClimbTargetSummaryDto, len(progression.Targets))
+	for i, target := range progression.Targets {
+		targets[i] = SegmentClimbTargetSummaryDto{
+			TargetId:       target.TargetId,
+			TargetName:     target.TargetName,
+			TargetType:     target.TargetType,
+			ClimbCategory:  target.ClimbCategory,
+			Distance:       target.Distance,
+			AverageGrade:   target.AverageGrade,
+			AttemptsCount:  target.AttemptsCount,
+			BestValue:      target.BestValue,
+			LatestValue:    target.LatestValue,
+			Consistency:    target.Consistency,
+			AveragePacing:  target.AveragePacing,
+			CloseToPrCount: target.CloseToPrCount,
+			RecentTrend:    target.RecentTrend,
+		}
+	}
+
+	attempts := make([]SegmentClimbAttemptDto, len(progression.Attempts))
+	for i, attempt := range progression.Attempts {
+		attempts[i] = SegmentClimbAttemptDto{
+			TargetId:           attempt.TargetId,
+			TargetName:         attempt.TargetName,
+			TargetType:         attempt.TargetType,
+			ActivityDate:       attempt.ActivityDate,
+			ElapsedTimeSeconds: attempt.ElapsedTimeSeconds,
+			SpeedKph:           attempt.SpeedKph,
+			Distance:           attempt.Distance,
+			AverageGrade:       attempt.AverageGrade,
+			ElevationGain:      attempt.ElevationGain,
+			PrRank:             attempt.PrRank,
+			SetsNewPr:          attempt.SetsNewPr,
+			CloseToPr:          attempt.CloseToPr,
+			DeltaToPr:          attempt.DeltaToPr,
+			WeatherSummary:     attempt.WeatherSummary,
+			Activity: ActivityShortDto{
+				ID:   attempt.Activity.Id,
+				Name: attempt.Activity.Name,
+				Type: attempt.Activity.Type.String(),
+			},
+		}
+	}
+
+	return SegmentClimbProgressionDto{
+		Metric:                  progression.Metric,
+		TargetTypeFilter:        progression.TargetTypeFilter,
+		WeatherContextAvailable: progression.WeatherContextAvailable,
+		Targets:                 targets,
+		SelectedTargetId:        progression.SelectedTargetId,
+		SelectedTargetType:      progression.SelectedTargetType,
+		Attempts:                attempts,
+	}
+}
+
 func ToDashboardDataDto(data business.DashboardData) DashboardDataDto {
 	return DashboardDataDto{
 		NbActivitiesByYear:     data.NbActivities,

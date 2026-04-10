@@ -49,6 +49,12 @@ var routes = Routes{
 		getPersonalRecordsTimelineByActivityType,
 	},
 	Route{
+		"GetSegmentClimbProgressionByActivityType",
+		"GET",
+		"/api/statistics/segment-climb-progression",
+		getSegmentClimbProgressionByActivityType,
+	},
+	Route{
 		"GetMapsGPX",
 		"GET",
 		"/api/maps/gpx",

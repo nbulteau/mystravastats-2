@@ -1,6 +1,6 @@
 ## 
 ### athlete
-http://localhost:8080/api/athlete/me
+http://localhost:8080/api/athletes/me
 
 ### activities
 http://localhost:8080/api/activities
@@ -12,6 +12,10 @@ http://localhost:8080/api/activities?year=2025&activityType=VirtualRide
 http://localhost:8080/api/statistics
 
 http://localhost:8080/api/statistics?year=2025&activityType=VirtualRide
+
+http://localhost:8080/api/statistics/personal-records-timeline?year=2025&activityType=Ride
+
+http://localhost:8080/api/statistics/segment-climb-progression?year=2025&activityType=Ride&metric=TIME&targetType=ALL
 
 ### charts
 
