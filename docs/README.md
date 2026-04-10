@@ -494,12 +494,10 @@ The dashboard summarizes yearly progression with metrics such as:
 The badge system highlights milestones and famous climbs.
 It turns some statistics into more visual progression markers.
 
-## Documentation Improvements Still Worth Adding
+## Further Documentation
 
-Good next documentation additions would be:
-- a dedicated architecture diagram
-- a backend comparison page: Go vs Kotlin
-- a contributor setup guide
-- a troubleshooting page for OAuth and cache issues
-- a statistics reference page with formulas
-- a developer page explaining the cache layout on disk
+Additional documentation is available here:
+- [Architecture Diagram](/Users/nicolas/Workspace/mystravastats-2/docs/architecture-diagram.md)
+- [OAuth and Cache Troubleshooting](/Users/nicolas/Workspace/mystravastats-2/docs/troubleshooting-oauth-cache.md)
+- [Statistics Reference](/Users/nicolas/Workspace/mystravastats-2/docs/statistics-reference.md)
+- [Cache Layout for Developers](/Users/nicolas/Workspace/mystravastats-2/docs/cache-layout.md)
