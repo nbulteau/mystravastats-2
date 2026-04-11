@@ -9,14 +9,14 @@ import java.io.FileWriter
 internal abstract class CSVExporter(
     clientId: String,
     activities: List<StravaActivity>,
-    year: Int,
+    year: Int?,
     activityType: ActivityType,
 ) {
 
     protected val activities: List<StravaActivity> = activities
         .filter { activity -> activity.type == activityType.name }
 
-    private val writer: FileWriter = FileWriter(File("$clientId-$activityType-$year.csv"))
+    private val writer: FileWriter = FileWriter(File("$clientId-$activityType-${year?.toString() ?: "all-years"}.csv"))
 
     fun export(): String {
         // if no activities: nothing to do
@@ -68,5 +68,4 @@ internal abstract class CSVExporter(
     }
 
 }
-
 

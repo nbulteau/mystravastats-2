@@ -154,6 +154,11 @@ internal class StravaRepository(stravaCache: String) : ILocalStorageProvider {
         val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
         val yearActivitiesDirectory = File(activitiesDirectory, "strava-$clientId-$year")
 
+        // Return empty set if the directory does not exist yet
+        if (!yearActivitiesDirectory.exists()) {
+            return emptySet()
+        }
+
         return Files.walk(yearActivitiesDirectory.toPath())
             .filter { Files.isRegularFile(it) }
             .filter { it.name.startsWith("stream-") }

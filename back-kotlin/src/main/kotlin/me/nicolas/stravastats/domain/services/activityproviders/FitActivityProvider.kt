@@ -2,7 +2,6 @@ package me.nicolas.stravastats.domain.services.activityproviders
 
 import me.nicolas.stravastats.adapters.localrepositories.fit.FITRepository
 import me.nicolas.stravastats.adapters.srtm.SRTMProvider
-import me.nicolas.stravastats.domain.business.strava.stream.AltitudeStream
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
@@ -48,26 +47,10 @@ class FitActivityProvider(fitCache: String, private val srtmProvider: SRTMProvid
 
         val sortedActivities = loadedActivities.sortedBy { it.startDateLocal }.reversed()
 
-        if (srtmProvider.isAvailable()) {
-            return sortedActivities.processAltitudeStreamToActivitiesIfMissing()
-        }
-
-        return sortedActivities
-    }
-
-    private fun List<StravaActivity>.processAltitudeStreamToActivitiesIfMissing(): List<StravaActivity> {
-        logger.debug("Process altitude stream to activities if missing")
-
-        return this.map { activity ->
-            if (activity.stream != null && activity.stream?.altitude == null) {
-                logger.info("Process altitude stream to activity ${activity.name}")
-
-                val data = srtmProvider.getElevation(activity.stream?.latlng?.data ?: emptyList())
-                val altitude = AltitudeStream(data)
-                activity.setStreamAltitude(altitude)
-            } else {
-                activity
-            }
+        return if (srtmProvider.isAvailable()) {
+            sortedActivities.processAltitudeStreamIfMissing(srtmProvider)
+        } else {
+            sortedActivities
         }
     }
 }

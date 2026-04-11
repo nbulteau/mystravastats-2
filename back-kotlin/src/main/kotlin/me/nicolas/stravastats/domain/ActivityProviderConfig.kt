@@ -10,11 +10,14 @@ import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import java.io.File
+import jakarta.annotation.PreDestroy
 
 
 @Configuration
 class ActivityProviderConfig {
     private val logger = LoggerFactory.getLogger(ActivityProviderConfig::class.java)
+
+    private var createdProvider: AutoCloseable? = null
 
     private fun readConfigValue(key: String): String? {
         val fromEnv = System.getenv(key)?.trim()
@@ -71,6 +74,7 @@ class ActivityProviderConfig {
                 throw e
             }
 
+            createdProvider = provider
             provider
         } else {
             // Build a SRTM provider to get elevation data
@@ -91,10 +95,15 @@ class ActivityProviderConfig {
             }
         }
 
-        println()
-        println("To access MyStravaStats: copy paste this url http://localhost:8080 in a browser")
-        println()
+        logger.info("")
+        logger.info("To access MyStravaStats: copy paste this url http://localhost:8080 in a browser")
+        logger.info("")
 
         return activityProvider
+    }
+
+    @PreDestroy
+    fun shutdown() {
+        createdProvider?.close()
     }
 }

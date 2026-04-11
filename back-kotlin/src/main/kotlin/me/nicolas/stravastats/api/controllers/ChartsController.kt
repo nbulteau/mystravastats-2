@@ -11,9 +11,8 @@ import me.nicolas.stravastats.domain.services.IChartsService
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import java.time.LocalDate
-import java.time.ZoneOffset
 
 @RestController
 @RequestMapping("/charts", produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -41,9 +40,9 @@ class ChartsController(
     )
     @GetMapping("/distance-by-period")
     fun getDistanceByPeriod(
-        activityType: String,
-        year: Int,
-        period: Period,
+        @RequestParam(required = true) activityType: String,
+        @RequestParam(required = true) year: Int,
+        @RequestParam(required = true) period: Period,
     ): List<Map<String, Double>> {
         val activityTypes = activityType.convertToActivityTypeSet()
 
@@ -70,9 +69,9 @@ class ChartsController(
     )
     @GetMapping("/elevation-by-period")
     fun getElevationByPeriod(
-        activityType: String,
-        year: Int,
-        period: Period,
+        @RequestParam(required = true) activityType: String,
+        @RequestParam(required = true) year: Int,
+        @RequestParam(required = true) period: Period,
     ): List<Map<String, Double>> {
         val activityTypes = activityType.convertToActivityTypeSet()
 
@@ -99,9 +98,9 @@ class ChartsController(
     )
     @GetMapping("/average-speed-by-period")
     fun getAverageSpeedByPeriod(
-        activityType: String,
-        year: Int,
-        period: Period,
+        @RequestParam(required = true) activityType: String,
+        @RequestParam(required = true) year: Int,
+        @RequestParam(required = true) period: Period,
     ): List<Map<String, Double>> {
         val activityTypes = activityType.convertToActivityTypeSet()
 
@@ -112,9 +111,9 @@ class ChartsController(
 
     @GetMapping("/average-cadence-by-period")
     fun getAverageCadenceByPeriod(
-        activityType: String,
-        year: Int,
-        period: Period,
+        @RequestParam(required = true) activityType: String,
+        @RequestParam(required = true) year: Int,
+        @RequestParam(required = true) period: Period,
     ): List<Map<String, Double>> {
         val activityTypes = activityType.convertToActivityTypeSet()
 
@@ -122,5 +121,3 @@ class ChartsController(
             .map { mapOf(it.first to it.second) }
     }
 }
-
-

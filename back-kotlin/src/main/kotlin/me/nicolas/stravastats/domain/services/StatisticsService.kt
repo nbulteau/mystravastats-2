@@ -1,6 +1,5 @@
 package me.nicolas.stravastats.domain.services
 
-import me.nicolas.stravastats.api.controllers.AthleteController
 import me.nicolas.stravastats.domain.business.ActivityEffort
 import me.nicolas.stravastats.domain.business.ActivityShort
 import me.nicolas.stravastats.domain.business.ActivityType
@@ -37,7 +36,7 @@ internal class StatisticsService(
     activityProvider: IActivityProvider,
 ) : IStatisticsService, AbstractStravaService(activityProvider) {
 
-    private val logger = LoggerFactory.getLogger(AthleteController::class.java)
+    private val logger = LoggerFactory.getLogger(StatisticsService::class.java)
 
     override fun getStatistics(activityTypes: Set<ActivityType>, year: Int?): List<Statistic> {
         logger.info("Compute $activityTypes statistics for ${year ?: "all years"}")
@@ -351,7 +350,8 @@ internal class StatisticsService(
                 activities.sumOf { stravaActivity: StravaActivity -> stravaActivity.totalElevationGain }
             }),
             GlobalStatistic("Km by activity", activities, { number -> "%.2f km".format(number) }, {
-                activities.sumOf { stravaActivity: StravaActivity -> stravaActivity.distance }
+                if (activities.isEmpty()) 0.0
+                else activities.sumOf { stravaActivity: StravaActivity -> stravaActivity.distance }
                     .div(activities.size) / 1000
             }),
 

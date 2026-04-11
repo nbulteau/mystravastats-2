@@ -9,6 +9,7 @@ import me.nicolas.stravastats.domain.services.IDashboardService
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -36,7 +37,7 @@ class DashboardController(
     )
     @GetMapping
     fun getDashboardData(
-        activityType: String,
+        @RequestParam(required = true) activityType: String,
     ): DashboardDataDto {
         val activityTypes = activityType.convertToActivityTypeSet()
 
@@ -64,7 +65,7 @@ class DashboardController(
     )
     @GetMapping("/eddington-number")
     fun getEddingtonNumber(
-        activityType: String,
+        @RequestParam(required = true) activityType: String,
     ): EddingtonNumberDto {
         val activityTypes = activityType.convertToActivityTypeSet()
 
@@ -90,7 +91,7 @@ class DashboardController(
     )
     @GetMapping("/cumulative-data-per-year")
     fun getCumulativeDataPerYear(
-        activityType: String,
+        @RequestParam(required = true) activityType: String,
     ): CumulativeDataPerYearDto {
         val activityTypes = activityType.convertToActivityTypeSet()
 

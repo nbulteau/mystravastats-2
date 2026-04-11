@@ -25,7 +25,7 @@ interface IActivityService {
 
     fun listActivitiesPaginated(pageable: Pageable): Page<StravaActivity>
 
-    fun exportCSV(activityTypes: Set<ActivityType>, year: Int): String
+    fun exportCSV(activityTypes: Set<ActivityType>, year: Int?): String
 }
 
 @Service
@@ -53,8 +53,8 @@ internal class ActivityService(
         return activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
     }
 
-    override fun exportCSV(activityTypes: Set<ActivityType>, year: Int): String {
-        logger.info("Export CSV for activity type $activityTypes and year $year")
+    override fun exportCSV(activityTypes: Set<ActivityType>, year: Int?): String {
+        logger.info("Export CSV for activity type $activityTypes and year ${year ?: "all years"}")
 
         val clientId = activityProvider.athlete().id.toString()
 

@@ -31,7 +31,6 @@ import tools.jackson.module.kotlin.readValue
 import java.net.*
 import java.time.Instant
 import java.time.LocalDateTime
-import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -61,7 +60,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
 
     private val properties: StravaProperties = StravaProperties()
 
-    private val okHttpClient: OkHttpClient = OkHttpClient.Builder().proxy(getupProxyFromEnvironment()).build()
+    private val okHttpClient: OkHttpClient = OkHttpClient.Builder().proxy(getProxyFromEnvironment()).build()
 
     private var accessToken: String? = null
     private val globalRateLimitUntilMs = AtomicLong(0L)
@@ -112,7 +111,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
         }
     }
 
-    private fun getupProxyFromEnvironment(): Proxy? {
+    private fun getProxyFromEnvironment(): Proxy? {
         var httpsProxy = System.getenv()["https_proxy"]
         if (httpsProxy == null) {
             httpsProxy = System.getenv()["HTTPS_PROXY"]
@@ -160,11 +159,12 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
 
         val activities = mutableListOf<StravaActivity>()
         var page = 1
+        // Use UTC as reference timezone so that date boundaries are consistent for all users
         var url = "https://www.strava.com/api/v3/athlete/activities?per_page=${properties.pageSize}"
         if (before != null) {
-            url += "&before=${before.atZone(ZoneId.of("Europe/Paris")).toEpochSecond()}"
+            url += "&before=${before.toEpochSecond(ZoneOffset.UTC)}"
         }
-        url += "&after=${after.atZone(ZoneId.of("Europe/Paris")).toEpochSecond()}"
+        url += "&after=${after.toEpochSecond(ZoneOffset.UTC)}"
 
         val requestHeaders = buildRequestHeaders()
         while (true) {
@@ -411,7 +411,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
     }
 
     private fun buildRequestHeaders() =
-        Headers.Builder().set("Accept", "application/json").set("ContentType", "application/json")
+        Headers.Builder().set("Accept", "application/json").set("Content-Type", "application/json")
             .set("Authorization", "Bearer $accessToken").build()
 
     private fun executeRequestWithRetry(

@@ -1,12 +1,12 @@
 package me.nicolas.stravastats.domain.utils
 
 import java.lang.ref.ReferenceQueue
-
 import java.lang.ref.SoftReference
 
 /**
  * [SoftCache] caches items with a [SoftReference] wrapper.
  * A soft reference is a reference that is garbage-collected less aggressively.
+ * All public methods are synchronized to be safe for concurrent access.
  */
 @Suppress("UNCHECKED_CAST")
 class SoftCache<K, V : Any> : GenericCache<K, V> {
@@ -14,8 +14,9 @@ class SoftCache<K, V : Any> : GenericCache<K, V> {
     private val cache = HashMap<K, SoftEntry<K, V>>()
 
     override val size: Int
-        get() = cache.size
+        @Synchronized get() = cache.size
 
+    @Synchronized
     override fun clear() = cache.clear()
 
     private val referenceQueue = ReferenceQueue<Any>()
@@ -23,19 +24,21 @@ class SoftCache<K, V : Any> : GenericCache<K, V> {
     private class SoftEntry<K, V>(val key: K, value: V, referenceQueue: ReferenceQueue<Any>) :
         SoftReference<Any>(value, referenceQueue)
 
+    @Synchronized
     override fun set(key: K, value: V) {
         removeUnreachableItems()
         val softEntry = SoftEntry(key, value, referenceQueue)
         cache[key] = softEntry
     }
 
+    @Synchronized
     override fun remove(key: K): V? {
         val softEntry = cache.remove(key)
         removeUnreachableItems()
-
         return softEntry?.get()?.let { return it as V }
     }
 
+    @Synchronized
     override fun get(key: K): V? {
         val softEntry = cache[key] as SoftEntry<*, *>?
         softEntry?.get()?.let { return it as V }

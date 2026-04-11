@@ -16,7 +16,9 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.rest.webmvc.ResourceNotFoundException
 import org.springframework.data.web.PagedModel
+import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
 @RestController
@@ -128,7 +130,7 @@ class ActivitiesController(
     )
     @GetMapping("/active-days")
     fun getActiveDaysByActivityType(
-        activityType: String,
+        @RequestParam(required = true) activityType: String,
     ): Map<String, Int> {
         val activityTypes = activityType.convertToActivityTypeSet()
 
@@ -143,7 +145,7 @@ class ActivitiesController(
                 responseCode = "200",
                 description = "CSV file",
                 content = [Content(
-                    mediaType = MediaType.TEXT_PLAIN_VALUE,
+                    mediaType = "text/csv",
                     schema = Schema(implementation = String::class)
                 )]
             ),
@@ -157,11 +159,20 @@ class ActivitiesController(
             )
         ]
     )
-    @GetMapping("/csv", produces = [MediaType.TEXT_PLAIN_VALUE])
-    fun exportCSV(activityType: String, year: Int): String {
+    @GetMapping("/csv", produces = ["text/csv"])
+    fun exportCSV(
+        @RequestParam(required = true) activityType: String,
+        @RequestParam(required = false) year: Int?,
+    ): ResponseEntity<String> {
         val activityTypes = activityType.convertToActivityTypeSet()
 
-        return activityService.exportCSV(activityTypes, year)
+        val csvContent = activityService.exportCSV(activityTypes, year)
+        val fileSuffix = year?.toString() ?: "all-years"
+
+        return ResponseEntity.ok()
+            .contentType(MediaType.valueOf("text/csv"))
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"activities-$fileSuffix.csv\"")
+            .body(csvContent)
     }
 
     @Operation(
@@ -196,4 +207,3 @@ class ActivitiesController(
         }.toDto()
     }
 }
-

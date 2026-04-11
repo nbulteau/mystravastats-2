@@ -8,7 +8,7 @@ import me.nicolas.stravastats.domain.services.statistics.calculateBestTimeForDis
 import me.nicolas.stravastats.domain.utils.formatDate
 import me.nicolas.stravastats.domain.utils.formatSeconds
 
-internal class InlineSkateCSVExporter(clientId: String, activities: List<StravaActivity>, year: Int) :
+internal class InlineSkateCSVExporter(clientId: String, activities: List<StravaActivity>, year: Int?) :
     CSVExporter(clientId, activities, year, ActivityType.InlineSkate) {
 
     override fun generateHeader(): String {

@@ -80,7 +80,7 @@ class FITRepository(fitDirectory: String) {
         // The total work done in kilojoules during this stravaActivity. Rides only
         val kilojoules = 0.8604 * averageWatts * elapsedTime / 1000
         // The stravaActivity's max speed, in meters per second
-        val maxSpeed: Float = sessionMesg?.maxSpeed?.toFloat() ?: 0.0F
+        val maxSpeed: Float = sessionMesg?.maxSpeed ?: 0.0F
         // The stravaActivity's moving time, in seconds
         val movingTime: Int = sessionMesg?.timestamp?.timestamp?.minus(sessionMesg.startTime?.timestamp!!)?.toInt()!!
         // The time at which the stravaActivity was started.
@@ -97,11 +97,7 @@ class FITRepository(fitDirectory: String) {
             stream.latlng?.data?.first()
         }
         // Total elevation gain
-        val deltas = if (stream.altitude != null) {
-            stream.altitude.data.zipWithNext { a, b -> b - a }
-        } else {
-            null
-        }
+        val deltas = stream.altitude?.data?.zipWithNext { a, b -> b - a }
         val sum = deltas?.filter { it > 0 }?.sumOf { it } ?: 0.0
         val totalElevationGain: Double = sessionMesg.totalAscent?.toDouble() ?: sum
 
@@ -130,7 +126,7 @@ class FITRepository(fitDirectory: String) {
             totalElevationGain = totalElevationGain,
             type = type,
             uploadId = 0,
-            weightedAverageWatts = sessionMesg.avgPower?.toInt() ?: 0,
+            weightedAverageWatts = sessionMesg.avgPower ?: 0,
             stream = stream
         )
     }
@@ -162,20 +158,12 @@ class FITRepository(fitDirectory: String) {
 
         // latitude/longitude
         val dataLatitude = this.map { recordMesg ->
-            if (recordMesg.positionLat == null) {
-                0
-            } else {
-                recordMesg.positionLat
-            }
+            recordMesg.positionLat ?: 0
         }.toMutableList()
         dataLatitude.fixCoordinate()
 
         val dataLongitude = this.map { recordMesg ->
-            if (recordMesg.positionLong == null) {
-                0
-            } else {
-                recordMesg.positionLong
-            }
+            recordMesg.positionLong ?: 0
         }.toMutableList()
         dataLongitude.fixCoordinate()
 
@@ -366,7 +354,7 @@ class FITRepository(fitDirectory: String) {
         if (this.first() == 0) {
             val firstValidValue: Int = try {
                 this.first { it != 0 }
-            } catch (noSuchElementException: NoSuchElementException) {
+            } catch (_: NoSuchElementException) {
                 0
             }
             while (index < this.size && this[index] == 0) {
@@ -381,7 +369,7 @@ class FITRepository(fitDirectory: String) {
                 val lastValidValue: Int = this[index - 1]
                 val firstValidValue: Int = try {
                     this.drop(index).first { it != 0 }
-                } catch (noSuchElementException: NoSuchElementException) {
+                } catch (_: NoSuchElementException) {
                     lastValidValue
                 }
                 while (this[index] == 0) {

@@ -69,33 +69,28 @@ data class StravaActivity(
     }
 
     fun calculateTotalAscentGain(): Double {
-        if (stream?.altitude?.data != null) {
-            val deltas = stream?.altitude?.data?.zipWithNext { a, b -> b - a }
-            return abs(deltas?.filter { it <= 0 }?.sumOf { it }!!)
-        }
-        return 0.0
+        val altitudeData = stream?.altitude?.data ?: return 0.0
+        val deltas = altitudeData.zipWithNext { a, b -> b - a }
+        return abs(deltas.filter { it <= 0 }.sumOf { it })
     }
 
     fun calculateTotalDescentGain(): Double {
-        if (stream?.altitude?.data != null) {
-            val deltas = stream?.altitude?.data?.zipWithNext { a, b -> b - a }
-            return abs(deltas?.filter { it >= 0 }?.sumOf { it }!!)
-        }
-        return 0.0
+        val altitudeData = stream?.altitude?.data ?: return 0.0
+        val deltas = altitudeData.zipWithNext { a, b -> b - a }
+        return abs(deltas.filter { it >= 0 }.sumOf { it })
     }
 
     fun setStreamAltitude(altitude: AltitudeStream): StravaActivity {
         val updatedStream = this.stream?.copy(altitude = altitude)
 
-        // totalElevationGain
+        // Recompute total elevation gain from altitude deltas
         val deltas = altitude.data.zipWithNext { a, b -> b - a }
         val updatedTotalElevationGain = deltas.filter { it > 0 }.sumOf { it }
 
-        // elevHigh
-        val elevHigh = altitude.data.maxOrNull() ?: 0.0
-        val updatedElevHigh = elevHigh
+        // Recompute highest point
+        val newElevHigh = altitude.data.maxOrNull() ?: 0.0
 
-        return this.copy(stream = updatedStream, totalElevationGain = updatedTotalElevationGain, elevHigh = updatedElevHigh)
+        return this.copy(stream = updatedStream, totalElevationGain = updatedTotalElevationGain, elevHigh = newElevHigh)
     }
 }
 

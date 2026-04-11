@@ -33,4 +33,9 @@ internal object BestEffortCache {
             Optional.ofNullable(supplier())
         }.orElse(null)
     }
+
+    /** Invalidates all cached efforts (call after activities are refreshed). */
+    fun clear() {
+        cache.clear()
+    }
 }

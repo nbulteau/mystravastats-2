@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
@@ -18,13 +19,14 @@ import me.nicolas.stravastats.domain.interfaces.ILocalStorageProvider
 import me.nicolas.stravastats.domain.interfaces.IStravaApi
 import me.nicolas.stravastats.adapters.localrepositories.strava.StravaRepository
 import me.nicolas.stravastats.domain.services.ActivityHelper.filterByActivityTypes
+import me.nicolas.stravastats.domain.services.statistics.BestEffortCache
 import me.nicolas.stravastats.domain.services.toStravaDetailedActivity
 import me.nicolas.stravastats.domain.utils.GenericCache
 import me.nicolas.stravastats.domain.utils.SoftCache
 import org.slf4j.LoggerFactory
-import java.time.Instant
 import java.time.LocalDate
 import java.util.*
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.system.measureTimeMillis
 
@@ -33,7 +35,7 @@ class StravaActivityProvider(
     localStorageProvider: ILocalStorageProvider? = null,
     private var stravaApi: IStravaApi? = null,
     stravaCache: String = "strava-cache",
-) : AbstractActivityProvider() {
+) : AbstractActivityProvider(), AutoCloseable {
 
     // Internally keep a concrete reference (default to StravaRepository when none injected)
     private val storageProvider: ILocalStorageProvider = localStorageProvider ?: StravaRepository(stravaCache)
@@ -50,8 +52,8 @@ class StravaActivityProvider(
     private val backgroundRefreshStarted = AtomicBoolean(false)
 
     companion object {
-        // Threshold instant: 2025-08-17T00:00:00Z (replace with desired date/time)
-        private val CACHE_RELOAD_THRESHOLD: Instant = Instant.parse("2025-08-17T00:00:00Z")
+        // Reload a year's cache if it is older than this duration (avoids a fixed hardcoded date)
+        private val CACHE_MAX_AGE_MS: Long = TimeUnit.DAYS.toMillis(365L)
         private const val MAX_CONCURRENT_STREAM_LOADS = 8
     }
 
@@ -72,7 +74,13 @@ class StravaActivityProvider(
             stravaAthlete = storageProvider.loadAthleteFromCache(clientId)
         }
 
-        logger.info("ActivityService prepared with clientId=$clientId (initial loading deferred)" )
+        logger.info("ActivityService prepared with clientId=$clientId (initial loading deferred)")
+    }
+
+    /** Cancels the background coroutine scope when the bean is destroyed. */
+    override fun close() {
+        logger.info("Shutting down StravaActivityProvider background scope")
+        startupScope.cancel()
     }
 
     suspend fun initializeAndLoadActivities() = coroutineScope {
@@ -211,10 +219,10 @@ class StravaActivityProvider(
         return@coroutineScope loadedActivities
     }
 
-    // Determines if activities should be reloaded from Strava API
+    // Determines if activities should be reloaded from Strava API (cache is older than CACHE_MAX_AGE_MS)
     private fun shouldReloadFromStravaAPI(year: Int): Boolean {
-        // If the file is older than CACHE_RELOAD_THRESHOLD, it needs to be reloaded
-        return storageProvider.getLocalCacheLastModified(clientId, year) < CACHE_RELOAD_THRESHOLD.toEpochMilli()
+        val lastModified = storageProvider.getLocalCacheLastModified(clientId, year)
+        return (System.currentTimeMillis() - lastModified) > CACHE_MAX_AGE_MS
     }
 
     // Loads missing streams from the cache
@@ -281,34 +289,6 @@ class StravaActivityProvider(
         }
     }
 
-    private fun loadActivitiesStreams(year: Int, activities: List<StravaActivity>) {
-
-        // stream id file list
-        val streamIdsSet = storageProvider.buildStreamIdsSet(clientId, year)
-
-        activities.forEach { activity ->
-            val stream: Stream?
-
-            if (streamIdsSet.contains(activity.id)) {
-                stream = storageProvider.loadActivitiesStreamsFromCache(clientId, year, activity)
-            } else {
-                if (stravaApi != null) {
-                    stream = stravaApi!!.getActivityStream(activity)
-                    if (stream != null) {
-                        storageProvider.saveActivitiesStreamsToCache(clientId, year, activity, stream)
-                    } else {
-                        logger.warn("Stream for activity ${activity.id} not found in Strava API")
-                    }
-                } else {
-                    stream = null
-                }
-            }
-
-            // Clean stream
-            activity.stream = stream
-        }
-    }
-
     private fun retrieveLoggedInAthlete(): StravaAthlete {
         logger.info("Load stravaAthlete with id $clientId description from Strava")
         val api = stravaApi ?: createStravaApiIfNeeded()
@@ -355,6 +335,10 @@ class StravaActivityProvider(
             .sortedBy { activity -> activity.startDateLocal }
 
         activities = mergedActivities
+
+        // Invalidate best-effort cache so refreshed activities are reflected in statistics
+        BestEffortCache.clear()
+
         logger.info("Background refresh merged current-year activities: {} total activities in memory", activities.size)
     }
 
@@ -428,5 +412,4 @@ class StravaActivityProvider(
         }
         return null
     }
-
 }

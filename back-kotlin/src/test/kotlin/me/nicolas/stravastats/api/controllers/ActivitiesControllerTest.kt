@@ -18,6 +18,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
+import org.hamcrest.Matchers.startsWith
 
 @ExtendWith(SpringExtension::class)
 @WebMvcTest(ActivitiesController::class)
@@ -143,7 +144,7 @@ class ActivitiesControllerTest {
             .andExpect(status().isBadRequest)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.message").value("Illegal argument"))
-            .andExpect(jsonPath("$.description").value("Illegal argument : 'No enum constant me.nicolas.stravastats.domain.business.ActivityType.InvalidType'"))
+            .andExpect(jsonPath("$.description").value(startsWith("Illegal argument : 'Unknown activity type: 'InvalidType'")))
     }
 
 }

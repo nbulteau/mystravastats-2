@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
 import java.util.*
+import kotlin.math.roundToInt
 
 abstract class AbstractActivityProvider : IActivityProvider {
 
@@ -42,12 +43,31 @@ abstract class AbstractActivityProvider : IActivityProvider {
         }
         val to = (pageable.offset + pageable.pageSize).toInt().coerceAtMost(activitiesSnapshot.size)
 
-        val sortedActivities = pageable.sort.let { sort ->
-            if (sort.isSorted) {
-                activitiesSnapshot.sortedBy { activity -> activity.startDateLocal }
-            } else {
-                activitiesSnapshot
+        // Apply sort from Pageable, respecting the requested property and direction
+        val sortedActivities = if (pageable.sort.isSorted) {
+            var result = activitiesSnapshot
+            for (order in pageable.sort) {
+                val comparator: Comparator<StravaActivity> = when (order.property) {
+                    "averageSpeed" -> compareBy { it.averageSpeed }
+                    "averageCadence" -> compareBy { it.averageCadence }
+                    "averageHeartrate" -> compareBy { it.averageHeartrate }
+                    "maxHeartrate" -> compareBy { it.maxHeartrate }
+                    "averageWatts" -> compareBy { it.averageWatts }
+                    "distance" -> compareBy { it.distance }
+                    "elapsedTime" -> compareBy { it.elapsedTime }
+                    "elevHigh" -> compareBy { it.elevHigh }
+                    "maxSpeed" -> compareBy { it.maxSpeed }
+                    "movingTime" -> compareBy { it.movingTime }
+                    "startDate" -> compareBy { it.startDateLocal }
+                    "totalElevationGain" -> compareBy { it.totalElevationGain }
+                    "weightedAverageWatts" -> compareBy { it.weightedAverageWatts }
+                    else -> compareBy { it.startDateLocal }
+                }
+                result = if (order.isDescending) result.sortedWith(comparator.reversed()) else result.sortedWith(comparator)
             }
+            result
+        } else {
+            activitiesSnapshot
         }
 
         val subList = sortedActivities.subList(from, to)
@@ -70,7 +90,7 @@ abstract class AbstractActivityProvider : IActivityProvider {
         return filteredActivities
             .groupBy { activity -> activity.startDateLocal.substringBefore('T') }
             .mapValues { (_, activities) -> activities.sumOf { activity -> activity.distance / 1000 } }
-            .mapValues { entry -> entry.value.toInt() }
+            .mapValues { entry -> entry.value.roundToInt() }
             .toMap()
     }
 
@@ -87,7 +107,7 @@ abstract class AbstractActivityProvider : IActivityProvider {
         return filteredActivities
             .groupBy { activity -> activity.startDateLocal.substringBefore('T') }
             .mapValues { (_, activities) -> activities.sumOf { activity -> activity.distance / 1000 } }
-            .mapValues { entry -> entry.value.toInt() }
+            .mapValues { entry -> entry.value.roundToInt() }
             .toMap()
     }
 
