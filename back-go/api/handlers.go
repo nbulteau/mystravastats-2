@@ -30,7 +30,7 @@ func getAthlete(w http.ResponseWriter, _ *http.Request) {
 
 	if err := writeJSON(w, http.StatusOK, athleteDto); err != nil {
 		log.Printf("failed to write athlete response: %v", err)
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		writeInternalServerError(w, "Failed to encode athlete response")
 	}
 }
 
@@ -48,12 +48,12 @@ func getAthlete(w http.ResponseWriter, _ *http.Request) {
 func getActivitiesByActivityType(w http.ResponseWriter, r *http.Request) {
 	year, err := getYearParam(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return
 	}
 	activityTypes, err := getActivityTypeParam(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return
 	}
 
@@ -65,7 +65,7 @@ func getActivitiesByActivityType(w http.ResponseWriter, r *http.Request) {
 
 	if err := writeJSON(w, http.StatusOK, activitiesDto); err != nil {
 		log.Printf("failed to write activities response: %v", err)
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		writeInternalServerError(w, "Failed to encode activities response")
 	}
 }
 
@@ -84,12 +84,12 @@ func getDetailedActivity(writer http.ResponseWriter, request *http.Request) {
 	vars := mux.Vars(request)
 	activityId, err := strconv.ParseInt(vars["activityId"], 10, 64)
 	if err != nil {
-		http.Error(writer, "Invalid activityId", http.StatusBadRequest)
+		writeBadRequest(writer, "Invalid request parameters", "invalid activityId")
 		return
 	}
 	activity, err := services2.RetrieveDetailedActivity(activityId)
 	if err != nil {
-		http.Error(writer, fmt.Sprintf("Activity %d not found", activityId), http.StatusNotFound)
+		writeNotFound(writer, "Resource not found", fmt.Sprintf("Activity %d not found", activityId))
 		return
 	}
 
@@ -97,7 +97,7 @@ func getDetailedActivity(writer http.ResponseWriter, request *http.Request) {
 
 	if err := writeJSON(writer, http.StatusOK, detailedActivityDto); err != nil {
 		log.Printf("failed to write detailed activity response: %v", err)
-		http.Error(writer, "Failed to encode response", http.StatusInternalServerError)
+		writeInternalServerError(writer, "Failed to encode detailed activity response")
 	}
 }
 
@@ -115,12 +115,12 @@ func getDetailedActivity(writer http.ResponseWriter, request *http.Request) {
 func getExportCSV(writer http.ResponseWriter, request *http.Request) {
 	year, err := getYearParam(request)
 	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
+		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
 	activityTypes, err := getActivityTypeParam(request)
 	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
+		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
 	csvData := services2.ExportCSV(year, activityTypes...)
@@ -130,7 +130,6 @@ func getExportCSV(writer http.ResponseWriter, request *http.Request) {
 	writer.WriteHeader(http.StatusOK)
 	if _, err := writer.Write([]byte(csvData)); err != nil {
 		log.Printf("failed to write CSV response: %v", err)
-		http.Error(writer, "Failed to write CSV response", http.StatusInternalServerError)
 		return
 	}
 	log.Println("CSV export successful")
@@ -150,12 +149,12 @@ func getExportCSV(writer http.ResponseWriter, request *http.Request) {
 func getStatisticsByActivityType(w http.ResponseWriter, r *http.Request) {
 	year, err := getYearParam(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return
 	}
 	activityTypes, err := getActivityTypeParam(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return
 	}
 
@@ -167,7 +166,7 @@ func getStatisticsByActivityType(w http.ResponseWriter, r *http.Request) {
 
 	if err := writeJSON(w, http.StatusOK, statisticsDto); err != nil {
 		log.Printf("failed to write statistics response: %v", err)
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		writeInternalServerError(w, "Failed to encode statistics response")
 	}
 }
 
@@ -186,12 +185,12 @@ func getStatisticsByActivityType(w http.ResponseWriter, r *http.Request) {
 func getPersonalRecordsTimelineByActivityType(w http.ResponseWriter, r *http.Request) {
 	year, err := getYearParam(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return
 	}
 	activityTypes, err := getActivityTypeParam(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return
 	}
 	metric := getMetricParam(r)
@@ -204,7 +203,7 @@ func getPersonalRecordsTimelineByActivityType(w http.ResponseWriter, r *http.Req
 
 	if err := writeJSON(w, http.StatusOK, timelineDto); err != nil {
 		log.Printf("failed to write personal records timeline response: %v", err)
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		writeInternalServerError(w, "Failed to encode personal records timeline response")
 	}
 }
 
@@ -225,19 +224,19 @@ func getPersonalRecordsTimelineByActivityType(w http.ResponseWriter, r *http.Req
 func getSegmentClimbProgressionByActivityType(w http.ResponseWriter, r *http.Request) {
 	year, err := getYearParam(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return
 	}
 	activityTypes, err := getActivityTypeParam(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return
 	}
 	metric := getMetricParam(r)
 	targetType := getTargetTypeParam(r)
 	targetId, err := getTargetIDParam(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return
 	}
 
@@ -255,7 +254,7 @@ func getSegmentClimbProgressionByActivityType(w http.ResponseWriter, r *http.Req
 
 	if err := writeJSON(w, http.StatusOK, progressionDto); err != nil {
 		log.Printf("failed to write segment/climb progression response: %v", err)
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		writeInternalServerError(w, "Failed to encode segment/climb progression response")
 	}
 }
 
@@ -273,12 +272,12 @@ func getSegmentClimbProgressionByActivityType(w http.ResponseWriter, r *http.Req
 func getMapsGPX(w http.ResponseWriter, r *http.Request) {
 	year, err := getYearParam(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return
 	}
 	activityTypes, err := getActivityTypeParam(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return
 	}
 
@@ -286,7 +285,7 @@ func getMapsGPX(w http.ResponseWriter, r *http.Request) {
 
 	if err := writeJSON(w, http.StatusOK, gpx); err != nil {
 		log.Printf("failed to write gpx response: %v", err)
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		writeInternalServerError(w, "Failed to encode gpx response")
 	}
 }
 
@@ -305,25 +304,29 @@ func getMapsGPX(w http.ResponseWriter, r *http.Request) {
 func getChartsDistanceByPeriod(w http.ResponseWriter, r *http.Request) {
 	year, err := getYearParam(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return
 	}
 	if year == nil {
-		http.Error(w, "year is required", http.StatusBadRequest)
+		writeBadRequest(w, "Invalid request parameters", "year is required")
 		return
 	}
 	activityTypes, err := getActivityTypeParam(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return
 	}
-	period := getPeriodParam(r)
+	period, err := getPeriodParam(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
 
 	distanceByPeriod := services2.FetchChartsDistanceByPeriod(year, period, activityTypes...)
 
 	if err := writeJSON(w, http.StatusOK, distanceByPeriod); err != nil {
 		log.Printf("failed to write distance chart response: %v", err)
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		writeInternalServerError(w, "Failed to encode distance chart response")
 	}
 }
 
@@ -342,25 +345,29 @@ func getChartsDistanceByPeriod(w http.ResponseWriter, r *http.Request) {
 func getChartsElevationByPeriod(writer http.ResponseWriter, request *http.Request) {
 	year, err := getYearParam(request)
 	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
+		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
 	if year == nil {
-		http.Error(writer, "year is required", http.StatusBadRequest)
+		writeBadRequest(writer, "Invalid request parameters", "year is required")
 		return
 	}
 	activityTypes, err := getActivityTypeParam(request)
 	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
+		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
-	period := getPeriodParam(request)
+	period, err := getPeriodParam(request)
+	if err != nil {
+		writeBadRequest(writer, "Invalid request parameters", err.Error())
+		return
+	}
 
 	elevationByPeriod := services2.FetchChartsElevationByPeriod(year, period, activityTypes...)
 
 	if err := writeJSON(writer, http.StatusOK, elevationByPeriod); err != nil {
 		log.Printf("failed to write elevation chart response: %v", err)
-		http.Error(writer, "Failed to encode response", http.StatusInternalServerError)
+		writeInternalServerError(writer, "Failed to encode elevation chart response")
 	}
 }
 
@@ -379,25 +386,29 @@ func getChartsElevationByPeriod(writer http.ResponseWriter, request *http.Reques
 func getChartsAverageSpeedByPeriod(writer http.ResponseWriter, request *http.Request) {
 	year, err := getYearParam(request)
 	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
+		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
 	if year == nil {
-		http.Error(writer, "year is required", http.StatusBadRequest)
+		writeBadRequest(writer, "Invalid request parameters", "year is required")
 		return
 	}
 	activityTypes, err := getActivityTypeParam(request)
 	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
+		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
-	period := getPeriodParam(request)
+	period, err := getPeriodParam(request)
+	if err != nil {
+		writeBadRequest(writer, "Invalid request parameters", err.Error())
+		return
+	}
 
 	averageSpeedByPeriod := services2.FetchChartsAverageSpeedByPeriod(year, period, activityTypes...)
 
 	if err := writeJSON(writer, http.StatusOK, averageSpeedByPeriod); err != nil {
 		log.Printf("failed to write average speed chart response: %v", err)
-		http.Error(writer, "Failed to encode response", http.StatusInternalServerError)
+		writeInternalServerError(writer, "Failed to encode average speed chart response")
 	}
 }
 
@@ -416,25 +427,29 @@ func getChartsAverageSpeedByPeriod(writer http.ResponseWriter, request *http.Req
 func getChartsAverageCadenceByPeriod(writer http.ResponseWriter, request *http.Request) {
 	year, err := getYearParam(request)
 	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
+		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
 	if year == nil {
-		http.Error(writer, "year is required", http.StatusBadRequest)
+		writeBadRequest(writer, "Invalid request parameters", "year is required")
 		return
 	}
 	activityTypes, err := getActivityTypeParam(request)
 	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
+		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
-	period := getPeriodParam(request)
+	period, err := getPeriodParam(request)
+	if err != nil {
+		writeBadRequest(writer, "Invalid request parameters", err.Error())
+		return
+	}
 
 	averageCadenceByPeriod := services2.FetchChartsAverageCadenceByPeriod(year, period, activityTypes...)
 
 	if err := writeJSON(writer, http.StatusOK, averageCadenceByPeriod); err != nil {
 		log.Printf("failed to write average cadence chart response: %v", err)
-		http.Error(writer, "Failed to encode response", http.StatusInternalServerError)
+		writeInternalServerError(writer, "Failed to encode average cadence chart response")
 	}
 }
 
@@ -451,7 +466,7 @@ func getChartsAverageCadenceByPeriod(writer http.ResponseWriter, request *http.R
 func getDashboard(w http.ResponseWriter, r *http.Request) {
 	activityTypes, err := getActivityTypeParam(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return
 	}
 
@@ -460,7 +475,7 @@ func getDashboard(w http.ResponseWriter, r *http.Request) {
 
 	if err := writeJSON(w, http.StatusOK, dashboardDataDto); err != nil {
 		log.Printf("failed to write dashboard response: %v", err)
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		writeInternalServerError(w, "Failed to encode dashboard response")
 	}
 }
 
@@ -477,7 +492,7 @@ func getDashboard(w http.ResponseWriter, r *http.Request) {
 func getDashboardCumulativeDataByYear(w http.ResponseWriter, r *http.Request) {
 	activityTypes, err := getActivityTypeParam(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return
 	}
 
@@ -491,7 +506,7 @@ func getDashboardCumulativeDataByYear(w http.ResponseWriter, r *http.Request) {
 
 	if err := writeJSON(w, http.StatusOK, cumulativeDataDto); err != nil {
 		log.Printf("failed to write cumulative dashboard response: %v", err)
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		writeInternalServerError(w, "Failed to encode cumulative dashboard response")
 	}
 }
 
@@ -508,7 +523,7 @@ func getDashboardCumulativeDataByYear(w http.ResponseWriter, r *http.Request) {
 func getDashboardEddingtonNumber(w http.ResponseWriter, r *http.Request) {
 	activityTypes, err := getActivityTypeParam(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return
 	}
 
@@ -520,7 +535,7 @@ func getDashboardEddingtonNumber(w http.ResponseWriter, r *http.Request) {
 
 	if err := writeJSON(w, http.StatusOK, edNumDto); err != nil {
 		log.Printf("failed to write eddington response: %v", err)
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		writeInternalServerError(w, "Failed to encode eddington response")
 	}
 }
 
@@ -539,26 +554,25 @@ func getDashboardEddingtonNumber(w http.ResponseWriter, r *http.Request) {
 func getBadges(w http.ResponseWriter, r *http.Request) {
 	year, err := getYearParam(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return
 	}
 	activityTypes, err := getActivityTypeParam(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return
 	}
-	badgeSetParam := r.URL.Query().Get("badgeSet")
-
-	var badgeSet business.BadgeSetEnum
-	if badgeSetParam != "" {
-		badgeSet = business.BadgeSetEnum(badgeSetParam)
+	badgeSet, err := getBadgeSetParam(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
 	}
 
 	var badges []business.BadgeCheckResult
-	switch badgeSet {
-	case business.GENERAL:
+	switch {
+	case badgeSet != nil && *badgeSet == business.GENERAL:
 		badges = services2.GetGeneralBadges(year, activityTypes...)
-	case business.FAMOUS:
+	case badgeSet != nil && *badgeSet == business.FAMOUS:
 		badges = services2.GetFamousBadges(year, activityTypes...)
 	default:
 		generalBadges := services2.GetGeneralBadges(year, activityTypes...)
@@ -573,7 +587,7 @@ func getBadges(w http.ResponseWriter, r *http.Request) {
 
 	if err := writeJSON(w, http.StatusOK, badgesDto); err != nil {
 		log.Printf("failed to write badges response: %v", err)
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		writeInternalServerError(w, "Failed to encode badges response")
 	}
 }
 
@@ -620,13 +634,34 @@ func getYearParam(r *http.Request) (*int, error) {
 	return &y, nil
 }
 
-func getPeriodParam(r *http.Request) business.Period {
+func getPeriodParam(r *http.Request) (business.Period, error) {
 	periodParam := r.URL.Query().Get("period")
-	var period business.Period
-	if periodParam != "" {
-		period = business.Period(periodParam)
+	if periodParam == "" {
+		return "", fmt.Errorf("period is required")
 	}
-	return period
+
+	period := business.Period(periodParam)
+	switch period {
+	case business.PeriodDays, business.PeriodWeeks, business.PeriodMonths:
+		return period, nil
+	default:
+		return "", fmt.Errorf("invalid period: %q", periodParam)
+	}
+}
+
+func getBadgeSetParam(r *http.Request) (*business.BadgeSetEnum, error) {
+	value := strings.TrimSpace(r.URL.Query().Get("badgeSet"))
+	if value == "" {
+		return nil, nil
+	}
+
+	badgeSet := business.BadgeSetEnum(value)
+	switch badgeSet {
+	case business.GENERAL, business.FAMOUS:
+		return &badgeSet, nil
+	default:
+		return nil, fmt.Errorf("invalid badgeSet: %q", value)
+	}
 }
 
 func getMetricParam(r *http.Request) *string {
@@ -672,4 +707,26 @@ func writeJSON(w http.ResponseWriter, status int, v any) error {
 	w.WriteHeader(status)
 	_, _ = w.Write(buf.Bytes())
 	return nil
+}
+
+func writeBadRequest(w http.ResponseWriter, message string, description string) {
+	writeAPIError(w, http.StatusBadRequest, message, description)
+}
+
+func writeNotFound(w http.ResponseWriter, message string, description string) {
+	writeAPIError(w, http.StatusNotFound, message, description)
+}
+
+func writeInternalServerError(w http.ResponseWriter, description string) {
+	writeAPIError(w, http.StatusInternalServerError, "Internal server error", description)
+}
+
+func writeAPIError(w http.ResponseWriter, status int, message string, description string) {
+	if err := writeJSON(w, status, dto.ErrorResponseMessageDto{
+		Message:     message,
+		Description: description,
+		Code:        1,
+	}); err != nil {
+		log.Printf("failed to write API error response: %v", err)
+	}
 }
