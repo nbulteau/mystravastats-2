@@ -12,6 +12,7 @@ MyStravaStats can:
 - compute global statistics and sport-specific statistics
 - calculate best efforts from activity streams
 - build a chronological personal-records timeline (when each PR was set, then improved)
+- analyse heart-rate zones (per activity, per month, per year) with custom athlete settings
 - show dashboards, charts, maps, badges, and detailed activity views
 - export filtered activities to CSV
 
@@ -20,6 +21,7 @@ Examples of metrics already available:
 - Eddington number
 - best effort by distance or by time
 - personal-records timeline events by sport, year, and metric
+- heart-rate zone time distribution and easy-vs-hard training ratio trends
 - best climbing gradient on a target distance
 - dashboard trends by year
 - route visualisation and activity detail charts
@@ -519,6 +521,31 @@ You can filter the timeline by:
 
 Useful API endpoint:
 - `/api/statistics/personal-records-timeline?activityType=...&year=...`
+
+### Heart Rate Zone Analysis
+
+The statistics page now includes a dedicated heart-rate zone analysis block.
+
+It provides:
+- zone time per activity
+- zone distributions aggregated by month and by year
+- easy-vs-hard ratio trends (easy = Z1 + Z2, hard = Z4 + Z5)
+
+You can configure athlete-specific zone inputs:
+- max HR
+- threshold HR
+- reserve HR
+
+Configuration is persisted per athlete in the local cache and reused on the next launch.
+
+Graceful fallback behavior:
+- if HR stream data is missing for the selected filters, the section stays visible with an explicit "no data" state
+- detailed activity view also falls back cleanly when HR stream is unavailable
+
+Useful API endpoints:
+- `GET /api/athletes/me/heart-rate-zones`
+- `PUT /api/athletes/me/heart-rate-zones`
+- `GET /api/statistics/heart-rate-zones?activityType=...&year=...`
 
 ### Eddington Number
 
