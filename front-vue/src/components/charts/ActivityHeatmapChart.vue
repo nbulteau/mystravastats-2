@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import Highcharts from 'highcharts';
-// Highcharts v11+ modules auto-register when imported
-import 'highcharts/modules/heatmap';
+// Highcharts heatmap module is registered globally in main.ts
 import { Chart } from "highcharts-vue";
-import type { Options } from "highcharts";
-
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DAY_LABELS  = Array.from({ length: 31 }, (_, i) => String(i + 1));
@@ -18,6 +14,8 @@ const props = defineProps<{
 const availableYears = computed(() =>
   Object.keys(props.activityHeatmap).sort((a, b) => parseInt(b) - parseInt(a))
 );
+
+const hasData = computed(() => availableYears.value.length > 0);
 
 // Year currently shown in the chart
 const selectedYear = ref<string>('');
@@ -39,7 +37,7 @@ function buildHeatmapData(yearData: Record<string, number>): [number, number, nu
   });
 }
 
-const chartOptions = computed<Options>(() => {
+const chartOptions = computed(() => {
   const year     = selectedYear.value;
   const yearData = year ? (props.activityHeatmap[year] ?? {}) : {};
   const data     = buildHeatmapData(yearData);
@@ -48,8 +46,9 @@ const chartOptions = computed<Options>(() => {
   return {
     chart: {
       type: 'heatmap',
+      height: 420,
       marginTop: 50,
-      marginBottom: 80,
+      marginBottom: 60,
     },
     title: {
       text: `Activity heatmap${year ? ' – ' + year : ''}`,
@@ -57,12 +56,11 @@ const chartOptions = computed<Options>(() => {
     xAxis: {
       // Months on the horizontal axis
       categories: MONTH_NAMES,
-      opposite: false,
       labels: { style: { fontSize: '11px' } },
     },
     yAxis: {
-      // Day-of-month on the vertical axis (1 at the top)
-      title: { text: null as any },
+      // Day-of-month on the vertical axis
+      title: { text: null },
       categories: DAY_LABELS,
       reversed: false,
     },
@@ -76,7 +74,7 @@ const chartOptions = computed<Options>(() => {
         [0.7, '#30a14e'],  // High
         [1,   '#216e39'],  // Peak – dark green
       ],
-    },
+    } as any,
     legend: {
       align: 'right',
       layout: 'vertical',
@@ -108,14 +106,14 @@ const chartOptions = computed<Options>(() => {
 
 <template>
   <div class="heatmap-wrapper">
-    <!-- Year selector -->
+    <!-- Year selector tabs -->
     <div class="year-selector" v-if="availableYears.length > 1">
       <span class="year-label">Year</span>
       <div class="year-tabs">
         <button
           v-for="year in availableYears"
           :key="year"
-          :class="['year-tab', { active: year === selectedYear }]"
+          :class="['year-tab', year === selectedYear ? 'year-tab--active' : '']"
           @click="selectedYear = year"
         >
           {{ year }}
@@ -123,7 +121,13 @@ const chartOptions = computed<Options>(() => {
       </div>
     </div>
 
-    <div class="chart-container">
+    <!-- Empty state while waiting for data -->
+    <div v-if="!hasData" class="chart-empty">
+      Activity heatmap — no data available
+    </div>
+
+    <!-- Heatmap chart -->
+    <div v-else class="heatmap-chart">
       <Chart :options="chartOptions" />
     </div>
   </div>
@@ -173,11 +177,15 @@ const chartOptions = computed<Options>(() => {
   border-color: #9bb5ce;
 }
 
-.year-tab.active {
+/* Active state applied via plain class string (avoids scoped CSS false-positive warning) */
+.year-tab--active {
   background: #2e7eed;
   border-color: #2e7eed;
   color: #ffffff;
   font-weight: 600;
 }
-</style>
 
+.heatmap-chart {
+  width: 100%;
+}
+</style>

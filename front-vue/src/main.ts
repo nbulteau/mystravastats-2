@@ -4,6 +4,8 @@ import {createApp} from 'vue'
 import {createPinia} from 'pinia'
 import {useContextStore} from '@/stores/context.js'
 import mitt from 'mitt';
+// Register Highcharts heatmap module globally before any chart component mounts
+import 'highcharts/modules/heatmap';
 
 import App from './App.vue'
 import router from './router'

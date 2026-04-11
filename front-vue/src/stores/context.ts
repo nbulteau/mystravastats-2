@@ -198,10 +198,15 @@ export const useContextStore = defineStore('context', {
             this.dashboardData = dashboardData;
         },
         async fetchActivityHeatmap() {
-            const heatmap = await this.fetchJson<Record<string, Record<string, number>>>(
-                `/api/dashboard/activity-heatmap?activityType=${this.currentActivityType}`
-            )
-            this.activityHeatmap = heatmap;
+            try {
+                const heatmap = await this.fetchJson<Record<string, Record<string, number>>>(
+                    `/api/dashboard/activity-heatmap?activityType=${this.currentActivityType}`
+                )
+                this.activityHeatmap = heatmap;
+            } catch (e) {
+                // Endpoint may not be available yet; degrade gracefully
+                console.warn('Activity heatmap data not available:', e);
+            }
         },
         async fetchBadges() {
             const generalBadgesCheckResults = await this.fetchJson<BadgeCheckResult[]>(this.url("badges"))
