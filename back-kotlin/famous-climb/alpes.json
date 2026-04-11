@@ -1,7 +1,7 @@
 [
   {
     "name": "Col du Sabot",
-    "topOfTheAscent": 2286,
+    "topOfTheAscent": 2101,
     "geoCoordinate": {
       "latitude": 45.1904757,
       "longitude": 6.1090149
@@ -16,13 +16,13 @@
         "length": 14.4,
         "totalAscent": 1279,
         "difficulty": 1191,
-        "averageGradient": 0.0
+        "averageGradient": 8.5
       }
     ]
   },
   {
     "name": "Val Thorens",
-    "topOfTheAscent": 2286,
+    "topOfTheAscent": 2340,
     "geoCoordinate": {
       "latitude": 45.2989231,
       "longitude": 6.5768956
@@ -37,7 +37,7 @@
         "length": 36.3,
         "totalAscent": 1897,
         "difficulty": 1269,
-        "averageGradient": 0.0
+        "averageGradient": 5.2
       }
     ]
   },
@@ -45,8 +45,8 @@
     "name": "Col du Granon",
     "topOfTheAscent": 2404,
     "geoCoordinate": {
-      "latitude": 45.2275049,
-      "longitude": 6.2039849
+      "latitude": 44.9627837,
+      "longitude": 6.6109055
     },
     "alternatives": [
       {
@@ -57,16 +57,17 @@
         },
         "length": 11.4,
         "totalAscent": 1059,
-        "difficulty": 1058
+        "difficulty": 1058,
+        "averageGradient": 8.7
       }
     ]
   },
   {
     "name": "Col de la Croix-de-Fer",
-    "topOfTheAscent": 1924,
+    "topOfTheAscent": 2067,
     "geoCoordinate": {
-      "latitude": 45.2275049,
-      "longitude": 6.2039849
+      "latitude": 45.2274902,
+      "longitude": 6.2033309
     },
     "alternatives": [
       {
@@ -77,7 +78,8 @@
         },
         "length": 28.1,
         "totalAscent": 1545,
-        "difficulty": 1209
+        "difficulty": 1209,
+        "averageGradient": 6.3
       }
     ]
   },
@@ -113,8 +115,8 @@
       {
         "name": "La Chambre",
         "geoCoordinate": {
-          "latitude": 45.3594886,
-          "longitude": 6.2994994
+          "latitude": 45.3575951,
+          "longitude": 6.300967
         },
         "length": 19.6,
         "totalAscent": 1520,
@@ -124,8 +126,8 @@
       {
         "name": "Feissons-sur-Isère",
         "geoCoordinate": {
-          "latitude": 45.3594886,
-          "longitude": 6.2994994
+          "latitude": 45.5758858,
+          "longitude": 6.4782817
         },
         "length": 25.9,
         "totalAscent": 1588,
@@ -219,8 +221,8 @@
       {
         "name": "Saint Michel de Maurienne",
         "geoCoordinate": {
-          "latitude": 45.2144801,
-          "longitude": 6.4732597
+          "latitude": 45.2178751,
+          "longitude": 6.4750846
         },
         "length": 34.8,
         "totalAscent": 2069,
@@ -230,8 +232,8 @@
       {
         "name": "Valloire",
         "geoCoordinate": {
-          "latitude": 45.2144801,
-          "longitude": 6.4732597
+          "latitude": 45.165,
+          "longitude": 6.4296372
         },
         "length": 17.5,
         "totalAscent": 1213,
@@ -241,8 +243,8 @@
       {
         "name": "Briançon",
         "geoCoordinate": {
-          "latitude": 45.2144801,
-          "longitude": 6.4732597
+          "latitude": 44.8984037,
+          "longitude": 6.6436313
         },
         "length": 34.8,
         "totalAscent": 1398,
@@ -452,8 +454,8 @@
       {
         "name": "Saint Michel de Maurienne",
         "geoCoordinate": {
-          "latitude": 45.2144801,
-          "longitude": 6.4732597
+          "latitude": 45.2178751,
+          "longitude": 6.4750846
         },
         "length": 11.8,
         "totalAscent": 837,
@@ -557,13 +559,139 @@
       {
         "name": "Saint Michel de Maurienne",
         "geoCoordinate": {
-          "latitude": 45.2144801,
-          "longitude": 6.4732597
+          "latitude": 45.1993291,
+          "longitude": 6.4805036
         },
         "length": 17.0,
         "totalAscent": 1171,
         "difficulty": 874,
         "averageGradient": 6.8
+      }
+    ]
+  },
+  {
+    "name": "Col de Joux Plane",
+    "topOfTheAscent": 1700,
+    "geoCoordinate": {
+      "latitude": 46.1326257,
+      "longitude": 6.7110527
+    },
+    "alternatives": [
+      {
+        "name": "Morzine",
+        "geoCoordinate": {
+          "latitude": 46.1799561,
+          "longitude": 6.7091057
+        },
+        "length": 10.5,
+        "totalAscent": 706,
+        "difficulty": 590,
+        "averageGradient": 7.1
+      }
+    ]
+  },
+  {
+    "name": "Cormet de Roselend",
+    "topOfTheAscent": 1968,
+    "geoCoordinate": {
+      "latitude": 45.6913293,
+      "longitude": 6.6906249
+    },
+    "alternatives": [
+      {
+        "name": "Beaufort",
+        "geoCoordinate": {
+          "latitude": 45.7174453,
+          "longitude": 6.5732569
+        },
+        "length": 21.7,
+        "totalAscent": 1300,
+        "difficulty": 980,
+        "averageGradient": 5.7
+      }
+    ]
+  },
+  {
+    "name": "Col du Petit Saint-Bernard",
+    "topOfTheAscent": 2188,
+    "geoCoordinate": {
+      "latitude": 45.6792488,
+      "longitude": 6.8829399
+    },
+    "alternatives": [
+      {
+        "name": "Séez",
+        "geoCoordinate": {
+          "latitude": 45.6229873,
+          "longitude": 6.8001912
+        },
+        "length": 29.9,
+        "totalAscent": 1379,
+        "difficulty": 720,
+        "averageGradient": 4.5
+      }
+    ]
+  },
+  {
+    "name": "Col du Pré",
+    "topOfTheAscent": 1748,
+    "geoCoordinate": {
+      "latitude": 45.6903011,
+      "longitude": 6.5979747
+    },
+    "alternatives": [
+      {
+        "name": "Beaufort",
+        "geoCoordinate": {
+          "latitude": 45.7174453,
+          "longitude": 6.5732569
+        },
+        "length": 12.2,
+        "totalAscent": 935,
+        "difficulty": 920,
+        "averageGradient": 7.7
+      }
+    ]
+  },
+  {
+    "name": "Cormet d'Arêches",
+    "topOfTheAscent": 2108,
+    "geoCoordinate": {
+      "latitude": 45.6172629,
+      "longitude": 6.6031436
+    },
+    "alternatives": [
+      {
+        "name": "Beaufort",
+        "geoCoordinate": {
+          "latitude": 45.7174453,
+          "longitude": 6.5732569
+        },
+        "length": 19.2,
+        "totalAscent": 1410,
+        "difficulty": 1118,
+        "averageGradient": 7.1
+      }
+    ]
+  },
+  {
+    "name": "Col de la Colombière",
+    "topOfTheAscent": 1604,
+    "geoCoordinate": {
+      "latitude": 45.9922392,
+      "longitude": 6.475685
+    },
+    "alternatives": [
+      {
+        "name": "Le Reposoir",
+        "geoCoordinate": {
+          "latitude": 46.0114414,
+          "longitude": 6.5348232
+        },
+        "length": 7.2,
+        "totalAscent": 618,
+        "difficulty": 640,
+        "averageGradient": 8.7
       }
     ]
   },

@@ -127,8 +127,8 @@
       {
         "name": "Ancizan",
         "geoCoordinate": {
-          "latitude": 42.871930,
-          "longitude": 0.340950
+          "latitude": 42.87193,
+          "longitude": 0.34095
         },
         "length": 12.4,
         "totalAscent": 802,
@@ -149,4 +149,3 @@
     ]
   }
 ]
-
