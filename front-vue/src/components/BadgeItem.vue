@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onBeforeUnmount, onMounted, computed, watch } from 'vue';
 import type { BadgeCheckResult } from "@/models/badge-check-result.model";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'; // Import Bootstrap JS
@@ -42,8 +42,12 @@ const buildBadgeImageUrl = (type: string) => {
   }
 };
 
+const isUnlocked = computed(() => props.badgeCheckResult.nbCheckedActivities > 0);
+const linkedActivitiesCount = computed(() => props.badgeCheckResult.activities?.length ?? 0);
+const statusLabel = computed(() => (isUnlocked.value ? 'Acquis' : 'À débloquer'));
+
 const navigateToActivity = () => {
-  if (props.badgeCheckResult.nbCheckedActivities <= 0 || !props.badgeCheckResult.activities?.length) {
+  if (!isUnlocked.value || !props.badgeCheckResult.activities?.length) {
     return;
   }
 
@@ -68,10 +72,11 @@ const badgeRef = ref<HTMLElement | null>(null);
 
 const tooltipText = computed(() => {
   return `<strong>${props.badgeCheckResult.badge.label}</strong><br>
-  A total of ${props.badgeCheckResult.nbCheckedActivities} activities<br>
-  ${props.badgeCheckResult.activities && props.badgeCheckResult.activities.length > 0 ? 'Last activity is:<br>' : ''}
+  Statut : ${statusLabel.value}<br>
+  Activités correspondantes : ${props.badgeCheckResult.nbCheckedActivities}<br>
+  ${props.badgeCheckResult.activities && props.badgeCheckResult.activities.length > 0 ? 'Dernière activité liée :<br>' : ''}
   ${props.badgeCheckResult.activities ? props.badgeCheckResult.activities.map((value: Activity) => `• ${value.name}`).join('<br>') : ''}
-  `;  
+  `;
 });
 
 function initTooltip() {
@@ -102,32 +107,49 @@ onMounted(() => {
   initTooltip();
 });
 
+onBeforeUnmount(() => {
+  if (badgeRef.value) {
+    const tooltip = Tooltip.getInstance(badgeRef.value);
+    tooltip?.dispose();
+  }
+});
+
 </script>
 
 <template>
   <div
     ref="badgeRef"
-    class="badge-item card text-center p-2 border border-primary bg-light"
+    class="badge-item card text-center"
+    :class="{ 'badge-item--earned': isUnlocked, 'badge-item--locked': !isUnlocked }"
     data-bs-toggle="tooltip"
     data-bs-html="true"
     :title="tooltipText"
     @click="navigateToActivity" 
   >
     <div
-      class="d-flex justify-content-center align-items-center"
-      :class="{ 'badge-item--disabled': (props.badgeCheckResult.nbCheckedActivities <= 0) }"
+      class="badge-status-pill"
+      :class="{ 'badge-status-pill--earned': isUnlocked, 'badge-status-pill--locked': !isUnlocked }"
+    >
+      {{ statusLabel }}
+    </div>
+    <div
+      class="badge-media d-flex justify-content-center align-items-center"
     >
       <img
         :src="buildBadgeImageUrl(props.badgeCheckResult.badge.type)"
         class="badge-image card-img-top"
+        :class="{ 'badge-image--locked': !isUnlocked }"
         :alt="props.badgeCheckResult.badge.label"
       >
     </div>
-    <div>
+    <div class="badge-content">
       <span
         class="badge-label card-title text-center"
       >
         {{ props.badgeCheckResult.badge.label }}
+      </span>
+      <span class="badge-meta">
+        {{ isUnlocked ? `${linkedActivitiesCount} activité${linkedActivitiesCount > 1 ? 's' : ''} liée${linkedActivitiesCount > 1 ? 's' : ''}` : 'Aucune activité liée pour le moment' }}
       </span>
     </div>
   </div>
@@ -135,9 +157,9 @@ onMounted(() => {
 
 <style scoped>
 .badge-label {
-  font-size: 1rem;
-  line-height: 1.2;
-  color: #2e3f56;
+  font-size: 0.98rem;
+  line-height: 1.25;
+  color: #27384b;
   font-weight: 700;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -149,34 +171,92 @@ onMounted(() => {
 }
 
 .badge-item {
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  width: 170px;
-  min-height: 176px;
-  border-radius: 16px;
-  border: 1px solid #d3deed;
-  background: linear-gradient(180deg, #ffffff, #f6faff);
-  box-shadow: 0 10px 22px rgba(24, 39, 75, 0.08);
+  position: relative;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  width: 188px;
+  min-height: 232px;
+  border-radius: 20px;
+  border: 2px solid transparent;
+  overflow: hidden;
+  padding: 12px 12px 10px;
 }
 
 .badge-item:hover {
   transform: translateY(-4px);
-  box-shadow: 0 16px 30px rgba(24, 39, 75, 0.16);
 }
 
-.badge-item--disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-  pointer-events: none;
-  background: #eef3f8;
-  border-color: #c8d2df;
-  color: #6c757d;
+.badge-item--earned {
+  cursor: pointer;
+  background: linear-gradient(180deg, #fffdf4 0%, #fff5cd 100%);
+  border-color: #f2c24b;
+  box-shadow: 0 14px 28px rgba(146, 101, 16, 0.22);
+}
+
+.badge-item--earned:hover {
+  box-shadow: 0 18px 32px rgba(146, 101, 16, 0.28);
+}
+
+.badge-item--locked {
+  cursor: default;
+  background: linear-gradient(180deg, #f8fafc 0%, #eef3f8 100%);
+  border-color: #c6d1de;
+  box-shadow: 0 8px 18px rgba(24, 39, 75, 0.11);
+}
+
+.badge-status-pill {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 3px 9px;
+  text-transform: uppercase;
+}
+
+.badge-status-pill--earned {
+  background: #fff0b3;
+  color: #6f4f00;
+  border: 1px solid #e6bc4e;
+}
+
+.badge-status-pill--locked {
+  background: #e9eef5;
+  color: #586a7f;
+  border: 1px solid #c3ceda;
+}
+
+.badge-media {
+  min-height: 122px;
+}
+
+.badge-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.badge-meta {
+  min-height: 18px;
+  font-size: 0.76rem;
+  line-height: 1.2;
+  color: #5d7086;
+  font-weight: 600;
 }
 
 .badge-image {
-  width: 92px;
-  height: 92px;
+  width: 102px;
+  height: 102px;
   object-fit: cover;
   margin: auto;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 8px 14px rgba(24, 39, 75, 0.2);
+}
+
+.badge-image--locked {
+  filter: grayscale(1) contrast(0.9) saturate(0.65);
+  opacity: 0.75;
 }
 </style>
