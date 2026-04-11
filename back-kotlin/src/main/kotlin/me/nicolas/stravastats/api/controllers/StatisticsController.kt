@@ -5,9 +5,11 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
+import me.nicolas.stravastats.api.dto.HeartRateZoneAnalysisDto
 import me.nicolas.stravastats.api.dto.PersonalRecordTimelineDto
 import me.nicolas.stravastats.api.dto.StatisticsDto
 import me.nicolas.stravastats.api.dto.toDto
+import me.nicolas.stravastats.domain.services.IHeartRateZoneService
 import me.nicolas.stravastats.domain.services.IStatisticsService
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController
 @Schema(description = "Statistics controller", name = "StatisticsController")
 class StatisticsController(
     private val statisticsService: IStatisticsService,
+    private val heartRateZoneService: IHeartRateZoneService,
 ) {
 
     @Operation(
@@ -87,5 +90,14 @@ class StatisticsController(
 
         return statisticsService.getPersonalRecordsTimeline(activityTypes, year, metric)
             .map { timelineEntry -> timelineEntry.toDto() }
+    }
+
+    @GetMapping("/heart-rate-zones")
+    fun getHeartRateZoneAnalysis(
+        @RequestParam(required = true) activityType: String,
+        @RequestParam(required = false) year: Int?,
+    ): HeartRateZoneAnalysisDto {
+        val activityTypes = activityType.convertToActivityTypeSet()
+        return heartRateZoneService.getAnalysis(activityTypes, year).toDto()
     }
 }

@@ -5,6 +5,7 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import me.nicolas.stravastats.adapters.localrepositories.strava.StravaRepository
 import me.nicolas.stravastats.adapters.strava.StravaApi
+import me.nicolas.stravastats.domain.business.HeartRateZoneSettings
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
@@ -42,6 +43,8 @@ class StravaActivityProvider(
     private val streamIdsCache: GenericCache<Int, Set<Long>> = SoftCache()
     private val startupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val backgroundRefreshStarted = AtomicBoolean(false)
+    @Volatile
+    private var heartRateZoneSettings: HeartRateZoneSettings = HeartRateZoneSettings()
 
     companion object {
         // Reload a year's cache if it is older than this duration (avoids a fixed hardcoded date)
@@ -78,6 +81,7 @@ class StravaActivityProvider(
     suspend fun initializeAndLoadActivities() = coroutineScope {
         storageProvider.initLocalStorageForClientId(clientId)
         stravaAthlete = storageProvider.loadAthleteFromCache(clientId)
+        heartRateZoneSettings = storageProvider.loadHeartRateZoneSettings(clientId)
 
         // Fast startup path: load only from local cache first.
         activities = loadFromLocalCache()
@@ -149,6 +153,17 @@ class StravaActivityProvider(
         val cached = loadDetailedActivityFromCacheAnyYear(activityId, year)
 
         return Optional.ofNullable(cached)
+    }
+
+    override fun getHeartRateZoneSettings(): HeartRateZoneSettings {
+        return heartRateZoneSettings
+    }
+
+    @Synchronized
+    override fun saveHeartRateZoneSettings(settings: HeartRateZoneSettings): HeartRateZoneSettings {
+        heartRateZoneSettings = settings
+        storageProvider.saveHeartRateZoneSettings(clientId, settings)
+        return heartRateZoneSettings
     }
 
     private suspend fun loadFromLocalCache(): List<StravaActivity> = coroutineScope {

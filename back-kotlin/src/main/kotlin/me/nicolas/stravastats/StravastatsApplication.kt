@@ -7,7 +7,19 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import me.nicolas.stravastats.api.dto.PersonalRecordTimelineDto
+import me.nicolas.stravastats.api.dto.HeartRateZoneActivitySummaryDto
+import me.nicolas.stravastats.api.dto.HeartRateZoneAnalysisDto
+import me.nicolas.stravastats.api.dto.HeartRateZoneDistributionDto
+import me.nicolas.stravastats.api.dto.HeartRateZonePeriodSummaryDto
+import me.nicolas.stravastats.api.dto.HeartRateZoneSettingsDto
+import me.nicolas.stravastats.api.dto.ResolvedHeartRateZoneSettingsDto
 import me.nicolas.stravastats.domain.business.PersonalRecordTimelineEntry
+import me.nicolas.stravastats.domain.business.HeartRateZoneActivitySummary
+import me.nicolas.stravastats.domain.business.HeartRateZoneAnalysis
+import me.nicolas.stravastats.domain.business.HeartRateZoneDistribution
+import me.nicolas.stravastats.domain.business.HeartRateZonePeriodSummary
+import me.nicolas.stravastats.domain.business.HeartRateZoneSettings
+import me.nicolas.stravastats.domain.business.ResolvedHeartRateZoneSettings
 import me.nicolas.stravastats.domain.business.strava.Achievement
 import me.nicolas.stravastats.domain.business.strava.AthleteRef
 import me.nicolas.stravastats.domain.business.strava.Bike
@@ -83,6 +95,18 @@ import org.springframework.boot.runApplication
         Tag::class,
         PersonalRecordTimelineEntry::class,
         PersonalRecordTimelineDto::class,
+        HeartRateZoneSettings::class,
+        ResolvedHeartRateZoneSettings::class,
+        HeartRateZoneDistribution::class,
+        HeartRateZoneActivitySummary::class,
+        HeartRateZonePeriodSummary::class,
+        HeartRateZoneAnalysis::class,
+        HeartRateZoneSettingsDto::class,
+        ResolvedHeartRateZoneSettingsDto::class,
+        HeartRateZoneDistributionDto::class,
+        HeartRateZoneActivitySummaryDto::class,
+        HeartRateZonePeriodSummaryDto::class,
+        HeartRateZoneAnalysisDto::class,
     ]
 )
 class StravastatsApplication

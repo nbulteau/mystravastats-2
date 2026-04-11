@@ -1,6 +1,7 @@
 package me.nicolas.stravastats.domain.services.activityproviders
 
 import me.nicolas.stravastats.domain.business.ActivityType
+import me.nicolas.stravastats.domain.business.HeartRateZoneSettings
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
@@ -27,4 +28,8 @@ interface IActivityProvider {
     fun getActivitiesByActivityTypeAndYear(activityTypes: Set<ActivityType>, year: Int? = null): List<StravaActivity>
 
     fun getActivitiesByActivityTypeGroupByYear(activityTypes: Set<ActivityType>): Map<String, List<StravaActivity>>
+
+    fun getHeartRateZoneSettings(): HeartRateZoneSettings = HeartRateZoneSettings()
+
+    fun saveHeartRateZoneSettings(settings: HeartRateZoneSettings): HeartRateZoneSettings = settings
 }

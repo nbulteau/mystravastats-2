@@ -3,6 +3,7 @@ package me.nicolas.stravastats.api.controllers
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import me.nicolas.stravastats.TestHelper
+import me.nicolas.stravastats.domain.services.IHeartRateZoneService
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -23,6 +24,9 @@ class StravaAthleteControllerTest {
 
     @MockkBean
     private lateinit var stravaProxy: IActivityProvider
+
+    @MockkBean
+    private lateinit var heartRateZoneService: IHeartRateZoneService
 
     @Test
     fun `get athlete returns athlete when athlete is found`() {

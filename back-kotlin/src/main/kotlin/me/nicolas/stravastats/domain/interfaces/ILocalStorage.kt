@@ -4,6 +4,7 @@ import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
+import me.nicolas.stravastats.domain.business.HeartRateZoneSettings
 
 interface ILocalStorageProvider {
 
@@ -32,4 +33,8 @@ interface ILocalStorageProvider {
     fun saveDetailedActivityToCache(clientId: String, year: Int, stravaDetailedActivity: StravaDetailedActivity)
 
     fun readStravaAuthentication(stravaCache: String): Triple<String?, String?, Boolean?>
+
+    fun loadHeartRateZoneSettings(clientId: String): HeartRateZoneSettings = HeartRateZoneSettings()
+
+    fun saveHeartRateZoneSettings(clientId: String, settings: HeartRateZoneSettings) {}
 }

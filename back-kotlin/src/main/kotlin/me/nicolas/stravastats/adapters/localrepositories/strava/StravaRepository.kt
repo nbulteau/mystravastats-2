@@ -5,6 +5,7 @@ import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
+import me.nicolas.stravastats.domain.business.HeartRateZoneSettings
 import me.nicolas.stravastats.domain.interfaces.ILocalStorageProvider
 import me.nicolas.stravastats.domain.services.ActivityHelper.filterByActivityTypes
 import org.slf4j.LoggerFactory
@@ -187,6 +188,29 @@ internal class StravaRepository(stravaCache: String) : ILocalStorageProvider {
             properties["clientSecret"]?.toString(),
             properties["useCache"]?.toString()?.toBoolean()
         )
+    }
+
+    override fun loadHeartRateZoneSettings(clientId: String): HeartRateZoneSettings {
+        val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
+        val settingsFile = File(activitiesDirectory, "heart-rate-zones-$clientId.json")
+        if (!settingsFile.exists()) {
+            return HeartRateZoneSettings()
+        }
+
+        return runCatching {
+            objectMapper.readValue(settingsFile, HeartRateZoneSettings::class.java)
+        }.getOrElse { exception ->
+            logger.error("Unable to read heart-rate zone settings from ${settingsFile.absolutePath}", exception)
+            HeartRateZoneSettings()
+        }
+    }
+
+    override fun saveHeartRateZoneSettings(clientId: String, settings: HeartRateZoneSettings) {
+        val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
+        activitiesDirectory.mkdirs()
+        val settingsFile = File(activitiesDirectory, "heart-rate-zones-$clientId.json")
+
+        prettyWriter.writeValue(settingsFile, settings)
     }
 
     private fun loadActivitiesStreams(activities: List<StravaActivity>, activitiesDirectory: File) {
