@@ -9,6 +9,11 @@ import type { Activity } from '@/models/activity.model';
 import { EddingtonNumber } from '@/models/eddington-number.model';
 import type { BadgeCheckResult } from '@/models/badge-check-result.model';
 import { DashboardData } from '@/models/dashboard-data.model';
+import {
+    type HeartRateZoneAnalysis,
+    type HeartRateZoneSettings,
+    emptyHeartRateZoneAnalysis,
+} from '@/models/heart-rate-zone.model';
 
 
 export const useContextStore = defineStore('context', {
@@ -31,6 +36,8 @@ export const useContextStore = defineStore('context', {
         cumulativeElevationPerYear: Map<string, Map<string, number>>,
         eddingtonNumber: EddingtonNumber,
         dashboardData: DashboardData,
+        heartRateZoneSettings: HeartRateZoneSettings,
+        heartRateZoneAnalysis: HeartRateZoneAnalysis,
         generalBadgesCheckResults: BadgeCheckResult[],
         famousClimbBadgesCheckResults: BadgeCheckResult[],
 
@@ -54,6 +61,12 @@ export const useContextStore = defineStore('context', {
             cadenceByWeeks: [],
             eddingtonNumber: new EddingtonNumber(),
             dashboardData: new DashboardData({},  {},  {},  {},  {},  {},  {},  {},  {},  {},  {},  {},  {}, []),
+            heartRateZoneSettings: {
+                maxHr: null,
+                thresholdHr: null,
+                reserveHr: null,
+            },
+            heartRateZoneAnalysis: emptyHeartRateZoneAnalysis(),
             cumulativeDistancePerYear: new Map<string, Map<string, number>>(),
             cumulativeElevationPerYear: new Map<string, Map<string, number>>(),
             generalBadgesCheckResults: [],
@@ -68,12 +81,15 @@ export const useContextStore = defineStore('context', {
         hasBadges: (state) => state.generalBadgesCheckResults.length > 0 && state.famousClimbBadgesCheckResults.length > 0
     },
     actions: {
-        async fetchJson<T>(url: string): Promise<T> {
-            const response = await fetch(url)
+        async requestJson<T>(url: string, init?: RequestInit): Promise<T> {
+            const response = await fetch(url, init)
             if (!response.ok) {
                 await ErrorService.catchError(response)
             }
             return response.json() as Promise<T>
+        },
+        async fetchJson<T>(url: string): Promise<T> {
+            return this.requestJson<T>(url)
         },
         url(path: string): string {
             const url = `/api/${path}?activityType=${this.currentActivityType}`
@@ -93,6 +109,25 @@ export const useContextStore = defineStore('context', {
         async fetchPersonalRecordsTimeline() {
             const personalRecordsTimeline = await this.fetchJson<PersonalRecordTimeline[]>(this.url("statistics/personal-records-timeline"))
             this.personalRecordsTimeline = personalRecordsTimeline
+        },
+        async fetchHeartRateZoneSettings() {
+            const settings = await this.fetchJson<HeartRateZoneSettings>(`/api/athletes/me/heart-rate-zones`)
+            this.heartRateZoneSettings = settings
+        },
+        async saveHeartRateZoneSettings(settings: HeartRateZoneSettings) {
+            const updatedSettings = await this.requestJson<HeartRateZoneSettings>(`/api/athletes/me/heart-rate-zones`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(settings),
+            })
+            this.heartRateZoneSettings = updatedSettings
+            await this.fetchHeartRateZoneAnalysis()
+        },
+        async fetchHeartRateZoneAnalysis() {
+            const analysis = await this.fetchJson<HeartRateZoneAnalysis>(this.url("statistics/heart-rate-zones"))
+            this.heartRateZoneAnalysis = analysis
         },
         async fetchActivities() {
             const activities = await this.fetchJson<Activity[]>(this.url("activities"))
@@ -179,6 +214,8 @@ export const useContextStore = defineStore('context', {
                     await Promise.all([
                         this.fetchStatistics(),
                         this.fetchPersonalRecordsTimeline(),
+                        this.fetchHeartRateZoneSettings(),
+                        this.fetchHeartRateZoneAnalysis(),
                     ])
                     break
                 case 'activities':

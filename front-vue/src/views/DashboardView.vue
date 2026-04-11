@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useContextStore } from "@/stores/context.js";
 import { computed } from "vue";
+import TooltipHint from "@/components/TooltipHint.vue";
+import { getMetricTooltip } from "@/utils/metric-tooltips";
 import CumulativeDistancePerYearChart from "@/components/charts/CumulativeDataPerYearChart.vue";
 import EddingtonNumberChart from "@/components/charts/EddingtonNumberChart.vue";
 import SpeedPerYearChart from "@/components/charts/SpeedPerYearChart.vue";
@@ -64,6 +66,10 @@ function sortDataByYear(
       <ActivitiesCountPerYearChart :activities-count="activitiesCount" />
     </section>
     <section class="chart-panel">
+      <div class="chart-help">
+        Eddington number
+        <TooltipHint :text="getMetricTooltip('Eddington number') ?? ''" />
+      </div>
       <EddingtonNumberChart
         :title="`Eddington number for ${currentActivityType}: ${eddingtonNumber.eddingtonNumber}`"
         :eddington-number="eddingtonNumber"
@@ -114,3 +120,13 @@ function sortDataByYear(
     </section>
   </div>
 </template>
+
+<style scoped>
+.chart-help {
+  display: inline-flex;
+  align-items: center;
+  color: #4c617b;
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+}
+</style>

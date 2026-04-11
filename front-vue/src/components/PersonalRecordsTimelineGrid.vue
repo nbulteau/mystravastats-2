@@ -3,6 +3,7 @@ import { computed, ref, watch } from "vue";
 import VGrid, { VGridVueTemplate } from "@revolist/vue3-datagrid";
 import type { PersonalRecordTimeline } from "@/models/personal-record-timeline.model";
 import ActivityCellRenderer from "./cell-renderers/ActivityCellRenderer.vue";
+import MetricLabelCellRenderer from "./cell-renderers/MetricLabelCellRenderer.vue";
 
 const props = defineProps<{
   timeline: PersonalRecordTimeline[];
@@ -57,7 +58,7 @@ const rows = computed(() =>
 
 const columns = [
   { prop: "activityDate", name: "Date", size: 140 },
-  { prop: "metricLabel", name: "Metric", size: 230 },
+  { prop: "metricLabel", name: "Metric", size: 230, cellTemplate: VGridVueTemplate(MetricLabelCellRenderer) },
   { prop: "value", name: "PR", size: 220 },
   { prop: "previousValue", name: "Previous PR", size: 220 },
   { prop: "improvement", name: "Improvement", size: 220 },

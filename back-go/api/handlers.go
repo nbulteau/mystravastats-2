@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"mystravastats/api/dto"
 	"mystravastats/domain/business"
@@ -45,7 +46,12 @@ func getAthleteHeartRateZones(w http.ResponseWriter, _ *http.Request) {
 }
 
 func putAthleteHeartRateZones(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(r.Body)
 
 	var settingsDto dto.HeartRateZoneSettingsDto
 	if err := json.NewDecoder(r.Body).Decode(&settingsDto); err != nil {

@@ -542,6 +542,7 @@ const handleRadioClick = (key: string) => {
 onMounted(async () => {
   initMap();
   try {
+    await contextStore.fetchHeartRateZoneSettings().catch(() => undefined);
     await fetchDetailedActivity(activityId ?? "");
     updateMap();
     initChart();

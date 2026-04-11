@@ -1,11 +1,20 @@
 <script setup lang="ts">
 import type { DetailedActivity } from '@/models/activity.model';
-import { computed, onMounted } from 'vue';
+import { computed } from 'vue';
 import { formatSpeedWithUnit, formatTime } from "@/utils/formatters";
+import { useContextStore } from '@/stores/context.js';
+import TooltipHint from "@/components/TooltipHint.vue";
+import {
+  computeHeartRateZoneDistribution,
+  resolveHeartRateZoneSettings,
+} from '@/utils/heart-rate-zones';
+import { getMetricTooltip } from "@/utils/metric-tooltips";
 
 const props = defineProps<{
   activity: DetailedActivity;
 }>();
+
+const contextStore = useContextStore();
 
 const cadenceUnit = computed(() => {
   if (props.activity.type?.endsWith("Run")) return "spm";
@@ -23,8 +32,24 @@ const averageCadenceDisplay = computed(() => {
   return cadence;
 });
 
-onMounted(() => {
-  console.log('ActivityMetrics component mounted');
+const resolvedHeartRateSettings = computed(() => {
+  return (
+    contextStore.heartRateZoneAnalysis?.resolvedSettings ??
+    resolveHeartRateZoneSettings(
+      contextStore.heartRateZoneSettings,
+      Math.trunc(props.activity.maxHeartrate ?? 0) || null,
+    )
+  );
+});
+
+const activityHeartRateZones = computed(() => {
+  const stream = props.activity.stream;
+  if (!stream) return null;
+  return computeHeartRateZoneDistribution(
+    stream.heartrate ?? null,
+    stream.time ?? null,
+    resolvedHeartRateSettings.value ?? null,
+  );
 });
 </script>
 
@@ -65,26 +90,46 @@ onMounted(() => {
       <h3>Performance Metrics</h3>
       <ul>
         <li>
-          <strong>Average Speed:</strong>
+          <strong>
+            Average Speed:
+            <TooltipHint :text="getMetricTooltip('Average Speed') ?? ''" />
+          </strong>
           {{ formatSpeedWithUnit(activity.averageSpeed ?? 0, activity.type ?? "Ride") }}
         </li>
         <li>
-          <strong>Max Speed:</strong>
+          <strong>
+            Max Speed:
+            <TooltipHint :text="getMetricTooltip('Max Speed') ?? ''" />
+          </strong>
           {{ formatSpeedWithUnit(activity.maxSpeed ?? 0, activity.type ?? "Ride") }}
         </li>
         <li v-if="averageCadenceDisplay !== null">
-          <strong>Average Cadence:</strong>
+          <strong>
+            Average Cadence:
+            <TooltipHint :text="getMetricTooltip('Average Cadence') ?? ''" />
+          </strong>
           {{ averageCadenceDisplay.toFixed(0) }} {{ cadenceUnit }}
         </li>
         <li v-if="(activity.averageWatts ?? 0) > 0">
-          <strong>Average Watts:</strong> {{ (activity.averageWatts ?? 0).toFixed(0) }} W
+          <strong>
+            Average Watts:
+            <TooltipHint :text="getMetricTooltip('Average Watts') ?? ''" />
+          </strong>
+          {{ (activity.averageWatts ?? 0).toFixed(0) }} W
         </li>
         <li v-if="(activity.weightedAverageWatts ?? 0) > 0">
-          <strong>Weighted Average Watts:</strong>
+          <strong>
+            Weighted Average Watts:
+            <TooltipHint :text="getMetricTooltip('Weighted Average Watts') ?? ''" />
+          </strong>
           {{ (activity.weightedAverageWatts ?? 0).toFixed(0) }} W
         </li>
         <li v-if="(activity.kilojoules ?? 0) > 0">
-          <strong>Kilojoules:</strong> {{ (activity.kilojoules ?? 0).toFixed(0) }} kJ
+          <strong>
+            Kilojoules:
+            <TooltipHint :text="getMetricTooltip('Kilojoules') ?? ''" />
+          </strong>
+          {{ (activity.kilojoules ?? 0).toFixed(0) }} kJ
         </li>
       </ul>
     </div>
@@ -92,11 +137,42 @@ onMounted(() => {
       <h3>Heart Rate Metrics</h3>
       <ul>
         <li v-if="(activity.averageHeartrate ?? 0) > 0">
-          <strong>Average Heartrate:</strong>
+          <strong>
+            Average Heartrate:
+            <TooltipHint :text="getMetricTooltip('Average Heartrate') ?? ''" />
+          </strong>
           {{ activity.averageHeartrate.toFixed(0) }} bpm
         </li>
         <li v-if="(activity.maxHeartrate ?? 0) > 0">
-          <strong>Max Heartrate:</strong> {{ activity.maxHeartrate.toFixed(0) }} bpm
+          <strong>
+            Max Heartrate:
+            <TooltipHint :text="getMetricTooltip('Max Heartrate') ?? ''" />
+          </strong>
+          {{ activity.maxHeartrate.toFixed(0) }} bpm
+        </li>
+        <li v-if="activityHeartRateZones?.easyHardRatio !== null && activityHeartRateZones?.easyHardRatio !== undefined">
+          <strong>
+            Easy/Hard Ratio:
+            <TooltipHint :text="getMetricTooltip('Easy / Hard Ratio') ?? ''" />
+          </strong>
+          {{ activityHeartRateZones.easyHardRatio.toFixed(2) }} : 1
+        </li>
+        <li v-if="activityHeartRateZones">
+          <strong>
+            Tracked HR time:
+            <TooltipHint :text="getMetricTooltip('Tracked HR time') ?? ''" />
+          </strong>
+          {{ formatTime(activityHeartRateZones.totalTrackedSeconds) }}
+        </li>
+        <li
+          v-for="zone in activityHeartRateZones?.zones ?? []"
+          :key="zone.zone"
+        >
+          <strong>{{ zone.zone }}:</strong>
+          {{ formatTime(zone.seconds) }} ({{ zone.percentage.toFixed(1) }}%)
+        </li>
+        <li v-if="!activityHeartRateZones">
+          <span class="text-muted">No heart rate stream available for zone analysis.</span>
         </li>
       </ul>
     </div>
