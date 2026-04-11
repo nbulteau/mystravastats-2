@@ -51,15 +51,31 @@ func main() {
 			log.Fatal(err)
 		}
 
-		// Serve static files from the "public" directory with cache headers
+		// Serve static files from the "public" directory with cache headers.
+		// index.html must never be long-cached (no-cache) so that new deployments
+		// are picked up immediately by the browser.
+		// Hashed assets (JS/CSS/images) are cached for 1 year.
 		staticFileHandler := http.FileServer(http.FS(publicFS))
 		cacheControlHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if strings.HasSuffix(r.URL.Path, ".css") {
+			path := r.URL.Path
+
+			// Set MIME types explicitly for JS and CSS
+			if strings.HasSuffix(path, ".css") {
 				w.Header().Set("Content-Type", "text/css")
-			} else if strings.HasSuffix(r.URL.Path, ".js") {
+			} else if strings.HasSuffix(path, ".js") {
 				w.Header().Set("Content-Type", "application/javascript")
 			}
-			w.Header().Set("Cache-Control", "public, max-age=31536000")
+
+			// index.html (and SPA fallback routes) must not be long-cached
+			isHTML := path == "/" || path == "/index.html" || !strings.Contains(path, ".")
+			if isHTML {
+				w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+				w.Header().Set("Pragma", "no-cache")
+				w.Header().Set("Expires", "0")
+			} else {
+				// Hashed assets can be cached for a long time
+				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			}
 
 			staticFileHandler.ServeHTTP(w, r)
 		})
