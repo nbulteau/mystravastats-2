@@ -153,6 +153,10 @@ internal class StatisticsService(
         }
 
         if (rawAttempts.isEmpty()) {
+            if (year != null) {
+                // Fallback for UX: when selected year has no segment data yet, reuse all-years data.
+                return getSegmentClimbProgression(activityTypes, null, metric, targetType, targetId)
+            }
             return SegmentClimbProgression(
                 metric = resolvedMetric.name,
                 targetTypeFilter = resolvedTargetTypeFilter.name,

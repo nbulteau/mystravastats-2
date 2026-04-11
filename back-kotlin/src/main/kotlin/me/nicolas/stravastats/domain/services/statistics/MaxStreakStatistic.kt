@@ -10,32 +10,28 @@ internal class MaxStreakStatistic(
     private val maxStreak: Int
 
     init {
-        var maxLen = 0
-
-        if (activities.isNotEmpty()) {
-            val lastDate = LocalDate.parse(activities.first().startDateLocal.substringBefore('T'))
-            val firstDate = LocalDate.parse(activities.last().startDateLocal.substringBefore('T'))
-            val firstEpochDay = firstDate.toEpochDay()
-            val activeDaysSet: Set<Int> = activities
-                .map { activity ->
-                    val date = LocalDate.parse(activity.startDateLocal.substringBefore('T'))
-                    (date.toEpochDay() - firstEpochDay).toInt()
-                }.toSet()
-
-            val days = (lastDate.toEpochDay() - firstDate.toEpochDay()).toInt()
-            val activeDays = Array(days) { activeDaysSet.contains(it) }
-
-            var currLen = 0
-            for (k in 0 until days) {
-                if (activeDays[k]) {
-                    currLen++
-                } else {
-                    if (currLen > maxLen) {
-                        maxLen = currLen
-                    }
-                    currLen = 0
-                }
+        val uniqueDates = activities
+            .mapNotNull { activity ->
+                val rawDate = activity.startDateLocal.substringBefore('T')
+                runCatching { LocalDate.parse(rawDate) }.getOrNull()
             }
+            .toSet()
+            .sorted()
+
+        var maxLen = 0
+        var currentLen = 0
+        var previousDate: LocalDate? = null
+
+        for (date in uniqueDates) {
+            currentLen = if (previousDate != null && previousDate.plusDays(1) == date) {
+                currentLen + 1
+            } else {
+                1
+            }
+            if (currentLen > maxLen) {
+                maxLen = currentLen
+            }
+            previousDate = date
         }
 
         maxStreak = maxLen
@@ -46,4 +42,3 @@ internal class MaxStreakStatistic(
 
     override fun toString() = value
 }
-

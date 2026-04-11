@@ -47,7 +47,7 @@ class StravaActivityProvider(
     private val useCacheAuth: Boolean?
     private val streamIdsCache: GenericCache<Int, Set<Long>> = SoftCache()
     private val startupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val backgroundBackfillStarted = AtomicBoolean(false)
+    private val backgroundRefreshStarted = AtomicBoolean(false)
 
     companion object {
         // Threshold instant: 2025-08-17T00:00:00Z (replace with desired date/time)
@@ -103,7 +103,7 @@ class StravaActivityProvider(
             return@coroutineScope
         }
 
-        launchBackgroundStreamsBackfill()
+        launchBackgroundDataRefresh()
     }
 
     override fun getDetailedActivity(activityId: Long): Optional<StravaDetailedActivity> {
@@ -111,11 +111,11 @@ class StravaActivityProvider(
 
         // find detailed activity in cache or retrieve from Strava
         val activity = getActivity(activityId).orElse(null) ?: return Optional.empty()
-        val year = activity.startDate.take(4).toInt()
+        val year = resolveActivityYear(activity)
         val api = stravaApi ?: createStravaApiIfNeeded()
 
         // load detailed activity from cache or retrieve from Strava
-        var stravaDetailedActivity = storageProvider.loadDetailedActivityFromCache(clientId, year, activityId)
+        var stravaDetailedActivity = loadDetailedActivityFromCacheAnyYear(activityId, year)
         if (api != null && stravaDetailedActivity == null) {
             // It's not in local cache, retrieve from Strava
             val detailedActivity = api.getDetailedActivity(activityId)
@@ -145,10 +145,10 @@ class StravaActivityProvider(
 
     override fun getCachedDetailedActivity(activityId: Long): Optional<StravaDetailedActivity> {
         val activity = getActivity(activityId).orElse(null) ?: return Optional.empty()
-        val year = activity.startDate.take(4).toInt()
-        val cached = storageProvider.loadDetailedActivityFromCache(clientId, year, activityId)
+        val year = resolveActivityYear(activity)
+        val cached = loadDetailedActivityFromCacheAnyYear(activityId, year)
 
-        return Optional.ofNullable(cached ?: activity.toStravaDetailedActivity())
+        return Optional.ofNullable(cached)
     }
 
     private suspend fun loadFromLocalCache(): List<StravaActivity> = coroutineScope {
@@ -336,38 +336,97 @@ class StravaActivityProvider(
         }
     }
 
-    private fun launchBackgroundStreamsBackfill() {
-        if (activities.none { activity -> activity.stream == null }) {
-            logger.info("All cached activities already have streams; skipping background backfill")
+    private suspend fun refreshCurrentYearActivitiesInBackground(currentYear: Int) {
+        val refreshedActivities = retrieveActivitiesFromApi(currentYear)
+        if (refreshedActivities.isEmpty()) {
+            logger.info("No current-year updates received from Strava for $currentYear")
             return
         }
 
-        if (!backgroundBackfillStarted.compareAndSet(false, true)) {
+        saveActivitiesToCache(currentYear, refreshedActivities)
+        loadMissingStreamsFromCache(currentYear, refreshedActivities)
+        loadMissingStreamsFromApi(currentYear, refreshedActivities)
+        streamIdsCache.remove(currentYear)
+
+        val existingActivities = activities
+        val mergedActivities = existingActivities
+            .filterNot { activity -> activity.startDateLocal.take(4).toIntOrNull() == currentYear }
+            .plus(refreshedActivities)
+            .sortedBy { activity -> activity.startDateLocal }
+
+        activities = mergedActivities
+        logger.info("Background refresh merged current-year activities: {} total activities in memory", activities.size)
+    }
+
+    private suspend fun backfillMissingStreamsInBackground() = coroutineScope {
+        val activitiesByYear = activities
+            .filter { activity -> activity.stream == null }
+            .groupBy { activity -> activity.startDateLocal.take(4).toIntOrNull() ?: LocalDate.now().year }
+
+        if (activitiesByYear.isEmpty()) {
+            logger.info("All cached activities already have streams; skipping stream backfill")
+            return@coroutineScope
+        }
+
+        val tasks = activitiesByYear.map { (year, yearActivities) ->
+            async(Dispatchers.IO) {
+                loadMissingStreamsFromCache(year, yearActivities)
+                loadMissingStreamsFromApi(year, yearActivities)
+                streamIdsCache.remove(year)
+            }
+        }
+
+        tasks.awaitAll()
+    }
+
+    private fun launchBackgroundDataRefresh() {
+        if (!backgroundRefreshStarted.compareAndSet(false, true)) {
             return
         }
 
         startupScope.launch {
             try {
-                logger.info("Background stream backfill started")
-                val activitiesByYear = activities.groupBy { activity ->
-                    activity.startDateLocal.take(4).toIntOrNull() ?: LocalDate.now().year
-                }
+                logger.info("Background data refresh started")
+                stravaAthlete = retrieveLoggedInAthlete()
 
-                val tasks = activitiesByYear.map { (year, yearActivities) ->
-                    async(Dispatchers.IO) {
-                        loadMissingStreamsFromCache(year, yearActivities)
-                        loadMissingStreamsFromApi(year, yearActivities)
-                    }
-                }
+                val currentYear = LocalDate.now().year
+                refreshCurrentYearActivitiesInBackground(currentYear)
+                backfillMissingStreamsInBackground()
 
-                tasks.awaitAll()
-                logger.info("Background stream backfill completed")
+                logger.info("Background data refresh completed")
             } catch (exception: Exception) {
-                logger.error("Background stream backfill failed", exception)
+                logger.error("Background data refresh failed", exception)
             } finally {
-                backgroundBackfillStarted.set(false)
+                backgroundRefreshStarted.set(false)
             }
         }
+    }
+
+    private fun resolveActivityYear(activity: StravaActivity): Int {
+        return activity.startDateLocal.take(4).toIntOrNull()
+            ?: activity.startDate.take(4).toIntOrNull()
+            ?: LocalDate.now().year
+    }
+
+    private fun loadDetailedActivityFromCacheAnyYear(activityId: Long, preferredYear: Int): StravaDetailedActivity? {
+        val yearsToTry = buildList {
+            if (preferredYear >= 2010) {
+                add(preferredYear)
+            }
+            for (year in LocalDate.now().year downTo 2010) {
+                if (year != preferredYear) {
+                    add(year)
+                }
+            }
+        }
+
+        yearsToTry.forEach { year ->
+            val cached = storageProvider.loadDetailedActivityFromCache(clientId, year, activityId)
+            if (cached != null) {
+                return cached
+            }
+        }
+        return null
     }
 
 }

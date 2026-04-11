@@ -4,14 +4,11 @@ import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.SportType
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
-import me.nicolas.stravastats.domain.utils.GenericCache
-import me.nicolas.stravastats.domain.utils.SoftCache
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
 import java.util.*
-import kotlin.LazyThreadSafetyMode
 
 abstract class AbstractActivityProvider : IActivityProvider {
 
@@ -19,15 +16,8 @@ abstract class AbstractActivityProvider : IActivityProvider {
 
     protected lateinit var stravaAthlete: StravaAthlete
 
-    protected lateinit var activities: List<StravaActivity>
-
-    private val filteredActivitiesCache: GenericCache<String, List<StravaActivity>> = SoftCache()
-    private val activityByIdCache by lazy(LazyThreadSafetyMode.PUBLICATION) {
-        activities.associateBy { activity -> activity.id }
-    }
-    private val activitiesSortedByDateCache by lazy(LazyThreadSafetyMode.PUBLICATION) {
-        activities.sortedBy { activity -> activity.startDateLocal }
-    }
+    @Volatile
+    protected var activities: List<StravaActivity> = emptyList()
 
     override fun athlete(): StravaAthlete {
         return stravaAthlete
@@ -41,26 +31,34 @@ abstract class AbstractActivityProvider : IActivityProvider {
     override fun listActivitiesPaginated(pageable: Pageable): Page<StravaActivity> {
         logger.info("List activities paginated")
 
+        val activitiesSnapshot = activities
+        if (activitiesSnapshot.isEmpty()) {
+            return PageImpl(emptyList(), pageable, 0)
+        }
+
         val from = pageable.offset.toInt()
-        val to = (pageable.offset + pageable.pageSize).toInt().coerceAtMost(activities.size)
+        if (from >= activitiesSnapshot.size) {
+            return PageImpl(emptyList(), pageable, activitiesSnapshot.size.toLong())
+        }
+        val to = (pageable.offset + pageable.pageSize).toInt().coerceAtMost(activitiesSnapshot.size)
 
         val sortedActivities = pageable.sort.let { sort ->
             if (sort.isSorted) {
-                activitiesSortedByDateCache
+                activitiesSnapshot.sortedBy { activity -> activity.startDateLocal }
             } else {
-                activities
+                activitiesSnapshot
             }
         }
 
         val subList = sortedActivities.subList(from, to)
 
-        return PageImpl(subList, pageable, activities.size.toLong())
+        return PageImpl(subList, pageable, activitiesSnapshot.size.toLong())
     }
 
     override fun getActivity(activityId: Long): Optional<StravaActivity> {
         logger.info("Get stravaActivity for stravaActivity id $activityId")
 
-        return Optional.ofNullable(activityByIdCache[activityId])
+        return Optional.ofNullable(activities.firstOrNull { activity -> activity.id == activityId })
     }
 
     override fun getActivitiesByActivityTypeGroupByActiveDays(activityTypes: Set<ActivityType>): Map<String, Int> {
@@ -97,17 +95,9 @@ abstract class AbstractActivityProvider : IActivityProvider {
         activityTypes: Set<ActivityType>,
         year: Int?
     ): List<StravaActivity> {
-
-        val key: String = year?.let { "${activityTypes.sorted().joinToString("_") { type -> type.name }}-$it" }
-            ?: activityTypes.sorted().joinToString("_") { type -> type.name }
-
-        val filteredActivities = filteredActivitiesCache[key] ?: activities
+        return activities
             .filterActivitiesByYear(year)
             .filterActivitiesByActivityTypes(activityTypes)
-
-        filteredActivitiesCache[key] = filteredActivities
-
-        return filteredActivities
     }
 
     override fun getActivitiesByActivityTypeGroupByYear(activityTypes: Set<ActivityType>): Map<String, List<StravaActivity>> {

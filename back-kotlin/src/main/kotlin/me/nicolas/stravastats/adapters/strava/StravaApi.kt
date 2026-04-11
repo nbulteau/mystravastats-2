@@ -29,10 +29,15 @@ import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.KotlinModule
 import tools.jackson.module.kotlin.readValue
 import java.net.*
+import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
-import kotlin.system.exitProcess
+import java.util.concurrent.ThreadLocalRandom
+import java.util.concurrent.atomic.AtomicLong
 
 
 internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
@@ -40,6 +45,11 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
     companion object {
         private const val QUOTA_EXCEED_LIMIT =
             "Quotas exceeded: Strava rate limitations (100 requests every 15 minutes, with up to 1,000 requests per day)"
+        private const val MAX_RETRY_AFTER_MS = 120_000L
+        private const val RETRY_JITTER_MS = 250L
+        private const val RATE_LIMIT_EXHAUSTED_COOLDOWN_MS = 60_000L
+        private const val RATE_LIMIT_WINDOW_BUFFER_MS = 1_000L
+        private const val MAX_BLOCKING_WAIT_MS = 30_000L
     }
 
     private val logger: Logger = LoggerFactory.getLogger(StravaApi::class.java)
@@ -54,6 +64,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
     private val okHttpClient: OkHttpClient = OkHttpClient.Builder().proxy(getupProxyFromEnvironment()).build()
 
     private var accessToken: String? = null
+    private val globalRateLimitUntilMs = AtomicLong(0L)
 
     private fun setAccessToken(accessToken: String) {
         this.accessToken = accessToken
@@ -125,9 +136,13 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
 
         val url = "https://www.strava.com/api/v3/athlete"
 
-        val request = Request.Builder().url(url).headers(buildRequestHeaders()).build()
+        val response = executeRequestWithRetry(
+            requestBuilder = { Request.Builder().url(url).headers(buildRequestHeaders()).build() },
+            operationName = "retrieve logged in athlete",
+            maxAttempts = 6
+        ) ?: return Optional.empty()
 
-        okHttpClient.newCall(request).execute().use { response ->
+        response.use {
             if (response.isSuccessful) {
                 try {
                     val json = response.body.string()
@@ -152,30 +167,34 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
         url += "&after=${after.atZone(ZoneId.of("Europe/Paris")).toEpochSecond()}"
 
         val requestHeaders = buildRequestHeaders()
-        do {
-            val request = Request.Builder().url("$url&page=${page++}").headers(requestHeaders).build()
+        while (true) {
+            val requestUrl = "$url&page=$page"
+            val response = executeRequestWithRetry(
+                requestBuilder = { Request.Builder().url(requestUrl).headers(requestHeaders).build() },
+                operationName = "retrieve activities page=$page",
+                maxAttempts = 6
+            ) ?: break
 
             val result: List<StravaActivity>
-            okHttpClient.newCall(request).execute().use { response ->
-                if (response.code == 401) {
-                    logger.info("Invalid accessToken : $accessToken")
-                    exitProcess(-1)
+            response.use {
+                if (response.code == HttpStatus.UNAUTHORIZED.value()) {
+                    throw RuntimeException("Invalid accessToken : $accessToken")
                 }
-                if (response.code == 429) {
-                    quotaExceedLimit()
+                if (response.code >= HttpStatus.BAD_REQUEST.value()) {
+                    throw RuntimeException("Something was wrong with Strava API for url $requestUrl : ${response.code} - ${response.body.string()}")
                 }
-                result = objectMapper.readValue<List<StravaActivity>>(response.body.string())
 
+                result = objectMapper.readValue(response.body.string())
                 activities.addAll(result)
             }
-        } while (result.isNotEmpty())
+
+            if (result.isEmpty()) {
+                break
+            }
+            page++
+        }
 
         return activities
-    }
-
-    private fun quotaExceedLimit(): Nothing {
-        logger.info(QUOTA_EXCEED_LIMIT)
-        exitProcess(-1)
     }
 
     private fun doGetActivityStream(stravaActivity: StravaActivity): Stream? {
@@ -187,14 +206,18 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
         val url =
             "https://www.strava.com/api/v3/activities/${stravaActivity.id}/streams" + "?keys=time,distance,latlng,altitude,velocity_smooth,heartrate,cadence,watts,moving,grade_smooth&key_by_type=true"
 
-        val request: Request = Request.Builder().url(url).headers(buildRequestHeaders()).build()
+        val response = executeRequestWithRetry(
+            requestBuilder = { Request.Builder().url(url).headers(buildRequestHeaders()).build() },
+            operationName = "retrieve stream for activity ${stravaActivity.id}",
+            maxAttempts = 4
+        ) ?: return null
 
-        okHttpClient.newCall(request).execute().use { response ->
+        response.use {
             when {
                 response.code >= HttpStatus.BAD_REQUEST.value() -> {
                     when (response.code) {
-                        HttpStatus.TOO_MANY_REQUESTS.value() -> {
-                            logger.error("Unable to load streams for stravaActivity : ${stravaActivity.id} - $QUOTA_EXCEED_LIMIT")
+                        HttpStatus.NOT_FOUND.value() -> {
+                            logger.warn("Stream not found for stravaActivity : ${stravaActivity.id}")
                             return null
                         }
 
@@ -226,17 +249,16 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
     private fun doGetActivity(activityId: Long): Optional<StravaDetailedActivity> {
         val url = "https://www.strava.com/api/v3/activities/$activityId?include_all_efforts=true"
 
-        val request: Request = Request.Builder().url(url).headers(buildRequestHeaders()).build()
+        val response = executeRequestWithRetry(
+            requestBuilder = { Request.Builder().url(url).headers(buildRequestHeaders()).build() },
+            operationName = "retrieve detailed activity $activityId",
+            maxAttempts = 6
+        ) ?: return Optional.empty()
 
-        okHttpClient.newCall(request).execute().use { response ->
+        response.use {
             when {
                 response.code >= HttpStatus.BAD_REQUEST.value() -> {
                     when (response.code) {
-                        HttpStatus.TOO_MANY_REQUESTS.value() -> {
-                            logger.error("Unable to load stravaActivity : $activityId - $QUOTA_EXCEED_LIMIT")
-                            return Optional.empty()
-                        }
-
                         HttpStatus.NOT_FOUND.value() -> {
                             logger.warn("StravaActivity $activityId not found")
                             return Optional.empty()
@@ -391,4 +413,212 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
     private fun buildRequestHeaders() =
         Headers.Builder().set("Accept", "application/json").set("ContentType", "application/json")
             .set("Authorization", "Bearer $accessToken").build()
+
+    private fun executeRequestWithRetry(
+        requestBuilder: () -> Request,
+        operationName: String,
+        maxAttempts: Int,
+    ): okhttp3.Response? {
+        var attempt = 1
+        var backoffMs = 1_000L
+        val maxBackoffMs = 30_000L
+
+        while (attempt <= maxAttempts) {
+            if (!waitForGlobalRateLimitWindow(operationName)) {
+                return null
+            }
+
+            val request = requestBuilder()
+            val response = okHttpClient.newCall(request).execute()
+            if (response.code != HttpStatus.TOO_MANY_REQUESTS.value()) {
+                return response
+            }
+
+            val retryAfterDelayMs = parseRetryAfterMillis(response.header("Retry-After"), backoffMs)
+            val headerBasedDelayMs = computeDelayFromRateLimitHeaders(response)
+            val retryDelayMs = maxOf(retryAfterDelayMs, headerBasedDelayMs ?: 0L)
+            response.close()
+            pushGlobalRateLimit(retryDelayMs, "429 during '$operationName'")
+
+            if (retryDelayMs > MAX_BLOCKING_WAIT_MS) {
+                logger.warn(
+                    "Skipping '{}' retries because Strava cooldown is {} ms (> {} ms).",
+                    operationName,
+                    retryDelayMs,
+                    MAX_BLOCKING_WAIT_MS
+                )
+                return null
+            }
+
+            if (attempt == maxAttempts) {
+                pushGlobalRateLimit(maxOf(retryDelayMs, RATE_LIMIT_EXHAUSTED_COOLDOWN_MS), "rate limit retries exhausted")
+                logger.error(
+                    "Unable to complete '{}' after {} attempts due to 429. {} Cooldown={} ms",
+                    operationName,
+                    maxAttempts,
+                    QUOTA_EXCEED_LIMIT,
+                    retryDelayMs
+                )
+                return null
+            }
+
+            val sleepMs = addJitter(retryDelayMs)
+            logger.warn(
+                "Strava API rate limit (429) during '{}', retry in {} ms (attempt {}/{})",
+                operationName,
+                sleepMs,
+                attempt,
+                maxAttempts
+            )
+            Thread.sleep(sleepMs)
+
+            backoffMs = (backoffMs * 2).coerceAtMost(maxBackoffMs)
+            attempt++
+        }
+
+        return null
+    }
+
+    private fun parseRetryAfterMillis(retryAfterHeader: String?, fallbackMs: Long): Long {
+        if (retryAfterHeader.isNullOrBlank()) {
+            return fallbackMs
+        }
+
+        retryAfterHeader.toLongOrNull()?.let { seconds ->
+            if (seconds > 0) {
+                return (seconds * 1_000L).coerceAtMost(MAX_RETRY_AFTER_MS)
+            }
+        }
+
+        return try {
+            val retryAt = ZonedDateTime.parse(retryAfterHeader, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant()
+            val waitMs = retryAt.toEpochMilli() - System.currentTimeMillis()
+            if (waitMs > 0) waitMs.coerceAtMost(MAX_RETRY_AFTER_MS) else fallbackMs
+        } catch (_: Exception) {
+            fallbackMs
+        }
+    }
+
+    private fun computeDelayFromRateLimitHeaders(response: okhttp3.Response): Long? {
+        val delays = mutableListOf<Long>()
+
+        collectWindowDelay(
+            response = response,
+            limitHeader = "X-RateLimit-Limit",
+            usageHeader = "X-RateLimit-Usage",
+            delays = delays
+        )
+        collectWindowDelay(
+            response = response,
+            limitHeader = "X-ReadRateLimit-Limit",
+            usageHeader = "X-ReadRateLimit-Usage",
+            delays = delays
+        )
+
+        return delays.maxOrNull()
+    }
+
+    private fun collectWindowDelay(
+        response: okhttp3.Response,
+        limitHeader: String,
+        usageHeader: String,
+        delays: MutableList<Long>,
+    ) {
+        val limits = parseRateLimitTuple(response.header(limitHeader)) ?: return
+        val usage = parseRateLimitTuple(response.header(usageHeader)) ?: return
+        val nowMs = System.currentTimeMillis()
+
+        if (usage.second >= limits.second) {
+            delays.add(millisUntilNextUtcMidnight(nowMs))
+        }
+        if (usage.first >= limits.first) {
+            delays.add(millisUntilNextQuarterHourUtc(nowMs))
+        }
+    }
+
+    private fun parseRateLimitTuple(value: String?): Pair<Int, Int>? {
+        if (value.isNullOrBlank()) {
+            return null
+        }
+
+        val tokens = value.split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+        if (tokens.size != 2) {
+            return null
+        }
+
+        val shortTerm = tokens[0].toIntOrNull() ?: return null
+        val daily = tokens[1].toIntOrNull() ?: return null
+        return shortTerm to daily
+    }
+
+    private fun millisUntilNextQuarterHourUtc(nowMs: Long): Long {
+        val now = ZonedDateTime.ofInstant(Instant.ofEpochMilli(nowMs), ZoneOffset.UTC)
+        val quarterStartMinute = (now.minute / 15) * 15
+        val nextQuarter = now
+            .withMinute(quarterStartMinute)
+            .withSecond(0)
+            .withNano(0)
+            .plusMinutes(15)
+
+        return (nextQuarter.toInstant().toEpochMilli() - nowMs + RATE_LIMIT_WINDOW_BUFFER_MS)
+            .coerceAtLeast(RATE_LIMIT_WINDOW_BUFFER_MS)
+    }
+
+    private fun millisUntilNextUtcMidnight(nowMs: Long): Long {
+        val now = ZonedDateTime.ofInstant(Instant.ofEpochMilli(nowMs), ZoneOffset.UTC)
+        val nextMidnight = now.toLocalDate().plusDays(1).atStartOfDay(ZoneOffset.UTC)
+        return (nextMidnight.toInstant().toEpochMilli() - nowMs + RATE_LIMIT_WINDOW_BUFFER_MS)
+            .coerceAtLeast(RATE_LIMIT_WINDOW_BUFFER_MS)
+    }
+
+    private fun pushGlobalRateLimit(delayMs: Long, reason: String) {
+        if (delayMs <= 0) {
+            return
+        }
+
+        val newDeadline = System.currentTimeMillis() + delayMs
+        while (true) {
+            val current = globalRateLimitUntilMs.get()
+            if (newDeadline <= current) {
+                return
+            }
+            if (globalRateLimitUntilMs.compareAndSet(current, newDeadline)) {
+                logger.warn("Applying Strava global cooldown of {} ms ({})", delayMs, reason)
+                return
+            }
+        }
+    }
+
+    private fun waitForGlobalRateLimitWindow(operationName: String): Boolean {
+        val waitMs = globalRateLimitUntilMs.get() - System.currentTimeMillis()
+        if (waitMs <= 0) {
+            return true
+        }
+        if (waitMs > MAX_BLOCKING_WAIT_MS) {
+            logger.warn(
+                "Skipping '{}' because Strava cooldown is still active for {} ms",
+                operationName,
+                waitMs
+            )
+            return false
+        }
+
+        logger.info(
+            "Waiting {} ms before '{}' because Strava cooldown is active",
+            waitMs,
+            operationName
+        )
+        Thread.sleep(waitMs)
+        return true
+    }
+
+    private fun addJitter(delayMs: Long): Long {
+        if (delayMs <= 0) {
+            return delayMs
+        }
+        val jitter = ThreadLocalRandom.current().nextLong(0, RETRY_JITTER_MS + 1)
+        return (delayMs + jitter).coerceAtMost(MAX_RETRY_AFTER_MS)
+    }
 }
