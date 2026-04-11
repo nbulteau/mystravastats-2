@@ -90,10 +90,30 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main>
+  <main class="map-shell">
     <div
       ref="mapContainer"
-      style="width: 100%; height: calc(100vh - 150px)"
+      class="map-canvas"
     />
   </main>
 </template>
+
+<style scoped>
+.map-shell {
+  border: 1px solid #d7e2ef;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 12px 24px rgba(24, 39, 75, 0.08);
+}
+
+.map-canvas {
+  width: 100%;
+  height: calc(100vh - 190px);
+}
+
+@media (max-width: 992px) {
+  .map-canvas {
+    height: calc(100vh - 250px);
+  }
+}
+</style>

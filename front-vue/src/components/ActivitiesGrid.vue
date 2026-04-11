@@ -13,6 +13,9 @@ import {computed, onBeforeUnmount, onMounted, ref} from "vue";
 import shareIcon from "@/assets/share-outline.svg";
 import AverageSpeedCellRenderer from "@/components/cell-renderers/AverageSpeedCellRenderer.vue";
 import BestSpeedFor1000mCellRenderer from "@/components/cell-renderers/BestSpeedFor1000mCellRenderer.vue";
+import { ErrorService } from "@/services/error.service";
+import { useContextStore } from "@/stores/context.js";
+import { ToastTypeEnum } from "@/models/toast.model";
 
 
 const props = defineProps<{
@@ -22,6 +25,7 @@ const props = defineProps<{
 }>();
 
 const router = useRouter();
+const contextStore = useContextStore();
 
 function showDetailedActivity(activityId: string) {
 
@@ -41,13 +45,28 @@ async function csvExport() {
     url = `${url}&year=${props.currentYear}`;
   }
 
+  let response: Response;
   try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
+    response = await fetch(url);
+  } catch (error) {
+    contextStore.showToast({
+      id: `csv-export-toast-${Date.now()}`,
+      type: ToastTypeEnum.ERROR,
+      message: "Unable to export CSV right now. Please retry.",
+      timeout: 5000,
+    });
+    return;
+  }
+
+  if (!response.ok) {
+    await ErrorService.catchError(response);
+    return;
+  }
+
+  let objectUrl: string | null = null;
+  try {
     const blob = await response.blob();
-    const objectUrl = window.URL.createObjectURL(blob);
+    objectUrl = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = objectUrl;
     const fileName = "activities-" + props.currentActivity + "-" + props.currentYear + ".csv"
@@ -55,8 +74,17 @@ async function csvExport() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  } catch (error) {
-    console.error("There was an error exporting the CSV:", error);
+  } catch {
+    contextStore.showToast({
+      id: `csv-export-toast-${Date.now()}`,
+      type: ToastTypeEnum.ERROR,
+      message: "CSV export failed unexpectedly. Please retry.",
+      timeout: 5000,
+    });
+  } finally {
+    if (objectUrl) {
+      window.URL.revokeObjectURL(objectUrl);
+    }
   }
 }
 
@@ -205,25 +233,29 @@ const footerData = computed(() => {
   };
 });
 
+const onDetailedActivityClick = (event: unknown) => showDetailedActivity(String(event));
+
 onMounted(() => {
-  eventBus.on("detailledActivityClick", (event) => showDetailedActivity(String(event)));
+  eventBus.on("detailledActivityClick", onDetailedActivityClick);
 });
 
 onBeforeUnmount(() => {
-  eventBus.off("detailledActivityClick");
+  eventBus.off("detailledActivityClick", onDetailedActivityClick);
 });
 </script>
 
 <template>
-  <VGrid
-      name="activitiesGrid"
-      theme="material"
-      :columns="columns"
-      :source="activities"
-      :pinnedBottomSource="[footerData]"
-      :readonly="true"
-      style="height: calc(100vh - 150px)"
-  />
+  <section class="grid-shell">
+    <VGrid
+        name="activitiesGrid"
+        theme="material"
+        :columns="columns"
+        :source="activities"
+        :pinnedBottomSource="[footerData]"
+        :readonly="true"
+        style="height: calc(100vh - 150px)"
+    />
+  </section>
 </template>
 
 <style scoped></style>

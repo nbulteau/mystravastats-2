@@ -59,38 +59,58 @@ function sortDataByYear(
 </script>
 
 <template>
-  <ActivitiesCountPerYearChart :activities-count="activitiesCount" />
-  <EddingtonNumberChart
-    :title="`Eddington number for ${currentActivityType}: ${eddingtonNumber.eddingtonNumber}`"
-    :eddington-number="eddingtonNumber"
-  />
-  <CumulativeDistancePerYearChart
-    :cumulative-distance-per-year="cumulativeDistancePerYear"
-    :cumulative-elevation-per-year="cumulativeElevationPerYear"
-  />
-  <DistanceElevationPerYearChart
-    :distance-by-year="totalDistanceByYear"
-    :elevation-by-year="totalElevationByYear"
-  />
-  <DistancePerYearChart
-    :average-distance-by-year="averageDistanceByYear"
-    :max-distance-by-year="maxDistanceByYear"
-  />
-  <ElevationPerYearChart
-    :average-elevation-by-year="averageElevationByYear"
-    :max-elevation-by-year="maxElevationByYear"
-  />
-  <HeartRatePerYearChart
-    :average-heart-rate-by-year="averageHeartRateByYear"
-    :max-heart-rate-by-year="maxHeartRateByYear"
-  />
-  <SpeedPerYearChart
-    :activity-type="currentActivityType"
-    :average-speed-by-year="averageSpeedByYear"
-    :max-speed-by-year="maxSpeedByYear"
-  />
-  <PowerPerYearChart
-      :average-watts-by-year="averageWattsByYear"
-      :max-watts-by-year="maxWattsByYear"
-  />
+  <div class="chart-stack">
+    <section class="chart-panel">
+      <ActivitiesCountPerYearChart :activities-count="activitiesCount" />
+    </section>
+    <section class="chart-panel">
+      <EddingtonNumberChart
+        :title="`Eddington number for ${currentActivityType}: ${eddingtonNumber.eddingtonNumber}`"
+        :eddington-number="eddingtonNumber"
+      />
+    </section>
+    <section class="chart-panel">
+      <CumulativeDistancePerYearChart
+        :cumulative-distance-per-year="cumulativeDistancePerYear"
+        :cumulative-elevation-per-year="cumulativeElevationPerYear"
+      />
+    </section>
+    <section class="chart-panel">
+      <DistanceElevationPerYearChart
+        :distance-by-year="totalDistanceByYear"
+        :elevation-by-year="totalElevationByYear"
+      />
+    </section>
+    <section class="chart-panel">
+      <DistancePerYearChart
+        :average-distance-by-year="averageDistanceByYear"
+        :max-distance-by-year="maxDistanceByYear"
+      />
+    </section>
+    <section class="chart-panel">
+      <ElevationPerYearChart
+        :average-elevation-by-year="averageElevationByYear"
+        :max-elevation-by-year="maxElevationByYear"
+      />
+    </section>
+    <section class="chart-panel">
+      <HeartRatePerYearChart
+        :average-heart-rate-by-year="averageHeartRateByYear"
+        :max-heart-rate-by-year="maxHeartRateByYear"
+      />
+    </section>
+    <section class="chart-panel">
+      <SpeedPerYearChart
+        :activity-type="currentActivityType"
+        :average-speed-by-year="averageSpeedByYear"
+        :max-speed-by-year="maxSpeedByYear"
+      />
+    </section>
+    <section class="chart-panel">
+      <PowerPerYearChart
+          :average-watts-by-year="averageWattsByYear"
+          :max-watts-by-year="maxWattsByYear"
+      />
+    </section>
+  </div>
 </template>

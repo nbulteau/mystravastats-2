@@ -96,18 +96,17 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
 
 <template>
   <nav
-      class="navbar"
-      style="background-color: #e3f2fd"
+      class="navbar top-navbar"
   >
-    <div class="container">
+    <div class="container top-navbar__content">
       <span class="athlete-name">{{ athleteDisplayName }}</span>
 
-      <div class="d-flex align-items-center">
+      <div class="filters-wrap">
         <select
             id="year"
             v-model="selectedYear"
             name="year"
-            class="form-select-lg me-3"
+            class="form-select year-select"
         >
           <option
               v-for="year in years"
@@ -119,7 +118,7 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
         </select>
 
         <div
-            class="btn-group btn-group-lg"
+            class="btn-group btn-group-lg activity-group"
             role="group"
             aria-label="RideActivity"
         >
@@ -223,7 +222,7 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
         </div>
 
         <div
-            class="btn-group btn-group-lg"
+            class="btn-group btn-group-lg activity-group"
             role="group"
             aria-label="RunActivity"
         >
@@ -269,7 +268,7 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
         </div>
 
         <div
-            class="btn-group btn-group-lg"
+            class="btn-group btn-group-lg activity-group"
             role="group"
             aria-label="Activity"
         >
@@ -319,27 +318,101 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
 </template>
 
 <style scoped>
-header {
-  display: compact;
+.top-navbar {
+  background: linear-gradient(120deg, rgba(237, 246, 255, 0.98), rgba(226, 241, 255, 0.95));
+  border-bottom: 1px solid #d2deec;
+  box-shadow: 0 8px 22px rgba(24, 39, 75, 0.09);
+}
+
+.top-navbar__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 6px;
+  padding-bottom: 6px;
 }
 
 .athlete-name {
-  margin-right: 20px;
+  margin-right: 12px;
+  color: #213247;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.filters-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.year-select {
+  min-width: 125px;
+  max-width: 140px;
+  border-radius: 12px;
+  border: 1px solid #b5c8df;
+  background: #ffffff;
+  color: #213247;
+  box-shadow: 0 3px 10px rgba(24, 39, 75, 0.08);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.activity-group {
+  border-radius: 14px;
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid #cdd8e8;
+  box-shadow: 0 6px 14px rgba(24, 39, 75, 0.08);
 }
 
 .icon-btn {
-  width: 48px;
-  height: 48px;
-  padding: 5px;
+  width: 42px;
+  height: 42px;
+  padding: 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  border-radius: 10px;
+  border: 1px solid transparent;
   line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.icon-btn.btn-outline-primary {
+  background: #ffffff;
+  border-color: #c4d4e6;
+}
+
+.icon-btn.btn-outline-primary:hover {
+  background: #ebf4ff;
+  border-color: #9eb8d8;
+  transform: translateY(-1px);
+}
+
+.icon-btn.btn-primary {
+  background: linear-gradient(135deg, #0f67c6, #0ea5e9);
+  border-color: #0f67c6;
+  box-shadow: 0 6px 14px rgba(15, 103, 198, 0.32);
 }
 
 .icon-btn img {
-  width: 100%;
-  height: 100%;
+  width: 90%;
+  height: 90%;
 }
 
+@media (max-width: 992px) {
+  .filters-wrap {
+    justify-content: flex-start;
+  }
+
+  .activity-group {
+    width: 100%;
+    justify-content: center;
+  }
+}
 </style>

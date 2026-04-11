@@ -1,11 +1,27 @@
 <script setup lang="ts">
 import type { DetailedActivity } from '@/models/activity.model';
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { formatSpeedWithUnit, formatTime } from "@/utils/formatters";
 
-defineProps<{
+const props = defineProps<{
   activity: DetailedActivity;
 }>();
+
+const cadenceUnit = computed(() => {
+  if (props.activity.type?.endsWith("Run")) return "spm";
+  return "rpm";
+});
+
+const averageCadenceDisplay = computed(() => {
+  const cadence = props.activity.averageCadence ?? 0;
+  if (cadence <= 0) return null;
+
+  if (props.activity.type?.endsWith("Run")) {
+    return cadence * 2;
+  }
+
+  return cadence;
+});
 
 onMounted(() => {
   console.log('ActivityMetrics component mounted');
@@ -56,9 +72,9 @@ onMounted(() => {
           <strong>Max Speed:</strong>
           {{ formatSpeedWithUnit(activity.maxSpeed ?? 0, activity.type ?? "Ride") }}
         </li>
-        <li v-if="(activity.averageCadence ?? 0) > 0.0">
+        <li v-if="averageCadenceDisplay !== null">
           <strong>Average Cadence:</strong>
-          {{ ((activity.averageCadence ?? 0) * 2).toFixed(0) }} spm
+          {{ averageCadenceDisplay.toFixed(0) }} {{ cadenceUnit }}
         </li>
         <li v-if="(activity.averageWatts ?? 0) > 0">
           <strong>Average Watts:</strong> {{ (activity.averageWatts ?? 0).toFixed(0) }} W

@@ -27,38 +27,61 @@ const cadenceUnit = computed(() => {
 </script>
 
 <template>
-  <div v-if="currentYear !== 'All years'">
-    <ByMonthsChart
-      title="Distance"
-      unit="km"
-      :data-by-months="distanceByMonths"
-    />
-    <ByMonthsChart
-      title="Elevation"
-      unit="m"
-      :data-by-months="elevationByMonths"
-    />
-    <AverageSpeedByMonthsChart
-      :activity-type="currentActivity"
-      :current-year="currentYear"
-      :data-by-months="averageSpeedByMonths"
-    />
-    <ByWeeksChart
-      title="Distances"
-      unit="km"
-      :items-by-weeks="distanceByWeeks"
-    />
-    <ByWeeksChart
-      title="Elevation"
-      unit="m"
-      :items-by-weeks="elevationByWeeks"
-    />
-    <ByWeeksChart
-        v-if="cadenceUnit"
-        title="Cadence"
-        :unit="cadenceUnit"
-        :items-by-weeks="cadenceByWeeks"
-    />
+  <div
+    v-if="currentYear !== 'All years'"
+    class="chart-stack"
+  >
+    <section class="chart-panel">
+      <ByMonthsChart
+        title="Distance"
+        unit="km"
+        :data-by-months="distanceByMonths"
+      />
+    </section>
+    <section class="chart-panel">
+      <ByMonthsChart
+        title="Elevation"
+        unit="m"
+        :data-by-months="elevationByMonths"
+      />
+    </section>
+    <section class="chart-panel">
+      <AverageSpeedByMonthsChart
+        :activity-type="currentActivity"
+        :current-year="currentYear"
+        :data-by-months="averageSpeedByMonths"
+      />
+    </section>
+    <section class="chart-panel">
+      <ByWeeksChart
+        title="Distances"
+        unit="km"
+        :items-by-weeks="distanceByWeeks"
+      />
+    </section>
+    <section class="chart-panel">
+      <ByWeeksChart
+        title="Elevation"
+        unit="m"
+        :items-by-weeks="elevationByWeeks"
+      />
+    </section>
+    <section
+      v-if="cadenceUnit"
+      class="chart-panel"
+    >
+      <ByWeeksChart
+          title="Cadence"
+          :unit="cadenceUnit"
+          :items-by-weeks="cadenceByWeeks"
+      />
+    </section>
+  </div>
 
+  <div
+    v-else
+    class="chart-empty"
+  >
+    Select a specific year to display monthly and weekly charts.
   </div>
 </template>

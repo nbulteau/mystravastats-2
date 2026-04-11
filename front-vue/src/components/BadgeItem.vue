@@ -3,10 +3,13 @@ import { ref, onMounted, computed, watch } from 'vue';
 import type { BadgeCheckResult } from "@/models/badge-check-result.model";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'; // Import Bootstrap JS
+import { useContextStore } from "@/stores/context";
+import { ToastTypeEnum } from "@/models/toast.model";
 
 const props = defineProps<{
   badgeCheckResult: BadgeCheckResult;
 }>();
+const contextStore = useContextStore();
 
 import runningBadge from "@/assets/badges/running.png";
 import cyclingBadge from "@/assets/badges/cycling.png";
@@ -40,12 +43,25 @@ const buildBadgeImageUrl = (type: string) => {
 };
 
 const navigateToActivity = () => {
-  if (props.badgeCheckResult.nbCheckedActivities > 0 && props.badgeCheckResult.activities) {
-    // Open all activities in a new tab
-    props.badgeCheckResult.activities.forEach((activity: Activity) => {
-      window.open(activity.link, '_blank');
+  if (props.badgeCheckResult.nbCheckedActivities <= 0 || !props.badgeCheckResult.activities?.length) {
+    return;
+  }
+
+  const [latestActivity] = props.badgeCheckResult.activities;
+  if (!latestActivity?.link) {
+    return;
+  }
+
+  if (props.badgeCheckResult.activities.length > 1) {
+    contextStore.showToast({
+      id: `badge-toast-${Date.now()}`,
+      type: ToastTypeEnum.NORMAL,
+      message: `Opening latest activity only (${props.badgeCheckResult.activities.length} linked to this badge).`,
+      timeout: 3000,
     });
   }
+
+  window.open(latestActivity.link, '_blank', 'noopener,noreferrer');
 };
 
 const badgeRef = ref<HTMLElement | null>(null);
@@ -104,7 +120,8 @@ onMounted(() => {
       <img
         :src="buildBadgeImageUrl(props.badgeCheckResult.badge.type)"
         class="badge-image card-img-top"
-       alt="">
+        :alt="props.badgeCheckResult.badge.label"
+      >
     </div>
     <div>
       <span
@@ -118,46 +135,48 @@ onMounted(() => {
 
 <style scoped>
 .badge-label {
-  font-size: 1.2em;
+  font-size: 1rem;
+  line-height: 1.2;
+  color: #2e3f56;
+  font-weight: 700;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  width: 100%; /* Allow the text to take up the full width */
+  width: 100%;
 }
 
 .badge-item {
   cursor: pointer;
-  transition: transform 0.2s;
-  width: 180px; /* Set a fixed width for the card */
-  height: 180px; /* Set a fixed height for the card */
-  background-color: #f8f9fa; /* Light background color for enabled state */
-  border-color: #007bff; /* Primary border color for enabled state */
+  transition: transform 0.2s, box-shadow 0.2s;
+  width: 170px;
+  min-height: 176px;
+  border-radius: 16px;
+  border: 1px solid #d3deed;
+  background: linear-gradient(180deg, #ffffff, #f6faff);
+  box-shadow: 0 10px 22px rgba(24, 39, 75, 0.08);
 }
 
 .badge-item:hover {
-  transform: scale(1.05);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 30px rgba(24, 39, 75, 0.16);
 }
 
 .badge-item--disabled {
   cursor: not-allowed;
   opacity: 0.5;
   pointer-events: none;
-  background-color: #e9ecef;
-  /* Darker background color for disabled state */
-  border-color: #6c757d;
-  /* Secondary border color for disabled state */
+  background: #eef3f8;
+  border-color: #c8d2df;
   color: #6c757d;
-  /* Secondary text color for disabled state */
 }
 
 .badge-image {
-  width: 100px;
-  height: 100px;
+  width: 92px;
+  height: 92px;
   object-fit: cover;
   margin: auto;
-  /* Center the image */
 }
 </style>

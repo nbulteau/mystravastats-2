@@ -29,14 +29,16 @@ const columns = ref([
 </script>
 
 <template>
-  <VGrid
-    name="statisticsGrid"
-    theme="material"
-    :columns="columns"
-    :source="statistics"
-    :readonly="true"
-    :style="{ height: props.height }"
-  />
+  <section class="grid-shell">
+    <VGrid
+      name="statisticsGrid"
+      theme="material"
+      :columns="columns"
+      :source="statistics"
+      :readonly="true"
+      :style="{ height: props.height }"
+    />
+  </section>
 </template>
 
 <style scoped></style>
