@@ -9,6 +9,7 @@ import (
 	"mystravastats/internal/helpers"
 	"sort"
 	"strings"
+	"time"
 )
 
 type personalRecordMetricDefinition struct {
@@ -32,7 +33,7 @@ func FetchPersonalRecordsTimelineByActivityTypeAndYear(year *int, metric *string
 	}
 
 	sort.Slice(filteredActivities, func(i, j int) bool {
-		return filteredActivities[i].StartDateLocal < filteredActivities[j].StartDateLocal
+		return isBeforeActivityDate(filteredActivities[i].StartDateLocal, filteredActivities[j].StartDateLocal)
 	})
 
 	selectedMetrics := getPersonalRecordMetricDefinitions(activityTypes)
@@ -78,10 +79,47 @@ func FetchPersonalRecordsTimelineByActivityTypeAndYear(year *int, metric *string
 	}
 
 	sort.Slice(timeline, func(i, j int) bool {
-		return timeline[i].ActivityDate < timeline[j].ActivityDate
+		return isBeforeActivityDate(timeline[i].ActivityDate, timeline[j].ActivityDate)
 	})
 
 	return timeline
+}
+
+var stravaDateLayouts = []string{
+	time.RFC3339Nano,
+	time.RFC3339,
+	"2006-01-02T15:04:05.000000Z07:00",
+	"2006-01-02T15:04:05Z07:00",
+	"2006-01-02 15:04:05",
+}
+
+func parseActivityDate(value string) (time.Time, bool) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return time.Time{}, false
+	}
+	for _, layout := range stravaDateLayouts {
+		parsed, err := time.Parse(layout, trimmed)
+		if err == nil {
+			return parsed, true
+		}
+	}
+	return time.Time{}, false
+}
+
+func isBeforeActivityDate(left, right string) bool {
+	leftTime, leftOK := parseActivityDate(left)
+	rightTime, rightOK := parseActivityDate(right)
+	switch {
+	case leftOK && rightOK:
+		return leftTime.Before(rightTime)
+	case leftOK && !rightOK:
+		return true
+	case !leftOK && rightOK:
+		return false
+	default:
+		return left < right
+	}
 }
 
 func getPersonalRecordMetricDefinitions(activityTypes []business.ActivityType) []personalRecordMetricDefinition {

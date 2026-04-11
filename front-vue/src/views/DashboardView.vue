@@ -12,6 +12,7 @@ import HeartRatePerYearChart from "@/components/charts/HeartRatePerYearChart.vue
 import PowerPerYearChart from "@/components/charts/PowerPerYearChart.vue";
 import ActivitiesCountPerYearChart from "@/components/charts/ActivitiesCountPerYearChart.vue";
 import DistanceElevationPerYearChart from "@/components/charts/DistanceElevationPerYearChart.vue";
+import ActivityHeatmapChart from "@/components/charts/ActivityHeatmapChart.vue";
 
 const contextStore = useContextStore();
 contextStore.updateCurrentView("dashboard");
@@ -47,6 +48,7 @@ const averageWattsByYear = computed(() => contextStore.dashboardData.averageWatt
 const maxWattsByYear = computed(() =>
   sortDataByYear(contextStore.dashboardData.maxWattsByYear)
 );
+const activityHeatmap = computed(() => contextStore.activityHeatmap);
 
 function sortDataByYear(
   averageWattsByYear: Record<string, number>
@@ -118,6 +120,9 @@ function sortDataByYear(
           :max-watts-by-year="maxWattsByYear"
       />
     </section>
+    <section class="chart-panel chart-panel--wide">
+      <ActivityHeatmapChart :activity-heatmap="activityHeatmap" />
+    </section>
   </div>
 </template>
 
@@ -128,5 +133,10 @@ function sortDataByYear(
   color: #4c617b;
   font-size: 0.85rem;
   margin-bottom: 0.35rem;
+}
+
+/* Allow the heatmap panel to span the full row */
+.chart-panel--wide {
+  grid-column: 1 / -1;
 }
 </style>

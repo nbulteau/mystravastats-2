@@ -100,4 +100,23 @@ class DashboardController(
             elevation = dashboardService.getCumulativeElevationPerYear(activityTypes)
         )
     }
+
+    @Operation(
+        description = "Get the daily distance heatmap per year for a specific activity type",
+        summary = "Get activity heatmap (year → day → distance km)",
+        responses = [ApiResponse(
+            responseCode = "200", description = "Activity heatmap found",
+            content = [Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = Schema(implementation = Map::class)
+            )]
+        )],
+    )
+    @GetMapping("/activity-heatmap")
+    fun getActivityHeatmap(
+        @RequestParam(required = true) activityType: String,
+    ): Map<String, Map<String, Double>> {
+        val activityTypes = activityType.convertToActivityTypeSet()
+        return dashboardService.getActivityHeatmap(activityTypes)
+    }
 }

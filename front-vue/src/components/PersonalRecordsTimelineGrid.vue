@@ -47,13 +47,33 @@ const filteredTimeline = computed(() => {
   );
 });
 
+function toSortableDateMs(dateValue: string): number {
+  const normalized = dateValue.includes("T") ? dateValue : dateValue.replace(" ", "T");
+  const parsed = Date.parse(normalized);
+  if (Number.isNaN(parsed)) {
+    // Keep deterministic ordering even if backend sent an unexpected format.
+    return -1;
+  }
+  return parsed;
+}
+
 const rows = computed(() =>
-  filteredTimeline.value.map((entry) => ({
-    ...entry,
-    activityDate: entry.activityDate.split("T")[0],
-    previousValue: entry.previousValue ?? "-",
-    improvement: entry.improvement ?? "Initial PR",
-  }))
+  [...filteredTimeline.value]
+    .sort((left, right) => {
+      const leftDate = toSortableDateMs(left.activityDate);
+      const rightDate = toSortableDateMs(right.activityDate);
+
+      if (leftDate === rightDate) {
+        return right.activityDate.localeCompare(left.activityDate);
+      }
+      return rightDate - leftDate;
+    })
+    .map((entry) => ({
+      ...entry,
+      activityDate: entry.activityDate.split("T")[0],
+      previousValue: entry.previousValue ?? "-",
+      improvement: entry.improvement ?? "Initial PR",
+    }))
 );
 
 const columns = [

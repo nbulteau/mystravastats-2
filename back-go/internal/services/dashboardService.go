@@ -305,3 +305,32 @@ func maxWatts(activities []*strava.Activity) float64 {
 	}
 	return maxWatts
 }
+
+// FetchActivityHeatmap returns a daily distance (km) map per year.
+// Shape: year → ("MM-DD" → total distance in km for that day).
+func FetchActivityHeatmap(activityTypes ...business.ActivityType) map[string]map[string]float64 {
+	log.Printf("Get activity heatmap for activity type %s", activityTypes)
+
+	activitiesByYear := activityProvider.GetActivitiesByActivityTypeGroupByYear(activityTypes...)
+	result := make(map[string]map[string]float64)
+	currentYear := time.Now().Year()
+
+	for year := 2010; year <= currentYear; year++ {
+		yearStr := strconv.Itoa(year)
+		activities, ok := activitiesByYear[yearStr]
+		if !ok {
+			continue
+		}
+		activitiesByDay := groupActivitiesByDay(activities, year)
+		dayMap := make(map[string]float64, len(activitiesByDay))
+		for day, acts := range activitiesByDay {
+			var total float64
+			for _, a := range acts {
+				total += a.Distance / 1000.0
+			}
+			dayMap[day] = total
+		}
+		result[yearStr] = dayMap
+	}
+	return result
+}

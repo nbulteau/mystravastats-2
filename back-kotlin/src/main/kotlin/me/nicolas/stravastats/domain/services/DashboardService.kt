@@ -19,6 +19,8 @@ interface IDashboardService {
     fun getEddingtonNumber(activityTypes: Set<ActivityType>): EddingtonNumber
 
     fun getDashboardData(activityTypes: Set<ActivityType>): DashboardData
+
+    fun getActivityHeatmap(activityTypes: Set<ActivityType>): Map<String, Map<String, Double>>
 }
 
 
@@ -190,6 +192,19 @@ class DashboardService(
             averageWattsByYear,
             maxWattsByYear
         )
+    }
+
+    /**
+     * Build a daily distance heatmap per year.
+     * Returns a map: year → (MM-DD → total distance in km that day).
+     */
+    override fun getActivityHeatmap(activityTypes: Set<ActivityType>): Map<String, Map<String, Double>> {
+        logger.info("Get activity heatmap for activity type $activityTypes")
+        return getCumulativeDataPerYear(activityTypes) { activitiesByDay ->
+            activitiesByDay.mapValues { (_, dayActivities) ->
+                dayActivities.sumOf { it.distance / 1000.0 }
+            }
+        }
     }
 
     private fun aggregateYear(activities: List<StravaActivity>): YearAccumulator {

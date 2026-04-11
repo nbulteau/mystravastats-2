@@ -566,6 +566,31 @@ func getDashboardCumulativeDataByYear(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getDashboardActivityHeatmap godoc
+// @Summary Get activity heatmap data
+// @Description Returns daily distance (km) per day per year for heatmap display
+// @Tags dashboard
+// @Produce json
+// @Param activityType query string true "Activity type"
+// @Success 200 {object} map[string]map[string]float64
+// @Failure 400 {string} string "Invalid parameters"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/dashboard/activity-heatmap [get]
+func getDashboardActivityHeatmap(w http.ResponseWriter, r *http.Request) {
+	activityTypes, err := getActivityTypeParam(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+
+	heatmap := services2.FetchActivityHeatmap(activityTypes...)
+
+	if err := writeJSON(w, http.StatusOK, heatmap); err != nil {
+		log.Printf("failed to write activity heatmap response: %v", err)
+		writeInternalServerError(w, "Failed to encode activity heatmap response")
+	}
+}
+
 // getDashboardEddingtonNumber godoc
 // @Summary Get Eddington number
 // @Description Returns the Eddington number and associated list

@@ -36,6 +36,7 @@ export const useContextStore = defineStore('context', {
         cumulativeElevationPerYear: Map<string, Map<string, number>>,
         eddingtonNumber: EddingtonNumber,
         dashboardData: DashboardData,
+        activityHeatmap: Record<string, Record<string, number>>,
         heartRateZoneSettings: HeartRateZoneSettings,
         heartRateZoneAnalysis: HeartRateZoneAnalysis,
         generalBadgesCheckResults: BadgeCheckResult[],
@@ -61,6 +62,7 @@ export const useContextStore = defineStore('context', {
             cadenceByWeeks: [],
             eddingtonNumber: new EddingtonNumber(),
             dashboardData: new DashboardData({},  {},  {},  {},  {},  {},  {},  {},  {},  {},  {},  {},  {}, []),
+            activityHeatmap: {},
             heartRateZoneSettings: {
                 maxHr: null,
                 thresholdHr: null,
@@ -195,6 +197,12 @@ export const useContextStore = defineStore('context', {
             const dashboardData = await this.fetchJson<DashboardData>(this.url("dashboard"))
             this.dashboardData = dashboardData;
         },
+        async fetchActivityHeatmap() {
+            const heatmap = await this.fetchJson<Record<string, Record<string, number>>>(
+                `/api/dashboard/activity-heatmap?activityType=${this.currentActivityType}`
+            )
+            this.activityHeatmap = heatmap;
+        },
         async fetchBadges() {
             const generalBadgesCheckResults = await this.fetchJson<BadgeCheckResult[]>(this.url("badges"))
             this.generalBadgesCheckResults = generalBadgesCheckResults.filter((badgeCheckResult: BadgeCheckResult) => { return !badgeCheckResult.badge.type.endsWith('FamousClimbBadge') });
@@ -241,6 +249,7 @@ export const useContextStore = defineStore('context', {
                         this.fetchEddingtonNumber(),
                         this.fetchCumulativeDataPerYear(),
                         this.fetchDashboardData(),
+                        this.fetchActivityHeatmap(),
                     ])
                     break
                 case 'badges':

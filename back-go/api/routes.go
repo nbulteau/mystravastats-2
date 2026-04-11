@@ -115,6 +115,12 @@ var routes = Routes{
 		getDashboardEddingtonNumber,
 	},
 	Route{
+		"GetDashboardActivityHeatmap",
+		"GET",
+		"/api/dashboard/activity-heatmap",
+		getDashboardActivityHeatmap,
+	},
+	Route{
 		"GetBadges",
 		"GET",
 		"/api/badges",

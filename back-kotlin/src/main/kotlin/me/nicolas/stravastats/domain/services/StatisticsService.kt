@@ -14,6 +14,10 @@ import me.nicolas.stravastats.domain.services.statistics.*
 import me.nicolas.stravastats.domain.utils.formatSeconds
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.Locale
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -60,7 +64,10 @@ internal class StatisticsService(
         logger.info("Compute personal records timeline for $activityTypes in ${year ?: "all years"}")
 
         val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
-            .sortedBy { activity -> activity.startDateLocal }
+            .sortedWith(
+                compareBy<StravaActivity> { activity -> parseActivityDateEpochMillis(activity.startDateLocal) ?: Long.MAX_VALUE }
+                    .thenBy { activity -> activity.startDateLocal }
+            )
 
         if (filteredActivities.isEmpty()) {
             return emptyList()
@@ -96,7 +103,21 @@ internal class StatisticsService(
             }
         }
 
-        return timeline.sortedBy { entry -> entry.activityDate }
+        return timeline.sortedWith(
+            compareBy<PersonalRecordTimelineEntry> { entry -> parseActivityDateEpochMillis(entry.activityDate) ?: Long.MAX_VALUE }
+                .thenBy { entry -> entry.activityDate }
+        )
+    }
+
+    private fun parseActivityDateEpochMillis(value: String?): Long? {
+        if (value.isNullOrBlank()) {
+            return null
+        }
+
+        return runCatching { OffsetDateTime.parse(value).toInstant().toEpochMilli() }
+            .recoverCatching { Instant.parse(value).toEpochMilli() }
+            .recoverCatching { LocalDateTime.parse(value).toInstant(ZoneOffset.UTC).toEpochMilli() }
+            .getOrNull()
     }
 
     override fun getSegmentClimbProgression(
