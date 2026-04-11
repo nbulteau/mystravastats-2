@@ -105,22 +105,6 @@ const isCurrent = (name: string) => {
           role="presentation"
         >
           <RouterLink
-            id="segments-tab"
-            class="nav-link"
-            :class="{ active: isCurrent('segments') }"
-            role="tab"
-            aria-controls="segments-tab-pane"
-            aria-selected="false"
-            to="/segments"
-          >
-            Segments
-          </RouterLink>
-        </li>
-        <li
-          class="nav-item"
-          role="presentation"
-        >
-          <RouterLink
             id="badges-tab"
             class="nav-link"
             :class="{ active: isCurrent('badges') }"

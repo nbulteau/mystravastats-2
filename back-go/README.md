@@ -15,8 +15,6 @@ http://localhost:8080/api/statistics?year=2025&activityType=VirtualRide
 
 http://localhost:8080/api/statistics/personal-records-timeline?year=2025&activityType=Ride
 
-http://localhost:8080/api/statistics/segment-climb-progression?year=2025&activityType=Ride&metric=TIME&targetType=ALL
-
 ### charts
 
 http://localhost:8080/api/charts/distance-by-period?activityType=Ride&year=2025&period=MONTHS

@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
 import me.nicolas.stravastats.api.dto.PersonalRecordTimelineDto
-import me.nicolas.stravastats.api.dto.SegmentClimbProgressionDto
 import me.nicolas.stravastats.api.dto.StatisticsDto
 import me.nicolas.stravastats.api.dto.toDto
 import me.nicolas.stravastats.domain.services.IStatisticsService
@@ -88,41 +87,5 @@ class StatisticsController(
 
         return statisticsService.getPersonalRecordsTimeline(activityTypes, year, metric)
             .map { timelineEntry -> timelineEntry.toDto() }
-    }
-
-    @Operation(
-        description = "Get progression for favorite segments and climbs (attempts, PR progression, consistency, pacing and trends)",
-        summary = "Get segment and climb progression",
-        responses = [
-            ApiResponse(
-                responseCode = "200",
-                description = "Segment/climb progression found",
-                content = [Content(
-                    mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = SegmentClimbProgressionDto::class)
-                )]
-            ),
-            ApiResponse(
-                responseCode = "404",
-                description = "Segment/climb progression not found",
-                content = [Content(
-                    mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponseMessageDto::class)
-                )]
-            )
-        ]
-    )
-    @GetMapping("/segment-climb-progression")
-    fun getSegmentClimbProgression(
-        @RequestParam(required = true) activityType: String,
-        @RequestParam(required = false) year: Int?,
-        @RequestParam(required = false) metric: String?,
-        @RequestParam(required = false) targetType: String?,
-        @RequestParam(required = false) targetId: Long?,
-    ): SegmentClimbProgressionDto {
-        val activityTypes = activityType.convertToActivityTypeSet()
-
-        return statisticsService.getSegmentClimbProgression(activityTypes, year, metric, targetType, targetId)
-            .toDto()
     }
 }

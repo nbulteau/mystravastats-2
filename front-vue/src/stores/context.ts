@@ -9,7 +9,6 @@ import type { Activity } from '@/models/activity.model';
 import { EddingtonNumber } from '@/models/eddington-number.model';
 import type { BadgeCheckResult } from '@/models/badge-check-result.model';
 import { DashboardData } from '@/models/dashboard-data.model';
-import type { SegmentClimbProgression } from '@/models/segment-climb-progression.model';
 
 
 export const useContextStore = defineStore('context', {
@@ -34,12 +33,8 @@ export const useContextStore = defineStore('context', {
         dashboardData: DashboardData,
         generalBadgesCheckResults: BadgeCheckResult[],
         famousClimbBadgesCheckResults: BadgeCheckResult[],
-        segmentClimbProgression: SegmentClimbProgression,
-        segmentProgressionMetric: 'TIME' | 'SPEED',
-        segmentProgressionTargetType: 'ALL' | 'SEGMENT' | 'CLIMB',
-        segmentProgressionSelectedTargetId: number | null,
 
-        currentView: 'statistics' | 'activities' | 'activity' | 'map' | 'badges' | 'charts' | 'dashboard' | 'segments'
+        currentView: 'statistics' | 'activities' | 'activity' | 'map' | 'badges' | 'charts' | 'dashboard'
         toasts: any[]
     } {
         return {
@@ -63,16 +58,6 @@ export const useContextStore = defineStore('context', {
             cumulativeElevationPerYear: new Map<string, Map<string, number>>(),
             generalBadgesCheckResults: [],
             famousClimbBadgesCheckResults: [],
-            segmentClimbProgression: {
-                metric: 'TIME',
-                targetTypeFilter: 'ALL',
-                weatherContextAvailable: false,
-                targets: [],
-                attempts: [],
-            },
-            segmentProgressionMetric: 'TIME',
-            segmentProgressionTargetType: 'ALL',
-            segmentProgressionSelectedTargetId: null,
 
             currentView: 'statistics',
             toasts: [],
@@ -108,15 +93,6 @@ export const useContextStore = defineStore('context', {
         async fetchPersonalRecordsTimeline() {
             const personalRecordsTimeline = await this.fetchJson<PersonalRecordTimeline[]>(this.url("statistics/personal-records-timeline"))
             this.personalRecordsTimeline = personalRecordsTimeline
-        },
-        async fetchSegmentClimbProgression() {
-            let progressionUrl = `${this.url("statistics/segment-climb-progression")}&metric=${this.segmentProgressionMetric}&targetType=${this.segmentProgressionTargetType}`
-            if (this.segmentProgressionSelectedTargetId != null) {
-                progressionUrl += `&targetId=${this.segmentProgressionSelectedTargetId}`
-            }
-
-            const progression = await this.fetchJson<SegmentClimbProgression>(progressionUrl)
-            this.segmentClimbProgression = progression
         },
         async fetchActivities() {
             const activities = await this.fetchJson<Activity[]>(this.url("activities"))
@@ -197,20 +173,6 @@ export const useContextStore = defineStore('context', {
             this.currentActivityType = activityType
             await this.updateData();
         },
-        async updateSegmentProgressionMetric(metric: 'TIME' | 'SPEED') {
-            this.segmentProgressionMetric = metric
-            this.segmentProgressionSelectedTargetId = null
-            await this.fetchSegmentClimbProgression()
-        },
-        async updateSegmentProgressionTargetType(targetType: 'ALL' | 'SEGMENT' | 'CLIMB') {
-            this.segmentProgressionTargetType = targetType
-            this.segmentProgressionSelectedTargetId = null
-            await this.fetchSegmentClimbProgression()
-        },
-        async updateSegmentProgressionTarget(targetId: number | null) {
-            this.segmentProgressionSelectedTargetId = targetId
-            await this.fetchSegmentClimbProgression()
-        },
         async updateData() {
             switch (this.currentView) {
                 case 'statistics':
@@ -247,12 +209,9 @@ export const useContextStore = defineStore('context', {
                 case 'badges':
                     await this.fetchBadges()
                     break
-                case 'segments':
-                    await this.fetchSegmentClimbProgression()
-                    break
             }
         },
-        updateCurrentView(view: 'statistics' | 'activities' | 'activity' | 'map' | 'badges' | 'charts' | 'dashboard' | 'segments') {
+        updateCurrentView(view: 'statistics' | 'activities' | 'activity' | 'map' | 'badges' | 'charts' | 'dashboard') {
             this.currentView = view
             void this.updateData()
         },

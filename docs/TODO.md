@@ -86,7 +86,7 @@
 
 ### 16. Mobile-Friendly Detail Experience
 - Improve activity detail pages for smaller screens.
-- Focus on quick scrolling between overview, charts, map, efforts, and segments.
+- Focus on quick scrolling between overview, charts, map, and efforts.
 
 ## Technical Enablers for Future Features
 

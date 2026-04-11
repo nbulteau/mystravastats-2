@@ -12,7 +12,6 @@ MyStravaStats can:
 - compute global statistics and sport-specific statistics
 - calculate best efforts from activity streams
 - build a chronological personal-records timeline (when each PR was set, then improved)
-- track progression on favorite segments and climbs (attempt history, PR progression, consistency, trend)
 - show dashboards, charts, maps, badges, and detailed activity views
 - export filtered activities to CSV
 
@@ -521,24 +520,6 @@ You can filter the timeline by:
 Useful API endpoint:
 - `/api/statistics/personal-records-timeline?activityType=...&year=...`
 
-### Segment and Climb Progression
-
-The Segments tab is powered by:
-- `/api/statistics/segment-climb-progression?activityType=...&year=...&metric=TIME|SPEED&targetType=ALL|SEGMENT|CLIMB`
-
-How targets are selected:
-- activities are first filtered by selected sport (`activityType`) and selected year
-- for each activity, the backend reads detailed activity data (`segment_efforts`) from local cache
-- an effort is kept if at least one condition is true:
-- `segment.starred == true`
-- `segment.climbCategory > 0`
-- `prRank <= 3`
-- target type is computed from Strava metadata:
-- `CLIMB` when `climbCategory > 0`
-- `SEGMENT` otherwise
-- targets are grouped by Strava segment id (`targetId`)
-- target list is sorted by `attemptsCount` (descending), then by name
-
 ### Eddington Number
 
 The Eddington number is one of the signature metrics of the project and deserves a clear explanation.
@@ -548,7 +529,8 @@ Definition:
 
 Example:
 - if you have ridden at least `50 km` on `50` different days, your Eddington number is at least `50`
-- if you only have `49` days at `51 km` or more, then your Eddington number is still `50`, not `51`
+- if you have exactly `50` days at `50 km` or more, and only `49` days at `51 km` or more, then your Eddington number is `50` (not `51`)
+- if your best level is only `49` days at `49 km` or more (and not `50` days at `50 km`), then your Eddington number is `49`
 
 How to interpret it:
 - it rewards consistency, not only one-off long rides
