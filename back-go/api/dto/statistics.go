@@ -65,3 +65,55 @@ type SegmentClimbAttemptDto struct {
 	WeatherSummary     *string          `json:"weatherSummary,omitempty"`
 	Activity           ActivityShortDto `json:"activity"`
 }
+
+type HeartRateZoneSettingsDto struct {
+	MaxHr       *int `json:"maxHr,omitempty"`
+	ThresholdHr *int `json:"thresholdHr,omitempty"`
+	ReserveHr   *int `json:"reserveHr,omitempty"`
+}
+
+type ResolvedHeartRateZoneSettingsDto struct {
+	MaxHr       int    `json:"maxHr"`
+	ThresholdHr *int   `json:"thresholdHr,omitempty"`
+	ReserveHr   *int   `json:"reserveHr,omitempty"`
+	Method      string `json:"method"`
+	Source      string `json:"source"`
+}
+
+type HeartRateZoneDistributionDto struct {
+	Zone       string  `json:"zone"`
+	Label      string  `json:"label"`
+	Seconds    int     `json:"seconds"`
+	Percentage float64 `json:"percentage"`
+}
+
+type HeartRateZoneActivitySummaryDto struct {
+	Activity            ActivityShortDto               `json:"activity"`
+	ActivityDate        string                         `json:"activityDate"`
+	TotalTrackedSeconds int                            `json:"totalTrackedSeconds"`
+	EasySeconds         int                            `json:"easySeconds"`
+	HardSeconds         int                            `json:"hardSeconds"`
+	EasyHardRatio       *float64                       `json:"easyHardRatio,omitempty"`
+	Zones               []HeartRateZoneDistributionDto `json:"zones"`
+}
+
+type HeartRateZonePeriodSummaryDto struct {
+	Period              string                         `json:"period"`
+	TotalTrackedSeconds int                            `json:"totalTrackedSeconds"`
+	EasySeconds         int                            `json:"easySeconds"`
+	HardSeconds         int                            `json:"hardSeconds"`
+	EasyHardRatio       *float64                       `json:"easyHardRatio,omitempty"`
+	Zones               []HeartRateZoneDistributionDto `json:"zones"`
+}
+
+type HeartRateZoneAnalysisDto struct {
+	Settings            HeartRateZoneSettingsDto          `json:"settings"`
+	ResolvedSettings    *ResolvedHeartRateZoneSettingsDto `json:"resolvedSettings,omitempty"`
+	HasHeartRateData    bool                              `json:"hasHeartRateData"`
+	TotalTrackedSeconds int                               `json:"totalTrackedSeconds"`
+	EasyHardRatio       *float64                          `json:"easyHardRatio,omitempty"`
+	Zones               []HeartRateZoneDistributionDto    `json:"zones"`
+	Activities          []HeartRateZoneActivitySummaryDto `json:"activities"`
+	ByMonth             []HeartRateZonePeriodSummaryDto   `json:"byMonth"`
+	ByYear              []HeartRateZonePeriodSummaryDto   `json:"byYear"`
+}

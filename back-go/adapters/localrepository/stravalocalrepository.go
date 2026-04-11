@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"mystravastats/domain/business"
 	"mystravastats/domain/strava"
 	"os"
 	"path/filepath"
@@ -34,23 +35,19 @@ func (repo *StravaRepository) LoadAthleteFromCache(clientId string) strava.Athle
 
 	if _, err := os.Stat(athleteJsonFile); os.IsNotExist(err) {
 		log.Printf("No stravaAthlete found in cache")
-
-		clientIdInt, err := strconv.ParseInt(clientId, 10, 64)
-		if err != nil {
-			log.Fatalf("Failed to convert clientId to int64: %v", err)
-		}
-
-		return strava.Athlete{Id: clientIdInt, Username: new(string)}
+		return fallbackAthlete(clientId)
 	}
 
 	data, err := os.ReadFile(athleteJsonFile)
 	if err != nil {
-		log.Fatalf("Failed to read athlete file: %v", err)
+		log.Printf("Failed to read athlete file '%s': %v", athleteJsonFile, err)
+		return fallbackAthlete(clientId)
 	}
 
 	var athlete strava.Athlete
 	if err := json.Unmarshal(data, &athlete); err != nil {
-		log.Fatalf("Failed to unmarshal athlete data: %v", err)
+		log.Printf("Failed to unmarshal athlete data from '%s': %v", athleteJsonFile, err)
+		return fallbackAthlete(clientId)
 	}
 
 	return athlete
@@ -63,11 +60,13 @@ func (repo *StravaRepository) SaveAthleteToCache(clientId string, stravaAthlete 
 
 	data, err := json.MarshalIndent(stravaAthlete, "", "  ")
 	if err != nil {
-		log.Fatalf("Failed to marshal athlete data: %v", err)
+		log.Printf("Failed to marshal athlete data for clientId=%s: %v", clientId, err)
+		return
 	}
 
 	if err := os.WriteFile(athleteJsonFile, data, os.ModePerm); err != nil {
-		log.Fatalf("Failed to write athlete file: %v", err)
+		log.Printf("Failed to write athlete file '%s': %v", athleteJsonFile, err)
+		return
 	}
 }
 
@@ -82,12 +81,14 @@ func (repo *StravaRepository) LoadActivitiesFromCache(clientId string, year int)
 
 	data, err := os.ReadFile(yearActivitiesJsonFile)
 	if err != nil {
-		log.Fatalf("Failed to read activities file: %v", err)
+		log.Printf("Failed to read activities file '%s': %v", yearActivitiesJsonFile, err)
+		return nil
 	}
 
 	var activities []strava.Activity
 	if err := json.Unmarshal(data, &activities); err != nil {
-		log.Fatalf("Failed to unmarshal activities data: %v", err)
+		log.Printf("Failed to unmarshal activities from '%s': %v", yearActivitiesJsonFile, err)
+		return nil
 	}
 
 	return activities
@@ -117,12 +118,14 @@ func (repo *StravaRepository) SaveActivitiesToCache(clientId string, year int, a
 
 	data, err := json.MarshalIndent(activities, "", "  ")
 	if err != nil {
-		log.Fatalf("Failed to marshal activities data: %v", err)
+		log.Printf("Failed to marshal activities for clientId=%s year=%d: %v", clientId, year, err)
+		return
 	}
 
 	yearActivitiesJsonFile := filepath.Join(yearActivitiesDirectory, fmt.Sprintf("activities-%s-%d.json", clientId, year))
 	if err := os.WriteFile(yearActivitiesJsonFile, data, os.ModePerm); err != nil {
-		log.Fatalf("Failed to write activities file: %v", err)
+		log.Printf("Failed to write activities file '%s': %v", yearActivitiesJsonFile, err)
+		return
 	}
 }
 
@@ -137,12 +140,14 @@ func (repo *StravaRepository) LoadDetailedActivityFromCache(clientId string, yea
 
 	data, err := os.ReadFile(detailedActivityFile)
 	if err != nil {
-		log.Fatalf("Failed to read detailed activity file: %v", err)
+		log.Printf("Failed to read detailed activity file '%s': %v", detailedActivityFile, err)
+		return nil
 	}
 
 	var detailedActivity strava.DetailedActivity
 	if err := json.Unmarshal(data, &detailedActivity); err != nil {
-		log.Fatalf("Failed to unmarshal detailed activity data: %v", err)
+		log.Printf("Failed to unmarshal detailed activity from '%s': %v", detailedActivityFile, err)
+		return nil
 	}
 
 	return &detailedActivity
@@ -155,11 +160,13 @@ func (repo *StravaRepository) SaveDetailedActivityToCache(clientId string, year 
 
 	data, err := json.Marshal(stravaDetailedActivity)
 	if err != nil {
-		log.Fatalf("Failed to marshal detailed activity data: %v", err)
+		log.Printf("Failed to marshal detailed activity id=%d: %v", stravaDetailedActivity.Id, err)
+		return
 	}
 
 	if err := os.WriteFile(detailedActivityFile, data, os.ModePerm); err != nil {
-		log.Fatalf("Failed to write detailed activity file: %v", err)
+		log.Printf("Failed to write detailed activity file '%s': %v", detailedActivityFile, err)
+		return
 	}
 }
 
@@ -174,12 +181,14 @@ func (repo *StravaRepository) LoadActivitiesStreamsFromCache(clientId string, ye
 
 	data, err := os.ReadFile(streamFile)
 	if err != nil {
-		log.Fatalf("Failed to read stream file '%s': %v", streamFile, err)
+		log.Printf("Failed to read stream file '%s': %v", streamFile, err)
+		return nil
 	}
 
 	var stream strava.Stream
 	if err := json.Unmarshal(data, &stream); err != nil {
-		log.Fatalf("Failed to unmarshal stream '%s' data: %v", streamFile, err)
+		log.Printf("Failed to unmarshal stream '%s' data: %v", streamFile, err)
+		return nil
 	}
 
 	return &stream
@@ -192,11 +201,13 @@ func (repo *StravaRepository) SaveActivitiesStreamsToCache(clientId string, year
 
 	data, err := json.Marshal(stream)
 	if err != nil {
-		log.Fatalf("Failed to marshal stream data: %v", err)
+		log.Printf("Failed to marshal stream for activityId=%d: %v", stravaActivity.Id, err)
+		return
 	}
 
 	if err := os.WriteFile(streamFile, data, os.ModePerm); err != nil {
-		log.Fatalf("Failed to write stream file: %v", err)
+		log.Printf("Failed to write stream file '%s': %v", streamFile, err)
+		return
 	}
 }
 
@@ -219,7 +230,10 @@ func (repo *StravaRepository) BuildStreamIdsSet(clientId string, year int) map[i
 		return nil
 	})
 	if err != nil {
-		log.Fatalf("Failed to build stream ids set: %v", err)
+		if !os.IsNotExist(err) {
+			log.Printf("Failed to build stream ids set in '%s': %v", yearActivitiesDirectory, err)
+		}
+		return streamIdsSet
 	}
 
 	return streamIdsSet
@@ -232,7 +246,8 @@ func (repo *StravaRepository) ReadStravaAuthentication(stravaCache string) (stri
 
 	data, err := os.ReadFile(file)
 	if err != nil {
-		log.Fatalf("File .strava not found: %v", err)
+		log.Printf("File .strava not found at '%s': %v", file, err)
+		return "", "", false
 	}
 
 	lines := strings.Split(string(data), "\n")
@@ -251,6 +266,47 @@ func (repo *StravaRepository) ReadStravaAuthentication(stravaCache string) (stri
 	useCache := strings.TrimSpace(properties["useCache"]) == "true"
 
 	return clientId, clientSecret, useCache
+}
+
+func (repo *StravaRepository) LoadHeartRateZoneSettings(clientId string) business.HeartRateZoneSettings {
+	activitiesDirectory := filepath.Join(repo.cacheDirectory, fmt.Sprintf("strava-%s", clientId))
+	settingsFile := filepath.Join(activitiesDirectory, fmt.Sprintf("heart-rate-zones-%s.json", clientId))
+	if _, err := os.Stat(settingsFile); os.IsNotExist(err) {
+		return business.HeartRateZoneSettings{}
+	}
+
+	data, err := os.ReadFile(settingsFile)
+	if err != nil {
+		log.Printf("Failed to read heart rate zone settings file '%s': %v", settingsFile, err)
+		return business.HeartRateZoneSettings{}
+	}
+
+	var settings business.HeartRateZoneSettings
+	if err := json.Unmarshal(data, &settings); err != nil {
+		log.Printf("Failed to unmarshal heart rate zone settings from '%s': %v", settingsFile, err)
+		return business.HeartRateZoneSettings{}
+	}
+
+	return settings
+}
+
+func (repo *StravaRepository) SaveHeartRateZoneSettings(clientId string, settings business.HeartRateZoneSettings) {
+	activitiesDirectory := filepath.Join(repo.cacheDirectory, fmt.Sprintf("strava-%s", clientId))
+	if err := os.MkdirAll(activitiesDirectory, os.ModePerm); err != nil {
+		log.Printf("Failed to create heart rate settings directory '%s': %v", activitiesDirectory, err)
+		return
+	}
+
+	settingsFile := filepath.Join(activitiesDirectory, fmt.Sprintf("heart-rate-zones-%s.json", clientId))
+	data, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		log.Printf("Failed to marshal heart rate zone settings for clientId=%s: %v", clientId, err)
+		return
+	}
+
+	if err := os.WriteFile(settingsFile, data, os.ModePerm); err != nil {
+		log.Printf("Failed to write heart rate zone settings file '%s': %v", settingsFile, err)
+	}
 }
 
 func fileExists(filename string) bool {
@@ -276,13 +332,25 @@ func (repo *StravaRepository) loadActivitiesStreams(activities []strava.Activity
 		if _, err := os.Stat(streamFile); err == nil {
 			data, err := os.ReadFile(streamFile)
 			if err != nil {
-				log.Fatalf("Failed to read stream file: %v", err)
+				log.Printf("Failed to read stream file '%s': %v", streamFile, err)
+				continue
 			}
 			var stream strava.Stream
 			if err := json.Unmarshal(data, &stream); err != nil {
-				log.Fatalf("Failed to unmarshal stream data: %v", err)
+				log.Printf("Failed to unmarshal stream file '%s': %v", streamFile, err)
+				continue
 			}
 			activities[i].Stream = &stream
 		}
 	}
+}
+
+func fallbackAthlete(clientId string) strava.Athlete {
+	clientIdInt, err := strconv.ParseInt(clientId, 10, 64)
+	if err != nil {
+		log.Printf("Failed to convert clientId to int64 for fallback athlete: %v", err)
+		clientIdInt = 0
+	}
+	username := ""
+	return strava.Athlete{Id: clientIdInt, Username: &username}
 }

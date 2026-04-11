@@ -3,6 +3,7 @@ import { ref } from "vue";
 import VGrid, { VGridVueTemplate, type CellProps } from "@revolist/vue3-datagrid";
 import type { Statistics } from "@/models/statistics.model";
 import ActivityCellRenderer from "./cell-renderers/ActivityCellRenderer.vue";
+import MetricLabelCellRenderer from "./cell-renderers/MetricLabelCellRenderer.vue";
 
 const props = withDefaults(defineProps<{
   year: string;
@@ -14,7 +15,7 @@ const props = withDefaults(defineProps<{
 
 const columns = ref([
   {
-    prop: "label", name: "Statistic", size: 250,
+    prop: "label", name: "Statistic", size: 250, cellTemplate: VGridVueTemplate(MetricLabelCellRenderer),
     columnProperties: (): CellProps => {
       return {
         style: {

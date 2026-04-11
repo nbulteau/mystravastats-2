@@ -19,6 +19,18 @@ var routes = Routes{
 		getAthlete,
 	},
 	Route{
+		"GetAthleteHeartRateZones",
+		"GET",
+		"/api/athletes/me/heart-rate-zones",
+		getAthleteHeartRateZones,
+	},
+	Route{
+		"PutAthleteHeartRateZones",
+		"PUT",
+		"/api/athletes/me/heart-rate-zones",
+		putAthleteHeartRateZones,
+	},
+	Route{
 		"GetActivitiesByActivityType",
 		"GET",
 		"/api/activities",
@@ -47,6 +59,12 @@ var routes = Routes{
 		"GET",
 		"/api/statistics/personal-records-timeline",
 		getPersonalRecordsTimelineByActivityType,
+	},
+	Route{
+		"GetHeartRateZoneAnalysisByActivityType",
+		"GET",
+		"/api/statistics/heart-rate-zones",
+		getHeartRateZoneAnalysisByActivityType,
 	},
 	Route{
 		"GetMapsGPX",

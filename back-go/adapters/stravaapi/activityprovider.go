@@ -16,19 +16,20 @@ import (
 )
 
 type StravaActivityProvider struct {
-	clientId             string
-	clientSecret         string
-	useCacheAuth         bool
-	StravaApi            *StravaApi
-	localStorageProvider *localrepository.StravaRepository
-	activities           []*strava.Activity
-	activityByID         map[int64]*strava.Activity
-	filteredActivities   map[string][]*strava.Activity
-	cacheMutex           sync.RWMutex
-	dataMutex            sync.RWMutex
-	apiMutex             sync.Mutex
-	backgroundRefresh    atomic.Bool
-	stravaAthlete        strava.Athlete
+	clientId              string
+	clientSecret          string
+	useCacheAuth          bool
+	StravaApi             *StravaApi
+	localStorageProvider  *localrepository.StravaRepository
+	activities            []*strava.Activity
+	activityByID          map[int64]*strava.Activity
+	filteredActivities    map[string][]*strava.Activity
+	heartRateZoneSettings business.HeartRateZoneSettings
+	cacheMutex            sync.RWMutex
+	dataMutex             sync.RWMutex
+	apiMutex              sync.Mutex
+	backgroundRefresh     atomic.Bool
+	stravaAthlete         strava.Athlete
 }
 
 func NewStravaActivityProvider(stravaCache string) *StravaActivityProvider {
@@ -47,6 +48,7 @@ func NewStravaActivityProvider(stravaCache string) *StravaActivityProvider {
 	provider.clientSecret = secret
 	provider.useCacheAuth = useCache
 	provider.localStorageProvider.InitLocalStorageForClientId(id)
+	provider.heartRateZoneSettings = provider.localStorageProvider.LoadHeartRateZoneSettings(id)
 
 	// Fast startup path: load athlete and activities from local cache first.
 	provider.stravaAthlete = provider.localStorageProvider.LoadAthleteFromCache(id)
@@ -422,6 +424,22 @@ func (provider *StravaActivityProvider) groupActivitiesByYear(activities []*stra
 
 func (provider *StravaActivityProvider) GetAthlete() strava.Athlete {
 	return provider.stravaAthlete
+}
+
+func (provider *StravaActivityProvider) GetHeartRateZoneSettings() business.HeartRateZoneSettings {
+	provider.dataMutex.RLock()
+	defer provider.dataMutex.RUnlock()
+
+	return provider.heartRateZoneSettings
+}
+
+func (provider *StravaActivityProvider) SaveHeartRateZoneSettings(settings business.HeartRateZoneSettings) business.HeartRateZoneSettings {
+	provider.dataMutex.Lock()
+	provider.heartRateZoneSettings = settings
+	provider.dataMutex.Unlock()
+
+	provider.localStorageProvider.SaveHeartRateZoneSettings(provider.clientId, settings)
+	return settings
 }
 
 func filterByActivityTypes(activities []strava.Activity) []strava.Activity {

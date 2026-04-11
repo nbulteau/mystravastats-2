@@ -158,6 +158,7 @@ export class ActivityShort {
 class Stream {
     distance: number[];
     time: number[];
+    heartrate: number[] | null;
     moving: boolean[] | null;
     altitude: number[] | null;
     latlng: number[][] | null;
@@ -167,6 +168,7 @@ class Stream {
     constructor(
         distance: number[],
         time: number[],
+        heartrate: number[] | null,
         moving: boolean[] | null,
         altitude: number[] | null,
         latlng: number[][] | null,
@@ -175,6 +177,7 @@ class Stream {
     ) {
         this.distance = distance;
         this.time = time;
+        this.heartrate = heartrate;
         this.latlng = latlng;
         this.moving = moving;
         this.altitude = altitude;

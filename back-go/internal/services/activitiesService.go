@@ -15,6 +15,14 @@ func FetchAthlete() strava.Athlete {
 	return activityProvider.GetAthlete()
 }
 
+func FetchHeartRateZoneSettings() business.HeartRateZoneSettings {
+	return activityProvider.GetHeartRateZoneSettings()
+}
+
+func UpdateHeartRateZoneSettings(settings business.HeartRateZoneSettings) business.HeartRateZoneSettings {
+	return activityProvider.SaveHeartRateZoneSettings(settings)
+}
+
 func RetrieveGPXByYearAndActivityTypes(year *int, activityTypes ...business.ActivityType) [][][]float64 {
 
 	activities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)

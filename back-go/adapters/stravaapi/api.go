@@ -34,6 +34,8 @@ type Token struct {
 	AccessToken string `json:"access_token"`
 }
 
+var errTooManyRequests = errors.New("too many requests")
+
 func NewStravaApi(clientId, clientSecret string) *StravaApi {
 	properties := StravaProperties{
 		PageSize: 200,
@@ -138,7 +140,7 @@ func (api *StravaApi) RetrieveLoggedInAthlete() (*strava.Athlete, error) {
 			return athlete, nil
 		}
 
-		if errors.Is(err, errors.New("too many requests")) {
+		if errors.Is(err, errTooManyRequests) {
 			log.Printf("Too many requests, retrying in %v...", backoffDelay)
 			time.Sleep(backoffDelay)
 			backoffDelay *= 2 // Backoff exponential
@@ -166,7 +168,7 @@ func (api *StravaApi) retrieveAthlete(url string) (*strava.Athlete, error) {
 	}(resp.Body)
 
 	if resp.StatusCode == http.StatusTooManyRequests {
-		return nil, errors.New("too many requests")
+		return nil, errTooManyRequests
 	}
 
 	var athlete strava.Athlete

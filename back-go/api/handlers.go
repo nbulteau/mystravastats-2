@@ -34,6 +34,35 @@ func getAthlete(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
+func getAthleteHeartRateZones(w http.ResponseWriter, _ *http.Request) {
+	settings := services2.FetchHeartRateZoneSettings()
+	settingsDto := dto.ToHeartRateZoneSettingsDto(settings)
+
+	if err := writeJSON(w, http.StatusOK, settingsDto); err != nil {
+		log.Printf("failed to write heart rate settings response: %v", err)
+		writeInternalServerError(w, "Failed to encode heart rate settings response")
+	}
+}
+
+func putAthleteHeartRateZones(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	var settingsDto dto.HeartRateZoneSettingsDto
+	if err := json.NewDecoder(r.Body).Decode(&settingsDto); err != nil {
+		writeBadRequest(w, "Invalid request body", "heart rate zone settings payload is invalid")
+		return
+	}
+
+	settings := dto.ToHeartRateZoneSettings(settingsDto)
+	updatedSettings := services2.UpdateHeartRateZoneSettings(settings)
+	updatedSettingsDto := dto.ToHeartRateZoneSettingsDto(updatedSettings)
+
+	if err := writeJSON(w, http.StatusOK, updatedSettingsDto); err != nil {
+		log.Printf("failed to write updated heart rate settings response: %v", err)
+		writeInternalServerError(w, "Failed to encode updated heart rate settings response")
+	}
+}
+
 // getActivitiesByActivityType godoc
 // @Summary List activities by type
 // @Description Returns activities filtered by year and type
@@ -204,6 +233,27 @@ func getPersonalRecordsTimelineByActivityType(w http.ResponseWriter, r *http.Req
 	if err := writeJSON(w, http.StatusOK, timelineDto); err != nil {
 		log.Printf("failed to write personal records timeline response: %v", err)
 		writeInternalServerError(w, "Failed to encode personal records timeline response")
+	}
+}
+
+func getHeartRateZoneAnalysisByActivityType(w http.ResponseWriter, r *http.Request) {
+	year, err := getYearParam(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+	activityTypes, err := getActivityTypeParam(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+
+	analysis := services2.FetchHeartRateZoneAnalysisByActivityTypeAndYear(year, activityTypes...)
+	analysisDto := dto.ToHeartRateZoneAnalysisDto(analysis)
+
+	if err := writeJSON(w, http.StatusOK, analysisDto); err != nil {
+		log.Printf("failed to write heart rate zone analysis response: %v", err)
+		writeInternalServerError(w, "Failed to encode heart rate zone analysis response")
 	}
 }
 

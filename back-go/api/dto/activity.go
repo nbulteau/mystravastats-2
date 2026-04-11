@@ -69,6 +69,7 @@ type StreamDto struct {
 	Distance       []float64    `json:"distance"`
 	Time           []int        `json:"time"`
 	Latlng         [][]*float64 `json:"latlng,omitempty"`
+	Heartrate      []int        `json:"heartrate,omitempty"`
 	Moving         []*bool      `json:"moving,omitempty"`
 	Altitude       []*float64   `json:"altitude,omitempty"`
 	Watts          []*float64   `json:"watts,omitempty"`

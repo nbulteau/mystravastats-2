@@ -151,6 +151,13 @@ func ToDetailedActivityDto(detailedActivity *strava.DetailedActivity) DetailedAc
 	}
 }
 
+func parseTimePtr(value *string) time.Time {
+	if value == nil {
+		return time.Time{}
+	}
+	return parseTime(*value)
+}
+
 func toActivityEffortsDto(efforts []business.ActivityEffort) []ActivityEffortDto {
 	var effortsDto []ActivityEffortDto
 	for _, effort := range efforts {
@@ -179,7 +186,11 @@ func toStreamDto(stream *strava.Stream) *StreamDto {
 		Latlng = make([][]*float64, len(stream.LatLng.Data))
 		if stream.LatLng.Data != nil {
 			for i, latlng := range stream.LatLng.Data {
-				Latlng[i] = []*float64{&latlng[0], &latlng[1]}
+				if len(latlng) >= 2 {
+					lat := latlng[0]
+					lng := latlng[1]
+					Latlng[i] = []*float64{&lat, &lng}
+				}
 			}
 		}
 	}
@@ -189,7 +200,8 @@ func toStreamDto(stream *strava.Stream) *StreamDto {
 		moving = make([]*bool, len(stream.Moving.Data))
 		if stream.Moving.Data != nil {
 			for i, m := range stream.Moving.Data {
-				moving[i] = &m
+				value := m
+				moving[i] = &value
 			}
 		}
 	}
@@ -199,7 +211,8 @@ func toStreamDto(stream *strava.Stream) *StreamDto {
 		altitude = make([]*float64, len(stream.Altitude.Data))
 		if stream.Altitude.Data != nil {
 			for i, a := range stream.Altitude.Data {
-				altitude[i] = &a
+				value := a
+				altitude[i] = &value
 			}
 		}
 	}
@@ -209,7 +222,8 @@ func toStreamDto(stream *strava.Stream) *StreamDto {
 		watts = make([]*float64, len(stream.Watts.Data))
 		if stream.Watts.Data != nil {
 			for i, w := range stream.Watts.Data {
-				watts[i] = &w
+				value := w
+				watts[i] = &value
 			}
 		}
 	}
@@ -219,15 +233,23 @@ func toStreamDto(stream *strava.Stream) *StreamDto {
 		velocitySmooth = make([]*float64, len(stream.VelocitySmooth.Data))
 		if stream.VelocitySmooth.Data != nil {
 			for i, v := range stream.VelocitySmooth.Data {
-				velocitySmooth[i] = &v
+				value := v
+				velocitySmooth[i] = &value
 			}
 		}
+	}
+
+	var heartrate []int
+	if stream.HeartRate != nil {
+		heartrate = make([]int, len(stream.HeartRate.Data))
+		copy(heartrate, stream.HeartRate.Data)
 	}
 
 	return &StreamDto{
 		Distance:       stream.Distance.Data,
 		Time:           stream.Time.Data,
 		Latlng:         Latlng,
+		Heartrate:      heartrate,
 		Moving:         moving,
 		Altitude:       altitude,
 		Watts:          watts,
@@ -245,7 +267,7 @@ func ToAthleteDto(athlete strava.Athlete) AthleteDto {
 		BadgeTypeId:           getIntValue(athlete.BadgeTypeId),
 		City:                  getStringValue(athlete.City),
 		Country:               getStringValue(athlete.Country),
-		CreatedAt:             parseTime(*athlete.CreatedAt),
+		CreatedAt:             parseTimePtr(athlete.CreatedAt),
 		Firstname:             getStringValue(athlete.Firstname),
 		Id:                    athlete.Id,
 		Lastname:              getStringValue(athlete.Lastname),
@@ -256,7 +278,7 @@ func ToAthleteDto(athlete strava.Athlete) AthleteDto {
 		Sex:                   getStringValue(athlete.Sex),
 		State:                 getStringValue(athlete.State),
 		Summit:                getBoolValue(athlete.Summit),
-		UpdatedAt:             parseTime(*athlete.UpdatedAt),
+		UpdatedAt:             parseTimePtr(athlete.UpdatedAt),
 		Username:              getStringValue(athlete.Username),
 		AthleteType:           getIntValue(athlete.AthleteType),
 		DatePreference:        getStringValue(athlete.DatePreference),
@@ -359,6 +381,125 @@ func ToSegmentClimbProgressionDto(progression business.SegmentClimbProgression) 
 	}
 }
 
+func ToHeartRateZoneSettingsDto(settings business.HeartRateZoneSettings) HeartRateZoneSettingsDto {
+	return HeartRateZoneSettingsDto{
+		MaxHr:       settings.MaxHr,
+		ThresholdHr: settings.ThresholdHr,
+		ReserveHr:   settings.ReserveHr,
+	}
+}
+
+func ToHeartRateZoneSettings(dto HeartRateZoneSettingsDto) business.HeartRateZoneSettings {
+	return business.HeartRateZoneSettings{
+		MaxHr:       dto.MaxHr,
+		ThresholdHr: dto.ThresholdHr,
+		ReserveHr:   dto.ReserveHr,
+	}
+}
+
+func ToHeartRateZoneAnalysisDto(analysis business.HeartRateZoneAnalysis) HeartRateZoneAnalysisDto {
+	distributions := make([]HeartRateZoneDistributionDto, len(analysis.Zones))
+	for i, zone := range analysis.Zones {
+		distributions[i] = HeartRateZoneDistributionDto{
+			Zone:       zone.Zone,
+			Label:      zone.Label,
+			Seconds:    zone.Seconds,
+			Percentage: zone.Percentage,
+		}
+	}
+
+	activities := make([]HeartRateZoneActivitySummaryDto, len(analysis.Activities))
+	for i, activity := range analysis.Activities {
+		zones := make([]HeartRateZoneDistributionDto, len(activity.Zones))
+		for j, zone := range activity.Zones {
+			zones[j] = HeartRateZoneDistributionDto{
+				Zone:       zone.Zone,
+				Label:      zone.Label,
+				Seconds:    zone.Seconds,
+				Percentage: zone.Percentage,
+			}
+		}
+		activities[i] = HeartRateZoneActivitySummaryDto{
+			Activity: ActivityShortDto{
+				ID:   activity.Activity.Id,
+				Name: activity.Activity.Name,
+				Type: activity.Activity.Type.String(),
+			},
+			ActivityDate:        activity.ActivityDate,
+			TotalTrackedSeconds: activity.TotalTrackedSeconds,
+			EasySeconds:         activity.EasySeconds,
+			HardSeconds:         activity.HardSeconds,
+			EasyHardRatio:       activity.EasyHardRatio,
+			Zones:               zones,
+		}
+	}
+
+	byMonth := make([]HeartRateZonePeriodSummaryDto, len(analysis.ByMonth))
+	for i, period := range analysis.ByMonth {
+		zones := make([]HeartRateZoneDistributionDto, len(period.Zones))
+		for j, zone := range period.Zones {
+			zones[j] = HeartRateZoneDistributionDto{
+				Zone:       zone.Zone,
+				Label:      zone.Label,
+				Seconds:    zone.Seconds,
+				Percentage: zone.Percentage,
+			}
+		}
+		byMonth[i] = HeartRateZonePeriodSummaryDto{
+			Period:              period.Period,
+			TotalTrackedSeconds: period.TotalTrackedSeconds,
+			EasySeconds:         period.EasySeconds,
+			HardSeconds:         period.HardSeconds,
+			EasyHardRatio:       period.EasyHardRatio,
+			Zones:               zones,
+		}
+	}
+
+	byYear := make([]HeartRateZonePeriodSummaryDto, len(analysis.ByYear))
+	for i, period := range analysis.ByYear {
+		zones := make([]HeartRateZoneDistributionDto, len(period.Zones))
+		for j, zone := range period.Zones {
+			zones[j] = HeartRateZoneDistributionDto{
+				Zone:       zone.Zone,
+				Label:      zone.Label,
+				Seconds:    zone.Seconds,
+				Percentage: zone.Percentage,
+			}
+		}
+		byYear[i] = HeartRateZonePeriodSummaryDto{
+			Period:              period.Period,
+			TotalTrackedSeconds: period.TotalTrackedSeconds,
+			EasySeconds:         period.EasySeconds,
+			HardSeconds:         period.HardSeconds,
+			EasyHardRatio:       period.EasyHardRatio,
+			Zones:               zones,
+		}
+	}
+
+	var resolved *ResolvedHeartRateZoneSettingsDto
+	if analysis.ResolvedSettings != nil {
+		resolved = &ResolvedHeartRateZoneSettingsDto{
+			MaxHr:       analysis.ResolvedSettings.MaxHr,
+			ThresholdHr: analysis.ResolvedSettings.ThresholdHr,
+			ReserveHr:   analysis.ResolvedSettings.ReserveHr,
+			Method:      string(analysis.ResolvedSettings.Method),
+			Source:      string(analysis.ResolvedSettings.Source),
+		}
+	}
+
+	return HeartRateZoneAnalysisDto{
+		Settings:            ToHeartRateZoneSettingsDto(analysis.Settings),
+		ResolvedSettings:    resolved,
+		HasHeartRateData:    analysis.HasHeartRateData,
+		TotalTrackedSeconds: analysis.TotalTrackedSeconds,
+		EasyHardRatio:       analysis.EasyHardRatio,
+		Zones:               distributions,
+		Activities:          activities,
+		ByMonth:             byMonth,
+		ByYear:              byYear,
+	}
+}
+
 func ToDashboardDataDto(data business.DashboardData) DashboardDataDto {
 	return DashboardDataDto{
 		NbActivitiesByYear:     data.NbActivities,
@@ -407,6 +548,10 @@ func getIntValueFromFloat(value *float64) int {
 }
 
 func BuildActivityEfforts(activity *strava.DetailedActivity) []business.ActivityEffort {
+	if activity == nil || activity.Stream == nil {
+		return []business.ActivityEffort{}
+	}
+
 	var activityEfforts []business.ActivityEffort
 
 	slopes := activity.Stream.ListSlopesDefault()
