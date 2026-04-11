@@ -131,7 +131,7 @@ func getPersonalRecordMetricDefinitions(activityTypes []business.ActivityType) [
 	case business.AlpineSki:
 		return buildAlpineSkiMetricDefinitions()
 	case business.Hike:
-		return []personalRecordMetricDefinition{}
+		return buildActivityRecordMetricDefinitions()
 	default:
 		return buildRideMetricDefinitions()
 	}
@@ -162,7 +162,7 @@ func resolvePrimaryActivityType(activityTypes []business.ActivityType) business.
 }
 
 func buildRunMetricDefinitions() []personalRecordMetricDefinition {
-	return []personalRecordMetricDefinition{
+	return append([]personalRecordMetricDefinition{
 		bestTimeForDistanceMetric("best-time-200m", "Best 200 m", 200.0),
 		bestTimeForDistanceMetric("best-time-400m", "Best 400 m", 400.0),
 		bestTimeForDistanceMetric("best-time-1000m", "Best 1000 m", 1000.0),
@@ -176,11 +176,11 @@ func buildRunMetricDefinitions() []personalRecordMetricDefinition {
 		bestDistanceForTimeMetric("best-distance-4h", "Best 4 h", 4*60*60),
 		bestDistanceForTimeMetric("best-distance-5h", "Best 5 h", 5*60*60),
 		bestDistanceForTimeMetric("best-distance-6h", "Best 6 h", 6*60*60),
-	}
+	}, buildActivityRecordMetricDefinitions()...)
 }
 
 func buildRideMetricDefinitions() []personalRecordMetricDefinition {
-	return []personalRecordMetricDefinition{
+	return append([]personalRecordMetricDefinition{
 		bestTimeForDistanceMetric("best-time-250m", "Best 250 m", 250.0),
 		bestTimeForDistanceMetric("best-time-500m", "Best 500 m", 500.0),
 		bestTimeForDistanceMetric("best-time-1000m", "Best 1000 m", 1000.0),
@@ -203,11 +203,11 @@ func buildRideMetricDefinitions() []personalRecordMetricDefinition {
 		bestGradientForDistanceMetric("best-gradient-20km", "Max gradient for 20 km", 20000.0),
 		bestPowerForTimeMetric("best-power-20min", "Best average power for 20 min", 20*60),
 		bestPowerForTimeMetric("best-power-1h", "Best average power for 1 h", 60*60),
-	}
+	}, buildActivityRecordMetricDefinitions()...)
 }
 
 func buildAlpineSkiMetricDefinitions() []personalRecordMetricDefinition {
-	return []personalRecordMetricDefinition{
+	return append([]personalRecordMetricDefinition{
 		bestTimeForDistanceMetric("best-time-250m", "Best 250 m", 250.0),
 		bestTimeForDistanceMetric("best-time-500m", "Best 500 m", 500.0),
 		bestTimeForDistanceMetric("best-time-1000m", "Best 1000 m", 1000.0),
@@ -222,11 +222,11 @@ func buildAlpineSkiMetricDefinitions() []personalRecordMetricDefinition {
 		bestDistanceForTimeMetric("best-distance-3h", "Best 3 h", 3*60*60),
 		bestDistanceForTimeMetric("best-distance-4h", "Best 4 h", 4*60*60),
 		bestDistanceForTimeMetric("best-distance-5h", "Best 5 h", 5*60*60),
-	}
+	}, buildActivityRecordMetricDefinitions()...)
 }
 
 func buildInlineSkateMetricDefinitions() []personalRecordMetricDefinition {
-	return []personalRecordMetricDefinition{
+	return append([]personalRecordMetricDefinition{
 		bestTimeForDistanceMetric("best-time-200m", "Best 200 m", 200.0),
 		bestTimeForDistanceMetric("best-time-400m", "Best 400 m", 400.0),
 		bestTimeForDistanceMetric("best-time-1000m", "Best 1000 m", 1000.0),
@@ -237,6 +237,175 @@ func buildInlineSkateMetricDefinitions() []personalRecordMetricDefinition {
 		bestDistanceForTimeMetric("best-distance-2h", "Best 2 h", 2*60*60),
 		bestDistanceForTimeMetric("best-distance-3h", "Best 3 h", 3*60*60),
 		bestDistanceForTimeMetric("best-distance-4h", "Best 4 h", 4*60*60),
+	}, buildActivityRecordMetricDefinitions()...)
+}
+
+func buildActivityRecordMetricDefinitions() []personalRecordMetricDefinition {
+	return []personalRecordMetricDefinition{
+		maxDistanceActivityMetric("max-distance-activity", "Max distance"),
+		maxSpeedActivityMetric("max-speed-activity", "Max speed"),
+		maxMovingTimeActivityMetric("max-moving-time-activity", "Max moving time"),
+		maxDistanceInDayMetric("max-distance-in-a-day", "Max distance in a day"),
+		maxElevationActivityMetric("max-elevation-activity", "Max elevation"),
+		maxElevationInDayMetric("max-elevation-in-a-day", "Max elevation gain in a day"),
+		highestPointActivityMetric("highest-point-activity", "Highest point"),
+	}
+}
+
+func maxDistanceActivityMetric(key, label string) personalRecordMetricDefinition {
+	return personalRecordMetricDefinition{
+		key:   key,
+		label: label,
+		effortExtractor: func(activity *strava.Activity) *business.ActivityEffort {
+			if activity == nil || activity.Distance <= 0 {
+				return nil
+			}
+			return activityToEffort(activity, activity.Distance, maxInt(activity.MovingTime, 1))
+		},
+		score:    func(effort *business.ActivityEffort) float64 { return effort.Distance },
+		isBetter: func(score, previousScore float64) bool { return score > previousScore },
+		valueFormatter: func(effort *business.ActivityEffort) string {
+			return formatDistanceInKm(effort.Distance)
+		},
+		improvementFormatter: func(previous, current *business.ActivityEffort) string {
+			return fmt.Sprintf("%s farther", formatDistance(current.Distance-previous.Distance))
+		},
+	}
+}
+
+func maxSpeedActivityMetric(key, label string) personalRecordMetricDefinition {
+	return personalRecordMetricDefinition{
+		key:   key,
+		label: label,
+		effortExtractor: func(activity *strava.Activity) *business.ActivityEffort {
+			if activity == nil || activity.MaxSpeed <= 0 {
+				return nil
+			}
+			return activityToEffort(activity, activity.MaxSpeed, maxInt(activity.MovingTime, 1))
+		},
+		score:    func(effort *business.ActivityEffort) float64 { return effort.Distance },
+		isBetter: func(score, previousScore float64) bool { return score > previousScore },
+		valueFormatter: func(effort *business.ActivityEffort) string {
+			return formatActivitySpeedFromMSSpeed(effort.Distance, effort.ActivityShort.Type)
+		},
+		improvementFormatter: func(previous, current *business.ActivityEffort) string {
+			return fmt.Sprintf("%+.2f km/h", (current.Distance-previous.Distance)*3.6)
+		},
+	}
+}
+
+func maxMovingTimeActivityMetric(key, label string) personalRecordMetricDefinition {
+	return personalRecordMetricDefinition{
+		key:   key,
+		label: label,
+		effortExtractor: func(activity *strava.Activity) *business.ActivityEffort {
+			if activity == nil || activity.MovingTime <= 0 {
+				return nil
+			}
+			return activityToEffort(activity, activity.Distance, activity.MovingTime)
+		},
+		score:    func(effort *business.ActivityEffort) float64 { return float64(effort.Seconds) },
+		isBetter: func(score, previousScore float64) bool { return score > previousScore },
+		valueFormatter: func(effort *business.ActivityEffort) string {
+			return helpers.FormatSeconds(effort.Seconds)
+		},
+		improvementFormatter: func(previous, current *business.ActivityEffort) string {
+			gain := current.Seconds - previous.Seconds
+			if gain < 0 {
+				gain = 0
+			}
+			return fmt.Sprintf("%s longer", helpers.FormatSeconds(gain))
+		},
+	}
+}
+
+func maxDistanceInDayMetric(key, label string) personalRecordMetricDefinition {
+	distanceByDay := make(map[string]float64)
+	return personalRecordMetricDefinition{
+		key:   key,
+		label: label,
+		effortExtractor: func(activity *strava.Activity) *business.ActivityEffort {
+			if activity == nil || activity.Distance <= 0 {
+				return nil
+			}
+			day := activityDay(activity.StartDateLocal)
+			distanceByDay[day] += activity.Distance
+			return activityToEffortWithLabel(activity, distanceByDay[day], maxInt(activity.MovingTime, 1), day)
+		},
+		score:    func(effort *business.ActivityEffort) float64 { return effort.Distance },
+		isBetter: func(score, previousScore float64) bool { return score > previousScore },
+		valueFormatter: func(effort *business.ActivityEffort) string {
+			return fmt.Sprintf("%s - %s", formatDistanceInKm(effort.Distance), formatRecordDay(effort.Label))
+		},
+		improvementFormatter: func(previous, current *business.ActivityEffort) string {
+			return fmt.Sprintf("%s farther", formatDistance(current.Distance-previous.Distance))
+		},
+	}
+}
+
+func maxElevationActivityMetric(key, label string) personalRecordMetricDefinition {
+	return personalRecordMetricDefinition{
+		key:   key,
+		label: label,
+		effortExtractor: func(activity *strava.Activity) *business.ActivityEffort {
+			if activity == nil || activity.TotalElevationGain <= 0 {
+				return nil
+			}
+			return activityToEffort(activity, activity.TotalElevationGain, maxInt(activity.MovingTime, 1))
+		},
+		score:    func(effort *business.ActivityEffort) float64 { return effort.Distance },
+		isBetter: func(score, previousScore float64) bool { return score > previousScore },
+		valueFormatter: func(effort *business.ActivityEffort) string {
+			return fmt.Sprintf("%.2f m", effort.Distance)
+		},
+		improvementFormatter: func(previous, current *business.ActivityEffort) string {
+			return fmt.Sprintf("+%.2f m", current.Distance-previous.Distance)
+		},
+	}
+}
+
+func maxElevationInDayMetric(key, label string) personalRecordMetricDefinition {
+	elevationByDay := make(map[string]float64)
+	return personalRecordMetricDefinition{
+		key:   key,
+		label: label,
+		effortExtractor: func(activity *strava.Activity) *business.ActivityEffort {
+			if activity == nil || activity.TotalElevationGain <= 0 {
+				return nil
+			}
+			day := activityDay(activity.StartDateLocal)
+			elevationByDay[day] += activity.TotalElevationGain
+			return activityToEffortWithLabel(activity, elevationByDay[day], maxInt(activity.MovingTime, 1), day)
+		},
+		score:    func(effort *business.ActivityEffort) float64 { return effort.Distance },
+		isBetter: func(score, previousScore float64) bool { return score > previousScore },
+		valueFormatter: func(effort *business.ActivityEffort) string {
+			return fmt.Sprintf("%.2f m - %s", effort.Distance, formatRecordDay(effort.Label))
+		},
+		improvementFormatter: func(previous, current *business.ActivityEffort) string {
+			return fmt.Sprintf("+%.2f m", current.Distance-previous.Distance)
+		},
+	}
+}
+
+func highestPointActivityMetric(key, label string) personalRecordMetricDefinition {
+	return personalRecordMetricDefinition{
+		key:   key,
+		label: label,
+		effortExtractor: func(activity *strava.Activity) *business.ActivityEffort {
+			if activity == nil || activity.ElevHigh <= 0 {
+				return nil
+			}
+			return activityToEffort(activity, activity.ElevHigh, maxInt(activity.MovingTime, 1))
+		},
+		score:    func(effort *business.ActivityEffort) float64 { return effort.Distance },
+		isBetter: func(score, previousScore float64) bool { return score > previousScore },
+		valueFormatter: func(effort *business.ActivityEffort) string {
+			return fmt.Sprintf("%.2f m", effort.Distance)
+		},
+		improvementFormatter: func(previous, current *business.ActivityEffort) string {
+			return fmt.Sprintf("+%.2f m", current.Distance-previous.Distance)
+		},
 	}
 }
 
@@ -330,6 +499,69 @@ func powerValue(effort *business.ActivityEffort) float64 {
 		return 0
 	}
 	return *effort.AveragePower
+}
+
+func activityToEffort(activity *strava.Activity, scoreValue float64, seconds int) *business.ActivityEffort {
+	if activity == nil {
+		return nil
+	}
+	return activityToEffortWithLabel(activity, scoreValue, seconds, activity.Name)
+}
+
+func activityToEffortWithLabel(activity *strava.Activity, scoreValue float64, seconds int, label string) *business.ActivityEffort {
+	if activity == nil {
+		return nil
+	}
+	return &business.ActivityEffort{
+		Distance:      scoreValue,
+		Seconds:       seconds,
+		DeltaAltitude: activity.TotalElevationGain,
+		IdxStart:      0,
+		IdxEnd:        0,
+		Label:         label,
+		ActivityShort: business.ActivityShort{
+			Id:   activity.Id,
+			Name: activity.Name,
+			Type: business.ActivityTypes[activity.Type],
+		},
+	}
+}
+
+func formatActivitySpeedFromMSSpeed(speedMS float64, activityType business.ActivityType) string {
+	if speedMS <= 0 {
+		return "Not available"
+	}
+	if activityType == business.Run || activityType == business.TrailRun {
+		paceSeconds := int(math.Round(1000.0 / speedMS))
+		return fmt.Sprintf("%s/km", helpers.FormatSeconds(paceSeconds))
+	}
+	return fmt.Sprintf("%.02f km/h", speedMS*3.6)
+}
+
+func maxInt(a, b int) int {
+	if a >= b {
+		return a
+	}
+	return b
+}
+
+func activityDay(startDateLocal string) string {
+	if len(startDateLocal) >= 10 {
+		return startDateLocal[:10]
+	}
+	return strings.TrimSpace(startDateLocal)
+}
+
+func formatRecordDay(day string) string {
+	parsedDate, err := time.Parse("2006-01-02", strings.TrimSpace(day))
+	if err != nil {
+		return day
+	}
+	return parsedDate.Format(helpers.DateFormatter)
+}
+
+func formatDistanceInKm(distanceMeters float64) string {
+	return fmt.Sprintf("%.2f km", distanceMeters/1000.0)
 }
 
 func stringPtr(value string) *string {
