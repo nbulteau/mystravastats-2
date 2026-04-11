@@ -15,6 +15,7 @@
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.2.0",
     "@revolist/vue3-datagrid": "^4.21.4",
+    "@rolldown/binding-darwin-arm64": "^1.0.0-rc.15",
     "bootstrap": "^5.3.8",
     "highcharts": "^12.5.0",
     "highcharts-vue": "^2.0.1",
