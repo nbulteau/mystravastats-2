@@ -37,7 +37,9 @@ function buildHeatmapData(yearData: Record<string, number>): [number, number, nu
   });
 }
 
-const chartOptions = computed(() => {
+// Chart options typed as `any` to avoid Highcharts module extension typing issues
+// (colorAxis, heatmap series, etc. are only available after module registration)
+const chartOptions = computed((): any => {
   const year     = selectedYear.value;
   const yearData = year ? (props.activityHeatmap[year] ?? {}) : {};
   const data     = buildHeatmapData(yearData);
@@ -51,7 +53,7 @@ const chartOptions = computed(() => {
       marginBottom: 60,
     },
     title: {
-      text: `Activity heatmap${year ? ' – ' + year : ''}`,
+      text: `Activity heatmap${year ? ' \u2013 ' + year : ''}`,
     },
     xAxis: {
       // Months on the horizontal axis
@@ -74,7 +76,7 @@ const chartOptions = computed(() => {
         [0.7, '#30a14e'],  // High
         [1,   '#216e39'],  // Peak – dark green
       ],
-    } as any,
+    },
     legend: {
       align: 'right',
       layout: 'vertical',
