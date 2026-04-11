@@ -42,7 +42,7 @@ export const useContextStore = defineStore('context', {
         generalBadgesCheckResults: BadgeCheckResult[],
         famousClimbBadgesCheckResults: BadgeCheckResult[],
 
-        currentView: 'statistics' | 'activities' | 'activity' | 'map' | 'badges' | 'charts' | 'dashboard'
+        currentView: 'statistics' | 'activities' | 'activity' | 'map' | 'badges' | 'charts' | 'dashboard' | 'heatmap'
         toasts: any[]
     } {
         return {
@@ -254,15 +254,17 @@ export const useContextStore = defineStore('context', {
                         this.fetchEddingtonNumber(),
                         this.fetchCumulativeDataPerYear(),
                         this.fetchDashboardData(),
-                        this.fetchActivityHeatmap(),
                     ])
+                    break
+                case 'heatmap':
+                    await this.fetchActivityHeatmap()
                     break
                 case 'badges':
                     await this.fetchBadges()
                     break
             }
         },
-        updateCurrentView(view: 'statistics' | 'activities' | 'activity' | 'map' | 'badges' | 'charts' | 'dashboard') {
+        updateCurrentView(view: 'statistics' | 'activities' | 'activity' | 'map' | 'badges' | 'charts' | 'dashboard' | 'heatmap') {
             this.currentView = view
             void this.updateData()
         },

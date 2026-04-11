@@ -106,6 +106,22 @@ const isCurrent = (name: string) => {
           role="presentation"
         >
           <RouterLink
+            id="heatmap-tab"
+            class="nav-link"
+            :class="{ active: isCurrent('heatmap') }"
+            role="tab"
+            aria-controls="heatmap-tab-pane"
+            aria-selected="false"
+            to="/heatmap"
+          >
+            Heatmap
+          </RouterLink>
+        </li>
+        <li
+          class="nav-item"
+          role="presentation"
+        >
+          <RouterLink
             id="badges-tab"
             class="nav-link"
             :class="{ active: isCurrent('badges') }"

@@ -6,6 +6,7 @@ import MapView from "@/views/MapView.vue";
 import BadgesView from "@/views/BadgesView.vue";
 import DetailedActivityView from "@/views/DetailedActivityView.vue";
 import DashboardView from "@/views/DashboardView.vue";
+import HeatmapView from "@/views/HeatmapView.vue";
 
 
 const router: Router = createRouter({
@@ -35,6 +36,11 @@ const router: Router = createRouter({
       path: '/dashboard',
       name: 'dashboard',
       component: DashboardView
+    },
+    {
+      path: '/heatmap',
+      name: 'heatmap',
+      component: HeatmapView
     },
     {
       path: '/badges',
