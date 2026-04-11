@@ -11,10 +11,13 @@ import me.nicolas.stravastats.domain.business.runActivities
 import me.nicolas.stravastats.domain.business.strava.*
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import me.nicolas.stravastats.domain.services.statistics.*
+import me.nicolas.stravastats.domain.utils.dateFormatter
 import me.nicolas.stravastats.domain.utils.formatSeconds
+import me.nicolas.stravastats.domain.utils.formatSpeed
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
@@ -379,10 +382,8 @@ internal class StatisticsService(
             AverageSpeedStatistic(activities),
             MaxDistanceStatistic(activities),
             MaxDistanceInADayStatistic(activities),
-
             MaxElevationStatistic(activities),
             MaxElevationInADayStatistic(activities),
-
             HighestPointStatistic(activities),
             MaxMovingTimeStatistic(activities),
             MostActiveMonthStatistic(activities),
@@ -619,7 +620,7 @@ internal class StatisticsService(
             ActivityType.Run -> buildRunMetricDefinitions()
             ActivityType.InlineSkate -> buildInlineSkateMetricDefinitions()
             ActivityType.AlpineSki -> buildAlpineSkiMetricDefinitions()
-            ActivityType.Hike -> emptyList()
+            ActivityType.Hike -> buildActivityRecordMetricDefinitions()
             else -> buildRideMetricDefinitions()
         }
     }
@@ -639,7 +640,7 @@ internal class StatisticsService(
             bestDistanceForTimeMetric("best-distance-4h", "Best 4 h", 4 * 60 * 60),
             bestDistanceForTimeMetric("best-distance-5h", "Best 5 h", 5 * 60 * 60),
             bestDistanceForTimeMetric("best-distance-6h", "Best 6 h", 6 * 60 * 60),
-        )
+        ) + buildActivityRecordMetricDefinitions()
     }
 
     private fun buildRideMetricDefinitions(): List<PersonalRecordMetricDefinition> {
@@ -666,7 +667,7 @@ internal class StatisticsService(
             bestGradientForDistanceMetric("best-gradient-20km", "Max gradient for 20 km", 20000.0),
             bestPowerForTimeMetric("best-power-20min", "Best average power for 20 min", 20 * 60),
             bestPowerForTimeMetric("best-power-1h", "Best average power for 1 h", 60 * 60),
-        )
+        ) + buildActivityRecordMetricDefinitions()
     }
 
     private fun buildAlpineSkiMetricDefinitions(): List<PersonalRecordMetricDefinition> {
@@ -685,7 +686,7 @@ internal class StatisticsService(
             bestDistanceForTimeMetric("best-distance-3h", "Best 3 h", 3 * 60 * 60),
             bestDistanceForTimeMetric("best-distance-4h", "Best 4 h", 4 * 60 * 60),
             bestDistanceForTimeMetric("best-distance-5h", "Best 5 h", 5 * 60 * 60),
-        )
+        ) + buildActivityRecordMetricDefinitions()
     }
 
     private fun buildInlineSkateMetricDefinitions(): List<PersonalRecordMetricDefinition> {
@@ -700,6 +701,187 @@ internal class StatisticsService(
             bestDistanceForTimeMetric("best-distance-2h", "Best 2 h", 2 * 60 * 60),
             bestDistanceForTimeMetric("best-distance-3h", "Best 3 h", 3 * 60 * 60),
             bestDistanceForTimeMetric("best-distance-4h", "Best 4 h", 4 * 60 * 60),
+        ) + buildActivityRecordMetricDefinitions()
+    }
+
+    private fun buildActivityRecordMetricDefinitions(): List<PersonalRecordMetricDefinition> {
+        return listOf(
+            maxDistanceActivityMetric("max-distance-activity", "Max distance"),
+            maxSpeedActivityMetric("max-speed-activity", "Max speed"),
+            maxMovingTimeActivityMetric("max-moving-time-activity", "Max moving time"),
+            maxDistanceInDayMetric("max-distance-in-a-day", "Max distance in a day"),
+            maxElevationActivityMetric("max-elevation-activity", "Max elevation"),
+            maxElevationInDayMetric("max-elevation-in-a-day", "Max elevation gain in a day"),
+            highestPointActivityMetric("highest-point-activity", "Highest point"),
+        )
+    }
+
+    private fun maxDistanceActivityMetric(key: String, label: String): PersonalRecordMetricDefinition {
+        return PersonalRecordMetricDefinition(
+            key = key,
+            label = label,
+            effortExtractor = { activity ->
+                if (activity.distance <= 0.0) null
+                else activity.toActivityEffort(scoreValue = activity.distance, secondsOverride = activity.movingTime.coerceAtLeast(1))
+            },
+            score = { effort -> effort.distance },
+            isBetter = { score, previousScore -> score > previousScore },
+            valueFormatter = { effort -> String.format(Locale.ENGLISH, "%.2f km", effort.distance / 1000.0) },
+            improvementFormatter = { previous, current ->
+                "${formatDistance(current.distance - previous.distance)} farther"
+            }
+        )
+    }
+
+    private fun maxSpeedActivityMetric(key: String, label: String): PersonalRecordMetricDefinition {
+        return PersonalRecordMetricDefinition(
+            key = key,
+            label = label,
+            effortExtractor = { activity ->
+                if (activity.maxSpeed <= 0.0f) null
+                else activity.toActivityEffort(scoreValue = activity.maxSpeed.toDouble(), secondsOverride = activity.movingTime.coerceAtLeast(1))
+            },
+            score = { effort -> effort.distance },
+            isBetter = { score, previousScore -> score > previousScore },
+            valueFormatter = { effort -> effort.distance.formatSpeed(effort.activityShort.type) },
+            improvementFormatter = { previous, current ->
+                String.format(Locale.ENGLISH, "%+.2f km/h", (current.distance - previous.distance) * 3.6)
+            }
+        )
+    }
+
+    private fun maxMovingTimeActivityMetric(key: String, label: String): PersonalRecordMetricDefinition {
+        return PersonalRecordMetricDefinition(
+            key = key,
+            label = label,
+            effortExtractor = { activity ->
+                if (activity.movingTime <= 0) null
+                else activity.toActivityEffort(scoreValue = activity.distance, secondsOverride = activity.movingTime)
+            },
+            score = { effort -> effort.seconds.toDouble() },
+            isBetter = { score, previousScore -> score > previousScore },
+            valueFormatter = { effort -> effort.seconds.formatSeconds() },
+            improvementFormatter = { previous, current ->
+                "${(current.seconds - previous.seconds).coerceAtLeast(0).formatSeconds()} longer"
+            }
+        )
+    }
+
+    private fun maxDistanceInDayMetric(key: String, label: String): PersonalRecordMetricDefinition {
+        val distanceByDay = mutableMapOf<String, Double>()
+        return PersonalRecordMetricDefinition(
+            key = key,
+            label = label,
+            effortExtractor = { activity ->
+                if (activity.distance <= 0.0) {
+                    null
+                } else {
+                    val day = activity.startDateLocal.substringBefore('T').ifBlank { activity.startDateLocal }
+                    val updatedTotal = (distanceByDay[day] ?: 0.0) + activity.distance
+                    distanceByDay[day] = updatedTotal
+                    activity.toActivityEffort(
+                        scoreValue = updatedTotal,
+                        secondsOverride = activity.movingTime.coerceAtLeast(1),
+                        labelOverride = day
+                    )
+                }
+            },
+            score = { effort -> effort.distance },
+            isBetter = { score, previousScore -> score > previousScore },
+            valueFormatter = { effort ->
+                "${String.format(Locale.ENGLISH, "%.2f km", effort.distance / 1000.0)} - ${formatRecordDay(effort.label)}"
+            },
+            improvementFormatter = { previous, current ->
+                "${formatDistance(current.distance - previous.distance)} farther"
+            }
+        )
+    }
+
+    private fun maxElevationActivityMetric(key: String, label: String): PersonalRecordMetricDefinition {
+        return PersonalRecordMetricDefinition(
+            key = key,
+            label = label,
+            effortExtractor = { activity ->
+                if (activity.totalElevationGain <= 0.0) null
+                else activity.toActivityEffort(scoreValue = activity.totalElevationGain, secondsOverride = activity.movingTime.coerceAtLeast(1))
+            },
+            score = { effort -> effort.distance },
+            isBetter = { score, previousScore -> score > previousScore },
+            valueFormatter = { effort -> String.format(Locale.ENGLISH, "%.2f m", effort.distance) },
+            improvementFormatter = { previous, current ->
+                String.format(Locale.ENGLISH, "+%.2f m", current.distance - previous.distance)
+            }
+        )
+    }
+
+    private fun maxElevationInDayMetric(key: String, label: String): PersonalRecordMetricDefinition {
+        val elevationByDay = mutableMapOf<String, Double>()
+        return PersonalRecordMetricDefinition(
+            key = key,
+            label = label,
+            effortExtractor = { activity ->
+                if (activity.totalElevationGain <= 0.0) {
+                    null
+                } else {
+                    val day = activity.startDateLocal.substringBefore('T').ifBlank { activity.startDateLocal }
+                    val updatedTotal = (elevationByDay[day] ?: 0.0) + activity.totalElevationGain
+                    elevationByDay[day] = updatedTotal
+                    activity.toActivityEffort(
+                        scoreValue = updatedTotal,
+                        secondsOverride = activity.movingTime.coerceAtLeast(1),
+                        labelOverride = day
+                    )
+                }
+            },
+            score = { effort -> effort.distance },
+            isBetter = { score, previousScore -> score > previousScore },
+            valueFormatter = { effort ->
+                "${String.format(Locale.ENGLISH, "%.2f m", effort.distance)} - ${formatRecordDay(effort.label)}"
+            },
+            improvementFormatter = { previous, current ->
+                String.format(Locale.ENGLISH, "+%.2f m", current.distance - previous.distance)
+            }
+        )
+    }
+
+    private fun highestPointActivityMetric(key: String, label: String): PersonalRecordMetricDefinition {
+        return PersonalRecordMetricDefinition(
+            key = key,
+            label = label,
+            effortExtractor = { activity ->
+                if (activity.elevHigh <= 0.0) null
+                else activity.toActivityEffort(scoreValue = activity.elevHigh, secondsOverride = activity.movingTime.coerceAtLeast(1))
+            },
+            score = { effort -> effort.distance },
+            isBetter = { score, previousScore -> score > previousScore },
+            valueFormatter = { effort -> String.format(Locale.ENGLISH, "%.2f m", effort.distance) },
+            improvementFormatter = { previous, current ->
+                String.format(Locale.ENGLISH, "+%.2f m", current.distance - previous.distance)
+            }
+        )
+    }
+
+    private fun StravaActivity.toActivityEffort(scoreValue: Double, secondsOverride: Int): ActivityEffort {
+        return ActivityEffort(
+            distance = scoreValue,
+            seconds = secondsOverride.coerceAtLeast(1),
+            deltaAltitude = this.totalElevationGain,
+            idxStart = 0,
+            idxEnd = 0,
+            label = this.name,
+            activityShort = ActivityShort(this.id, this.name, this.type),
+        )
+    }
+
+    private fun StravaActivity.toActivityEffort(scoreValue: Double, secondsOverride: Int, labelOverride: String): ActivityEffort {
+        return ActivityEffort(
+            distance = scoreValue,
+            seconds = secondsOverride.coerceAtLeast(1),
+            deltaAltitude = this.totalElevationGain,
+            idxStart = 0,
+            idxEnd = 0,
+            label = labelOverride,
+            activityShort = ActivityShort(this.id, this.name, this.type),
         )
     }
 
@@ -769,5 +951,10 @@ internal class StatisticsService(
         } else {
             String.format(Locale.ENGLISH, "%.0f m", distanceInMeters)
         }
+    }
+
+    private fun formatRecordDay(day: String): String {
+        return runCatching { LocalDate.parse(day).format(dateFormatter) }
+            .getOrDefault(day)
     }
 }
