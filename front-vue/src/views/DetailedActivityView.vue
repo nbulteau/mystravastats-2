@@ -238,13 +238,24 @@ const updateMap = () => {
 
     if (latlngs) {
       const filteredLatlngs = latlngs.filter((latlng): latlng is L.LatLng => latlng !== null);
+      if (filteredLatlngs.length === 0) {
+        if (basePolyline.value) {
+          basePolyline.value.remove();
+          basePolyline.value = null;
+        }
+        return;
+      }
+
       if (basePolyline.value) {
         basePolyline.value.setLatLngs(filteredLatlngs);
       } else {
         basePolyline.value = L.polyline(filteredLatlngs, { color: "red" }).addTo(map.value);
       }
-      const bounds = L.latLngBounds(basePolyline.value.getLatLngs() as L.LatLng[]);
-      map.value.fitBounds(bounds);
+
+      const bounds = L.latLngBounds(filteredLatlngs);
+      if (bounds.isValid()) {
+        map.value.fitBounds(bounds);
+      }
     }
   }
 };
@@ -485,15 +496,23 @@ const handleRadioClick = (key: string) => {
           : null
       )
       .filter((latlng): latlng is L.LatLng => latlng !== null);
-    if (latlngs) {
+
+    if (latlngs.length > 0) {
       if (selectedPolyline.value) {
         selectedPolyline.value.setLatLngs(latlngs);
       } else {
         selectedPolyline.value = L.polyline(latlngs, { color: "blue" }).addTo(map.value);
       }
-      const bounds = L.latLngBounds(selectedPolyline.value.getLatLngs() as L.LatLng[]);
-      map.value.fitBounds(bounds);
+
+      const bounds = L.latLngBounds(latlngs);
+      if (bounds.isValid()) {
+        map.value.fitBounds(bounds);
+      }
+    } else if (selectedPolyline.value) {
+      selectedPolyline.value.remove();
+      selectedPolyline.value = null;
     }
+
   }
 
 // 4 - Update the chart with the new stream data
