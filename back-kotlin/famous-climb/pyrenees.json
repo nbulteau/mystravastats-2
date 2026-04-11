@@ -147,5 +147,152 @@
         "averageGradient": 4.2
       }
     ]
+  },
+  {
+    "name": "Col d'Aubisque",
+    "topOfTheAscent": 1709,
+    "geoCoordinate": {
+      "latitude": 42.9765752,
+      "longitude": -0.339792
+    },
+    "alternatives": [
+      {
+        "name": "Laruns",
+        "geoCoordinate": {
+          "latitude": 42.9882368,
+          "longitude": -0.4266324
+        },
+        "length": 16.5,
+        "totalAscent": 1190,
+        "difficulty": 857,
+        "averageGradient": 7.2
+      }
+    ]
+  },
+  {
+    "name": "Col du Soulor",
+    "topOfTheAscent": 1474,
+    "geoCoordinate": {
+      "latitude": 42.9606159,
+      "longitude": -0.2611338
+    },
+    "alternatives": [
+      {
+        "name": "Argelès-Gazost",
+        "geoCoordinate": {
+          "latitude": 43.00511,
+          "longitude": -0.0997681
+        },
+        "length": 19.9,
+        "totalAscent": 1256,
+        "difficulty": 791,
+        "averageGradient": 6.3
+      }
+    ]
+  },
+  {
+    "name": "Port de Balès",
+    "topOfTheAscent": 1755,
+    "geoCoordinate": {
+      "latitude": 42.8741673,
+      "longitude": 0.5006369
+    },
+    "alternatives": [
+      {
+        "name": "Mauléon-Barousse",
+        "geoCoordinate": {
+          "latitude": 42.9594856,
+          "longitude": 0.5674923
+        },
+        "length": 19.2,
+        "totalAscent": 1200,
+        "difficulty": 756,
+        "averageGradient": 6.3
+      }
+    ]
+  },
+  {
+    "name": "Port de Larrau",
+    "topOfTheAscent": 1573,
+    "geoCoordinate": {
+      "latitude": 42.9741282,
+      "longitude": -0.9938707
+    },
+    "alternatives": [
+      {
+        "name": "Larrau",
+        "geoCoordinate": {
+          "latitude": 43.0183998,
+          "longitude": -0.95593
+        },
+        "length": 14.7,
+        "totalAscent": 1205,
+        "difficulty": 988,
+        "averageGradient": 8.2
+      }
+    ]
+  },
+  {
+    "name": "Port de Pailhères",
+    "topOfTheAscent": 2001,
+    "geoCoordinate": {
+      "latitude": 42.7336009,
+      "longitude": 1.9924599
+    },
+    "alternatives": [
+      {
+        "name": "Ax-les-Thermes",
+        "geoCoordinate": {
+          "latitude": 42.7193011,
+          "longitude": 1.83784
+        },
+        "length": 16.8,
+        "totalAscent": 1130,
+        "difficulty": 768,
+        "averageGradient": 6.8
+      }
+    ]
+  },
+  {
+    "name": "Col de Soudet",
+    "topOfTheAscent": 1540,
+    "geoCoordinate": {
+      "latitude": 42.9808,
+      "longitude": -0.7443
+    },
+    "alternatives": [
+      {
+        "name": "Arette",
+        "geoCoordinate": {
+          "latitude": 43.0954277,
+          "longitude": -0.7172145
+        },
+        "length": 23.8,
+        "totalAscent": 1454,
+        "difficulty": 887,
+        "averageGradient": 6.1
+      }
+    ]
+  },
+  {
+    "name": "Col de la Pierre Saint-Martin",
+    "topOfTheAscent": 1760,
+    "geoCoordinate": {
+      "latitude": 42.9689511,
+      "longitude": -0.7682888
+    },
+    "alternatives": [
+      {
+        "name": "Arette",
+        "geoCoordinate": {
+          "latitude": 43.0954277,
+          "longitude": -0.7172145
+        },
+        "length": 25.0,
+        "totalAscent": 1500,
+        "difficulty": 900,
+        "averageGradient": 6.0
+      }
+    ]
   }
 ]

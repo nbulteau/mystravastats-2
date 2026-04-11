@@ -696,6 +696,48 @@
     ]
   },
   {
+    "name": "Col du Grand-Saint-Bernard",
+    "topOfTheAscent": 2469,
+    "geoCoordinate": {
+      "latitude": 45.8690526,
+      "longitude": 7.1704088
+    },
+    "alternatives": [
+      {
+        "name": "Bourg-Saint-Pierre",
+        "geoCoordinate": {
+          "latitude": 45.9489252,
+          "longitude": 7.2088271
+        },
+        "length": 12.6,
+        "totalAscent": 995,
+        "difficulty": 786,
+        "averageGradient": 7.9
+      }
+    ]
+  },
+  {
+    "name": "Col de la Lombarde",
+    "topOfTheAscent": 2351,
+    "geoCoordinate": {
+      "latitude": 44.2019238,
+      "longitude": 7.1521398
+    },
+    "alternatives": [
+      {
+        "name": "Isola",
+        "geoCoordinate": {
+          "latitude": 44.1860506,
+          "longitude": 7.0519874
+        },
+        "length": 21.7,
+        "totalAscent": 1405,
+        "difficulty": 913,
+        "averageGradient": 6.5
+      }
+    ]
+  },
+  {
     "name": "Mont Ventoux",
     "topOfTheAscent": 1909,
     "geoCoordinate": {
