@@ -241,6 +241,15 @@ func getSegmentClimbProgressionByActivityType(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	log.Printf(
+		"Segment progression request: year=%v metric=%v targetType=%v targetId=%v activityTypes=%v",
+		year,
+		metric,
+		targetType,
+		targetId,
+		activityTypes,
+	)
+
 	progression := services2.FetchSegmentClimbProgressionByActivityTypeAndYear(year, metric, targetType, targetId, activityTypes...)
 	progressionDto := dto.ToSegmentClimbProgressionDto(progression)
 

@@ -128,7 +128,7 @@ func ToDetailedActivityDto(detailedActivity *strava.DetailedActivity) DetailedAc
 		Calories:             detailedActivity.Calories,
 		Commute:              detailedActivity.Commute,
 		DeviceWatts:          detailedActivity.DeviceWatts,
-		Distance:             float64(detailedActivity.Distance),
+		Distance:             detailedActivity.Distance,
 		ElapsedTime:          detailedActivity.ElapsedTime,
 		ElevHigh:             detailedActivity.ElevHigh,
 		ID:                   detailedActivity.Id,
@@ -145,7 +145,7 @@ func ToDetailedActivityDto(detailedActivity *strava.DetailedActivity) DetailedAc
 		Stream:               toStreamDto(detailedActivity.Stream),
 		SufferScore:          detailedActivity.SufferScore,
 		TotalDescent:         detailedActivity.ElevLow,
-		TotalElevationGain:   detailedActivity.TotalElevationGain,
+		TotalElevationGain:   int(detailedActivity.TotalElevationGain),
 		Type:                 detailedActivity.Type,
 		WeightedAverageWatts: detailedActivity.WeightedAverageWatts,
 	}

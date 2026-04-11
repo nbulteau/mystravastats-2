@@ -295,22 +295,37 @@ func (api *StravaApi) GetActivities(year int) ([]strava.Activity, error) {
 
 func (api *StravaApi) GetDetailedActivity(activityId int64) (*strava.DetailedActivity, error) {
 	baseActivitiesUel := fmt.Sprintf("%s/api/v3/activities/%d?include_all_efforts=true", api.properties.URL, activityId)
-	req, _ := http.NewRequest("GET", baseActivitiesUel, nil)
-	req.Header.Set("Authorization", "Bearer "+api.accessToken)
-	resp, err := api.httpClient.Do(req)
+	resp, err := api.doGetWithRateLimitRetry(baseActivitiesUel, 20*time.Second, 6)
 	if err != nil {
-		return nil, fmt.Errorf("unable to connect to Strava API: %v", err)
+		return nil, err
 	}
-	defer func(Body interface{}) {
-		err := resp.Body.Close()
-		if err != nil {
-			log.Fatalf("Failed to close response body: %v", err)
+	defer func(Body io.ReadCloser) {
+		if closeErr := Body.Close(); closeErr != nil {
+			log.Printf("warning: failed to close response body: %v", closeErr)
 		}
 	}(resp.Body)
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, fmt.Errorf("invalid token (401 Unauthorized)")
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("activity %d not found (404)", activityId)
+	}
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return nil, fmt.Errorf("strava rate limit reached (429)")
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		limited := io.LimitReader(resp.Body, 4096)
+		body, _ := io.ReadAll(limited)
+		return nil, fmt.Errorf("strava detailed activity call failed: %d - %s", resp.StatusCode, string(body))
+	}
 
 	var activity strava.DetailedActivity
 	if err := json.NewDecoder(resp.Body).Decode(&activity); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %v", err)
+	}
+	if activity.Id != activityId {
+		return nil, fmt.Errorf("invalid detailed activity payload: expected id=%d got id=%d", activityId, activity.Id)
 	}
 
 	return &activity, nil
@@ -322,19 +337,23 @@ func (api *StravaApi) GetActivityStream(stravaActivity strava.Activity) (*strava
 	}
 
 	baseStreamsUrl := fmt.Sprintf("https://www.strava.com/api/v3/activities/%d/streams?keys=time,distance,latlng,altitude,velocity_smooth,heartrate,cadence,watts,moving,grade_smooth&key_by_type=true", stravaActivity.Id)
-	req, _ := http.NewRequest("GET", baseStreamsUrl, nil)
-	req.Header.Set("Authorization", "Bearer "+api.accessToken)
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := api.doGetWithRateLimitRetry(baseStreamsUrl, 10*time.Second, 4)
 	if err != nil {
 		return nil, err
 	}
-	defer func(Body interface{}) {
-		_ = resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		if closeErr := Body.Close(); closeErr != nil {
+			log.Printf("warning: failed to close response body: %v", closeErr)
+		}
 	}(resp.Body)
 
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, nil
+	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("unable to load streams for activity")
+		limited := io.LimitReader(resp.Body, 4096)
+		body, _ := io.ReadAll(limited)
+		return nil, fmt.Errorf("unable to load streams for activity %d: %d - %s", stravaActivity.Id, resp.StatusCode, string(body))
 	}
 
 	var stream strava.Stream
@@ -343,6 +362,72 @@ func (api *StravaApi) GetActivityStream(stravaActivity strava.Activity) (*strava
 	}
 
 	return &stream, nil
+}
+
+func (api *StravaApi) doGetWithRateLimitRetry(url string, timeout time.Duration, maxAttempts int) (*http.Response, error) {
+	if maxAttempts <= 0 {
+		maxAttempts = 1
+	}
+
+	backoff := time.Second
+	maxBackoff := 30 * time.Second
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		req, err := http.NewRequest(http.MethodGet, url, nil)
+		if err != nil {
+			return nil, fmt.Errorf("request build error: %w", err)
+		}
+		req.Header.Set("Authorization", "Bearer "+api.accessToken)
+		req.Header.Set("Accept", "application/json")
+
+		client := *api.httpClient
+		client.Timeout = timeout
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("unable to connect to Strava API: %w", err)
+		}
+
+		if resp.StatusCode != http.StatusTooManyRequests {
+			return resp, nil
+		}
+
+		waitDuration := retryAfterDuration(resp.Header.Get("Retry-After"), backoff)
+		_ = resp.Body.Close()
+
+		if attempt == maxAttempts {
+			return nil, fmt.Errorf("strava rate limit reached (429) after %d attempts", maxAttempts)
+		}
+
+		log.Printf("Strava rate limit reached (429) for %s, retrying in %s (%d/%d)", url, waitDuration, attempt, maxAttempts)
+		time.Sleep(waitDuration)
+
+		backoff *= 2
+		if backoff > maxBackoff {
+			backoff = maxBackoff
+		}
+	}
+
+	return nil, fmt.Errorf("strava request failed after %d attempts", maxAttempts)
+}
+
+func retryAfterDuration(retryAfterHeader string, fallback time.Duration) time.Duration {
+	if retryAfterHeader == "" {
+		return fallback
+	}
+
+	if seconds, err := strconv.Atoi(retryAfterHeader); err == nil && seconds > 0 {
+		return time.Duration(seconds) * time.Second
+	}
+
+	if retryAt, err := http.ParseTime(retryAfterHeader); err == nil {
+		wait := time.Until(retryAt)
+		if wait > 0 {
+			return wait
+		}
+	}
+
+	return fallback
 }
 
 func buildResponseHtml(clientId string) string {

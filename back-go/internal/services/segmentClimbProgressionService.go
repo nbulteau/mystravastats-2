@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"mystravastats/domain/business"
 	"mystravastats/domain/strava"
@@ -48,27 +49,48 @@ func FetchSegmentClimbProgressionByActivityTypeAndYear(
 ) business.SegmentClimbProgression {
 	resolvedMetric := parseSegmentMetric(metric)
 	resolvedTargetType := parseSegmentTargetType(targetType)
+	effectiveTargetType := resolvedTargetType
 
 	if len(activityTypes) == 0 {
 		return emptySegmentClimbProgression(resolvedMetric, resolvedTargetType)
 	}
 
 	filteredActivities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	if len(filteredActivities) == 0 && year != nil {
+		log.Printf(
+			"Segment progression fallback to all years: requestedYear=%v targetType=%s activities=0",
+			yearValueForLog(year),
+			resolvedTargetType,
+		)
+		filteredActivities = activityProvider.GetActivitiesByYearAndActivityTypes(nil, activityTypes...)
+	}
 	sort.Slice(filteredActivities, func(i, j int) bool {
 		return filteredActivities[i].StartDateLocal < filteredActivities[j].StartDateLocal
 	})
 
-	rawAttempts := make([]segmentAttemptRaw, 0)
+	rawFavoriteAttempts := make([]segmentAttemptRaw, 0)
+	rawFavoriteAttemptsAllTypes := make([]segmentAttemptRaw, 0)
+	rawAllAttempts := make([]segmentAttemptRaw, 0)
+	rawAllAttemptsAllTypes := make([]segmentAttemptRaw, 0)
+	detailedLoadedCount := 0
+	detailedMissingCount := 0
+	totalCandidateEfforts := 0
 	for _, activity := range filteredActivities {
 		detailedActivity := activityProvider.GetCachedDetailedActivity(activity.Id)
 		if detailedActivity == nil {
+			detailedActivity = activityProvider.GetDetailedActivity(activity.Id)
+		}
+		if detailedActivity == nil {
+			detailedMissingCount++
 			continue
 		}
+		detailedLoadedCount++
 
 		for _, effort := range detailedActivity.SegmentEfforts {
-			if !isFavoriteEffort(effort) {
+			if !isCandidateEffort(effort) {
 				continue
 			}
+			totalCandidateEfforts++
 
 			effortTargetType := segmentTargetTypeSegment
 			if effort.Segment.ClimbCategory > 0 {
@@ -78,7 +100,7 @@ func FetchSegmentClimbProgressionByActivityTypeAndYear(
 				continue
 			}
 
-			rawAttempts = append(rawAttempts, segmentAttemptRaw{
+			attempt := segmentAttemptRaw{
 				targetId:           effort.Segment.Id,
 				targetName:         effort.Segment.Name,
 				targetType:         effortTargetType,
@@ -90,11 +112,63 @@ func FetchSegmentClimbProgressionByActivityTypeAndYear(
 				activityDate:       effort.StartDateLocal,
 				prRank:             effort.PrRank,
 				activity:           toActivityShort(activity),
-			})
+			}
+
+			rawAllAttemptsAllTypes = append(rawAllAttemptsAllTypes, attempt)
+			if isFavoriteEffort(effort) {
+				rawFavoriteAttemptsAllTypes = append(rawFavoriteAttemptsAllTypes, attempt)
+			}
+
+			if resolvedTargetType == segmentTargetTypeAll || effortTargetType == resolvedTargetType {
+				rawAllAttempts = append(rawAllAttempts, attempt)
+				if isFavoriteEffort(effort) {
+					rawFavoriteAttempts = append(rawFavoriteAttempts, attempt)
+				}
+			}
 		}
 	}
 
+	rawAttempts := rawFavoriteAttempts
+	if len(rawAttempts) == 0 && len(rawAllAttempts) > 0 {
+		log.Printf(
+			"Segment progression fallback to all efforts (favorites empty): year=%v activities=%d detailedLoaded=%d detailedMissing=%d candidateEfforts=%d",
+			yearValueForLog(year),
+			len(filteredActivities),
+			detailedLoadedCount,
+			detailedMissingCount,
+			totalCandidateEfforts,
+		)
+		rawAttempts = rawAllAttempts
+	} else {
+		log.Printf(
+			"Segment progression: year=%v activities=%d detailedLoaded=%d detailedMissing=%d candidateEfforts=%d favoriteEfforts=%d",
+			yearValueForLog(year),
+			len(filteredActivities),
+			detailedLoadedCount,
+			detailedMissingCount,
+			totalCandidateEfforts,
+			len(rawFavoriteAttempts),
+		)
+	}
+
+	if len(rawAttempts) == 0 && resolvedTargetType != segmentTargetTypeAll {
+		effectiveTargetType = segmentTargetTypeAll
+		rawAttempts = rawFavoriteAttemptsAllTypes
+		if len(rawAttempts) == 0 {
+			rawAttempts = rawAllAttemptsAllTypes
+		}
+		log.Printf(
+			"Segment progression fallback to targetType=ALL: requestedTargetType=%s fallbackAttempts=%d",
+			resolvedTargetType,
+			len(rawAttempts),
+		)
+	}
+
 	if len(rawAttempts) == 0 {
+		if year != nil {
+			// Fallback for UX: when selected year has no segment data yet, reuse all-years data.
+			return FetchSegmentClimbProgressionByActivityTypeAndYear(nil, metric, strPtr(string(effectiveTargetType)), targetId, activityTypes...)
+		}
 		return emptySegmentClimbProgression(resolvedMetric, resolvedTargetType)
 	}
 
@@ -129,7 +203,7 @@ func FetchSegmentClimbProgressionByActivityTypeAndYear(
 
 	return business.SegmentClimbProgression{
 		Metric:                  string(resolvedMetric),
-		TargetTypeFilter:        string(resolvedTargetType),
+		TargetTypeFilter:        string(effectiveTargetType),
 		WeatherContextAvailable: false,
 		Targets:                 targetSummaries,
 		SelectedTargetId:        selectedTargetID,
@@ -171,6 +245,31 @@ func isFavoriteEffort(effort strava.SegmentEffort) bool {
 	return effort.Segment.Starred ||
 		effort.Segment.ClimbCategory > 0 ||
 		(effort.PrRank != nil && *effort.PrRank <= 3)
+}
+
+func isCandidateEffort(effort strava.SegmentEffort) bool {
+	if effort.Segment.Id == 0 {
+		return false
+	}
+	if strings.TrimSpace(effort.Segment.Name) == "" {
+		return false
+	}
+	if effort.ElapsedTime <= 0 || effort.Distance <= 0 {
+		return false
+	}
+
+	return true
+}
+
+func yearValueForLog(year *int) string {
+	if year == nil {
+		return "all"
+	}
+	return fmt.Sprintf("%d", *year)
+}
+
+func strPtr(value string) *string {
+	return &value
 }
 
 func computeSpeedKph(distanceInMeters float64, elapsedTimeSeconds int) float64 {

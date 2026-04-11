@@ -19,7 +19,7 @@ type DetailedActivity struct {
 	Description              *string         `json:"description,omitempty"`
 	DeviceName               *string         `json:"device_name,omitempty"`
 	DeviceWatts              bool            `json:"device_watts"`
-	Distance                 int             `json:"distance"`
+	Distance                 float64         `json:"distance"`
 	ElapsedTime              int             `json:"elapsed_time"`
 	ElevHigh                 float64         `json:"elev_high"`
 	ElevLow                  float64         `json:"elev_low"`
@@ -56,12 +56,12 @@ type DetailedActivity struct {
 	StartLatLng              []float64       `json:"start_latlng"`
 	SufferScore              *float64        `json:"suffer_score,omitempty"`
 	Timezone                 string          `json:"timezone"`
-	TotalElevationGain       int             `json:"total_elevation_gain"`
+	TotalElevationGain       float64         `json:"total_elevation_gain"`
 	TotalPhotoCount          int             `json:"total_photo_count"`
 	Trainer                  bool            `json:"trainer"`
 	Type                     string          `json:"type"`
 	UploadId                 int64           `json:"upload_id"`
-	UtcOffset                int             `json:"utc_offset"`
+	UtcOffset                float64         `json:"utc_offset"`
 	WeightedAverageWatts     int             `json:"weighted_average_watts"`
 	WorkoutType              int             `json:"workout_type"`
 	Stream                   *Stream         `json:"stream,omitempty"`
