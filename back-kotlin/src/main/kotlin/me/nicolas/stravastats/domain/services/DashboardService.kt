@@ -236,7 +236,10 @@ class DashboardService(
         return stats
     }
 
-    private fun getCumulativeDataPerYear(activityTypes: Set<ActivityType>, calculate: (Map<String, List<StravaActivity>>) -> Map<String, Number>): Map<String, Map<String, Number>> {
+    private fun <T : Number> getCumulativeDataPerYear(
+        activityTypes: Set<ActivityType>,
+        calculate: (Map<String, List<StravaActivity>>) -> Map<String, T>,
+    ): Map<String, Map<String, T>> {
         val activitiesByYear = activityProvider.getActivitiesByActivityTypeGroupByYear(activityTypes)
         return (2010..LocalDate.now().year).mapNotNull { year ->
             activitiesByYear[year.toString()]?.let { activities ->
