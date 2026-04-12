@@ -68,8 +68,17 @@ internal class StatisticsService(
 
         val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
             .sortedWith(
-                compareBy<StravaActivity> { activity -> parseActivityDateEpochMillis(activity.startDateLocal) ?: Long.MAX_VALUE }
-                    .thenBy { activity -> activity.startDateLocal }
+                compareBy<StravaActivity> { activity ->
+                    extractSortableDay(activity.startDateLocal)
+                        ?: extractSortableDay(activity.startDate)
+                        ?: "9999-12-31"
+                }.thenBy { activity ->
+                    parseActivityDateEpochMillis(activity.startDateLocal)
+                        ?: parseActivityDateEpochMillis(activity.startDate)
+                        ?: Long.MAX_VALUE
+                }.thenBy { activity ->
+                    activity.startDateLocal.ifBlank { activity.startDate }
+                }
             )
 
         if (filteredActivities.isEmpty()) {
@@ -107,9 +116,26 @@ internal class StatisticsService(
         }
 
         return timeline.sortedWith(
-            compareBy<PersonalRecordTimelineEntry> { entry -> parseActivityDateEpochMillis(entry.activityDate) ?: Long.MAX_VALUE }
-                .thenBy { entry -> entry.activityDate }
+            compareBy<PersonalRecordTimelineEntry> { entry ->
+                extractSortableDay(entry.activityDate) ?: "9999-12-31"
+            }.thenBy { entry ->
+                parseActivityDateEpochMillis(entry.activityDate) ?: Long.MAX_VALUE
+            }.thenBy { entry ->
+                entry.activityDate
+            }
         )
+    }
+
+    private fun extractSortableDay(value: String?): String? {
+        if (value.isNullOrBlank()) {
+            return null
+        }
+        val normalized = value.trim()
+        if (normalized.length < 10) {
+            return null
+        }
+        val day = normalized.substring(0, 10)
+        return runCatching { LocalDate.parse(day).toString() }.getOrNull()
     }
 
     private fun parseActivityDateEpochMillis(value: String?): Long? {

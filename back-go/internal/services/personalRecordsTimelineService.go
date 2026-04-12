@@ -33,7 +33,22 @@ func FetchPersonalRecordsTimelineByActivityTypeAndYear(year *int, metric *string
 	}
 
 	sort.Slice(filteredActivities, func(i, j int) bool {
-		return isBeforeActivityDate(filteredActivities[i].StartDateLocal, filteredActivities[j].StartDateLocal)
+		left := filteredActivities[i]
+		right := filteredActivities[j]
+
+		leftDay := helpers.FirstNonEmpty(helpers.ExtractSortableDay(left.StartDateLocal), helpers.ExtractSortableDay(left.StartDate))
+		rightDay := helpers.FirstNonEmpty(helpers.ExtractSortableDay(right.StartDateLocal), helpers.ExtractSortableDay(right.StartDate))
+		if leftDay != rightDay {
+			return leftDay < rightDay
+		}
+
+		leftDateValue := helpers.FirstNonEmpty(left.StartDateLocal, left.StartDate)
+		rightDateValue := helpers.FirstNonEmpty(right.StartDateLocal, right.StartDate)
+		if leftDateValue != rightDateValue {
+			return helpers.IsBeforeActivityDate(leftDateValue, rightDateValue)
+		}
+
+		return left.Id < right.Id
 	})
 
 	selectedMetrics := getPersonalRecordMetricDefinitions(activityTypes)
@@ -79,47 +94,18 @@ func FetchPersonalRecordsTimelineByActivityTypeAndYear(year *int, metric *string
 	}
 
 	sort.Slice(timeline, func(i, j int) bool {
-		return isBeforeActivityDate(timeline[i].ActivityDate, timeline[j].ActivityDate)
+		leftDay := helpers.ExtractSortableDay(timeline[i].ActivityDate)
+		rightDay := helpers.ExtractSortableDay(timeline[j].ActivityDate)
+		if leftDay != rightDay {
+			return leftDay < rightDay
+		}
+		if timeline[i].ActivityDate != timeline[j].ActivityDate {
+			return helpers.IsBeforeActivityDate(timeline[i].ActivityDate, timeline[j].ActivityDate)
+		}
+		return timeline[i].Activity.Id < timeline[j].Activity.Id
 	})
 
 	return timeline
-}
-
-var stravaDateLayouts = []string{
-	time.RFC3339Nano,
-	time.RFC3339,
-	"2006-01-02T15:04:05.000000Z07:00",
-	"2006-01-02T15:04:05Z07:00",
-	"2006-01-02 15:04:05",
-}
-
-func parseActivityDate(value string) (time.Time, bool) {
-	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
-		return time.Time{}, false
-	}
-	for _, layout := range stravaDateLayouts {
-		parsed, err := time.Parse(layout, trimmed)
-		if err == nil {
-			return parsed, true
-		}
-	}
-	return time.Time{}, false
-}
-
-func isBeforeActivityDate(left, right string) bool {
-	leftTime, leftOK := parseActivityDate(left)
-	rightTime, rightOK := parseActivityDate(right)
-	switch {
-	case leftOK && rightOK:
-		return leftTime.Before(rightTime)
-	case leftOK && !rightOK:
-		return true
-	case !leftOK && rightOK:
-		return false
-	default:
-		return left < right
-	}
 }
 
 func getPersonalRecordMetricDefinitions(activityTypes []business.ActivityType) []personalRecordMetricDefinition {

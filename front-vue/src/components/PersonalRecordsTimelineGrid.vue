@@ -48,13 +48,32 @@ const filteredTimeline = computed(() => {
 });
 
 function toSortableDateMs(dateValue: string): number {
-  const normalized = dateValue.includes("T") ? dateValue : dateValue.replace(" ", "T");
+  const normalized = dateValue.includes("T")
+    ? dateValue
+    : dateValue.replace(" ", "T");
   const parsed = Date.parse(normalized);
-  if (Number.isNaN(parsed)) {
-    // Keep deterministic ordering even if backend sent an unexpected format.
-    return -1;
+  if (!Number.isNaN(parsed)) {
+    return parsed;
   }
-  return parsed;
+
+  // Support legacy timezone offsets without colon (for example +0200).
+  const normalizedOffset = normalized.replace(/([+-]\d{2})(\d{2})$/, "$1:$2");
+  const parsedWithNormalizedOffset = Date.parse(normalizedOffset);
+  if (!Number.isNaN(parsedWithNormalizedOffset)) {
+    return parsedWithNormalizedOffset;
+  }
+
+  // Fallback for non-ISO variants (for example offset without colon): use day precision.
+  const dayPrefix = dateValue.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dayPrefix)) {
+    const dayParsed = Date.parse(`${dayPrefix}T00:00:00Z`);
+    if (!Number.isNaN(dayParsed)) {
+      return dayParsed;
+    }
+  }
+
+  // Keep deterministic ordering even if backend sent an unexpected format.
+  return -1;
 }
 
 const rows = computed(() =>
@@ -64,9 +83,10 @@ const rows = computed(() =>
       const rightDate = toSortableDateMs(right.activityDate);
 
       if (leftDate === rightDate) {
-        return right.activityDate.localeCompare(left.activityDate);
+        return left.activityDate.localeCompare(right.activityDate);
       }
-      return rightDate - leftDate;
+      // Chronological timeline: oldest PR event first, newest last.
+      return leftDate - rightDate;
     })
     .map((entry) => ({
       ...entry,
