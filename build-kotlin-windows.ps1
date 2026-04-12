@@ -21,14 +21,14 @@ $GradleUserHome = if ($env:GRADLE_USER_HOME_OVERRIDE) { $env:GRADLE_USER_HOME_OV
 $SkipFrontBuild = if ($env:SKIP_FRONT_BUILD) { $env:SKIP_FRONT_BUILD } else { "0" }
 
 $StartTime = Get-Date
-Write-Host "🚀 Starting build process..."
-Write-Host "Native image options: $NativeImageOptionsValue"
-Write-Host "Gradle workers max: $GradleWorkersMax"
-Write-Host "Gradle user home: $GradleUserHome"
+Write-Output "[START] Starting build process..."
+Write-Output "Native image options: $NativeImageOptionsValue"
+Write-Output "Gradle workers max: $GradleWorkersMax"
+Write-Output "Gradle user home: $GradleUserHome"
 if ($SkipFrontBuild -eq "1") {
-    Write-Host "Front build: disabled (SKIP_FRONT_BUILD=1)"
+    Write-Output "[INFO] Front build: disabled (SKIP_FRONT_BUILD=1)"
 } else {
-    Write-Host "Front build: enabled (front-vue -> public\)"
+    Write-Output "[INFO] Front build: enabled (front-vue -> public\)"
 }
 
 if ($env:OS -ne "Windows_NT") {
@@ -45,7 +45,7 @@ if ($SkipFrontBuild -ne "1") {
         throw "Docker is required to build front-vue in this script. (Or set SKIP_FRONT_BUILD=1 if public\ is already ready.)"
     }
 
-    Write-Host "⌛ Building front-vue project..."
+    Write-Output "[FRONT] Building front-vue project..."
     if ($Verbose) {
         & docker run --rm -v "${RootDir}:/app" -w /app/front-vue node:latest sh -c "npm install -g npm@11.6.2 && npm install && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build"
     } else {
@@ -61,7 +61,7 @@ if ($SkipFrontBuild -ne "1") {
     }
 
     # Kotlin backend serves static files from file:public/
-    Write-Host "📦 Copying UI build to public\..."
+    Write-Output "[FRONT] Copying UI build to public\..."
     $PublicDir = Join-Path $RootDir "public"
     if (Test-Path $PublicDir) {
         Remove-Item -Path $PublicDir -Recurse -Force
@@ -69,16 +69,16 @@ if ($SkipFrontBuild -ne "1") {
     New-Item -Path $PublicDir -ItemType Directory | Out-Null
     Copy-Item -Path (Join-Path $FrontDist "*") -Destination $PublicDir -Recurse -Force
 } else {
-    Write-Host "⏭️ Skipping front-vue build and copy because SKIP_FRONT_BUILD=1."
+    Write-Output "[SKIP] Skipping front-vue build and copy because SKIP_FRONT_BUILD=1."
 }
 
 $nativeImageCommand = Get-Command "native-image" -ErrorAction SilentlyContinue
 if (-not $nativeImageCommand) {
-    Write-Host "ℹ️ 'native-image' was not found in PATH."
-    Write-Host "Gradle will try to auto-provision a local GraalVM toolchain (Java 25)."
+    Write-Output "[INFO] 'native-image' was not found in PATH."
+    Write-Output "[INFO] Gradle will try to auto-provision a local GraalVM toolchain (Java 25)."
 }
 
-Write-Host "🔨 Building Windows binary..."
+Write-Output "[BUILD] Building Windows binary..."
 
 $previousGradleOpts = $env:GRADLE_OPTS
 $previousNativeImageOptions = $env:NATIVE_IMAGE_OPTIONS
@@ -94,10 +94,16 @@ try {
     }
 
     Push-Location $BackDir
-    if ($Verbose) {
-        & $GradleWrapper --no-daemon -Dorg.gradle.java.installations.auto-download=true clean nativeCompile
-    } else {
-        & $GradleWrapper --no-daemon -Dorg.gradle.java.installations.auto-download=true clean nativeCompile *> $null
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        if ($Verbose) {
+            & $GradleWrapper --no-daemon clean nativeCompile
+        } else {
+            & $GradleWrapper --no-daemon clean nativeCompile *> $null
+        }
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
     }
     if ($LASTEXITCODE -ne 0) {
         throw "Build failed. Re-run with -Verbose for details."
@@ -114,11 +120,11 @@ if (-not (Test-Path $NativeBinary)) {
 }
 
 Copy-Item -Path $NativeBinary -Destination $OutputBinary -Force
-Write-Host "📦 Windows binary ready: .\$OutputBinaryName"
+Write-Output "[OK] Windows binary ready: .\$OutputBinaryName"
 
 if (-not (Test-Path $StravaCacheDir)) {
     New-Item -Path $StravaCacheDir -ItemType Directory | Out-Null
-    Write-Host "📁 Created strava-cache directory."
+    Write-Output "[INFO] Created strava-cache directory."
 }
 
 $FamousClimbSource = Join-Path $BackDir "famous-climb"
@@ -132,13 +138,13 @@ clientId=
 clientSecret=
 useCache=false
 "@ | Set-Content -Path $StravaFilePath -Encoding utf8
-    Write-Host "ℹ️ Any registered Strava user can obtain an access_token by first creating an application at https://www.strava.com/settings/api."
-    Write-Host "🔑 Please add your Strava API credentials to strava-cache/.strava file."
+    Write-Output "[INFO] Any registered Strava user can obtain an access_token by first creating an application at https://www.strava.com/settings/api."
+    Write-Output "[TODO] Please add your Strava API credentials to strava-cache/.strava file."
 }
 
 if (-not (Test-Path $EnvFilePath)) {
     New-Item -Path $EnvFilePath -ItemType File | Out-Null
-    Write-Host "📁 Created '.env' file."
+    Write-Output "[INFO] Created '.env' file."
 }
 
 $existingEnv = Get-Content -Path $EnvFilePath -ErrorAction SilentlyContinue
@@ -147,5 +153,5 @@ if (-not ($existingEnv -match '^STRAVA_CACHE_PATH=')) {
 }
 
 $Elapsed = [int]((Get-Date) - $StartTime).TotalSeconds
-Write-Host "✅ Build process completed in $Elapsed seconds."
-Write-Host "ℹ️ Run with: .\$OutputBinaryName"
+Write-Output "[DONE] Build process completed in $Elapsed seconds."
+Write-Output "[INFO] Run with: .\$OutputBinaryName"
