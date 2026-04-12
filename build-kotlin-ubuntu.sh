@@ -27,7 +27,7 @@ GRADLE_USER_HOME_DIR="${GRADLE_USER_HOME_OVERRIDE:-/workspace/.gradle-home-ubunt
 SKIP_FRONT_BUILD="${SKIP_FRONT_BUILD:-0}"
 
 start_time=$(date +%s)
-echo "🚀 Starting Kotlin native-image build for Ubuntu with Docker..."
+echo "🚀 Starting build process..."
 echo "🐳 Image: $DOCKER_IMAGE"
 echo "🏗️  Target platform: $DOCKER_PLATFORM"
 echo "⚙️ Native image options: $NATIVE_IMAGE_OPTIONS_VALUE"
@@ -64,7 +64,7 @@ if [[ ! -x "$BACK_DIR/gradlew" ]]; then
 fi
 
 if [[ "$SKIP_FRONT_BUILD" != "1" ]]; then
-  echo "⌛ Building front-vue project with Docker..."
+  echo "⌛ Building front-vue project..."
   if [[ $VERBOSE -eq 1 ]]; then
     "$DOCKER_BIN" run --rm -v "$ROOT_DIR:/app" -w /app/front-vue "$NODE_DOCKER_IMAGE" \
       sh -c "npm install -g npm@11.6.2 && npm install && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build"
@@ -79,7 +79,7 @@ if [[ "$SKIP_FRONT_BUILD" != "1" ]]; then
   fi
 
   # Kotlin backend serves static files from file:public/
-  echo "📦 Copying UI build from front-vue/dist to public/..."
+  echo "📦 Copying UI build to public/..."
   rm -rf "$ROOT_DIR/public"
   mkdir -p "$ROOT_DIR/public"
   cp -r "$ROOT_DIR/front-vue/dist/"* "$ROOT_DIR/public/"
@@ -87,7 +87,7 @@ else
   echo "⏭️ Skipping front-vue build and copy because SKIP_FRONT_BUILD=1."
 fi
 
-echo "🔨 Building Kotlin native executable for Ubuntu inside Docker (this can take a while)..."
+echo "🔨 Building Linux binary..."
 
 if [[ $VERBOSE -eq 1 ]]; then
   "$DOCKER_BIN" run --rm \
@@ -117,19 +117,19 @@ else
     -w /workspace/back-kotlin \
     "$DOCKER_IMAGE" \
     -lc "./gradlew --no-daemon clean $GRADLE_NATIVE_TASKS" >/dev/null 2>&1; then
-    echo "❌ Native build failed. Re-run with --verbose for details."
+    echo "❌ Build failed. Re-run with --verbose for details."
     exit 1
   fi
 fi
 
 if [[ ! -f "$NATIVE_BINARY" ]]; then
-  echo "❌ Native build failed: binary not found at $NATIVE_BINARY"
+  echo "❌ Build failed: binary not found at $NATIVE_BINARY"
   exit 1
 fi
 
 cp "$NATIVE_BINARY" "$ROOT_DIR/$OUTPUT_BINARY"
 chmod +x "$ROOT_DIR/$OUTPUT_BINARY"
-echo "📦 Native Ubuntu binary ready: ./$OUTPUT_BINARY"
+echo "📦 Linux binary ready: ./$OUTPUT_BINARY"
 echo "ℹ️  This binary is built for Linux/Ubuntu (Docker target: $DOCKER_PLATFORM)."
 
 # Ensure strava-cache directory exists
@@ -149,17 +149,18 @@ clientId=
 clientSecret=
 useCache=false
 EOF
-  echo "🔑 Please add your Strava API credentials to strava-cache/.strava"
+  echo "ℹ️ Any registered Strava user can obtain an access_token by first creating an application at https://www.strava.com/settings/api."
+  echo "🔑 Please add your Strava API credentials to strava-cache/.strava file."
 fi
 
 # Ensure .env file exists and add STRAVA_CACHE_PATH if missing
 if [[ ! -f "$ROOT_DIR/.env" ]]; then
   touch "$ROOT_DIR/.env"
   echo "STRAVA_CACHE_PATH=$ROOT_DIR/strava-cache" >> "$ROOT_DIR/.env"
-  echo "📄 Added STRAVA_CACHE_PATH to .env"
+  echo "📁 Created '.env' file."
 fi
 
 end_time=$(date +%s)
 elapsed_time=$((end_time - start_time))
-echo "✅ Kotlin Ubuntu Docker native build completed in $elapsed_time seconds."
+echo "✅ Build process completed in $elapsed_time seconds."
 echo "ℹ️ Run with: ./$OUTPUT_BINARY"

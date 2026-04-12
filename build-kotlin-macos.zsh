@@ -22,7 +22,7 @@ GRADLE_USER_HOME_DIR="${GRADLE_USER_HOME_OVERRIDE:-$ROOT_DIR/.gradle-home-macos}
 SKIP_FRONT_BUILD="${SKIP_FRONT_BUILD:-0}"
 
 start_time=$(date +%s)
-echo "🚀 Starting Kotlin native-image build for macOS (local)..."
+echo "🚀 Starting build process..."
 echo "⚙️ Native image options: $NATIVE_IMAGE_OPTIONS_VALUE"
 echo "⚙️ Gradle workers max: $GRADLE_WORKERS_MAX"
 echo "⚙️ Gradle user home: $GRADLE_USER_HOME_DIR"
@@ -54,7 +54,7 @@ if [[ "$SKIP_FRONT_BUILD" != "1" ]]; then
     exit 1
   fi
 
-  echo "⌛ Building front-vue project with Docker..."
+  echo "⌛ Building front-vue project..."
   if [[ $VERBOSE -eq 1 ]]; then
     docker run --rm -v "$ROOT_DIR:/app" -w /app/front-vue node:latest \
       sh -c "npm install -g npm@11.6.2 && npm install && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build"
@@ -69,7 +69,7 @@ if [[ "$SKIP_FRONT_BUILD" != "1" ]]; then
   fi
 
   # Kotlin backend serves static files from file:public/
-  echo "📦 Copying UI build from front-vue/dist to public/..."
+  echo "📦 Copying UI build to public/..."
   rm -rf "$ROOT_DIR/public"
   mkdir -p "$ROOT_DIR/public"
   cp -r "$ROOT_DIR/front-vue/dist/"* "$ROOT_DIR/public/"
@@ -113,7 +113,7 @@ if [[ -d "$GRADLE_USER_HOME_DIR/jdks" ]]; then
   find "$GRADLE_USER_HOME_DIR/jdks" -type f -path "*/bin/native-image-configure" -size +0 -exec chmod +x {} \; 2>/dev/null || true
 fi
 
-echo "🔨 Building Kotlin native executable for macOS (this can take a while)..."
+echo "🔨 Building macOS binary..."
 if [[ $VERBOSE -eq 1 ]]; then
   (
     cd "$BACK_DIR"
@@ -130,7 +130,7 @@ else
       NATIVE_IMAGE_OPTIONS="$NATIVE_IMAGE_OPTIONS_VALUE" \
       ./gradlew --no-daemon -Dorg.gradle.java.installations.auto-download=true clean nativeCompile
   ) >/dev/null 2>&1; then
-    echo "❌ Native build failed. Re-run with --verbose for details."
+    echo "❌ Build failed. Re-run with --verbose for details."
     echo "ℹ️ If the error mentions native-image startup, retry once with:"
     echo "   rm -rf \"$GRADLE_USER_HOME_DIR/jdks\" && ./build-kotlin-macos.zsh --verbose"
     exit 1
@@ -138,7 +138,7 @@ else
 fi
 
 if [[ ! -f "$NATIVE_BINARY" ]]; then
-  echo "❌ Native build failed: binary not found at $NATIVE_BINARY"
+  echo "❌ Build failed: binary not found at $NATIVE_BINARY"
   exit 1
 fi
 
@@ -153,7 +153,7 @@ if command -v codesign >/dev/null 2>&1; then
   fi
 fi
 
-echo "📦 Native macOS binary ready: ./$OUTPUT_BINARY"
+echo "📦 macOS binary ready: ./$OUTPUT_BINARY"
 
 # Ensure strava-cache directory exists
 if [[ ! -d "$ROOT_DIR/strava-cache" ]]; then
@@ -172,17 +172,18 @@ clientId=
 clientSecret=
 useCache=false
 EOF
-  echo "🔑 Please add your Strava API credentials to strava-cache/.strava"
+  echo "ℹ️ Any registered Strava user can obtain an access_token by first creating an application at https://www.strava.com/settings/api."
+  echo "🔑 Please add your Strava API credentials to strava-cache/.strava file."
 fi
 
 # Ensure .env file exists and add STRAVA_CACHE_PATH if missing
 if [[ ! -f "$ROOT_DIR/.env" ]]; then
   touch "$ROOT_DIR/.env"
   echo "STRAVA_CACHE_PATH=$ROOT_DIR/strava-cache" >> "$ROOT_DIR/.env"
-  echo "📄 Added STRAVA_CACHE_PATH to .env"
+  echo "📁 Created '.env' file."
 fi
 
 end_time=$(date +%s)
 elapsed_time=$((end_time - start_time))
-echo "✅ Kotlin macOS local native build completed in $elapsed_time seconds."
+echo "✅ Build process completed in $elapsed_time seconds."
 echo "ℹ️ Run with: ./$OUTPUT_BINARY"
