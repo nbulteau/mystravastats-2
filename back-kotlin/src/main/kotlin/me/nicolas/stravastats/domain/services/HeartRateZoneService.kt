@@ -167,13 +167,19 @@ internal class HeartRateZoneService(
         val reserveHr = settings.reserveHr
 
         if (thresholdHr != null) {
-            val resolvedMax = maxHr ?: deriveMaxHr(activities) ?: thresholdHr
+            val derivedMax = if (maxHr == null) deriveMaxHr(activities) else null
+            val resolvedMax = maxHr ?: derivedMax ?: thresholdHr
+            val source = if (maxHr == null && derivedMax != null) {
+                HeartRateZoneSource.DERIVED_FROM_DATA
+            } else {
+                HeartRateZoneSource.ATHLETE_SETTINGS
+            }
             return ResolvedHeartRateZoneSettings(
                 maxHr = resolvedMax,
                 thresholdHr = thresholdHr,
                 reserveHr = reserveHr,
                 method = HeartRateZoneMethod.THRESHOLD,
-                source = HeartRateZoneSource.ATHLETE_SETTINGS,
+                source = source,
             )
         }
 

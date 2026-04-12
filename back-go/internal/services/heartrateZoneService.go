@@ -179,10 +179,12 @@ func resolveHeartRateZoneSettings(
 
 	if thresholdHr != nil {
 		resolvedMax := thresholdHr
+		source := business.HeartRateZoneSourceAthleteSettings
 		if maxHr != nil {
 			resolvedMax = maxHr
 		} else if derived := deriveMaxHeartRateFromActivities(activities); derived != nil {
 			resolvedMax = derived
+			source = business.HeartRateZoneSourceDerivedFromData
 		}
 
 		return &business.ResolvedHeartRateZoneSettings{
@@ -190,7 +192,7 @@ func resolveHeartRateZoneSettings(
 			ThresholdHr: thresholdHr,
 			ReserveHr:   reserveHr,
 			Method:      business.HeartRateZoneMethodThreshold,
-			Source:      business.HeartRateZoneSourceAthleteSettings,
+			Source:      source,
 		}
 	}
 
