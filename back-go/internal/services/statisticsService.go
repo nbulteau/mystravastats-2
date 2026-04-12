@@ -293,6 +293,12 @@ func computeCommonStats(activities []*strava.Activity) []statistics.Statistic {
 			return fmt.Sprintf("%.2f km", totalDistance/float64(len(activities))/1000)
 		}),
 		statistics.NewAverageSpeedStatistic(activities),
+		statistics.NewMaxDistanceStatistic(activities),
+		statistics.NewMaxDistanceInADayStatistic(activities),
+		statistics.NewMaxElevationStatistic(activities),
+		statistics.NewMaxElevationInADayStatistic(activities),
+		statistics.NewHighestPointStatistic(activities),
+		statistics.NewMaxMovingTimeStatistic(activities),
 		statistics.NewMostActiveMonthStatistic(activities),
 		statistics.NewEddingtonStatistic(activities),
 	}
