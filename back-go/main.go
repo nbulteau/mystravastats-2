@@ -59,6 +59,12 @@ func main() {
 		cacheControlHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			path := r.URL.Path
 
+			// Never serve SPA fallback for API paths.
+			if strings.HasPrefix(path, "/api") {
+				http.NotFound(w, r)
+				return
+			}
+
 			// Set MIME types explicitly for JS and CSS
 			if strings.HasSuffix(path, ".css") {
 				w.Header().Set("Content-Type", "text/css")
@@ -72,6 +78,13 @@ func main() {
 				w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 				w.Header().Set("Pragma", "no-cache")
 				w.Header().Set("Expires", "0")
+
+				// SPA fallback: always serve the app root to avoid FileServer redirect
+				// loops caused by "/index.html" canonicalization.
+				r2 := r.Clone(r.Context())
+				r2.URL.Path = "/"
+				staticFileHandler.ServeHTTP(w, r2)
+				return
 			} else {
 				// Hashed assets can be cached for a long time
 				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
