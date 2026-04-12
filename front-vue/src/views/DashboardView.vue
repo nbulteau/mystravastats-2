@@ -125,7 +125,7 @@ function sortDataByYear(
 .chart-help {
   display: inline-flex;
   align-items: center;
-  color: #4c617b;
+  color: var(--ms-text-muted);
   font-size: 0.85rem;
   margin-bottom: 0.35rem;
 }

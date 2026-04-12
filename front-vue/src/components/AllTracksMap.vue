@@ -13,6 +13,16 @@ const mapContainer = ref<HTMLDivElement | null>(null);
 const isValidCoordinate = (coord: number[]) =>
   Number.isFinite(coord[0]) && Number.isFinite(coord[1]);
 
+const getTrackColor = (): string => {
+  if (typeof window === "undefined") {
+    return "#fc4c02";
+  }
+  const cssColor = getComputedStyle(document.documentElement)
+    .getPropertyValue("--ms-primary")
+    .trim();
+  return cssColor || "#fc4c02";
+};
+
 const initMap = () => {
   if (mapContainer.value) {
     if (map.value) {
@@ -54,7 +64,11 @@ const updateMap = () => {
     }
 
     allLatLngs.push(...latLngs);
-    L.polyline(latLngs, { color: "red" }).addTo(map.value);
+    L.polyline(latLngs, {
+      color: getTrackColor(),
+      weight: 3,
+      opacity: 0.9,
+    }).addTo(map.value);
   });
 
   if (allLatLngs.length === 0) {
@@ -100,10 +114,11 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .map-shell {
-  border: 1px solid #d7e2ef;
-  border-radius: 16px;
+  border: 1px solid var(--ms-border);
+  border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 12px 24px rgba(24, 39, 75, 0.08);
+  box-shadow: var(--ms-shadow-soft);
+  background: var(--ms-surface-strong);
 }
 
 .map-canvas {

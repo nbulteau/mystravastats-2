@@ -189,49 +189,56 @@ const isCurrent = (name: string) => {
 }
 
 .app-tabs-shell {
-  margin-top: 82px;
-  padding-left: 0;
-  padding-right: 0;
+  margin-top: 74px;
+  padding: 0;
+  border-bottom: 1px solid var(--ms-border);
+  background: #ffffff;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
 }
 
 .app-tabs {
   width: 100%;
-  gap: 6px;
-  border: 1px solid #d7e2ef;
-  border-radius: 16px;
-  padding: 6px;
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow: 0 12px 24px rgba(24, 39, 75, 0.08);
-  backdrop-filter: blur(10px);
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 2px;
+  border: 0;
+  padding: 0 2px;
+  background: transparent;
+  scrollbar-width: thin;
 }
 
 .app-tabs .nav-item {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
 }
 
 .app-tabs .nav-link {
   border: 0;
-  border-radius: 12px;
-  color: #2f3c50;
-  font-weight: 600;
+  border-radius: 0;
+  border-bottom: 3px solid transparent;
+  color: #6d7079;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   text-align: center;
-  transition: all 0.2s ease;
+  padding: 0.85rem 0.9rem 0.75rem;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  white-space: nowrap;
 }
 
 .app-tabs .nav-link:hover {
-  background: #edf5ff;
-  color: #0b4f9f;
+  background: #fff7f2;
+  color: #3a3d46;
 }
 
 .app-tabs .nav-link.active {
-  color: #ffffff;
-  background: linear-gradient(135deg, #0f67c6, #0ea5e9);
-  box-shadow: 0 8px 18px rgba(15, 103, 198, 0.35);
+  color: var(--ms-primary);
+  background: #fff8f4;
+  border-bottom-color: var(--ms-primary);
 }
 
 .app-main {
-  padding-top: 14px;
-  padding-bottom: 20px;
+  padding-top: 16px;
+  padding-bottom: 22px;
 }
 
 .app-main--activity {
@@ -239,13 +246,12 @@ const isCurrent = (name: string) => {
 }
 
 .app-content {
-  border: 1px solid #d7e2ef;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow: 0 18px 36px rgba(24, 39, 75, 0.09);
-  backdrop-filter: blur(8px);
-  min-height: calc(100vh - 172px);
-  padding: 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  min-height: calc(100vh - 152px);
+  padding: 0;
 }
 
 .app-content--activity {
@@ -259,22 +265,23 @@ const isCurrent = (name: string) => {
 
 .toast-stack {
   position: fixed;
-  right: 16px;
-  bottom: 16px;
+  right: 18px;
+  bottom: 18px;
   z-index: 1100;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   max-width: 420px;
 }
 
 .app-toast {
-  border-radius: 12px;
-  border: 1px solid #f1c6cf;
-  background: #fff5f6;
-  color: #772a3a;
-  box-shadow: 0 10px 26px rgba(119, 42, 58, 0.14);
-  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #ffd3c2;
+  border-left: 4px solid var(--ms-primary);
+  background: #ffffff;
+  color: #503126;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.12);
+  padding: 10px 11px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -282,15 +289,15 @@ const isCurrent = (name: string) => {
 }
 
 .app-toast--warn {
-  border-color: #f6d89b;
-  background: #fff9ec;
-  color: #7f5a00;
+  border-color: #f7df9d;
+  border-left-color: #f1b428;
+  color: #6e5314;
 }
 
 .app-toast--normal {
-  border-color: #cce1ff;
-  background: #f0f7ff;
-  color: #184f86;
+  border-color: #ffd7c9;
+  border-left-color: var(--ms-primary);
+  color: #5a392a;
 }
 
 .app-toast-close {
@@ -304,16 +311,17 @@ const isCurrent = (name: string) => {
 
 @media (max-width: 992px) {
   .app-tabs-shell {
-    margin-top: 130px;
-  }
-
-  .app-tabs .nav-item {
-    flex: 1 1 calc(33.333% - 6px);
+    margin-top: 124px;
   }
 
   .app-content {
-    min-height: calc(100vh - 220px);
-    padding: 10px;
+    min-height: calc(100vh - 206px);
+  }
+
+  .toast-stack {
+    right: 10px;
+    left: 10px;
+    max-width: none;
   }
 }
 </style>

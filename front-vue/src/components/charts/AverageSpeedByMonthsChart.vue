@@ -10,16 +10,29 @@ const props = defineProps<{
 }>();
 
 const unit = computed(() => ((props.activityType === "Run" || props.activityType === "TrailRun") ? "min/km" : "km/h"));
+const MONTH_COLORS = [
+  "#ffe3d5",
+  "#ffd7c5",
+  "#ffc9b2",
+  "#ffb998",
+  "#ffa983",
+  "#ff9a6e",
+  "#ff8a5b",
+  "#ff7a48",
+  "#ff6a36",
+  "#fc5a1b",
+  "#ef4b06",
+  "#dd3f00",
+];
 
 const chartOptions: Highcharts.Options = reactive({
   chart: { type: "column" },
-  title: { text: "Average speed by months" },
+  title: { text: "Average speed by month" },
   xAxis: {
     labels: {
       autoRotation: [-45, -90],
       style: {
-        fontSize: "13px",
-        fontFamily: "Verdana, sans-serif",
+        fontSize: "12px",
       },
     },
     categories: [
@@ -69,28 +82,15 @@ const chartOptions: Highcharts.Options = reactive({
   },
   series: [
     {
-      name: "Distance",
+      name: "Average speed",
       type: "column",
-      colors: [
-        "#9b20d9",
-        "#9215ac",
-        "#861ec9",
-        "#7a17e6",
-        "#7010f9",
-        "#691af3",
-        "#6225ed",
-        "#5b30e7",
-        "#533be1",
-        "#4c46db",
-        "#4551d5",
-        "#3e5ccf",
-      ],
+      colors: MONTH_COLORS,
       colorByPoint: true,
       groupPadding: 0,
       dataLabels: {
         enabled: true,
         rotation: -90,
-        color: "#000000",
+        color: "#2f323a",
         inside: true,
         verticalAlign: "top",
         formatter: function (this: any): string {

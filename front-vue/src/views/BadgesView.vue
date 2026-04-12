@@ -108,14 +108,14 @@ const famousSummary = computed(() => sectionSummary(famousClimbBadgesCheckResult
 .badges-page {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .badges-section {
-  border: 1px solid #d7e2ef;
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.9));
-  box-shadow: 0 14px 28px rgba(24, 39, 75, 0.08);
+  border: 1px solid var(--ms-border);
+  border-radius: 14px;
+  background: var(--ms-surface-strong);
+  box-shadow: var(--ms-shadow-soft);
   padding: 16px 14px;
 }
 
@@ -129,7 +129,7 @@ const famousSummary = computed(() => sectionSummary(famousClimbBadgesCheckResult
 .badges-title {
   margin-bottom: 0;
   text-align: center;
-  color: #2a3c52;
+  color: var(--ms-text);
   font-size: 1.08rem;
   font-weight: 700;
 }
@@ -151,20 +151,20 @@ const famousSummary = computed(() => sectionSummary(famousClimbBadgesCheckResult
 }
 
 .summary-chip--earned {
-  color: #5c4300;
-  background: #fff2bf;
-  border-color: #f0c75a;
+  color: #b73b00;
+  background: #fff2ea;
+  border-color: #ffccb5;
 }
 
 .summary-chip--locked {
-  color: #596c81;
-  background: #edf2f8;
-  border-color: #c9d4e0;
+  color: #616a78;
+  background: #f3f5f8;
+  border-color: #dbe1ea;
 }
 
 .summary-chip--completion {
-  color: #1f5f35;
-  background: #e5f6ea;
-  border-color: #9ad6ab;
+  color: #9f3709;
+  background: #fff7f2;
+  border-color: #ffc9b0;
 }
 </style>

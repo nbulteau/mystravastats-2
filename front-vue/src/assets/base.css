@@ -1,23 +1,30 @@
 :root {
-  --ms-font-body: "Avenir Next", "Nunito Sans", "Segoe UI", "Helvetica Neue", sans-serif;
-  --ms-font-heading: "Montserrat", "Avenir Next", "Segoe UI", sans-serif;
+  --ms-font-body: "Avenir Next", "SF Pro Text", "Segoe UI", "Helvetica Neue", sans-serif;
+  --ms-font-heading: "Avenir Next", "SF Pro Display", "Segoe UI", sans-serif;
 
-  --ms-bg-0: #f4f7fb;
-  --ms-bg-1: #e8f1ff;
-  --ms-bg-2: #dce7f8;
+  --ms-bg-0: #f7f7fa;
+  --ms-bg-1: #fff2ea;
+  --ms-bg-2: #f0f1f5;
 
-  --ms-surface: rgba(255, 255, 255, 0.84);
+  --ms-surface: #ffffff;
   --ms-surface-strong: #ffffff;
-  --ms-border: #d7e2ef;
+  --ms-border: #e5e7ee;
 
-  --ms-text: #1f2a37;
-  --ms-text-muted: #586477;
+  --ms-text: #242428;
+  --ms-text-muted: #6a6c75;
 
-  --ms-primary: #0f67c6;
-  --ms-primary-strong: #0a4ea1;
+  --ms-primary: #fc4c02;
+  --ms-primary-strong: #dd3f00;
+  --ms-primary-soft: #fff1e8;
 
-  --ms-shadow-soft: 0 14px 30px rgba(24, 39, 75, 0.08);
-  --ms-shadow-strong: 0 24px 50px rgba(24, 39, 75, 0.12);
+  --ms-shadow-soft: 0 8px 20px rgba(15, 23, 42, 0.06);
+  --ms-shadow-strong: 0 18px 38px rgba(15, 23, 42, 0.1);
+
+  --bs-primary: #fc4c02;
+  --bs-primary-rgb: 252, 76, 2;
+  --bs-link-color: #fc4c02;
+  --bs-link-hover-color: #dd3f00;
+  --bs-focus-ring-color: rgba(252, 76, 2, 0.35);
 }
 
 *,
@@ -31,9 +38,8 @@ body {
   min-height: 100vh;
   color: var(--ms-text);
   background:
-    radial-gradient(circle at 5% -10%, var(--ms-bg-1) 0%, transparent 45%),
-    radial-gradient(circle at 90% 10%, var(--ms-bg-2) 0%, transparent 38%),
-    linear-gradient(180deg, #f8fbff 0%, var(--ms-bg-0) 65%, #edf3fb 100%);
+    radial-gradient(circle at 84% -8%, var(--ms-bg-1) 0%, transparent 42%),
+    linear-gradient(180deg, #ffffff 0%, var(--ms-bg-0) 46%, var(--ms-bg-2) 100%);
   line-height: 1.5;
   font-family: var(--ms-font-body);
   font-size: 15px;
@@ -50,7 +56,7 @@ h5,
 h6 {
   color: var(--ms-text);
   font-family: var(--ms-font-heading);
-  font-weight: 700;
+  font-weight: 800;
 }
 
 a {
@@ -63,7 +69,7 @@ a {
 
 .grid-shell {
   border: 1px solid var(--ms-border);
-  border-radius: 16px;
+  border-radius: 14px;
   overflow: hidden;
   background: var(--ms-surface-strong);
   box-shadow: var(--ms-shadow-soft);
@@ -77,26 +83,26 @@ a {
 
 .chart-panel {
   border: 1px solid var(--ms-border);
-  border-radius: 16px;
+  border-radius: 14px;
   background: var(--ms-surface-strong);
   box-shadow: var(--ms-shadow-soft);
-  padding: 10px 12px 4px;
+  padding: 10px 12px 6px;
 }
 
 .chart-empty {
   border: 1px dashed var(--ms-border);
-  border-radius: 14px;
+  border-radius: 12px;
   padding: 18px;
   color: var(--ms-text-muted);
   text-align: center;
-  background: rgba(255, 255, 255, 0.7);
+  background: #fafbfe;
 }
 
 .highcharts-title {
   fill: var(--ms-text) !important;
   font-family: var(--ms-font-heading) !important;
-  font-size: 1rem !important;
-  font-weight: 700 !important;
+  font-size: 0.98rem !important;
+  font-weight: 800 !important;
 }
 
 .highcharts-subtitle,

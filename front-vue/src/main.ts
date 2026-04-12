@@ -33,8 +33,119 @@ const registerHighchartsModules = async (): Promise<void> => {
     }
 };
 
+const configureHighchartsTheme = (): void => {
+    Highcharts.setOptions({
+        colors: [
+            '#fc4c02',
+            '#4e79a7',
+            '#59a14f',
+            '#e15759',
+            '#af7aa1',
+            '#17becf',
+            '#f28e2b',
+            '#edc948',
+            '#76b7b2',
+            '#9c755f',
+            '#6c7a89',
+            '#b6992d',
+        ],
+        chart: {
+            backgroundColor: 'transparent',
+            style: {
+                fontFamily: '"Avenir Next", "SF Pro Text", "Segoe UI", "Helvetica Neue", sans-serif',
+            },
+        },
+        title: {
+            style: {
+                color: '#242428',
+                fontWeight: '700',
+            },
+        },
+        subtitle: {
+            style: {
+                color: '#6a6c75',
+            },
+        },
+        xAxis: {
+            lineColor: '#e5e7ee',
+            tickColor: '#e5e7ee',
+            labels: {
+                style: {
+                    color: '#6a6c75',
+                },
+            },
+            title: {
+                style: {
+                    color: '#4e5058',
+                },
+            },
+        },
+        yAxis: {
+            gridLineColor: '#eceff4',
+            labels: {
+                style: {
+                    color: '#6a6c75',
+                },
+            },
+            title: {
+                style: {
+                    color: '#4e5058',
+                },
+            },
+        },
+        legend: {
+            itemStyle: {
+                color: '#4f525a',
+                fontWeight: '600',
+            },
+            itemHoverStyle: {
+                color: '#242428',
+            },
+        },
+        tooltip: {
+            backgroundColor: '#ffffff',
+            borderColor: '#ffd3c1',
+            style: {
+                color: '#2d3037',
+            },
+        },
+        plotOptions: {
+            series: {
+                states: {
+                    inactive: {
+                        opacity: 1,
+                    },
+                },
+            },
+            line: {
+                lineWidth: 2,
+                marker: {
+                    enabled: false,
+                },
+            },
+            spline: {
+                lineWidth: 2,
+                marker: {
+                    enabled: false,
+                },
+            },
+            areaspline: {
+                lineWidth: 2,
+                marker: {
+                    enabled: false,
+                },
+            },
+            column: {
+                borderWidth: 0,
+                borderRadius: 2,
+            },
+        },
+    });
+};
+
 const bootstrap = async (): Promise<void> => {
     await registerHighchartsModules();
+    configureHighchartsTheme();
 
     const pinia = createPinia();
 

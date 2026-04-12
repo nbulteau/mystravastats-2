@@ -54,17 +54,17 @@ const chartOptions = reactive({
     },
     plotLines: [
       {
-        color: "#4840d6",
+        color: "#f39b76",
         width: 2,
         value: today,
         zIndex: 2,
         dashStyle: "Dash" as DashStyleValue,
         label: {
-          text: "Current time",
+          text: "Today",
           rotation: 0,
           y: 20,
           style: {
-            color: "#333333",
+            color: "#74402b",
           },
         },
       },
@@ -116,25 +116,30 @@ const chartType = ref<"distance" | "elevation">("distance");
 
 const title = computed(() => `Cumulative ${chartType.value} per year`);
 
-const yearColors: { [key: string]: string } = {
-  "2010": "#808080", // Gray
-  "2011": "#00FF00", // Green
-  "2012": "#0000FF", // Blue
-  "2013": "#FFFF00", // Yellow
-  "2014": "#FF00FF", // Magenta
-  "2015": "#00FFFF", // Cyan
-  "2016": "#800000", // Maroon
-  "2017": "#808000", // Olive
-  "2018": "#008000", // Dark Green
-  "2019": "#800080", // Purple
-  "2020": "#008080", // Teal
-  "2021": "#000080", // Navy
-  "2022": "#FFC0CB", // Pink
-  "2023": "#A52A2A", // Brown
-  "2024": "#FFA500", // Orange
-  "2025": "#FF0000", // Red
-  "2026": "#00008B", // Dark blue
-};
+const YEAR_COLORS = [
+  "#6c7a89",
+  "#4e79a7",
+  "#59a14f",
+  "#b6992d",
+  "#af7aa1",
+  "#17becf",
+  "#9c755f",
+  "#e15759",
+  "#76b7b2",
+  "#edc948",
+  "#457b9d",
+  "#2a9d8f",
+  "#f28e2b",
+  "#e76f51",
+  "#8d99ae",
+  "#ff7f0e",
+  "#fc4c02",
+];
+
+function getYearColor(year: number): string {
+  const paletteIndex = Math.max(0, Math.min(year - 2010, YEAR_COLORS.length - 1));
+  return YEAR_COLORS[paletteIndex] ?? "#fc4c02";
+}
 
 function updateChartData() {
   const data =
@@ -157,7 +162,8 @@ function updateChartData() {
           type: "line",
           name: yearStr,
           data: convertToNumberArray(yearData),
-          color: yearColors[year] || "#000000", // Default to black if color not defined
+          color: getYearColor(year),
+          lineWidth: 3,
           zoneAxis: "x",
           zones: [
             {
@@ -165,6 +171,7 @@ function updateChartData() {
             },
             {
               dashStyle: "Dot",
+              color: "#fc4c02",
             },
           ],
         } as SeriesOptionsType;
@@ -173,7 +180,8 @@ function updateChartData() {
           type: "line",
           name: yearStr,
           data: convertToNumberArray(yearData),
-          color: yearColors[year] || "#000000", // Default to black if color not defined
+          color: getYearColor(year),
+          lineWidth: 2,
           zones: [],
         } as SeriesOptionsType;
       }

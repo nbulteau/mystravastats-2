@@ -319,9 +319,9 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
 
 <style scoped>
 .top-navbar {
-  background: linear-gradient(120deg, rgba(237, 246, 255, 0.98), rgba(226, 241, 255, 0.95));
-  border-bottom: 1px solid #d2deec;
-  box-shadow: 0 8px 22px rgba(24, 39, 75, 0.09);
+  background: #ffffff;
+  border-bottom: 1px solid var(--ms-border);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
 }
 
 .top-navbar__content {
@@ -329,16 +329,17 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 10px;
-  padding-top: 6px;
-  padding-bottom: 6px;
+  gap: 8px;
+  padding-top: 7px;
+  padding-bottom: 7px;
 }
 
 .athlete-name {
-  margin-right: 12px;
-  color: #213247;
-  font-weight: 700;
-  letter-spacing: 0.2px;
+  margin-right: 14px;
+  color: #2a2d33;
+  font-weight: 800;
+  font-size: 0.98rem;
+  letter-spacing: 0.01em;
 }
 
 .filters-wrap {
@@ -353,51 +354,52 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
 .year-select {
   min-width: 125px;
   max-width: 140px;
-  border-radius: 12px;
-  border: 1px solid #b5c8df;
+  border-radius: 10px;
+  border: 1px solid var(--ms-border);
   background: #ffffff;
-  color: #213247;
-  box-shadow: 0 3px 10px rgba(24, 39, 75, 0.08);
+  color: #2d3036;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
   font-size: 0.95rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .activity-group {
-  border-radius: 14px;
-  padding: 3px;
-  background: rgba(255, 255, 255, 0.65);
-  border: 1px solid #cdd8e8;
-  box-shadow: 0 6px 14px rgba(24, 39, 75, 0.08);
+  border-radius: 10px;
+  padding: 2px;
+  background: #f7f8fb;
+  border: 1px solid #e2e4ea;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
 
 .icon-btn {
-  width: 42px;
-  height: 42px;
+  width: 39px;
+  height: 39px;
   padding: 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
+  border-radius: 8px;
   border: 1px solid transparent;
   line-height: 1;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .icon-btn.btn-outline-primary {
   background: #ffffff;
-  border-color: #c4d4e6;
+  border-color: transparent;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
 .icon-btn.btn-outline-primary:hover {
-  background: #ebf4ff;
-  border-color: #9eb8d8;
+  background: #fff2ea;
+  border-color: #ffd3c1;
   transform: translateY(-1px);
 }
 
 .icon-btn.btn-primary {
-  background: linear-gradient(135deg, #0f67c6, #0ea5e9);
-  border-color: #0f67c6;
-  box-shadow: 0 6px 14px rgba(15, 103, 198, 0.32);
+  background: #fff1e8;
+  border-color: #fdc1a6;
+  box-shadow: 0 3px 10px rgba(252, 76, 2, 0.2);
 }
 
 .icon-btn img {
@@ -406,8 +408,17 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
 }
 
 @media (max-width: 992px) {
+  .top-navbar__content {
+    align-items: flex-start;
+  }
+
   .filters-wrap {
     justify-content: flex-start;
+  }
+
+  .year-select {
+    min-width: 115px;
+    max-width: 125px;
   }
 
   .activity-group {

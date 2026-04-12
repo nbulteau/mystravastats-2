@@ -159,7 +159,7 @@ onBeforeUnmount(() => {
 .badge-label {
   font-size: 0.98rem;
   line-height: 1.25;
-  color: #27384b;
+  color: var(--ms-text);
   font-weight: 700;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -175,32 +175,33 @@ onBeforeUnmount(() => {
   transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
   width: 188px;
   min-height: 232px;
-  border-radius: 20px;
-  border: 2px solid transparent;
+  border-radius: 16px;
+  border: 1px solid var(--ms-border);
   overflow: hidden;
   padding: 12px 12px 10px;
+  background: var(--ms-surface-strong);
 }
 
 .badge-item:hover {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
 }
 
 .badge-item--earned {
   cursor: pointer;
-  background: linear-gradient(180deg, #fffdf4 0%, #fff5cd 100%);
-  border-color: #f2c24b;
-  box-shadow: 0 14px 28px rgba(146, 101, 16, 0.22);
+  background: linear-gradient(180deg, #fff8f4 0%, #fff1e8 100%);
+  border-color: #ffc8b1;
+  box-shadow: 0 0 0 2px rgba(252, 76, 2, 0.12), 0 14px 24px rgba(198, 72, 14, 0.22);
 }
 
 .badge-item--earned:hover {
-  box-shadow: 0 18px 32px rgba(146, 101, 16, 0.28);
+  box-shadow: 0 0 0 2px rgba(252, 76, 2, 0.16), 0 16px 28px rgba(198, 72, 14, 0.28);
 }
 
 .badge-item--locked {
   cursor: default;
-  background: linear-gradient(180deg, #f8fafc 0%, #eef3f8 100%);
-  border-color: #c6d1de;
-  box-shadow: 0 8px 18px rgba(24, 39, 75, 0.11);
+  background: linear-gradient(180deg, #f7f8fb 0%, #f1f4f8 100%);
+  border-color: #d9e0ea;
+  box-shadow: 0 8px 16px rgba(26, 34, 48, 0.08);
 }
 
 .badge-status-pill {
@@ -216,15 +217,15 @@ onBeforeUnmount(() => {
 }
 
 .badge-status-pill--earned {
-  background: #fff0b3;
-  color: #6f4f00;
-  border: 1px solid #e6bc4e;
+  background: #fff1e8;
+  color: #b43900;
+  border: 1px solid #ffc8b1;
 }
 
 .badge-status-pill--locked {
-  background: #e9eef5;
-  color: #586a7f;
-  border: 1px solid #c3ceda;
+  background: #ecf1f7;
+  color: #616f80;
+  border: 1px solid #ced8e4;
 }
 
 .badge-media {
@@ -241,7 +242,7 @@ onBeforeUnmount(() => {
   min-height: 18px;
   font-size: 0.76rem;
   line-height: 1.2;
-  color: #5d7086;
+  color: var(--ms-text-muted);
   font-weight: 600;
 }
 
@@ -251,12 +252,12 @@ onBeforeUnmount(() => {
   object-fit: cover;
   margin: auto;
   border-radius: 50%;
-  border: 3px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 8px 14px rgba(24, 39, 75, 0.2);
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 14px rgba(15, 23, 42, 0.18);
 }
 
 .badge-image--locked {
-  filter: grayscale(1) contrast(0.9) saturate(0.65);
-  opacity: 0.75;
+  filter: grayscale(1) contrast(0.86) saturate(0.6);
+  opacity: 0.66;
 }
 </style>

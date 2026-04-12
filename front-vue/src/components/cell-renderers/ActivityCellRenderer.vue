@@ -26,7 +26,7 @@ const props = defineProps<{
 }
 
 .activity-link {
-  color: blue;
+  color: var(--ms-primary);
   text-decoration: underline;
 }
 </style>

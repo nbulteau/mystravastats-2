@@ -132,10 +132,10 @@ const columns = [
   display: flex;
   flex-direction: column;
   gap: 10px;
-  border: 1px solid #d7e2ef;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 12px 24px rgba(24, 39, 75, 0.07);
+  border: 1px solid var(--ms-border);
+  border-radius: 14px;
+  background: var(--ms-surface-strong);
+  box-shadow: var(--ms-shadow-soft);
   padding: 10px;
 }
 
@@ -147,7 +147,7 @@ const columns = [
 }
 
 .timeline-toolbar :deep(label) {
-  color: #2f3c50;
+  color: var(--ms-text);
   font-weight: 600;
 }
 
@@ -155,23 +155,23 @@ const columns = [
   max-width: 340px;
   min-width: 220px;
   border-radius: 10px;
-  border: 1px solid #c7d7e8;
+  border: 1px solid var(--ms-border);
   background: #ffffff;
 }
 
 .timeline-count {
-  color: #5d6979;
+  color: var(--ms-text-muted);
   font-size: 0.9rem;
   margin-left: auto;
 }
 
 .timeline-empty {
-  border: 1px dashed #cfd6de;
+  border: 1px dashed var(--ms-border);
   border-radius: 10px;
-  color: #5d6979;
+  color: var(--ms-text-muted);
   font-size: 0.95rem;
   padding: 16px;
-  background: #f8fbff;
+  background: #fafbfd;
 }
 
 @media (max-width: 992px) {
