@@ -538,6 +538,26 @@ You can configure athlete-specific zone inputs:
 
 Configuration is persisted per athlete in the local cache and reused on the next launch.
 
+Where settings are stored:
+- `<STRAVA_CACHE_PATH>/strava-<clientId>/heart-rate-zones-<clientId>.json`
+- if `STRAVA_CACHE_PATH` is not set, the default root is `strava-cache`
+
+How MyStravaStats resolves the method and values actually used:
+1. if `Threshold HR` is set, method is `THRESHOLD` (highest priority)
+2. else if `Max HR` and `Reserve HR` are both valid, method is `RESERVE`
+3. else if `Max HR` is set, method is `MAX`
+4. else `Max HR` is derived from activities (highest observed activity max HR), method is `MAX` with source `DERIVED_FROM_DATA`
+
+Important UI detail:
+- the Statistics panel displays **Resolved Max HR** (the effective max HR really used by calculations)
+- this value can come from your saved settings or be derived from activity history
+- when derived, the source is shown as `Derived from activities`
+
+If a setting is empty or invalid:
+- non-positive values are ignored
+- empty values are treated as "not provided"
+- if no usable value can be resolved and no HR streams are available, the analysis stays visible with `HR Data Availability = Unavailable`
+
 Graceful fallback behavior:
 - if HR stream data is missing for the selected filters, the section stays visible with an explicit "no data" state
 - detailed activity view also falls back cleanly when HR stream is unavailable
