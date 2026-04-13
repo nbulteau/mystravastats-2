@@ -79,21 +79,37 @@ It is simpler architecturally, but less flexible than the Kotlin backend.
 
 ## Screenshots
 
-Statistics and activities:
+Statistics:
 
-<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-1.png?raw=true" width="45%" /> <img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-2.png?raw=true" width="45%" />
+![Statistics](screen-statistics.png)
 
-Maps and dashboard:
+Activities:
 
-<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-4.png?raw=true" width="45%" /> <img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-7.png?raw=true" width="45%" />
+![Activities](screen-activities.png)
 
-Badges and detailed activity:
+Map:
 
-<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-5.png?raw=true" width="45%" /><img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-8.png?raw=true" width="45%" />
+![Map](screen-map.png)
 
-Charts and route view:
+Charts:
 
-<img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-6.png?raw=true" width="45%" /><img src="https://github.com/nbulteau/mystravastats-2/blob/main/docs/screen_shoot-3.png?raw=true" width="45%" />
+![Charts](screen-charts.png)
+
+Dashboard:
+
+![Dashboard](screen-dashboard.png)
+
+Heatmap:
+
+![Heatmap](screen-heatmap.png)
+
+Badges:
+
+![Badges](screen-badges.png)
+
+Detailed activity:
+
+![Detailed Activity](screen-detailed-activity.png)
 
 Icons made by [Freepik](https://www.freepik.com) from [Flaticon](https://www.flaticon.com).
 
