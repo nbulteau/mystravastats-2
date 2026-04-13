@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import me.nicolas.stravastats.api.dto.*
+import me.nicolas.stravastats.domain.services.ActivityHeatmapDay
 import me.nicolas.stravastats.domain.services.IDashboardService
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
@@ -102,8 +103,8 @@ class DashboardController(
     }
 
     @Operation(
-        description = "Get the daily distance heatmap per year for a specific activity type",
-        summary = "Get activity heatmap (year → day → distance km)",
+        description = "Get daily heatmap values per year for a specific activity type",
+        summary = "Get activity heatmap (year → day → distance/elevation/duration)",
         responses = [ApiResponse(
             responseCode = "200", description = "Activity heatmap found",
             content = [Content(
@@ -115,7 +116,7 @@ class DashboardController(
     @GetMapping("/activity-heatmap")
     fun getActivityHeatmap(
         @RequestParam(required = true) activityType: String,
-    ): Map<String, Map<String, Double>> {
+    ): Map<String, Map<String, ActivityHeatmapDay>> {
         val activityTypes = activityType.convertToActivityTypeSet()
         return dashboardService.getActivityHeatmap(activityTypes)
     }

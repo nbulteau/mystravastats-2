@@ -2,6 +2,7 @@ package services
 
 import (
 	"log"
+	"math"
 	"mystravastats/domain/business"
 	"mystravastats/domain/statistics"
 	"mystravastats/domain/strava"
@@ -306,13 +307,30 @@ func maxWatts(activities []*strava.Activity) float64 {
 	return maxWatts
 }
 
-// FetchActivityHeatmap returns a daily distance (km) map per year.
-// Shape: year → ("MM-DD" → total distance in km for that day).
-func FetchActivityHeatmap(activityTypes ...business.ActivityType) map[string]map[string]float64 {
+type ActivityHeatmapActivity struct {
+	ID             int64   `json:"id"`
+	Name           string  `json:"name"`
+	Type           string  `json:"type"`
+	DistanceKm     float64 `json:"distanceKm"`
+	ElevationGainM float64 `json:"elevationGainM"`
+	DurationSec    int     `json:"durationSec"`
+}
+
+type ActivityHeatmapDay struct {
+	DistanceKm     float64                   `json:"distanceKm"`
+	ElevationGainM float64                   `json:"elevationGainM"`
+	DurationSec    int                       `json:"durationSec"`
+	ActivityCount  int                       `json:"activityCount"`
+	Activities     []ActivityHeatmapActivity `json:"activities"`
+}
+
+// FetchActivityHeatmap returns daily training aggregates by year.
+// Shape: year → ("MM-DD" → {distanceKm, elevationGainM, durationSec, activityCount, activities}).
+func FetchActivityHeatmap(activityTypes ...business.ActivityType) map[string]map[string]ActivityHeatmapDay {
 	log.Printf("Get activity heatmap for activity type %s", activityTypes)
 
 	activitiesByYear := activityProvider.GetActivitiesByActivityTypeGroupByYear(activityTypes...)
-	result := make(map[string]map[string]float64)
+	result := make(map[string]map[string]ActivityHeatmapDay)
 	currentYear := time.Now().Year()
 
 	for year := 2010; year <= currentYear; year++ {
@@ -322,15 +340,48 @@ func FetchActivityHeatmap(activityTypes ...business.ActivityType) map[string]map
 			continue
 		}
 		activitiesByDay := groupActivitiesByDay(activities, year)
-		dayMap := make(map[string]float64, len(activitiesByDay))
+		dayMap := make(map[string]ActivityHeatmapDay, len(activitiesByDay))
 		for day, acts := range activitiesByDay {
-			var total float64
+			var distanceKm float64
+			var elevationGainM float64
+			durationSec := 0
+			details := make([]ActivityHeatmapActivity, 0, len(acts))
+
 			for _, a := range acts {
-				total += a.Distance / 1000.0
+				dayDistanceKm := a.Distance / 1000.0
+				dayElevationGainM := a.TotalElevationGain
+				dayDurationSec := a.MovingTime
+				if dayDurationSec <= 0 {
+					dayDurationSec = a.ElapsedTime
+				}
+
+				distanceKm += dayDistanceKm
+				elevationGainM += dayElevationGainM
+				durationSec += dayDurationSec
+
+				details = append(details, ActivityHeatmapActivity{
+					ID:             a.Id,
+					Name:           a.Name,
+					Type:           a.SportType,
+					DistanceKm:     roundToOneDecimal(dayDistanceKm),
+					ElevationGainM: roundToOneDecimal(dayElevationGainM),
+					DurationSec:    dayDurationSec,
+				})
 			}
-			dayMap[day] = total
+
+			dayMap[day] = ActivityHeatmapDay{
+				DistanceKm:     roundToOneDecimal(distanceKm),
+				ElevationGainM: roundToOneDecimal(elevationGainM),
+				DurationSec:    durationSec,
+				ActivityCount:  len(acts),
+				Activities:     details,
+			}
 		}
 		result[yearStr] = dayMap
 	}
 	return result
+}
+
+func roundToOneDecimal(value float64) float64 {
+	return math.Round(value*10) / 10
 }

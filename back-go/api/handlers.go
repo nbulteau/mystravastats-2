@@ -568,11 +568,11 @@ func getDashboardCumulativeDataByYear(w http.ResponseWriter, r *http.Request) {
 
 // getDashboardActivityHeatmap godoc
 // @Summary Get activity heatmap data
-// @Description Returns daily distance (km) per day per year for heatmap display
+// @Description Returns daily distance/elevation/duration and activity details per day per year for heatmap display
 // @Tags dashboard
 // @Produce json
 // @Param activityType query string true "Activity type"
-// @Success 200 {object} map[string]map[string]float64
+// @Success 200 {object} map[string]map[string]services.ActivityHeatmapDay
 // @Failure 400 {string} string "Invalid parameters"
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/dashboard/activity-heatmap [get]

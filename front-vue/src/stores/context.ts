@@ -14,6 +14,7 @@ import {
     type HeartRateZoneSettings,
     emptyHeartRateZoneAnalysis,
 } from '@/models/heart-rate-zone.model';
+import type { ActivityHeatmap } from "@/models/activity-heatmap.model";
 
 
 export const useContextStore = defineStore('context', {
@@ -36,7 +37,7 @@ export const useContextStore = defineStore('context', {
         cumulativeElevationPerYear: Map<string, Map<string, number>>,
         eddingtonNumber: EddingtonNumber,
         dashboardData: DashboardData,
-        activityHeatmap: Record<string, Record<string, number>>,
+        activityHeatmap: ActivityHeatmap,
         heartRateZoneSettings: HeartRateZoneSettings,
         heartRateZoneAnalysis: HeartRateZoneAnalysis,
         generalBadgesCheckResults: BadgeCheckResult[],
@@ -199,7 +200,7 @@ export const useContextStore = defineStore('context', {
         },
         async fetchActivityHeatmap() {
             try {
-                const heatmap = await this.fetchJson<Record<string, Record<string, number>>>(
+                const heatmap = await this.fetchJson<ActivityHeatmap>(
                     `/api/dashboard/activity-heatmap?activityType=${this.currentActivityType}`
                 )
                 this.activityHeatmap = heatmap;

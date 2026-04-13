@@ -10,6 +10,7 @@ import me.nicolas.stravastats.domain.services.statistics.BestEffortDistanceStati
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDate
+import kotlin.math.round
 
 interface IDashboardService {
     fun getCumulativeDistancePerYear(activityTypes: Set<ActivityType>): Map<String, Map<String, Number>>
@@ -20,8 +21,25 @@ interface IDashboardService {
 
     fun getDashboardData(activityTypes: Set<ActivityType>): DashboardData
 
-    fun getActivityHeatmap(activityTypes: Set<ActivityType>): Map<String, Map<String, Double>>
+    fun getActivityHeatmap(activityTypes: Set<ActivityType>): Map<String, Map<String, ActivityHeatmapDay>>
 }
+
+data class ActivityHeatmapActivity(
+    val id: Long,
+    val name: String,
+    val type: String,
+    val distanceKm: Double,
+    val elevationGainM: Double,
+    val durationSec: Int,
+)
+
+data class ActivityHeatmapDay(
+    val distanceKm: Double,
+    val elevationGainM: Double,
+    val durationSec: Int,
+    val activityCount: Int,
+    val activities: List<ActivityHeatmapActivity>,
+)
 
 
 @Service
@@ -195,14 +213,35 @@ class DashboardService(
     }
 
     /**
-     * Build a daily distance heatmap per year.
-     * Returns a map: year → (MM-DD → total distance in km that day).
+     * Build a daily training heatmap per year.
+     * Returns a map: year → (MM-DD → distance/elevation/duration and detailed activities for that day).
      */
-    override fun getActivityHeatmap(activityTypes: Set<ActivityType>): Map<String, Map<String, Double>> {
+    override fun getActivityHeatmap(activityTypes: Set<ActivityType>): Map<String, Map<String, ActivityHeatmapDay>> {
         logger.info("Get activity heatmap for activity type $activityTypes")
         return getCumulativeDataPerYear(activityTypes) { activitiesByDay ->
             activitiesByDay.mapValues { (_, dayActivities) ->
-                dayActivities.sumOf { it.distance / 1000.0 }
+                val details = dayActivities.map { activity ->
+                    val durationSec = if (activity.movingTime > 0) activity.movingTime else activity.elapsedTime
+                    ActivityHeatmapActivity(
+                        id = activity.id,
+                        name = activity.name,
+                        type = activity.sportType,
+                        distanceKm = roundOneDecimal(activity.distance / 1000.0),
+                        elevationGainM = roundOneDecimal(activity.totalElevationGain),
+                        durationSec = durationSec,
+                    )
+                }
+                val distanceKm = dayActivities.sumOf { it.distance / 1000.0 }
+                val elevationGainM = dayActivities.sumOf { it.totalElevationGain }
+                val durationSec = dayActivities.sumOf { if (it.movingTime > 0) it.movingTime else it.elapsedTime }
+
+                ActivityHeatmapDay(
+                    distanceKm = roundOneDecimal(distanceKm),
+                    elevationGainM = roundOneDecimal(elevationGainM),
+                    durationSec = durationSec,
+                    activityCount = dayActivities.size,
+                    activities = details,
+                )
             }
         }
     }
@@ -236,7 +275,7 @@ class DashboardService(
         return stats
     }
 
-    private fun <T : Number> getCumulativeDataPerYear(
+    private fun <T> getCumulativeDataPerYear(
         activityTypes: Set<ActivityType>,
         calculate: (Map<String, List<StravaActivity>>) -> Map<String, T>,
     ): Map<String, Map<String, T>> {
@@ -270,4 +309,6 @@ class DashboardService(
             sum
         }
     }
+
+    private fun roundOneDecimal(value: Double): Double = round(value * 10.0) / 10.0
 }
