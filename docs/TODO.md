@@ -30,20 +30,6 @@ Sérialiser le cache sur disque dans le répertoire `strava-cache` (format JSON 
 
 ---
 
-#### Couverture de tests insuffisante sur les algorithmes de calcul
-
-L'arborescence `src/test/` est très peu peuplée au regard de la complexité des algorithmes exposés (nombre d'Eddington, fenêtre glissante pour les best efforts, calcul du gradient optimal, timeline des records personnels).
-
-**Problèmes actuels :**
-- Les statistiques de type `BestEffortDistanceStatistic`, `EddingtonStatistic` ou `BestElevationDistanceStatistic` ne sont couvertes par aucun test unitaire visible, alors que ce sont des invariants métier critiques.
-- Un bug de régression dans la fenêtre glissante (ex. calcul sur streams incomplets ou activités sans données d'altitude) ne serait détecté qu'en production.
-- L'absence de fixtures de streams standardisées complique l'ajout de tests ultérieurs.
-
-**Proposition :**
-Créer un module de tests unitaires dédié aux statistiques avec des jeux de données synthétiques (streams courts et contrôlés) pour chaque famille de calcul. Vérifier les cas limites : stream vide, activité sans données GPS, distance cible supérieure à la longueur du stream, égalité parfaite sur le nombre d'Eddington. Ajouter des tests de non-régression sur la sérialisation/désérialisation du cache Strava (lecture de fichiers JSON réels issus du répertoire `strava-cache`).
-
----
-
 ### Améliorations fonctionnelles
 
 #### Analyse de la charge d'entraînement (Training Load)
@@ -66,17 +52,6 @@ Ajouter dans la vue *Dashboard* un bloc "Objectifs de l'année" où l'athlète d
 - un indicateur visuel (en avance / dans les temps / en retard) par rapport au rythme nécessaire.
 
 Les objectifs seraient persistés dans le répertoire `strava-cache` (fichier JSON local par athlète), sans dépendance à Strava.
-
----
-
-#### Comparaison de deux périodes ou de deux athlètes
-
-L'application est centrée sur un seul athlète et une seule année à la fois. Il n'est pas possible de comparer directement deux saisons ou deux pratiquants partageant le même serveur.
-
-**Proposition :**
-- **Comparaison de périodes :** ajouter un mode "comparer" dans les vues *Statistics* et *Dashboard* permettant de juxtaposer deux années (ex. 2024 vs 2025) sur les mêmes métriques. La vue *Charts* cumulative par année réalise déjà une partie de ce travail visuellement ; il s'agirait d'étendre cette logique à l'ensemble des statistiques et au dashboard.
-- **Comparaison multi-athlètes :** le backend Kotlin dispose déjà de providers GPX/FIT et Strava paramétrables. Exposer un endpoint `/api/compare?athletes=A,B&metric=...` permettrait de générer des tableaux comparatifs entre plusieurs caches locaux, utile dans un contexte de groupe (famille, club).
-
 
 ## Proposition GPT 5.3 Codex
 
