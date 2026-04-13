@@ -109,16 +109,6 @@ Heatmap:
 
 ![Heatmap](screen-heatmap.png)
 
-### Heatmap Highlights
-
-The heatmap view now includes:
-- metric switch (`Distance`, `Elevation`, `Duration`)
-- daily tooltips with aggregate values and activity names
-- activity-type icons in each day cell (unique types for that day)
-- clickable day inspection panel with activity details and deep links
-- year-over-year comparison panel with monthly deltas and total trend summary
-- advanced insights panel with consistency, streaks, weekly momentum, weekday signature, top days, activity mix, and best week
-
 Badges:
 
 ![Badges](screen-badges.png)
@@ -638,6 +628,16 @@ The dashboard summarizes yearly progression with metrics such as:
 - average speed per year
 - average heart rate per year
 - average watts per year
+
+### Heatmap
+
+The heatmap view provides a calendar-based visualisation of training load:
+- metric switch (`Distance`, `Elevation`, `Duration`)
+- daily tooltips with aggregate values and activity names
+- activity-type icons in each day cell (unique types for that day)
+- clickable day inspection panel with activity details and deep links
+- year-over-year comparison panel with monthly deltas and total trend summary
+- advanced insights panel with consistency, streaks, weekly momentum, weekday signature, top days, activity mix, and best week
 
 ### Badges
 
