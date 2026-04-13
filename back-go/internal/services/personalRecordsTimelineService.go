@@ -32,9 +32,12 @@ func FetchPersonalRecordsTimelineByActivityTypeAndYear(year *int, metric *string
 		return []business.PersonalRecordTimelineEntry{}
 	}
 
-	sort.Slice(filteredActivities, func(i, j int) bool {
-		left := filteredActivities[i]
-		right := filteredActivities[j]
+	// Work on a local copy so timeline sorting cannot mutate shared slices.
+	activitiesForTimeline := append([]*strava.Activity(nil), filteredActivities...)
+
+	sort.Slice(activitiesForTimeline, func(i, j int) bool {
+		left := activitiesForTimeline[i]
+		right := activitiesForTimeline[j]
 
 		leftDay := helpers.FirstNonEmpty(helpers.ExtractSortableDay(left.StartDateLocal), helpers.ExtractSortableDay(left.StartDate))
 		rightDay := helpers.FirstNonEmpty(helpers.ExtractSortableDay(right.StartDateLocal), helpers.ExtractSortableDay(right.StartDate))
@@ -68,7 +71,7 @@ func FetchPersonalRecordsTimelineByActivityTypeAndYear(year *int, metric *string
 	timeline := make([]business.PersonalRecordTimelineEntry, 0)
 	for _, definition := range selectedMetrics {
 		var bestEffort *business.ActivityEffort
-		for _, activity := range filteredActivities {
+		for _, activity := range activitiesForTimeline {
 			effort := definition.effortExtractor(activity)
 			if effort == nil {
 				continue
@@ -79,7 +82,7 @@ func FetchPersonalRecordsTimelineByActivityTypeAndYear(year *int, metric *string
 				entry := business.PersonalRecordTimelineEntry{
 					MetricKey:    definition.key,
 					MetricLabel:  definition.label,
-					ActivityDate: activity.StartDateLocal,
+					ActivityDate: helpers.FirstNonEmpty(activity.StartDateLocal, activity.StartDate),
 					Value:        definition.valueFormatter(effort),
 					Activity:     effort.ActivityShort,
 				}

@@ -5,6 +5,7 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import me.nicolas.stravastats.adapters.localrepositories.strava.StravaRepository
 import me.nicolas.stravastats.adapters.strava.StravaApi
+import me.nicolas.stravastats.adapters.strava.StravaRateLimitException
 import me.nicolas.stravastats.domain.business.HeartRateZoneSettings
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
@@ -280,9 +281,14 @@ class StravaActivityProvider(
     }
 
     // Retrieves activities from Strava API
-    private fun retrieveActivitiesFromApi(year: Int): List<StravaActivity> {
+    private fun retrieveActivitiesFromApi(year: Int, failFastOnRateLimit: Boolean = false): List<StravaActivity> {
         val api = stravaApi ?: createStravaApiIfNeeded() ?: return emptyList()
-        return api.getActivities(year).filterByActivityTypes()
+        val activities = if (failFastOnRateLimit) {
+            api.getActivitiesFailFastOnRateLimit(year)
+        } else {
+            api.getActivities(year)
+        }
+        return activities.filterByActivityTypes()
     }
 
     // Saves activities to cache
@@ -323,30 +329,43 @@ class StravaActivityProvider(
         }
     }
 
-    private suspend fun refreshCurrentYearActivitiesInBackground(currentYear: Int) {
-        val refreshedActivities = retrieveActivitiesFromApi(currentYear)
-        if (refreshedActivities.isEmpty()) {
-            logger.info("No current-year updates received from Strava for $currentYear")
-            return
+    private suspend fun refreshAllYearsActivitiesInBackground(startYear: Int): Boolean {
+        for (year in startYear downTo 2010) {
+            val refreshedActivities = try {
+                retrieveActivitiesFromApi(year, failFastOnRateLimit = true)
+            } catch (_: StravaRateLimitException) {
+                logger.warn("Background refresh stopped at year {} due to Strava rate limit", year)
+                return true
+            } catch (exception: Exception) {
+                logger.error("Background refresh failed for year $year", exception)
+                continue
+            }
+
+            saveActivitiesToCache(year, refreshedActivities)
+            if (refreshedActivities.isNotEmpty()) {
+                loadMissingStreamsFromCache(year, refreshedActivities)
+                loadMissingStreamsFromApi(year, refreshedActivities)
+            }
+            streamIdsCache.remove(year)
+
+            val mergedActivities = activities
+                .filterNot { activity -> activity.startDateLocal.take(4).toIntOrNull() == year }
+                .plus(refreshedActivities)
+                .sortedBy { activity -> activity.startDateLocal }
+
+            activities = mergedActivities
+
+            // Invalidate best-effort cache so refreshed activities are reflected in statistics
+            BestEffortCache.clear()
+
+            logger.info(
+                "Background refresh merged year {} activities ({} total activities in memory)",
+                year,
+                activities.size
+            )
         }
 
-        saveActivitiesToCache(currentYear, refreshedActivities)
-        loadMissingStreamsFromCache(currentYear, refreshedActivities)
-        loadMissingStreamsFromApi(currentYear, refreshedActivities)
-        streamIdsCache.remove(currentYear)
-
-        val existingActivities = activities
-        val mergedActivities = existingActivities
-            .filterNot { activity -> activity.startDateLocal.take(4).toIntOrNull() == currentYear }
-            .plus(refreshedActivities)
-            .sortedBy { activity -> activity.startDateLocal }
-
-        activities = mergedActivities
-
-        // Invalidate best-effort cache so refreshed activities are reflected in statistics
-        BestEffortCache.clear()
-
-        logger.info("Background refresh merged current-year activities: {} total activities in memory", activities.size)
+        return false
     }
 
     private suspend fun backfillMissingStreamsInBackground() = coroutineScope {
@@ -381,8 +400,12 @@ class StravaActivityProvider(
                 stravaAthlete = retrieveLoggedInAthlete()
 
                 val currentYear = LocalDate.now().year
-                refreshCurrentYearActivitiesInBackground(currentYear)
-                backfillMissingStreamsInBackground()
+                val stoppedByRateLimit = refreshAllYearsActivitiesInBackground(currentYear)
+                if (stoppedByRateLimit) {
+                    logger.info("Background data refresh stopped early due to Strava rate limit")
+                } else {
+                    backfillMissingStreamsInBackground()
+                }
 
                 logger.info("Background data refresh completed")
             } catch (exception: Exception) {

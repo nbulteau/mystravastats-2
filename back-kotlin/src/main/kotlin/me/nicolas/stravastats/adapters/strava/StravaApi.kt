@@ -38,6 +38,7 @@ import java.util.*
 import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.atomic.AtomicLong
 
+internal class StravaRateLimitException(message: String) : RuntimeException(message)
 
 internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
 
@@ -85,7 +86,20 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
         try {
             return doGetActivities(
                 before = LocalDateTime.of(year + 1, 1, 1, 0, 0),
-                after = LocalDateTime.of(year, 1, 1, 0, 0)
+                after = LocalDateTime.of(year, 1, 1, 0, 0),
+                failFastOnRateLimit = false
+            )
+        } catch (connectException: ConnectException) {
+            throw RuntimeException("Unable to connect to Strava API : ${connectException.message}")
+        }
+    }
+
+    override fun getActivitiesFailFastOnRateLimit(year: Int): List<StravaActivity> {
+        try {
+            return doGetActivities(
+                before = LocalDateTime.of(year + 1, 1, 1, 0, 0),
+                after = LocalDateTime.of(year, 1, 1, 0, 0),
+                failFastOnRateLimit = true
             )
         } catch (connectException: ConnectException) {
             throw RuntimeException("Unable to connect to Strava API : ${connectException.message}")
@@ -155,7 +169,11 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
         }
     }
 
-    private fun doGetActivities(before: LocalDateTime? = null, after: LocalDateTime): List<StravaActivity> {
+    private fun doGetActivities(
+        before: LocalDateTime? = null,
+        after: LocalDateTime,
+        failFastOnRateLimit: Boolean = false
+    ): List<StravaActivity> {
 
         val activities = mutableListOf<StravaActivity>()
         var page = 1
@@ -172,7 +190,8 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
             val response = executeRequestWithRetry(
                 requestBuilder = { Request.Builder().url(requestUrl).headers(requestHeaders).build() },
                 operationName = "retrieve activities page=$page",
-                maxAttempts = 6
+                maxAttempts = 6,
+                failFastOnRateLimit = failFastOnRateLimit
             ) ?: break
 
             val result: List<StravaActivity>
@@ -418,6 +437,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
         requestBuilder: () -> Request,
         operationName: String,
         maxAttempts: Int,
+        failFastOnRateLimit: Boolean = false,
     ): okhttp3.Response? {
         var attempt = 1
         var backoffMs = 1_000L
@@ -425,6 +445,11 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
 
         while (attempt <= maxAttempts) {
             if (!waitForGlobalRateLimitWindow(operationName)) {
+                if (failFastOnRateLimit) {
+                    throw StravaRateLimitException(
+                        "strava rate limit reached (cooldown active) during '$operationName'"
+                    )
+                }
                 return null
             }
 
@@ -439,6 +464,10 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
             val retryDelayMs = maxOf(retryAfterDelayMs, headerBasedDelayMs ?: 0L)
             response.close()
             pushGlobalRateLimit(retryDelayMs, "429 during '$operationName'")
+
+            if (failFastOnRateLimit) {
+                throw StravaRateLimitException("strava rate limit reached (429) during '$operationName'")
+            }
 
             if (retryDelayMs > MAX_BLOCKING_WAIT_MS) {
                 logger.warn(
