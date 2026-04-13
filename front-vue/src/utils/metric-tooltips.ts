@@ -64,6 +64,26 @@ const exactMetricTooltips: Record<string, string> = {
     "Month with the highest number of activities in the selected period.",
   "Eddington number":
     "Largest number E such that you have at least E days with distance greater than or equal to E.",
+  "Heatmap Advanced Insights":
+    "Advanced interpretation layer on top of daily heatmap data: consistency, streaks, weekly momentum, weekday signature, top days, activity mix, and best week.",
+  "Heatmap Consistency":
+    "Share of days with at least one activity in the considered period: active days / days in scope.",
+  "Heatmap Longest Streak":
+    "Longest run of consecutive active days.",
+  "Heatmap Longest Break":
+    "Longest run of consecutive inactive days in the same period.",
+  "Heatmap Average Active Day":
+    "Average selected metric value computed only across active days.",
+  "Heatmap Weekly Momentum":
+    "Difference between the recent weekly average and the previous weekly average for the selected metric.",
+  "Heatmap Weekday Signature":
+    "Distribution of the selected metric by weekday, useful to identify recurring training patterns.",
+  "Heatmap Top Days":
+    "Top individual calendar days ranked by the selected metric value.",
+  "Heatmap Activity Mix":
+    "Breakdown of activity types recorded in the selected period.",
+  "Heatmap Best Week":
+    "Best calendar week for the selected metric, with active days and activity count.",
 };
 
 const patternMetricTooltips: Array<{ pattern: RegExp; tooltip: string }> = [

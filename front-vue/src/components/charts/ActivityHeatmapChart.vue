@@ -2,7 +2,9 @@
 import { computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { Chart } from "highcharts-vue";
+import TooltipHint from "@/components/TooltipHint.vue";
 import { formatTime } from "@/utils/formatters";
+import { getMetricTooltip } from "@/utils/metric-tooltips";
 import iconRide from "@/assets/buttons/road-bike.png";
 import iconMountainBikeRide from "@/assets/buttons/mountain-bike.png";
 import iconCommute from "@/assets/buttons/city-bike.png";
@@ -447,6 +449,7 @@ const currentYearDayEntries = computed<DayInsightEntry[]>(() => {
         activityCount: dayData.activityCount ?? 0,
       };
     })
+    .filter((entry) => entry.activityCount > 0)
     .filter((entry) => !Number.isNaN(entry.date.getTime()))
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 });
@@ -898,6 +901,7 @@ const chartOptions = computed((): any => ({
         <div class="advanced-panel__header">
           <div class="advanced-panel__title">
             Advanced insights
+            <TooltipHint :text="getMetricTooltip('Heatmap Advanced Insights') ?? ''" />
             <span class="advanced-panel__subtitle">
               {{ selectedMetricMeta.label }} focused insights for {{ displayYear }}
             </span>
@@ -906,7 +910,10 @@ const chartOptions = computed((): any => ({
 
         <div class="advanced-kpis">
           <article class="advanced-kpi">
-            <div class="advanced-kpi__label">Consistency</div>
+            <div class="advanced-kpi__label">
+              Consistency
+              <TooltipHint :text="getMetricTooltip('Heatmap Consistency') ?? ''" />
+            </div>
             <div class="advanced-kpi__value">
               {{ advancedInsights.consistency.toFixed(1) }}%
             </div>
@@ -915,12 +922,21 @@ const chartOptions = computed((): any => ({
             </div>
           </article>
           <article class="advanced-kpi">
-            <div class="advanced-kpi__label">Longest streak</div>
+            <div class="advanced-kpi__label">
+              Longest streak
+              <TooltipHint :text="getMetricTooltip('Heatmap Longest Streak') ?? ''" />
+            </div>
             <div class="advanced-kpi__value">{{ advancedInsights.longestStreak }} days</div>
-            <div class="advanced-kpi__meta">Longest break: {{ advancedInsights.longestBreak }} days</div>
+            <div class="advanced-kpi__meta">
+              Longest break: {{ advancedInsights.longestBreak }} days
+              <TooltipHint :text="getMetricTooltip('Heatmap Longest Break') ?? ''" />
+            </div>
           </article>
           <article class="advanced-kpi">
-            <div class="advanced-kpi__label">Average active day</div>
+            <div class="advanced-kpi__label">
+              Average active day
+              <TooltipHint :text="getMetricTooltip('Heatmap Average Active Day') ?? ''" />
+            </div>
             <div class="advanced-kpi__value">
               {{ formatMetric(advancedInsights.avgPerActiveDay, selectedMetric) }}
             </div>
@@ -935,7 +951,10 @@ const chartOptions = computed((): any => ({
             </div>
           </article>
           <article class="advanced-kpi">
-            <div class="advanced-kpi__label">Weekly momentum</div>
+            <div class="advanced-kpi__label">
+              Weekly momentum
+              <TooltipHint :text="getMetricTooltip('Heatmap Weekly Momentum') ?? ''" />
+            </div>
             <div
               class="advanced-kpi__value"
               :class="advancedInsights.momentum ? deltaClass(advancedInsights.momentum.delta) : 'comparison-table__delta--flat'"
@@ -961,7 +980,10 @@ const chartOptions = computed((): any => ({
 
         <div class="advanced-grid">
           <section class="advanced-card">
-            <h4 class="advanced-card__title">Weekday signature</h4>
+            <h4 class="advanced-card__title">
+              Weekday signature
+              <TooltipHint :text="getMetricTooltip('Heatmap Weekday Signature') ?? ''" />
+            </h4>
             <div class="weekday-bars">
               <div v-for="row in advancedInsights.weekdayBuckets" :key="row.label" class="weekday-row">
                 <span class="weekday-row__label">{{ row.label }}</span>
@@ -974,7 +996,10 @@ const chartOptions = computed((): any => ({
           </section>
 
           <section class="advanced-card">
-            <h4 class="advanced-card__title">Top days</h4>
+            <h4 class="advanced-card__title">
+              Top days
+              <TooltipHint :text="getMetricTooltip('Heatmap Top Days') ?? ''" />
+            </h4>
             <div v-if="advancedInsights.peakDays.length === 0" class="advanced-card__empty">
               No activity day found.
             </div>
@@ -988,7 +1013,10 @@ const chartOptions = computed((): any => ({
           </section>
 
           <section class="advanced-card">
-            <h4 class="advanced-card__title">Activity mix</h4>
+            <h4 class="advanced-card__title">
+              Activity mix
+              <TooltipHint :text="getMetricTooltip('Heatmap Activity Mix') ?? ''" />
+            </h4>
             <div v-if="advancedInsights.typeRows.length === 0" class="advanced-card__empty">
               No activity types found.
             </div>
@@ -1008,7 +1036,10 @@ const chartOptions = computed((): any => ({
           </section>
 
           <section class="advanced-card">
-            <h4 class="advanced-card__title">Best week</h4>
+            <h4 class="advanced-card__title">
+              Best week
+              <TooltipHint :text="getMetricTooltip('Heatmap Best Week') ?? ''" />
+            </h4>
             <div v-if="advancedInsights.bestWeek" class="best-week">
               <div class="best-week__value">
                 {{ formatMetric(advancedInsights.bestWeek.metricTotal, selectedMetric) }}
