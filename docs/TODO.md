@@ -2,7 +2,7 @@
 
 ### Améliorations techniques
 
-#### 1. Fragmentation du store Pinia monolithique
+#### Fragmentation du store Pinia monolithique
 
 Le fichier `front-vue/src/stores/context.ts` (269 lignes) est un *god store* qui concentre l'intégralité de l'état applicatif : statistiques, activités, graphiques, carte, badges, dashboard, zones de fréquence cardiaque et gestion des toasts.
 
@@ -16,7 +16,7 @@ Découper `context.ts` en stores domaine indépendants : `useAthleteStore`, `use
 
 ---
 
-#### 2. Persistance du `BestEffortCache` entre les redémarrages
+#### Persistance du `BestEffortCache` entre les redémarrages
 
 La classe `BestEffortCache` (`domain/services/statistics/BestEffortCache.kt`) est un `ConcurrentHashMap` purement en mémoire, vidé à chaque arrêt de l'application.
 
@@ -30,7 +30,7 @@ Sérialiser le cache sur disque dans le répertoire `strava-cache` (format JSON 
 
 ---
 
-#### 3. Couverture de tests insuffisante sur les algorithmes de calcul
+#### Couverture de tests insuffisante sur les algorithmes de calcul
 
 L'arborescence `src/test/` est très peu peuplée au regard de la complexité des algorithmes exposés (nombre d'Eddington, fenêtre glissante pour les best efforts, calcul du gradient optimal, timeline des records personnels).
 
@@ -46,7 +46,7 @@ Créer un module de tests unitaires dédié aux statistiques avec des jeux de do
 
 ### Améliorations fonctionnelles
 
-#### 1. Analyse de la charge d'entraînement (Training Load)
+#### Analyse de la charge d'entraînement (Training Load)
 
 Actuellement, l'application calcule des métriques d'effort ponctuel (best efforts, records) mais ne propose pas de vision longitudinale de la charge d'entraînement cumulée.
 
@@ -55,7 +55,7 @@ Ajouter un indicateur de charge hebdomadaire et mensuelle inspiré du modèle CT
 
 ---
 
-#### 2. Objectifs annuels et projections de fin d'année
+#### Objectifs annuels et projections de fin d'année
 
 L'application affiche l'historique des performances mais ne permet pas à l'athlète de se fixer des objectifs et de visualiser sa progression vers ceux-ci.
 
@@ -69,7 +69,7 @@ Les objectifs seraient persistés dans le répertoire `strava-cache` (fichier JS
 
 ---
 
-#### 3. Comparaison de deux périodes ou de deux athlètes
+#### Comparaison de deux périodes ou de deux athlètes
 
 L'application est centrée sur un seul athlète et une seule année à la fois. Il n'est pas possible de comparer directement deux saisons ou deux pratiquants partageant le même serveur.
 
@@ -82,7 +82,7 @@ L'application est centrée sur un seul athlète et une seule année à la fois. 
 
 ### Améliorations techniques
 
-#### 1. Contrat API typé et génération de clients partagés
+#### Contrat API typé et génération de clients partagés
 
 **Contexte / problème :**
 Le frontend Vue et les backends exposent de nombreuses routes `/api/...` avec des DTO qui évoluent dans le temps. Sans contrat unifié, les régressions de schéma (champ renommé, nullable inattendu, enum modifiée) sont détectées tardivement côté UI.
@@ -98,7 +98,7 @@ Moins d'erreurs d'intégration frontend/backend, meilleure robustesse lors des r
 
 ---
 
-#### 2. Warmup de cache piloté par priorité et résumés pré-calculés
+#### Warmup de cache piloté par priorité et résumés pré-calculés
 
 **Contexte / problème :**
 La première utilisation après import Strava peut rester lente : certaines vues critiques (statistiques globales, dashboard annuel) attendent des calculs coûteux et des streams encore froids.
@@ -115,7 +115,7 @@ Temps de réponse perçu plus stable, navigation initiale plus fluide, et baisse
 
 ---
 
-#### 3. Observabilité applicative et diagnostics guidés
+#### Observabilité applicative et diagnostics guidés
 
 **Contexte / problème :**
 Les problèmes OAuth, rate limits Strava et incohérences de cache sont documentés, mais le diagnostic dépend encore fortement de l'inspection manuelle des logs et des fichiers.
@@ -133,7 +133,7 @@ Réduction du temps de support, débogage plus rapide en local/Docker, et meille
 
 ### Améliorations fonctionnelles
 
-#### 1. Plan d'entraînement adaptatif basé sur l'historique réel
+#### Plan d'entraînement adaptatif basé sur l'historique réel
 
 **Contexte / problème :**
 Les statistiques actuelles décrivent bien le passé, mais proposent peu d'aide prescriptive pour la suite (quoi faire cette semaine pour progresser sans surcharger).
@@ -146,24 +146,7 @@ Passage d'une app descriptive à une app d'aide à la décision, avec un usage p
 
 ---
 
-#### 2. Détection d'anomalies de performance et d'adhérence
-
-**Contexte / problème :**
-Quand la performance baisse ou que la routine change (forte chute de volume, dérive cardiaque inhabituelle), l'utilisateur doit aujourd'hui le détecter lui-même via les graphiques.
-
-**Proposition concrète :**
-Ajouter des alertes non bloquantes dans *Dashboard* :
-- baisse anormale de distance/temps sur 3 à 6 semaines,
-- hausse du ratio "hard" sans récupération,
-- rupture de régularité par rapport aux habitudes historiques.
-Chaque alerte inclut une explication courte et une vue détaillée liée.
-
-**Valeur attendue :**
-Détection précoce des phases de fatigue ou de démotivation, avec des insights actionnables plutôt qu'une simple visualisation passive.
-
----
-
-#### 3. Explorateur d'itinéraires personnels et recommandations de sorties
+#### Explorateur d'itinéraires personnels et recommandations de sorties
 
 **Contexte / problème :**
 La carte affiche les activités, mais l'application n'exploite pas encore pleinement l'historique pour suggérer des parcours pertinents selon les préférences de l'athlète.
@@ -184,7 +167,7 @@ Expérience plus orientée usage terrain, meilleure réutilisation des données 
 
 ### Améliorations techniques
 
-#### 1. Migration vers une base de données embarquée pour le cache
+#### Migration vers une base de données embarquée pour le cache
 
 **Contexte / problème :**
 Le cache actuel est basé sur des fichiers JSON et des fichiers bruts dans le répertoire `strava-cache`. Cette approche, bien que simple, présente des limites en termes de performance sur les requêtes complexes, de concurrence d'accès et de cohérence des données, notamment pour des calculs transversaux comme les "best efforts" ou les statistiques agrégées.
@@ -202,7 +185,7 @@ Remplacer le cache basé sur des fichiers par une base de données embarquée l�
 
 ---
 
-#### 2. Modularisation du backend Kotlin par fonctionnalité
+#### Modularisation du backend Kotlin par fonctionnalité
 
 **Contexte / problème :**
 Le backend Kotlin, bien que structuré en couches (contrôleurs, services, adaptateurs), reste un module monolithique. À mesure que de nouvelles fonctionnalités sont ajoutées (badges, analyse de la fréquence cardiaque, etc.), la complexité du module principal augmente, ce qui peut rendre la maintenance et les tests plus difficiles.
@@ -224,7 +207,7 @@ Diviser le projet `back-kotlin` en modules Gradle distincts, alignés sur les do
 
 ---
 
-#### 3. Mise en place d'un "Design System" partagé pour le frontend
+#### Mise en place d'un "Design System" partagé pour le frontend
 
 **Contexte / problème :**
 Le frontend Vue est composé de nombreuses vues et composants. Sans un système de design formalisé, il y a un risque d'incohérence visuelle (couleurs, espacements, typographie) et de duplication de code pour des éléments d'interface utilisateur similaires.
@@ -245,25 +228,7 @@ Créer un "Design System" ou une bibliothèque de composants d'interface utilisa
 
 ### Améliorations fonctionnelles
 
-#### 1. Analyse et suivi du matériel (chaussures, vélos)
-
-**Contexte / problème :**
-Les athlètes utilisent différents équipements (plusieurs paires de chaussures pour la course, différents vélos pour la route ou le VTT) qui ont une durée de vie limitée. L'application ne permet pas de suivre l'usure de cet équipement.
-
-**Proposition concrète :**
-Ajouter une section "Matériel" permettant à l'utilisateur de :
-- **Enregistrer son équipement :** Ajouter des vélos, des chaussures, etc., en spécifiant un nom, une marque, un modèle et une distance d'alerte (ex: 800 km pour des chaussures).
-- **Associer l'équipement aux activités :** Permettre d'associer une ou plusieurs pièces d'équipement à chaque activité (possiblement en récupérant l'information de Strava si elle existe).
-- **Visualiser l'usure :** Afficher un tableau de bord montrant la distance totale parcourue avec chaque équipement, une barre de progression par rapport à la distance d'alerte, et des alertes visuelles lorsque l'équipement approche de sa fin de vie.
-
-**Valeur attendue :**
-- **Utilitaire pratique :** Aide l'athlète à gérer la rotation de son matériel et à prévenir les blessures ou les pannes liées à l'usure.
-- **Engagement :** Ajoute une raison supplémentaire d'utiliser l'application régulièrement pour maintenir les données à jour.
-- **Exploitation des données :** Utilise les données d'activité existantes pour fournir une nouvelle perspective analytique.
-
----
-
-#### 2. Analyse de la performance en côte (segments)
+#### Analyse de la performance en côte (segments)
 
 **Contexte / problème :**
 L'application calcule des statistiques de dénivelé et des "famous climbs", mais ne fournit pas une analyse détaillée des performances répétées sur les mêmes côtes, ce qui est un aspect clé de l'entraînement pour de nombreux cyclistes et coureurs.
@@ -281,20 +246,3 @@ Créer une vue "Analyse de segments" qui :
 - **Valorisation des données GPS :** Exploite plus en profondeur les données de streams GPS déjà présentes dans le cache.
 
 ---
-
-#### 3. Tableau de bord de la santé et de la récupération
-
-**Contexte / problème :**
-L'application se concentre sur les métriques de performance (vitesse, distance, puissance), mais offre peu d'indicateurs sur l'état de forme, la fatigue ou la récupération de l'athlète, qui sont cruciaux pour un entraînement durable.
-
-**Proposition concrète :**
-Ajouter un "Tableau de bord Santé" qui synthétise des indicateurs de récupération et de charge.
-- **Fréquence cardiaque au repos :** Permettre à l'utilisateur de saisir manuellement sa fréquence cardiaque au repos chaque matin. Un graphique montrerait la tendance, une hausse pouvant indiquer une fatigue.
-- **Variabilité de la fréquence cardiaque (VFC/HRV) :** Si l'utilisateur enregistre cette donnée avec un autre appareil, permettre son importation ou sa saisie manuelle.
-- **Qualité du sommeil :** Permettre la saisie manuelle de la durée et de la qualité perçue du sommeil.
-- **Corrélation :** Mettre en perspective ces indicateurs avec la charge d'entraînement (calculée via le CTL/ATL/TSB proposé par ailleurs) pour aider l'athlète à corréler sa récupération avec ses efforts.
-
-**Valeur attendue :**
-- **Vision holistique de l'entraînement :** Passe d'une simple analyse de performance à un outil d'aide à la gestion de l'équilibre entre entraînement et récupération.
-- **Prévention du surentraînement :** Fournit des signaux d'alerte précoces en cas de fatigue accumulée.
-- **Responsabilisation de l'athlète :** Encourage l'utilisateur à être plus à l'écoute de son corps.
