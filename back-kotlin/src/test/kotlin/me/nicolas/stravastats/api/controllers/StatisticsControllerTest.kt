@@ -45,7 +45,7 @@ class StatisticsControllerTest {
 
         // WHEN
         mockMvc.perform(
-            get("/statistics")
+            get("/api/statistics")
                 .param("activityType", activityTypes.joinToString("_"))
                 .param("year", year.toString())
                 .accept(MediaType.APPLICATION_JSON)
@@ -69,7 +69,7 @@ class StatisticsControllerTest {
 
         // WHEN
         mockMvc.perform(
-            get("/statistics")
+            get("/api/statistics")
                 .param("activityType", activityTypes.joinToString("_"))
                 .accept(MediaType.APPLICATION_JSON)
         )
@@ -87,7 +87,7 @@ class StatisticsControllerTest {
 
         // WHEN
         mockMvc.perform(
-            get("/statistics")
+            get("/api/statistics")
                 .param("activityType", "BadActivityType")
                 .param("year", year.toString())
                 .accept(MediaType.APPLICATION_JSON)

@@ -36,7 +36,7 @@ class StravaAthleteControllerTest {
 
         // WHEN
         val result = mockMvc.perform(
-            get("/athletes/me")
+            get("/api/athletes/me")
                 .accept(MediaType.APPLICATION_JSON)
         )
 

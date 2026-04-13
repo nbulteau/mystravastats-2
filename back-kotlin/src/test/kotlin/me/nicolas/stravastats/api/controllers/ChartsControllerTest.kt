@@ -37,7 +37,7 @@ class ChartsControllerTest {
 
         // WHEN
         mockMvc.perform(
-            get("/charts/distance-by-period")
+            get("/api/charts/distance-by-period")
                 .param("activityType", activityTypes.joinToString("_"))
                 .param("year", year.toString())
                 .param("period", period.name)
@@ -60,7 +60,7 @@ class ChartsControllerTest {
 
         // WHEN
         mockMvc.perform(
-            get("/charts/distance-by-period")
+            get("/api/charts/distance-by-period")
                 .param("activityType", activityTypes.joinToString("_"))
                 .param("year", year.toString())
                 .param("period", period.name)
@@ -76,7 +76,7 @@ class ChartsControllerTest {
     fun `get distance by period returns bad request when activity type is invalid`() {
         // WHEN
         mockMvc.perform(
-            get("/charts/distance-by-period")
+            get("/api/charts/distance-by-period")
                 .param("activityType", "InvalidType")
                 .param("year", "2022")
                 .param("period", Period.MONTHS.name)
@@ -92,7 +92,7 @@ class ChartsControllerTest {
     fun `get distance by period returns bad request when year is invalid`() {
         // WHEN
         mockMvc.perform(
-            get("/charts/distance-by-period")
+            get("/api/charts/distance-by-period")
                 .param("activityType", ActivityType.Run.name)
                 .param("year", "invalidYear")
                 .param("period", Period.MONTHS.name)
@@ -108,7 +108,7 @@ class ChartsControllerTest {
     fun `get distance by period returns bad request when period is invalid`() {
         // WHEN
         mockMvc.perform(
-            get("/charts/distance-by-period")
+            get("/api/charts/distance-by-period")
                 .param("activityType", ActivityType.Run.name)
                 .param("year", "2022")
                 .param("period", "InvalidPeriod")
@@ -131,7 +131,7 @@ class ChartsControllerTest {
 
         // WHEN
         mockMvc.perform(
-            get("/charts/elevation-by-period")
+            get("/api/charts/elevation-by-period")
                 .param("activityType", activityTypes.joinToString("_"))
                 .param("year", year.toString())
                 .param("period", period.name)
@@ -154,7 +154,7 @@ class ChartsControllerTest {
 
         // WHEN
         mockMvc.perform(
-            get("/charts/elevation-by-period")
+            get("/api/charts/elevation-by-period")
                 .param("activityType", activityTypes.joinToString("_"))
                 .param("year", year.toString())
                 .param("period", period.name)
@@ -170,7 +170,7 @@ class ChartsControllerTest {
     fun `get elevation by period returns bad request when activity type is invalid`() {
         // WHEN
         mockMvc.perform(
-            get("/charts/elevation-by-period")
+            get("/api/charts/elevation-by-period")
                 .param("activityType", "InvalidType")
                 .param("year", "2022")
                 .param("period", Period.MONTHS.name)
@@ -186,7 +186,7 @@ class ChartsControllerTest {
     fun `get elevation by period returns bad request when year is invalid`() {
         // WHEN
         mockMvc.perform(
-            get("/charts/elevation-by-period")
+            get("/api/charts/elevation-by-period")
                 .param("activityType", ActivityType.Run.name)
                 .param("year", "invalidYear")
                 .param("period", Period.MONTHS.name)
@@ -202,7 +202,7 @@ class ChartsControllerTest {
     fun `get elevation by period returns bad request when period is invalid`() {
         // WHEN
         mockMvc.perform(
-            get("/charts/elevation-by-period")
+            get("/api/charts/elevation-by-period")
                 .param("activityType", ActivityType.Run.name)
                 .param("year", "2022")
                 .param("period", "InvalidPeriod")

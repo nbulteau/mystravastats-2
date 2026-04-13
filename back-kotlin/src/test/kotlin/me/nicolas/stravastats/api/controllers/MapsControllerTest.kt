@@ -37,7 +37,7 @@ class MapsControllerTest{
 
         // WHEN
         mockMvc.perform(
-            get("/maps/gpx")
+            get("/api/maps/gpx")
                 .param("activityType", activityTypes.joinToString("_"))
                 .param("year", year.toString())
                 .accept(MediaType.APPLICATION_JSON)
@@ -58,7 +58,7 @@ class MapsControllerTest{
 
         // WHEN
         mockMvc.perform(
-            get("/maps/gpx")
+            get("/api/maps/gpx")
                 .param("activityType", activityTypes.joinToString("_"))
                 .param("year", year.toString())
                 .accept(MediaType.APPLICATION_JSON)
@@ -73,7 +73,7 @@ class MapsControllerTest{
     fun `get GPX returns bad request when activity type is invalid`() {
         // WHEN
         mockMvc.perform(
-            get("/maps/gpx")
+            get("/api/maps/gpx")
                 .param("activityType", "InvalidType")
                 .param("year", "2022")
                 .accept(MediaType.APPLICATION_JSON)
@@ -88,7 +88,7 @@ class MapsControllerTest{
     fun `get GPX returns bad request when year is invalid`() {
         // WHEN
         mockMvc.perform(
-            get("/maps/gpx")
+            get("/api/maps/gpx")
                 .param("activityType", ActivityType.Run.name)
                 .param("year", "invalidYear")
                 .accept(MediaType.APPLICATION_JSON)

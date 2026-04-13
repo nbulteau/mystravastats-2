@@ -44,7 +44,7 @@ class ActivitiesControllerTest {
 
         // WHEN
         mockMvc.perform(
-            get("/activities/by-page")
+            get("/api/activities/by-page")
                 .param("page", "0")
                 .param("size", "10")
                 .param("sort", "averageSpeed")
@@ -65,7 +65,7 @@ class ActivitiesControllerTest {
 
         // WHEN
         mockMvc.perform(
-            get("/activities/by-page")
+            get("/api/activities/by-page")
                 .param("page", "10")
                 .param("size", "10")
                 .param("sort", "averageSpeed")
@@ -82,7 +82,7 @@ class ActivitiesControllerTest {
 
         // WHEN
         mockMvc.perform(
-            get("/activities/by-page")
+            get("/api/activities/by-page")
                 .param("page", "0")
                 .param("size", "10")
                 .param("sort", "invalidProperty")
@@ -103,7 +103,7 @@ class ActivitiesControllerTest {
 
         // WHEN
         mockMvc.perform(
-            get("/activities/active-days")
+            get("/api/activities/active-days")
                 .param("activityType", activityTypes.joinToString("_") { activityType -> activityType.name })
                 .accept(MediaType.APPLICATION_JSON)
         )
@@ -122,7 +122,7 @@ class ActivitiesControllerTest {
 
         // WHEN
         mockMvc.perform(
-            get("/activities/active-days")
+            get("/api/activities/active-days")
                 .param("activityType", activityTypes.joinToString("_") { activityType -> activityType.name })
                 .accept(MediaType.APPLICATION_JSON)
         )
@@ -136,7 +136,7 @@ class ActivitiesControllerTest {
     fun `get activities by activity type returns bad request when activity type is invalid`() {
         // WHEN
         mockMvc.perform(
-            get("/activities/active-days")
+            get("/api/activities/active-days")
                 .param("activityType", "InvalidType")
                 .accept(MediaType.APPLICATION_JSON)
         )

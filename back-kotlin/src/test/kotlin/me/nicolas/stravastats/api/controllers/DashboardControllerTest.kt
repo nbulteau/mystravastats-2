@@ -43,7 +43,7 @@ class DashboardControllerTest{
 
         // WHEN
         mockMvc.perform(
-            get("/dashboard/cumulative-data-per-year")
+            get("/api/dashboard/cumulative-data-per-year")
                 .param("activityType", activityTypes.joinToString("_"))
                 .accept(MediaType.APPLICATION_JSON)
         )
@@ -66,7 +66,7 @@ class DashboardControllerTest{
 
         // WHEN
         mockMvc.perform(
-            get("/dashboard/cumulative-data-per-year")
+            get("/api/dashboard/cumulative-data-per-year")
                 .param("activityType", activityTypes.joinToString("_"))
                 .accept(MediaType.APPLICATION_JSON)
         )
@@ -82,7 +82,7 @@ class DashboardControllerTest{
     fun `get cumulative distance per year returns bad request when activity type is invalid`() {
         // WHEN
         mockMvc.perform(
-            get("/dashboard/cumulative-data-per-year")
+            get("/api/dashboard/cumulative-data-per-year")
                 .param("activityType", "InvalidType")
                 .accept(MediaType.APPLICATION_JSON)
         )

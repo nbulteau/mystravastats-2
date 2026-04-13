@@ -55,7 +55,7 @@ class BadgesControllerTest {
 
         // WHEN
         mockMvc.perform(
-            get("/badges")
+            get("/api/badges")
                 .param("activityType", activityTypes.joinToString("_"))
                 .param("year", year.toString())
                 .param("badgeSet", BadgeSetEnum.GENERAL.name)
@@ -96,7 +96,7 @@ class BadgesControllerTest {
 
         // WHEN
         mockMvc.perform(
-            get("/badges")
+            get("/api/badges")
                 .param("activityType", activityTypes.joinToString("_"))
                 .param("year", year.toString())
                 .param("badgeSet", BadgeSetEnum.FAMOUS.name)
