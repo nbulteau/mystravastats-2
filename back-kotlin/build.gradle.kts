@@ -41,9 +41,9 @@ dependencies {
     //developmentOnly("org.springframework.boot:spring-boot-devtools")
     //providedRuntime("org.springframework.boot:spring-boot-starter-tomcat")
 
-    implementation("tools.jackson.module:jackson-module-kotlin:3.1.1")
+    implementation("tools.jackson.module:jackson-module-kotlin:3.1.2")
 
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
 
 
     implementation("io.ktor:ktor-server-netty:3.4.2")
