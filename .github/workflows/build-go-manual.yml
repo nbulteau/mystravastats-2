@@ -1,0 +1,134 @@
+name: Build Go Binaries (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Target platform(s) to build"
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - ubuntu
+          - macos
+          - windows
+      verbose:
+        description: "Enable verbose logs"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  build_frontend:
+    name: Build front-vue
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: front-vue/package-lock.json
+
+      - name: Install front dependencies
+        working-directory: front-vue
+        run: npm ci
+
+      - name: Build front-vue
+        working-directory: front-vue
+        run: |
+          if [[ "${{ github.event.inputs.verbose }}" == "true" ]]; then
+            set -x
+          fi
+          VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build
+
+      - name: Upload front dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: front-vue-dist
+          path: front-vue/dist
+          if-no-files-found: error
+          retention-days: 7
+
+  build_go:
+    name: Build ${{ matrix.target }}
+    needs: build_frontend
+    if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: ubuntu
+            goos: linux
+            goarch: amd64
+            binary_name: mystravastats
+            output_name: mystravastats-linux-amd64
+          - target: macos
+            goos: darwin
+            goarch: arm64
+            binary_name: mystravastats
+            output_name: mystravastats-macos-arm64
+          - target: windows
+            goos: windows
+            goarch: amd64
+            binary_name: mystravastats.exe
+            output_name: mystravastats-windows-amd64.exe
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download front dist
+        uses: actions/download-artifact@v4
+        with:
+          name: front-vue-dist
+          path: front-vue/dist
+
+      - name: Inject front build into back-go/public
+        run: |
+          rm -rf back-go/public
+          mkdir -p back-go/public
+          cp -r front-vue/dist/* back-go/public/
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.25.5
+          cache-dependency-path: back-go/go.sum
+
+      - name: Build Go binary
+        working-directory: back-go
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          if [[ "${{ github.event.inputs.verbose }}" == "true" ]]; then
+            set -x
+            go env
+          fi
+          go build -buildvcs=false -o "../${{ matrix.binary_name }}"
+
+      - name: Package artifact
+        run: |
+          mkdir -p artifacts/${{ matrix.target }}
+          mv "${{ matrix.binary_name }}" "artifacts/${{ matrix.target }}/${{ matrix.output_name }}"
+          (
+            cd "artifacts/${{ matrix.target }}"
+            shasum -a 256 "${{ matrix.output_name }}" > "${{ matrix.output_name }}.sha256"
+          )
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.output_name }}
+          path: artifacts/${{ matrix.target }}
+          if-no-files-found: error
+          retention-days: 14
