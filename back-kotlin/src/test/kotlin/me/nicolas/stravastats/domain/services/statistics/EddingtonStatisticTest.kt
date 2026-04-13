@@ -1,12 +1,10 @@
 package me.nicolas.stravastats.domain.services.statistics
 
-import me.nicolas.stravastats.TestHelper
 import me.nicolas.stravastats.domain.business.strava.AthleteRef
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import java.time.LocalDate
 
 class EddingtonStatisticTest {
 
@@ -50,6 +48,22 @@ class EddingtonStatisticTest {
         // THEN
         assertEquals("1 km", eddingtonStatistic.value)
         assertEquals(listOf(1, 1, 1, 1, 1), eddingtonStatistic.nbDaysDistanceIsReached)
+    }
+
+    @Test
+    fun `should not round up when equality threshold is not met`() {
+        // 49 days at 51 km means Eddington is 49, not 50
+        val start = LocalDate.of(2024, 1, 1)
+        val activities = (0 until 49).map { dayOffset ->
+            createActivity(
+                startDateLocal = start.plusDays(dayOffset.toLong()).toString() + "T08:00:00Z",
+                distance = 51_000.0
+            )
+        }
+
+        val eddingtonStatistic = EddingtonStatistic(activities)
+
+        assertEquals("49 km", eddingtonStatistic.value)
     }
 
     private fun createTestActivities(): List<StravaActivity> {
