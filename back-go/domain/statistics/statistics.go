@@ -76,15 +76,20 @@ func formatSeconds(seconds int) string {
 }
 
 func averagePower(watts []float64, idxStart int, idxEnd int) *float64 {
-	if watts != nil && len(watts) > 0 {
-		sumPower := 0.0
-		for i := idxStart; i <= idxEnd; i++ {
-			sumPower += watts[i]
-		}
-		averagePower := sumPower / float64(idxEnd-idxStart+1)
-
-		return &averagePower
+	if watts == nil || len(watts) == 0 {
+		return nil
 	}
+	if idxStart < 0 || idxEnd < idxStart || idxStart >= len(watts) {
+		return nil
+	}
+	if idxEnd >= len(watts) {
+		idxEnd = len(watts) - 1
+	}
+	sumPower := 0.0
+	for i := idxStart; i <= idxEnd; i++ {
+		sumPower += watts[i]
+	}
+	averagePower := sumPower / float64(idxEnd-idxStart+1)
 
-	return nil
+	return &averagePower
 }

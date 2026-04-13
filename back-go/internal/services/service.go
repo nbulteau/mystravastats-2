@@ -5,10 +5,21 @@ import (
 	"mystravastats/domain/strava"
 	"mystravastats/internal/helpers"
 	"sort"
+	"sync"
 	"time"
 )
 
-var activityProvider = stravaapi.NewStravaActivityProvider(helpers.StravaCachePath)
+var (
+	activityProvider     *stravaapi.StravaActivityProvider
+	activityProviderOnce sync.Once
+)
+
+func getActivityProvider() *stravaapi.StravaActivityProvider {
+	activityProviderOnce.Do(func() {
+		activityProvider = stravaapi.NewStravaActivityProvider(helpers.StravaCachePath)
+	})
+	return activityProvider
+}
 
 // groupActivitiesByDay groups activities by day and fills in missing days
 func groupActivitiesByDay(activities []*strava.Activity, year int) map[string][]*strava.Activity {

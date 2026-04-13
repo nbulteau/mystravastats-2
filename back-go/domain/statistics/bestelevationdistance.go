@@ -73,10 +73,22 @@ func BestElevationForDistance(id int64, name, activityType string, stream *strav
 	distances := stream.Distance
 	times := stream.Time
 	altitudes := stream.Altitude
+	if len(distances.Data) == 0 || len(times.Data) == 0 || len(altitudes.Data) == 0 {
+		return nil
+	}
 
 	nonNullWatts := buildNonNullWatts(stream.Watts)
 
 	streamDataSize := len(distances.Data)
+	if len(times.Data) < streamDataSize {
+		streamDataSize = len(times.Data)
+	}
+	if len(altitudes.Data) < streamDataSize {
+		streamDataSize = len(altitudes.Data)
+	}
+	if streamDataSize < 2 {
+		return nil
+	}
 
 	for idxEnd < streamDataSize {
 		totalDistance := distances.Data[idxEnd] - distances.Data[idxStart]

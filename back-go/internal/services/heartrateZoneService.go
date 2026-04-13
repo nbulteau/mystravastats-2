@@ -11,8 +11,8 @@ var heartRateZoneCodes = []string{"Z1", "Z2", "Z3", "Z4", "Z5"}
 var heartRateZoneLabels = []string{"Recovery", "Endurance", "Tempo", "Threshold", "VO2 Max"}
 
 func FetchHeartRateZoneAnalysisByActivityTypeAndYear(year *int, activityTypes ...business.ActivityType) business.HeartRateZoneAnalysis {
-	settings := normalizeHeartRateZoneSettings(activityProvider.GetHeartRateZoneSettings())
-	activities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	settings := normalizeHeartRateZoneSettings(getActivityProvider().GetHeartRateZoneSettings())
+	activities := getActivityProvider().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
 	sort.Slice(activities, func(i, j int) bool {
 		return activities[i].StartDateLocal < activities[j].StartDateLocal
 	})

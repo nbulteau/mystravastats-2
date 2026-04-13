@@ -20,7 +20,7 @@ var pyrenees = loadBadgeSet("pyrenees", "strava-cache/famous-climb/pyrenees.json
 func GetGeneralBadges(year *int, activityTypes ...business.ActivityType) []business.BadgeCheckResult {
 	log.Printf("Checking general badges for %s in %v", activityTypes, year)
 
-	activities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	activities := getActivityProvider().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
 
 	// TODO: handle case multiple activity types
 	activityType := activityTypes[0]
@@ -47,7 +47,7 @@ func GetGeneralBadges(year *int, activityTypes ...business.ActivityType) []busin
 func GetFamousBadges(year *int, activityTypes ...business.ActivityType) []business.BadgeCheckResult {
 	log.Printf("Checking famous badges for %s in %v", activityTypes, year)
 
-	activities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	activities := getActivityProvider().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
 
 	activityType := activityTypes[0]
 

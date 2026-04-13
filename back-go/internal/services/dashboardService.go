@@ -16,7 +16,7 @@ import (
 func FetchEddingtonNumber(activityTypes ...business.ActivityType) business.EddingtonNumber {
 	log.Printf("Get Eddington number for activity type %s", activityTypes)
 
-	activitiesByActiveDays := activityProvider.GetActivitiesByActivityTypeGroupByActiveDays(activityTypes...)
+	activitiesByActiveDays := getActivityProvider().GetActivitiesByActivityTypeGroupByActiveDays(activityTypes...)
 
 	var eddingtonList []int
 	if len(activitiesByActiveDays) == 0 {
@@ -52,7 +52,7 @@ func FetchEddingtonNumber(activityTypes ...business.ActivityType) business.Eddin
 func GetCumulativeDistancePerYear(activityTypes ...business.ActivityType) map[string]map[string]float64 {
 	log.Printf("Get cumulative distance per year for activity type %s", activityTypes)
 
-	activitiesByYear := activityProvider.GetActivitiesByActivityTypeGroupByYear(activityTypes...)
+	activitiesByYear := getActivityProvider().GetActivitiesByActivityTypeGroupByYear(activityTypes...)
 
 	currentYear := time.Now().Year()
 	result := make(map[string]map[string]float64)
@@ -86,7 +86,7 @@ func calculateCumulativeDistance(activitiesByDay map[string][]*strava.Activity) 
 func GetCumulativeElevationPerYear(activityTypes ...business.ActivityType) map[string]map[string]float64 {
 	log.Printf("Get cumulative elevation per year for activity type %s", activityTypes)
 
-	activitiesByYear := activityProvider.GetActivitiesByActivityTypeGroupByYear(activityTypes...)
+	activitiesByYear := getActivityProvider().GetActivitiesByActivityTypeGroupByYear(activityTypes...)
 
 	result := make(map[string]map[string]float64)
 	currentYear := time.Now().Year()
@@ -117,7 +117,7 @@ func cumulativeElevation(activitiesByDay map[string][]*strava.Activity) map[stri
 func FetchDashboardData(activityTypes ...business.ActivityType) business.DashboardData {
 	log.Printf("Get dashboard data for activity type %s", activityTypes)
 
-	activitiesByYear := activityProvider.GetActivitiesByYearAndActivityTypes(nil, activityTypes...)
+	activitiesByYear := getActivityProvider().GetActivitiesByYearAndActivityTypes(nil, activityTypes...)
 
 	nbActivitiesByYear := make(map[string]int)
 	totalDistanceByYear := make(map[string]float64)
@@ -329,7 +329,7 @@ type ActivityHeatmapDay struct {
 func FetchActivityHeatmap(activityTypes ...business.ActivityType) map[string]map[string]ActivityHeatmapDay {
 	log.Printf("Get activity heatmap for activity type %s", activityTypes)
 
-	activitiesByYear := activityProvider.GetActivitiesByActivityTypeGroupByYear(activityTypes...)
+	activitiesByYear := getActivityProvider().GetActivitiesByActivityTypeGroupByYear(activityTypes...)
 	result := make(map[string]map[string]ActivityHeatmapDay)
 	currentYear := time.Now().Year()
 

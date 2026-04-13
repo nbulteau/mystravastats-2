@@ -27,7 +27,11 @@ func FetchPersonalRecordsTimelineByActivityTypeAndYear(year *int, metric *string
 		return []business.PersonalRecordTimelineEntry{}
 	}
 
-	filteredActivities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	filteredActivities := getActivityProvider().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	return buildPersonalRecordsTimeline(filteredActivities, metric, activityTypes)
+}
+
+func buildPersonalRecordsTimeline(filteredActivities []*strava.Activity, metric *string, activityTypes []business.ActivityType) []business.PersonalRecordTimelineEntry {
 	if len(filteredActivities) == 0 {
 		return []business.PersonalRecordTimelineEntry{}
 	}

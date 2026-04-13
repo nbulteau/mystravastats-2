@@ -3,6 +3,7 @@ package statistics
 import (
 	"mystravastats/domain/strava"
 	"testing"
+	"time"
 )
 
 func TestEddingtonStatistic_processEddingtonNumber(t *testing.T) {
@@ -89,5 +90,37 @@ func TestEddingtonStatistic_processEddingtonNumber(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestEddingtonStatistic_ExactEqualityDoesNotRoundUp(t *testing.T) {
+	start := time.Date(2024, time.January, 1, 6, 0, 0, 0, time.UTC)
+	activities := make([]*strava.Activity, 0, 49)
+	for i := 0; i < 49; i++ {
+		activities = append(activities, &strava.Activity{
+			StartDateLocal: start.AddDate(0, 0, i).Format(time.RFC3339),
+			Distance:       51000, // 51 km
+		})
+	}
+
+	stat := NewEddingtonStatistic(activities)
+
+	if stat.eddingtonNumber != 49 {
+		t.Fatalf("expected eddington number 49, got %d", stat.eddingtonNumber)
+	}
+}
+
+func TestEddingtonStatistic_IgnoresEmptyDatesAndSubKilometerDistances(t *testing.T) {
+	activities := []*strava.Activity{
+		{StartDateLocal: "2024-01-01T10:00:00Z", Distance: 2000},
+		{StartDateLocal: "", Distance: 5000},                       // ignored because date is empty
+		{StartDateLocal: "2024-01-02T10:00:00Z", Distance: 999.99}, // truncates to 0 km
+		{StartDateLocal: "2024-01-03T10:00:00Z", Distance: -1000},  // ignored (non-positive)
+	}
+
+	stat := NewEddingtonStatistic(activities)
+
+	if stat.eddingtonNumber != 1 {
+		t.Fatalf("expected eddington number 1, got %d", stat.eddingtonNumber)
 	}
 }

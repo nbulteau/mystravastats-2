@@ -74,10 +74,19 @@ func BestTimeForDistance(id int64, name, activityType string, stream *strava.Str
 	distances := stream.Distance.Data
 	times := stream.Time
 	altitudes := stream.Altitude
+	if len(distances) == 0 || len(times.Data) == 0 {
+		return nil
+	}
 
 	nonNullWatts := buildNonNullWatts(stream.Watts)
 
 	streamDataSize := len(distances)
+	if len(times.Data) < streamDataSize {
+		streamDataSize = len(times.Data)
+	}
+	if streamDataSize < 2 {
+		return nil
+	}
 
 	for idxEnd < streamDataSize {
 		totalDistance := distances[idxEnd] - distances[idxStart]

@@ -55,14 +55,14 @@ func FetchSegmentClimbProgressionByActivityTypeAndYear(
 		return emptySegmentClimbProgression(resolvedMetric, resolvedTargetType)
 	}
 
-	filteredActivities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	filteredActivities := getActivityProvider().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
 	if len(filteredActivities) == 0 && year != nil {
 		log.Printf(
 			"Segment progression fallback to all years: requestedYear=%v targetType=%s activities=0",
 			yearValueForLog(year),
 			resolvedTargetType,
 		)
-		filteredActivities = activityProvider.GetActivitiesByYearAndActivityTypes(nil, activityTypes...)
+		filteredActivities = getActivityProvider().GetActivitiesByYearAndActivityTypes(nil, activityTypes...)
 	}
 	sort.Slice(filteredActivities, func(i, j int) bool {
 		return filteredActivities[i].StartDateLocal < filteredActivities[j].StartDateLocal
@@ -76,9 +76,9 @@ func FetchSegmentClimbProgressionByActivityTypeAndYear(
 	detailedMissingCount := 0
 	totalCandidateEfforts := 0
 	for _, activity := range filteredActivities {
-		detailedActivity := activityProvider.GetCachedDetailedActivity(activity.Id)
+		detailedActivity := getActivityProvider().GetCachedDetailedActivity(activity.Id)
 		if detailedActivity == nil {
-			detailedActivity = activityProvider.GetDetailedActivity(activity.Id)
+			detailedActivity = getActivityProvider().GetDetailedActivity(activity.Id)
 		}
 		if detailedActivity == nil {
 			detailedMissingCount++

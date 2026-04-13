@@ -21,7 +21,7 @@ func FetchStatisticsByActivityTypeAndYear(year *int, activityTypes ...business.A
 		log.Printf("Compute statistics for %v for %v", activityTypes, *year)
 	}
 
-	filteredActivities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	filteredActivities := getActivityProvider().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
 
 	// If no activities are found, return an empty slice
 	if len(filteredActivities) == 0 {

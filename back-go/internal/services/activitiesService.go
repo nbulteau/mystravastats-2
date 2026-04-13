@@ -8,24 +8,24 @@ import (
 )
 
 func RetrieveActivitiesByYearAndActivityTypes(year *int, activityTypes ...business.ActivityType) []*strava.Activity {
-	return activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	return getActivityProvider().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
 }
 
 func FetchAthlete() strava.Athlete {
-	return activityProvider.GetAthlete()
+	return getActivityProvider().GetAthlete()
 }
 
 func FetchHeartRateZoneSettings() business.HeartRateZoneSettings {
-	return activityProvider.GetHeartRateZoneSettings()
+	return getActivityProvider().GetHeartRateZoneSettings()
 }
 
 func UpdateHeartRateZoneSettings(settings business.HeartRateZoneSettings) business.HeartRateZoneSettings {
-	return activityProvider.SaveHeartRateZoneSettings(settings)
+	return getActivityProvider().SaveHeartRateZoneSettings(settings)
 }
 
 func RetrieveGPXByYearAndActivityTypes(year *int, activityTypes ...business.ActivityType) [][][]float64 {
 
-	activities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	activities := getActivityProvider().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
 
 	step := 100
 	if year != nil {
@@ -53,7 +53,7 @@ func RetrieveGPXByYearAndActivityTypes(year *int, activityTypes ...business.Acti
 func RetrieveDetailedActivity(activityId int64) (*strava.DetailedActivity, error) {
 	log.Printf("Get detailed activity %d", activityId)
 
-	detailedActivity := activityProvider.GetDetailedActivity(activityId)
+	detailedActivity := getActivityProvider().GetDetailedActivity(activityId)
 	if detailedActivity == nil {
 		log.Printf("Activity %d not found", activityId)
 		return nil, fmt.Errorf("activity %d not found", activityId)

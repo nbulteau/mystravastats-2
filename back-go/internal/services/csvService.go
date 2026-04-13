@@ -17,7 +17,7 @@ func ExportCSV(year *int, activityTypes ...business.ActivityType) string {
 		log.Printf("Get export CSV by activity (%s) type by year (%d)", activityTypes, *year)
 	}
 
-	activities := activityProvider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	activities := getActivityProvider().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
 
 	switch activityTypes[0] {
 	case business.Ride, business.VirtualRide, business.MountainBikeRide, business.GravelRide, business.Commute:
