@@ -7,6 +7,7 @@ import (
 	"mystravastats/domain/strava"
 	"os"
 	"path/filepath"
+	"sort"
 	"testing"
 	"time"
 )
@@ -110,6 +111,34 @@ func BenchmarkGetActivitiesByYearAndActivityTypesCached(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = provider.GetActivitiesByYearAndActivityTypes(&year, business.Ride)
+	}
+}
+
+func TestGetActivitiesByYearAndActivityTypesReturnsDefensiveCopy(t *testing.T) {
+	provider := benchmarkProvider(100)
+	year := 2024
+
+	firstCall := provider.GetActivitiesByYearAndActivityTypes(&year, business.Ride)
+	if len(firstCall) < 2 {
+		t.Fatalf("expected at least 2 activities, got %d", len(firstCall))
+	}
+	expectedFirstID := firstCall[0].Id
+
+	// Mutate the returned ordering; cached data should not be impacted.
+	sort.Slice(firstCall, func(i, j int) bool {
+		return firstCall[i].Id > firstCall[j].Id
+	})
+
+	secondCall := provider.GetActivitiesByYearAndActivityTypes(&year, business.Ride)
+	if len(secondCall) == 0 {
+		t.Fatal("expected non-empty activities on second call")
+	}
+	if secondCall[0].Id != expectedFirstID {
+		t.Fatalf(
+			"expected defensive copy to preserve cached ordering, got first id %d (expected %d)",
+			secondCall[0].Id,
+			expectedFirstID,
+		)
 	}
 }
 

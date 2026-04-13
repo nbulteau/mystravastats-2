@@ -34,7 +34,12 @@ type Token struct {
 	AccessToken string `json:"access_token"`
 }
 
-var errTooManyRequests = errors.New("too many requests")
+var ErrStravaRateLimitReached = errors.New("strava rate limit reached (429)")
+var errTooManyRequests = ErrStravaRateLimitReached
+
+func IsRateLimitError(err error) bool {
+	return errors.Is(err, ErrStravaRateLimitReached)
+}
 
 func NewStravaApi(clientId, clientSecret string) *StravaApi {
 	properties := StravaProperties{
@@ -180,6 +185,14 @@ func (api *StravaApi) retrieveAthlete(url string) (*strava.Athlete, error) {
 }
 
 func (api *StravaApi) GetActivities(year int) ([]strava.Activity, error) {
+	return api.getActivities(year, false)
+}
+
+func (api *StravaApi) GetActivitiesFailFastOnRateLimit(year int) ([]strava.Activity, error) {
+	return api.getActivities(year, true)
+}
+
+func (api *StravaApi) getActivities(year int, failFastOnRateLimit bool) ([]strava.Activity, error) {
 	// Use UTC boundaries for predictable server-side filtering
 	after := time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
 	before := time.Date(year+1, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
@@ -235,6 +248,11 @@ func (api *StravaApi) GetActivities(year int) ([]strava.Activity, error) {
 		}
 
 		if resp.StatusCode == http.StatusTooManyRequests {
+			if failFastOnRateLimit {
+				_ = resp.Body.Close()
+				return nil, ErrStravaRateLimitReached
+			}
+
 			// Respect Retry-After (seconds or HTTP-date)
 			wait := backoff
 			if ra := resp.Header.Get("Retry-After"); ra != "" {

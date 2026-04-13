@@ -190,7 +190,11 @@ func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId strin
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		activities := provider.retrieveActivities(clientId, currentYear)
+		activities, err := provider.retrieveActivities(clientId, currentYear, false)
+		if err != nil {
+			log.Printf("Failed to load current-year activities from Strava: %v", err)
+			activities = nil
+		}
 		if len(activities) > 0 {
 			activities = provider.loadActivitiesStreams(clientId, currentYear, activities)
 		} else {
@@ -213,7 +217,12 @@ func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId strin
 					activities = []strava.Activity{}
 				}
 			} else {
-				activities = provider.retrieveActivities(clientId, year)
+				retrieved, err := provider.retrieveActivities(clientId, year, false)
+				if err != nil {
+					log.Printf("Failed to load activities for year %d from Strava: %v", year, err)
+					retrieved = nil
+				}
+				activities = retrieved
 				if len(activities) > 0 {
 					activities = provider.loadActivitiesStreams(clientId, year, activities)
 				} else {
@@ -305,7 +314,7 @@ func (provider *StravaActivityProvider) retrieveLoggedInAthlete(clientId string)
 	return *loggedInAthlete
 }
 
-func (provider *StravaActivityProvider) retrieveActivities(clientId string, year int) []strava.Activity {
+func (provider *StravaActivityProvider) retrieveActivities(clientId string, year int, failFastOnRateLimit bool) ([]strava.Activity, error) {
 	log.Printf("⌛ Load activities from Strava for year %d", year)
 
 	api := provider.StravaApi
@@ -314,17 +323,26 @@ func (provider *StravaActivityProvider) retrieveActivities(clientId string, year
 	}
 
 	if api != nil {
-		retrievedActivities, err := api.GetActivities(year)
+		var (
+			retrievedActivities []strava.Activity
+			err                 error
+		)
+		if failFastOnRateLimit {
+			retrievedActivities, err = api.GetActivitiesFailFastOnRateLimit(year)
+		} else {
+			retrievedActivities, err = api.GetActivities(year)
+		}
+
 		if err == nil {
 			filteredActivities := filterByActivityTypes(retrievedActivities)
 			provider.localStorageProvider.SaveActivitiesToCache(clientId, year, filteredActivities)
 
-			return filteredActivities
+			return filteredActivities, nil
 		}
 
-		log.Printf("Failed to load activities from Strava: %v", err)
+		return nil, err
 	}
-	return nil
+	return nil, nil
 }
 
 func (provider *StravaActivityProvider) findActivityById(activityId int64) *strava.Activity {
@@ -381,7 +399,7 @@ func (provider *StravaActivityProvider) GetActivitiesByYearAndActivityTypes(year
 	provider.cacheMutex.RLock()
 	if cachedActivities, ok := provider.filteredActivities[cacheKey]; ok {
 		provider.cacheMutex.RUnlock()
-		return cachedActivities
+		return cloneActivityPointers(cachedActivities)
 	}
 	provider.cacheMutex.RUnlock()
 
@@ -392,7 +410,7 @@ func (provider *StravaActivityProvider) GetActivitiesByYearAndActivityTypes(year
 	provider.filteredActivities[cacheKey] = filteredActivities
 	provider.cacheMutex.Unlock()
 
-	return filteredActivities
+	return cloneActivityPointers(filteredActivities)
 }
 
 func (provider *StravaActivityProvider) GetActivitiesByActivityTypeGroupByYear(activityTypes ...business.ActivityType) map[string][]*strava.Activity {
@@ -580,8 +598,12 @@ func (provider *StravaActivityProvider) launchBackgroundDataRefresh() {
 
 		provider.stravaAthlete = provider.retrieveLoggedInAthlete(provider.clientId)
 		currentYear := time.Now().Year()
-		provider.refreshCurrentYearActivities(currentYear)
-		provider.backfillMissingStreams()
+		stoppedByRateLimit := provider.refreshAllYearsActivitiesFromCurrentYear(currentYear)
+		if stoppedByRateLimit {
+			log.Printf("Background refresh stopped early due to Strava rate limit")
+		} else {
+			provider.backfillMissingStreams()
+		}
 
 		log.Printf("Background data refresh completed")
 	}()
@@ -627,33 +649,43 @@ func (provider *StravaActivityProvider) loadDetailedActivityFromCacheAnyYear(act
 	return nil
 }
 
-func (provider *StravaActivityProvider) refreshCurrentYearActivities(year int) {
-	refreshed := provider.retrieveActivities(provider.clientId, year)
-	if len(refreshed) == 0 {
-		log.Printf("Background refresh: no current-year updates from Strava (%d)", year)
-		return
-	}
-
-	refreshed = provider.loadActivitiesStreams(provider.clientId, year, refreshed)
-	refreshedPointers := appendActivityPointers(make([]*strava.Activity, 0, len(refreshed)), refreshed)
-
-	existing := provider.getActivitiesSnapshot()
-	merged := make([]*strava.Activity, 0, len(existing)+len(refreshedPointers))
-	for _, activity := range existing {
-		if activity == nil {
+func (provider *StravaActivityProvider) refreshAllYearsActivitiesFromCurrentYear(startYear int) bool {
+	for year := startYear; year >= 2010; year-- {
+		refreshed, err := provider.retrieveActivities(provider.clientId, year, true)
+		if err != nil {
+			if IsRateLimitError(err) {
+				log.Printf("Background refresh stopped at year %d due to Strava rate limit", year)
+				return true
+			}
+			log.Printf("Background refresh: failed for year %d: %v", year, err)
 			continue
 		}
-		if len(activity.StartDateLocal) >= 4 {
-			if y, err := strconv.Atoi(activity.StartDateLocal[:4]); err == nil && y == year {
+
+		if len(refreshed) > 0 {
+			refreshed = provider.loadActivitiesStreams(provider.clientId, year, refreshed)
+		}
+
+		refreshedPointers := appendActivityPointers(make([]*strava.Activity, 0, len(refreshed)), refreshed)
+		existing := provider.getActivitiesSnapshot()
+		merged := make([]*strava.Activity, 0, len(existing)+len(refreshedPointers))
+		for _, activity := range existing {
+			if activity == nil {
 				continue
 			}
+			if len(activity.StartDateLocal) >= 4 {
+				if y, parseErr := strconv.Atoi(activity.StartDateLocal[:4]); parseErr == nil && y == year {
+					continue
+				}
+			}
+			merged = append(merged, activity)
 		}
-		merged = append(merged, activity)
-	}
-	merged = append(merged, refreshedPointers...)
-	provider.replaceActivities(merged)
+		merged = append(merged, refreshedPointers...)
+		provider.replaceActivities(merged)
 
-	log.Printf("Background refresh merged current year %d activities (%d total)", year, len(merged))
+		log.Printf("Background refresh merged year %d activities (%d total)", year, len(merged))
+	}
+
+	return false
 }
 
 func (provider *StravaActivityProvider) backfillMissingStreams() {
@@ -728,6 +760,16 @@ func appendActivityPointers(destination []*strava.Activity, activities []strava.
 		destination = append(destination, &activities[i])
 	}
 	return destination
+}
+
+func cloneActivityPointers(activities []*strava.Activity) []*strava.Activity {
+	if len(activities) == 0 {
+		return []*strava.Activity{}
+	}
+
+	cloned := make([]*strava.Activity, len(activities))
+	copy(cloned, activities)
+	return cloned
 }
 
 func min(a, b int) int {
