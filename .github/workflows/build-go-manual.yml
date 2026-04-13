@@ -61,6 +61,8 @@ jobs:
     name: Build ${{ matrix.target }}
     needs: build_frontend
     runs-on: ubuntu-latest
+    env:
+      MATRIX_TARGET: ${{ matrix.target }}
     strategy:
       fail-fast: false
       matrix:
@@ -85,34 +87,34 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Skip if target doesn't match
-        if: ${{ github.event.inputs.target != 'all' && github.event.inputs.target != matrix.target }}
+        if: ${{ github.event.inputs.target != 'all' && github.event.inputs.target != env.MATRIX_TARGET }}
         run: |
-          echo "Skipping build for ${{ matrix.target }} (target: ${{ github.event.inputs.target }})"
+          echo "Skipping build for ${{ env.MATRIX_TARGET }} (target: ${{ github.event.inputs.target }})"
           exit 0
 
       - name: Download front dist
-        if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == matrix.target }}
+        if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == env.MATRIX_TARGET }}
         uses: actions/download-artifact@v4
         with:
           name: front-vue-dist
           path: front-vue/dist
 
       - name: Inject front build into back-go/public
-        if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == matrix.target }}
+        if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == env.MATRIX_TARGET }}
         run: |
           rm -rf back-go/public
           mkdir -p back-go/public
           cp -r front-vue/dist/* back-go/public/
 
       - name: Setup Go
-        if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == matrix.target }}
+        if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == env.MATRIX_TARGET }}
         uses: actions/setup-go@v5
         with:
           go-version: 1.25.5
           cache-dependency-path: back-go/go.sum
 
       - name: Build Go binary
-        if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == matrix.target }}
+        if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == env.MATRIX_TARGET }}
         working-directory: back-go
         env:
           CGO_ENABLED: "0"
@@ -126,7 +128,7 @@ jobs:
           go build -buildvcs=false -o "../${{ matrix.binary_name }}"
 
       - name: Package artifact
-        if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == matrix.target }}
+        if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == env.MATRIX_TARGET }}
         run: |
           mkdir -p artifacts/${{ matrix.target }}
           mv "${{ matrix.binary_name }}" "artifacts/${{ matrix.target }}/${{ matrix.output_name }}"
@@ -136,7 +138,7 @@ jobs:
           )
 
       - name: Upload binary artifact
-        if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == matrix.target }}
+        if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == env.MATRIX_TARGET }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.output_name }}
