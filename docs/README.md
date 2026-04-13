@@ -13,6 +13,9 @@ MyStravaStats can:
 - calculate best efforts from activity streams
 - build a chronological personal-records timeline (when each PR was set, then improved)
 - analyse heart-rate zones (per activity, per month, per year) with custom athlete settings
+- analyse training load with a heatmap by day (distance, elevation, or duration)
+- compare heatmap results between years with monthly deltas
+- generate advanced heatmap insights (consistency, streaks, momentum, best week, weekday signature, activity mix)
 - show dashboards, charts, maps, badges, and detailed activity views
 - export filtered activities to CSV
 
@@ -24,6 +27,8 @@ Examples of metrics already available:
 - heart-rate zone time distribution and easy-vs-hard training ratio trends
 - best climbing gradient on a target distance
 - dashboard trends by year
+- heatmap consistency ratio, longest streak, and longest inactivity break
+- weekly momentum (last weeks vs previous weeks)
 - route visualisation and activity detail charts
 
 ## Repository Layout
@@ -51,6 +56,7 @@ Main areas:
 - map
 - charts
 - dashboard
+- heatmap
 - badges
 - detailed activity view
 
@@ -102,6 +108,16 @@ Dashboard:
 Heatmap:
 
 ![Heatmap](screen-heatmap.png)
+
+### Heatmap Highlights
+
+The heatmap view now includes:
+- metric switch (`Distance`, `Elevation`, `Duration`)
+- daily tooltips with aggregate values and activity names
+- activity-type icons in each day cell (unique types for that day)
+- clickable day inspection panel with activity details and deep links
+- year-over-year comparison panel with monthly deltas and total trend summary
+- advanced insights panel with consistency, streaks, weekly momentum, weekday signature, top days, activity mix, and best week
 
 Badges:
 
