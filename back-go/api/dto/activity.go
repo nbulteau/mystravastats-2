@@ -21,6 +21,7 @@ type ActivityDto struct {
 	BestPowerFor20Minutes            int     `json:"bestPowerFor20Minutes"`
 	BestPowerFor60Minutes            int     `json:"bestPowerFor60Minutes"`
 	FTP                              int     `json:"ftp"`
+	BadgeEffortSeconds               int     `json:"badgeEffortSeconds,omitempty"`
 }
 
 type DetailedActivityDto struct {

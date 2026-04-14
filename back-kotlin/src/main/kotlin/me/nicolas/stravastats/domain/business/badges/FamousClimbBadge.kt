@@ -29,19 +29,29 @@ data class FamousClimbBadge(
             } else {
                 false
             }
-        }.filter { activity ->
-            check(activity, this.start) && check(activity, this.end)
-        }
+        }.filter { activity -> checkAscentDirection(activity) }
 
         return Pair(filteredActivities, filteredActivities.isNotEmpty())
     }
 
-    private fun check(stravaActivity: StravaActivity, geoCoordinateToCheck: GeoCoordinate): Boolean {
-        if (stravaActivity.stream != null && stravaActivity.stream?.latlng != null) {
-            for (coords in stravaActivity.stream?.latlng?.data!!) {
-                if (geoCoordinateToCheck.haversineInM(coords[0], coords[1]) < FAMOUS_CLIMB_WAYPOINT_TOLERANCE_METERS) {
-                    return true
+    private fun checkAscentDirection(stravaActivity: StravaActivity): Boolean {
+        val latLngStream = stravaActivity.stream?.latlng ?: return false
+
+        var seenStart = false
+        for (coords in latLngStream.data) {
+            if (coords.size < 2) {
+                continue
+            }
+
+            if (!seenStart) {
+                if (this.start.haversineInM(coords[0], coords[1]) < FAMOUS_CLIMB_WAYPOINT_TOLERANCE_METERS) {
+                    seenStart = true
                 }
+                continue
+            }
+
+            if (this.end.haversineInM(coords[0], coords[1]) < FAMOUS_CLIMB_WAYPOINT_TOLERANCE_METERS) {
+                return true
             }
         }
 

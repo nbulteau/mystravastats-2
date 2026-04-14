@@ -19,6 +19,7 @@ export class Activity  {
     bestPowerFor20minutes: number;
     bestPowerFor60minutes: number;
     ftp: number;
+    badgeEffortSeconds?: number;
 
     constructor(
         id: number,
@@ -39,7 +40,8 @@ export class Activity  {
         weightedAverageWatts: number,
         bestPowerFor20minutes: number,
         bestPowerFor60minutes: number,
-        ftp: number
+        ftp: number,
+        badgeEffortSeconds?: number,
     ) {
         this.id = id;
         this.name = name;
@@ -60,6 +62,7 @@ export class Activity  {
         this.bestPowerFor20minutes = bestPowerFor20minutes;
         this.bestPowerFor60minutes = bestPowerFor60minutes;
         this.ftp = ftp;
+        this.badgeEffortSeconds = badgeEffortSeconds;
     }
 }
 

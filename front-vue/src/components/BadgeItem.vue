@@ -75,8 +75,8 @@ const bestTimeAndDateLabel = computed(() => {
     return 'No matching activity yet';
   }
 
-  const movingTime = representativeActivity.value.movingTime ?? 0;
-  const movingTimeLabel = movingTime > 0 ? formatTime(movingTime) : 'n/a';
+  const effortTime = representativeActivity.value.badgeEffortSeconds ?? representativeActivity.value.movingTime ?? 0;
+  const movingTimeLabel = effortTime > 0 ? formatTime(effortTime) : 'n/a';
   const dateLabel = formatBadgeDate(representativeActivity.value.date);
   return dateLabel
     ? `Best time: ${movingTimeLabel} • ${dateLabel}`
@@ -111,6 +111,7 @@ function initTooltip() {
   if (!badgeRef.value) {
     return;
   }
+  badgeRef.value.setAttribute('data-bs-title', tooltipText.value);
   const existing = Tooltip.getInstance(badgeRef.value);
   if (existing) {
     existing.dispose();
@@ -118,6 +119,7 @@ function initTooltip() {
   const tooltip = new Tooltip(badgeRef.value, {
     html: true,
     container: 'body',
+    trigger: 'hover focus',
   });
   tooltip.setContent({ '.tooltip-inner': tooltipText.value });
 }
@@ -126,6 +128,7 @@ function updateTooltip() {
   if (!badgeRef.value) {
     return;
   }
+  badgeRef.value.setAttribute('data-bs-title', tooltipText.value);
   const tooltip = Tooltip.getInstance(badgeRef.value);
   if (tooltip) {
     tooltip.setContent({ '.tooltip-inner': tooltipText.value });
@@ -156,7 +159,6 @@ onBeforeUnmount(() => {
     :class="{ 'badge-item--earned': isUnlocked, 'badge-item--locked': !isUnlocked }"
     data-bs-toggle="tooltip"
     data-bs-html="true"
-    :title="tooltipText"
     @click="navigateToActivity" 
   >
     <div

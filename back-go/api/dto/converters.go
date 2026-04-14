@@ -665,9 +665,13 @@ func ToBadgeCheckResultDto(result business.BadgeCheckResult, activityTypes ...bu
 	nbCheckedActivities := len(result.Activities)
 	var activities []ActivityDto
 	if nbCheckedActivities > 0 {
-		displayActivity := selectBadgeDisplayActivity(result.Badge, result.Activities)
+		displayActivity, badgeEffortSeconds := selectBadgeDisplayActivity(result.Badge, result.Activities)
 		if displayActivity != nil {
-			activities = append(activities, ToActivityDto(*displayActivity))
+			activityDto := ToActivityDto(*displayActivity)
+			if badgeEffortSeconds > 0 {
+				activityDto.BadgeEffortSeconds = badgeEffortSeconds
+			}
+			activities = append(activities, activityDto)
 		}
 	}
 
@@ -678,17 +682,17 @@ func ToBadgeCheckResultDto(result business.BadgeCheckResult, activityTypes ...bu
 	}
 }
 
-func selectBadgeDisplayActivity(badge business.Badge, activities []*strava.Activity) *strava.Activity {
+func selectBadgeDisplayActivity(badge business.Badge, activities []*strava.Activity) (*strava.Activity, int) {
 	if len(activities) == 0 {
-		return nil
+		return nil, 0
 	}
 
-	switch badge.(type) {
+	switch b := badge.(type) {
 	case badges.FamousClimbBadge:
-		return selectFastestActivity(activities)
+		return selectBestFamousClimbActivity(activities, b)
 	default:
 		// Keep current behavior for non-climb badges.
-		return activities[len(activities)-1]
+		return activities[len(activities)-1], 0
 	}
 }
 
@@ -711,6 +715,73 @@ func selectFastestActivity(activities []*strava.Activity) *strava.Activity {
 		return best
 	}
 	return activities[len(activities)-1]
+}
+
+func selectBestFamousClimbActivity(activities []*strava.Activity, badge badges.FamousClimbBadge) (*strava.Activity, int) {
+	var bestActivity *strava.Activity
+	bestEffortSeconds := 0
+
+	for _, activity := range activities {
+		effortSeconds, ok := computeFamousClimbEffortSeconds(activity, badge)
+		if !ok {
+			continue
+		}
+		if bestActivity == nil || effortSeconds < bestEffortSeconds {
+			bestActivity = activity
+			bestEffortSeconds = effortSeconds
+		}
+	}
+
+	if bestActivity != nil {
+		return bestActivity, bestEffortSeconds
+	}
+
+	// Fallback when streams are unavailable: keep old behavior.
+	return selectFastestActivity(activities), 0
+}
+
+func computeFamousClimbEffortSeconds(activity *strava.Activity, badge badges.FamousClimbBadge) (int, bool) {
+	if activity == nil || activity.Stream == nil || activity.Stream.LatLng == nil {
+		return 0, false
+	}
+
+	latlngData := activity.Stream.LatLng.Data
+	timeData := activity.Stream.Time.Data
+	dataSize := len(latlngData)
+	if len(timeData) < dataSize {
+		dataSize = len(timeData)
+	}
+	if dataSize == 0 {
+		return 0, false
+	}
+
+	const waypointToleranceInM = 500
+	startTime := 0
+	seenStart := false
+
+	for i := 0; i < dataSize; i++ {
+		coords := latlngData[i]
+		if len(coords) < 2 {
+			continue
+		}
+
+		if !seenStart {
+			if badge.Start.HaversineInM(coords[0], coords[1]) < waypointToleranceInM {
+				seenStart = true
+				startTime = timeData[i]
+			}
+			continue
+		}
+
+		if badge.End.HaversineInM(coords[0], coords[1]) < waypointToleranceInM {
+			duration := timeData[i] - startTime
+			if duration > 0 {
+				return duration, true
+			}
+		}
+	}
+
+	return 0, false
 }
 
 func ToBadgeDto(badge business.Badge, activityTypes ...business.ActivityType) BadgeDto {

@@ -56,7 +56,7 @@ func (f FamousClimbBadge) Check(activities []*strava.Activity) ([]*strava.Activi
 			distanceToStart := f.Start.HaversineInKM(activity.StartLatlng[0], activity.StartLatlng[1])
 			distanceToEnd := f.End.HaversineInKM(activity.StartLatlng[0], activity.StartLatlng[1])
 			if distanceToStart < famousClimbActivityStartRadiusKM || distanceToEnd < famousClimbActivityStartRadiusKM {
-				if f.check(activity, f.Start) && f.check(activity, f.End) {
+				if f.checkAscentDirection(activity) {
 					filteredActivities = append(filteredActivities, activity)
 				}
 			}
@@ -65,14 +65,29 @@ func (f FamousClimbBadge) Check(activities []*strava.Activity) ([]*strava.Activi
 	return filteredActivities, len(filteredActivities) > 0
 }
 
-func (f FamousClimbBadge) check(activity *strava.Activity, geoCoordinateToCheck business.GeoCoordinate) bool {
-	if activity.Stream != nil && activity.Stream.LatLng != nil {
-		for _, coords := range activity.Stream.LatLng.Data {
-			if geoCoordinateToCheck.HaversineInM(coords[0], coords[1]) < famousClimbWaypointToleranceInM {
-				return true
+func (f FamousClimbBadge) checkAscentDirection(activity *strava.Activity) bool {
+	if activity.Stream == nil || activity.Stream.LatLng == nil {
+		return false
+	}
+
+	seenStart := false
+	for _, coords := range activity.Stream.LatLng.Data {
+		if len(coords) < 2 {
+			continue
+		}
+
+		if !seenStart {
+			if f.Start.HaversineInM(coords[0], coords[1]) < famousClimbWaypointToleranceInM {
+				seenStart = true
 			}
+			continue
+		}
+
+		if f.End.HaversineInM(coords[0], coords[1]) < famousClimbWaypointToleranceInM {
+			return true
 		}
 	}
+
 	return false
 }
 

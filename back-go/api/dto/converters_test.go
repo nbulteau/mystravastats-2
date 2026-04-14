@@ -3,6 +3,8 @@ package dto
 import (
 	"testing"
 
+	"mystravastats/domain/badges"
+	"mystravastats/domain/business"
 	"mystravastats/domain/strava"
 )
 
@@ -82,5 +84,56 @@ func TestToStreamDto_DistinctPointersAndValues(t *testing.T) {
 	}
 	if *dto.Latlng[1][0] != 30.3 || *dto.Latlng[1][1] != 40.4 {
 		t.Fatalf("unexpected second latlng values: %.1f %.1f", *dto.Latlng[1][0], *dto.Latlng[1][1])
+	}
+}
+
+func TestComputeFamousClimbEffortSeconds_UsesSegmentDurationNotActivityDuration(t *testing.T) {
+	badge := badges.FamousClimbBadge{
+		Start: business.GeoCoordinate{Latitude: 45.2178751, Longitude: 6.4750846},
+		End:   business.GeoCoordinate{Latitude: 45.2026999, Longitude: 6.4446143},
+	}
+
+	activity := &strava.Activity{
+		MovingTime: 12000,
+		Stream: &strava.Stream{
+			Time: strava.TimeStream{Data: []int{0, 100, 700, 1200}},
+			LatLng: &strava.LatLngStream{Data: [][]float64{
+				{45.1000000, 6.3000000},
+				{45.2178751, 6.4750846}, // start at t=100
+				{45.2100000, 6.4600000},
+				{45.2026999, 6.4446143}, // summit at t=1200
+			}},
+		},
+	}
+
+	effortSeconds, ok := computeFamousClimbEffortSeconds(activity, badge)
+	if !ok {
+		t.Fatalf("expected effort duration to be detected")
+	}
+	if effortSeconds != 1100 {
+		t.Fatalf("expected effortSeconds=1100, got %d", effortSeconds)
+	}
+}
+
+func TestComputeFamousClimbEffortSeconds_RejectsDescentOrder(t *testing.T) {
+	badge := badges.FamousClimbBadge{
+		Start: business.GeoCoordinate{Latitude: 45.2178751, Longitude: 6.4750846},
+		End:   business.GeoCoordinate{Latitude: 45.2026999, Longitude: 6.4446143},
+	}
+
+	activity := &strava.Activity{
+		Stream: &strava.Stream{
+			Time: strava.TimeStream{Data: []int{0, 400, 900}},
+			LatLng: &strava.LatLngStream{Data: [][]float64{
+				{45.2026999, 6.4446143}, // summit first
+				{45.2100000, 6.4600000},
+				{45.2178751, 6.4750846}, // start after summit
+			}},
+		},
+	}
+
+	_, ok := computeFamousClimbEffortSeconds(activity, badge)
+	if ok {
+		t.Fatalf("expected descent-only order to be rejected")
 	}
 }

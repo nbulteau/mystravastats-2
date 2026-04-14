@@ -44,6 +44,8 @@ data class ActivityDto(
     @param:Schema(description = "Activity FTP (Functional Threshold Power) in watts")
     val ftp: Int,
     val movingTime: Int,
+    @param:Schema(description = "Badge-specific effort duration in seconds (for famous climbs)")
+    val badgeEffortSeconds: Int? = null,
 )
 
 fun StravaActivity.toDto(): ActivityDto {
@@ -81,5 +83,6 @@ fun StravaActivity.toDto(): ActivityDto {
         bestPowerFor20minutes = bestPowerFor20Minutes?.getPower() ?: 0,
         bestPowerFor60minutes = bestPowerFor60Minutes?.getPower() ?: 0,
         ftp = ftp ?: 0,
+        badgeEffortSeconds = null,
     )
 }

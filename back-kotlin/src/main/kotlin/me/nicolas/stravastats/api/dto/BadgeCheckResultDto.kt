@@ -15,25 +15,93 @@ data class BadgeCheckResultDto(
 
 fun BadgeCheckResult.toDto(activityTypes: Set<ActivityType>): BadgeCheckResultDto {
     val nbCheckedActivities = this.activities.size
-    val representativeActivity = selectRepresentativeActivity(this.badge, this.activities)
-    val activities = representativeActivity?.let { listOf(it.toDto()) } ?: emptyList()
+    val representative = selectRepresentativeBadgeActivity(this.badge, this.activities)
+    val activities = representative?.let { selected ->
+        listOf(
+            selected.activity.toDto().copy(
+                badgeEffortSeconds = selected.badgeEffortSeconds,
+            )
+        )
+    } ?: emptyList()
 
     return BadgeCheckResultDto(this.badge.toDto(activityTypes), activities, nbCheckedActivities)
 }
 
-private fun selectRepresentativeActivity(badge: Badge, activities: List<StravaActivity>): StravaActivity? {
+private data class SelectedBadgeActivity(
+    val activity: StravaActivity,
+    val badgeEffortSeconds: Int? = null,
+)
+
+private fun selectRepresentativeBadgeActivity(badge: Badge, activities: List<StravaActivity>): SelectedBadgeActivity? {
     if (activities.isEmpty()) {
         return null
     }
 
     return when (badge) {
-        is FamousClimbBadge -> activities
-            .filter { it.movingTime > 0 }
-            .minByOrNull { it.movingTime }
-            ?: activities.last()
-
-        else -> activities.last()
+        is FamousClimbBadge -> selectBestFamousClimbActivity(badge, activities)
+        else -> SelectedBadgeActivity(activity = activities.last())
     }
+}
+
+private fun selectBestFamousClimbActivity(
+    badge: FamousClimbBadge,
+    activities: List<StravaActivity>,
+): SelectedBadgeActivity {
+    val bestEffort = activities.mapNotNull { activity ->
+        computeFamousClimbEffortSeconds(activity, badge)?.let { effort ->
+            SelectedBadgeActivity(activity = activity, badgeEffortSeconds = effort)
+        }
+    }.minByOrNull { it.badgeEffortSeconds ?: Int.MAX_VALUE }
+
+    if (bestEffort != null) {
+        return bestEffort
+    }
+
+    val fallback = activities
+        .filter { it.movingTime > 0 }
+        .minByOrNull { it.movingTime }
+        ?: activities.last()
+    return SelectedBadgeActivity(activity = fallback)
+}
+
+private fun computeFamousClimbEffortSeconds(
+    activity: StravaActivity,
+    badge: FamousClimbBadge,
+): Int? {
+    val stream = activity.stream ?: return null
+    val latLngData = stream.latlng?.data ?: return null
+    val timeData = stream.time.data
+    val dataSize = minOf(latLngData.size, timeData.size)
+    if (dataSize == 0) {
+        return null
+    }
+
+    val waypointToleranceMeters = 500
+    var seenStart = false
+    var startTime = 0
+
+    for (index in 0 until dataSize) {
+        val coords = latLngData[index]
+        if (coords.size < 2) {
+            continue
+        }
+
+        if (!seenStart) {
+            if (badge.start.haversineInM(coords[0], coords[1]) < waypointToleranceMeters) {
+                seenStart = true
+                startTime = timeData[index]
+            }
+            continue
+        }
+
+        if (badge.end.haversineInM(coords[0], coords[1]) < waypointToleranceMeters) {
+            val duration = timeData[index] - startTime
+            if (duration > 0) {
+                return duration
+            }
+        }
+    }
+    return null
 }
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
