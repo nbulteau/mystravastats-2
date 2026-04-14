@@ -2,7 +2,6 @@ package me.nicolas.stravastats.adapters.localrepositories.strava
 
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test

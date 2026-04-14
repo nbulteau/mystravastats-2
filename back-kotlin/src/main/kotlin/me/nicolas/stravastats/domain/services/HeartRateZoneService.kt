@@ -44,11 +44,7 @@ internal class HeartRateZoneService(
         val settings = activityProvider.getHeartRateZoneSettings().normalize()
         val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
             .sortedBy { activity -> activity.startDateLocal }
-        val resolvedSettings = resolveSettings(settings, activities)
-
-        if (resolvedSettings == null) {
-            return emptyAnalysis(settings, null)
-        }
+        val resolvedSettings = resolveSettings(settings, activities) ?: return emptyAnalysis(settings, null)
 
         val activitySummaries = activities.mapNotNull { activity ->
             buildActivitySummary(activity, resolvedSettings)

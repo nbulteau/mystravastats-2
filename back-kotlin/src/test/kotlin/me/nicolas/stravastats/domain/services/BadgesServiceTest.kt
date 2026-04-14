@@ -29,7 +29,6 @@ class BadgesServiceTest {
         val activityTypes = setOf(ActivityType.Ride)
 
         // WHEN
-        val badges = badgesService.getGeneralBadges(activityTypes, 2021)
 
         // THEN
         // Check the badges

@@ -31,7 +31,7 @@ class ActivityProviderConfig {
         }
 
         return dotEnv.useLines { lines ->
-            lines.asSequence()
+            lines
                 .map { it.trim() }
                 .filter { it.isNotEmpty() && !it.startsWith("#") && it.contains("=") }
                 .map { line ->
