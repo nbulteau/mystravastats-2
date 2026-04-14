@@ -120,6 +120,9 @@ func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *s
 
 	year := resolveActivityYear(activity)
 	api := provider.StravaApi
+	if provider.isStravaRateLimitedNow() {
+		api = nil
+	}
 	if api == nil && !provider.useCacheAuth && provider.clientSecret != "" && !provider.isStravaRateLimitedNow() {
 		api = provider.ensureStravaAPI()
 	}
@@ -133,6 +136,9 @@ func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *s
 		} else if err != nil {
 			provider.markStravaRateLimited(err, fmt.Sprintf("detailed activity %d", activityId))
 			log.Printf("Unable to load detailed activity %d from Strava API: %v", activityId, err)
+			if provider.isStravaRateLimitedNow() {
+				api = nil
+			}
 		}
 	}
 

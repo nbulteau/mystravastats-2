@@ -6,9 +6,12 @@ import (
 	"mystravastats/adapters/localrepository"
 	"mystravastats/domain/business"
 	"mystravastats/domain/strava"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"sort"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -163,6 +166,53 @@ func TestRateLimitCircuitBreaker(t *testing.T) {
 	provider.rateLimitUntilUnix.Store(time.Now().Add(-time.Second).Unix())
 	if provider.isStravaRateLimitedNow() {
 		t.Fatal("expected breaker to expire after cooldown deadline")
+	}
+}
+
+func TestGetDetailedActivity_SkipsStravaCallWhenRateLimitAlreadyActive(t *testing.T) {
+	var calls int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v3/activities/42" {
+			atomic.AddInt32(&calls, 1)
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"id":42}`))
+	}))
+	defer server.Close()
+
+	cacheDir := t.TempDir()
+	repo := localrepository.NewStravaRepository(cacheDir)
+	clientID := "123"
+	repo.InitLocalStorageForClientId(clientID)
+
+	provider := &StravaActivityProvider{
+		clientId:             clientID,
+		localStorageProvider: repo,
+		StravaApi: &StravaApi{
+			accessToken: "test-token",
+			properties: StravaProperties{
+				URL: server.URL,
+			},
+			httpClient: server.Client(),
+		},
+		activities: []*strava.Activity{
+			{
+				Id:             42,
+				StartDateLocal: "2020-01-01T00:00:00Z",
+				StartDate:      "2020-01-01T00:00:00Z",
+				UploadId:       1,
+			},
+		},
+	}
+	provider.indexActivities()
+	provider.rateLimitUntilUnix.Store(time.Now().Add(5 * time.Minute).Unix())
+
+	detailed := provider.GetDetailedActivity(42)
+	if detailed == nil {
+		t.Fatal("expected fallback detailed activity while rate limit is active")
+	}
+	if got := atomic.LoadInt32(&calls); got != 0 {
+		t.Fatalf("expected no Strava API call during active rate limit, got %d", got)
 	}
 }
 
