@@ -18,6 +18,7 @@ import (
 	"io/fs"
 	"log"
 	"mystravastats/api"
+	"mystravastats/internal/services"
 	"net/http"
 	"strings"
 
@@ -33,6 +34,10 @@ func main() {
 	// Define a debug flag
 	debug := flag.Bool("debug", false, "run in debug mode")
 	flag.Parse()
+
+	// Eager initialization keeps cache loading and background refresh
+	// behavior unchanged from a user perspective at startup.
+	services.InitActivityProvider()
 
 	// Create a new CORS handler
 	c := cors.New(cors.Options{
