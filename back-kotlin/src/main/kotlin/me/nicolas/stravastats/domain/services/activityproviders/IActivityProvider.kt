@@ -9,6 +9,11 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import java.util.*
 
+data class ActivityProviderCacheIdentity(
+    val cacheRoot: String,
+    val athleteId: String,
+)
+
 interface IActivityProvider {
 
     fun athlete(): StravaAthlete
@@ -37,4 +42,6 @@ interface IActivityProvider {
         "available" to false,
         "reason" to "cache diagnostics not supported by this activity provider",
     )
+
+    fun cacheIdentity(): ActivityProviderCacheIdentity? = null
 }

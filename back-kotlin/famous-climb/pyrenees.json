@@ -554,6 +554,28 @@
     ]
   },
   {
+    "name": "Hautacam",
+    "topOfTheAscent": 1520,
+    "geoCoordinate": {
+      "latitude": 42.9614,
+      "longitude": -0.0903
+    },
+    "alternatives": [
+      {
+        "name": "Argelès-Gazost",
+        "geoCoordinate": {
+          "latitude": 43.00511,
+          "longitude": -0.0997681
+        },
+        "length": 13.6,
+        "totalAscent": 1170,
+        "difficulty": 1050,
+        "averageGradient": 8.6,
+        "category": "HC"
+      }
+    ]
+  },
+  {
     "name": "Col de Lers",
     "topOfTheAscent": 1517,
     "geoCoordinate": {

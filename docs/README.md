@@ -8,6 +8,7 @@ It lets you explore rides, runs, hikes, inline skating sessions, ski activities,
 MyStravaStats can:
 - load activities from Strava
 - reuse a local cache to avoid downloading the full history every time
+- refresh cache asynchronously across all years (current year first, then older years)
 - work from GPX or FIT files in the Kotlin backend
 - compute global statistics and sport-specific statistics
 - calculate best efforts from activity streams
@@ -18,6 +19,7 @@ MyStravaStats can:
 - generate advanced heatmap insights (consistency, streaks, momentum, best week, weekday signature, activity mix)
 - show dashboards, charts, maps, badges, and detailed activity views
 - export filtered activities to CSV
+- switch immediately to cache-only mode when Strava returns `429` (rate limit), then resume after cooldown
 
 Examples of metrics already available:
 - total distance, elevation, moving time, active days, streaks
@@ -82,6 +84,18 @@ It supports three data sources:
 
 The Go backend exposes a similar API and is still relevant for some build flows.
 It is simpler architecturally, but less flexible than the Kotlin backend.
+
+## Cache Refresh And Reliability
+
+Both backends now use the same reliability strategy for background refresh:
+
+- startup is cache-first (fast local load)
+- background refresh runs asynchronously for all years (from current year down to oldest)
+- missing streams and missing detailed activities are backfilled in background
+- on the first Strava `429`, network refresh switches to immediate cache-only mode
+- background backfills stop early on `429` instead of retrying aggressively
+
+This improves perceived startup performance while protecting the app from noisy rate-limit retry loops.
 
 ## Screenshots
 

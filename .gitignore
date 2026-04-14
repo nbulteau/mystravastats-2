@@ -13,3 +13,10 @@ public/
 
 # Ignore build files
 mystravastats*
+
+# Local caches / tooling artifacts
+.gocache/
+.gradle-home/
+.gradle-home-macos/
+test-results/
+.idea/

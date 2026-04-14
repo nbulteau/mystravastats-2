@@ -9,6 +9,7 @@ import (
 	"mystravastats/domain/strava"
 	"mystravastats/internal/helpers"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -36,7 +37,11 @@ type StravaActivityProvider struct {
 	cacheRoot             string
 	manifestMutex         sync.Mutex
 	cacheManifest         cacheManifest
+	rateLimitUntilUnix    atomic.Int64
 }
+
+const detailedBackfillRequestDelay = 1500 * time.Millisecond
+const stravaRateLimitCooldown = 15 * time.Minute
 
 func NewStravaActivityProvider(stravaCache string, serverPort string) *StravaActivityProvider {
 	log.Printf("Initialize StravaActivityProvider using %s ...", stravaCache)
@@ -115,7 +120,7 @@ func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *s
 
 	year := resolveActivityYear(activity)
 	api := provider.StravaApi
-	if api == nil && !provider.useCacheAuth && provider.clientSecret != "" {
+	if api == nil && !provider.useCacheAuth && provider.clientSecret != "" && !provider.isStravaRateLimitedNow() {
 		api = provider.ensureStravaAPI()
 	}
 
@@ -126,6 +131,7 @@ func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *s
 			provider.localStorageProvider.SaveDetailedActivityToCache(provider.clientId, year, *detailedActivity)
 			stravaDetailedActivity = detailedActivity
 		} else if err != nil {
+			provider.markStravaRateLimited(err, fmt.Sprintf("detailed activity %d", activityId))
 			log.Printf("Unable to load detailed activity %d from Strava API: %v", activityId, err)
 		}
 	}
@@ -139,6 +145,8 @@ func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *s
 		stream, err := api.GetActivityStream(*activity)
 		if err == nil && stream != nil {
 			provider.localStorageProvider.SaveActivitiesStreamsToCache(provider.clientId, year, *activity, *stream)
+		} else if err != nil {
+			provider.markStravaRateLimited(err, fmt.Sprintf("stream activity %d", activityId))
 		}
 	}
 	stravaDetailedActivity.Stream = stream
@@ -206,7 +214,7 @@ func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId strin
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		activities, err := provider.retrieveActivities(clientId, currentYear, false)
+		activities, err := provider.retrieveActivities(clientId, currentYear, true)
 		if err != nil {
 			log.Printf("Failed to load current-year activities from Strava: %v", err)
 			activities = nil
@@ -233,7 +241,7 @@ func (provider *StravaActivityProvider) loadCurrentYearFromStrava(clientId strin
 					activities = []strava.Activity{}
 				}
 			} else {
-				retrieved, err := provider.retrieveActivities(clientId, year, false)
+				retrieved, err := provider.retrieveActivities(clientId, year, true)
 				if err != nil {
 					log.Printf("Failed to load activities for year %d from Strava: %v", year, err)
 					retrieved = nil
@@ -282,19 +290,31 @@ func (provider *StravaActivityProvider) loadActivitiesStreams(clientId string, y
 	workerCount := min(len(activities), max(2, runtime.NumCPU()))
 	indexCh := make(chan int, len(activities))
 	var wg sync.WaitGroup
+	var stopRequested atomic.Bool
 
 	for worker := 0; worker < workerCount; worker++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for i := range indexCh {
+				if stopRequested.Load() || provider.isStravaRateLimitedNow() {
+					continue
+				}
+
 				activity := activities[i]
 				var stream *strava.Stream
 				if streamIdsSet[activity.Id] {
 					stream = provider.localStorageProvider.LoadActivitiesStreamsFromCache(clientId, year, activity)
-				} else if provider.StravaApi != nil {
-					stream, _ = provider.StravaApi.GetActivityStream(activity)
-					if stream != nil {
+				} else if provider.StravaApi != nil && !provider.isStravaRateLimitedNow() {
+					loadedStream, err := provider.StravaApi.GetActivityStream(activity)
+					if err != nil {
+						provider.markStravaRateLimited(err, fmt.Sprintf("stream activity %d", activity.Id))
+						if IsRateLimitError(err) {
+							stopRequested.Store(true)
+						}
+					}
+					stream = loadedStream
+					if loadedStream != nil {
 						provider.localStorageProvider.SaveActivitiesStreamsToCache(clientId, year, activity, *stream)
 					}
 				}
@@ -315,11 +335,13 @@ func (provider *StravaActivityProvider) loadActivitiesStreams(clientId string, y
 func (provider *StravaActivityProvider) retrieveLoggedInAthlete(clientId string) strava.Athlete {
 	log.Printf("⌛ Load loggedInAthlete with id %s description from Strava", clientId)
 	var loggedInAthlete *strava.Athlete
-	if provider.StravaApi != nil {
+	if provider.StravaApi != nil && !provider.isStravaRateLimitedNow() {
 		athlete, err := provider.StravaApi.RetrieveLoggedInAthlete()
 		if err == nil {
 			provider.localStorageProvider.SaveAthleteToCache(clientId, *athlete)
 			loggedInAthlete = athlete
+		} else {
+			provider.markStravaRateLimited(err, "athlete")
 		}
 	}
 
@@ -332,6 +354,9 @@ func (provider *StravaActivityProvider) retrieveLoggedInAthlete(clientId string)
 
 func (provider *StravaActivityProvider) retrieveActivities(clientId string, year int, failFastOnRateLimit bool) ([]strava.Activity, error) {
 	log.Printf("⌛ Load activities from Strava for year %d", year)
+	if provider.isStravaRateLimitedNow() {
+		return nil, ErrStravaRateLimitReached
+	}
 
 	api := provider.StravaApi
 	if api == nil && !provider.useCacheAuth && provider.clientSecret != "" {
@@ -355,10 +380,14 @@ func (provider *StravaActivityProvider) retrieveActivities(clientId string, year
 
 			return filteredActivities, nil
 		}
+		provider.markStravaRateLimited(err, fmt.Sprintf("activities year %d", year))
 
 		return nil, err
 	}
-	return nil, nil
+	if provider.isStravaRateLimitedNow() {
+		return nil, ErrStravaRateLimitReached
+	}
+	return nil, fmt.Errorf("strava api unavailable for year %d retrieval", year)
 }
 
 func (provider *StravaActivityProvider) findActivityById(activityId int64) *strava.Activity {
@@ -375,6 +404,14 @@ func (provider *StravaActivityProvider) findActivityById(activityId int64) *stra
 
 func (provider *StravaActivityProvider) Athlete() strava.Athlete {
 	return provider.stravaAthlete
+}
+
+func (provider *StravaActivityProvider) ClientID() string {
+	return provider.clientId
+}
+
+func (provider *StravaActivityProvider) CacheRootPath() string {
+	return provider.cacheRoot
 }
 
 func (provider *StravaActivityProvider) GetActivity(activityId int64) *strava.Activity {
@@ -587,6 +624,9 @@ func (provider *StravaActivityProvider) getActivitiesSnapshot() []*strava.Activi
 func (provider *StravaActivityProvider) ensureStravaAPI() *StravaApi {
 	provider.apiMutex.Lock()
 	defer provider.apiMutex.Unlock()
+	if provider.isStravaRateLimitedNow() {
+		return nil
+	}
 	if provider.StravaApi != nil {
 		return provider.StravaApi
 	}
@@ -596,6 +636,32 @@ func (provider *StravaActivityProvider) ensureStravaAPI() *StravaApi {
 
 	provider.StravaApi = NewStravaApi(provider.clientId, provider.clientSecret)
 	return provider.StravaApi
+}
+
+func (provider *StravaActivityProvider) isStravaRateLimitedNow() bool {
+	untilUnix := provider.rateLimitUntilUnix.Load()
+	if untilUnix <= 0 {
+		return false
+	}
+	return time.Now().UTC().Before(time.Unix(untilUnix, 0))
+}
+
+func (provider *StravaActivityProvider) markStravaRateLimited(err error, source string) {
+	if !IsRateLimitError(err) {
+		return
+	}
+
+	previousUntilUnix := provider.rateLimitUntilUnix.Load()
+	until := time.Now().UTC().Add(stravaRateLimitCooldown)
+	provider.rateLimitUntilUnix.Store(until.Unix())
+	if previousUntilUnix > time.Now().UTC().Unix() {
+		return
+	}
+	log.Printf(
+		"Strava rate limit detected (%s). Switching to immediate cache-only mode until %s",
+		source,
+		until.Format(time.RFC3339),
+	)
 }
 
 func (provider *StravaActivityProvider) launchBackgroundDataRefresh() {
@@ -619,6 +685,10 @@ func (provider *StravaActivityProvider) launchBackgroundDataRefresh() {
 			log.Printf("Background refresh stopped early due to Strava rate limit")
 		} else {
 			provider.backfillMissingStreams()
+			detailedStoppedByRateLimit := provider.backfillMissingDetailedActivities(currentYear)
+			if detailedStoppedByRateLimit {
+				log.Printf("Background detailed backfill stopped early due to Strava rate limit")
+			}
 		}
 		provider.runWarmupPipeline("post-refresh")
 
@@ -680,6 +750,10 @@ func (provider *StravaActivityProvider) refreshAllYearsActivitiesFromCurrentYear
 
 		if len(refreshed) > 0 {
 			refreshed = provider.loadActivitiesStreams(provider.clientId, year, refreshed)
+			if provider.isStravaRateLimitedNow() {
+				log.Printf("Background refresh stream load stopped at year %d due to Strava rate limit", year)
+				return true
+			}
 		}
 
 		refreshedPointers := appendActivityPointers(make([]*strava.Activity, 0, len(refreshed)), refreshed)
@@ -745,9 +819,123 @@ func (provider *StravaActivityProvider) backfillMissingStreams() {
 		activitiesByYear[year] = append(activitiesByYear[year], activity)
 	}
 
-	for year, yearActivities := range activitiesByYear {
-		provider.loadMissingStreamsForPointers(year, yearActivities)
+	years := make([]int, 0, len(activitiesByYear))
+	for year := range activitiesByYear {
+		years = append(years, year)
 	}
+	sort.Sort(sort.Reverse(sort.IntSlice(years)))
+
+	for _, year := range years {
+		if provider.isStravaRateLimitedNow() {
+			log.Printf("Stream backfill stopped early due to Strava rate limit")
+			return
+		}
+		yearActivities := activitiesByYear[year]
+		provider.loadMissingStreamsForPointers(year, yearActivities)
+		if provider.isStravaRateLimitedNow() {
+			log.Printf("Stream backfill stopped at year %d due to Strava rate limit", year)
+			return
+		}
+	}
+}
+
+func (provider *StravaActivityProvider) backfillMissingDetailedActivities(startYear int) bool {
+	activities := provider.getActivitiesSnapshot()
+	if len(activities) == 0 {
+		return false
+	}
+	if provider.isStravaRateLimitedNow() {
+		log.Printf("Detailed backfill skipped: Strava rate limit is active")
+		return true
+	}
+
+	api := provider.ensureStravaAPI()
+	if api == nil {
+		log.Printf("Detailed backfill skipped: Strava API unavailable")
+		return false
+	}
+
+	activitiesByYear := make(map[int][]*strava.Activity)
+	missingDetails := 0
+
+	for _, activity := range activities {
+		if activity == nil {
+			continue
+		}
+		year := resolveActivityYear(activity)
+		if year < 2010 || year > startYear {
+			continue
+		}
+		if provider.localStorageProvider.LoadDetailedActivityFromCache(provider.clientId, year, activity.Id) != nil {
+			continue
+		}
+		activitiesByYear[year] = append(activitiesByYear[year], activity)
+		missingDetails++
+	}
+
+	if missingDetails == 0 {
+		log.Printf("All cached activities already have detailed payloads; skipping detailed backfill")
+		return false
+	}
+
+	log.Printf("Detailed backfill started for %d missing activities", missingDetails)
+	lastRequestAt := time.Time{}
+	totalLoaded := 0
+
+	for year := startYear; year >= 2010; year-- {
+		yearActivities := activitiesByYear[year]
+		if len(yearActivities) == 0 {
+			continue
+		}
+
+		sort.Slice(yearActivities, func(i, j int) bool {
+			return yearActivities[i].StartDateLocal > yearActivities[j].StartDateLocal
+		})
+
+		loadedForYear := 0
+		for _, activity := range yearActivities {
+			if provider.isStravaRateLimitedNow() {
+				log.Printf("Detailed backfill stopped before activity %d because Strava rate limit is active", activity.Id)
+				return true
+			}
+
+			if !lastRequestAt.IsZero() {
+				if wait := detailedBackfillRequestDelay - time.Since(lastRequestAt); wait > 0 {
+					time.Sleep(wait)
+				}
+			}
+			lastRequestAt = time.Now()
+
+			detailedActivity, err := api.GetDetailedActivity(activity.Id)
+			if err != nil {
+				provider.markStravaRateLimited(err, fmt.Sprintf("detailed backfill activity %d", activity.Id))
+				if IsRateLimitError(err) {
+					log.Printf(
+						"Detailed backfill stopped at year %d for activity %d due to Strava rate limit",
+						year,
+						activity.Id,
+					)
+					return true
+				}
+				log.Printf("Unable to backfill detailed activity %d: %v", activity.Id, err)
+				continue
+			}
+			if detailedActivity == nil {
+				continue
+			}
+
+			provider.localStorageProvider.SaveDetailedActivityToCache(provider.clientId, year, *detailedActivity)
+			loadedForYear++
+			totalLoaded++
+		}
+
+		if loadedForYear > 0 {
+			log.Printf("Detailed backfill cached %d activities for year %d", loadedForYear, year)
+		}
+	}
+
+	log.Printf("Detailed backfill completed (%d activities cached)", totalLoaded)
+	return false
 }
 
 func (provider *StravaActivityProvider) loadMissingStreamsForPointers(year int, activities []*strava.Activity) {
@@ -759,12 +947,17 @@ func (provider *StravaActivityProvider) loadMissingStreamsForPointers(year int, 
 	workerCount := min(len(activities), max(2, runtime.NumCPU()))
 	indexCh := make(chan int, len(activities))
 	var wg sync.WaitGroup
+	var stopRequested atomic.Bool
 
 	for worker := 0; worker < workerCount; worker++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for idx := range indexCh {
+				if stopRequested.Load() || provider.isStravaRateLimitedNow() {
+					continue
+				}
+
 				activity := activities[idx]
 				if activity == nil || activity.Stream != nil {
 					continue
@@ -773,11 +966,16 @@ func (provider *StravaActivityProvider) loadMissingStreamsForPointers(year int, 
 				var stream *strava.Stream
 				if streamIDs[activity.Id] {
 					stream = provider.localStorageProvider.LoadActivitiesStreamsFromCache(provider.clientId, year, *activity)
-				} else if provider.StravaApi != nil {
+				} else if provider.StravaApi != nil && !provider.isStravaRateLimitedNow() {
 					loaded, err := provider.StravaApi.GetActivityStream(*activity)
 					if err == nil && loaded != nil {
 						provider.localStorageProvider.SaveActivitiesStreamsToCache(provider.clientId, year, *activity, *loaded)
 						stream = loaded
+					} else if err != nil {
+						provider.markStravaRateLimited(err, fmt.Sprintf("stream backfill activity %d", activity.Id))
+						if IsRateLimitError(err) {
+							stopRequested.Store(true)
+						}
 					}
 				}
 				activity.Stream = stream

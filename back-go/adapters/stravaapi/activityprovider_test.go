@@ -1,6 +1,7 @@
 package stravaapi
 
 import (
+	"errors"
 	"fmt"
 	"mystravastats/adapters/localrepository"
 	"mystravastats/domain/business"
@@ -139,6 +140,29 @@ func TestGetActivitiesByYearAndActivityTypesReturnsDefensiveCopy(t *testing.T) {
 			secondCall[0].Id,
 			expectedFirstID,
 		)
+	}
+}
+
+func TestRateLimitCircuitBreaker(t *testing.T) {
+	provider := &StravaActivityProvider{}
+
+	if provider.isStravaRateLimitedNow() {
+		t.Fatal("expected rate limit breaker to be inactive initially")
+	}
+
+	provider.markStravaRateLimited(errors.New("network timeout"), "non-rate-limit")
+	if provider.isStravaRateLimitedNow() {
+		t.Fatal("expected non-rate-limit errors to not activate breaker")
+	}
+
+	provider.markStravaRateLimited(ErrStravaRateLimitReached, "unit-test")
+	if !provider.isStravaRateLimitedNow() {
+		t.Fatal("expected rate limit breaker to be active after 429")
+	}
+
+	provider.rateLimitUntilUnix.Store(time.Now().Add(-time.Second).Unix())
+	if provider.isStravaRateLimitedNow() {
+		t.Fatal("expected breaker to expire after cooldown deadline")
 	}
 }
 

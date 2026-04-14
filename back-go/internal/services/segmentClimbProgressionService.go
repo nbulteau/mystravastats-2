@@ -27,6 +27,7 @@ const (
 )
 
 type segmentAttemptRaw struct {
+	effortId           int64
 	targetId           int64
 	targetName         string
 	targetType         segmentTargetType
@@ -34,7 +35,10 @@ type segmentAttemptRaw struct {
 	distance           float64
 	averageGrade       float64
 	elapsedTimeSeconds int
+	movingTimeSeconds  int
 	speedKph           float64
+	averagePowerWatts  float64
+	averageHeartRate   float64
 	activityDate       string
 	prRank             *int
 	activity           business.ActivityShort
@@ -101,6 +105,7 @@ func FetchSegmentClimbProgressionByActivityTypeAndYear(
 			}
 
 			attempt := segmentAttemptRaw{
+				effortId:           effort.Id,
 				targetId:           effort.Segment.Id,
 				targetName:         effort.Segment.Name,
 				targetType:         effortTargetType,
@@ -108,7 +113,10 @@ func FetchSegmentClimbProgressionByActivityTypeAndYear(
 				distance:           effort.Distance,
 				averageGrade:       effort.Segment.AverageGrade,
 				elapsedTimeSeconds: effort.ElapsedTime,
+				movingTimeSeconds:  effort.MovingTime,
 				speedKph:           computeSpeedKph(effort.Distance, effort.ElapsedTime),
+				averagePowerWatts:  effort.AverageWatts,
+				averageHeartRate:   effort.AverageHeartRate,
 				activityDate:       effort.StartDateLocal,
 				prRank:             effort.PrRank,
 				activity:           toActivityShort(activity),
@@ -285,6 +293,33 @@ func buildAttempts(attempts []segmentAttemptRaw, metric segmentMetric) []busines
 		return sortedAttempts[i].activityDate < sortedAttempts[j].activityDate
 	})
 
+	bestRankedAttempts := append([]segmentAttemptRaw(nil), attempts...)
+	sort.Slice(bestRankedAttempts, func(i, j int) bool {
+		left := bestRankedAttempts[i]
+		right := bestRankedAttempts[j]
+		if metric == segmentMetricSpeed {
+			if left.speedKph != right.speedKph {
+				return left.speedKph > right.speedKph
+			}
+		} else {
+			if left.elapsedTimeSeconds != right.elapsedTimeSeconds {
+				return left.elapsedTimeSeconds < right.elapsedTimeSeconds
+			}
+		}
+		if left.activityDate != right.activityDate {
+			return left.activityDate < right.activityDate
+		}
+		return left.effortId < right.effortId
+	})
+
+	personalRankByEffortID := make(map[int64]int, len(bestRankedAttempts))
+	for index, attempt := range bestRankedAttempts {
+		if attempt.effortId <= 0 {
+			continue
+		}
+		personalRankByEffortID[attempt.effortId] = index + 1
+	}
+
 	bestValue := 0.0
 	switch metric {
 	case segmentMetricSpeed:
@@ -348,17 +383,27 @@ func buildAttempts(attempts []segmentAttemptRaw, metric segmentMetric) []busines
 			}
 		}
 
+		var personalRank *int
+		if rank, ok := personalRankByEffortID[attempt.effortId]; ok {
+			rankCopy := rank
+			personalRank = &rankCopy
+		}
+
 		progression = append(progression, business.SegmentClimbAttempt{
 			TargetId:           attempt.targetId,
 			TargetName:         attempt.targetName,
 			TargetType:         string(attempt.targetType),
 			ActivityDate:       attempt.activityDate,
 			ElapsedTimeSeconds: attempt.elapsedTimeSeconds,
+			MovingTimeSeconds:  attempt.movingTimeSeconds,
 			SpeedKph:           attempt.speedKph,
 			Distance:           attempt.distance,
 			AverageGrade:       attempt.averageGrade,
 			ElevationGain:      (attempt.distance * attempt.averageGrade) / 100.0,
+			AveragePowerWatts:  attempt.averagePowerWatts,
+			AverageHeartRate:   attempt.averageHeartRate,
 			PrRank:             attempt.prRank,
+			PersonalRank:       personalRank,
 			SetsNewPr:          setsNewPr,
 			CloseToPr:          closeToPr,
 			DeltaToPr:          deltaToPr,

@@ -40,16 +40,28 @@ data class SegmentClimbAttemptDto(
     val targetType: String,
     val activityDate: String,
     val elapsedTimeSeconds: Int,
+    val movingTimeSeconds: Int,
     val speedKph: Double,
     val distance: Double,
     val averageGrade: Double,
     val elevationGain: Double,
+    val averagePowerWatts: Double,
+    val averageHeartRate: Double,
     val prRank: Int?,
+    val personalRank: Int?,
     val setsNewPr: Boolean,
     val closeToPr: Boolean,
     val deltaToPr: String,
     val weatherSummary: String?,
     val activity: ActivityShortDto,
+)
+
+@Schema(description = "Detailed summary for one segment", name = "SegmentSummary")
+data class SegmentSummaryDto(
+    val metric: String,
+    val segment: SegmentClimbTargetSummaryDto,
+    val personalRecord: SegmentClimbAttemptDto?,
+    val topEfforts: List<SegmentClimbAttemptDto>,
 )
 
 fun SegmentClimbProgression.toDto(): SegmentClimbProgressionDto {
@@ -89,11 +101,15 @@ fun SegmentClimbAttempt.toDto(): SegmentClimbAttemptDto {
         targetType = targetType,
         activityDate = activityDate,
         elapsedTimeSeconds = elapsedTimeSeconds,
+        movingTimeSeconds = movingTimeSeconds,
         speedKph = speedKph,
         distance = distance,
         averageGrade = averageGrade,
         elevationGain = elevationGain,
+        averagePowerWatts = averagePowerWatts,
+        averageHeartRate = averageHeartRate,
         prRank = prRank,
+        personalRank = personalRank,
         setsNewPr = setsNewPr,
         closeToPr = closeToPr,
         deltaToPr = deltaToPr,

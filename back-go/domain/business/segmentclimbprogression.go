@@ -32,11 +32,15 @@ type SegmentClimbAttempt struct {
 	TargetType         string
 	ActivityDate       string
 	ElapsedTimeSeconds int
+	MovingTimeSeconds  int
 	SpeedKph           float64
 	Distance           float64
 	AverageGrade       float64
 	ElevationGain      float64
+	AveragePowerWatts  float64
+	AverageHeartRate   float64
 	PrRank             *int
+	PersonalRank       *int
 	SetsNewPr          bool
 	CloseToPr          bool
 	DeltaToPr          string

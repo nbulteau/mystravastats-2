@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
 import me.nicolas.stravastats.api.dto.HeartRateZoneAnalysisDto
 import me.nicolas.stravastats.api.dto.PersonalRecordTimelineDto
+import me.nicolas.stravastats.api.dto.SegmentClimbProgressionDto
 import me.nicolas.stravastats.api.dto.StatisticsDto
 import me.nicolas.stravastats.api.dto.toDto
 import me.nicolas.stravastats.domain.services.IHeartRateZoneService
@@ -99,5 +100,17 @@ class StatisticsController(
     ): HeartRateZoneAnalysisDto {
         val activityTypes = activityType.convertToActivityTypeSet()
         return heartRateZoneService.getAnalysis(activityTypes, year).toDto()
+    }
+
+    @GetMapping("/segment-climb-progression")
+    fun getSegmentClimbProgression(
+        @RequestParam(required = true) activityType: String,
+        @RequestParam(required = false) year: Int?,
+        @RequestParam(required = false) metric: String?,
+        @RequestParam(required = false) targetType: String?,
+        @RequestParam(required = false) targetId: Long?,
+    ): SegmentClimbProgressionDto {
+        val activityTypes = activityType.convertToActivityTypeSet()
+        return statisticsService.getSegmentClimbProgression(activityTypes, year, metric, targetType, targetId).toDto()
     }
 }
