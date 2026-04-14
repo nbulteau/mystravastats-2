@@ -13,34 +13,42 @@ func bestDayFunction(activities []*strava.Activity) *Pair {
 }
 
 func TestNewBestDayStatistic(t *testing.T) {
+	// GIVEN
 	activities := []*strava.Activity{
 		{StartDate: "2025-02-10"},
 	}
 
+	// WHEN
 	stat := NewBestDayStatistic("Best Day", activities, "%.2f on %s", bestDayFunction)
 
+	// THEN
 	if stat == nil {
 		t.Errorf("Expected BestDayStatistic to be created, but got nil")
 	}
 }
 
 func TestBestDayStatistic_Value(t *testing.T) {
+	// GIVEN
 	activities := []*strava.Activity{
 		{StartDate: "2025-02-10"},
 	}
 
 	stat := NewBestDayStatistic("Best Day", activities, "%.2f on %s", bestDayFunction)
+
+	// WHEN
 	value := stat.Value()
 
+	// THEN
 	expected := "100.00 on Mon 10 February 2025"
 	if value != expected {
 		t.Errorf("Expected value to be %s, but got %s", expected, value)
 	}
 
-	// Test with no activities
+	// WHEN: Test with no activities
 	stat = NewBestDayStatistic("Best Day", []*strava.Activity{}, "%.2f on %s", bestDayFunction)
 	value = stat.Value()
 
+	// THEN
 	expected = "Not available"
 	if value != expected {
 		t.Errorf("Expected value to be %s, but got %s", expected, value)

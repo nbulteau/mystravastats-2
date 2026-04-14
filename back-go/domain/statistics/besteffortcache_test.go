@@ -9,6 +9,7 @@ import (
 )
 
 func TestBestEffortCache_SaveLoadRoundTrip(t *testing.T) {
+	// GIVEN: Clear cache and create initial effort
 	ClearBestEffortCache()
 	stream := testBestEffortStream()
 	supplierCalls := 0
@@ -39,6 +40,7 @@ func TestBestEffortCache_SaveLoadRoundTrip(t *testing.T) {
 		t.Fatalf("expected first effort to be computed")
 	}
 
+	// WHEN: Save cache to disk, clear memory, then reload
 	path := filepath.Join(t.TempDir(), "best-effort-cache.json")
 	savedEntries, err := SaveBestEffortCacheToDisk(path)
 	if err != nil {
@@ -77,6 +79,7 @@ func TestBestEffortCache_SaveLoadRoundTrip(t *testing.T) {
 		},
 	)
 
+	// THEN: Verify cached value was reused without calling supplier
 	if supplierCalls != 0 {
 		t.Fatalf("expected supplier not to run after cache reload, got %d calls", supplierCalls)
 	}
@@ -86,6 +89,7 @@ func TestBestEffortCache_SaveLoadRoundTrip(t *testing.T) {
 }
 
 func TestBestEffortCache_InvalidateByActivityIDs(t *testing.T) {
+	// GIVEN
 	ClearBestEffortCache()
 	stream := testBestEffortStream()
 
@@ -96,11 +100,15 @@ func TestBestEffortCache_InvalidateByActivityIDs(t *testing.T) {
 		return &business.ActivityEffort{Distance: 1000, Seconds: 210, ActivityShort: business.ActivityShort{Id: 2, Name: "B", Type: business.Ride}}
 	})
 
+	// WHEN
 	removed := InvalidateBestEffortCacheByActivityIDs(map[int64]struct{}{1: {}})
+	cacheSize := BestEffortCacheSize()
+
+	// THEN
 	if removed == 0 {
 		t.Fatalf("expected invalidation to remove at least one entry")
 	}
-	if BestEffortCacheSize() == 0 {
+	if cacheSize == 0 {
 		t.Fatalf("expected cache to retain entries for untouched activities")
 	}
 }

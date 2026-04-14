@@ -9,10 +9,13 @@ import (
 )
 
 func TestToAthleteDto_NilDates(t *testing.T) {
+	// GIVEN
 	athlete := strava.Athlete{Id: 123}
 
+	// WHEN
 	dto := ToAthleteDto(athlete)
 
+	// THEN
 	if !dto.CreatedAt.IsZero() {
 		t.Fatalf("expected CreatedAt to be zero value, got %v", dto.CreatedAt)
 	}
@@ -22,14 +25,20 @@ func TestToAthleteDto_NilDates(t *testing.T) {
 }
 
 func TestBuildActivityEfforts_NilStream(t *testing.T) {
-	efforts := BuildActivityEfforts(&strava.DetailedActivity{Id: 42, Stream: nil})
+	// GIVEN
+	detailedActivity := &strava.DetailedActivity{Id: 42, Stream: nil}
 
+	// WHEN
+	efforts := BuildActivityEfforts(detailedActivity)
+
+	// THEN
 	if len(efforts) != 0 {
 		t.Fatalf("expected no efforts when stream is nil, got %d", len(efforts))
 	}
 }
 
 func TestToStreamDto_DistinctPointersAndValues(t *testing.T) {
+	// GIVEN
 	stream := &strava.Stream{
 		Distance: strava.DistanceStream{Data: []float64{1, 2}},
 		Time:     strava.TimeStream{Data: []int{10, 20}},
@@ -43,7 +52,10 @@ func TestToStreamDto_DistinctPointersAndValues(t *testing.T) {
 		VelocitySmooth: &strava.SmoothVelocityStream{Data: []float64{8.5, 8.8}},
 	}
 
+	// WHEN
 	dto := toStreamDto(stream)
+
+	// THEN
 	if dto == nil {
 		t.Fatal("expected non-nil dto")
 	}
@@ -88,6 +100,7 @@ func TestToStreamDto_DistinctPointersAndValues(t *testing.T) {
 }
 
 func TestComputeFamousClimbEffortSeconds_UsesSegmentDurationNotActivityDuration(t *testing.T) {
+	// GIVEN
 	badge := badges.FamousClimbBadge{
 		Start: business.GeoCoordinate{Latitude: 45.2178751, Longitude: 6.4750846},
 		End:   business.GeoCoordinate{Latitude: 45.2026999, Longitude: 6.4446143},
@@ -106,7 +119,10 @@ func TestComputeFamousClimbEffortSeconds_UsesSegmentDurationNotActivityDuration(
 		},
 	}
 
+	// WHEN
 	effortSeconds, ok := computeFamousClimbEffortSeconds(activity, badge)
+
+	// THEN
 	if !ok {
 		t.Fatalf("expected effort duration to be detected")
 	}
@@ -116,6 +132,7 @@ func TestComputeFamousClimbEffortSeconds_UsesSegmentDurationNotActivityDuration(
 }
 
 func TestComputeFamousClimbEffortSeconds_RejectsDescentOrder(t *testing.T) {
+	// GIVEN
 	badge := badges.FamousClimbBadge{
 		Start: business.GeoCoordinate{Latitude: 45.2178751, Longitude: 6.4750846},
 		End:   business.GeoCoordinate{Latitude: 45.2026999, Longitude: 6.4446143},
@@ -132,7 +149,10 @@ func TestComputeFamousClimbEffortSeconds_RejectsDescentOrder(t *testing.T) {
 		},
 	}
 
+	// WHEN
 	_, ok := computeFamousClimbEffortSeconds(activity, badge)
+
+	// THEN
 	if ok {
 		t.Fatalf("expected descent-only order to be rejected")
 	}

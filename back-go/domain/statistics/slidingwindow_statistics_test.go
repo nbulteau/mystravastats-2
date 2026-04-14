@@ -7,14 +7,17 @@ import (
 )
 
 func TestBestTimeForDistance_WithSyntheticStream(t *testing.T) {
+	// GIVEN
 	stream := syntheticStream(
 		[]float64{0, 100, 200, 300, 400},
 		[]int{0, 10, 20, 35, 50},
 		[]float64{100, 105, 115, 118, 130},
 	)
 
+	// WHEN
 	effort := BestTimeForDistance(1, "Test ride", "Ride", stream, 200)
 
+	// THEN
 	if effort == nil {
 		t.Fatalf("expected effort, got nil")
 	}
@@ -27,28 +30,34 @@ func TestBestTimeForDistance_WithSyntheticStream(t *testing.T) {
 }
 
 func TestBestTimeForDistance_ReturnsNilWhenTargetTooLong(t *testing.T) {
+	// GIVEN
 	stream := syntheticStream(
 		[]float64{0, 100, 200, 300},
 		[]int{0, 10, 20, 30},
 		[]float64{100, 102, 104, 106},
 	)
 
+	// WHEN
 	effort := BestTimeForDistance(1, "Test ride", "Ride", stream, 1000)
 
+	// THEN
 	if effort != nil {
 		t.Fatalf("expected nil effort for unreachable distance, got %+v", effort)
 	}
 }
 
 func TestBestDistanceForTime_WithSyntheticStream(t *testing.T) {
+	// GIVEN
 	stream := syntheticStream(
 		[]float64{0, 100, 200, 300, 400},
 		[]int{0, 10, 20, 35, 50},
 		[]float64{100, 105, 115, 118, 130},
 	)
 
+	// WHEN
 	effort := BestDistanceForTime(1, "Test ride", "Ride", stream, 20)
 
+	// THEN
 	if effort == nil {
 		t.Fatalf("expected effort, got nil")
 	}
@@ -61,6 +70,7 @@ func TestBestDistanceForTime_WithSyntheticStream(t *testing.T) {
 }
 
 func TestBestDistanceEffort_ReturnsNilWhenAltitudeDataIsEmpty(t *testing.T) {
+	// GIVEN
 	activity := strava.Activity{
 		Id:   42,
 		Name: "Missing altitude",
@@ -72,22 +82,27 @@ func TestBestDistanceEffort_ReturnsNilWhenAltitudeDataIsEmpty(t *testing.T) {
 		},
 	}
 
+	// WHEN
 	effort := BestDistanceEffort(activity, 10)
 
+	// THEN
 	if effort != nil {
 		t.Fatalf("expected nil effort when altitude data is empty, got %+v", effort)
 	}
 }
 
 func TestBestElevationForDistance_WithSyntheticStream(t *testing.T) {
+	// GIVEN
 	stream := syntheticStream(
 		[]float64{0, 100, 200, 300, 400},
 		[]int{0, 10, 20, 35, 50},
 		[]float64{100, 105, 115, 118, 130},
 	)
 
+	// WHEN
 	effort := BestElevationForDistance(1, "Test ride", "Ride", stream, 200)
 
+	// THEN
 	if effort == nil {
 		t.Fatalf("expected effort, got nil")
 	}
@@ -100,14 +115,17 @@ func TestBestElevationForDistance_WithSyntheticStream(t *testing.T) {
 }
 
 func TestBestElevationForDistance_ReturnsNilWhenTargetTooLong(t *testing.T) {
+	// GIVEN
 	stream := syntheticStream(
 		[]float64{0, 100, 200, 300},
 		[]int{0, 10, 20, 30},
 		[]float64{100, 102, 104, 106},
 	)
 
+	// WHEN
 	effort := BestElevationForDistance(1, "Test ride", "Ride", stream, 2000)
 
+	// THEN
 	if effort != nil {
 		t.Fatalf("expected nil effort for unreachable distance, got %+v", effort)
 	}

@@ -7,6 +7,7 @@ import (
 )
 
 func TestBuildPersonalRecordsTimeline_BestDistance1HIsChronological(t *testing.T) {
+	// GIVEN
 	activities := []*strava.Activity{
 		rideActivityWithOneHourStream(202503, "2025-03-10T06:00:00Z", "2025-03-10T08:00:00+01:00", 30000),
 		rideActivityWithOneHourStream(202501, "2025-01-10T07:00:00Z", "2025-01-10T08:00:00+0100", 20000),
@@ -14,8 +15,10 @@ func TestBuildPersonalRecordsTimeline_BestDistance1HIsChronological(t *testing.T
 	}
 	metric := "best-distance-1h"
 
+	// WHEN
 	timeline := buildPersonalRecordsTimeline(activities, &metric, []business.ActivityType{business.Ride})
 
+	// THEN
 	if len(timeline) != 3 {
 		t.Fatalf("expected 3 PR events, got %d", len(timeline))
 	}

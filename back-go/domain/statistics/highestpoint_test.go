@@ -6,15 +6,17 @@ import (
 )
 
 func TestNewHighestPointStatistic(t *testing.T) {
-	// Test with normal activities
+	// GIVEN: Test with normal activities
 	activities := []*strava.Activity{
 		{Id: 1, Name: "Activity 1", Type: "Run", ElevHigh: 100.0},
 		{Id: 2, Name: "Activity 2", Type: "Ride", ElevHigh: 500.0},
 		{Id: 3, Name: "Activity 3", Type: "Run", ElevHigh: 300.0},
 	}
 
+	// WHEN
 	stat := NewHighestPointStatistic(activities)
 
+	// THEN: Verify highest point calculation
 	if stat.highestElevation == nil {
 		t.Errorf("Expected highestElevation to be calculated, got nil")
 	}

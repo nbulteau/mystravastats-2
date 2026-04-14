@@ -17,24 +17,29 @@ import (
 )
 
 func TestFilterActivitiesByType(t *testing.T) {
+	// GIVEN
 	activities := []*strava.Activity{
 		{Type: "Ride", Commute: false},
 		{Type: "Run", Commute: false},
 		{Type: "Ride", Commute: true},
 	}
 
+	// WHEN
 	rides := FilterActivitiesByType(activities, business.Ride)
+	commutes := FilterActivitiesByType(activities, business.Commute)
+
+	// THEN
 	if len(rides) != 1 {
 		t.Errorf("Expected 1 ride, got %d", len(rides))
 	}
 
-	commutes := FilterActivitiesByType(activities, business.Commute)
 	if len(commutes) != 1 {
 		t.Errorf("Expected 1 commute, got %d", len(commutes))
 	}
 }
 
 func TestShouldBootstrapFromStravaAPIWhenCurrentYearCacheIsFresh(t *testing.T) {
+	// GIVEN
 	cacheDir := t.TempDir()
 	repo := localrepository.NewStravaRepository(cacheDir)
 	clientID := "123"
@@ -47,12 +52,17 @@ func TestShouldBootstrapFromStravaAPIWhenCurrentYearCacheIsFresh(t *testing.T) {
 		localStorageProvider: repo,
 	}
 
-	if provider.shouldBootstrapFromStravaAPI(clientID) {
+	// WHEN
+	shouldBootstrap := provider.shouldBootstrapFromStravaAPI(clientID)
+
+	// THEN
+	if shouldBootstrap {
 		t.Fatal("expected fresh local cache to skip Strava bootstrap")
 	}
 }
 
 func TestShouldBootstrapFromStravaAPIWhenCurrentYearCacheIsMissing(t *testing.T) {
+	// GIVEN
 	cacheDir := t.TempDir()
 	repo := localrepository.NewStravaRepository(cacheDir)
 	clientID := "123"
@@ -63,12 +73,17 @@ func TestShouldBootstrapFromStravaAPIWhenCurrentYearCacheIsMissing(t *testing.T)
 		localStorageProvider: repo,
 	}
 
-	if !provider.shouldBootstrapFromStravaAPI(clientID) {
+	// WHEN
+	shouldBootstrap := provider.shouldBootstrapFromStravaAPI(clientID)
+
+	// THEN
+	if !shouldBootstrap {
 		t.Fatal("expected missing current-year cache to require Strava bootstrap")
 	}
 }
 
 func TestShouldBootstrapFromStravaAPIWhenCacheIsTooOld(t *testing.T) {
+	// GIVEN
 	cacheDir := t.TempDir()
 	repo := localrepository.NewStravaRepository(cacheDir)
 	clientID := "123"
@@ -87,7 +102,11 @@ func TestShouldBootstrapFromStravaAPIWhenCacheIsTooOld(t *testing.T) {
 		localStorageProvider: repo,
 	}
 
-	if !provider.shouldBootstrapFromStravaAPI(clientID) {
+	// WHEN
+	shouldBootstrap := provider.shouldBootstrapFromStravaAPI(clientID)
+
+	// THEN
+	if !shouldBootstrap {
 		t.Fatal("expected stale current-year cache to require Strava bootstrap")
 	}
 }
@@ -119,6 +138,7 @@ func BenchmarkGetActivitiesByYearAndActivityTypesCached(b *testing.B) {
 }
 
 func TestGetActivitiesByYearAndActivityTypesReturnsDefensiveCopy(t *testing.T) {
+	// GIVEN
 	provider := benchmarkProvider(100)
 	year := 2024
 
@@ -128,12 +148,14 @@ func TestGetActivitiesByYearAndActivityTypesReturnsDefensiveCopy(t *testing.T) {
 	}
 	expectedFirstID := firstCall[0].Id
 
-	// Mutate the returned ordering; cached data should not be impacted.
+	// WHEN: Mutate the returned ordering; cached data should not be impacted.
 	sort.Slice(firstCall, func(i, j int) bool {
 		return firstCall[i].Id > firstCall[j].Id
 	})
 
 	secondCall := provider.GetActivitiesByYearAndActivityTypes(&year, business.Ride)
+
+	// THEN
 	if len(secondCall) == 0 {
 		t.Fatal("expected non-empty activities on second call")
 	}
@@ -147,29 +169,41 @@ func TestGetActivitiesByYearAndActivityTypesReturnsDefensiveCopy(t *testing.T) {
 }
 
 func TestRateLimitCircuitBreaker(t *testing.T) {
+	// GIVEN
 	provider := &StravaActivityProvider{}
 
+	// WHEN & THEN: Initial state
 	if provider.isStravaRateLimitedNow() {
 		t.Fatal("expected rate limit breaker to be inactive initially")
 	}
 
+	// WHEN: Mark with non-rate-limit error
 	provider.markStravaRateLimited(errors.New("network timeout"), "non-rate-limit")
+
+	// THEN: Should not activate
 	if provider.isStravaRateLimitedNow() {
 		t.Fatal("expected non-rate-limit errors to not activate breaker")
 	}
 
+	// WHEN: Mark with actual rate limit error
 	provider.markStravaRateLimited(ErrStravaRateLimitReached, "unit-test")
+
+	// THEN: Should be active
 	if !provider.isStravaRateLimitedNow() {
 		t.Fatal("expected rate limit breaker to be active after 429")
 	}
 
+	// WHEN: Set expiration in the past
 	provider.rateLimitUntilUnix.Store(time.Now().Add(-time.Second).Unix())
+
+	// THEN: Should expire
 	if provider.isStravaRateLimitedNow() {
 		t.Fatal("expected breaker to expire after cooldown deadline")
 	}
 }
 
 func TestGetDetailedActivity_SkipsStravaCallWhenRateLimitAlreadyActive(t *testing.T) {
+	// GIVEN
 	var calls int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v3/activities/42" {
@@ -207,12 +241,16 @@ func TestGetDetailedActivity_SkipsStravaCallWhenRateLimitAlreadyActive(t *testin
 	provider.indexActivities()
 	provider.rateLimitUntilUnix.Store(time.Now().Add(5 * time.Minute).Unix())
 
+	// WHEN
 	detailed := provider.GetDetailedActivity(42)
+	apiCalls := atomic.LoadInt32(&calls)
+
+	// THEN
 	if detailed == nil {
 		t.Fatal("expected fallback detailed activity while rate limit is active")
 	}
-	if got := atomic.LoadInt32(&calls); got != 0 {
-		t.Fatalf("expected no Strava API call during active rate limit, got %d", got)
+	if apiCalls != 0 {
+		t.Fatalf("expected no Strava API call during active rate limit, got %d", apiCalls)
 	}
 }
 

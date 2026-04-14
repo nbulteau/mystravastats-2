@@ -7,6 +7,7 @@ import (
 )
 
 func TestParseActivityDateSupportsExtendedFormats(t *testing.T) {
+	// GIVEN: Various date format strings
 	t.Helper()
 
 	tests := []string{
@@ -15,6 +16,7 @@ func TestParseActivityDateSupportsExtendedFormats(t *testing.T) {
 		"2024-08-16",               // day precision
 	}
 
+	// WHEN & THEN: Each format should parse to year 2024
 	for _, value := range tests {
 		parsed, ok := ParseActivityDate(value)
 		if !ok {
@@ -27,6 +29,7 @@ func TestParseActivityDateSupportsExtendedFormats(t *testing.T) {
 }
 
 func TestActivitySortingKeepsChronologicalOrderWithMixedDateFormats(t *testing.T) {
+	// GIVEN: Date entries with mixed formats
 	t.Helper()
 
 	type dateEntry struct {
@@ -53,6 +56,7 @@ func TestActivitySortingKeepsChronologicalOrderWithMixedDateFormats(t *testing.T
 		},
 	}
 
+	// WHEN: Sort by date
 	sort.Slice(entries, func(i, j int) bool {
 		left := entries[i]
 		right := entries[j]
@@ -72,6 +76,7 @@ func TestActivitySortingKeepsChronologicalOrderWithMixedDateFormats(t *testing.T
 		return left.id < right.id
 	})
 
+	// THEN: Verify chronological ordering
 	if entries[0].id != 3 || entries[1].id != 2 || entries[2].id != 1 {
 		t.Fatalf("unexpected order: got IDs [%d, %d, %d], want [3, 2, 1]", entries[0].id, entries[1].id, entries[2].id)
 	}

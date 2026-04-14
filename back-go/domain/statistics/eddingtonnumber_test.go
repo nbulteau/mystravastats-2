@@ -7,6 +7,7 @@ import (
 )
 
 func TestEddingtonStatistic_processEddingtonNumber(t *testing.T) {
+	// GIVEN: Test cases for Eddington number calculation
 	tests := []struct {
 		name       string
 		activities []*strava.Activity
@@ -56,6 +57,7 @@ func TestEddingtonStatistic_processEddingtonNumber(t *testing.T) {
 		},
 	}
 
+	// WHEN & THEN: For each test case
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			stat := &EddingtonStatistic{
@@ -94,6 +96,7 @@ func TestEddingtonStatistic_processEddingtonNumber(t *testing.T) {
 }
 
 func TestEddingtonStatistic_ExactEqualityDoesNotRoundUp(t *testing.T) {
+	// GIVEN: 49 activities with 51km each
 	start := time.Date(2024, time.January, 1, 6, 0, 0, 0, time.UTC)
 	activities := make([]*strava.Activity, 0, 49)
 	for i := 0; i < 49; i++ {
@@ -103,14 +106,17 @@ func TestEddingtonStatistic_ExactEqualityDoesNotRoundUp(t *testing.T) {
 		})
 	}
 
+	// WHEN
 	stat := NewEddingtonStatistic(activities)
 
+	// THEN
 	if stat.eddingtonNumber != 49 {
 		t.Fatalf("expected eddington number 49, got %d", stat.eddingtonNumber)
 	}
 }
 
 func TestEddingtonStatistic_IgnoresEmptyDatesAndSubKilometerDistances(t *testing.T) {
+	// GIVEN: Activities with invalid dates/distances
 	activities := []*strava.Activity{
 		{StartDateLocal: "2024-01-01T10:00:00Z", Distance: 2000},
 		{StartDateLocal: "", Distance: 5000},                       // ignored because date is empty
@@ -118,8 +124,10 @@ func TestEddingtonStatistic_IgnoresEmptyDatesAndSubKilometerDistances(t *testing
 		{StartDateLocal: "2024-01-03T10:00:00Z", Distance: -1000},  // ignored (non-positive)
 	}
 
+	// WHEN
 	stat := NewEddingtonStatistic(activities)
 
+	// THEN
 	if stat.eddingtonNumber != 1 {
 		t.Fatalf("expected eddington number 1, got %d", stat.eddingtonNumber)
 	}

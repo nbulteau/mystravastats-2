@@ -14,11 +14,13 @@ import (
 var activitiesFilePattern = regexp.MustCompile(`^activities-(.+)-([0-9]{4})\.json$`)
 
 func TestStravaRepository_ReadsRealCacheJsonSamples(t *testing.T) {
+	// GIVEN
 	cacheRoot, ok := findRealStravaCacheRoot()
 	if !ok {
 		t.Skip("real strava-cache directory not found")
 	}
 
+	// WHEN
 	activitiesFiles, err := filepath.Glob(filepath.Join(cacheRoot, "strava-*", "strava-*-*", "activities-*-*.json"))
 	if err != nil {
 		t.Fatalf("failed to enumerate activities files: %v", err)
@@ -27,6 +29,7 @@ func TestStravaRepository_ReadsRealCacheJsonSamples(t *testing.T) {
 		t.Skip("no cached activities JSON file found in strava-cache")
 	}
 
+	// THEN: Verify we can read and parse the repository
 	sourceActivitiesFile := activitiesFiles[0]
 	clientID, year, err := extractClientIDAndYearFromActivitiesFile(sourceActivitiesFile)
 	if err != nil {

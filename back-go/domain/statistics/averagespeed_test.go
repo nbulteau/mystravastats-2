@@ -6,14 +6,17 @@ import (
 )
 
 func TestNewAverageSpeedStatistic(t *testing.T) {
+	// GIVEN
 	activities := []*strava.Activity{
 		{AverageSpeed: 5.0},
 		{AverageSpeed: 10.0},
 		{AverageSpeed: 15.0},
 	}
 
+	// WHEN
 	stat := NewAverageSpeedStatistic(activities)
 
+	// THEN
 	if stat.averageSpeed == nil {
 		t.Errorf("Expected averageSpeed to be calculated, got nil")
 	}
@@ -25,25 +28,32 @@ func TestNewAverageSpeedStatistic(t *testing.T) {
 }
 
 func TestAverageSpeedStatistic_for_Ride_activities_Value(t *testing.T) {
+	// GIVEN
 	activities := []*strava.Activity{
 		{AverageSpeed: 5.0, Type: "Ride"},
 		{AverageSpeed: 10.0, Type: "Ride"},
 		{AverageSpeed: 15.0, Type: "Ride"},
 	}
 
+	// WHEN
 	stat := NewAverageSpeedStatistic(activities)
 	expectedValue := "36.00 km/h"
+	actualValue := stat.Value()
 
-	if stat.Value() != expectedValue {
-		t.Errorf("Expected Value to be %s, got %s", expectedValue, stat.Value())
+	// THEN
+	if actualValue != expectedValue {
+		t.Errorf("Expected Value to be %s, got %s", expectedValue, actualValue)
 	}
 }
 
 func TestAverageSpeedStatistic_NoActivities(t *testing.T) {
+	// GIVEN
 	var activities []*strava.Activity
 
+	// WHEN
 	stat := NewAverageSpeedStatistic(activities)
 
+	// THEN
 	if stat.averageSpeed != nil {
 		t.Errorf("Expected averageSpeed to be nil, got %.2f", *stat.averageSpeed)
 	}
@@ -55,13 +65,16 @@ func TestAverageSpeedStatistic_NoActivities(t *testing.T) {
 }
 
 func TestAverageSpeedStatistic_ZeroSpeedActivities(t *testing.T) {
+	// GIVEN
 	activities := []*strava.Activity{
 		{AverageSpeed: 0.0},
 		{AverageSpeed: 0.0},
 	}
 
+	// WHEN
 	stat := NewAverageSpeedStatistic(activities)
 
+	// THEN
 	if stat.averageSpeed != nil {
 		t.Errorf("Expected averageSpeed to be nil, got %.2f", *stat.averageSpeed)
 	}

@@ -5,6 +5,7 @@ import (
 )
 
 func TestFormatDate(t *testing.T) {
+	// GIVEN: Test cases for date formatting
 	tests := []struct {
 		name     string
 		dateStr  string
@@ -27,6 +28,7 @@ func TestFormatDate(t *testing.T) {
 		},
 	}
 
+	// WHEN & THEN
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := formatDate(tt.dateStr)
@@ -38,6 +40,7 @@ func TestFormatDate(t *testing.T) {
 }
 
 func TestFormatSeconds(t *testing.T) {
+	// GIVEN: Test cases for second formatting
 	tests := []struct {
 		name     string
 		seconds  int
@@ -70,6 +73,7 @@ func TestFormatSeconds(t *testing.T) {
 		},
 	}
 
+	// WHEN & THEN
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := FormatSeconds(tt.seconds)

@@ -8,6 +8,7 @@ import (
 )
 
 func TestFamousClimbBadgeCheck_AllowsActivitiesStartingFarFromClimb(t *testing.T) {
+	// GIVEN
 	badge := FamousClimbBadge{
 		Name:   "Col du Télégraphe",
 		Label:  "Col du Télégraphe from Saint Michel de Maurienne",
@@ -16,6 +17,7 @@ func TestFamousClimbBadgeCheck_AllowsActivitiesStartingFarFromClimb(t *testing.T
 		Length: 11.8,
 	}
 
+	// WHEN
 	activity := &strava.Activity{
 		StartLatlng: []float64{45.1885, 5.7245}, // Grenoble area, far from Télégraphe start.
 		Stream: &strava.Stream{
@@ -28,6 +30,7 @@ func TestFamousClimbBadgeCheck_AllowsActivitiesStartingFarFromClimb(t *testing.T
 		},
 	}
 
+	// THEN
 	activities, matched := badge.Check([]*strava.Activity{activity})
 	if !matched {
 		t.Fatalf("expected Télégraphe badge to match when both climb points are in stream")
@@ -38,6 +41,7 @@ func TestFamousClimbBadgeCheck_AllowsActivitiesStartingFarFromClimb(t *testing.T
 }
 
 func TestFamousClimbBadgeCheck_AllowsWaypointWithinFiveHundredMeters(t *testing.T) {
+	// GIVEN
 	badge := FamousClimbBadge{
 		Name:   "Col du Télégraphe",
 		Label:  "Col du Télégraphe from Saint Michel de Maurienne",
@@ -46,6 +50,7 @@ func TestFamousClimbBadgeCheck_AllowsWaypointWithinFiveHundredMeters(t *testing.
 		Length: 11.8,
 	}
 
+	// WHEN
 	activity := &strava.Activity{
 		StartLatlng: []float64{45.2178751, 6.4750846},
 		Stream: &strava.Stream{
@@ -58,6 +63,7 @@ func TestFamousClimbBadgeCheck_AllowsWaypointWithinFiveHundredMeters(t *testing.
 		},
 	}
 
+	// THEN
 	_, matched := badge.Check([]*strava.Activity{activity})
 	if !matched {
 		t.Fatalf("expected Télégraphe badge to match with a stream point within 500m of summit")
@@ -65,6 +71,7 @@ func TestFamousClimbBadgeCheck_AllowsWaypointWithinFiveHundredMeters(t *testing.
 }
 
 func TestFamousClimbBadgeCheck_DoesNotMatchDescentOnly(t *testing.T) {
+	// GIVEN
 	badge := FamousClimbBadge{
 		Name:   "Col du Télégraphe",
 		Label:  "Col du Télégraphe from Saint Michel de Maurienne",
@@ -73,6 +80,7 @@ func TestFamousClimbBadgeCheck_DoesNotMatchDescentOnly(t *testing.T) {
 		Length: 11.8,
 	}
 
+	// WHEN
 	activity := &strava.Activity{
 		StartLatlng: []float64{45.2026999, 6.4446143},
 		Stream: &strava.Stream{
@@ -85,6 +93,7 @@ func TestFamousClimbBadgeCheck_DoesNotMatchDescentOnly(t *testing.T) {
 		},
 	}
 
+	// THEN
 	_, matched := badge.Check([]*strava.Activity{activity})
 	if matched {
 		t.Fatalf("expected Télégraphe descent-only activity to NOT match badge")
