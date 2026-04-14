@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -327,6 +328,139 @@ func getSegmentClimbProgressionByActivityType(w http.ResponseWriter, r *http.Req
 	if err := writeJSON(w, http.StatusOK, progressionDto); err != nil {
 		log.Printf("failed to write segment/climb progression response: %v", err)
 		writeInternalServerError(w, "Failed to encode segment/climb progression response")
+	}
+}
+
+func getSegmentsByActivityType(w http.ResponseWriter, r *http.Request) {
+	year, err := getYearParam(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+	activityTypes, err := getActivityTypeParam(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+	metric := getMetricParam(r)
+	query := getQueryParam(r)
+	from, err := getFromDateParam(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+	to, err := getToDateParam(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+
+	segments := services2.ListSegmentsByActivityTypeAndYear(year, metric, query, from, to, activityTypes...)
+	segmentsDto := make([]dto.SegmentClimbTargetSummaryDto, len(segments))
+	for i, segment := range segments {
+		segmentsDto[i] = dto.ToSegmentClimbTargetSummaryDto(segment)
+	}
+
+	if err := writeJSON(w, http.StatusOK, segmentsDto); err != nil {
+		log.Printf("failed to write segments response: %v", err)
+		writeInternalServerError(w, "Failed to encode segments response")
+	}
+}
+
+func getSegmentEffortsByActivityType(w http.ResponseWriter, r *http.Request) {
+	segmentID, err := getSegmentIDPathParam(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+	year, err := getYearParam(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+	activityTypes, err := getActivityTypeParam(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+	metric := getMetricParam(r)
+	from, err := getFromDateParam(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+	to, err := getToDateParam(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+
+	efforts := services2.FetchSegmentEffortsByActivityTypeAndYear(year, metric, segmentID, from, to, activityTypes...)
+	effortsDto := make([]dto.SegmentClimbAttemptDto, len(efforts))
+	for i, effort := range efforts {
+		effortsDto[i] = dto.ToSegmentClimbAttemptDto(effort)
+	}
+
+	if err := writeJSON(w, http.StatusOK, effortsDto); err != nil {
+		log.Printf("failed to write segment efforts response: %v", err)
+		writeInternalServerError(w, "Failed to encode segment efforts response")
+	}
+}
+
+func getSegmentSummaryByActivityType(w http.ResponseWriter, r *http.Request) {
+	segmentID, err := getSegmentIDPathParam(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+	year, err := getYearParam(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+	activityTypes, err := getActivityTypeParam(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+	metric := getMetricParam(r)
+	from, err := getFromDateParam(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+	to, err := getToDateParam(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+
+	summary := services2.FetchSegmentSummaryByActivityTypeAndYear(year, metric, segmentID, from, to, activityTypes...)
+	if summary == nil {
+		writeNotFound(w, "Segment not found", "No attempts found for this segment with current filters")
+		return
+	}
+
+	var prDto *dto.SegmentClimbAttemptDto
+	if summary.PersonalRecord != nil {
+		pr := dto.ToSegmentClimbAttemptDto(*summary.PersonalRecord)
+		prDto = &pr
+	}
+	topEffortsDto := make([]dto.SegmentClimbAttemptDto, len(summary.TopEfforts))
+	for i, effort := range summary.TopEfforts {
+		topEffortsDto[i] = dto.ToSegmentClimbAttemptDto(effort)
+	}
+
+	response := dto.SegmentSummaryDto{
+		Metric:         summary.Metric,
+		Segment:        dto.ToSegmentClimbTargetSummaryDto(summary.Segment),
+		PersonalRecord: prDto,
+		TopEfforts:     topEffortsDto,
+	}
+
+	if err := writeJSON(w, http.StatusOK, response); err != nil {
+		log.Printf("failed to write segment summary response: %v", err)
+		writeInternalServerError(w, "Failed to encode segment summary response")
 	}
 }
 
@@ -769,6 +903,33 @@ func getMetricParam(r *http.Request) *string {
 	return &metric
 }
 
+func getQueryParam(r *http.Request) *string {
+	query := strings.TrimSpace(r.URL.Query().Get("query"))
+	if query == "" {
+		return nil
+	}
+	return &query
+}
+
+func getFromDateParam(r *http.Request) (*string, error) {
+	return getDateParam(r, "from")
+}
+
+func getToDateParam(r *http.Request) (*string, error) {
+	return getDateParam(r, "to")
+}
+
+func getDateParam(r *http.Request, key string) (*string, error) {
+	value := strings.TrimSpace(r.URL.Query().Get(key))
+	if value == "" {
+		return nil, nil
+	}
+	if _, err := time.Parse("2006-01-02", value); err != nil {
+		return nil, fmt.Errorf("invalid %s date: %q (expected YYYY-MM-DD)", key, value)
+	}
+	return &value, nil
+}
+
 func getTargetTypeParam(r *http.Request) *string {
 	targetType := strings.TrimSpace(r.URL.Query().Get("targetType"))
 	if targetType == "" {
@@ -789,6 +950,20 @@ func getTargetIDParam(r *http.Request) (*int64, error) {
 	}
 
 	return &id, nil
+}
+
+func getSegmentIDPathParam(r *http.Request) (int64, error) {
+	segmentIDValue := strings.TrimSpace(mux.Vars(r)["segmentId"])
+	if segmentIDValue == "" {
+		return 0, fmt.Errorf("segmentId path parameter is required")
+	}
+
+	segmentID, err := strconv.ParseInt(segmentIDValue, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid segmentId: %q", segmentIDValue)
+	}
+
+	return segmentID, nil
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) error {

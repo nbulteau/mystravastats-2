@@ -7,8 +7,13 @@ import me.nicolas.stravastats.domain.business.PersonalRecordTimelineEntry
 import me.nicolas.stravastats.domain.business.SegmentClimbAttempt
 import me.nicolas.stravastats.domain.business.SegmentClimbProgression
 import me.nicolas.stravastats.domain.business.SegmentClimbTargetSummary
+import me.nicolas.stravastats.domain.business.SegmentSummary
 import me.nicolas.stravastats.domain.business.runActivities
 import me.nicolas.stravastats.domain.business.strava.*
+import me.nicolas.stravastats.domain.services.cache.SegmentAnalysisCacheEntryFile
+import me.nicolas.stravastats.domain.services.cache.SegmentAnalysisCacheFile
+import me.nicolas.stravastats.domain.services.cache.SegmentAnalysisCacheStore
+import me.nicolas.stravastats.domain.services.cache.SegmentAttemptRawSnapshot
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import me.nicolas.stravastats.domain.services.statistics.*
 import me.nicolas.stravastats.domain.utils.dateFormatter
@@ -36,6 +41,30 @@ interface IStatisticsService {
         targetType: String?,
         targetId: Long?
     ): SegmentClimbProgression
+    fun listSegments(
+        activityTypes: Set<ActivityType>,
+        year: Int?,
+        metric: String?,
+        query: String?,
+        from: String?,
+        to: String?,
+    ): List<SegmentClimbTargetSummary>
+    fun getSegmentEfforts(
+        activityTypes: Set<ActivityType>,
+        year: Int?,
+        metric: String?,
+        segmentId: Long,
+        from: String?,
+        to: String?,
+    ): List<SegmentClimbAttempt>
+    fun getSegmentSummary(
+        activityTypes: Set<ActivityType>,
+        year: Int?,
+        metric: String?,
+        segmentId: Long,
+        from: String?,
+        to: String?,
+    ): SegmentSummary?
 }
 
 @Service
@@ -43,7 +72,20 @@ internal class StatisticsService(
     activityProvider: IActivityProvider,
 ) : IStatisticsService, AbstractStravaService(activityProvider) {
 
+    companion object {
+        private const val SEGMENT_CACHE_MAX_ENTRIES = 256
+        private const val SEGMENT_CACHE_TTL_SECONDS = 30 * 60L
+        private const val SEGMENT_FALLBACK_CACHE_TTL_SECONDS = 45L
+    }
+
     private val logger = LoggerFactory.getLogger(StatisticsService::class.java)
+    private val segmentCacheIdentity by lazy(LazyThreadSafetyMode.NONE) {
+        runCatching { activityProvider.cacheIdentity() }.getOrNull()
+    }
+    private val segmentCacheLock = Any()
+    @Volatile
+    private var segmentCacheLoaded = false
+    private val segmentAttemptsCache = mutableMapOf<String, SegmentAttemptsCacheEntry>()
 
     override fun getStatistics(activityTypes: Set<ActivityType>, year: Int?): List<Statistic> {
         logger.info("Compute $activityTypes statistics for ${year ?: "all years"}")
@@ -182,6 +224,7 @@ internal class StatisticsService(
                     val effortTargetType =
                         if (effort.segment.climbCategory > 0) SegmentTargetType.CLIMB else SegmentTargetType.SEGMENT
                     SegmentAttemptRaw(
+                        effortId = effort.id,
                         targetId = effort.segment.id,
                         targetName = effort.segment.name,
                         targetType = effortTargetType,
@@ -189,7 +232,10 @@ internal class StatisticsService(
                         distance = effort.distance,
                         averageGrade = effort.segment.averageGrade,
                         elapsedTimeSeconds = effort.elapsedTime,
+                        movingTimeSeconds = effort.movingTime,
                         speedKph = computeSpeedKph(effort.distance, effort.elapsedTime),
+                        averagePowerWatts = effort.averageWatts,
+                        averageHeartRate = effort.averageHeartRate,
                         activityDate = effort.startDateLocal,
                         prRank = effort.prRank,
                         activity = ActivityShort(activity.id, activity.name, activity.type)
@@ -241,6 +287,79 @@ internal class StatisticsService(
             selectedTargetId = selectedTarget?.targetId,
             selectedTargetType = selectedTarget?.targetType,
             attempts = selectedAttempts
+        )
+    }
+
+    override fun listSegments(
+        activityTypes: Set<ActivityType>,
+        year: Int?,
+        metric: String?,
+        query: String?,
+        from: String?,
+        to: String?,
+    ): List<SegmentClimbTargetSummary> {
+        val resolvedMetric = parseSegmentMetric(metric)
+        val queryFilter = query.orEmpty().trim().lowercase(Locale.getDefault())
+        val rawAttempts = collectSegmentAttempts(activityTypes, year, from, to)
+        if (rawAttempts.isEmpty()) {
+            return emptyList()
+        }
+
+        return rawAttempts
+            .groupBy { attempt -> attempt.targetId }
+            .values
+            .asSequence()
+            .filter { attempts -> attempts.size >= 2 }
+            .map { attempts -> buildTargetSummary(attempts, resolvedMetric) }
+            .filter { summary ->
+                queryFilter.isBlank() || summary.targetName.lowercase(Locale.getDefault()).contains(queryFilter)
+            }
+            .sortedWith(
+                compareByDescending<SegmentClimbTargetSummary> { summary -> summary.attemptsCount }
+                    .thenBy { summary -> summary.targetName.lowercase(Locale.getDefault()) }
+            )
+            .toList()
+    }
+
+    override fun getSegmentEfforts(
+        activityTypes: Set<ActivityType>,
+        year: Int?,
+        metric: String?,
+        segmentId: Long,
+        from: String?,
+        to: String?,
+    ): List<SegmentClimbAttempt> {
+        val resolvedMetric = parseSegmentMetric(metric)
+        val attempts = collectSegmentAttempts(activityTypes, year, from, to)
+            .filter { attempt -> attempt.targetId == segmentId }
+        if (attempts.isEmpty()) {
+            return emptyList()
+        }
+        return buildAttempts(attempts, resolvedMetric)
+    }
+
+    override fun getSegmentSummary(
+        activityTypes: Set<ActivityType>,
+        year: Int?,
+        metric: String?,
+        segmentId: Long,
+        from: String?,
+        to: String?,
+    ): SegmentSummary? {
+        val resolvedMetric = parseSegmentMetric(metric)
+        val attempts = collectSegmentAttempts(activityTypes, year, from, to)
+            .filter { attempt -> attempt.targetId == segmentId }
+        if (attempts.isEmpty()) {
+            return null
+        }
+
+        val progressionAttempts = buildAttempts(attempts, resolvedMetric)
+        val topEfforts = rankTopEfforts(progressionAttempts, resolvedMetric, 3)
+        return SegmentSummary(
+            metric = resolvedMetric.name,
+            segment = buildTargetSummary(attempts, resolvedMetric),
+            personalRecord = topEfforts.firstOrNull(),
+            topEfforts = topEfforts,
         )
     }
 
@@ -421,6 +540,368 @@ internal class StatisticsService(
         return effort.segment.starred || effort.segment.climbCategory > 0 || (effort.prRank != null && effort.prRank <= 3)
     }
 
+    private fun isCandidateEffort(effort: StravaSegmentEffort): Boolean {
+        if (effort.segment.id == 0L) {
+            return false
+        }
+        if (effort.segment.name.isBlank()) {
+            return false
+        }
+        return effort.elapsedTime > 0 && effort.distance > 0.0
+    }
+
+    private fun collectSegmentAttempts(
+        activityTypes: Set<ActivityType>,
+        year: Int?,
+        from: String?,
+        to: String?,
+    ): List<SegmentAttemptRaw> {
+        val fromDate = parseDateFilter(from)
+        val toDate = parseDateFilter(to)
+
+        val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
+            .sortedBy { activity -> activity.startDateLocal }
+
+        val cacheKey = buildSegmentAttemptsCacheKey(
+            activityTypes = activityTypes,
+            year = year,
+            from = from,
+            to = to,
+            activitySignature = computeSegmentActivitiesSignature(filteredActivities),
+        )
+        getSegmentAttemptsFromCache(cacheKey)?.let { cachedAttempts ->
+            return cachedAttempts
+        }
+
+        val segmentEffortAttempts = filteredActivities.flatMap { activity ->
+            val detailedActivity = activityProvider.getCachedDetailedActivity(activity.id)
+                .orElseGet { activityProvider.getDetailedActivity(activity.id).orElse(null) }
+                ?: return@flatMap emptyList()
+
+            detailedActivity.segmentEfforts
+                .asSequence()
+                .filter { effort -> isCandidateEffort(effort) }
+                .filter { effort -> matchesDateFilter(effort.startDateLocal, fromDate, toDate) }
+                .map { effort ->
+                    val effortTargetType =
+                        if (effort.segment.climbCategory > 0) SegmentTargetType.CLIMB else SegmentTargetType.SEGMENT
+                    SegmentAttemptRaw(
+                        effortId = effort.id,
+                        targetId = effort.segment.id,
+                        targetName = effort.segment.name,
+                        targetType = effortTargetType,
+                        climbCategory = effort.segment.climbCategory,
+                        distance = effort.distance,
+                        averageGrade = effort.segment.averageGrade,
+                        elapsedTimeSeconds = effort.elapsedTime,
+                        movingTimeSeconds = effort.movingTime,
+                        speedKph = computeSpeedKph(effort.distance, effort.elapsedTime),
+                        averagePowerWatts = effort.averageWatts,
+                        averageHeartRate = effort.averageHeartRate,
+                        activityDate = effort.startDateLocal,
+                        prRank = effort.prRank,
+                        activity = ActivityShort(activity.id, activity.name, activity.type)
+                    )
+                }
+                .toList()
+        }
+
+        if (segmentEffortAttempts.isNotEmpty()) {
+            storeSegmentAttemptsInCache(cacheKey, segmentEffortAttempts, fallbackUsed = false)
+            return segmentEffortAttempts
+        }
+
+        // Cache-only fallback:
+        // If there is no cached detailed activity (thus no segment_efforts),
+        // expose progression by repeated route names so the view remains usable.
+        return buildRouteNameFallbackAttempts(filteredActivities, fromDate, toDate)
+            .also { fallbackAttempts ->
+                if (fallbackAttempts.isNotEmpty()) {
+                    storeSegmentAttemptsInCache(cacheKey, fallbackAttempts, fallbackUsed = true)
+                }
+            }
+    }
+
+    private fun buildRouteNameFallbackAttempts(
+        activities: List<StravaActivity>,
+        fromDate: LocalDate?,
+        toDate: LocalDate?,
+    ): List<SegmentAttemptRaw> {
+        val groupedByName = activities
+            .filter { activity ->
+                val day = extractSortableDay(activity.startDateLocal)?.let { LocalDate.parse(it) } ?: return@filter false
+                if (fromDate != null && day.isBefore(fromDate)) {
+                    return@filter false
+                }
+                if (toDate != null && day.isAfter(toDate)) {
+                    return@filter false
+                }
+                activity.name.isNotBlank()
+            }
+            .groupBy { activity -> activity.name.trim().lowercase(Locale.getDefault()) }
+            .filterValues { grouped -> grouped.size >= 2 }
+
+        return groupedByName.flatMap { (normalizedName, groupedActivities) ->
+            val displayName = groupedActivities.firstOrNull()?.name?.trim().orEmpty()
+            val targetId = routeNameBasedTargetId(normalizedName)
+
+            groupedActivities.mapNotNull { activity ->
+                val elapsedSeconds = activity.elapsedTime
+                if (elapsedSeconds <= 0) {
+                    return@mapNotNull null
+                }
+                val movingSeconds = if (activity.movingTime > 0) activity.movingTime else elapsedSeconds
+                val averageGrade = if (activity.distance > 0.0) {
+                    (activity.totalElevationGain / activity.distance) * 100.0
+                } else {
+                    0.0
+                }
+
+                SegmentAttemptRaw(
+                    effortId = activity.id,
+                    targetId = targetId,
+                    targetName = displayName,
+                    targetType = SegmentTargetType.SEGMENT,
+                    climbCategory = 0,
+                    distance = activity.distance,
+                    averageGrade = averageGrade,
+                    elapsedTimeSeconds = elapsedSeconds,
+                    movingTimeSeconds = movingSeconds,
+                    speedKph = computeSpeedKph(activity.distance, movingSeconds),
+                    averagePowerWatts = activity.averageWatts.toDouble(),
+                    averageHeartRate = activity.averageHeartrate,
+                    activityDate = activity.startDateLocal,
+                    prRank = null,
+                    activity = ActivityShort(activity.id, activity.name, activity.type),
+                )
+            }
+        }
+    }
+
+    private fun routeNameBasedTargetId(nameKey: String): Long {
+        // Keep fallback IDs negative to avoid collisions with real Strava segment IDs.
+        return -nameKey.hashCode().toLong().let { hash -> kotlin.math.abs(hash) + 1L }
+    }
+
+    private fun buildSegmentAttemptsCacheKey(
+        activityTypes: Set<ActivityType>,
+        year: Int?,
+        from: String?,
+        to: String?,
+        activitySignature: Long,
+    ): String {
+        val sortedTypes = activityTypes.map { type -> type.name }.sorted().joinToString(",")
+        val normalizedFrom = from?.trim().takeUnless { value -> value.isNullOrBlank() } ?: "none"
+        val normalizedTo = to?.trim().takeUnless { value -> value.isNullOrBlank() } ?: "none"
+        val normalizedYear = year?.toString() ?: "all"
+
+        return listOf(
+            "types:$sortedTypes",
+            "year:$normalizedYear",
+            "from:$normalizedFrom",
+            "to:$normalizedTo",
+            "activities:${activitySignature.toULong().toString(16)}",
+        ).joinToString("|")
+    }
+
+    private fun computeSegmentActivitiesSignature(activities: List<StravaActivity>): Long {
+        var hash = 1469598103934665603L
+        val prime = 1099511628211L
+
+        activities.forEach { activity ->
+            hash = (hash xor activity.id) * prime
+            hash = (hash xor activity.startDateLocal.hashCode().toLong()) * prime
+            hash = (hash xor activity.name.hashCode().toLong()) * prime
+            hash = (hash xor activity.distance.toBits()) * prime
+            hash = (hash xor activity.totalElevationGain.toBits()) * prime
+            hash = (hash xor activity.elapsedTime.toLong()) * prime
+            hash = (hash xor activity.movingTime.toLong()) * prime
+            hash = (hash xor activity.sportType.hashCode().toLong()) * prime
+            hash = (hash xor activity.type.hashCode().toLong()) * prime
+        }
+
+        return hash
+    }
+
+    private fun getSegmentAttemptsFromCache(cacheKey: String): List<SegmentAttemptRaw>? {
+        ensureSegmentCacheLoaded()
+        val now = Instant.now()
+
+        synchronized(segmentCacheLock) {
+            val entry = segmentAttemptsCache[cacheKey] ?: return null
+            if (!entry.expiresAt.isAfter(now)) {
+                segmentAttemptsCache.remove(cacheKey)
+                persistSegmentAttemptsCacheLocked()
+                return null
+            }
+            return entry.attempts.map { attempt -> attempt.copy() }
+        }
+    }
+
+    private fun storeSegmentAttemptsInCache(
+        cacheKey: String,
+        attempts: List<SegmentAttemptRaw>,
+        fallbackUsed: Boolean,
+    ) {
+        if (attempts.isEmpty()) {
+            return
+        }
+
+        ensureSegmentCacheLoaded()
+        val now = Instant.now()
+        val expiresAt = now.plusSeconds(
+            if (fallbackUsed) SEGMENT_FALLBACK_CACHE_TTL_SECONDS else SEGMENT_CACHE_TTL_SECONDS
+        )
+
+        synchronized(segmentCacheLock) {
+            segmentAttemptsCache[cacheKey] = SegmentAttemptsCacheEntry(
+                createdAt = now,
+                expiresAt = expiresAt,
+                fallbackUsed = fallbackUsed,
+                attempts = attempts.map { attempt -> attempt.copy() },
+            )
+
+            trimSegmentCacheLocked(now)
+            persistSegmentAttemptsCacheLocked()
+        }
+    }
+
+    private fun ensureSegmentCacheLoaded() {
+        if (segmentCacheLoaded) {
+            return
+        }
+
+        synchronized(segmentCacheLock) {
+            if (segmentCacheLoaded) {
+                return
+            }
+
+            segmentCacheLoaded = true
+            val identity = segmentCacheIdentity ?: return
+            val payload = SegmentAnalysisCacheStore.load(identity.cacheRoot, identity.athleteId) ?: return
+
+            val now = Instant.now()
+            payload.entries.forEach { entry ->
+                val createdAt = runCatching { Instant.parse(entry.createdAt) }.getOrNull() ?: now
+                val expiresAt = runCatching { Instant.parse(entry.expiresAt) }.getOrNull() ?: return@forEach
+                if (!expiresAt.isAfter(now)) {
+                    return@forEach
+                }
+                val attempts = entry.attempts.mapNotNull { snapshot -> snapshot.toRawOrNull() }
+                if (attempts.isEmpty()) {
+                    return@forEach
+                }
+                segmentAttemptsCache[entry.key] = SegmentAttemptsCacheEntry(
+                    createdAt = createdAt,
+                    expiresAt = expiresAt,
+                    fallbackUsed = entry.fallbackUsed,
+                    attempts = attempts,
+                )
+            }
+        }
+    }
+
+    private fun trimSegmentCacheLocked(now: Instant) {
+        segmentAttemptsCache.entries.removeIf { (_, entry) -> !entry.expiresAt.isAfter(now) }
+
+        if (segmentAttemptsCache.size <= SEGMENT_CACHE_MAX_ENTRIES) {
+            return
+        }
+
+        val keysToRemove = segmentAttemptsCache.entries
+            .sortedByDescending { (_, entry) -> entry.createdAt }
+            .drop(SEGMENT_CACHE_MAX_ENTRIES)
+            .map { (key, _) -> key }
+
+        keysToRemove.forEach { key -> segmentAttemptsCache.remove(key) }
+    }
+
+    private fun persistSegmentAttemptsCacheLocked() {
+        val identity = segmentCacheIdentity ?: return
+        val now = Instant.now()
+
+        val entries = segmentAttemptsCache.entries
+            .filter { (_, entry) -> entry.expiresAt.isAfter(now) }
+            .map { (key, entry) ->
+                SegmentAnalysisCacheEntryFile(
+                    key = key,
+                    createdAt = entry.createdAt.toString(),
+                    expiresAt = entry.expiresAt.toString(),
+                    fallbackUsed = entry.fallbackUsed,
+                    attempts = entry.attempts.map { attempt -> attempt.toSnapshot() },
+                )
+            }
+
+        SegmentAnalysisCacheStore.save(
+            identity.cacheRoot,
+            identity.athleteId,
+            SegmentAnalysisCacheFile(
+                athleteId = identity.athleteId,
+                entries = entries,
+            ),
+        )
+    }
+
+    private fun SegmentAttemptRaw.toSnapshot(): SegmentAttemptRawSnapshot = SegmentAttemptRawSnapshot(
+        effortId = effortId,
+        targetId = targetId,
+        targetName = targetName,
+        targetType = targetType.name,
+        climbCategory = climbCategory,
+        distance = distance,
+        averageGrade = averageGrade,
+        elapsedTimeSeconds = elapsedTimeSeconds,
+        movingTimeSeconds = movingTimeSeconds,
+        speedKph = speedKph,
+        averagePowerWatts = averagePowerWatts,
+        averageHeartRate = averageHeartRate,
+        activityDate = activityDate,
+        prRank = prRank,
+        activity = activity,
+    )
+
+    private fun SegmentAttemptRawSnapshot.toRawOrNull(): SegmentAttemptRaw? {
+        val resolvedTargetType = SegmentTargetType.entries.firstOrNull { candidate ->
+            candidate.name.equals(targetType, ignoreCase = true)
+        } ?: return null
+
+        return SegmentAttemptRaw(
+            effortId = effortId,
+            targetId = targetId,
+            targetName = targetName,
+            targetType = resolvedTargetType,
+            climbCategory = climbCategory,
+            distance = distance,
+            averageGrade = averageGrade,
+            elapsedTimeSeconds = elapsedTimeSeconds,
+            movingTimeSeconds = movingTimeSeconds,
+            speedKph = speedKph,
+            averagePowerWatts = averagePowerWatts,
+            averageHeartRate = averageHeartRate,
+            activityDate = activityDate,
+            prRank = prRank,
+            activity = activity,
+        )
+    }
+
+    private fun parseDateFilter(value: String?): LocalDate? {
+        if (value.isNullOrBlank()) {
+            return null
+        }
+        return runCatching { LocalDate.parse(value.trim()) }.getOrNull()
+    }
+
+    private fun matchesDateFilter(value: String, fromDate: LocalDate?, toDate: LocalDate?): Boolean {
+        val day = extractSortableDay(value)?.let { dayValue -> LocalDate.parse(dayValue) } ?: return false
+        if (fromDate != null && day.isBefore(fromDate)) {
+            return false
+        }
+        if (toDate != null && day.isAfter(toDate)) {
+            return false
+        }
+        return true
+    }
+
     private fun computeSpeedKph(distanceInMeters: Double, elapsedTimeSeconds: Int): Double {
         if (distanceInMeters <= 0.0 || elapsedTimeSeconds <= 0) {
             return 0.0
@@ -431,6 +912,29 @@ internal class StatisticsService(
 
     private fun buildAttempts(attempts: List<SegmentAttemptRaw>, metric: SegmentMetric): List<SegmentClimbAttempt> {
         val sortedAttempts = attempts.sortedBy { attempt -> attempt.activityDate }
+        val personalRankByEffortId = attempts
+            .sortedWith { left, right ->
+                when (metric) {
+                    SegmentMetric.TIME -> {
+                        if (left.elapsedTimeSeconds != right.elapsedTimeSeconds) {
+                            left.elapsedTimeSeconds.compareTo(right.elapsedTimeSeconds)
+                        } else {
+                            left.activityDate.compareTo(right.activityDate)
+                        }
+                    }
+                    SegmentMetric.SPEED -> {
+                        if (left.speedKph != right.speedKph) {
+                            right.speedKph.compareTo(left.speedKph)
+                        } else {
+                            left.activityDate.compareTo(right.activityDate)
+                        }
+                    }
+                }
+            }
+            .mapIndexedNotNull { index, attempt ->
+                if (attempt.effortId <= 0L) null else attempt.effortId to (index + 1)
+            }
+            .toMap()
         val bestValue = when (metric) {
             SegmentMetric.TIME -> sortedAttempts.minOf { attempt -> attempt.elapsedTimeSeconds }.toDouble()
             SegmentMetric.SPEED -> sortedAttempts.maxOf { attempt -> attempt.speedKph }
@@ -479,11 +983,15 @@ internal class StatisticsService(
                 targetType = attempt.targetType.name,
                 activityDate = attempt.activityDate,
                 elapsedTimeSeconds = attempt.elapsedTimeSeconds,
+                movingTimeSeconds = attempt.movingTimeSeconds,
                 speedKph = attempt.speedKph,
                 distance = attempt.distance,
                 averageGrade = attempt.averageGrade,
                 elevationGain = (attempt.distance * attempt.averageGrade) / 100.0,
+                averagePowerWatts = attempt.averagePowerWatts,
+                averageHeartRate = attempt.averageHeartRate,
                 prRank = attempt.prRank,
+                personalRank = personalRankByEffortId[attempt.effortId],
                 setsNewPr = setsNewPr,
                 closeToPr = closeToPr,
                 deltaToPr = deltaToPr,
@@ -552,6 +1060,35 @@ internal class StatisticsService(
         )
     }
 
+    private fun rankTopEfforts(
+        attempts: List<SegmentClimbAttempt>,
+        metric: SegmentMetric,
+        limit: Int,
+    ): List<SegmentClimbAttempt> {
+        if (attempts.isEmpty() || limit <= 0) {
+            return emptyList()
+        }
+        val ranked = attempts.sortedWith { left, right ->
+            when (metric) {
+                SegmentMetric.TIME -> {
+                    if (left.elapsedTimeSeconds != right.elapsedTimeSeconds) {
+                        left.elapsedTimeSeconds.compareTo(right.elapsedTimeSeconds)
+                    } else {
+                        left.activityDate.compareTo(right.activityDate)
+                    }
+                }
+                SegmentMetric.SPEED -> {
+                    if (left.speedKph != right.speedKph) {
+                        right.speedKph.compareTo(left.speedKph)
+                    } else {
+                        left.activityDate.compareTo(right.activityDate)
+                    }
+                }
+            }
+        }
+        return ranked.take(limit)
+    }
+
     private fun consistencyLabel(values: List<Double>): String {
         if (values.size < 3) {
             return "-"
@@ -617,6 +1154,7 @@ internal class StatisticsService(
     )
 
     private data class SegmentAttemptRaw(
+        val effortId: Long,
         val targetId: Long,
         val targetName: String,
         val targetType: SegmentTargetType,
@@ -624,10 +1162,20 @@ internal class StatisticsService(
         val distance: Double,
         val averageGrade: Double,
         val elapsedTimeSeconds: Int,
+        val movingTimeSeconds: Int,
         val speedKph: Double,
+        val averagePowerWatts: Double,
+        val averageHeartRate: Double,
         val activityDate: String,
         val prRank: Int?,
         val activity: ActivityShort,
+    )
+
+    private data class SegmentAttemptsCacheEntry(
+        val createdAt: Instant,
+        val expiresAt: Instant,
+        val fallbackUsed: Boolean,
+        val attempts: List<SegmentAttemptRaw>,
     )
 
     private enum class SegmentMetric {

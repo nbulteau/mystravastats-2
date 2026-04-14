@@ -54,16 +54,27 @@ type SegmentClimbAttemptDto struct {
 	TargetType         string           `json:"targetType"`
 	ActivityDate       string           `json:"activityDate"`
 	ElapsedTimeSeconds int              `json:"elapsedTimeSeconds"`
+	MovingTimeSeconds  int              `json:"movingTimeSeconds"`
 	SpeedKph           float64          `json:"speedKph"`
 	Distance           float64          `json:"distance"`
 	AverageGrade       float64          `json:"averageGrade"`
 	ElevationGain      float64          `json:"elevationGain"`
+	AveragePowerWatts  float64          `json:"averagePowerWatts"`
+	AverageHeartRate   float64          `json:"averageHeartRate"`
 	PrRank             *int             `json:"prRank,omitempty"`
+	PersonalRank       *int             `json:"personalRank,omitempty"`
 	SetsNewPr          bool             `json:"setsNewPr"`
 	CloseToPr          bool             `json:"closeToPr"`
 	DeltaToPr          string           `json:"deltaToPr"`
 	WeatherSummary     *string          `json:"weatherSummary,omitempty"`
 	Activity           ActivityShortDto `json:"activity"`
+}
+
+type SegmentSummaryDto struct {
+	Metric         string                       `json:"metric"`
+	Segment        SegmentClimbTargetSummaryDto `json:"segment"`
+	PersonalRecord *SegmentClimbAttemptDto      `json:"personalRecord,omitempty"`
+	TopEfforts     []SegmentClimbAttemptDto     `json:"topEfforts"`
 }
 
 type HeartRateZoneSettingsDto struct {

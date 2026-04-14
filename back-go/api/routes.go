@@ -73,6 +73,30 @@ var routes = Routes{
 		getHeartRateZoneAnalysisByActivityType,
 	},
 	Route{
+		"GetSegmentClimbProgressionByActivityType",
+		"GET",
+		"/api/statistics/segment-climb-progression",
+		getSegmentClimbProgressionByActivityType,
+	},
+	Route{
+		"GetSegmentsByActivityType",
+		"GET",
+		"/api/segments",
+		getSegmentsByActivityType,
+	},
+	Route{
+		"GetSegmentEffortsByActivityType",
+		"GET",
+		"/api/segments/{segmentId}/efforts",
+		getSegmentEffortsByActivityType,
+	},
+	Route{
+		"GetSegmentSummaryByActivityType",
+		"GET",
+		"/api/segments/{segmentId}/summary",
+		getSegmentSummaryByActivityType,
+	},
+	Route{
 		"GetMapsGPX",
 		"GET",
 		"/api/maps/gpx",
