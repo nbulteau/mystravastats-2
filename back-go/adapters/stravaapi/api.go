@@ -1,7 +1,6 @@
 package stravaapi
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -59,12 +58,17 @@ func NewStravaApi(clientId, clientSecret string) *StravaApi {
 		properties:   properties,
 		httpClient:   &http.Client{},
 	}
-	api.setAccessToken(clientId, clientSecret)
+
+	err := api.setAccessToken(clientId, clientSecret)
+	if err != nil {
+		log.Printf("Failed to set access token: %v", err)
+		return nil
+	}
 
 	return api
 }
 
-func (api *StravaApi) setAccessToken(clientId, clientSecret string) {
+func (api *StravaApi) setAccessToken(clientId, clientSecret string) error {
 	authURL := fmt.Sprintf("%s/api/v3/oauth/authorize?client_id=%s&response_type=code&redirect_uri=http://localhost:8090/exchange_token&approval_prompt=auto&scope=read_all,activity:read_all,profile:read_all", api.properties.URL, clientId)
 	fmt.Println("To grant MyStravaStats to read your Strava activities data: copy paste this URL in a browser")
 	fmt.Println(authURL)
@@ -78,10 +82,26 @@ func (api *StravaApi) setAccessToken(clientId, clientSecret string) {
 		Handler: mux,
 	}
 
+	// Create a channel to communicate errors
+	errorChan := make(chan error, 1)
+
 	// Start a local server to handle the OAuth callback
 	mux.HandleFunc("/exchange_token", func(w http.ResponseWriter, r *http.Request) {
 		code := r.URL.Query().Get("code")
-		token := api.getToken(clientId, clientSecret, code)
+		token, err := api.getToken(clientId, clientSecret, code)
+		if err != nil {
+			errorChan <- err
+			_, _ = fmt.Fprint(w, buildResponseHtml(clientId))
+			tokenReady.Do(func() {
+				close(tokenChan)
+			})
+			go func() {
+				shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				_ = server.Shutdown(shutdownCtx)
+			}()
+			return
+		}
 		api.accessToken = token.AccessToken
 		_, _ = fmt.Fprint(w, buildResponseHtml(clientId))
 
@@ -107,35 +127,68 @@ func (api *StravaApi) setAccessToken(clientId, clientSecret string) {
 
 	// Wait for the accessToken to be set
 	<-tokenChan
+
+	// Check if there was an error
+	select {
+	case err := <-errorChan:
+		return err
+	default:
+	}
+
+	return nil
 }
 
-func (api *StravaApi) getToken(clientId, clientSecret, authorizationCode string) Token {
+func (api *StravaApi) getToken(clientId, clientSecret, authorizationCode string) (Token, error) {
 	tokenURL := fmt.Sprintf("%s/api/v3/oauth/token", api.properties.URL)
-	payload := map[string]string{
-		"client_id":     clientId,
-		"client_secret": clientSecret,
-		"code":          authorizationCode,
-		"grant_type":    "authorization_code",
+	payload := url.Values{}
+	payload.Set("client_id", clientId)
+	payload.Set("client_secret", clientSecret)
+	payload.Set("code", authorizationCode)
+	payload.Set("grant_type", "authorization_code")
+
+	// Use form-encoded payload and add timeout
+	client := *api.httpClient
+	client.Timeout = 15 * time.Second
+
+	var resp *http.Response
+	var err error
+	var lastErr error
+
+	// Retry logic with exponential backoff
+	maxAttempts := 3
+	backoff := time.Second
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		resp, err = client.PostForm(tokenURL, payload)
+		if err == nil {
+			break
+		}
+		lastErr = err
+		if attempt < maxAttempts {
+			log.Printf("Token request failed (attempt %d/%d): %v, retrying in %v", attempt, maxAttempts, err, backoff)
+			time.Sleep(backoff)
+			backoff *= 2
+		}
 	}
-	body, _ := json.Marshal(payload)
-	resp, err := api.httpClient.Post(tokenURL, "application/json", bytes.NewBuffer(body))
+
 	if err != nil {
-		log.Fatalf("Failed to get token: %v", err)
+		return Token{}, fmt.Errorf("failed to get token after %d attempts: %w", maxAttempts, lastErr)
 	}
-	defer func(Body interface{}) {
-		err := resp.Body.Close()
-		if err != nil {
-			log.Fatalf("Failed to close response body: %v", err)
+
+	defer func(Body io.ReadCloser) {
+		closeErr := Body.Close()
+		if closeErr != nil {
+			log.Printf("warning: failed to close response body: %v", closeErr)
 		}
 	}(resp.Body)
 
 	var token Token
-	err = json.NewDecoder(resp.Body).Decode(&token)
-	if err != nil {
-		return Token{}
+	decodeErr := json.NewDecoder(resp.Body).Decode(&token)
+	if decodeErr != nil {
+		return Token{}, fmt.Errorf("failed to decode token response: %w", decodeErr)
 	}
 
-	return token
+	return token, nil
 }
 
 func (api *StravaApi) RetrieveLoggedInAthlete() (*strava.Athlete, error) {
