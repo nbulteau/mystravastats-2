@@ -428,33 +428,46 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
 
         val url = "${properties.url}/api/v3/oauth/token"
 
-        val payload = mapOf(
-            "client_id" to clientId,
-            "client_secret" to clientSecret,
-            "code" to authorizationCode,
-            "grant_type" to "authorization_code"
-        )
-        val body = objectMapper.writeValueAsString(payload).toRequestBody("application/json".toMediaType())
-        val request: Request = Request.Builder().url(url).post(body).build()
+        val payload = "client_id=$clientId&client_secret=$clientSecret&code=$authorizationCode&grant_type=authorization_code"
+        val body = payload.toRequestBody("application/x-www-form-urlencoded".toMediaType())
 
-        okHttpClient.newCall(request).execute().use { response ->
-            val responseBody = response.body.string()
+        var lastException: Exception? = null
+        var backoffMs = 1_000L
+        val maxAttempts = 3
+
+        for (attempt in 1..maxAttempts) {
             try {
-                if (response.code == 200) {
-                    val tokenPayload: Map<String, Any?> = objectMapper.readValue(responseBody)
-                    val accessToken = tokenPayload["access_token"]?.toString().orEmpty()
-                    if (accessToken.isBlank()) {
-                        throw RuntimeException("Missing access_token in Strava response")
+                val request: Request = Request.Builder().url(url).post(body).build()
+
+                okHttpClient.newCall(request).execute().use { response ->
+                    val responseBody = response.body.string()
+                    try {
+                        if (response.code == 200) {
+                            val tokenPayload: Map<String, Any?> = objectMapper.readValue(responseBody)
+                            val accessToken = tokenPayload["access_token"]?.toString().orEmpty()
+                            if (accessToken.isBlank()) {
+                                throw RuntimeException("Missing access_token in Strava response")
+                            }
+                            return accessToken
+                        } else {
+                            throw RuntimeException("Something was wrong with Strava API for url $url (status=${response.code})")
+                        }
+                    } catch (ex: Exception) {
+                        logger.error("Something was wrong with Strava API for url $url. ${ex.cause?.message ?: ex.message}")
+                        throw RuntimeException("Something was wrong with Strava API for url $url. ${ex.cause?.message ?: ex.message}")
                     }
-                    return accessToken
-                } else {
-                    throw RuntimeException("Something was wrong with Strava API for url $url (status=${response.code})")
                 }
             } catch (ex: Exception) {
-                logger.error("Something was wrong with Strava API for url $url. ${ex.cause?.message ?: ex.message}")
-                throw RuntimeException("Something was wrong with Strava API for url $url. ${ex.cause?.message ?: ex.message}")
+                lastException = ex
+                if (attempt < maxAttempts) {
+                    logger.warn("Token request failed (attempt $attempt/$maxAttempts): ${ex.message}, retrying in ${backoffMs}ms")
+                    Thread.sleep(backoffMs)
+                    backoffMs *= 2
+                }
             }
         }
+
+        throw RuntimeException("Failed to get token after $maxAttempts attempts: ${lastException?.message}", lastException)
     }
 
     private fun buildRequestHeaders() =

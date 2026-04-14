@@ -389,8 +389,24 @@ class StravaActivityProvider(
             return existing
         }
         val secret = authSecret ?: return null
-        return StravaApi(clientId, secret).also { created ->
-            stravaApi = created
+        return try {
+            StravaApi(clientId, secret).also { created ->
+                stravaApi = created
+            }
+        } catch (exception: Exception) {
+            logger.error("Failed to initialize Strava API (token fetch error): ${exception.message}", exception)
+            logger.warn("Switching to cache-only mode: setting useCache=true in .strava file")
+
+            // Update the .strava file to enable cache mode
+            try {
+                storageProvider.updateStravaAuthentication(cacheRoot, clientId, secret, useCache = true)
+                logger.info("Successfully switched to cache-only mode")
+            } catch (updateException: Exception) {
+                logger.error("Failed to update cache mode in .strava file", updateException)
+            }
+
+            // Return null to indicate API is not available
+            null
         }
     }
 

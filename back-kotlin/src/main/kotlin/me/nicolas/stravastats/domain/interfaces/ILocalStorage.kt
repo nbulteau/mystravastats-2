@@ -34,6 +34,8 @@ interface ILocalStorageProvider {
 
     fun readStravaAuthentication(stravaCache: String): Triple<String?, String?, Boolean?>
 
+    fun updateStravaAuthentication(stravaCache: String, clientId: String, clientSecret: String, useCache: Boolean) {}
+
     fun loadHeartRateZoneSettings(clientId: String): HeartRateZoneSettings = HeartRateZoneSettings()
 
     fun saveHeartRateZoneSettings(clientId: String, settings: HeartRateZoneSettings) {}

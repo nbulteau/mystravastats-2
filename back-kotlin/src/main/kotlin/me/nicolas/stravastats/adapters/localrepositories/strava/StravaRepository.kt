@@ -190,6 +190,33 @@ internal class StravaRepository(stravaCache: String) : ILocalStorageProvider {
         )
     }
 
+    /**
+     * Update Strava authentication in the ".strava" file.
+     */
+    override fun updateStravaAuthentication(stravaCache: String, clientId: String, clientSecret: String, useCache: Boolean) {
+        val cacheDirectory = File(stravaCache)
+        val file = File(cacheDirectory, ".strava")
+        val properties = Properties()
+
+        // Load existing properties if file exists
+        if (file.exists()) {
+            FileInputStream(file).use { properties.load(it) }
+        }
+
+        // Update properties
+        properties["clientId"] = clientId
+        properties["clientSecret"] = clientSecret
+        properties["useCache"] = useCache.toString()
+
+        // Save properties to file
+        try {
+            file.outputStream().use { properties.store(it, null) }
+            logger.info("Updated Strava authentication file: useCache=$useCache")
+        } catch (e: Exception) {
+            logger.error("Failed to update Strava authentication file", e)
+        }
+    }
+
     override fun loadHeartRateZoneSettings(clientId: String): HeartRateZoneSettings {
         val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
         val settingsFile = File(activitiesDirectory, "heart-rate-zones-$clientId.json")

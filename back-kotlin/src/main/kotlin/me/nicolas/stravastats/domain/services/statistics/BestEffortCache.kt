@@ -3,6 +3,7 @@ package me.nicolas.stravastats.domain.services.statistics
 import me.nicolas.stravastats.domain.business.ActivityEffort
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import tools.jackson.databind.DeserializationFeature
+import tools.jackson.databind.SerializationFeature
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.KotlinModule
 import java.nio.file.Files
@@ -27,8 +28,11 @@ private data class PersistedEffortEntry(
 internal object BestEffortCache {
     private val cache = ConcurrentHashMap<EffortCacheKey, Optional<ActivityEffort>>()
     private val objectMapper = JsonMapper.builder()
-        .addModule(KotlinModule.Builder().build())
+        .addModule(KotlinModule.Builder()
+            .withReflectionCacheSize(512)
+            .build())
         .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+        .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
         .build()
 
     fun getOrCompute(
@@ -91,22 +95,28 @@ internal object BestEffortCache {
                     .thenBy { it.key.streamSize }
             )
 
-        Files.createDirectories(path.parent)
-        val payload = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(entries)
-        val tmpPath = path.resolveSibling("${path.fileName}.tmp")
-        Files.write(tmpPath, payload)
-        runCatching {
-            Files.move(
-                tmpPath,
-                path,
-                StandardCopyOption.REPLACE_EXISTING,
-                StandardCopyOption.ATOMIC_MOVE,
-            )
-        }.onFailure {
-            Files.move(tmpPath, path, StandardCopyOption.REPLACE_EXISTING)
+        return runCatching {
+            Files.createDirectories(path.parent)
+            val payload = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(entries)
+            val tmpPath = path.resolveSibling("${path.fileName}.tmp")
+            Files.write(tmpPath, payload)
+            runCatching {
+                Files.move(
+                    tmpPath,
+                    path,
+                    StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE,
+                )
+            }.onFailure {
+                Files.move(tmpPath, path, StandardCopyOption.REPLACE_EXISTING)
+            }
+            entries.size
+        }.getOrElse { e ->
+            // Log the error but don't crash - this is not critical
+            System.err.println("Warning: Failed to save best effort cache: ${e.message}")
+            e.printStackTrace()
+            0
         }
-
-        return entries.size
     }
 
     fun invalidateActivities(activityIds: Set<Long>): Int {
