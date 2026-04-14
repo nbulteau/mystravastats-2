@@ -72,7 +72,15 @@ func BestPowerForTime(activity strava.Activity, seconds int) *business.ActivityE
 	if activity.Stream == nil || activity.Stream.Altitude == nil || len(activity.Stream.Altitude.Data) == 0 {
 		return nil
 	}
-	return bestPowerForTimeForTime(activity.Id, activity.Name, activity.Type, activity.Stream, seconds)
+	return getOrComputeBestEffort(
+		activity.Id,
+		"best-power-time",
+		effortSecondsTarget(seconds),
+		activity.Stream,
+		func() *business.ActivityEffort {
+			return bestPowerForTimeForTime(activity.Id, activity.Name, activity.Type, activity.Stream, seconds)
+		},
+	)
 }
 
 func bestPowerForTimeForTime(id int64, name, activityType string, stream *strava.Stream, seconds int) *business.ActivityEffort {

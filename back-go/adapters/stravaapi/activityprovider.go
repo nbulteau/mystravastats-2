@@ -5,6 +5,7 @@ import (
 	"log"
 	"mystravastats/adapters/localrepository"
 	"mystravastats/domain/business"
+	"mystravastats/domain/statistics"
 	"mystravastats/domain/strava"
 	"mystravastats/internal/helpers"
 	"runtime"
@@ -29,8 +30,12 @@ type StravaActivityProvider struct {
 	dataMutex             sync.RWMutex
 	apiMutex              sync.Mutex
 	backgroundRefresh     atomic.Bool
+	warmupInProgress      atomic.Bool
 	stravaAthlete         strava.Athlete
 	serverPort            string
+	cacheRoot             string
+	manifestMutex         sync.Mutex
+	cacheManifest         cacheManifest
 }
 
 func NewStravaActivityProvider(stravaCache string, serverPort string) *StravaActivityProvider {
@@ -39,6 +44,7 @@ func NewStravaActivityProvider(stravaCache string, serverPort string) *StravaAct
 	provider := &StravaActivityProvider{
 		localStorageProvider: localrepository.NewStravaRepository(stravaCache),
 		serverPort:           serverPort,
+		cacheRoot:            stravaCache,
 	}
 
 	id, secret, useCache := provider.localStorageProvider.ReadStravaAuthentication(stravaCache)
@@ -51,6 +57,8 @@ func NewStravaActivityProvider(stravaCache string, serverPort string) *StravaAct
 	provider.useCacheAuth = useCache
 	provider.localStorageProvider.InitLocalStorageForClientId(id)
 	provider.heartRateZoneSettings = provider.localStorageProvider.LoadHeartRateZoneSettings(id)
+	provider.cacheManifest = defaultCacheManifest(id)
+	provider.loadPersistentCacheArtifacts()
 
 	// Fast startup path: load athlete and activities from local cache first.
 	provider.stravaAthlete = provider.localStorageProvider.LoadAthleteFromCache(id)
@@ -68,6 +76,9 @@ func NewStravaActivityProvider(stravaCache string, serverPort string) *StravaAct
 	// Background refresh: fetch new activities and missing streams without blocking startup.
 	if !provider.useCacheAuth && provider.clientSecret != "" && len(provider.activities) > 0 {
 		provider.launchBackgroundDataRefresh()
+	}
+	if len(provider.activities) > 0 {
+		provider.launchBackgroundWarmup("startup")
 	}
 
 	url := fmt.Sprintf("http://localhost:%s", provider.serverPort)
@@ -609,6 +620,7 @@ func (provider *StravaActivityProvider) launchBackgroundDataRefresh() {
 		} else {
 			provider.backfillMissingStreams()
 		}
+		provider.runWarmupPipeline("post-refresh")
 
 		log.Printf("Background data refresh completed")
 	}()
@@ -686,6 +698,26 @@ func (provider *StravaActivityProvider) refreshAllYearsActivitiesFromCurrentYear
 		}
 		merged = append(merged, refreshedPointers...)
 		provider.replaceActivities(merged)
+		invalidatedActivityIDs := map[int64]struct{}{}
+		for _, activity := range existing {
+			if activity == nil {
+				continue
+			}
+			activityYear := resolveActivityYear(activity)
+			if activityYear == year {
+				invalidatedActivityIDs[activity.Id] = struct{}{}
+			}
+		}
+		for _, activity := range refreshedPointers {
+			if activity == nil {
+				continue
+			}
+			invalidatedActivityIDs[activity.Id] = struct{}{}
+		}
+		removedEntries := statistics.InvalidateBestEffortCacheByActivityIDs(invalidatedActivityIDs)
+		if removedEntries > 0 {
+			log.Printf("Invalidated %d best-effort cache entries after refreshing year %d", removedEntries, year)
+		}
 
 		log.Printf("Background refresh merged year %d activities (%d total)", year, len(merged))
 	}

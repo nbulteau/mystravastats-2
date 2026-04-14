@@ -63,7 +63,15 @@ func BestTimeEffort(activity strava.Activity, distance float64) *business.Activi
 		return nil
 	}
 
-	return BestTimeForDistance(activity.Id, activity.Name, activity.Type, activity.Stream, distance)
+	return getOrComputeBestEffort(
+		activity.Id,
+		"best-time-distance",
+		effortDistanceTarget(distance),
+		activity.Stream,
+		func() *business.ActivityEffort {
+			return BestTimeForDistance(activity.Id, activity.Name, activity.Type, activity.Stream, distance)
+		},
+	)
 }
 
 func BestTimeForDistance(id int64, name, activityType string, stream *strava.Stream, distance float64) *business.ActivityEffort {

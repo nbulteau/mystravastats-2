@@ -7,18 +7,31 @@ import me.nicolas.stravastats.adapters.localrepositories.strava.StravaRepository
 import me.nicolas.stravastats.adapters.strava.StravaApi
 import me.nicolas.stravastats.adapters.strava.StravaRateLimitException
 import me.nicolas.stravastats.domain.business.HeartRateZoneSettings
+import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.interfaces.ILocalStorageProvider
 import me.nicolas.stravastats.domain.interfaces.IStravaApi
 import me.nicolas.stravastats.domain.services.ActivityHelper.filterByActivityTypes
+import me.nicolas.stravastats.domain.services.cache.CacheManifest
+import me.nicolas.stravastats.domain.services.cache.CacheManifestStore
+import me.nicolas.stravastats.domain.services.cache.WarmupMetricSummary
+import me.nicolas.stravastats.domain.services.cache.WarmupSummariesFile
+import me.nicolas.stravastats.domain.services.cache.WarmupYearSummary
 import me.nicolas.stravastats.domain.services.statistics.BestEffortCache
+import me.nicolas.stravastats.domain.services.statistics.calculateBestDistanceForTime
+import me.nicolas.stravastats.domain.services.statistics.calculateBestElevationForDistance
+import me.nicolas.stravastats.domain.services.statistics.calculateBestPowerForTime
+import me.nicolas.stravastats.domain.services.statistics.calculateBestTimeForDistance
 import me.nicolas.stravastats.domain.services.toStravaDetailedActivity
 import me.nicolas.stravastats.domain.utils.GenericCache
 import me.nicolas.stravastats.domain.utils.SoftCache
+import me.nicolas.stravastats.domain.utils.formatSeconds
 import org.slf4j.LoggerFactory
+import java.nio.file.Files
 import java.time.LocalDate
+import java.time.Instant
 import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -44,6 +57,11 @@ class StravaActivityProvider(
     private val streamIdsCache: GenericCache<Int, Set<Long>> = SoftCache()
     private val startupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val backgroundRefreshStarted = AtomicBoolean(false)
+    private val warmupInProgress = AtomicBoolean(false)
+    private val cacheRoot = stravaCache
+    private val manifestLock = Any()
+    @Volatile
+    private var cacheManifest: CacheManifest = CacheManifestStore.defaultManifest("unknown")
     @Volatile
     private var heartRateZoneSettings: HeartRateZoneSettings = HeartRateZoneSettings()
 
@@ -64,6 +82,7 @@ class StravaActivityProvider(
         clientId = id
         authSecret = secret
         useCacheAuth = useCache
+        cacheManifest = CacheManifestStore.load(cacheRoot, clientId) ?: CacheManifestStore.defaultManifest(clientId)
 
         // Load athlete from cache immediately if cache flag is set (this is cheap/local)
         if (useCacheAuth == true) {
@@ -83,6 +102,7 @@ class StravaActivityProvider(
         storageProvider.initLocalStorageForClientId(clientId)
         stravaAthlete = storageProvider.loadAthleteFromCache(clientId)
         heartRateZoneSettings = storageProvider.loadHeartRateZoneSettings(clientId)
+        loadPersistentCacheArtifacts()
 
         // Fast startup path: load only from local cache first.
         activities = loadFromLocalCache()
@@ -90,12 +110,14 @@ class StravaActivityProvider(
 
         // If cache mode is forced, never hit Strava API at startup.
         if (useCacheAuth == true) {
+            launchBackgroundWarmup("cache-only startup")
             return@coroutineScope
         }
 
         // No credentials: keep cache-only behavior.
         if (authSecret == null) {
             logger.warn("No Strava credentials found; keeping cache-only startup mode")
+            launchBackgroundWarmup("no-credentials startup")
             return@coroutineScope
         }
 
@@ -105,9 +127,11 @@ class StravaActivityProvider(
             stravaAthlete = retrieveLoggedInAthlete()
             activities = loadActivities()
             logger.info("ActivityService initialized with clientId=$clientId and ${activities.size} activities (from Strava)")
+            launchBackgroundWarmup("first bootstrap")
             return@coroutineScope
         }
 
+        launchBackgroundWarmup("cache-first startup")
         launchBackgroundDataRefresh()
     }
 
@@ -348,15 +372,24 @@ class StravaActivityProvider(
             }
             streamIdsCache.remove(year)
 
-            val mergedActivities = activities
+            val existingActivities = activities
+            val mergedActivities = existingActivities
                 .filterNot { activity -> activity.startDateLocal.take(4).toIntOrNull() == year }
                 .plus(refreshedActivities)
                 .sortedBy { activity -> activity.startDateLocal }
 
             activities = mergedActivities
 
-            // Invalidate best-effort cache so refreshed activities are reflected in statistics
-            BestEffortCache.clear()
+            // Invalidate only touched activities so the cache keeps unaffected entries.
+            val invalidatedActivityIds = existingActivities
+                .filter { activity -> activity.startDateLocal.take(4).toIntOrNull() == year }
+                .map { activity -> activity.id }
+                .toMutableSet()
+                .apply { addAll(refreshedActivities.map { activity -> activity.id }) }
+            val removedEntries = BestEffortCache.invalidateActivities(invalidatedActivityIds)
+            if (removedEntries > 0) {
+                logger.info("Invalidated {} best-effort cache entries after year {} refresh", removedEntries, year)
+            }
 
             logger.info(
                 "Background refresh merged year {} activities ({} total activities in memory)",
@@ -406,6 +439,7 @@ class StravaActivityProvider(
                 } else {
                     backfillMissingStreamsInBackground()
                 }
+                runWarmupPipeline("post-refresh")
 
                 logger.info("Background data refresh completed")
             } catch (exception: Exception) {
@@ -414,6 +448,322 @@ class StravaActivityProvider(
                 backgroundRefreshStarted.set(false)
             }
         }
+    }
+
+    private fun loadPersistentCacheArtifacts() {
+        val loadedManifest = CacheManifestStore.load(cacheRoot, clientId) ?: CacheManifestStore.defaultManifest(clientId)
+        val loadedEntries = runCatching {
+            BestEffortCache.loadFromDisk(CacheManifestStore.bestEffortCachePath(cacheRoot, clientId, loadedManifest))
+        }.getOrElse { exception ->
+            logger.error("Unable to load best-effort cache from disk", exception)
+            BestEffortCache.clear()
+            0
+        }
+
+        val updatedManifest = loadedManifest.copy(
+            bestEffortCache = loadedManifest.bestEffortCache.copy(
+                entries = loadedEntries,
+                lastPersistedAt = loadedManifest.bestEffortCache.lastPersistedAt ?: Instant.now().toString(),
+            )
+        )
+
+        synchronized(manifestLock) {
+            cacheManifest = updatedManifest
+            runCatching { CacheManifestStore.save(cacheRoot, updatedManifest) }
+                .onFailure { exception -> logger.error("Unable to save cache manifest", exception) }
+        }
+
+        logger.info("Loaded best-effort cache: {} entries", loadedEntries)
+    }
+
+    private fun launchBackgroundWarmup(reason: String) {
+        startupScope.launch {
+            runWarmupPipeline(reason)
+        }
+    }
+
+    private suspend fun runWarmupPipeline(reason: String) = coroutineScope {
+        if (!warmupInProgress.compareAndSet(false, true)) {
+            return@coroutineScope
+        }
+
+        try {
+            val snapshot = activities.toList()
+            if (snapshot.isEmpty()) {
+                return@coroutineScope
+            }
+
+            logger.info("Warmup started ({})", reason)
+
+            val yearSummaries = computeWarmupYearSummaries(snapshot)
+            val preparedYears = yearSummaries.map { summary -> summary.year }.sortedDescending()
+
+            var warmupPayload = WarmupSummariesFile(
+                athleteId = clientId,
+                yearSummaries = yearSummaries,
+            )
+
+            persistWarmupArtifacts(
+                payload = warmupPayload,
+                priority1 = "ready",
+                priority2 = "pending",
+                priority3 = "pending",
+                preparedYears = preparedYears,
+            )
+
+            warmupPayload = warmupPayload.copy(
+                majorBestEfforts = precomputeMajorBestEfforts(snapshot)
+            )
+            persistWarmupArtifacts(
+                payload = warmupPayload,
+                priority1 = "ready",
+                priority2 = "ready",
+                priority3 = "pending",
+                preparedYears = preparedYears,
+            )
+
+            warmupPayload = warmupPayload.copy(
+                advancedMetrics = precomputeAdvancedMetrics(snapshot)
+            )
+            persistWarmupArtifacts(
+                payload = warmupPayload,
+                priority1 = "ready",
+                priority2 = "ready",
+                priority3 = "ready",
+                preparedYears = preparedYears,
+            )
+
+            logger.info("Warmup completed ({})", reason)
+        } catch (exception: Exception) {
+            logger.error("Warmup failed ({})", reason, exception)
+        } finally {
+            warmupInProgress.set(false)
+        }
+    }
+
+    private fun persistWarmupArtifacts(
+        payload: WarmupSummariesFile,
+        priority1: String,
+        priority2: String,
+        priority3: String,
+        preparedYears: List<Int>,
+    ) {
+        synchronized(manifestLock) {
+            val entries = BestEffortCache.saveToDisk(
+                CacheManifestStore.bestEffortCachePath(cacheRoot, clientId, cacheManifest)
+            )
+
+            val updatedManifest = cacheManifest.copy(
+                updatedAt = Instant.now().toString(),
+                bestEffortCache = cacheManifest.bestEffortCache.copy(
+                    entries = entries,
+                    lastPersistedAt = Instant.now().toString(),
+                ),
+                warmup = cacheManifest.warmup.copy(
+                    priority1 = priority1,
+                    priority2 = priority2,
+                    priority3 = priority3,
+                    preparedYears = preparedYears,
+                    lastRunAt = Instant.now().toString(),
+                )
+            )
+
+            CacheManifestStore.saveWarmupSummaries(cacheRoot, clientId, payload, updatedManifest)
+            CacheManifestStore.save(cacheRoot, updatedManifest)
+            cacheManifest = updatedManifest
+        }
+    }
+
+    override fun getCacheDiagnostics(): Map<String, Any?> {
+        val manifestSnapshot = synchronized(manifestLock) { cacheManifest }
+        val manifestPath = CacheManifestStore.manifestPath(cacheRoot, clientId)
+        val bestEffortPath = CacheManifestStore.bestEffortCachePath(cacheRoot, clientId, manifestSnapshot)
+        val warmupPath = CacheManifestStore.warmupSummariesPath(cacheRoot, clientId, manifestSnapshot)
+
+        return mapOf(
+            "timestamp" to Instant.now().toString(),
+            "athleteId" to clientId,
+            "manifest" to mapOf(
+                "schemaVersion" to manifestSnapshot.schemaVersion,
+                "updatedAt" to manifestSnapshot.updatedAt,
+                "bestEffortCache" to mapOf(
+                    "algoVersion" to manifestSnapshot.bestEffortCache.algoVersion,
+                    "entriesPersisted" to manifestSnapshot.bestEffortCache.entries,
+                    "entriesInMemory" to BestEffortCache.size(),
+                    "file" to manifestSnapshot.bestEffortCache.file,
+                    "lastPersistedAt" to manifestSnapshot.bestEffortCache.lastPersistedAt,
+                ),
+                "warmup" to mapOf(
+                    "algoVersion" to manifestSnapshot.warmup.algoVersion,
+                    "file" to manifestSnapshot.warmup.file,
+                    "priority1" to manifestSnapshot.warmup.priority1,
+                    "priority2" to manifestSnapshot.warmup.priority2,
+                    "priority3" to manifestSnapshot.warmup.priority3,
+                    "preparedYears" to manifestSnapshot.warmup.preparedYears,
+                    "lastRunAt" to manifestSnapshot.warmup.lastRunAt,
+                ),
+            ),
+            "files" to mapOf(
+                "manifest" to fileDiagnostics(manifestPath),
+                "bestEffortCache" to fileDiagnostics(bestEffortPath),
+                "warmupSummaries" to fileDiagnostics(warmupPath),
+            ),
+        )
+    }
+
+    private fun fileDiagnostics(path: java.nio.file.Path): Map<String, Any?> {
+        if (!Files.exists(path)) {
+            return mapOf(
+                "path" to path.toString(),
+                "exists" to false,
+            )
+        }
+
+        return mapOf(
+            "path" to path.toString(),
+            "exists" to true,
+            "sizeBytes" to Files.size(path),
+            "lastModified" to Files.getLastModifiedTime(path).toInstant().toString(),
+        )
+    }
+
+    private fun computeWarmupYearSummaries(activities: List<StravaActivity>): List<WarmupYearSummary> {
+        val summaries = mutableMapOf<Int, MutableWarmupYearSummary>()
+        val allYears = MutableWarmupYearSummary(year = 0)
+
+        activities.forEach { activity ->
+            val year = resolveActivityYear(activity)
+            val summary = summaries.getOrPut(year) { MutableWarmupYearSummary(year = year) }
+            summary.accept(activity)
+            allYears.accept(activity)
+        }
+
+        return buildList {
+            add(allYears.toPublic())
+            addAll(summaries.values.map { summary -> summary.toPublic() })
+        }.sortedByDescending { summary -> summary.year }
+    }
+
+    private fun precomputeMajorBestEfforts(activities: List<StravaActivity>): List<WarmupMetricSummary> {
+        val rideActivities = filterActivitiesForWarmup(activities, "ride")
+        val runActivities = filterActivitiesForWarmup(activities, "run")
+
+        return buildList {
+            computeBestTimeDistanceMetric("ride", rideActivities, 1000.0)?.let { add(it) }
+            computeBestTimeDistanceMetric("ride", rideActivities, 5000.0)?.let { add(it) }
+            computeBestDistanceTimeMetric("ride", rideActivities, 20 * 60)?.let { add(it) }
+            computeBestDistanceTimeMetric("ride", rideActivities, 60 * 60)?.let { add(it) }
+            computeBestTimeDistanceMetric("run", runActivities, 1000.0)?.let { add(it) }
+            computeBestTimeDistanceMetric("run", runActivities, 5000.0)?.let { add(it) }
+            computeBestDistanceTimeMetric("run", runActivities, 20 * 60)?.let { add(it) }
+            computeBestDistanceTimeMetric("run", runActivities, 60 * 60)?.let { add(it) }
+        }
+    }
+
+    private fun precomputeAdvancedMetrics(activities: List<StravaActivity>): List<WarmupMetricSummary> {
+        val rideActivities = filterActivitiesForWarmup(activities, "ride")
+        return buildList {
+            computeBestElevationMetric("ride", rideActivities, 1000.0)?.let { add(it) }
+            computeBestElevationMetric("ride", rideActivities, 5000.0)?.let { add(it) }
+            computeBestPowerMetric("ride", rideActivities, 20 * 60)?.let { add(it) }
+            computeBestPowerMetric("ride", rideActivities, 60 * 60)?.let { add(it) }
+        }
+    }
+
+    private fun filterActivitiesForWarmup(activities: List<StravaActivity>, group: String): List<StravaActivity> {
+        return activities.filter { activity ->
+            when (group) {
+                "run" -> activity.sportType == ActivityType.Run.name || activity.sportType == ActivityType.TrailRun.name
+                "ride" -> activity.sportType == ActivityType.Ride.name
+                        || activity.sportType == ActivityType.GravelRide.name
+                        || activity.sportType == ActivityType.MountainBikeRide.name
+                        || activity.sportType == ActivityType.VirtualRide.name
+                else -> false
+            }
+        }
+    }
+
+    private fun computeBestTimeDistanceMetric(
+        group: String,
+        activities: List<StravaActivity>,
+        distance: Double,
+    ): WarmupMetricSummary? {
+        val bestEffort = activities
+            .mapNotNull { activity -> activity.calculateBestTimeForDistance(distance) }
+            .minByOrNull { effort -> effort.seconds }
+            ?: return null
+
+        return WarmupMetricSummary(
+            activityGroup = group,
+            metric = "best-time-distance",
+            target = distance.toString(),
+            value = "${bestEffort.seconds.formatSeconds()} => ${bestEffort.getFormattedSpeedWithUnits()}",
+            activityId = bestEffort.activityShort.id,
+        )
+    }
+
+    private fun computeBestDistanceTimeMetric(
+        group: String,
+        activities: List<StravaActivity>,
+        seconds: Int,
+    ): WarmupMetricSummary? {
+        val bestEffort = activities
+            .mapNotNull { activity -> activity.calculateBestDistanceForTime(seconds) }
+            .maxByOrNull { effort -> effort.distance }
+            ?: return null
+
+        val distanceLabel = if (bestEffort.distance >= 1000.0) {
+            "%.2f km".format(Locale.ENGLISH, bestEffort.distance / 1000.0)
+        } else {
+            "%.0f m".format(Locale.ENGLISH, bestEffort.distance)
+        }
+
+        return WarmupMetricSummary(
+            activityGroup = group,
+            metric = "best-distance-time",
+            target = seconds.toString(),
+            value = "$distanceLabel => ${bestEffort.getFormattedSpeedWithUnits()}",
+            activityId = bestEffort.activityShort.id,
+        )
+    }
+
+    private fun computeBestPowerMetric(
+        group: String,
+        activities: List<StravaActivity>,
+        seconds: Int,
+    ): WarmupMetricSummary? {
+        val bestEffort = activities
+            .mapNotNull { activity -> activity.calculateBestPowerForTime(seconds) }
+            .maxByOrNull { effort -> effort.distance }
+            ?: return null
+        val power = bestEffort.averagePower ?: return null
+
+        return WarmupMetricSummary(
+            activityGroup = group,
+            metric = "best-power-time",
+            target = seconds.toString(),
+            value = "$power W",
+            activityId = bestEffort.activityShort.id,
+        )
+    }
+
+    private fun computeBestElevationMetric(
+        group: String,
+        activities: List<StravaActivity>,
+        distance: Double,
+    ): WarmupMetricSummary? {
+        val bestEffort = activities
+            .mapNotNull { activity -> activity.calculateBestElevationForDistance(distance) }
+            .maxByOrNull { effort -> effort.deltaAltitude }
+            ?: return null
+
+        return WarmupMetricSummary(
+            activityGroup = group,
+            metric = "best-elevation-distance",
+            target = distance.toString(),
+            value = "${bestEffort.seconds.formatSeconds()} => ${bestEffort.getFormattedGradient()}%",
+            activityId = bestEffort.activityShort.id,
+        )
     }
 
     private fun resolveActivityYear(activity: StravaActivity): Int {
@@ -441,5 +791,28 @@ class StravaActivityProvider(
             }
         }
         return null
+    }
+
+    private data class MutableWarmupYearSummary(
+        val year: Int,
+        var activityCount: Int = 0,
+        var totalDistanceKm: Double = 0.0,
+        var totalElevationM: Double = 0.0,
+        var elapsedSeconds: Int = 0,
+    ) {
+        fun accept(activity: StravaActivity) {
+            activityCount += 1
+            totalDistanceKm += activity.distance / 1000.0
+            totalElevationM += activity.totalElevationGain
+            elapsedSeconds += activity.elapsedTime
+        }
+
+        fun toPublic(): WarmupYearSummary = WarmupYearSummary(
+            year = year,
+            activityCount = activityCount,
+            totalDistanceKm = totalDistanceKm,
+            totalElevationM = totalElevationM,
+            elapsedSeconds = elapsedSeconds,
+        )
     }
 }

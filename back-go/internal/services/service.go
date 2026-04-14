@@ -30,6 +30,10 @@ func getActivityProvider() *stravaapi.StravaActivityProvider {
 	return activityProvider
 }
 
+func FetchCacheHealthDetails() map[string]any {
+	return getActivityProvider().CacheDiagnostics()
+}
+
 // groupActivitiesByDay groups activities by day and fills in missing days
 func groupActivitiesByDay(activities []*strava.Activity, year int) map[string][]*strava.Activity {
 	activitiesByDay := make(map[string][]*strava.Activity)

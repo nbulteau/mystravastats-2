@@ -32,4 +32,9 @@ interface IActivityProvider {
     fun getHeartRateZoneSettings(): HeartRateZoneSettings = HeartRateZoneSettings()
 
     fun saveHeartRateZoneSettings(settings: HeartRateZoneSettings): HeartRateZoneSettings = settings
+
+    fun getCacheDiagnostics(): Map<String, Any?> = mapOf(
+        "available" to false,
+        "reason" to "cache diagnostics not supported by this activity provider",
+    )
 }
