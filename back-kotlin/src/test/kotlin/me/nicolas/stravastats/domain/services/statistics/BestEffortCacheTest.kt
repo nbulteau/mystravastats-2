@@ -21,10 +21,22 @@ class BestEffortCacheTest {
 
     @Test
     fun `best effort cache is persisted and reloaded from disk`() {
+        // GIVEN
         BestEffortCache.clear()
         val stream = testStream()
         var calls = 0
+        val effort = ActivityEffort(
+            distance = 1000.0,
+            seconds = 180,
+            deltaAltitude = 20.0,
+            idxStart = 0,
+            idxEnd = 2,
+            averagePower = 250,
+            label = "Best speed for 1000m",
+            activityShort = ActivityShort(42, "Warmup effort", ActivityType.Ride.name),
+        )
 
+        // WHEN
         val first = BestEffortCache.getOrCompute(
             activityId = 42,
             metric = "best-time-distance",
@@ -32,21 +44,14 @@ class BestEffortCacheTest {
             stream = stream,
         ) {
             calls += 1
-            ActivityEffort(
-                distance = 1000.0,
-                seconds = 180,
-                deltaAltitude = 20.0,
-                idxStart = 0,
-                idxEnd = 2,
-                averagePower = 250,
-                label = "Best speed for 1000m",
-                activityShort = ActivityShort(42, "Warmup effort", ActivityType.Ride.name),
-            )
+            effort
         }
 
+        // THEN
         assertEquals(1, calls)
         assertNotNull(first)
 
+        // WHEN - persisted and reloaded
         val cacheFile = tempDir.resolve("best-effort-cache.json")
         val persisted = BestEffortCache.saveToDisk(cacheFile)
         assertEquals(1, persisted)
@@ -66,12 +71,14 @@ class BestEffortCacheTest {
             null
         }
 
+        // THEN - loaded from disk, no recomputation
         assertEquals(0, calls)
         assertEquals(180, second?.seconds)
     }
 
     @Test
     fun `invalidateActivities removes only targeted entries`() {
+        // GIVEN
         BestEffortCache.clear()
         val stream = testStream()
 
@@ -100,7 +107,10 @@ class BestEffortCacheTest {
             )
         }
 
+        // WHEN
         val removed = BestEffortCache.invalidateActivities(setOf(1L))
+
+        // THEN
         assertEquals(1, removed)
         assertEquals(1, BestEffortCache.size())
 

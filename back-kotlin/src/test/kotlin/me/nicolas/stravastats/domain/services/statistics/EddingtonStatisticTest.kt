@@ -52,7 +52,7 @@ class EddingtonStatisticTest {
 
     @Test
     fun `should not round up when equality threshold is not met`() {
-        // 49 days at 51 km means Eddington is 49, not 50
+        // GIVEN - 49 days at 51 km means Eddington is 49, not 50
         val start = LocalDate.of(2024, 1, 1)
         val activities = (0 until 49).map { dayOffset ->
             createActivity(
@@ -61,8 +61,10 @@ class EddingtonStatisticTest {
             )
         }
 
+        // WHEN
         val eddingtonStatistic = EddingtonStatistic(activities)
 
+        // THEN
         assertEquals("49 km", eddingtonStatistic.value)
     }
 

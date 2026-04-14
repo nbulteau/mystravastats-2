@@ -80,6 +80,7 @@ class DashboardControllerTest{
 
     @Test
     fun `get cumulative distance per year returns bad request when activity type is invalid`() {
+        // GIVEN
         // WHEN
         mockMvc.perform(
             get("/api/dashboard/cumulative-data-per-year")

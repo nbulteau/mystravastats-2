@@ -71,6 +71,7 @@ class MapsControllerTest{
 
     @Test
     fun `get GPX returns bad request when activity type is invalid`() {
+        // GIVEN
         // WHEN
         mockMvc.perform(
             get("/api/maps/gpx")
@@ -86,6 +87,7 @@ class MapsControllerTest{
 
     @Test
     fun `get GPX returns bad request when year is invalid`() {
+        // GIVEN
         // WHEN
         mockMvc.perform(
             get("/api/maps/gpx")

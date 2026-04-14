@@ -8,53 +8,49 @@ internal class StravaActivityTest {
 
     @Test
     fun processAverageSpeed() {
-
-        // Given
+        // GIVEN
         val colAgnelActivity = loadColAgnelActivity()
 
-        // When
+        // WHEN
         val result = colAgnelActivity.processAverageSpeed()
 
-        // Then
+        // THEN
         assertEquals("15,48", result)
     }
 
     @Test
     fun getTotalElevationGain() {
-
-        // Given
+        // GIVEN
         val colAgnelActivity = loadColAgnelActivity()
 
-        // When
+        // WHEN
         val result = colAgnelActivity.totalElevationGain
 
-        // Then
+        // THEN
         assertEquals(2090, result.toInt())
     }
 
     @Test
     fun getTotalAscentGain() {
-
-        // Given
+        // GIVEN
         val colAgnelActivity = loadColAgnelActivity()
 
-        // When
+        // WHEN
         val result = colAgnelActivity.calculateTotalAscentGain()
 
-        // Then
+        // THEN
         assertEquals(2107, result.toInt())
     }
 
     @Test
     fun getTotalDescentGain() {
-
-        // Given
+        // GIVEN
         val colAgnelActivity = loadColAgnelActivity()
 
-        // When
+        // WHEN
         val result = colAgnelActivity.calculateTotalDescentGain()
 
-        // Then
+        // THEN
         assertEquals(2131, result.toInt())
     }
 }

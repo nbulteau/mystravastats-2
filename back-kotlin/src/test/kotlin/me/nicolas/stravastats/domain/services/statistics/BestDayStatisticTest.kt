@@ -24,15 +24,15 @@ class BestDayStatisticTest {
 
     @Test
     fun `should return not available when no activities`() {
-        // Given
+        // GIVEN
         val activities = emptyList<StravaActivity>()
         val bestDayStatistic = BestDayStatistic("Best day", activities, formatString = "%s: %.02f")
         { activityList -> activityList.maxByOrNull { it.distance }?.let { it.startDateLocal.substringBefore('T') to it.distance } }
 
-        // When
+        // WHEN
         val result = bestDayStatistic.value
 
-        // Then
+        // THEN
         assertEquals("Not available", result)
     }
 }

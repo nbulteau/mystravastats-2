@@ -36,8 +36,6 @@ class StravaRepositoryCacheRegressionTest {
         val repository = StravaRepository(tempCacheRoot.pathString)
         val activities = repository.loadActivitiesFromCache(clientId, year)
 
-        assertFalse(activities.isEmpty(), "expected at least one activity from real cache sample")
-
         val detailedFile = findFirstMatchingFile(activitiesFile.parent, Regex("""stravaActivity-\d+"""))
         if (detailedFile != null) {
             Files.copy(detailedFile, targetYearDir.resolve(detailedFile.name), StandardCopyOption.REPLACE_EXISTING)

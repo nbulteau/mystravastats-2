@@ -74,6 +74,7 @@ class ChartsControllerTest {
 
     @Test
     fun `get distance by period returns bad request when activity type is invalid`() {
+        // GIVEN
         // WHEN
         mockMvc.perform(
             get("/api/charts/distance-by-period")
@@ -90,6 +91,7 @@ class ChartsControllerTest {
 
     @Test
     fun `get distance by period returns bad request when year is invalid`() {
+        // GIVEN
         // WHEN
         mockMvc.perform(
             get("/api/charts/distance-by-period")
@@ -106,6 +108,7 @@ class ChartsControllerTest {
 
     @Test
     fun `get distance by period returns bad request when period is invalid`() {
+        // GIVEN
         // WHEN
         mockMvc.perform(
             get("/api/charts/distance-by-period")
@@ -168,6 +171,7 @@ class ChartsControllerTest {
 
     @Test
     fun `get elevation by period returns bad request when activity type is invalid`() {
+        // GIVEN
         // WHEN
         mockMvc.perform(
             get("/api/charts/elevation-by-period")
@@ -184,6 +188,7 @@ class ChartsControllerTest {
 
     @Test
     fun `get elevation by period returns bad request when year is invalid`() {
+        // GIVEN
         // WHEN
         mockMvc.perform(
             get("/api/charts/elevation-by-period")
@@ -200,6 +205,7 @@ class ChartsControllerTest {
 
     @Test
     fun `get elevation by period returns bad request when period is invalid`() {
+        // GIVEN
         // WHEN
         mockMvc.perform(
             get("/api/charts/elevation-by-period")

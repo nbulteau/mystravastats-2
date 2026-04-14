@@ -60,9 +60,9 @@ class BadgesControllerTest {
                 .param("year", year.toString())
                 .param("badgeSet", BadgeSetEnum.GENERAL.name)
         )
+            // THEN
             .andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            // THEN
             .andExpect(content().json(objectMapper.writeValueAsString(badgeCheckResultDtos)))
 
         verify { badgesService.getGeneralBadges(activityTypes, year) }
@@ -106,9 +106,9 @@ class BadgesControllerTest {
                 .param("year", year.toString())
                 .param("badgeSet", BadgeSetEnum.FAMOUS.name)
         )
+            // THEN
             .andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            // THEN
             .andExpect(content().json(objectMapper.writeValueAsString(badgeCheckResultDtos)))
 
         verify { badgesService.getFamousBadges(activityTypes, year) }

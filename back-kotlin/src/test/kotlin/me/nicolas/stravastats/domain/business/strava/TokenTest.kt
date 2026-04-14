@@ -11,6 +11,7 @@ internal class TokenTest {
 
     @Test
     fun `read Token with username = null`() {
+        // GIVEN
         val json = """
         {
             "token_type":"Bearer",
@@ -41,12 +42,16 @@ internal class TokenTest {
         }
         """.trimIndent()
 
+        // WHEN
         val token = mapper.readValue(json, Token::class.java)
+
+        // THEN
         Assertions.assertNull(token.athlete.username)
     }
 
     @Test
     fun `read Token`() {
+        // GIVEN
         val json = """
         {
             "token_type": "Bearer",
@@ -77,7 +82,10 @@ internal class TokenTest {
         }
         """.trimIndent()
 
+        // WHEN
         val token = mapper.readValue(json, Token::class.java)
+
+        // THEN
         Assertions.assertEquals("nbulteau", token.athlete.username)
     }
 }

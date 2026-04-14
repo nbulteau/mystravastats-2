@@ -21,17 +21,14 @@ class StravaActivityProviderTest {
 
     @Test
     fun `loadMissingStreamsFromApi parallelizes and updates activities streams`() = runBlocking {
-        // Mocks
+        // GIVEN
         val repository = mockk<ILocalStorageProvider>(relaxed = true)
         val api = mockk<IStravaApi>(relaxed = true)
 
-        // Stub authentication to provide a clientId
         coEvery { repository.readStravaAuthentication(any()) } returns Triple("12345", "secret", false)
 
-        // Prepare provider with mocks
         val provider = StravaActivityProvider(localStorageProvider = repository, stravaApi = api)
 
-        // Prepare activities without stream
         val activities = (1L..3L).map { id ->
             StravaActivity(
                 id = id,
@@ -55,7 +52,6 @@ class StravaActivityProviderTest {
 
         val year = 2020
 
-        // Mock API to return a Stream for each activity
         activities.forEach { activity ->
             every { api.getActivityStreamFailFastOnRateLimit(activity) } returns Stream(
                 distance = DistanceStream(data = emptyList(), originalSize = 0, resolution = "", seriesType = ""),
@@ -63,20 +59,19 @@ class StravaActivityProviderTest {
             )
         }
 
-        // Call the suspend function
+        // WHEN
         provider.loadMissingStreamsFromApi(year, activities)
 
-        // Assertions: each activity should have a stream
+        // THEN
         activities.forEach { activity ->
             assertNotNull(activity.stream)
         }
-
-        // Verify api was called for each activity
         verify(exactly = activities.size) { api.getActivityStreamFailFastOnRateLimit(any()) }
     }
 
     @Test
     fun `getDetailedActivity switches to cache-only mode after rate limit`() {
+        // GIVEN
         val repository = mockk<ILocalStorageProvider>(relaxed = true)
         val api = mockk<IStravaApi>(relaxed = true)
 
@@ -108,12 +103,17 @@ class StravaActivityProviderTest {
         activitiesField.isAccessible = true
         activitiesField.set(provider, listOf(activity))
 
+        // WHEN
         val firstCall = provider.getDetailedActivity(42L)
+
+        // THEN
         assertTrue(firstCall.isPresent, "Expected cache fallback detailed activity after rate limit")
 
+        // WHEN - second call while rate limit is active
         val secondCall = provider.getDetailedActivity(42L)
-        assertTrue(secondCall.isPresent, "Expected cache-only detailed activity while rate limit is active")
 
+        // THEN
+        assertTrue(secondCall.isPresent, "Expected cache-only detailed activity while rate limit is active")
         verify(exactly = 1) { api.getDetailedActivityFailFastOnRateLimit(42L) }
     }
 }

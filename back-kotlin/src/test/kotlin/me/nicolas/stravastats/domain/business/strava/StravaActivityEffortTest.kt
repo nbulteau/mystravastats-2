@@ -9,11 +9,10 @@ internal class StravaActivityEffortTest {
 
     @Test
     fun getFormatedSpeed() {
-
-        // Given
+        // GIVEN
         val colAgnelActivity = loadColAgnelActivity()
 
-        // When
+        // WHEN
         val colAgnelActivityEffort = ActivityEffort(
             colAgnelActivity.distance,
             colAgnelActivity.elapsedTime,
@@ -25,7 +24,7 @@ internal class StravaActivityEffortTest {
             ActivityShort(colAgnelActivity.id, colAgnelActivity.name, colAgnelActivity.type)
         )
 
-        // Then
+        // THEN
         assertEquals("15.48 km/h", colAgnelActivityEffort.getFormattedSpeedWithUnits())
         assertEquals("15.48", colAgnelActivityEffort.getFormatedSpeed())
 

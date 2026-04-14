@@ -395,15 +395,7 @@ class StravaActivityProvider(
             }
         } catch (exception: Exception) {
             logger.error("Failed to initialize Strava API (token fetch error): ${exception.message}", exception)
-            logger.warn("Switching to cache-only mode: setting useCache=true in .strava file")
-
-            // Update the .strava file to enable cache mode
-            try {
-                storageProvider.updateStravaAuthentication(cacheRoot, clientId, secret, useCache = true)
-                logger.info("Successfully switched to cache-only mode")
-            } catch (updateException: Exception) {
-                logger.error("Failed to update cache mode in .strava file", updateException)
-            }
+            logger.warn("Switching to cache-only mode: activities will be loaded from cache but no API calls will be made until next restart")
 
             // Return null to indicate API is not available
             null

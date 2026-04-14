@@ -15,6 +15,7 @@ class FamousClimbBadgeTest {
 
     @Test
     fun `check matches Télégraphe when activity starts far away but contains both climb points`() {
+        // GIVEN
         val badge = FamousClimbBadge(
             label = "Col du Télégraphe from Saint Michel de Maurienne",
             name = "Col du Télégraphe",
@@ -27,7 +28,6 @@ class FamousClimbBadgeTest {
             difficulty = 628,
             category = "1",
         )
-
         val activity = buildRideActivity(
             startLatLng = listOf(45.1885, 5.7245), // Grenoble area
             streamPoints = listOf(
@@ -36,13 +36,17 @@ class FamousClimbBadgeTest {
             ),
         )
 
+        // WHEN
         val (activities, matched) = badge.check(listOf(activity))
+
+        // THEN
         assertTrue(matched, "Télégraphe badge should match when both climb points are present")
         assertEquals(1, activities.size)
     }
 
     @Test
     fun `check matches Télégraphe with stream point within 500m of summit`() {
+        // GIVEN
         val badge = FamousClimbBadge(
             label = "Col du Télégraphe from Saint Michel de Maurienne",
             name = "Col du Télégraphe",
@@ -55,7 +59,6 @@ class FamousClimbBadgeTest {
             difficulty = 628,
             category = "1",
         )
-
         val activity = buildRideActivity(
             startLatLng = listOf(45.2178751, 6.4750846),
             streamPoints = listOf(
@@ -64,12 +67,16 @@ class FamousClimbBadgeTest {
             ),
         )
 
+        // WHEN
         val (_, matched) = badge.check(listOf(activity))
+
+        // THEN
         assertTrue(matched, "Télégraphe badge should match within 500m tolerance")
     }
 
     @Test
     fun `check does not match Télégraphe descent only`() {
+        // GIVEN
         val badge = FamousClimbBadge(
             label = "Col du Télégraphe from Saint Michel de Maurienne",
             name = "Col du Télégraphe",
@@ -82,7 +89,6 @@ class FamousClimbBadgeTest {
             difficulty = 628,
             category = "1",
         )
-
         val activity = buildRideActivity(
             startLatLng = listOf(45.2026999, 6.4446143),
             streamPoints = listOf(
@@ -91,7 +97,10 @@ class FamousClimbBadgeTest {
             ),
         )
 
+        // WHEN
         val (_, matched) = badge.check(listOf(activity))
+
+        // THEN
         assertTrue(!matched, "Télégraphe descent-only activity should not match")
     }
 

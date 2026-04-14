@@ -16,10 +16,13 @@ class BestElevationDistanceStatisticTest {
 
     @Test
     fun `calculateBestElevationForDistance returns expected best effort on synthetic stream`() {
+        // GIVEN
         val activity = StatisticsFixtures.syntheticRideActivity(id = 21)
 
+        // WHEN
         val effort = activity.calculateBestElevationForDistance(distance = 200.0)
 
+        // THEN
         assertNotNull(effort)
         val actualEffort = effort!!
         assertEquals(200.0, actualEffort.distance, 1e-6)
@@ -29,29 +32,37 @@ class BestElevationDistanceStatisticTest {
 
     @Test
     fun `calculateBestElevationForDistance returns null when altitude stream is missing`() {
+        // GIVEN
         val activity = StatisticsFixtures.syntheticRideActivity(
             id = 22,
             stream = StatisticsFixtures.defaultStream(altitudes = null)
         )
 
+        // WHEN
         val effort = activity.calculateBestElevationForDistance(distance = 200.0)
 
+        // THEN
         assertNull(effort)
     }
 
     @Test
     fun `calculateBestElevationForDistance returns null when target distance is longer than stream`() {
+        // GIVEN
         val activity = StatisticsFixtures.syntheticRideActivity(id = 23)
 
+        // WHEN
         val effort = activity.calculateBestElevationForDistance(distance = 2_000.0)
 
+        // THEN
         assertNull(effort)
     }
 
     @Test
     fun `statistic requires distance strictly greater than 100 meters`() {
+        // GIVEN
         val activity = StatisticsFixtures.syntheticRideActivity(id = 24)
 
+        // WHEN / THEN
         assertThrows<IllegalArgumentException> {
             BestElevationDistanceStatistic(
                 name = "Invalid",

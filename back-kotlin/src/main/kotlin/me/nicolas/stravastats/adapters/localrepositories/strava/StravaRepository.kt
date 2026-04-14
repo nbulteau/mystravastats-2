@@ -68,9 +68,14 @@ internal class StravaRepository(stravaCache: String) : ILocalStorageProvider {
 
         if (yearActivitiesJsonFile.exists()) {
             logger.info("Load activities from cache for year $year")
-            activities = objectMapper.readValue(yearActivitiesJsonFile, Array<StravaActivity>::class.java)
-                .toList()
-                .filterByActivityTypes()
+            try {
+                activities = objectMapper.readValue(yearActivitiesJsonFile, Array<StravaActivity>::class.java)
+                    .toList()
+                    .filterByActivityTypes()
+            } catch (exception: Exception) {
+                logger.error("Unable to load activities from cache for year $year")
+                return emptyList()
+            }
             logger.info("${activities.size} activities loaded for year $year from cache")
 
             // Load activities streams

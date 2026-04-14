@@ -13,19 +13,28 @@ internal class GeoCoordinateTest {
 
     @Test
     fun haversineInM1() {
+        // GIVEN
+        // COL_AGNEL and COL_D_IZOARD are defined in companion object
 
+        // WHEN
         val result = COL_AGNEL.haversineInM(
             COL_D_IZOARD.latitude,
             COL_D_IZOARD.longitude
         )
+
+        // THEN
         Assertions.assertEquals(24561, result)
     }
 
     @Test
     fun haversineInM2() {
+        // GIVEN
+        // COL_AGNEL defined in companion object
 
-        val result =
-            COL_AGNEL.haversineInM(COL_AGNEL.latitude, COL_AGNEL.longitude)
+        // WHEN
+        val result = COL_AGNEL.haversineInM(COL_AGNEL.latitude, COL_AGNEL.longitude)
+
+        // THEN
         Assertions.assertEquals(0, result)
     }
 }
