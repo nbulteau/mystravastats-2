@@ -15,5 +15,10 @@ interface IStravaApi {
 
     fun getActivityStream(stravaActivity: StravaActivity): Stream?
 
+    fun getActivityStreamFailFastOnRateLimit(stravaActivity: StravaActivity): Stream? = getActivityStream(stravaActivity)
+
     fun getDetailedActivity(activityId: Long): Optional<StravaDetailedActivity>
+
+    fun getDetailedActivityFailFastOnRateLimit(activityId: Long): Optional<StravaDetailedActivity> =
+        getDetailedActivity(activityId)
 }
