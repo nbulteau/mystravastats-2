@@ -61,7 +61,15 @@ func BestElevationEffort(activity strava.Activity, distance float64) *business.A
 	if activity.Stream == nil || activity.Stream.Altitude == nil || len(activity.Stream.Altitude.Data) == 0 {
 		return nil
 	}
-	return BestElevationForDistance(activity.Id, activity.Name, activity.Type, activity.Stream, distance)
+	return getOrComputeBestEffort(
+		activity.Id,
+		"best-elevation-distance",
+		effortDistanceTarget(distance),
+		activity.Stream,
+		func() *business.ActivityEffort {
+			return BestElevationForDistance(activity.Id, activity.Name, activity.Type, activity.Stream, distance)
+		},
+	)
 }
 
 func BestElevationForDistance(id int64, name, activityType string, stream *strava.Stream, distance float64) *business.ActivityEffort {
