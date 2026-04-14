@@ -15,11 +15,13 @@ package main
 import (
 	"embed"
 	"flag"
+	"fmt"
 	"io/fs"
 	"log"
 	"mystravastats/api"
 	"mystravastats/internal/services"
 	"net/http"
+	"os"
 	"strings"
 
 	_ "mystravastats/docs" // Import for generated Swagger documentation
@@ -33,11 +35,17 @@ var public embed.FS
 func main() {
 	// Define a debug flag
 	debug := flag.Bool("debug", false, "run in debug mode")
+	port := flag.String("port", "8080", "server port")
 	flag.Parse()
+
+	// Get port from environment variable if not provided as flag
+	if envPort := os.Getenv("PORT"); envPort != "" {
+		*port = envPort
+	}
 
 	// Eager initialization keeps cache loading and background refresh
 	// behavior unchanged from a user perspective at startup.
-	services.InitActivityProvider()
+	services.InitActivityProvider(*port)
 
 	// Create a new CORS handler
 	c := cors.New(cors.Options{
@@ -103,5 +111,7 @@ func main() {
 	// Apply the CORS middleware to the router
 	handler := c.Handler(router)
 
-	log.Fatal(http.ListenAndServe("localhost:8080", handler))
+	addr := fmt.Sprintf("localhost:%s", *port)
+	log.Printf("Starting server on http://%s", addr)
+	log.Fatal(http.ListenAndServe(addr, handler))
 }

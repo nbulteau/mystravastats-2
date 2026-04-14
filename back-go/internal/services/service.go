@@ -12,18 +12,20 @@ import (
 var (
 	activityProvider     *stravaapi.StravaActivityProvider
 	activityProviderOnce sync.Once
+	serverPort           string
 )
 
 // InitActivityProvider eagerly initializes the provider at startup.
 // This keeps cache-first loading and background refresh behavior predictable
 // instead of waiting for the first incoming API request.
-func InitActivityProvider() {
+func InitActivityProvider(port string) {
+	serverPort = port
 	_ = getActivityProvider()
 }
 
 func getActivityProvider() *stravaapi.StravaActivityProvider {
 	activityProviderOnce.Do(func() {
-		activityProvider = stravaapi.NewStravaActivityProvider(helpers.StravaCachePath)
+		activityProvider = stravaapi.NewStravaActivityProvider(helpers.StravaCachePath, serverPort)
 	})
 	return activityProvider
 }

@@ -30,13 +30,15 @@ type StravaActivityProvider struct {
 	apiMutex              sync.Mutex
 	backgroundRefresh     atomic.Bool
 	stravaAthlete         strava.Athlete
+	serverPort            string
 }
 
-func NewStravaActivityProvider(stravaCache string) *StravaActivityProvider {
+func NewStravaActivityProvider(stravaCache string, serverPort string) *StravaActivityProvider {
 	log.Printf("Initialize StravaActivityProvider using %s ...", stravaCache)
 
 	provider := &StravaActivityProvider{
 		localStorageProvider: localrepository.NewStravaRepository(stravaCache),
+		serverPort:           serverPort,
 	}
 
 	id, secret, useCache := provider.localStorageProvider.ReadStravaAuthentication(stravaCache)
@@ -68,7 +70,10 @@ func NewStravaActivityProvider(stravaCache string) *StravaActivityProvider {
 		provider.launchBackgroundDataRefresh()
 	}
 
-	helpers.OpenBrowser("http://localhost:8080")
+	url := fmt.Sprintf("http://localhost:%s", provider.serverPort)
+	helpers.OpenBrowser(url)
+	fmt.Println("To view your Strava activities, open the following URL in your browser:", url)
+
 	log.Printf("✅ MyStravastats ready with clientId=%s and %d activities (cache-first startup)", provider.clientId, len(provider.activities))
 
 	return provider
