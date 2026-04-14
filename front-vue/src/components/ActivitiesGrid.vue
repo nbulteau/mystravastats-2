@@ -14,7 +14,7 @@ import shareIcon from "@/assets/share-outline.svg";
 import AverageSpeedCellRenderer from "@/components/cell-renderers/AverageSpeedCellRenderer.vue";
 import BestSpeedFor1000mCellRenderer from "@/components/cell-renderers/BestSpeedFor1000mCellRenderer.vue";
 import { ErrorService } from "@/services/error.service";
-import { useContextStore } from "@/stores/context.js";
+import { useUiStore } from "@/stores/ui";
 import { ToastTypeEnum } from "@/models/toast.model";
 
 
@@ -25,7 +25,7 @@ const props = defineProps<{
 }>();
 
 const router = useRouter();
-const contextStore = useContextStore();
+const uiStore = useUiStore();
 
 function showDetailedActivity(activityId: string) {
 
@@ -49,7 +49,7 @@ async function csvExport() {
   try {
     response = await fetch(url);
   } catch (error) {
-    contextStore.showToast({
+    uiStore.showToast({
       id: `csv-export-toast-${Date.now()}`,
       type: ToastTypeEnum.ERROR,
       message: "Unable to export CSV right now. Please retry.",
@@ -75,7 +75,7 @@ async function csvExport() {
     link.click();
     document.body.removeChild(link);
   } catch {
-    contextStore.showToast({
+    uiStore.showToast({
       id: `csv-export-toast-${Date.now()}`,
       type: ToastTypeEnum.ERROR,
       message: "CSV export failed unexpectedly. Please retry.",

@@ -2,7 +2,7 @@ import './assets/main.css'
 
 import {createApp} from 'vue'
 import {createPinia} from 'pinia'
-import {useContextStore} from '@/stores/context.js'
+import { useAthleteStore } from "@/stores/athlete";
 import mitt from 'mitt';
 import Highcharts from 'highcharts';
 
@@ -149,9 +149,9 @@ const bootstrap = async (): Promise<void> => {
 
     const pinia = createPinia();
 
-    // Init main store
-    const mainStore = useContextStore(pinia);
-    mainStore.fetchAthlete().then(() => {});
+    // Init athlete store
+    const athleteStore = useAthleteStore(pinia);
+    athleteStore.fetchAthlete().then(() => {});
 
     const app = createApp(App);
     app.provide('eventBus', eventBus);

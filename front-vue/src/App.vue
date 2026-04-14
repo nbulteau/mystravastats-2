@@ -3,8 +3,10 @@ import "../node_modules/bootstrap/scss/bootstrap.scss";
 import HeaderBar from "@/components/HeaderBar.vue";
 import { RouterLink } from "vue-router";
 import { useContextStore } from "@/stores/context.js";
+import { useUiStore } from "@/stores/ui";
 
 const contextStore = useContextStore();
+const uiStore = useUiStore();
 
 const isCurrent = (name: string) => {
   return contextStore.currentView === name;
@@ -155,7 +157,7 @@ const isCurrent = (name: string) => {
       aria-atomic="true"
     >
       <div
-        v-for="toast in contextStore.toasts"
+        v-for="toast in uiStore.toasts"
         :key="toast.id"
         :class="[
           'app-toast',
@@ -167,7 +169,7 @@ const isCurrent = (name: string) => {
           type="button"
           class="app-toast-close"
           aria-label="Close notification"
-          @click="contextStore.removeToast(toast)"
+          @click="uiStore.removeToast(toast)"
         >
           ×
         </button>

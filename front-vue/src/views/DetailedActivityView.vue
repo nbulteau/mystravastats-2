@@ -124,6 +124,7 @@ import { useRoute } from "vue-router";
 import { ActivityEffort, DetailedActivity } from "@/models/activity.model"; 
 import { formatSpeedWithUnit, formatTime } from "@/utils/formatters";
 import { useContextStore } from "@/stores/context.js";
+import { useAthleteStore } from "@/stores/athlete";
 import { ErrorService } from "@/services/error.service";
 import type { Options, SeriesAreaOptions, SeriesLineOptions } from "highcharts";
 import Highcharts from "highcharts";
@@ -167,6 +168,7 @@ const hasPowerData = computed(() => {
 });
 
 const contextStore = useContextStore();
+const athleteStore = useAthleteStore();
 contextStore.updateCurrentView("activity");
 
 const route = useRoute();
@@ -542,7 +544,7 @@ const handleRadioClick = (key: string) => {
 onMounted(async () => {
   initMap();
   try {
-    await contextStore.fetchHeartRateZoneSettings().catch(() => undefined);
+    await athleteStore.fetchHeartRateZoneSettings().catch(() => undefined);
     await fetchDetailedActivity(activityId ?? "");
     updateMap();
     initChart();

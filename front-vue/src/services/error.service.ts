@@ -1,10 +1,10 @@
-import { useContextStore } from '@/stores/context'
+import { useUiStore } from '@/stores/ui'
 import { type Toast, ToastTypeEnum } from '@/models/toast.model'
 import type { APIResponseError } from '@/models/error.model'
 
 export class ErrorService {
     static async catchError(response: Response) {
-        const contextStore = useContextStore()
+        const uiStore = useUiStore()
 
         if ((response.status === 401 || response.status === 403) && response.headers.get('X-Goog-IAP-Generated-Response') !== null) {
             window.location.reload()
@@ -32,9 +32,9 @@ export class ErrorService {
             apiErrorCode: apiError.code,
             type: ToastTypeEnum.ERROR,
         }
-        contextStore.showToast(toast)
+        uiStore.showToast(toast)
         setTimeout(() => {
-            contextStore.removeToast(toast)
+            uiStore.removeToast(toast)
         }, 5000)
 
         throw new Error(apiError.message)

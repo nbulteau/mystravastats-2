@@ -1,285 +1,72 @@
-// noinspection UnnecessaryLocalVariableJS
+import { defineStore } from "pinia";
+import { useActivitiesStore } from "@/stores/activities";
+import { useBadgesStore } from "@/stores/badges";
+import { useChartsStore } from "@/stores/charts";
+import { useDashboardStore } from "@/stores/dashboard";
+import { useMapStore } from "@/stores/map";
+import { useStatisticsStore } from "@/stores/statistics";
 
-import { defineStore } from 'pinia'
-import { ErrorService } from "@/services/error.service";
-import { type Toast } from '@/models/toast.model'
-import type { Statistics } from '@/models/statistics.model';
-import type { PersonalRecordTimeline } from '@/models/personal-record-timeline.model';
-import type { Activity } from '@/models/activity.model';
-import { EddingtonNumber } from '@/models/eddington-number.model';
-import type { BadgeCheckResult } from '@/models/badge-check-result.model';
-import { DashboardData } from '@/models/dashboard-data.model';
-import {
-    type HeartRateZoneAnalysis,
-    type HeartRateZoneSettings,
-    emptyHeartRateZoneAnalysis,
-} from '@/models/heart-rate-zone.model';
-import type { ActivityHeatmap } from "@/models/activity-heatmap.model";
+export type AppView =
+  | "statistics"
+  | "activities"
+  | "activity"
+  | "map"
+  | "badges"
+  | "charts"
+  | "dashboard"
+  | "heatmap";
 
-
-export const useContextStore = defineStore('context', {
-    state(): {
-        athleteDisplayName: string
-        currentYear: string
-        currentActivityType: string,
-
-        statistics: Statistics[]
-        personalRecordsTimeline: PersonalRecordTimeline[]
-        activities: Activity[],
-        gpxCoordinates: number[][][],
-        distanceByMonths: Map<string, number>[],
-        elevationByMonths: Map<string, number>[],
-        averageSpeedByMonths: Map<string, number>[],
-        distanceByWeeks: Map<string, number>[],
-        elevationByWeeks: Map<string, number>[],
-        cadenceByWeeks: Map<string, number>[],
-        cumulativeDistancePerYear: Map<string, Map<string, number>>,
-        cumulativeElevationPerYear: Map<string, Map<string, number>>,
-        eddingtonNumber: EddingtonNumber,
-        dashboardData: DashboardData,
-        activityHeatmap: ActivityHeatmap,
-        heartRateZoneSettings: HeartRateZoneSettings,
-        heartRateZoneAnalysis: HeartRateZoneAnalysis,
-        generalBadgesCheckResults: BadgeCheckResult[],
-        famousClimbBadgesCheckResults: BadgeCheckResult[],
-
-        currentView: 'statistics' | 'activities' | 'activity' | 'map' | 'badges' | 'charts' | 'dashboard' | 'heatmap'
-        toasts: any[]
-    } {
-        return {
-            athleteDisplayName: '',
-            currentYear: new Date().getFullYear().toString(),
-            currentActivityType: 'Commute_GravelRide_MountainBikeRide_Ride_VirtualRide', // Default activity types (all cycling types)
-
-            statistics: [],
-            personalRecordsTimeline: [],
-            activities: [],
-            gpxCoordinates: [],
-            distanceByMonths: [],
-            elevationByMonths: [],
-            averageSpeedByMonths: [],
-            distanceByWeeks: [],
-            elevationByWeeks: [],
-            cadenceByWeeks: [],
-            eddingtonNumber: new EddingtonNumber(),
-            dashboardData: new DashboardData({},  {},  {},  {},  {},  {},  {},  {},  {},  {},  {},  {},  {}, []),
-            activityHeatmap: {},
-            heartRateZoneSettings: {
-                maxHr: null,
-                thresholdHr: null,
-                reserveHr: null,
-            },
-            heartRateZoneAnalysis: emptyHeartRateZoneAnalysis(),
-            cumulativeDistancePerYear: new Map<string, Map<string, number>>(),
-            cumulativeElevationPerYear: new Map<string, Map<string, number>>(),
-            generalBadgesCheckResults: [],
-            famousClimbBadgesCheckResults: [],
-
-            currentView: 'statistics',
-            toasts: [],
-        }
+export const useContextStore = defineStore("context", {
+  state: () => ({
+    currentYear: new Date().getFullYear().toString(),
+    currentActivityType: "Commute_GravelRide_MountainBikeRide_Ride_VirtualRide",
+    currentView: "statistics" as AppView,
+  }),
+  actions: {
+    async refreshCurrentViewData() {
+      switch (this.currentView) {
+        case "statistics":
+          await useStatisticsStore().ensureLoaded();
+          break;
+        case "activities":
+          await useActivitiesStore().ensureLoaded();
+          break;
+        case "map":
+          await useMapStore().ensureLoaded();
+          break;
+        case "charts":
+          await useChartsStore().ensureLoaded();
+          break;
+        case "dashboard":
+          await useDashboardStore().ensureDashboardLoaded();
+          break;
+        case "heatmap":
+          await useDashboardStore().ensureHeatmapLoaded();
+          break;
+        case "badges":
+          await useBadgesStore().ensureLoaded();
+          break;
+        case "activity":
+          break;
+      }
     },
-    getters: {
-        athleteName: (state) => state.athleteDisplayName,
-        hasBadges: (state) => state.generalBadgesCheckResults.length > 0 && state.famousClimbBadgesCheckResults.length > 0
+    async updateCurrentYear(currentYear: string) {
+      if (this.currentYear === currentYear) {
+        return;
+      }
+      this.currentYear = currentYear;
+      await this.refreshCurrentViewData();
     },
-    actions: {
-        async requestJson<T>(url: string, init?: RequestInit): Promise<T> {
-            const response = await fetch(url, init)
-            if (!response.ok) {
-                await ErrorService.catchError(response)
-            }
-            return response.json() as Promise<T>
-        },
-        async fetchJson<T>(url: string): Promise<T> {
-            return this.requestJson<T>(url)
-        },
-        url(path: string): string {
-            const url = `/api/${path}?activityType=${this.currentActivityType}`
-            if (this.currentYear === "All years") {
-                return url
-            }
-            return `${url}&year=${this.currentYear}`
-        },
-        async fetchAthlete() {
-            const data = await this.fetchJson<Record<string, string>>(`/api/athletes/me`)
-            this.athleteDisplayName = `${data["firstname"]} ${data["lastname"]}`
-        },
-        async fetchStatistics() {
-            const statistics = await this.fetchJson<Statistics[]>(this.url("statistics"))
-            this.statistics = statistics
-        },
-        async fetchPersonalRecordsTimeline() {
-            const personalRecordsTimeline = await this.fetchJson<PersonalRecordTimeline[]>(this.url("statistics/personal-records-timeline"))
-            this.personalRecordsTimeline = personalRecordsTimeline
-        },
-        async fetchHeartRateZoneSettings() {
-            const settings = await this.fetchJson<HeartRateZoneSettings>(`/api/athletes/me/heart-rate-zones`)
-            this.heartRateZoneSettings = settings
-        },
-        async saveHeartRateZoneSettings(settings: HeartRateZoneSettings) {
-            const updatedSettings = await this.requestJson<HeartRateZoneSettings>(`/api/athletes/me/heart-rate-zones`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(settings),
-            })
-            this.heartRateZoneSettings = updatedSettings
-            await this.fetchHeartRateZoneAnalysis()
-        },
-        async fetchHeartRateZoneAnalysis() {
-            const analysis = await this.fetchJson<HeartRateZoneAnalysis>(this.url("statistics/heart-rate-zones"))
-            this.heartRateZoneAnalysis = analysis
-        },
-        async fetchActivities() {
-            const activities = await this.fetchJson<Activity[]>(this.url("activities"))
-            this.activities = activities
-        },
-        async fetchGPXCoordinates() {
-            const gpxCoordinates = await this.fetchJson<number[][][]>(this.url("maps/gpx"))
-            this.gpxCoordinates = gpxCoordinates
-        },
-        async fetchDistanceByMonths() {
-            const distanceByMonths = await this.fetchJson<Map<string, number>[]>(this.url("charts/distance-by-period") + '&period=MONTHS')
-            this.distanceByMonths = distanceByMonths;
-        },
-        async fetchElevationByMonths() {
-            const elevationByMonths = await this.fetchJson<Map<string, number>[]>(this.url("charts/elevation-by-period") + '&period=MONTHS')
-            this.elevationByMonths = elevationByMonths;
-        },
-        async fetchAverageSpeedByMonths() {
-            const averageSpeedByMonths = await this.fetchJson<Map<string, number>[]>(this.url("charts/average-speed-by-period") + '&period=MONTHS')
-            this.averageSpeedByMonths = averageSpeedByMonths;
-        },
-        async fetchDistanceByWeeks() {
-            const distanceByWeeks = await this.fetchJson<Map<string, number>[]>(this.url("charts/distance-by-period") + '&period=WEEKS')
-            this.distanceByWeeks = distanceByWeeks;
-        },
-        async fetchElevationByWeeks() {
-            const elevationByWeeks = await this.fetchJson<Map<string, number>[]>(this.url("charts/elevation-by-period") + '&period=WEEKS')
-            this.elevationByWeeks = elevationByWeeks;
-        },
-        async fetchCadenceByWeeks() {
-            const cadenceByWeeks = await this.fetchJson<Map<string, number>[]>(this.url("charts/average-cadence-by-period") + '&period=WEEKS')
-            this.cadenceByWeeks = cadenceByWeeks;
-        },
-        async fetchCumulativeDataPerYear() {
-            const data = await this.fetchJson<any>(this.url("dashboard/cumulative-data-per-year"))
-
-            // Convert the fetched data to a Map<string, Map<string, number>>
-            const cumulativeDistancePerYear = new Map<string, Map<string, number>>();
-            for (const year in data.distance) {
-                convertToMap(year, data.distance, cumulativeDistancePerYear);
-            }
-            this.cumulativeDistancePerYear = cumulativeDistancePerYear;
-
-            const cumulativeElevationPerYear = new Map<string, Map<string, number>>();
-            for (const year in data.elevation) {
-                convertToMap(year, data.elevation, cumulativeElevationPerYear);
-            }
-            this.cumulativeElevationPerYear = cumulativeElevationPerYear;
-
-            function convertToMap(year: string, data: any, cumulativeDataPerYear: Map<string, Map<string, number>>) {
-                const daysData = new Map<string, number>();
-                for (const datumKey in data[year]) {
-                    if (Object.prototype.hasOwnProperty.call(data[year], datumKey)) {
-                        daysData.set(datumKey, data[year][datumKey]);
-                    }
-                }
-                cumulativeDataPerYear.set(year, daysData);
-            }
-        },
-        async fetchEddingtonNumber() {
-            const eddingtonNumber = await this.fetchJson<EddingtonNumber>(this.url("dashboard/eddington-number"))
-            this.eddingtonNumber = eddingtonNumber;
-        },
-        async fetchDashboardData() {
-            const dashboardData = await this.fetchJson<DashboardData>(this.url("dashboard"))
-            this.dashboardData = dashboardData;
-        },
-        async fetchActivityHeatmap() {
-            try {
-                const heatmap = await this.fetchJson<ActivityHeatmap>(
-                    `/api/dashboard/activity-heatmap?activityType=${this.currentActivityType}`
-                )
-                this.activityHeatmap = heatmap;
-            } catch (e) {
-                // Endpoint may not be available yet; degrade gracefully
-                console.warn('Activity heatmap data not available:', e);
-            }
-        },
-        async fetchBadges() {
-            const generalBadgesCheckResults = await this.fetchJson<BadgeCheckResult[]>(this.url("badges"))
-            this.generalBadgesCheckResults = generalBadgesCheckResults.filter((badgeCheckResult: BadgeCheckResult) => { return !badgeCheckResult.badge.type.endsWith('FamousClimbBadge') });
-            this.famousClimbBadgesCheckResults = generalBadgesCheckResults.filter((badgeCheckResult: BadgeCheckResult) => { return badgeCheckResult.badge.type.endsWith('FamousClimbBadge') });
-        },
-        async updateCurrentYear(currentYear: string) {
-            this.currentYear = currentYear
-            await this.updateData();
-        },
-        async updateCurrentActivityType(activityType: string) {
-            this.currentActivityType = activityType
-            await this.updateData();
-        },
-        async updateData() {
-            switch (this.currentView) {
-                case 'statistics':
-                    await Promise.all([
-                        this.fetchStatistics(),
-                        this.fetchPersonalRecordsTimeline(),
-                        this.fetchHeartRateZoneSettings(),
-                        this.fetchHeartRateZoneAnalysis(),
-                    ])
-                    break
-                case 'activities':
-                    await this.fetchActivities()
-                    break
-                case 'map':
-                    await this.fetchGPXCoordinates()
-                    break
-                case 'charts':
-                    if (this.currentYear != 'All years') {
-                        await Promise.all([
-                            this.fetchDistanceByMonths(),
-                            this.fetchElevationByMonths(),
-                            this.fetchAverageSpeedByMonths(),
-                            this.fetchDistanceByWeeks(),
-                            this.fetchElevationByWeeks(),
-                            this.fetchCadenceByWeeks(),
-                        ])
-                    }
-                    break
-                case 'dashboard':
-                    await Promise.all([
-                        this.fetchEddingtonNumber(),
-                        this.fetchCumulativeDataPerYear(),
-                        this.fetchDashboardData(),
-                    ])
-                    break
-                case 'heatmap':
-                    await this.fetchActivityHeatmap()
-                    break
-                case 'badges':
-                    await this.fetchBadges()
-                    break
-            }
-        },
-        updateCurrentView(view: 'statistics' | 'activities' | 'activity' | 'map' | 'badges' | 'charts' | 'dashboard' | 'heatmap') {
-            this.currentView = view
-            void this.updateData()
-        },
-
-        showToast(toast: Toast) {
-            this.toasts.push(toast)
-            if (toast.timeout) {
-                setTimeout(() => {
-                    this.removeToast(toast)
-                }, toast.timeout)
-            }
-        },
-        removeToast(toast: Toast) {
-            this.toasts = this.toasts.filter((t) => t.id !== toast.id)
-        },
-    }
-})
+    async updateCurrentActivityType(activityType: string) {
+      if (this.currentActivityType === activityType) {
+        return;
+      }
+      this.currentActivityType = activityType;
+      await this.refreshCurrentViewData();
+    },
+    updateCurrentView(view: AppView) {
+      this.currentView = view;
+      void this.refreshCurrentViewData();
+    },
+  },
+});

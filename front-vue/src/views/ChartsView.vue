@@ -1,21 +1,23 @@
 <script setup lang="ts">
 import { useContextStore } from "@/stores/context.js";
+import { useChartsStore } from "@/stores/charts";
 import { computed } from "vue";
 import ByMonthsChart from "@/components/charts/ByMonthsChart.vue";
 import ByWeeksChart from "@/components/charts/ByWeeksChart.vue";
 import AverageSpeedByMonthsChart from "@/components/charts/AverageSpeedByMonthsChart.vue";
 
 const contextStore = useContextStore();
+const chartsStore = useChartsStore();
 contextStore.updateCurrentView("charts");
 
 const currentYear = computed(() => contextStore.currentYear);
 const currentActivity = computed(() => contextStore.currentActivityType);
-const distanceByMonths = computed(() => contextStore.distanceByMonths);
-const elevationByMonths = computed(() => contextStore.elevationByMonths);
-const averageSpeedByMonths = computed(() => contextStore.averageSpeedByMonths); 
-const distanceByWeeks = computed(() => contextStore.distanceByWeeks);
-const elevationByWeeks = computed(() => contextStore.elevationByWeeks);
-const cadenceByWeeks = computed(() => contextStore.cadenceByWeeks);
+const distanceByMonths = computed(() => chartsStore.distanceByMonths);
+const elevationByMonths = computed(() => chartsStore.elevationByMonths);
+const averageSpeedByMonths = computed(() => chartsStore.averageSpeedByMonths); 
+const distanceByWeeks = computed(() => chartsStore.distanceByWeeks);
+const elevationByWeeks = computed(() => chartsStore.elevationByWeeks);
+const cadenceByWeeks = computed(() => chartsStore.cadenceByWeeks);
 
 
 const cadenceUnit = computed(() => {

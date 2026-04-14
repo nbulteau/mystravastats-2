@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { useContextStore } from "@/stores/context.js";
+import { useBadgesStore } from "@/stores/badges";
 import { computed } from "vue";
 import BadgeItem from "@/components/BadgeItem.vue";
 import type { BadgeCheckResult } from "@/models/badge-check-result.model";
 
 const contextStore = useContextStore();
+const badgesStore = useBadgesStore();
 contextStore.updateCurrentView("badges");
 
 const currentYear = computed(() => contextStore.currentYear);
@@ -34,8 +36,8 @@ const sectionSummary = (badges: BadgeCheckResult[]) => {
   };
 };
 
-const generalBadgesCheckResults = computed(() => sortByProgress(contextStore.generalBadgesCheckResults));
-const famousClimbBadgesCheckResults = computed(() => sortByProgress(contextStore.famousClimbBadgesCheckResults));
+const generalBadgesCheckResults = computed(() => sortByProgress(badgesStore.generalBadgesCheckResults));
+const famousClimbBadgesCheckResults = computed(() => sortByProgress(badgesStore.famousClimbBadgesCheckResults));
 const generalSummary = computed(() => sectionSummary(generalBadgesCheckResults.value));
 const famousSummary = computed(() => sectionSummary(famousClimbBadgesCheckResults.value));
 </script>

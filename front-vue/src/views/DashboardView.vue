@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useContextStore } from "@/stores/context.js";
+import { useDashboardStore } from "@/stores/dashboard";
 import { computed } from "vue";
 import TooltipHint from "@/components/TooltipHint.vue";
 import { getMetricTooltip } from "@/utils/metric-tooltips";
@@ -14,38 +15,39 @@ import ActivitiesCountPerYearChart from "@/components/charts/ActivitiesCountPerY
 import DistanceElevationPerYearChart from "@/components/charts/DistanceElevationPerYearChart.vue";
 
 const contextStore = useContextStore();
+const dashboardStore = useDashboardStore();
 contextStore.updateCurrentView("dashboard");
 
 const currentActivityType = computed(() => contextStore.currentActivityType);
-const cumulativeDistancePerYear = computed(() => contextStore.cumulativeDistancePerYear);
+const cumulativeDistancePerYear = computed(() => dashboardStore.cumulativeDistancePerYear);
 const cumulativeElevationPerYear = computed(
-  () => contextStore.cumulativeElevationPerYear
+  () => dashboardStore.cumulativeElevationPerYear
 );
-const eddingtonNumber = computed(() => contextStore.eddingtonNumber);
-const activitiesCount = computed(() => contextStore.dashboardData.nbActivitiesByYear);
-const averageSpeedByYear = computed(() => contextStore.dashboardData.averageSpeedByYear);
-const maxSpeedByYear = computed(() => contextStore.dashboardData.maxSpeedByYear);
+const eddingtonNumber = computed(() => dashboardStore.eddingtonNumber);
+const activitiesCount = computed(() => dashboardStore.dashboardData.nbActivitiesByYear);
+const averageSpeedByYear = computed(() => dashboardStore.dashboardData.averageSpeedByYear);
+const maxSpeedByYear = computed(() => dashboardStore.dashboardData.maxSpeedByYear);
 const totalDistanceByYear = computed(
-  () => contextStore.dashboardData.totalDistanceByYear
+  () => dashboardStore.dashboardData.totalDistanceByYear
 );
 const averageDistanceByYear = computed(
-  () => contextStore.dashboardData.averageDistanceByYear
+  () => dashboardStore.dashboardData.averageDistanceByYear
 );
-const maxDistanceByYear = computed(() => contextStore.dashboardData.maxDistanceByYear);
+const maxDistanceByYear = computed(() => dashboardStore.dashboardData.maxDistanceByYear);
 const totalElevationByYear = computed(
-  () => contextStore.dashboardData.totalElevationByYear
+  () => dashboardStore.dashboardData.totalElevationByYear
 );
 const averageElevationByYear = computed(
-  () => contextStore.dashboardData.averageElevationByYear
+  () => dashboardStore.dashboardData.averageElevationByYear
 );
-const maxElevationByYear = computed(() => contextStore.dashboardData.maxElevationByYear);
+const maxElevationByYear = computed(() => dashboardStore.dashboardData.maxElevationByYear);
 const averageHeartRateByYear = computed(
-  () => contextStore.dashboardData.averageHeartRateByYear
+  () => dashboardStore.dashboardData.averageHeartRateByYear
 );
-const maxHeartRateByYear = computed(() => contextStore.dashboardData.maxHeartRateByYear);
-const averageWattsByYear = computed(() => contextStore.dashboardData.averageWattsByYear);
+const maxHeartRateByYear = computed(() => dashboardStore.dashboardData.maxHeartRateByYear);
+const averageWattsByYear = computed(() => dashboardStore.dashboardData.averageWattsByYear);
 const maxWattsByYear = computed(() =>
-  sortDataByYear(contextStore.dashboardData.maxWattsByYear)
+  sortDataByYear(dashboardStore.dashboardData.maxWattsByYear)
 );
 
 function sortDataByYear(

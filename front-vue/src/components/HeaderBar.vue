@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import {useContextStore} from "@/stores/context.js";
+import { useAthleteStore } from "@/stores/athlete";
 import {computed, onBeforeUnmount, onMounted, ref, watch} from "vue";
 import Tooltip from "bootstrap/js/dist/tooltip";
 
 const contextStore = useContextStore();
-const athleteDisplayName = computed(() => contextStore.athleteDisplayName);
+const athleteStore = useAthleteStore();
+const athleteDisplayName = computed(() => athleteStore.athleteDisplayName);
 const selectedYear = computed({
   get: () => contextStore.currentYear,
   set: (year: string) => contextStore.updateCurrentYear(year),

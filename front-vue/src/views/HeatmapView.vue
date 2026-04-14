@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useContextStore } from "@/stores/context.js";
+import { useDashboardStore } from "@/stores/dashboard";
 import ActivityHeatmapChart from "@/components/charts/ActivityHeatmapChart.vue";
 
 const contextStore = useContextStore();
+const dashboardStore = useDashboardStore();
 contextStore.updateCurrentView("heatmap");
 
-const activityHeatmap = computed(() => contextStore.activityHeatmap);
+const activityHeatmap = computed(() => dashboardStore.activityHeatmap);
 const currentYear = computed(() => contextStore.currentYear);
 </script>
 

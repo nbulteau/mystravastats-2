@@ -2,7 +2,8 @@
 import type { DetailedActivity } from '@/models/activity.model';
 import { computed } from 'vue';
 import { formatSpeedWithUnit, formatTime } from "@/utils/formatters";
-import { useContextStore } from '@/stores/context.js';
+import { useAthleteStore } from "@/stores/athlete";
+import { useStatisticsStore } from "@/stores/statistics";
 import TooltipHint from "@/components/TooltipHint.vue";
 import {
   computeHeartRateZoneDistribution,
@@ -14,7 +15,8 @@ const props = defineProps<{
   activity: DetailedActivity;
 }>();
 
-const contextStore = useContextStore();
+const athleteStore = useAthleteStore();
+const statisticsStore = useStatisticsStore();
 
 const cadenceUnit = computed(() => {
   if (props.activity.type?.endsWith("Run")) return "spm";
@@ -34,9 +36,9 @@ const averageCadenceDisplay = computed(() => {
 
 const resolvedHeartRateSettings = computed(() => {
   return (
-    contextStore.heartRateZoneAnalysis?.resolvedSettings ??
+    statisticsStore.heartRateZoneAnalysis?.resolvedSettings ??
     resolveHeartRateZoneSettings(
-      contextStore.heartRateZoneSettings,
+      athleteStore.heartRateZoneSettings,
       Math.trunc(props.activity.maxHeartrate ?? 0) || null,
     )
   );

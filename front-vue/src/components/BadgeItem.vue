@@ -3,13 +3,13 @@ import { ref, onBeforeUnmount, onMounted, computed, watch } from 'vue';
 import type { BadgeCheckResult } from "@/models/badge-check-result.model";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'; // Import Bootstrap JS
-import { useContextStore } from "@/stores/context";
+import { useUiStore } from "@/stores/ui";
 import { ToastTypeEnum } from "@/models/toast.model";
 
 const props = defineProps<{
   badgeCheckResult: BadgeCheckResult;
 }>();
-const contextStore = useContextStore();
+const uiStore = useUiStore();
 
 import runningBadge from "@/assets/badges/running.png";
 import cyclingBadge from "@/assets/badges/cycling.png";
@@ -57,7 +57,7 @@ const navigateToActivity = () => {
   }
 
   if (props.badgeCheckResult.activities.length > 1) {
-    contextStore.showToast({
+    uiStore.showToast({
       id: `badge-toast-${Date.now()}`,
       type: ToastTypeEnum.NORMAL,
       message: `Opening latest activity only (${props.badgeCheckResult.activities.length} linked to this badge).`,
