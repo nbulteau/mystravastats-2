@@ -16,7 +16,8 @@
         "length": 18.3,
         "totalAscent": 1401,
         "difficulty": 1133,
-        "averageGradient": 7.7
+        "averageGradient": 7.7,
+        "category": "HC"
       },
       {
         "name": "Sainte-Marie de Campan",
@@ -27,7 +28,8 @@
         "length": 16.9,
         "totalAscent": 1266,
         "difficulty": 1055,
-        "averageGradient": 7.5
+        "averageGradient": 7.5,
+        "category": "HC"
       }
     ]
   },
@@ -48,7 +50,8 @@
         "length": 16.1,
         "totalAscent": 1409,
         "difficulty": 1381,
-        "averageGradient": 8.7
+        "averageGradient": 8.7,
+        "category": "HC"
       }
     ]
   },
@@ -69,7 +72,8 @@
         "length": 12.4,
         "totalAscent": 802,
         "difficulty": 589,
-        "averageGradient": 6.5
+        "averageGradient": 6.5,
+        "category": "2"
       },
       {
         "name": "Sainte Marie de Campan",
@@ -80,7 +84,8 @@
         "length": 12.9,
         "totalAscent": 652,
         "difficulty": 431,
-        "averageGradient": 5.1
+        "averageGradient": 5.1,
+        "category": "2"
       }
     ]
   },
@@ -101,7 +106,8 @@
         "length": 7.4,
         "totalAscent": 622,
         "difficulty": 613,
-        "averageGradient": 8.4
+        "averageGradient": 8.4,
+        "category": "1"
       },
       {
         "name": "Bourisp",
@@ -112,7 +118,8 @@
         "length": 10.5,
         "totalAscent": 770,
         "difficulty": 647,
-        "averageGradient": 7.4
+        "averageGradient": 7.4,
+        "category": "1"
       }
     ]
   },
@@ -133,7 +140,8 @@
         "length": 12.4,
         "totalAscent": 802,
         "difficulty": 589,
-        "averageGradient": 6.5
+        "averageGradient": 6.5,
+        "category": "2"
       },
       {
         "name": "Campan",
@@ -144,7 +152,8 @@
         "length": 22.6,
         "totalAscent": 957,
         "difficulty": 563,
-        "averageGradient": 4.2
+        "averageGradient": 4.2,
+        "category": "2"
       }
     ]
   },
@@ -165,7 +174,8 @@
         "length": 16.5,
         "totalAscent": 1190,
         "difficulty": 857,
-        "averageGradient": 7.2
+        "averageGradient": 7.2,
+        "category": "1"
       }
     ]
   },
@@ -186,7 +196,8 @@
         "length": 19.9,
         "totalAscent": 1256,
         "difficulty": 791,
-        "averageGradient": 6.3
+        "averageGradient": 6.3,
+        "category": "1"
       }
     ]
   },
@@ -207,7 +218,8 @@
         "length": 19.2,
         "totalAscent": 1200,
         "difficulty": 756,
-        "averageGradient": 6.3
+        "averageGradient": 6.3,
+        "category": "1"
       }
     ]
   },
@@ -228,7 +240,8 @@
         "length": 14.7,
         "totalAscent": 1205,
         "difficulty": 988,
-        "averageGradient": 8.2
+        "averageGradient": 8.2,
+        "category": "1"
       }
     ]
   },
@@ -249,7 +262,8 @@
         "length": 16.8,
         "totalAscent": 1130,
         "difficulty": 768,
-        "averageGradient": 6.8
+        "averageGradient": 6.8,
+        "category": "1"
       }
     ]
   },
@@ -270,7 +284,8 @@
         "length": 23.8,
         "totalAscent": 1454,
         "difficulty": 887,
-        "averageGradient": 6.1
+        "averageGradient": 6.1,
+        "category": "1"
       }
     ]
   },
@@ -291,7 +306,272 @@
         "length": 25.0,
         "totalAscent": 1500,
         "difficulty": 900,
-        "averageGradient": 6.0
+        "averageGradient": 6.0,
+        "category": "1"
+      }
+    ]
+  },
+  {
+    "name": "Col de Peyresourde",
+    "topOfTheAscent": 1569,
+    "geoCoordinate": {
+      "latitude": 42.8013,
+      "longitude": 0.4577
+    },
+    "alternatives": [
+      {
+        "name": "Bagnères-de-Luchon",
+        "geoCoordinate": {
+          "latitude": 42.7904,
+          "longitude": 0.5921
+        },
+        "length": 15.3,
+        "totalAscent": 939,
+        "difficulty": 650,
+        "averageGradient": 6.1,
+        "category": "1"
+      }
+    ]
+  },
+  {
+    "name": "Col du Portillon",
+    "topOfTheAscent": 1293,
+    "geoCoordinate": {
+      "latitude": 42.7559,
+      "longitude": 0.6948
+    },
+    "alternatives": [
+      {
+        "name": "Bagnères-de-Luchon",
+        "geoCoordinate": {
+          "latitude": 42.7904,
+          "longitude": 0.5921
+        },
+        "length": 8.3,
+        "totalAscent": 620,
+        "difficulty": 520,
+        "averageGradient": 7.4,
+        "category": "2"
+      }
+    ]
+  },
+  {
+    "name": "Col de Menté",
+    "topOfTheAscent": 1349,
+    "geoCoordinate": {
+      "latitude": 42.8897,
+      "longitude": 0.7605
+    },
+    "alternatives": [
+      {
+        "name": "Saint-Béat-Lez",
+        "geoCoordinate": {
+          "latitude": 42.915,
+          "longitude": 0.6953
+        },
+        "length": 9.3,
+        "totalAscent": 664,
+        "difficulty": 530,
+        "averageGradient": 7.1,
+        "category": "2"
+      }
+    ]
+  },
+  {
+    "name": "Col du Portet-d'Aspet",
+    "topOfTheAscent": 1069,
+    "geoCoordinate": {
+      "latitude": 42.9075,
+      "longitude": 0.8083
+    },
+    "alternatives": [
+      {
+        "name": "Aspet",
+        "geoCoordinate": {
+          "latitude": 43.0143,
+          "longitude": 0.8039
+        },
+        "length": 14.2,
+        "totalAscent": 640,
+        "difficulty": 390,
+        "averageGradient": 4.5,
+        "category": "2"
+      }
+    ]
+  },
+  {
+    "name": "Col de Marie-Blanque",
+    "topOfTheAscent": 1035,
+    "geoCoordinate": {
+      "latitude": 43.049,
+      "longitude": -0.531
+    },
+    "alternatives": [
+      {
+        "name": "Escot",
+        "geoCoordinate": {
+          "latitude": 43.109,
+          "longitude": -0.595
+        },
+        "length": 9.3,
+        "totalAscent": 715,
+        "difficulty": 620,
+        "averageGradient": 7.7,
+        "category": "1"
+      }
+    ]
+  },
+  {
+    "name": "Col d'Agnès",
+    "topOfTheAscent": 1570,
+    "geoCoordinate": {
+      "latitude": 42.7667,
+      "longitude": 1.3703
+    },
+    "alternatives": [
+      {
+        "name": "Aulus-les-Bains",
+        "geoCoordinate": {
+          "latitude": 42.7873,
+          "longitude": 1.3399
+        },
+        "length": 10.0,
+        "totalAscent": 786,
+        "difficulty": 680,
+        "averageGradient": 7.9,
+        "category": "1"
+      }
+    ]
+  },
+  {
+    "name": "Col de Latrape",
+    "topOfTheAscent": 1110,
+    "geoCoordinate": {
+      "latitude": 42.9326,
+      "longitude": 1.2669
+    },
+    "alternatives": [
+      {
+        "name": "Seix",
+        "geoCoordinate": {
+          "latitude": 42.8617,
+          "longitude": 1.2013
+        },
+        "length": 11.2,
+        "totalAscent": 725,
+        "difficulty": 560,
+        "averageGradient": 6.5,
+        "category": "2"
+      }
+    ]
+  },
+  {
+    "name": "Col de la Core",
+    "topOfTheAscent": 1395,
+    "geoCoordinate": {
+      "latitude": 42.8443,
+      "longitude": 1.1947
+    },
+    "alternatives": [
+      {
+        "name": "Castillon-en-Couserans",
+        "geoCoordinate": {
+          "latitude": 42.9188,
+          "longitude": 1.0356
+        },
+        "length": 14.1,
+        "totalAscent": 1000,
+        "difficulty": 780,
+        "averageGradient": 7.1,
+        "category": "1"
+      }
+    ]
+  },
+  {
+    "name": "Col de Port",
+    "topOfTheAscent": 1249,
+    "geoCoordinate": {
+      "latitude": 42.8867,
+      "longitude": 1.4306
+    },
+    "alternatives": [
+      {
+        "name": "Tarascon-sur-Ariège",
+        "geoCoordinate": {
+          "latitude": 42.8459,
+          "longitude": 1.6053
+        },
+        "length": 16.8,
+        "totalAscent": 1100,
+        "difficulty": 760,
+        "averageGradient": 6.5,
+        "category": "1"
+      }
+    ]
+  },
+  {
+    "name": "Col de Jau",
+    "topOfTheAscent": 1506,
+    "geoCoordinate": {
+      "latitude": 42.6908,
+      "longitude": 2.2526
+    },
+    "alternatives": [
+      {
+        "name": "Mosset",
+        "geoCoordinate": {
+          "latitude": 42.6686,
+          "longitude": 2.2772
+        },
+        "length": 12.3,
+        "totalAscent": 980,
+        "difficulty": 790,
+        "averageGradient": 8.0,
+        "category": "1"
+      }
+    ]
+  },
+  {
+    "name": "Col de Spandelles",
+    "topOfTheAscent": 1378,
+    "geoCoordinate": {
+      "latitude": 42.966,
+      "longitude": -0.1955
+    },
+    "alternatives": [
+      {
+        "name": "Argelès-Gazost",
+        "geoCoordinate": {
+          "latitude": 43.00511,
+          "longitude": -0.0997681
+        },
+        "length": 10.3,
+        "totalAscent": 780,
+        "difficulty": 650,
+        "averageGradient": 7.6,
+        "category": "1"
+      }
+    ]
+  },
+  {
+    "name": "Col de Lers",
+    "topOfTheAscent": 1517,
+    "geoCoordinate": {
+      "latitude": 42.865,
+      "longitude": 1.412
+    },
+    "alternatives": [
+      {
+        "name": "Massat",
+        "geoCoordinate": {
+          "latitude": 42.889,
+          "longitude": 1.3482
+        },
+        "length": 11.4,
+        "totalAscent": 760,
+        "difficulty": 580,
+        "averageGradient": 6.7,
+        "category": "2"
       }
     ]
   }

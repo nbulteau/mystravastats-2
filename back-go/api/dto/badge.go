@@ -10,4 +10,5 @@ type BadgeDto struct {
 	Label       string `json:"label"`
 	Description string `json:"description"`
 	Type        string `json:"type"`
+	Category    string `json:"category,omitempty"`
 }

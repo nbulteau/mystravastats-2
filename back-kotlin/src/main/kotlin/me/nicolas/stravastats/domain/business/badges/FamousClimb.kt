@@ -16,5 +16,6 @@ data class Alternative(
     val length: Double,
     val totalAscent: Int,
     val difficulty: Int,
+    val category: String = "",
     val averageGradient: Double = 0.0,
 )

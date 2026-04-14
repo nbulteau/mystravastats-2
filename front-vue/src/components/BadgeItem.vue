@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import { ref, onBeforeUnmount, onMounted, computed, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { BadgeCheckResult } from "@/models/badge-check-result.model";
-import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap/dist/js/bootstrap.bundle.min.js'; // Import Bootstrap JS
-import { useUiStore } from "@/stores/ui";
-import { ToastTypeEnum } from "@/models/toast.model";
+import { formatTime } from '@/utils/formatters';
+import { Tooltip } from 'bootstrap';
 
 const props = defineProps<{
   badgeCheckResult: BadgeCheckResult;
 }>();
-const uiStore = useUiStore();
 
 import runningBadge from "@/assets/badges/running.png";
 import cyclingBadge from "@/assets/badges/cycling.png";
@@ -17,8 +14,6 @@ import racingBadge from "@/assets/badges/racing.png";
 import hickingBadge from "@/assets/badges/hiking.png";
 import stopwatchBadge from "@/assets/badges/stopwatch.png";
 import badge from "@/assets/badges/badge.png";
-import { Tooltip } from 'bootstrap';
-import type { Activity } from '@/models/activity.model';
 
 const buildBadgeImageUrl = (type: string) => {
   switch (type) {
@@ -43,65 +38,103 @@ const buildBadgeImageUrl = (type: string) => {
 };
 
 const isUnlocked = computed(() => props.badgeCheckResult.nbCheckedActivities > 0);
-const linkedActivitiesCount = computed(() => props.badgeCheckResult.activities?.length ?? 0);
-const statusLabel = computed(() => (isUnlocked.value ? 'Acquis' : 'À débloquer'));
+const statusLabel = computed(() => (isUnlocked.value ? 'Earned' : 'Locked'));
+const representativeActivity = computed(() => props.badgeCheckResult.activities?.[0] ?? null);
+const climbCategoryLabel = computed(() => {
+  const category = props.badgeCheckResult.badge.category?.trim().toUpperCase();
+  if (!category) {
+    return null;
+  }
+  return `Cat. ${category}`;
+});
+const climbAscentsLabel = computed(() => {
+  if (!climbCategoryLabel.value) {
+    return null;
+  }
+  const count = props.badgeCheckResult.nbCheckedActivities;
+  return `${count} ascent${count > 1 ? 's' : ''}`;
+});
+
+const formatBadgeDate = (value?: string): string => {
+  if (!value) {
+    return '';
+  }
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return value.substring(0, 10);
+  }
+  return parsedDate.toLocaleDateString('en-GB', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+  });
+};
+
+const bestTimeAndDateLabel = computed(() => {
+  if (!isUnlocked.value || !representativeActivity.value) {
+    return 'No matching activity yet';
+  }
+
+  const movingTime = representativeActivity.value.movingTime ?? 0;
+  const movingTimeLabel = movingTime > 0 ? formatTime(movingTime) : 'n/a';
+  const dateLabel = formatBadgeDate(representativeActivity.value.date);
+  return dateLabel
+    ? `Best time: ${movingTimeLabel} • ${dateLabel}`
+    : `Best time: ${movingTimeLabel}`;
+});
 
 const navigateToActivity = () => {
-  if (!isUnlocked.value || !props.badgeCheckResult.activities?.length) {
+  if (!isUnlocked.value || !representativeActivity.value) {
     return;
   }
 
-  const [latestActivity] = props.badgeCheckResult.activities;
-  if (!latestActivity?.link) {
+  if (!representativeActivity.value.link) {
     return;
   }
 
-  if (props.badgeCheckResult.activities.length > 1) {
-    uiStore.showToast({
-      id: `badge-toast-${Date.now()}`,
-      type: ToastTypeEnum.NORMAL,
-      message: `Opening latest activity only (${props.badgeCheckResult.activities.length} linked to this badge).`,
-      timeout: 3000,
-    });
-  }
-
-  window.open(latestActivity.link, '_blank', 'noopener,noreferrer');
+  window.open(representativeActivity.value.link, '_blank', 'noopener,noreferrer');
 };
 
 const badgeRef = ref<HTMLElement | null>(null);
 
 const tooltipText = computed(() => {
+  const representativeName = representativeActivity.value?.name ?? 'n/a';
   return `<strong>${props.badgeCheckResult.badge.label}</strong><br>
-  Statut : ${statusLabel.value}<br>
-  Activités correspondantes : ${props.badgeCheckResult.nbCheckedActivities}<br>
-  ${props.badgeCheckResult.activities && props.badgeCheckResult.activities.length > 0 ? 'Dernière activité liée :<br>' : ''}
-  ${props.badgeCheckResult.activities ? props.badgeCheckResult.activities.map((value: Activity) => `• ${value.name}`).join('<br>') : ''}
-  `;
+Status: ${statusLabel.value}<br>
+Matched activities: ${props.badgeCheckResult.nbCheckedActivities}<br>
+${climbCategoryLabel.value ? `Climb category: ${climbCategoryLabel.value}<br>` : ''}
+${climbAscentsLabel.value ? `${climbAscentsLabel.value}<br>` : ''}
+${isUnlocked.value ? `${bestTimeAndDateLabel.value}<br>Representative activity: ${representativeName}` : 'Unlock this badge to see your best attempt.'}`;
 });
 
 function initTooltip() {
-  if (badgeRef.value) {
-    const tooltip = new Tooltip(badgeRef.value, {});
+  if (!badgeRef.value) {
+    return;
+  }
+  const existing = Tooltip.getInstance(badgeRef.value);
+  if (existing) {
+    existing.dispose();
+  }
+  const tooltip = new Tooltip(badgeRef.value, {
+    html: true,
+    container: 'body',
+  });
+  tooltip.setContent({ '.tooltip-inner': tooltipText.value });
+}
+
+function updateTooltip() {
+  if (!badgeRef.value) {
+    return;
+  }
+  const tooltip = Tooltip.getInstance(badgeRef.value);
+  if (tooltip) {
     tooltip.setContent({ '.tooltip-inner': tooltipText.value });
   }
 }
 
-function updateTooltip() {
-  if (badgeRef.value) {
-    const tooltip = Tooltip.getInstance(badgeRef.value);
-    if (tooltip) {
-      tooltip.setContent({ '.tooltip-inner': tooltipText.value });
-    }
-  }
-}
-
-watch(
-  () => props.badgeCheckResult,
-  () => {
-    updateTooltip();
-  },
-  { immediate: true }
-);
+watch(tooltipText, () => {
+  updateTooltip();
+});
 
 onMounted(() => {
   initTooltip();
@@ -148,8 +181,16 @@ onBeforeUnmount(() => {
       >
         {{ props.badgeCheckResult.badge.label }}
       </span>
+      <div v-if="climbCategoryLabel || climbAscentsLabel" class="badge-tags">
+        <span v-if="climbCategoryLabel" class="badge-category">
+          {{ climbCategoryLabel }}
+        </span>
+        <span v-if="climbAscentsLabel" class="badge-category badge-category--count">
+          {{ climbAscentsLabel }}
+        </span>
+      </div>
       <span class="badge-meta">
-        {{ isUnlocked ? `${linkedActivitiesCount} activité${linkedActivitiesCount > 1 ? 's' : ''} liée${linkedActivitiesCount > 1 ? 's' : ''}` : 'Aucune activité liée pour le moment' }}
+        {{ bestTimeAndDateLabel }}
       </span>
     </div>
   </div>
@@ -244,6 +285,31 @@ onBeforeUnmount(() => {
   line-height: 1.2;
   color: var(--ms-text-muted);
   font-weight: 600;
+}
+
+.badge-category {
+  border-radius: 999px;
+  border: 1px solid rgba(252, 76, 2, 0.28);
+  background: rgba(252, 76, 2, 0.08);
+  color: #9f3709;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 2px 8px;
+}
+
+.badge-tags {
+  align-self: center;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.badge-category--count {
+  border-color: rgba(126, 141, 166, 0.35);
+  background: rgba(126, 141, 166, 0.14);
+  color: #4b5563;
 }
 
 .badge-image {

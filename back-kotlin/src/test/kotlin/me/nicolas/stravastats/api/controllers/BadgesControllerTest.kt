@@ -84,7 +84,12 @@ class BadgesControllerTest {
                     end = GeoCoordinate(
                         latitude = 45.0642762,
                         longitude = 6.0390149
-                    ), 13.9, 1118, 8.0, 994
+                    ),
+                    13.9,
+                    1118,
+                    8.0,
+                    994,
+                    "1",
                 ),
                 activities = emptyList(),
                 isCompleted = false,

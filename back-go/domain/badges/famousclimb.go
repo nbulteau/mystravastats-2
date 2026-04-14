@@ -5,6 +5,11 @@ import (
 	"mystravastats/domain/strava"
 )
 
+const (
+	famousClimbActivityStartRadiusKM = 80.0
+	famousClimbWaypointToleranceInM  = 500
+)
+
 type FamousClimb struct {
 	Name           string
 	TopOfTheAscent int
@@ -18,6 +23,7 @@ type Alternative struct {
 	Length          float64
 	TotalAscent     int
 	Difficulty      int
+	Category        string
 	AverageGradient float64
 }
 
@@ -40,13 +46,16 @@ type FamousClimbBadge struct {
 	TotalAscent     int
 	AverageGradient float64
 	Difficulty      int
+	Category        string
 }
 
 func (f FamousClimbBadge) Check(activities []*strava.Activity) ([]*strava.Activity, bool) {
 	var filteredActivities []*strava.Activity
 	for _, activity := range activities {
 		if len(activity.StartLatlng) > 0 {
-			if f.Start.HaversineInKM(activity.StartLatlng[0], activity.StartLatlng[1]) < 50 {
+			distanceToStart := f.Start.HaversineInKM(activity.StartLatlng[0], activity.StartLatlng[1])
+			distanceToEnd := f.End.HaversineInKM(activity.StartLatlng[0], activity.StartLatlng[1])
+			if distanceToStart < famousClimbActivityStartRadiusKM || distanceToEnd < famousClimbActivityStartRadiusKM {
 				if f.check(activity, f.Start) && f.check(activity, f.End) {
 					filteredActivities = append(filteredActivities, activity)
 				}
@@ -59,7 +68,7 @@ func (f FamousClimbBadge) Check(activities []*strava.Activity) ([]*strava.Activi
 func (f FamousClimbBadge) check(activity *strava.Activity, geoCoordinateToCheck business.GeoCoordinate) bool {
 	if activity.Stream != nil && activity.Stream.LatLng != nil {
 		for _, coords := range activity.Stream.LatLng.Data {
-			if geoCoordinateToCheck.Match(coords[0], coords[1]) {
+			if geoCoordinateToCheck.HaversineInM(coords[0], coords[1]) < famousClimbWaypointToleranceInM {
 				return true
 			}
 		}

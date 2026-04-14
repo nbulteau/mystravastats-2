@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"mystravastats/domain/badges"
 	"mystravastats/domain/business"
@@ -100,9 +101,10 @@ func loadBadgeSet(name string, climbsJsonFilePath string) badges.BadgeSet {
 				Name:            famousClimb.Name,
 				Label:           fmt.Sprintf("%s from %s", famousClimb.Name, alternative.Name),
 				TopOfTheAscent:  famousClimb.TopOfTheAscent,
-				Start:           famousClimb.GeoCoordinate,
-				End:             alternative.GeoCoordinate,
+				Start:           alternative.GeoCoordinate,
+				End:             famousClimb.GeoCoordinate,
 				Difficulty:      alternative.Difficulty,
+				Category:        normalizeClimbCategory(alternative.Category, alternative.Difficulty),
 				Length:          alternative.Length,
 				TotalAscent:     alternative.TotalAscent,
 				AverageGradient: alternative.AverageGradient,
@@ -111,4 +113,27 @@ func loadBadgeSet(name string, climbsJsonFilePath string) badges.BadgeSet {
 	}
 
 	return badges.BadgeSet{Name: name, Badges: famousClimbBadgeList}
+}
+
+func normalizeClimbCategory(category string, difficulty int) string {
+	if category != "" {
+		normalized := strings.TrimSpace(strings.ToUpper(category))
+		switch normalized {
+		case "HC", "1", "2", "3", "4":
+			return normalized
+		}
+	}
+
+	switch {
+	case difficulty >= 1000:
+		return "HC"
+	case difficulty >= 600:
+		return "1"
+	case difficulty >= 300:
+		return "2"
+	case difficulty >= 150:
+		return "3"
+	default:
+		return "4"
+	}
 }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useContextStore } from "@/stores/context.js";
 import { useBadgesStore } from "@/stores/badges";
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import BadgeItem from "@/components/BadgeItem.vue";
 import type { BadgeCheckResult } from "@/models/badge-check-result.model";
 
@@ -37,7 +37,41 @@ const sectionSummary = (badges: BadgeCheckResult[]) => {
 };
 
 const generalBadgesCheckResults = computed(() => sortByProgress(badgesStore.generalBadgesCheckResults));
-const famousClimbBadgesCheckResults = computed(() => sortByProgress(badgesStore.famousClimbBadgesCheckResults));
+const allFamousClimbBadgesCheckResults = computed(() => sortByProgress(badgesStore.famousClimbBadgesCheckResults));
+const selectedFamousClimbCategory = ref("ALL");
+
+const famousClimbCategoryOptions = computed(() => {
+  const categoryOrder = ["HC", "1", "2", "3", "4"];
+  const availableCategories = new Set(
+    allFamousClimbBadgesCheckResults.value
+      .map((badgeCheckResult) => badgeCheckResult.badge.category?.toUpperCase().trim())
+      .filter((category): category is string => Boolean(category)),
+  );
+
+  const orderedKnownCategories = categoryOrder.filter((category) => availableCategories.has(category));
+  const otherCategories = Array.from(availableCategories)
+    .filter((category) => !categoryOrder.includes(category))
+    .sort((a, b) => a.localeCompare(b));
+
+  return ["ALL", ...orderedKnownCategories, ...otherCategories];
+});
+
+watch(famousClimbCategoryOptions, (options) => {
+  if (!options.includes(selectedFamousClimbCategory.value)) {
+    selectedFamousClimbCategory.value = "ALL";
+  }
+});
+
+const famousClimbBadgesCheckResults = computed(() => {
+  if (selectedFamousClimbCategory.value === "ALL") {
+    return allFamousClimbBadgesCheckResults.value;
+  }
+
+  return allFamousClimbBadgesCheckResults.value.filter(
+    (badgeCheckResult) => badgeCheckResult.badge.category?.toUpperCase().trim() === selectedFamousClimbCategory.value,
+  );
+});
+
 const generalSummary = computed(() => sectionSummary(generalBadgesCheckResults.value));
 const famousSummary = computed(() => sectionSummary(famousClimbBadgesCheckResults.value));
 </script>
@@ -53,9 +87,9 @@ const famousSummary = computed(() => sectionSummary(famousClimbBadgesCheckResult
           {{ currentActivity }} general badges for {{ currentYear }}
         </p>
         <div class="badges-summary">
-          <span class="summary-chip summary-chip--earned">Acquis {{ generalSummary.acquired }}</span>
-          <span class="summary-chip summary-chip--locked">À débloquer {{ generalSummary.locked }}</span>
-          <span class="summary-chip summary-chip--completion">{{ generalSummary.completion }}% complété</span>
+          <span class="summary-chip summary-chip--earned">Earned {{ generalSummary.acquired }}</span>
+          <span class="summary-chip summary-chip--locked">Locked {{ generalSummary.locked }}</span>
+          <span class="summary-chip summary-chip--completion">{{ generalSummary.completion }}% completed</span>
         </div>
       </div>
       <div class="row g-3 justify-content-center">
@@ -77,12 +111,28 @@ const famousSummary = computed(() => sectionSummary(famousClimbBadgesCheckResult
     >
       <div class="badges-header">
         <p class="badges-title">
-          Famous climbs {{ currentActivity }} badges for {{ currentYear }}
+          Famous climb {{ currentActivity }} badges for {{ currentYear }}
         </p>
+        <div class="badges-header-controls">
+          <label for="famous-category-filter" class="category-filter-label">Category</label>
+          <select
+            id="famous-category-filter"
+            v-model="selectedFamousClimbCategory"
+            class="form-select form-select-sm category-filter-select"
+          >
+            <option
+              v-for="categoryOption in famousClimbCategoryOptions"
+              :key="categoryOption"
+              :value="categoryOption"
+            >
+              {{ categoryOption === "ALL" ? "All categories" : `Cat. ${categoryOption}` }}
+            </option>
+          </select>
+        </div>
         <div class="badges-summary">
-          <span class="summary-chip summary-chip--earned">Acquis {{ famousSummary.acquired }}</span>
-          <span class="summary-chip summary-chip--locked">À débloquer {{ famousSummary.locked }}</span>
-          <span class="summary-chip summary-chip--completion">{{ famousSummary.completion }}% complété</span>
+          <span class="summary-chip summary-chip--earned">Earned {{ famousSummary.acquired }}</span>
+          <span class="summary-chip summary-chip--locked">Locked {{ famousSummary.locked }}</span>
+          <span class="summary-chip summary-chip--completion">{{ famousSummary.completion }}% completed</span>
         </div>
       </div>
       <div class="row g-3 justify-content-center">
@@ -126,6 +176,33 @@ const famousSummary = computed(() => sectionSummary(famousClimbBadgesCheckResult
   flex-direction: column;
   gap: 8px;
   margin-bottom: 12px;
+}
+
+.badges-header-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.category-filter-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ms-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.category-filter-select {
+  width: auto;
+  min-width: 162px;
+  border-radius: 999px;
+  border-color: var(--ms-border);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding-left: 14px;
+  padding-right: 30px;
 }
 
 .badges-title {

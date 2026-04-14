@@ -16,7 +16,8 @@
         "length": 14.4,
         "totalAscent": 1279,
         "difficulty": 1191,
-        "averageGradient": 8.5
+        "averageGradient": 8.5,
+        "category": "HC"
       }
     ]
   },
@@ -37,7 +38,8 @@
         "length": 36.3,
         "totalAscent": 1897,
         "difficulty": 1269,
-        "averageGradient": 5.2
+        "averageGradient": 5.2,
+        "category": "HC"
       }
     ]
   },
@@ -58,7 +60,8 @@
         "length": 11.4,
         "totalAscent": 1059,
         "difficulty": 1058,
-        "averageGradient": 8.7
+        "averageGradient": 8.7,
+        "category": "HC"
       }
     ]
   },
@@ -79,7 +82,8 @@
         "length": 28.1,
         "totalAscent": 1545,
         "difficulty": 1209,
-        "averageGradient": 6.3
+        "averageGradient": 6.3,
+        "category": "HC"
       }
     ]
   },
@@ -100,7 +104,8 @@
         "length": 20.9,
         "totalAscent": 1471,
         "difficulty": 1199,
-        "averageGradient": 7.0
+        "averageGradient": 7.0,
+        "category": "HC"
       }
     ]
   },
@@ -121,7 +126,8 @@
         "length": 19.6,
         "totalAscent": 1520,
         "difficulty": 1305,
-        "averageGradient": 8.0
+        "averageGradient": 8.0,
+        "category": "HC"
       },
       {
         "name": "Feissons-sur-Isère",
@@ -132,7 +138,8 @@
         "length": 25.9,
         "totalAscent": 1588,
         "difficulty": 1215,
-        "averageGradient": 6.1
+        "averageGradient": 6.1,
+        "category": "HC"
       }
     ]
   },
@@ -153,7 +160,8 @@
         "length": 20.7,
         "totalAscent": 1364,
         "difficulty": 1030,
-        "averageGradient": 6.6
+        "averageGradient": 6.6,
+        "category": "HC"
       }
     ]
   },
@@ -174,7 +182,8 @@
         "length": 14.1,
         "totalAscent": 1000,
         "difficulty": 810,
-        "averageGradient": 7.0
+        "averageGradient": 7.0,
+        "category": "1"
       },
       {
         "name": "Briançon",
@@ -185,7 +194,8 @@
         "length": 19.1,
         "totalAscent": 1174,
         "difficulty": 866,
-        "averageGradient": 6.0
+        "averageGradient": 6.0,
+        "category": "1"
       }
     ]
   },
@@ -206,7 +216,8 @@
         "length": 18.9,
         "totalAscent": 1108,
         "difficulty": 899,
-        "averageGradient": 5.7
+        "averageGradient": 5.7,
+        "category": "1"
       }
     ]
   },
@@ -227,7 +238,8 @@
         "length": 34.8,
         "totalAscent": 2069,
         "difficulty": 1612,
-        "averageGradient": 5.5
+        "averageGradient": 5.5,
+        "category": "HC"
       },
       {
         "name": "Valloire",
@@ -238,7 +250,8 @@
         "length": 17.5,
         "totalAscent": 1213,
         "difficulty": 933,
-        "averageGradient": 6.9
+        "averageGradient": 6.9,
+        "category": "1"
       },
       {
         "name": "Briançon",
@@ -249,7 +262,8 @@
         "length": 34.8,
         "totalAscent": 1398,
         "difficulty": 782,
-        "averageGradient": 4.0
+        "averageGradient": 4.0,
+        "category": "1"
       }
     ]
   },
@@ -270,7 +284,8 @@
         "length": 12.8,
         "totalAscent": 882,
         "difficulty": 710,
-        "averageGradient": 6.9
+        "averageGradient": 6.9,
+        "category": "1"
       }
     ]
   },
@@ -291,7 +306,8 @@
         "length": 13.1,
         "totalAscent": 891,
         "difficulty": 686,
-        "averageGradient": 6.7
+        "averageGradient": 6.7,
+        "category": "1"
       }
     ]
   },
@@ -312,7 +328,8 @@
         "length": 13.9,
         "totalAscent": 1118,
         "difficulty": 994,
-        "averageGradient": 8.0
+        "averageGradient": 8.0,
+        "category": "1"
       }
     ]
   },
@@ -333,7 +350,8 @@
         "length": 15.5,
         "totalAscent": 1396,
         "difficulty": 1454,
-        "averageGradient": 9.0
+        "averageGradient": 9.0,
+        "category": "HC"
       }
     ]
   },
@@ -354,7 +372,8 @@
         "length": 25.4,
         "totalAscent": 1663,
         "difficulty": 1260,
-        "averageGradient": 6.5
+        "averageGradient": 6.5,
+        "category": "HC"
       },
       {
         "name": "Jausiers",
@@ -365,7 +384,8 @@
         "length": 23.3,
         "totalAscent": 1590,
         "difficulty": 1281,
-        "averageGradient": 6.8
+        "averageGradient": 6.8,
+        "category": "HC"
       }
     ]
   },
@@ -386,7 +406,8 @@
         "length": 20.4,
         "totalAscent": 1289,
         "difficulty": 955,
-        "averageGradient": 6.3
+        "averageGradient": 6.3,
+        "category": "1"
       },
       {
         "name": "Barcelonnette",
@@ -397,7 +418,8 @@
         "length": 29.2,
         "totalAscent": 1211,
         "difficulty": 674,
-        "averageGradient": 4.1
+        "averageGradient": 4.1,
+        "category": "1"
       }
     ]
   },
@@ -418,7 +440,8 @@
         "length": 32.2,
         "totalAscent": 1461,
         "difficulty": 1151,
-        "averageGradient": 4.2
+        "averageGradient": 4.2,
+        "category": "HC"
       }
     ]
   },
@@ -439,7 +462,8 @@
         "length": 32.2,
         "totalAscent": 1461,
         "difficulty": 1151,
-        "averageGradient": 6.9
+        "averageGradient": 6.9,
+        "category": "HC"
       }
     ]
   },
@@ -460,7 +484,8 @@
         "length": 11.8,
         "totalAscent": 837,
         "difficulty": 628,
-        "averageGradient": 7.1
+        "averageGradient": 7.1,
+        "category": "1"
       }
     ]
   },
@@ -481,7 +506,8 @@
         "length": 8.8,
         "totalAscent": 594,
         "difficulty": 515,
-        "averageGradient": 6.3
+        "averageGradient": 6.3,
+        "category": "2"
       }
     ]
   },
@@ -502,7 +528,8 @@
         "length": 16.3,
         "totalAscent": 1057,
         "difficulty": 837,
-        "averageGradient": 6.4
+        "averageGradient": 6.4,
+        "category": "1"
       }
     ]
   },
@@ -523,7 +550,8 @@
         "length": 25.4,
         "totalAscent": 1663,
         "difficulty": 1260,
-        "averageGradient": 7.0
+        "averageGradient": 7.0,
+        "category": "HC"
       }
     ]
   },
@@ -544,7 +572,8 @@
         "length": 12.6,
         "totalAscent": 1001,
         "difficulty": 959,
-        "averageGradient": 7.7
+        "averageGradient": 7.7,
+        "category": "1"
       }
     ]
   },
@@ -565,7 +594,8 @@
         "length": 17.0,
         "totalAscent": 1171,
         "difficulty": 874,
-        "averageGradient": 6.8
+        "averageGradient": 6.8,
+        "category": "1"
       }
     ]
   },
@@ -586,7 +616,8 @@
         "length": 10.5,
         "totalAscent": 706,
         "difficulty": 590,
-        "averageGradient": 7.1
+        "averageGradient": 7.1,
+        "category": "2"
       }
     ]
   },
@@ -607,7 +638,8 @@
         "length": 21.7,
         "totalAscent": 1300,
         "difficulty": 980,
-        "averageGradient": 5.7
+        "averageGradient": 5.7,
+        "category": "1"
       }
     ]
   },
@@ -628,7 +660,8 @@
         "length": 29.9,
         "totalAscent": 1379,
         "difficulty": 720,
-        "averageGradient": 4.5
+        "averageGradient": 4.5,
+        "category": "1"
       }
     ]
   },
@@ -649,7 +682,8 @@
         "length": 12.2,
         "totalAscent": 935,
         "difficulty": 920,
-        "averageGradient": 7.7
+        "averageGradient": 7.7,
+        "category": "1"
       }
     ]
   },
@@ -670,7 +704,8 @@
         "length": 19.2,
         "totalAscent": 1410,
         "difficulty": 1118,
-        "averageGradient": 7.1
+        "averageGradient": 7.1,
+        "category": "HC"
       }
     ]
   },
@@ -691,7 +726,8 @@
         "length": 7.2,
         "totalAscent": 618,
         "difficulty": 640,
-        "averageGradient": 8.7
+        "averageGradient": 8.7,
+        "category": "1"
       }
     ]
   },
@@ -712,7 +748,8 @@
         "length": 12.6,
         "totalAscent": 995,
         "difficulty": 786,
-        "averageGradient": 7.9
+        "averageGradient": 7.9,
+        "category": "1"
       }
     ]
   },
@@ -733,7 +770,8 @@
         "length": 21.7,
         "totalAscent": 1405,
         "difficulty": 913,
-        "averageGradient": 6.5
+        "averageGradient": 6.5,
+        "category": "1"
       }
     ]
   },
@@ -754,7 +792,8 @@
         "length": 20.8,
         "totalAscent": 1594,
         "difficulty": 1352,
-        "averageGradient": 7.7
+        "averageGradient": 7.7,
+        "category": "HC"
       },
       {
         "name": "Malaucène",
@@ -765,7 +804,8 @@
         "length": 21.0,
         "totalAscent": 1564,
         "difficulty": 1288,
-        "averageGradient": 7.5
+        "averageGradient": 7.5,
+        "category": "HC"
       },
       {
         "name": "Sault",
@@ -776,7 +816,360 @@
         "length": 24.4,
         "totalAscent": 1204,
         "difficulty": 748,
-        "averageGradient": 4.9
+        "averageGradient": 4.9,
+        "category": "1"
+      }
+    ]
+  },
+  {
+    "name": "Col d'Allos",
+    "topOfTheAscent": 2247,
+    "geoCoordinate": {
+      "latitude": 44.2979,
+      "longitude": 6.5944
+    },
+    "alternatives": [
+      {
+        "name": "Barcelonnette",
+        "geoCoordinate": {
+          "latitude": 44.3862,
+          "longitude": 6.6515
+        },
+        "length": 17.5,
+        "totalAscent": 1250,
+        "difficulty": 930,
+        "averageGradient": 7.1,
+        "category": "1"
+      }
+    ]
+  },
+  {
+    "name": "Col de la Ramaz",
+    "topOfTheAscent": 1619,
+    "geoCoordinate": {
+      "latitude": 46.0369,
+      "longitude": 6.6328
+    },
+    "alternatives": [
+      {
+        "name": "Mieussy",
+        "geoCoordinate": {
+          "latitude": 46.1349,
+          "longitude": 6.5237
+        },
+        "length": 13.9,
+        "totalAscent": 930,
+        "difficulty": 700,
+        "averageGradient": 6.7,
+        "category": "1"
+      }
+    ]
+  },
+  {
+    "name": "Col des Aravis",
+    "topOfTheAscent": 1486,
+    "geoCoordinate": {
+      "latitude": 45.8771,
+      "longitude": 6.4965
+    },
+    "alternatives": [
+      {
+        "name": "Flumet",
+        "geoCoordinate": {
+          "latitude": 45.8219,
+          "longitude": 6.5147
+        },
+        "length": 11.5,
+        "totalAscent": 620,
+        "difficulty": 450,
+        "averageGradient": 5.4,
+        "category": "2"
+      }
+    ]
+  },
+  {
+    "name": "Col des Saisies",
+    "topOfTheAscent": 1650,
+    "geoCoordinate": {
+      "latitude": 45.7578,
+      "longitude": 6.5409
+    },
+    "alternatives": [
+      {
+        "name": "Flumet",
+        "geoCoordinate": {
+          "latitude": 45.8219,
+          "longitude": 6.5147
+        },
+        "length": 13.7,
+        "totalAscent": 700,
+        "difficulty": 480,
+        "averageGradient": 5.1,
+        "category": "2"
+      }
+    ]
+  },
+  {
+    "name": "Col de Romme",
+    "topOfTheAscent": 1297,
+    "geoCoordinate": {
+      "latitude": 46.0049,
+      "longitude": 6.5876
+    },
+    "alternatives": [
+      {
+        "name": "Cluses",
+        "geoCoordinate": {
+          "latitude": 46.0625,
+          "longitude": 6.5743
+        },
+        "length": 8.8,
+        "totalAscent": 830,
+        "difficulty": 820,
+        "averageGradient": 9.4,
+        "category": "1"
+      }
+    ]
+  },
+  {
+    "name": "Col du Corbier",
+    "topOfTheAscent": 1237,
+    "geoCoordinate": {
+      "latitude": 46.1183,
+      "longitude": 6.6328
+    },
+    "alternatives": [
+      {
+        "name": "Le Biot",
+        "geoCoordinate": {
+          "latitude": 46.3044,
+          "longitude": 6.7115
+        },
+        "length": 5.9,
+        "totalAscent": 638,
+        "difficulty": 760,
+        "averageGradient": 10.8,
+        "category": "1"
+      }
+    ]
+  },
+  {
+    "name": "Col du Noyer",
+    "topOfTheAscent": 1664,
+    "geoCoordinate": {
+      "latitude": 44.696,
+      "longitude": 5.983
+    },
+    "alternatives": [
+      {
+        "name": "Saint-Étienne-en-Dévoluy",
+        "geoCoordinate": {
+          "latitude": 44.6874,
+          "longitude": 5.9408
+        },
+        "length": 7.5,
+        "totalAscent": 500,
+        "difficulty": 420,
+        "averageGradient": 6.7,
+        "category": "2"
+      }
+    ]
+  },
+  {
+    "name": "Col de Manse",
+    "topOfTheAscent": 1268,
+    "geoCoordinate": {
+      "latitude": 44.6459,
+      "longitude": 6.0799
+    },
+    "alternatives": [
+      {
+        "name": "Gap",
+        "geoCoordinate": {
+          "latitude": 44.5597,
+          "longitude": 6.0785
+        },
+        "length": 9.5,
+        "totalAscent": 520,
+        "difficulty": 390,
+        "averageGradient": 5.5,
+        "category": "2"
+      }
+    ]
+  },
+  {
+    "name": "Col de l'Ornon",
+    "topOfTheAscent": 1371,
+    "geoCoordinate": {
+      "latitude": 45.0387,
+      "longitude": 5.9826
+    },
+    "alternatives": [
+      {
+        "name": "Le Bourg-d'Oisans",
+        "geoCoordinate": {
+          "latitude": 45.0543,
+          "longitude": 6.0349
+        },
+        "length": 14.1,
+        "totalAscent": 853,
+        "difficulty": 620,
+        "averageGradient": 6.0,
+        "category": "1"
+      }
+    ]
+  },
+  {
+    "name": "Col du Chaussy",
+    "topOfTheAscent": 1533,
+    "geoCoordinate": {
+      "latitude": 45.3114,
+      "longitude": 6.2598
+    },
+    "alternatives": [
+      {
+        "name": "Pontamafrey",
+        "geoCoordinate": {
+          "latitude": 45.3381,
+          "longitude": 6.3086
+        },
+        "length": 14.7,
+        "totalAscent": 1118,
+        "difficulty": 930,
+        "averageGradient": 7.6,
+        "category": "1"
+      }
+    ]
+  },
+  {
+    "name": "Col de la Couillole",
+    "topOfTheAscent": 1678,
+    "geoCoordinate": {
+      "latitude": 44.0966,
+      "longitude": 7.0987
+    },
+    "alternatives": [
+      {
+        "name": "Saint-Sauveur-sur-Tinée",
+        "geoCoordinate": {
+          "latitude": 44.0823,
+          "longitude": 7.1007
+        },
+        "length": 15.7,
+        "totalAscent": 1151,
+        "difficulty": 880,
+        "averageGradient": 7.3,
+        "category": "1"
+      }
+    ]
+  },
+  {
+    "name": "Col Saint-Martin",
+    "topOfTheAscent": 1500,
+    "geoCoordinate": {
+      "latitude": 44.0898,
+      "longitude": 7.2248
+    },
+    "alternatives": [
+      {
+        "name": "La Bolline",
+        "geoCoordinate": {
+          "latitude": 44.0707,
+          "longitude": 7.2398
+        },
+        "length": 7.8,
+        "totalAscent": 620,
+        "difficulty": 560,
+        "averageGradient": 7.9,
+        "category": "2"
+      }
+    ]
+  },
+  {
+    "name": "Col du Lautaret",
+    "topOfTheAscent": 2058,
+    "geoCoordinate": {
+      "latitude": 45.0358,
+      "longitude": 6.4026
+    },
+    "alternatives": [
+      {
+        "name": "Le Monêtier-les-Bains",
+        "geoCoordinate": {
+          "latitude": 44.9769,
+          "longitude": 6.5047
+        },
+        "length": 12.0,
+        "totalAscent": 455,
+        "difficulty": 300,
+        "averageGradient": 3.8,
+        "category": "2"
+      }
+    ]
+  },
+  {
+    "name": "Col du Mollard",
+    "topOfTheAscent": 1638,
+    "geoCoordinate": {
+      "latitude": 45.2507,
+      "longitude": 6.3271
+    },
+    "alternatives": [
+      {
+        "name": "Saint-Jean-de-Maurienne",
+        "geoCoordinate": {
+          "latitude": 45.2786,
+          "longitude": 6.3461
+        },
+        "length": 19.3,
+        "totalAscent": 1160,
+        "difficulty": 760,
+        "averageGradient": 6.0,
+        "category": "1"
+      }
+    ]
+  },
+  {
+    "name": "Col de Porte",
+    "topOfTheAscent": 1326,
+    "geoCoordinate": {
+      "latitude": 45.3098,
+      "longitude": 5.7523
+    },
+    "alternatives": [
+      {
+        "name": "Saint-Laurent-du-Pont",
+        "geoCoordinate": {
+          "latitude": 45.3849,
+          "longitude": 5.7398
+        },
+        "length": 17.0,
+        "totalAscent": 1000,
+        "difficulty": 650,
+        "averageGradient": 5.9,
+        "category": "1"
+      }
+    ]
+  },
+  {
+    "name": "Col de l'Épine",
+    "topOfTheAscent": 947,
+    "geoCoordinate": {
+      "latitude": 45.5671,
+      "longitude": 5.8992
+    },
+    "alternatives": [
+      {
+        "name": "Novalaise",
+        "geoCoordinate": {
+          "latitude": 45.5933,
+          "longitude": 5.7704
+        },
+        "length": 10.3,
+        "totalAscent": 620,
+        "difficulty": 430,
+        "averageGradient": 6.0,
+        "category": "2"
       }
     ]
   }

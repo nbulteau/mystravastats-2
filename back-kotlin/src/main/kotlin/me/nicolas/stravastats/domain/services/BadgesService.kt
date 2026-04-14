@@ -86,9 +86,10 @@ internal class BadgesService(
                     name = famousClimb.name,
                     label = "${famousClimb.name} from ${alternative.name}",
                     topOfTheAscent = famousClimb.topOfTheAscent,
-                    start = famousClimb.geoCoordinate,
-                    end = alternative.geoCoordinate,
+                    start = alternative.geoCoordinate,
+                    end = famousClimb.geoCoordinate,
                     difficulty = alternative.difficulty,
+                    category = normalizeClimbCategory(alternative.category, alternative.difficulty),
                     length = alternative.length,
                     totalAscent = alternative.totalAscent,
                     averageGradient = alternative.averageGradient
@@ -134,5 +135,20 @@ internal class BadgesService(
         }
 
         return candidates.firstOrNull { Files.isRegularFile(it) }
+    }
+
+    private fun normalizeClimbCategory(category: String, difficulty: Int): String {
+        val normalized = category.trim().uppercase()
+        if (normalized == "HC" || normalized == "1" || normalized == "2" || normalized == "3" || normalized == "4") {
+            return normalized
+        }
+
+        return when {
+            difficulty >= 1000 -> "HC"
+            difficulty >= 600 -> "1"
+            difficulty >= 300 -> "2"
+            difficulty >= 150 -> "3"
+            else -> "4"
+        }
     }
 }

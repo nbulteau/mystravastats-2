@@ -665,7 +665,10 @@ func ToBadgeCheckResultDto(result business.BadgeCheckResult, activityTypes ...bu
 	nbCheckedActivities := len(result.Activities)
 	var activities []ActivityDto
 	if nbCheckedActivities > 0 {
-		activities = append(activities, ToActivityDto(*result.Activities[nbCheckedActivities-1]))
+		displayActivity := selectBadgeDisplayActivity(result.Badge, result.Activities)
+		if displayActivity != nil {
+			activities = append(activities, ToActivityDto(*displayActivity))
+		}
 	}
 
 	return BadgeCheckResultDto{
@@ -673,6 +676,41 @@ func ToBadgeCheckResultDto(result business.BadgeCheckResult, activityTypes ...bu
 		Activities:          activities,
 		NbCheckedActivities: nbCheckedActivities,
 	}
+}
+
+func selectBadgeDisplayActivity(badge business.Badge, activities []*strava.Activity) *strava.Activity {
+	if len(activities) == 0 {
+		return nil
+	}
+
+	switch badge.(type) {
+	case badges.FamousClimbBadge:
+		return selectFastestActivity(activities)
+	default:
+		// Keep current behavior for non-climb badges.
+		return activities[len(activities)-1]
+	}
+}
+
+func selectFastestActivity(activities []*strava.Activity) *strava.Activity {
+	var best *strava.Activity
+	for _, activity := range activities {
+		if activity == nil {
+			continue
+		}
+		if best == nil {
+			best = activity
+			continue
+		}
+		if activity.MovingTime > 0 && (best.MovingTime <= 0 || activity.MovingTime < best.MovingTime) {
+			best = activity
+		}
+	}
+
+	if best != nil {
+		return best
+	}
+	return activities[len(activities)-1]
 }
 
 func ToBadgeDto(badge business.Badge, activityTypes ...business.ActivityType) BadgeDto {
@@ -704,6 +742,7 @@ func ToBadgeDto(badge business.Badge, activityTypes ...business.ActivityType) Ba
 			Label:       b.Label,
 			Description: b.Name,
 			Type:        activityType.String() + "FamousClimbBadge",
+			Category:    b.Category,
 		}
 	default:
 		return BadgeDto{}
