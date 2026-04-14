@@ -123,6 +123,10 @@ Heatmap:
 
 ![Heatmap](screen-heatmap.png)
 
+Segments:
+
+![Segments](screen-segments.png)
+
 Badges:
 
 ![Badges](screen-badges.png)
