@@ -41,6 +41,19 @@ if (-not $dockerCommand) {
     throw "Docker is required to run this script."
 }
 
+# Verify that Docker is actually running
+$previousErrorActionPreference = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+try {
+    & docker version *> $null
+} catch {
+    throw "Docker is installed but not running. Please start Docker Desktop and try again."
+}
+if ($LASTEXITCODE -ne 0) {
+    throw "Docker is installed but not running. Please start Docker Desktop and try again."
+}
+$ErrorActionPreference = $previousErrorActionPreference
+
 if ($SkipFrontBuild -ne "1") {
     # Clean the front-vue directory
     Write-VerboseOutput "[FRONT] Cleaning front-vue directory..."
