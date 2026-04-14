@@ -119,10 +119,10 @@ $previousErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = "Continue"
 try {
     if ($Verbose) {
-        & docker run --rm -v "${RootDir}:/app" -w /app golang:latest `
+        & docker run --rm -v "${RootDir}:/app" -w /app golang:1.25 `
           sh -c "cd back-go && GOOS=windows GOARCH=amd64 go build -o ../mystravastats.exe"
     } else {
-        & docker run --rm -v "${RootDir}:/app" -w /app golang:latest `
+        & docker run --rm -v "${RootDir}:/app" -w /app golang:1.25 `
           sh -c "cd back-go && GOOS=windows GOARCH=amd64 go build -o ../mystravastats.exe" *> $null
     }
 } finally {

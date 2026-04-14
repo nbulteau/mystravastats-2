@@ -39,10 +39,10 @@ fi
 # Build back for Linux silently or verbosely
 echo "🔨 Building Linux binary..."
 if [[ $VERBOSE -eq 1 ]]; then
-  docker run --rm -v "$PWD:/app" -w /app golang:latest \
+  docker run --rm -v "$PWD:/app" -w /app golang:1.25 \
     sh -c "cd back-go && GOOS=linux GOARCH=amd64 go build -buildvcs=false -o ../mystravastats"
 else
-  docker run --rm -v "$PWD:/app" -w /app golang:latest \
+  docker run --rm -v "$PWD:/app" -w /app golang:1.25 \
     sh -c "cd back-go && GOOS=linux GOARCH=amd64 go build -buildvcs=false -o ../mystravastats" >/dev/null 2>&1
 fi
 
