@@ -18,10 +18,10 @@ echo "🚀 Starting build process..."
 echo "⌛ Building front-vue project..."
 if [[ $VERBOSE -eq 1 ]]; then
   docker run --rm -v "$PWD:/app" -w /app/front-vue node:latest \
-    sh -c "npm install -g npm@11.6.2 && npm install && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build"
+    sh -c "npm install -g npm@latest && npm install && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build"
 else
   docker run --rm -v "$PWD:/app" -w /app/front-vue node:latest \
-    sh -c "npm install -g npm@11.6.2 >/dev/null 2>&1 && npm install >/dev/null 2>&1 && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build >/dev/null 2>&1"
+    sh -c "npm install -g npm@latest >/dev/null 2>&1 && npm install >/dev/null 2>&1 && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build >/dev/null 2>&1"
 fi
 
 # Copy the UI build to the back-go/public directory
@@ -39,10 +39,10 @@ fi
 # Build back for macOS silently or verbosely
 echo "🔨 Building macOS binary..."
 if [[ $VERBOSE -eq 1 ]]; then
-  docker run --rm -v "$PWD:/app" -w /app golang:1.25.5 \
+  docker run --rm -v "$PWD:/app" -w /app golang:latest \
     sh -c "cd back-go && GOOS=darwin GOARCH=arm64 go build -o ../mystravastats"
 else
-  docker run --rm -v "$PWD:/app" -w /app golang:1.25.5 \
+  docker run --rm -v "$PWD:/app" -w /app golang:latest \
     sh -c "cd back-go && GOOS=darwin GOARCH=arm64 go build -o ../mystravastats" >/dev/null 2>&1
 fi
 

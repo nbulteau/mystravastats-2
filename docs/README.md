@@ -141,8 +141,9 @@ Icons made by [Freepik](https://www.freepik.com) from [Flaticon](https://www.fla
 
 If you simply want to build and run the application, the easiest path is to use one of the provided build scripts:
 
-- Go backend scripts: [build-go-macos.zsh](/Users/nicolas/Workspace/mystravastats-2/build-go-macos.zsh), [build-go-ubuntu.sh](/Users/nicolas/Workspace/mystravastats-2/build-go-ubuntu.sh), [build-go-windows.ps1](/Users/nicolas/Workspace/mystravastats-2/build-go-windows.ps1)
-- Kotlin backend scripts: [build-kotlin-macos.zsh](/Users/nicolas/Workspace/mystravastats-2/build-kotlin-macos.zsh), [build-kotlin-ubuntu.sh](/Users/nicolas/Workspace/mystravastats-2/build-kotlin-ubuntu.sh), [build-kotlin-windows.ps1](/Users/nicolas/Workspace/mystravastats-2/build-kotlin-windows.ps1)
+- [build-go-macos.zsh](/Users/nicolas/Workspace/mystravastats-2/build-go-macos.zsh)
+- [build-go-ubuntu.sh](/Users/nicolas/Workspace/mystravastats-2/build-go-ubuntu.sh)
+- [build-go-windows.ps1](/Users/nicolas/Workspace/mystravastats-2/build-go-windows.ps1)
 
 These scripts are designed to prepare the application for your platform.
 They rely on Docker, so Docker must be installed and running before you launch them.
@@ -192,21 +193,11 @@ Then run the matching script for your OS.
 
 #### macOS (Apple Silicon)
 
-Go backend:
-
 ```sh
 ./build-go-macos.zsh
 ```
 
-Kotlin backend:
-
-```sh
-./build-kotlin-macos.zsh
-```
-
 #### Ubuntu / Linux
-
-Go backend:
 
 ```sh
 ./build-go-ubuntu.sh
@@ -218,24 +209,10 @@ If needed, fix ownership of the generated binary:
 sudo chown $(whoami):$(whoami) mystravastats
 ```
 
-Kotlin backend:
-
-```sh
-./build-kotlin-ubuntu.sh
-```
-
 #### Windows
-
-Go backend:
 
 ```powershell
 .\build-go-windows.ps1
-```
-
-Kotlin backend:
-
-```powershell
-.\build-kotlin-windows.ps1
 ```
 
 ### Step 3: Run the generated application
