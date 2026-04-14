@@ -644,12 +644,8 @@ func (provider *StravaActivityProvider) ensureStravaAPI() *StravaApi {
 	if stravaApi == nil {
 		// Token fetch failed, switch to cache-only mode
 		log.Printf("Failed to initialize Strava API (token fetch error)")
-		log.Printf("Switching to cache-only mode: setting useCache=true in .strava file")
+		log.Printf("Switching to cache-only mode: activities will be loaded from local cache without Strava API access")
 
-		// Update the .strava file to enable cache mode
-		provider.localStorageProvider.UpdateStravaAuthentication(provider.cacheRoot, provider.clientId, provider.clientSecret, true)
-		provider.useCacheAuth = true
-		log.Printf("Successfully switched to cache-only mode")
 		return nil
 	}
 
