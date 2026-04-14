@@ -268,45 +268,6 @@ func (repo *StravaRepository) ReadStravaAuthentication(stravaCache string) (stri
 	return clientId, clientSecret, useCache
 }
 
-func (repo *StravaRepository) UpdateStravaAuthentication(stravaCache, clientId, clientSecret string, useCache bool) {
-	cacheDirectory := filepath.Join(stravaCache)
-	file := filepath.Join(cacheDirectory, ".strava")
-	properties := make(map[string]string)
-
-	// Load existing properties if file exists
-	if data, err := os.ReadFile(file); err == nil {
-		lines := strings.Split(string(data), "\n")
-		for _, line := range lines {
-			if line == "" {
-				continue
-			}
-			parts := strings.SplitN(line, "=", 2)
-			if len(parts) == 2 {
-				properties[parts[0]] = parts[1]
-			}
-		}
-	}
-
-	// Update properties
-	properties["clientId"] = clientId
-	properties["clientSecret"] = clientSecret
-	properties["useCache"] = fmt.Sprintf("%v", useCache)
-
-	// Build content
-	var content strings.Builder
-	content.WriteString("#Strava authentication\n")
-	content.WriteString(fmt.Sprintf("clientId=%s\n", properties["clientId"]))
-	content.WriteString(fmt.Sprintf("clientSecret=%s\n", properties["clientSecret"]))
-	content.WriteString(fmt.Sprintf("useCache=%s\n", properties["useCache"]))
-
-	// Write to file
-	if err := os.WriteFile(file, []byte(content.String()), 0644); err != nil {
-		log.Printf("Failed to update Strava authentication file: %v", err)
-	} else {
-		log.Printf("Updated Strava authentication file: useCache=%v", useCache)
-	}
-}
-
 func (repo *StravaRepository) LoadHeartRateZoneSettings(clientId string) business.HeartRateZoneSettings {
 	activitiesDirectory := filepath.Join(repo.cacheDirectory, fmt.Sprintf("strava-%s", clientId))
 	settingsFile := filepath.Join(activitiesDirectory, fmt.Sprintf("heart-rate-zones-%s.json", clientId))

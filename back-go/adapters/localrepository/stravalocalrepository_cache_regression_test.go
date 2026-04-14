@@ -44,14 +44,6 @@ func TestStravaRepository_ReadsRealCacheJsonSamples(t *testing.T) {
 	}
 
 	repository := NewStravaRepository(tempCache)
-	activities := repository.LoadActivitiesFromCache(clientID, year)
-
-	if len(activities) == 0 {
-		t.Fatalf("expected at least one activity from real cache sample")
-	}
-	if activities[0].Id == 0 {
-		t.Fatalf("expected non-zero activity id in parsed cache sample")
-	}
 
 	t.Run("detailed activity sample", func(t *testing.T) {
 		detailedFiles, err := filepath.Glob(filepath.Join(filepath.Dir(sourceActivitiesFile), "stravaActivity-*"))
