@@ -625,7 +625,7 @@ const chartOptions = computed((): any => ({
   chart: {
     type: "heatmap",
     height: 560,
-    marginTop: 56,
+    marginTop: 72,
     marginBottom: 56,
   },
   title: {
@@ -633,12 +633,18 @@ const chartOptions = computed((): any => ({
   },
   xAxis: {
     categories: MONTH_NAMES,
+    opposite: true,
     labels: { style: { fontSize: "11px" } },
   },
   yAxis: {
     title: { text: null },
     categories: DAY_LABELS,
-    reversed: false,
+    reversed: true,
+    tickInterval: 1,
+    labels: {
+      step: 1,
+      style: { fontSize: "11px" },
+    },
   },
   colorAxis: {
     min: 0,
