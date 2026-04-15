@@ -67,10 +67,10 @@ if ($SkipFrontBuild -ne "1") {
     $frontFixCommand = 'npm pkg delete "dependencies.@rolldown/binding-darwin-arm64" "devDependencies.@rolldown/binding-darwin-arm64" >/dev/null 2>&1 || true'
     if ($Verbose) {
         & docker run --rm -v "${RootDir}:/app" -w /app/front-vue node:latest `
-          sh -c "$frontFixCommand && npm install && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build"
+          sh -c "$frontFixCommand && npm ci && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build"
     } else {
         & docker run --rm -v "${RootDir}:/app" -w /app/front-vue node:latest `
-          sh -c "$frontFixCommand && npm install >/dev/null 2>&1 && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build >/dev/null 2>&1" *> $null
+          sh -c "$frontFixCommand && npm ci >/dev/null 2>&1 && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build >/dev/null 2>&1" *> $null
     }
 
     if ($LASTEXITCODE -ne 0) {
