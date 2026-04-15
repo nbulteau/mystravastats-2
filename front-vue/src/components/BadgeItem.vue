@@ -3,10 +3,12 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { BadgeCheckResult } from "@/models/badge-check-result.model";
 import { formatTime } from '@/utils/formatters';
 import { Tooltip } from 'bootstrap';
+import { useRouter } from "vue-router";
 
 const props = defineProps<{
   badgeCheckResult: BadgeCheckResult;
 }>();
+const router = useRouter();
 
 import runningBadge from "@/assets/badges/running.png";
 import cyclingBadge from "@/assets/badges/cycling.png";
@@ -88,11 +90,11 @@ const navigateToActivity = () => {
     return;
   }
 
-  if (!representativeActivity.value.link) {
+  if (!representativeActivity.value.id) {
     return;
   }
 
-  window.open(representativeActivity.value.link, '_blank', 'noopener,noreferrer');
+  router.push(`/activities/${representativeActivity.value.id}`);
 };
 
 const badgeRef = ref<HTMLElement | null>(null);

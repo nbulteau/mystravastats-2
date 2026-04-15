@@ -1,6 +1,8 @@
 package dto
 
 import (
+	"math"
+	"strings"
 	"testing"
 
 	"mystravastats/domain/badges"
@@ -35,6 +37,140 @@ func TestBuildActivityEfforts_NilStream(t *testing.T) {
 	if len(efforts) != 0 {
 		t.Fatalf("expected no efforts when stream is nil, got %d", len(efforts))
 	}
+}
+
+func TestBuildActivityEfforts_DirectionAwareSegmentLabels(t *testing.T) {
+	// GIVEN
+	segmentName := "MURAILLE DE CHINE <Alpe d'Huez>"
+	detailedActivity := &strava.DetailedActivity{
+		Id:   42,
+		Name: "Direction check",
+		Type: "Ride",
+		Stream: &strava.Stream{
+			Distance: strava.DistanceStream{Data: []float64{0, 100, 200, 300, 400, 500, 600}},
+			Time:     strava.TimeStream{Data: []int{0, 10, 20, 30, 40, 50, 60}},
+			Altitude: &strava.AltitudeStream{Data: []float64{100, 102, 105, 108, 106, 104, 102}},
+		},
+		SegmentEfforts: []strava.SegmentEffort{
+			{
+				Id:          1001,
+				Name:        "Muraille montée",
+				Distance:    300,
+				ElapsedTime: 30,
+				StartIndex:  0,
+				EndIndex:    3,
+				Segment: strava.Segment{
+					Id:            9001,
+					Name:          segmentName,
+					ActivityType:  "Ride",
+					AverageGrade:  8.0,
+					ClimbCategory: 4,
+					ElevationHigh: 108,
+					ElevationLow:  100,
+				},
+			},
+			{
+				Id:          1002,
+				Name:        "Muraille descente",
+				Distance:    300,
+				ElapsedTime: 20,
+				StartIndex:  3,
+				EndIndex:    6,
+				Segment: strava.Segment{
+					Id:            9002,
+					Name:          segmentName,
+					ActivityType:  "Ride",
+					AverageGrade:  -7.5,
+					ClimbCategory: 4,
+					ElevationHigh: 108,
+					ElevationLow:  100,
+				},
+			},
+		},
+	}
+
+	// WHEN
+	efforts := BuildActivityEfforts(detailedActivity)
+
+	// THEN
+	foundAscent := false
+	foundDescent := false
+	for _, effort := range efforts {
+		if !strings.Contains(effort.Label, segmentName) {
+			continue
+		}
+		if strings.Contains(effort.Label, "(ascent)") {
+			foundAscent = true
+			if effort.DeltaAltitude <= 0 {
+				t.Fatalf("expected ascent delta altitude to be positive, got %.2f", effort.DeltaAltitude)
+			}
+		}
+		if strings.Contains(effort.Label, "(descent)") {
+			foundDescent = true
+			if effort.DeltaAltitude >= 0 {
+				t.Fatalf("expected descent delta altitude to be negative, got %.2f", effort.DeltaAltitude)
+			}
+		}
+	}
+
+	if !foundAscent {
+		t.Fatalf("expected ascent segment effort label for %q", segmentName)
+	}
+	if !foundDescent {
+		t.Fatalf("expected descent segment effort label for %q", segmentName)
+	}
+}
+
+func TestBuildActivityEfforts_NaNAltitudeFallsBackToSegmentDelta(t *testing.T) {
+	// GIVEN
+	detailedActivity := &strava.DetailedActivity{
+		Id:   52,
+		Name: "NaN direction check",
+		Type: "Ride",
+		Stream: &strava.Stream{
+			Distance: strava.DistanceStream{Data: []float64{0, 100, 200}},
+			Time:     strava.TimeStream{Data: []int{0, 10, 20}},
+			Altitude: &strava.AltitudeStream{Data: []float64{100, math.NaN(), 110}},
+		},
+		SegmentEfforts: []strava.SegmentEffort{
+			{
+				Id:          2001,
+				Name:        "NaN climb",
+				Distance:    200,
+				ElapsedTime: 20,
+				StartIndex:  0,
+				EndIndex:    2,
+				Segment: strava.Segment{
+					Id:            9901,
+					Name:          "NaN climb segment",
+					ActivityType:  "Ride",
+					AverageGrade:  5.0,
+					ClimbCategory: 4,
+					ElevationHigh: 120,
+					ElevationLow:  100,
+				},
+			},
+		},
+	}
+
+	// WHEN
+	efforts := BuildActivityEfforts(detailedActivity)
+
+	// THEN
+	for _, effort := range efforts {
+		if !strings.Contains(effort.Label, "NaN climb segment") {
+			continue
+		}
+		if math.IsNaN(effort.DeltaAltitude) || math.IsInf(effort.DeltaAltitude, 0) {
+			t.Fatalf("expected finite delta altitude, got %.2f", effort.DeltaAltitude)
+		}
+		if effort.DeltaAltitude <= 0 {
+			t.Fatalf("expected fallback ascent delta altitude to remain positive, got %.2f", effort.DeltaAltitude)
+		}
+		return
+	}
+
+	t.Fatalf("expected segment effort to be present")
 }
 
 func TestToStreamDto_DistinctPointersAndValues(t *testing.T) {

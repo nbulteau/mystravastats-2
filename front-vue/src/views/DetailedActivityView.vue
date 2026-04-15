@@ -40,6 +40,16 @@
       </template>
       Elapsed time: {{ formatTime(activity?.elapsedTime ?? 0) }}
     </span>
+    <span class="strava-link-row">
+      <a
+        :href="stravaActivityUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="strava-link"
+      >
+        Open on Strava
+      </a>
+    </span>
   </div>
 
   <div style="display: flex; width: 100%; height: 400px">
@@ -192,6 +202,7 @@ const selectedOption = ref(null);
 const radioLabels = ref<HTMLElement[]>([]); // Ref to hold radio labels
 
 const isHike = computed(() => activity.value?.type === "Hike");
+const stravaActivityUrl = computed(() => `https://www.strava.com/activities/${activity.value?.id ?? activityId ?? ""}`);
 
 // Icon options
 
@@ -620,6 +631,17 @@ watch([showPowerCurve, activity], () => {
 <style scoped>
 .radio-input {
   margin-right: 5px;
+}
+
+.strava-link-row {
+  display: block;
+  margin-top: 8px;
+}
+
+.strava-link {
+  color: var(--ms-primary);
+  font-weight: 600;
+  text-decoration: underline;
 }
 
 .radio-label {

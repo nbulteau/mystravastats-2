@@ -31,6 +31,7 @@ type segmentAttemptRaw struct {
 	targetId           int64
 	targetName         string
 	targetType         segmentTargetType
+	direction          segmentDirection
 	climbCategory      int
 	distance           float64
 	averageGrade       float64
@@ -109,6 +110,7 @@ func FetchSegmentClimbProgressionByActivityTypeAndYear(
 				targetId:           effort.Segment.Id,
 				targetName:         effort.Segment.Name,
 				targetType:         effortTargetType,
+				direction:          resolveSegmentDirection(effort, activity, detailedActivity),
 				climbCategory:      effort.Segment.ClimbCategory,
 				distance:           effort.Distance,
 				averageGrade:       effort.Segment.AverageGrade,
@@ -180,10 +182,7 @@ func FetchSegmentClimbProgressionByActivityTypeAndYear(
 		return emptySegmentClimbProgression(resolvedMetric, resolvedTargetType)
 	}
 
-	attemptsByTarget := make(map[int64][]segmentAttemptRaw)
-	for _, attempt := range rawAttempts {
-		attemptsByTarget[attempt.targetId] = append(attemptsByTarget[attempt.targetId], attempt)
-	}
+	attemptsByTarget := splitAttemptsByDirection(groupRawAttemptsByTarget(rawAttempts))
 
 	targetSummaries := make([]business.SegmentClimbTargetSummary, 0, len(attemptsByTarget))
 	for _, attempts := range attemptsByTarget {

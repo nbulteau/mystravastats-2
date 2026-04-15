@@ -15,6 +15,7 @@ import java.time.Month
 import java.time.format.TextStyle
 import java.time.temporal.WeekFields
 import java.util.*
+import kotlin.math.abs
 
 object ActivityHelper {
     /**
@@ -62,7 +63,7 @@ object ActivityHelper {
                         || segmentEffort.prRank != null && segmentEffort.prRank <= 3
             }
             .map { segmentEffort: StravaSegmentEffort ->
-                segmentEffort.toActivityEffort()
+                segmentEffort.toActivityEffort(this)
             }
 
         val activityEfforts = listOfNotNull(
@@ -236,19 +237,170 @@ fun StravaActivity.toStravaDetailedActivity(): StravaDetailedActivity {
 }
 
 
-private fun StravaSegmentEffort.toActivityEffort(): ActivityEffort {
+private fun StravaSegmentEffort.toActivityEffort(activity: StravaDetailedActivity): ActivityEffort {
+    val direction = resolveSegmentEffortDirection(this, activity)
+    val label = directionAwareSegmentLabel(this.segment.name, direction)
+    val deltaAltitude = resolveSegmentEffortDeltaAltitude(this, activity, direction)
+
     return ActivityEffort(
         distance = this.distance,
         seconds = this.elapsedTime,
-        deltaAltitude = this.segment.elevationHigh - this.segment.elevationLow,
+        deltaAltitude = deltaAltitude,
         idxStart = this.startIndex,
         idxEnd = this.endIndex,
         averagePower = this.averageWatts.takeIf { it.toInt() != 0 }?.toInt(),
-        label = this.segment.name,
+        label = label,
         activityShort = ActivityShort(
             id = this.id,
-            name = this.segment.name,
+            name = label,
             type = this.segment.activityType
         )
     )
+}
+
+private const val SEGMENT_DIRECTION_MIN_ALTITUDE_DELTA_M = 3.0
+private const val SEGMENT_DIRECTION_MIN_GRADE_PERCENT = 0.5
+
+private enum class SegmentEffortDirection {
+    ASCENT,
+    DESCENT,
+    UNKNOWN,
+}
+
+private val ascentDirectionKeywords = listOf(
+    "montee",
+    "ascent",
+    "climb",
+    "uphill",
+)
+
+private val descentDirectionKeywords = listOf(
+    "descente",
+    "descent",
+    "downhill",
+)
+
+private fun resolveSegmentEffortDirection(
+    effort: StravaSegmentEffort,
+    activity: StravaDetailedActivity,
+): SegmentEffortDirection {
+    return resolveDirectionFromAltitudeStream(activity, effort)
+        ?: resolveDirectionFromLabels(effort.name, effort.segment.name)
+        ?: resolveDirectionFromAverageGrade(effort.segment.averageGrade)
+}
+
+private fun resolveDirectionFromAltitudeStream(
+    activity: StravaDetailedActivity,
+    effort: StravaSegmentEffort,
+): SegmentEffortDirection? {
+    val altitude = activity.stream?.altitude?.data ?: return null
+    if (altitude.isEmpty()) return null
+    if (effort.startIndex < 0 || effort.endIndex < 0) return null
+    if (effort.startIndex >= altitude.size || effort.endIndex >= altitude.size || effort.startIndex == effort.endIndex) {
+        return null
+    }
+
+    val altitudeDelta = altitude[effort.endIndex] - altitude[effort.startIndex]
+    if (!altitudeDelta.isFinite()) {
+        return null
+    }
+    if (abs(altitudeDelta) < SEGMENT_DIRECTION_MIN_ALTITUDE_DELTA_M) {
+        return null
+    }
+    return if (altitudeDelta > 0.0) SegmentEffortDirection.ASCENT else SegmentEffortDirection.DESCENT
+}
+
+private fun resolveDirectionFromLabels(vararg labels: String): SegmentEffortDirection? {
+    labels.forEach { rawLabel ->
+        val label = normalizeDirectionLabel(rawLabel)
+        if (label.isBlank()) {
+            return@forEach
+        }
+        if (descentDirectionKeywords.any { keyword -> label.contains(keyword) }) {
+            return SegmentEffortDirection.DESCENT
+        }
+        if (ascentDirectionKeywords.any { keyword -> label.contains(keyword) }) {
+            return SegmentEffortDirection.ASCENT
+        }
+    }
+    return null
+}
+
+private fun normalizeDirectionLabel(label: String): String {
+    if (label.isBlank()) {
+        return ""
+    }
+
+    return label
+        .lowercase(Locale.getDefault())
+        .replace("é", "e")
+        .replace("è", "e")
+        .replace("ê", "e")
+        .replace("ë", "e")
+        .replace("à", "a")
+        .replace("â", "a")
+        .replace("ä", "a")
+        .replace("î", "i")
+        .replace("ï", "i")
+        .replace("ô", "o")
+        .replace("ö", "o")
+        .replace("ù", "u")
+        .replace("û", "u")
+        .replace("ü", "u")
+        .replace("ç", "c")
+        .replace("’", "'")
+        .replace("-", " ")
+        .replace(Regex("\\s+"), " ")
+        .trim()
+}
+
+private fun resolveDirectionFromAverageGrade(averageGrade: Double): SegmentEffortDirection {
+    if (!averageGrade.isFinite()) {
+        return SegmentEffortDirection.UNKNOWN
+    }
+    if (abs(averageGrade) < SEGMENT_DIRECTION_MIN_GRADE_PERCENT) {
+        return SegmentEffortDirection.UNKNOWN
+    }
+    return if (averageGrade > 0.0) SegmentEffortDirection.ASCENT else SegmentEffortDirection.DESCENT
+}
+
+private fun resolveSegmentEffortDeltaAltitude(
+    effort: StravaSegmentEffort,
+    activity: StravaDetailedActivity,
+    direction: SegmentEffortDirection,
+): Double {
+    val altitude = activity.stream?.altitude?.data
+    if (altitude != null
+        && effort.startIndex >= 0
+        && effort.endIndex >= 0
+        && effort.startIndex < altitude.size
+        && effort.endIndex < altitude.size
+    ) {
+        val altitudeDelta = altitude[effort.endIndex] - altitude[effort.startIndex]
+        if (altitudeDelta.isFinite()) {
+            return altitudeDelta
+        }
+    }
+
+    val segmentDelta = effort.segment.elevationHigh - effort.segment.elevationLow
+    if (!segmentDelta.isFinite()) {
+        return 0.0
+    }
+    return when (direction) {
+        SegmentEffortDirection.ASCENT -> abs(segmentDelta)
+        SegmentEffortDirection.DESCENT -> -abs(segmentDelta)
+        SegmentEffortDirection.UNKNOWN -> segmentDelta
+    }
+}
+
+private fun directionAwareSegmentLabel(
+    baseLabel: String,
+    direction: SegmentEffortDirection,
+): String {
+    val normalized = baseLabel.lowercase(Locale.getDefault())
+    return when (direction) {
+        SegmentEffortDirection.ASCENT -> if (normalized.contains("(ascent)")) baseLabel else "$baseLabel (ascent)"
+        SegmentEffortDirection.DESCENT -> if (normalized.contains("(descent)")) baseLabel else "$baseLabel (descent)"
+        SegmentEffortDirection.UNKNOWN -> baseLabel
+    }
 }

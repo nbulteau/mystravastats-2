@@ -22,6 +22,7 @@ const (
 	segmentAnalysisCacheMaxEntries    = 256
 	segmentAnalysisCacheTTL           = 30 * time.Minute
 	segmentAnalysisFallbackCacheTTL   = 45 * time.Second
+	segmentAnalysisAlgorithmVersion   = "direction-v2"
 )
 
 var segmentAttemptsCache = struct {
@@ -86,6 +87,7 @@ func buildSegmentAttemptsCacheKey(
 
 	return strings.Join(
 		[]string{
+			fmt.Sprintf("algo:%s", segmentAnalysisAlgorithmVersion),
 			fmt.Sprintf("types:%s", strings.Join(activityTypeNames, ",")),
 			fmt.Sprintf("year:%s", normalizeOptionalInt(year)),
 			fmt.Sprintf("from:%s", normalizeOptionalString(from)),
@@ -335,6 +337,7 @@ func groupSegmentAttemptsByTarget(flattened []segmentAttemptRawCache) map[int64]
 			targetId:           attempt.TargetID,
 			targetName:         attempt.TargetName,
 			targetType:         targetType,
+			direction:          segmentDirectionUnknown,
 			climbCategory:      attempt.ClimbCategory,
 			distance:           attempt.Distance,
 			averageGrade:       attempt.AverageGrade,

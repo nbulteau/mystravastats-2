@@ -626,29 +626,214 @@ func BuildActivityEfforts(activity *strava.DetailedActivity) []business.Activity
 
 	for _, segmentEffort := range activity.SegmentEfforts {
 		if segmentEffort.Segment.ClimbCategory > 2 || segmentEffort.Segment.Starred {
-			activityEfforts = append(activityEfforts, toActivityEffort(&segmentEffort))
+			activityEfforts = append(activityEfforts, toActivityEffort(&segmentEffort, activity))
 		}
 	}
 
 	return activityEfforts
 }
 
-func toActivityEffort(effort *strava.SegmentEffort) business.ActivityEffort {
+type segmentEffortDirection int
+
+const (
+	segmentEffortDirectionUnknown segmentEffortDirection = 0
+	segmentEffortDirectionAscent  segmentEffortDirection = 1
+	segmentEffortDirectionDescent segmentEffortDirection = -1
+)
+
+const (
+	segmentEffortDirectionMinAltitudeDeltaM = 3.0
+	segmentEffortDirectionMinGradePercent   = 0.5
+)
+
+var segmentEffortDirectionLabelNormalizer = strings.NewReplacer(
+	"é", "e",
+	"è", "e",
+	"ê", "e",
+	"ë", "e",
+	"à", "a",
+	"â", "a",
+	"ä", "a",
+	"î", "i",
+	"ï", "i",
+	"ô", "o",
+	"ö", "o",
+	"ù", "u",
+	"û", "u",
+	"ü", "u",
+	"ç", "c",
+	"’", "'",
+	"-", " ",
+)
+
+var ascentSegmentDirectionKeywords = []string{
+	"montee",
+	"ascent",
+	"climb",
+	"uphill",
+}
+
+var descentSegmentDirectionKeywords = []string{
+	"descente",
+	"descent",
+	"downhill",
+}
+
+func toActivityEffort(effort *strava.SegmentEffort, activity *strava.DetailedActivity) business.ActivityEffort {
+	direction := resolveSegmentEffortDirection(effort, activity)
+	label := directionAwareSegmentEffortLabel(effort.Segment.Name, direction)
+	deltaAltitude := resolveSegmentEffortDeltaAltitude(effort, activity, direction)
 
 	return business.ActivityEffort{
 		Distance:      effort.Distance,
 		Seconds:       effort.ElapsedTime,
-		DeltaAltitude: effort.Segment.ElevationHigh - effort.Segment.ElevationLow,
+		DeltaAltitude: deltaAltitude,
 		IdxStart:      effort.StartIndex,
 		IdxEnd:        effort.EndIndex,
 		AveragePower:  &effort.AverageWatts,
-		Label:         effort.Segment.Name,
+		Label:         label,
 		ActivityShort: business.ActivityShort{
 			Id:   effort.Id,
-			Name: effort.Segment.Name,
+			Name: label,
 			Type: business.ActivityTypes[effort.Segment.ActivityType],
 		},
 	}
+}
+
+func resolveSegmentEffortDirection(effort *strava.SegmentEffort, activity *strava.DetailedActivity) segmentEffortDirection {
+	if direction := resolveSegmentEffortDirectionFromAltitudeStream(activity, effort); direction != segmentEffortDirectionUnknown {
+		return direction
+	}
+	if direction := resolveSegmentEffortDirectionFromLabels(effort.Name, effort.Segment.Name); direction != segmentEffortDirectionUnknown {
+		return direction
+	}
+	return resolveSegmentEffortDirectionFromAverageGrade(effort.Segment.AverageGrade)
+}
+
+func resolveSegmentEffortDirectionFromAltitudeStream(activity *strava.DetailedActivity, effort *strava.SegmentEffort) segmentEffortDirection {
+	if activity == nil || activity.Stream == nil || activity.Stream.Altitude == nil {
+		return segmentEffortDirectionUnknown
+	}
+	altitudeData := activity.Stream.Altitude.Data
+	if len(altitudeData) == 0 {
+		return segmentEffortDirectionUnknown
+	}
+	startIndex := effort.StartIndex
+	endIndex := effort.EndIndex
+	if startIndex < 0 || endIndex < 0 || startIndex >= len(altitudeData) || endIndex >= len(altitudeData) || startIndex == endIndex {
+		return segmentEffortDirectionUnknown
+	}
+	altitudeDelta := altitudeData[endIndex] - altitudeData[startIndex]
+	if !isFiniteNumber(altitudeDelta) {
+		return segmentEffortDirectionUnknown
+	}
+	if math.Abs(altitudeDelta) < segmentEffortDirectionMinAltitudeDeltaM {
+		return segmentEffortDirectionUnknown
+	}
+	if altitudeDelta > 0 {
+		return segmentEffortDirectionAscent
+	}
+	return segmentEffortDirectionDescent
+}
+
+func resolveSegmentEffortDirectionFromLabels(labels ...string) segmentEffortDirection {
+	for _, label := range labels {
+		normalized := normalizeSegmentEffortDirectionLabel(label)
+		if normalized == "" {
+			continue
+		}
+		if hasAnySegmentEffortDirectionKeyword(normalized, descentSegmentDirectionKeywords) {
+			return segmentEffortDirectionDescent
+		}
+		if hasAnySegmentEffortDirectionKeyword(normalized, ascentSegmentDirectionKeywords) {
+			return segmentEffortDirectionAscent
+		}
+	}
+	return segmentEffortDirectionUnknown
+}
+
+func resolveSegmentEffortDirectionFromAverageGrade(averageGrade float64) segmentEffortDirection {
+	if !isFiniteNumber(averageGrade) {
+		return segmentEffortDirectionUnknown
+	}
+	if math.Abs(averageGrade) < segmentEffortDirectionMinGradePercent {
+		return segmentEffortDirectionUnknown
+	}
+	if averageGrade > 0 {
+		return segmentEffortDirectionAscent
+	}
+	return segmentEffortDirectionDescent
+}
+
+func resolveSegmentEffortDeltaAltitude(
+	effort *strava.SegmentEffort,
+	activity *strava.DetailedActivity,
+	direction segmentEffortDirection,
+) float64 {
+	if activity != nil && activity.Stream != nil && activity.Stream.Altitude != nil {
+		altitudeData := activity.Stream.Altitude.Data
+		startIndex := effort.StartIndex
+		endIndex := effort.EndIndex
+		if startIndex >= 0 && endIndex >= 0 && startIndex < len(altitudeData) && endIndex < len(altitudeData) {
+			altitudeDelta := altitudeData[endIndex] - altitudeData[startIndex]
+			if isFiniteNumber(altitudeDelta) {
+				return altitudeDelta
+			}
+		}
+	}
+
+	baseDelta := effort.Segment.ElevationHigh - effort.Segment.ElevationLow
+	if !isFiniteNumber(baseDelta) {
+		baseDelta = 0
+	}
+	switch direction {
+	case segmentEffortDirectionAscent:
+		return math.Abs(baseDelta)
+	case segmentEffortDirectionDescent:
+		return -math.Abs(baseDelta)
+	default:
+		return baseDelta
+	}
+}
+
+func directionAwareSegmentEffortLabel(baseLabel string, direction segmentEffortDirection) string {
+	normalized := strings.ToLower(baseLabel)
+	switch direction {
+	case segmentEffortDirectionAscent:
+		if strings.Contains(normalized, "(ascent)") {
+			return baseLabel
+		}
+		return fmt.Sprintf("%s (ascent)", baseLabel)
+	case segmentEffortDirectionDescent:
+		if strings.Contains(normalized, "(descent)") {
+			return baseLabel
+		}
+		return fmt.Sprintf("%s (descent)", baseLabel)
+	default:
+		return baseLabel
+	}
+}
+
+func normalizeSegmentEffortDirectionLabel(label string) string {
+	normalized := strings.ToLower(strings.TrimSpace(label))
+	if normalized == "" {
+		return ""
+	}
+	normalized = segmentEffortDirectionLabelNormalizer.Replace(normalized)
+	return strings.Join(strings.Fields(normalized), " ")
+}
+
+func hasAnySegmentEffortDirectionKeyword(label string, keywords []string) bool {
+	for _, keyword := range keywords {
+		if strings.Contains(label, keyword) {
+			return true
+		}
+	}
+	return false
+}
+
+func isFiniteNumber(value float64) bool {
+	return !math.IsNaN(value) && !math.IsInf(value, 0)
 }
 
 func calculateBestElevationForDistance(activity *strava.DetailedActivity, f float64) *business.ActivityEffort {

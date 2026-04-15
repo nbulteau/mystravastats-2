@@ -10,11 +10,11 @@ const props = defineProps<{
 
 <template>
   <div class="combined-cell">
-    <a
-      :href="`https://www.strava.com/activities/${model.activity?.id}`"
-      target="_blank"
+    <RouterLink
+      v-if="model.activity"
+      :to="`/activities/${model.activity?.id}`"
       class="activity-link"
-    >{{ model.activity?.name }}</a>
+    >{{ model.activity?.name }}</RouterLink>
   </div>
 </template>
 

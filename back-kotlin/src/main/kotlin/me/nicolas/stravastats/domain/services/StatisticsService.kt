@@ -27,6 +27,7 @@ import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
@@ -76,6 +77,9 @@ internal class StatisticsService(
         private const val SEGMENT_CACHE_MAX_ENTRIES = 256
         private const val SEGMENT_CACHE_TTL_SECONDS = 30 * 60L
         private const val SEGMENT_FALLBACK_CACHE_TTL_SECONDS = 45L
+        private const val SEGMENT_ANALYSIS_ALGO_VERSION = "direction-v2"
+        private const val SEGMENT_DIRECTION_MIN_ALTITUDE_DELTA_M = 3.0
+        private const val SEGMENT_DIRECTION_MIN_GRADE_PERCENT = 0.5
     }
 
     private val logger = LoggerFactory.getLogger(StatisticsService::class.java)
@@ -228,6 +232,7 @@ internal class StatisticsService(
                         targetId = effort.segment.id,
                         targetName = effort.segment.name,
                         targetType = effortTargetType,
+                        direction = resolveSegmentDirection(effort, activity, detailedActivity),
                         climbCategory = effort.segment.climbCategory,
                         distance = effort.distance,
                         averageGrade = effort.segment.averageGrade,
@@ -247,7 +252,9 @@ internal class StatisticsService(
                 .toList()
         }
 
-        if (rawAttempts.isEmpty()) {
+        val directionAwareRawAttempts = splitAttemptsByDirection(rawAttempts)
+
+        if (directionAwareRawAttempts.isEmpty()) {
             if (year != null) {
                 // Fallback for UX: when selected year has no segment data yet, reuse all-years data.
                 return getSegmentClimbProgression(activityTypes, null, metric, targetType, targetId)
@@ -263,7 +270,7 @@ internal class StatisticsService(
             )
         }
 
-        val attemptsByTarget = rawAttempts.groupBy { raw -> raw.targetId }
+        val attemptsByTarget = directionAwareRawAttempts.groupBy { raw -> raw.targetId }
         val targetSummaries = attemptsByTarget.values
             .map { attempts -> buildTargetSummary(attempts, resolvedMetric) }
             .sortedWith(
@@ -590,6 +597,7 @@ internal class StatisticsService(
                         targetId = effort.segment.id,
                         targetName = effort.segment.name,
                         targetType = effortTargetType,
+                        direction = resolveSegmentDirection(effort, activity, detailedActivity),
                         climbCategory = effort.segment.climbCategory,
                         distance = effort.distance,
                         averageGrade = effort.segment.averageGrade,
@@ -606,9 +614,11 @@ internal class StatisticsService(
                 .toList()
         }
 
-        if (segmentEffortAttempts.isNotEmpty()) {
-            storeSegmentAttemptsInCache(cacheKey, segmentEffortAttempts, fallbackUsed = false)
-            return segmentEffortAttempts
+        val directionAwareSegmentEfforts = splitAttemptsByDirection(segmentEffortAttempts)
+
+        if (directionAwareSegmentEfforts.isNotEmpty()) {
+            storeSegmentAttemptsInCache(cacheKey, directionAwareSegmentEfforts, fallbackUsed = false)
+            return directionAwareSegmentEfforts
         }
 
         // Cache-only fallback:
@@ -696,6 +706,7 @@ internal class StatisticsService(
         val normalizedYear = year?.toString() ?: "all"
 
         return listOf(
+            "algo:$SEGMENT_ANALYSIS_ALGO_VERSION",
             "types:$sortedTypes",
             "year:$normalizedYear",
             "from:$normalizedFrom",
@@ -908,6 +919,163 @@ internal class StatisticsService(
         }
         val metersPerSecond = distanceInMeters / elapsedTimeSeconds.toDouble()
         return metersPerSecond * 3.6
+    }
+
+    private fun splitAttemptsByDirection(attempts: List<SegmentAttemptRaw>): List<SegmentAttemptRaw> {
+        if (attempts.isEmpty()) {
+            return emptyList()
+        }
+
+        return attempts
+            .groupBy { attempt -> attempt.targetId }
+            .values
+            .flatMap { groupedAttempts ->
+                val baseTargetId = groupedAttempts.first().targetId
+                if (baseTargetId <= 0L) {
+                    return@flatMap groupedAttempts
+                }
+
+                val hasAscent = groupedAttempts.any { attempt -> attempt.direction == SegmentDirection.ASCENT }
+                val hasDescent = groupedAttempts.any { attempt -> attempt.direction == SegmentDirection.DESCENT }
+                if (!hasAscent || !hasDescent) {
+                    return@flatMap groupedAttempts
+                }
+
+                groupedAttempts.map { attempt ->
+                    val resolvedDirection = when (attempt.direction) {
+                        SegmentDirection.ASCENT -> SegmentDirection.ASCENT
+                        SegmentDirection.DESCENT -> SegmentDirection.DESCENT
+                        SegmentDirection.UNKNOWN ->
+                            resolveDirectionFromAverageGrade(attempt.averageGrade).takeIf { it != SegmentDirection.UNKNOWN }
+                                ?: SegmentDirection.ASCENT
+                    }
+                    attempt.copy(
+                        targetId = directionAwareTargetId(baseTargetId, resolvedDirection),
+                        targetName = directionAwareTargetName(attempt.targetName, resolvedDirection),
+                    )
+                }
+            }
+    }
+
+    private fun resolveSegmentDirection(
+        effort: StravaSegmentEffort,
+        activity: StravaActivity,
+        detailedActivity: StravaDetailedActivity,
+    ): SegmentDirection {
+        resolveDirectionFromAltitudeStream(detailedActivity, effort)?.let { direction ->
+            return direction
+        }
+
+        resolveDirectionFromLabels(activity.name, effort.name, effort.segment.name)?.let { direction ->
+            return direction
+        }
+
+        return resolveDirectionFromAverageGrade(effort.segment.averageGrade)
+    }
+
+    private fun resolveDirectionFromAltitudeStream(
+        detailedActivity: StravaDetailedActivity,
+        effort: StravaSegmentEffort,
+    ): SegmentDirection? {
+        val altitudeData = detailedActivity.stream?.altitude?.data ?: return null
+        if (altitudeData.isEmpty()) {
+            return null
+        }
+        if (effort.startIndex < 0 || effort.endIndex < 0) {
+            return null
+        }
+        if (effort.startIndex >= altitudeData.size || effort.endIndex >= altitudeData.size) {
+            return null
+        }
+        if (effort.startIndex == effort.endIndex) {
+            return null
+        }
+
+        val altitudeDelta = altitudeData[effort.endIndex] - altitudeData[effort.startIndex]
+        if (abs(altitudeDelta) < SEGMENT_DIRECTION_MIN_ALTITUDE_DELTA_M) {
+            return null
+        }
+        return if (altitudeDelta > 0.0) SegmentDirection.ASCENT else SegmentDirection.DESCENT
+    }
+
+    private fun resolveDirectionFromLabels(vararg labels: String): SegmentDirection? {
+        val ascentKeywords = listOf("montee", "ascent", "climb", "uphill")
+        val descentKeywords = listOf("descente", "descent", "downhill")
+
+        labels.forEach { label ->
+            val normalized = normalizeDirectionLabel(label)
+            if (normalized.isBlank()) {
+                return@forEach
+            }
+            if (descentKeywords.any { keyword -> normalized.contains(keyword) }) {
+                return SegmentDirection.DESCENT
+            }
+            if (ascentKeywords.any { keyword -> normalized.contains(keyword) }) {
+                return SegmentDirection.ASCENT
+            }
+        }
+
+        return null
+    }
+
+    private fun normalizeDirectionLabel(label: String): String {
+        if (label.isBlank()) {
+            return ""
+        }
+        return label.trim()
+            .lowercase(Locale.getDefault())
+            .replace("é", "e")
+            .replace("è", "e")
+            .replace("ê", "e")
+            .replace("ë", "e")
+            .replace("à", "a")
+            .replace("â", "a")
+            .replace("ä", "a")
+            .replace("î", "i")
+            .replace("ï", "i")
+            .replace("ô", "o")
+            .replace("ö", "o")
+            .replace("ù", "u")
+            .replace("û", "u")
+            .replace("ü", "u")
+            .replace("ç", "c")
+            .replace("’", "'")
+            .replace("-", " ")
+            .split(Regex("\\s+"))
+            .filter { token -> token.isNotBlank() }
+            .joinToString(" ")
+    }
+
+    private fun resolveDirectionFromAverageGrade(averageGrade: Double): SegmentDirection {
+        if (abs(averageGrade) < SEGMENT_DIRECTION_MIN_GRADE_PERCENT) {
+            return SegmentDirection.UNKNOWN
+        }
+        return if (averageGrade > 0.0) SegmentDirection.ASCENT else SegmentDirection.DESCENT
+    }
+
+    private fun directionAwareTargetId(baseTargetId: Long, direction: SegmentDirection): Long {
+        if (baseTargetId <= 0L) {
+            return baseTargetId
+        }
+        return when (direction) {
+            SegmentDirection.ASCENT -> -(baseTargetId * 10L + 1L)
+            SegmentDirection.DESCENT -> -(baseTargetId * 10L + 2L)
+            SegmentDirection.UNKNOWN -> baseTargetId
+        }
+    }
+
+    private fun directionAwareTargetName(baseTargetName: String, direction: SegmentDirection): String {
+        return when (direction) {
+            SegmentDirection.ASCENT -> {
+                if (baseTargetName.contains("(ascent)")) baseTargetName else "$baseTargetName (ascent)"
+            }
+
+            SegmentDirection.DESCENT -> {
+                if (baseTargetName.contains("(descent)")) baseTargetName else "$baseTargetName (descent)"
+            }
+
+            SegmentDirection.UNKNOWN -> baseTargetName
+        }
     }
 
     private fun buildAttempts(attempts: List<SegmentAttemptRaw>, metric: SegmentMetric): List<SegmentClimbAttempt> {
@@ -1158,6 +1326,7 @@ internal class StatisticsService(
         val targetId: Long,
         val targetName: String,
         val targetType: SegmentTargetType,
+        val direction: SegmentDirection = SegmentDirection.UNKNOWN,
         val climbCategory: Int,
         val distance: Double,
         val averageGrade: Double,
@@ -1187,6 +1356,12 @@ internal class StatisticsService(
         ALL,
         SEGMENT,
         CLIMB
+    }
+
+    private enum class SegmentDirection {
+        UNKNOWN,
+        ASCENT,
+        DESCENT,
     }
 
     private fun getPersonalRecordMetricDefinitions(activityTypes: Set<ActivityType>): List<PersonalRecordMetricDefinition> {

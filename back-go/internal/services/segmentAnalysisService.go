@@ -153,11 +153,13 @@ func collectSegmentAttemptsGroupedByTarget(
 				continue
 			}
 
-			attempt := toSegmentAttemptRaw(effort, activity)
+			attempt := toSegmentAttemptRaw(effort, activity, detailedActivity)
 
 			attemptsByTarget[attempt.targetId] = append(attemptsByTarget[attempt.targetId], attempt)
 		}
 	}
+
+	attemptsByTarget = splitAttemptsByDirection(attemptsByTarget)
 
 	if len(attemptsByTarget) > 0 {
 		storeSegmentAttemptsInCache(cacheKey, attemptsByTarget, false)
@@ -236,6 +238,7 @@ func collectNameBasedAttemptsByTarget(
 				targetId:           targetId,
 				targetName:         targetName,
 				targetType:         segmentTargetTypeSegment,
+				direction:          segmentDirectionUnknown,
 				climbCategory:      0,
 				distance:           activity.Distance,
 				averageGrade:       averageGrade,
@@ -303,7 +306,11 @@ func valueOrEmpty(value *string) string {
 	return *value
 }
 
-func toSegmentAttemptRaw(effort strava.SegmentEffort, activity *strava.Activity) segmentAttemptRaw {
+func toSegmentAttemptRaw(
+	effort strava.SegmentEffort,
+	activity *strava.Activity,
+	detailedActivity *strava.DetailedActivity,
+) segmentAttemptRaw {
 	effortTargetType := segmentTargetTypeSegment
 	if effort.Segment.ClimbCategory > 0 {
 		effortTargetType = segmentTargetTypeClimb
@@ -314,6 +321,7 @@ func toSegmentAttemptRaw(effort strava.SegmentEffort, activity *strava.Activity)
 		targetId:           effort.Segment.Id,
 		targetName:         effort.Segment.Name,
 		targetType:         effortTargetType,
+		direction:          resolveSegmentDirection(effort, activity, detailedActivity),
 		climbCategory:      effort.Segment.ClimbCategory,
 		distance:           effort.Distance,
 		averageGrade:       effort.Segment.AverageGrade,

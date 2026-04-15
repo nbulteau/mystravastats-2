@@ -177,7 +177,7 @@ data class ActivityEffortDto(
 
 fun ActivityEffort.toDto(): ActivityEffortDto {
     return ActivityEffortDto(
-        id = this.label.hashCode().toString(),
+        id = "${this.label.hashCode()}-${this.idxStart}-${this.idxEnd}-${this.seconds}",
         label = this.label,
         distance = this.distance,
         seconds = this.seconds,

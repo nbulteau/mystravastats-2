@@ -15,10 +15,8 @@ function handleDetailedActivityClick(id: string) {
 
 <template>
   <div>
-    <a
-        v-if="model.link"
-        :href="model.link"
-        target="_blank"
+    <RouterLink
+        :to="`/activities/${model.id}`"
         class="btn btn-light"
     >
       <img
@@ -27,7 +25,7 @@ function handleDetailedActivityClick(id: string) {
           width="16"
           height="16"
       >
-    </a>
+    </RouterLink>
 
     <a
         href="#"

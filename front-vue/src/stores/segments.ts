@@ -9,7 +9,7 @@ import { useContextStore } from "@/stores/context";
 
 type SegmentMetric = "TIME" | "SPEED";
 
-const SEGMENTS_CACHE_STORAGE_KEY = "mystravastats:segments:cache:v1";
+const SEGMENTS_CACHE_STORAGE_KEY = "mystravastats:segments:cache:v2";
 const SEGMENTS_LIST_CACHE_TTL_MS = 10 * 60 * 1000;
 const SEGMENTS_DETAILS_CACHE_TTL_MS = 10 * 60 * 1000;
 const SEGMENTS_LIST_CACHE_MAX_ENTRIES = 40;
