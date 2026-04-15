@@ -3,12 +3,13 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"mystravastats/api/dto"
 	"mystravastats/domain/business"
-	services2 "mystravastats/internal/services"
+	activitiesDomain "mystravastats/internal/activities/domain"
 	"net/http"
 	"sort"
 	"strconv"
@@ -27,7 +28,7 @@ import (
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/health/details [get]
 func getHealthDetails(w http.ResponseWriter, _ *http.Request) {
-	details := services2.FetchCacheHealthDetails()
+	details := getContainer().getCacheHealthDetailsUseCase.Execute()
 	if err := writeJSON(w, http.StatusOK, details); err != nil {
 		log.Printf("failed to write cache health response: %v", err)
 		writeInternalServerError(w, "Failed to encode cache health response")
@@ -43,7 +44,7 @@ func getHealthDetails(w http.ResponseWriter, _ *http.Request) {
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/athletes/me [get]
 func getAthlete(w http.ResponseWriter, _ *http.Request) {
-	athlete := services2.FetchAthlete()
+	athlete := getContainer().getAthleteUseCase.Execute()
 	athleteDto := dto.ToAthleteDto(athlete)
 
 	if err := writeJSON(w, http.StatusOK, athleteDto); err != nil {
@@ -53,7 +54,7 @@ func getAthlete(w http.ResponseWriter, _ *http.Request) {
 }
 
 func getAthleteHeartRateZones(w http.ResponseWriter, _ *http.Request) {
-	settings := services2.FetchHeartRateZoneSettings()
+	settings := getContainer().getHeartRateZoneSettingsUseCase.Execute()
 	settingsDto := dto.ToHeartRateZoneSettingsDto(settings)
 
 	if err := writeJSON(w, http.StatusOK, settingsDto); err != nil {
@@ -77,7 +78,7 @@ func putAthleteHeartRateZones(w http.ResponseWriter, r *http.Request) {
 	}
 
 	settings := dto.ToHeartRateZoneSettings(settingsDto)
-	updatedSettings := services2.UpdateHeartRateZoneSettings(settings)
+	updatedSettings := getContainer().updateHeartRateZoneSettingsUseCase.Execute(settings)
 	updatedSettingsDto := dto.ToHeartRateZoneSettingsDto(updatedSettings)
 
 	if err := writeJSON(w, http.StatusOK, updatedSettingsDto); err != nil {
@@ -109,7 +110,7 @@ func getActivitiesByActivityType(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	activitiesByActivityTypeAndYear := services2.RetrieveActivitiesByYearAndActivityTypes(year, activityTypes...)
+	activitiesByActivityTypeAndYear := getContainer().listActivitiesUseCase.Execute(year, activityTypes)
 	activitiesDto := make([]dto.ActivityDto, len(activitiesByActivityTypeAndYear))
 	for i, activity := range activitiesByActivityTypeAndYear {
 		activitiesDto[i] = dto.ToActivityDto(*activity)
@@ -139,8 +140,12 @@ func getDetailedActivity(writer http.ResponseWriter, request *http.Request) {
 		writeBadRequest(writer, "Invalid request parameters", "invalid activityId")
 		return
 	}
-	activity, err := services2.RetrieveDetailedActivity(activityId)
+	activity, err := getContainer().getDetailedActivityUseCase.Execute(activityId)
 	if err != nil {
+		if errors.Is(err, activitiesDomain.ErrInvalidActivityID) {
+			writeBadRequest(writer, "Invalid request parameters", "activityId must be > 0")
+			return
+		}
 		writeNotFound(writer, "Resource not found", fmt.Sprintf("Activity %d not found", activityId))
 		return
 	}
@@ -175,7 +180,7 @@ func getExportCSV(writer http.ResponseWriter, request *http.Request) {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
-	csvData := services2.ExportCSV(year, activityTypes...)
+	csvData := getContainer().exportActivitiesCSVUseCase.Execute(year, activityTypes)
 
 	writer.Header().Set("Content-Type", "text/csv")
 	writer.Header().Set("Content-Disposition", "attachment; filename=\"activities.csv\"")
@@ -210,7 +215,7 @@ func getStatisticsByActivityType(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	statisticsByActivityTypeAndYear := services2.FetchStatisticsByActivityTypeAndYear(year, activityTypes...)
+	statisticsByActivityTypeAndYear := getContainer().listStatisticsUseCase.Execute(year, activityTypes)
 	statisticsDto := make([]dto.StatisticDto, len(statisticsByActivityTypeAndYear))
 	for i, statistic := range statisticsByActivityTypeAndYear {
 		statisticsDto[i] = dto.ToStatisticDto(statistic)
@@ -247,7 +252,7 @@ func getPersonalRecordsTimelineByActivityType(w http.ResponseWriter, r *http.Req
 	}
 	metric := getMetricParam(r)
 
-	timeline := services2.FetchPersonalRecordsTimelineByActivityTypeAndYear(year, metric, activityTypes...)
+	timeline := getContainer().listPersonalRecordsTimelineUseCase.Execute(year, metric, activityTypes)
 	timelineDto := make([]dto.PersonalRecordTimelineDto, len(timeline))
 	for i, entry := range timeline {
 		timelineDto[i] = dto.ToPersonalRecordTimelineDto(entry)
@@ -271,7 +276,7 @@ func getHeartRateZoneAnalysisByActivityType(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	analysis := services2.FetchHeartRateZoneAnalysisByActivityTypeAndYear(year, activityTypes...)
+	analysis := getContainer().getHeartRateZoneAnalysisUseCase.Execute(year, activityTypes)
 	analysisDto := dto.ToHeartRateZoneAnalysisDto(analysis)
 
 	if err := writeJSON(w, http.StatusOK, analysisDto); err != nil {
@@ -322,7 +327,7 @@ func getSegmentClimbProgressionByActivityType(w http.ResponseWriter, r *http.Req
 		activityTypes,
 	)
 
-	progression := services2.FetchSegmentClimbProgressionByActivityTypeAndYear(year, metric, targetType, targetId, activityTypes...)
+	progression := getContainer().getSegmentClimbProgressionUseCase.Execute(year, metric, targetType, targetId, activityTypes)
 	progressionDto := dto.ToSegmentClimbProgressionDto(progression)
 
 	if err := writeJSON(w, http.StatusOK, progressionDto); err != nil {
@@ -355,7 +360,7 @@ func getSegmentsByActivityType(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	segments := services2.ListSegmentsByActivityTypeAndYear(year, metric, query, from, to, activityTypes...)
+	segments := getContainer().listSegmentsUseCase.Execute(year, metric, query, from, to, activityTypes)
 	segmentsDto := make([]dto.SegmentClimbTargetSummaryDto, len(segments))
 	for i, segment := range segments {
 		segmentsDto[i] = dto.ToSegmentClimbTargetSummaryDto(segment)
@@ -395,7 +400,7 @@ func getSegmentEffortsByActivityType(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	efforts := services2.FetchSegmentEffortsByActivityTypeAndYear(year, metric, segmentID, from, to, activityTypes...)
+	efforts := getContainer().listSegmentEffortsUseCase.Execute(year, metric, segmentID, from, to, activityTypes)
 	effortsDto := make([]dto.SegmentClimbAttemptDto, len(efforts))
 	for i, effort := range efforts {
 		effortsDto[i] = dto.ToSegmentClimbAttemptDto(effort)
@@ -435,7 +440,7 @@ func getSegmentSummaryByActivityType(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	summary := services2.FetchSegmentSummaryByActivityTypeAndYear(year, metric, segmentID, from, to, activityTypes...)
+	summary := getContainer().getSegmentSummaryUseCase.Execute(year, metric, segmentID, from, to, activityTypes)
 	if summary == nil {
 		writeNotFound(w, "Segment not found", "No attempts found for this segment with current filters")
 		return
@@ -487,7 +492,7 @@ func getMapsGPX(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gpx := services2.RetrieveGPXByYearAndActivityTypes(year, activityTypes...)
+	gpx := getContainer().getMapsGPXUseCase.Execute(year, activityTypes)
 
 	if err := writeJSON(w, http.StatusOK, gpx); err != nil {
 		log.Printf("failed to write gpx response: %v", err)
@@ -528,7 +533,7 @@ func getChartsDistanceByPeriod(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	distanceByPeriod := services2.FetchChartsDistanceByPeriod(year, period, activityTypes...)
+	distanceByPeriod := getContainer().getDistanceByPeriodUseCase.Execute(year, period, activityTypes)
 
 	if err := writeJSON(w, http.StatusOK, distanceByPeriod); err != nil {
 		log.Printf("failed to write distance chart response: %v", err)
@@ -569,7 +574,7 @@ func getChartsElevationByPeriod(writer http.ResponseWriter, request *http.Reques
 		return
 	}
 
-	elevationByPeriod := services2.FetchChartsElevationByPeriod(year, period, activityTypes...)
+	elevationByPeriod := getContainer().getElevationByPeriodUseCase.Execute(year, period, activityTypes)
 
 	if err := writeJSON(writer, http.StatusOK, elevationByPeriod); err != nil {
 		log.Printf("failed to write elevation chart response: %v", err)
@@ -610,7 +615,7 @@ func getChartsAverageSpeedByPeriod(writer http.ResponseWriter, request *http.Req
 		return
 	}
 
-	averageSpeedByPeriod := services2.FetchChartsAverageSpeedByPeriod(year, period, activityTypes...)
+	averageSpeedByPeriod := getContainer().getAverageSpeedByPeriodUseCase.Execute(year, period, activityTypes)
 
 	if err := writeJSON(writer, http.StatusOK, averageSpeedByPeriod); err != nil {
 		log.Printf("failed to write average speed chart response: %v", err)
@@ -651,7 +656,7 @@ func getChartsAverageCadenceByPeriod(writer http.ResponseWriter, request *http.R
 		return
 	}
 
-	averageCadenceByPeriod := services2.FetchChartsAverageCadenceByPeriod(year, period, activityTypes...)
+	averageCadenceByPeriod := getContainer().getAverageCadenceByPeriodUseCase.Execute(year, period, activityTypes)
 
 	if err := writeJSON(writer, http.StatusOK, averageCadenceByPeriod); err != nil {
 		log.Printf("failed to write average cadence chart response: %v", err)
@@ -676,7 +681,7 @@ func getDashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dashboardData := services2.FetchDashboardData(activityTypes...)
+	dashboardData := getContainer().getDashboardDataUseCase.Execute(activityTypes)
 	dashboardDataDto := dto.ToDashboardDataDto(dashboardData)
 
 	if err := writeJSON(w, http.StatusOK, dashboardDataDto); err != nil {
@@ -702,12 +707,10 @@ func getDashboardCumulativeDataByYear(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cumulativeDistancePerYear := services2.GetCumulativeDistancePerYear(activityTypes...)
-	cumulativeElevationPerYear := services2.GetCumulativeElevationPerYear(activityTypes...)
-
+	cumulativeData := getContainer().getCumulativeDataPerYearUseCase.Execute(activityTypes)
 	cumulativeDataDto := dto.CumulativeDataPerYearDto{
-		Distance:  cumulativeDistancePerYear,
-		Elevation: cumulativeElevationPerYear,
+		Distance:  cumulativeData.Distance,
+		Elevation: cumulativeData.Elevation,
 	}
 
 	if err := writeJSON(w, http.StatusOK, cumulativeDataDto); err != nil {
@@ -733,7 +736,7 @@ func getDashboardActivityHeatmap(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	heatmap := services2.FetchActivityHeatmap(activityTypes...)
+	heatmap := getContainer().getActivityHeatmapUseCase.Execute(activityTypes)
 
 	if err := writeJSON(w, http.StatusOK, heatmap); err != nil {
 		log.Printf("failed to write activity heatmap response: %v", err)
@@ -758,7 +761,7 @@ func getDashboardEddingtonNumber(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	edNum := services2.FetchEddingtonNumber(activityTypes...)
+	edNum := getContainer().getEddingtonNumberUseCase.Execute(activityTypes)
 	edNumDto := dto.EddingtonNumberDto{
 		EddingtonNumber: edNum.Number,
 		EddingtonList:   edNum.List,
@@ -799,17 +802,7 @@ func getBadges(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var badges []business.BadgeCheckResult
-	switch {
-	case badgeSet != nil && *badgeSet == business.GENERAL:
-		badges = services2.GetGeneralBadges(year, activityTypes...)
-	case badgeSet != nil && *badgeSet == business.FAMOUS:
-		badges = services2.GetFamousBadges(year, activityTypes...)
-	default:
-		generalBadges := services2.GetGeneralBadges(year, activityTypes...)
-		famousBadges := services2.GetFamousBadges(year, activityTypes...)
-		badges = append(generalBadges, famousBadges...)
-	}
+	badges := getContainer().getBadgesUseCase.Execute(year, badgeSet, activityTypes)
 
 	badgesDto := make([]dto.BadgeCheckResultDto, len(badges))
 	for i, badge := range badges {

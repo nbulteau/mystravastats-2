@@ -3,35 +3,13 @@ package services
 import (
 	"mystravastats/adapters/stravaapi"
 	"mystravastats/domain/strava"
-	"mystravastats/internal/helpers"
+	"mystravastats/internal/platform/activityprovider"
 	"sort"
-	"sync"
 	"time"
 )
 
-var (
-	activityProvider     *stravaapi.StravaActivityProvider
-	activityProviderOnce sync.Once
-	serverPort           string
-)
-
-// InitActivityProvider eagerly initializes the provider at startup.
-// This keeps cache-first loading and background refresh behavior predictable
-// instead of waiting for the first incoming API request.
-func InitActivityProvider(port string) {
-	serverPort = port
-	_ = getActivityProvider()
-}
-
 func getActivityProvider() *stravaapi.StravaActivityProvider {
-	activityProviderOnce.Do(func() {
-		activityProvider = stravaapi.NewStravaActivityProvider(helpers.StravaCachePath, serverPort)
-	})
-	return activityProvider
-}
-
-func FetchCacheHealthDetails() map[string]any {
-	return getActivityProvider().CacheDiagnostics()
+	return activityprovider.Get()
 }
 
 // groupActivitiesByDay groups activities by day and fills in missing days

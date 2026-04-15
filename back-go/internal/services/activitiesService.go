@@ -7,22 +7,6 @@ import (
 	"mystravastats/domain/strava"
 )
 
-func RetrieveActivitiesByYearAndActivityTypes(year *int, activityTypes ...business.ActivityType) []*strava.Activity {
-	return getActivityProvider().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
-}
-
-func FetchAthlete() strava.Athlete {
-	return getActivityProvider().GetAthlete()
-}
-
-func FetchHeartRateZoneSettings() business.HeartRateZoneSettings {
-	return getActivityProvider().GetHeartRateZoneSettings()
-}
-
-func UpdateHeartRateZoneSettings(settings business.HeartRateZoneSettings) business.HeartRateZoneSettings {
-	return getActivityProvider().SaveHeartRateZoneSettings(settings)
-}
-
 func RetrieveGPXByYearAndActivityTypes(year *int, activityTypes ...business.ActivityType) [][][]float64 {
 
 	activities := getActivityProvider().GetActivitiesByYearAndActivityTypes(year, activityTypes...)

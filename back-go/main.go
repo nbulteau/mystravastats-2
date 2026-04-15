@@ -19,7 +19,7 @@ import (
 	"io/fs"
 	"log"
 	"mystravastats/api"
-	"mystravastats/internal/services"
+	"mystravastats/internal/platform/activityprovider"
 	"net/http"
 	"os"
 	"strings"
@@ -45,7 +45,7 @@ func main() {
 
 	// Eager initialization keeps cache loading and background refresh
 	// behavior unchanged from a user perspective at startup.
-	services.InitActivityProvider(*port)
+	activityprovider.Init(*port)
 
 	// Create a new CORS handler
 	c := cors.New(cors.Options{
