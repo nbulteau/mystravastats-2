@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	"fmt"
 	"mystravastats/domain/business"
 	"mystravastats/domain/strava"
 	"mystravastats/internal/platform/activityprovider"
@@ -16,7 +17,11 @@ func NewDetailedActivityServiceAdapter() *DetailedActivityServiceAdapter {
 }
 
 func (adapter *DetailedActivityServiceAdapter) FindDetailedActivityByID(activityID int64) (*strava.DetailedActivity, error) {
-	return services.RetrieveDetailedActivity(activityID)
+	detailedActivity := activityprovider.Get().GetDetailedActivity(activityID)
+	if detailedActivity == nil {
+		return nil, fmt.Errorf("activity %d not found", activityID)
+	}
+	return detailedActivity, nil
 }
 
 func (adapter *DetailedActivityServiceAdapter) FindActivitiesByYearAndTypes(year *int, activityTypes ...business.ActivityType) []*strava.Activity {
@@ -28,5 +33,26 @@ func (adapter *DetailedActivityServiceAdapter) ExportCSVByYearAndTypes(year *int
 }
 
 func (adapter *DetailedActivityServiceAdapter) FindGPXByYearAndTypes(year *int, activityTypes ...business.ActivityType) [][][]float64 {
-	return services.RetrieveGPXByYearAndActivityTypes(year, activityTypes...)
+	activities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+
+	step := 100
+	if year != nil {
+		step = 10
+	}
+
+	var result [][][]float64
+	for _, activity := range activities {
+		if activity.Stream == nil || activity.Stream.LatLng == nil {
+			continue
+		}
+		var coordinates [][]float64
+		for i, pair := range activity.Stream.LatLng.Data {
+			if i%step == 0 {
+				coordinates = append(coordinates, []float64{pair[0], pair[1]})
+			}
+		}
+		result = append(result, coordinates)
+	}
+
+	return result
 }
