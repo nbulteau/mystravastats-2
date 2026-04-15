@@ -120,10 +120,15 @@ swag init
 ### swagger-ui
 http://localhost:8080/swagger/index.html
 
-
 ### Update dependencies
 
 ```shell
 go get -u ./...
 go mod tidy
+```
+
+### Run tests
+
+```shell
+go test -v ./...
 ```

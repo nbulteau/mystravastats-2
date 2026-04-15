@@ -17,6 +17,8 @@ import (
 	healthInfra "mystravastats/internal/health/infrastructure"
 	heartrateApp "mystravastats/internal/heartrate/application"
 	heartrateInfra "mystravastats/internal/heartrate/infrastructure"
+	routesApp "mystravastats/internal/routes/application"
+	routesInfra "mystravastats/internal/routes/infrastructure"
 	segmentsApp "mystravastats/internal/segments/application"
 	segmentsInfra "mystravastats/internal/segments/infrastructure"
 	statisticsApp "mystravastats/internal/statistics/application"
@@ -35,6 +37,7 @@ type container struct {
 	listSegmentsUseCase                *segmentsApp.ListSegmentsUseCase
 	listSegmentEffortsUseCase          *segmentsApp.ListSegmentEffortsUseCase
 	getSegmentSummaryUseCase           *segmentsApp.GetSegmentSummaryUseCase
+	getRouteExplorerUseCase            *routesApp.GetRouteExplorerUseCase
 	getHeartRateZoneSettingsUseCase    *heartrateApp.GetHeartRateZoneSettingsUseCase
 	updateHeartRateZoneSettingsUseCase *heartrateApp.UpdateHeartRateZoneSettingsUseCase
 	getHeartRateZoneAnalysisUseCase    *heartrateApp.GetHeartRateZoneAnalysisUseCase
@@ -62,6 +65,7 @@ func getContainer() *container {
 		badgesReader := badgesInfra.NewBadgesServiceAdapter()
 		statisticsReader := statisticsInfra.NewStatisticsServiceAdapter()
 		segmentsReader := segmentsInfra.NewSegmentServiceAdapter()
+		routesReader := routesInfra.NewRouteServiceAdapter()
 		heartRateReader := heartrateInfra.NewHeartRateServiceAdapter()
 		healthReader := healthInfra.NewHealthServiceAdapter()
 		chartsReader := chartsInfra.NewChartsServiceAdapter()
@@ -78,6 +82,7 @@ func getContainer() *container {
 			listSegmentsUseCase:                segmentsApp.NewListSegmentsUseCase(segmentsReader),
 			listSegmentEffortsUseCase:          segmentsApp.NewListSegmentEffortsUseCase(segmentsReader),
 			getSegmentSummaryUseCase:           segmentsApp.NewGetSegmentSummaryUseCase(segmentsReader),
+			getRouteExplorerUseCase:            routesApp.NewGetRouteExplorerUseCase(routesReader),
 			getHeartRateZoneSettingsUseCase:    heartrateApp.NewGetHeartRateZoneSettingsUseCase(heartRateReader),
 			updateHeartRateZoneSettingsUseCase: heartrateApp.NewUpdateHeartRateZoneSettingsUseCase(heartRateReader),
 			getHeartRateZoneAnalysisUseCase:    heartrateApp.NewGetHeartRateZoneAnalysisUseCase(heartRateReader),

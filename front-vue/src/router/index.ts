@@ -8,6 +8,7 @@ import DetailedActivityView from "@/views/DetailedActivityView.vue";
 import DashboardView from "@/views/DashboardView.vue";
 import HeatmapView from "@/views/HeatmapView.vue";
 import SegmentsView from "@/views/SegmentsView.vue";
+import RoutesView from "@/views/RoutesView.vue";
 
 
 const router: Router = createRouter({
@@ -47,6 +48,11 @@ const router: Router = createRouter({
       path: '/segments',
       name: 'segments',
       component: SegmentsView
+    },
+    {
+      path: '/routes',
+      name: 'routes',
+      component: RoutesView
     },
     {
       path: '/badges',

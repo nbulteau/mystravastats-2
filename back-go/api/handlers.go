@@ -10,6 +10,7 @@ import (
 	"mystravastats/api/dto"
 	"mystravastats/domain/business"
 	activitiesDomain "mystravastats/internal/activities/domain"
+	routesDomain "mystravastats/internal/routes/domain"
 	"net/http"
 	"sort"
 	"strconv"
@@ -469,6 +470,64 @@ func getSegmentSummaryByActivityType(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func getRouteRecommendationsByActivityType(w http.ResponseWriter, r *http.Request) {
+	year, err := getYearParam(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+	activityTypes, err := getActivityTypeParam(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+
+	distanceTargetKm, err := getFloatParam(r, "distanceTargetKm")
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+	elevationTargetM, err := getFloatParam(r, "elevationTargetM")
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+	durationTargetMin, err := getIntParam(r, "durationTargetMin")
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+	season := getOptionalStringParam(r, "season")
+	shape := getOptionalStringParam(r, "shape")
+	limit, err := getIntParam(r, "limit")
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+	includeRemix, err := getBoolParam(r, "includeRemix")
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+
+	request := routesDomain.RouteExplorerRequest{
+		DistanceTargetKm:  distanceTargetKm,
+		ElevationTargetM:  elevationTargetM,
+		DurationTargetMin: durationTargetMin,
+		Season:            season,
+		Limit:             optionalIntValue(limit),
+		Shape:             shape,
+		IncludeRemix:      includeRemix != nil && *includeRemix,
+	}
+
+	explorer := getContainer().getRouteExplorerUseCase.Execute(year, request, activityTypes)
+	explorerDto := dto.ToRouteExplorerResultDto(explorer)
+	if err := writeJSON(w, http.StatusOK, explorerDto); err != nil {
+		log.Printf("failed to write routes explorer response: %v", err)
+		writeInternalServerError(w, "Failed to encode routes explorer response")
+	}
+}
+
 // getMapsGPX godoc
 // @Summary Get GPX data for maps
 // @Description Returns GPX data from activities for map display
@@ -921,6 +980,57 @@ func getDateParam(r *http.Request, key string) (*string, error) {
 		return nil, fmt.Errorf("invalid %s date: %q (expected YYYY-MM-DD)", key, value)
 	}
 	return &value, nil
+}
+
+func getFloatParam(r *http.Request, key string) (*float64, error) {
+	value := strings.TrimSpace(r.URL.Query().Get(key))
+	if value == "" {
+		return nil, nil
+	}
+	parsed, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid %s: %q", key, value)
+	}
+	return &parsed, nil
+}
+
+func getIntParam(r *http.Request, key string) (*int, error) {
+	value := strings.TrimSpace(r.URL.Query().Get(key))
+	if value == "" {
+		return nil, nil
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return nil, fmt.Errorf("invalid %s: %q", key, value)
+	}
+	return &parsed, nil
+}
+
+func getBoolParam(r *http.Request, key string) (*bool, error) {
+	value := strings.TrimSpace(r.URL.Query().Get(key))
+	if value == "" {
+		return nil, nil
+	}
+	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		return nil, fmt.Errorf("invalid %s: %q", key, value)
+	}
+	return &parsed, nil
+}
+
+func getOptionalStringParam(r *http.Request, key string) *string {
+	value := strings.TrimSpace(r.URL.Query().Get(key))
+	if value == "" {
+		return nil
+	}
+	return &value
+}
+
+func optionalIntValue(value *int) int {
+	if value == nil {
+		return 0
+	}
+	return *value
 }
 
 func getTargetTypeParam(r *http.Request) *string {
