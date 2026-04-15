@@ -725,7 +725,7 @@ func getDashboardCumulativeDataByYear(w http.ResponseWriter, r *http.Request) {
 // @Tags dashboard
 // @Produce json
 // @Param activityType query string true "Activity type"
-// @Success 200 {object} map[string]map[string]services.ActivityHeatmapDay
+// @Success 200 {object} map[string]map[string]interface{}
 // @Failure 400 {string} string "Invalid parameters"
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/dashboard/activity-heatmap [get]
