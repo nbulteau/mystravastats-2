@@ -3,11 +3,9 @@ package infrastructure
 import (
 	"mystravastats/domain/business"
 	"mystravastats/internal/segments/domain"
-	"mystravastats/internal/services"
 )
 
-// SegmentServiceAdapter bridges the current internal/services layer
-// to the hexagonal outbound ports used by segment use cases.
+// SegmentServiceAdapter computes segment read models directly from provider data.
 type SegmentServiceAdapter struct{}
 
 func NewSegmentServiceAdapter() *SegmentServiceAdapter {
@@ -21,7 +19,7 @@ func (adapter *SegmentServiceAdapter) FindSegmentClimbProgressionByYearMetricTar
 	targetId *int64,
 	activityTypes ...business.ActivityType,
 ) business.SegmentClimbProgression {
-	return services.FetchSegmentClimbProgressionByActivityTypeAndYear(year, metric, targetType, targetId, activityTypes...)
+	return computeSegmentClimbProgressionByYearMetricTargetAndTypes(year, metric, targetType, targetId, activityTypes...)
 }
 
 func (adapter *SegmentServiceAdapter) FindSegmentsByYearMetricQueryRangeAndTypes(
@@ -32,7 +30,7 @@ func (adapter *SegmentServiceAdapter) FindSegmentsByYearMetricQueryRangeAndTypes
 	to *string,
 	activityTypes ...business.ActivityType,
 ) []business.SegmentClimbTargetSummary {
-	return services.ListSegmentsByActivityTypeAndYear(year, metric, query, from, to, activityTypes...)
+	return computeSegmentsByYearMetricQueryRangeAndTypes(year, metric, query, from, to, activityTypes...)
 }
 
 func (adapter *SegmentServiceAdapter) FindSegmentEffortsByYearMetricRangeAndTypes(
@@ -43,7 +41,7 @@ func (adapter *SegmentServiceAdapter) FindSegmentEffortsByYearMetricRangeAndType
 	to *string,
 	activityTypes ...business.ActivityType,
 ) []business.SegmentClimbAttempt {
-	return services.FetchSegmentEffortsByActivityTypeAndYear(year, metric, segmentID, from, to, activityTypes...)
+	return computeSegmentEffortsByYearMetricRangeAndTypes(year, metric, segmentID, from, to, activityTypes...)
 }
 
 func (adapter *SegmentServiceAdapter) FindSegmentSummaryByYearMetricRangeAndTypes(
@@ -54,7 +52,7 @@ func (adapter *SegmentServiceAdapter) FindSegmentSummaryByYearMetricRangeAndType
 	to *string,
 	activityTypes ...business.ActivityType,
 ) *domain.SegmentSummary {
-	summary := services.FetchSegmentSummaryByActivityTypeAndYear(year, metric, segmentID, from, to, activityTypes...)
+	summary := computeSegmentSummaryByYearMetricRangeAndTypes(year, metric, segmentID, from, to, activityTypes...)
 	if summary == nil {
 		return nil
 	}
