@@ -94,21 +94,7 @@ class DashboardService(
         logger.info("Get Eddington number for activity type $activityTypes")
 
         val activitiesByActiveDays = activityProvider.getActivitiesByActivityTypeGroupByActiveDays(activityTypes)
-
-        val eddingtonList: List<Int> = if (activitiesByActiveDays.isEmpty()) {
-            emptyList()
-        } else {
-            val counts = IntArray(activitiesByActiveDays.maxOf { entry -> entry.value }) { 0 }.toMutableList()
-            if (counts.isNotEmpty()) {
-                // counts = number of time we reach a distance
-                activitiesByActiveDays.forEach { entry: Map.Entry<String, Int> ->
-                    for (day in entry.value downTo 1) {
-                        counts[day - 1] += 1
-                    }
-                }
-            }
-            counts
-        }
+        val eddingtonList = computeEddingtonListFromDailyTotals(activitiesByActiveDays.values)
 
         var eddingtonNumber = 0
         for (day in eddingtonList.size downTo 1) {
@@ -119,6 +105,24 @@ class DashboardService(
         }
 
         return EddingtonNumber(eddingtonNumber, eddingtonList)
+    }
+
+    private fun computeEddingtonListFromDailyTotals(dailyTotals: Collection<Int>): List<Int> {
+        val positiveDailyTotals = dailyTotals.filter { total -> total > 0 }
+        return if (positiveDailyTotals.isEmpty()) {
+            emptyList()
+        } else {
+            val counts = IntArray(positiveDailyTotals.max()) { 0 }.toMutableList()
+            if (counts.isNotEmpty()) {
+                // counts = number of time we reach a distance
+                positiveDailyTotals.forEach { total ->
+                    for (day in total downTo 1) {
+                        counts[day - 1] += 1
+                    }
+                }
+            }
+            counts
+        }
     }
 
     override fun getDashboardData(activityTypes: Set<ActivityType>): DashboardData {

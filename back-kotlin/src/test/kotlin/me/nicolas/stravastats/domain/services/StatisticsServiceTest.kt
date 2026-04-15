@@ -124,6 +124,78 @@ class StatisticsServiceTest {
         assertTrue(timeline[0].value.contains("34.51 km"))
     }
 
+    @Test
+    fun `personal records timeline for best 1 h contains initial pr on oldest event then progresses`() {
+        // GIVEN
+        val activityTypes = setOf(ActivityType.Ride)
+        val activities = listOf(
+            rideActivityForTimeline(
+                id = 2001L,
+                startDate = "2025-06-15T06:00:00Z",
+                startDateLocal = "2025-06-15T08:00:00+02:00",
+                bestDistanceFor1hMeters = 14_000.0,
+            ),
+            rideActivityForTimeline(
+                id = 2002L,
+                startDate = "2025-01-10T06:00:00Z",
+                startDateLocal = "2025-01-10T08:00:00+02:00",
+                bestDistanceFor1hMeters = 9_000.0,
+            ),
+            rideActivityForTimeline(
+                id = 2003L,
+                startDate = "2025-02-01T06:00:00Z",
+                startDateLocal = "2025-02-01T08:00:00+02:00",
+                bestDistanceFor1hMeters = 10_000.0,
+            ),
+            rideActivityForTimeline(
+                id = 2004L,
+                startDate = "2025-03-01T06:00:00Z",
+                startDateLocal = "2025-03-01T08:00:00+02:00",
+                bestDistanceFor1hMeters = 15_000.0,
+            ),
+        )
+
+        every { activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, null) } returns activities
+
+        // WHEN
+        val timeline = statisticsService.getPersonalRecordsTimeline(activityTypes, null, "best-distance-1h")
+
+        // THEN
+        assertEquals(3, timeline.size)
+        assertEquals("2025-01-10T08:00:00+02:00", timeline[0].activityDate)
+        assertNull(timeline[0].previousValue)
+        assertNull(timeline[0].improvement)
+
+        assertEquals("2025-02-01T08:00:00+02:00", timeline[1].activityDate)
+        assertTrue(timeline[1].previousValue!!.startsWith("9.00 km"))
+        assertTrue(timeline[1].improvement!!.contains("1.00 km farther"))
+
+        assertEquals("2025-03-01T08:00:00+02:00", timeline[2].activityDate)
+        assertTrue(timeline[2].previousValue!!.startsWith("10.00 km"))
+        assertTrue(timeline[2].improvement!!.contains("5.00 km farther"))
+    }
+
+    @Test
+    fun `personal records timeline returns empty list for unknown metric key`() {
+        // GIVEN
+        val activityTypes = setOf(ActivityType.Ride)
+        val activities = listOf(
+            rideActivityForTimeline(
+                id = 3001L,
+                startDate = "2025-01-10T06:00:00Z",
+                startDateLocal = "2025-01-10T08:00:00+02:00",
+                bestDistanceFor1hMeters = 9_000.0,
+            ),
+        )
+        every { activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, null) } returns activities
+
+        // WHEN
+        val timeline = statisticsService.getPersonalRecordsTimeline(activityTypes, null, "unknown-metric")
+
+        // THEN
+        assertEquals(0, timeline.size)
+    }
+
     private fun rideActivityForTimeline(
         id: Long,
         startDate: String,

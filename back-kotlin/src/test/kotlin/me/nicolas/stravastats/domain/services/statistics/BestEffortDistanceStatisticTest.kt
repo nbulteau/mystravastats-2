@@ -91,4 +91,36 @@ class BestEffortDistanceStatisticTest {
             )
         }
     }
+
+    @Test
+    fun `statistic selects the fastest effort across multiple activities`() {
+        // GIVEN
+        val slowRide = StatisticsFixtures.syntheticRideActivity(
+            id = 6,
+            stream = StatisticsFixtures.defaultStream(
+                distances = listOf(0.0, 100.0, 200.0, 300.0),
+                times = listOf(0, 20, 40, 60),
+                altitudes = listOf(100.0, 102.0, 104.0, 106.0),
+            )
+        )
+        val fastRide = StatisticsFixtures.syntheticRideActivity(
+            id = 7,
+            stream = StatisticsFixtures.defaultStream(
+                distances = listOf(0.0, 100.0, 200.0, 300.0),
+                times = listOf(0, 10, 20, 30),
+                altitudes = listOf(100.0, 103.0, 106.0, 109.0),
+            )
+        )
+
+        // WHEN
+        val statistic = BestEffortDistanceStatistic(
+            name = "Best 200 m",
+            activities = listOf(slowRide, fastRide),
+            distance = 200.0
+        )
+
+        // THEN
+        assertEquals("20s => 36.00 km/h", statistic.value)
+        assertEquals(7L, statistic.activity?.id)
+    }
 }
