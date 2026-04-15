@@ -4,6 +4,7 @@ import { useBadgesStore } from "@/stores/badges";
 import { useChartsStore } from "@/stores/charts";
 import { useDashboardStore } from "@/stores/dashboard";
 import { useMapStore } from "@/stores/map";
+import { useRoutesStore } from "@/stores/routes";
 import { useSegmentsStore } from "@/stores/segments";
 import { useStatisticsStore } from "@/stores/statistics";
 
@@ -13,6 +14,7 @@ export type AppView =
   | "activity"
   | "map"
   | "badges"
+  | "routes"
   | "segments"
   | "charts"
   | "dashboard"
@@ -41,6 +43,9 @@ export const useContextStore = defineStore("context", {
           break;
         case "segments":
           await useSegmentsStore().ensureLoaded();
+          break;
+        case "routes":
+          await useRoutesStore().ensureLoaded();
           break;
         case "dashboard":
           await useDashboardStore().ensureDashboardLoaded();

@@ -97,6 +97,12 @@ var routes = Routes{
 		getSegmentSummaryByActivityType,
 	},
 	Route{
+		"GetRouteRecommendationsByActivityType",
+		"GET",
+		"/api/routes/recommendations",
+		getRouteRecommendationsByActivityType,
+	},
+	Route{
 		"GetMapsGPX",
 		"GET",
 		"/api/maps/gpx",

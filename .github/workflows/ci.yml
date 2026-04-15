@@ -85,7 +85,7 @@ jobs:
         run: npm ci
 
       - name: Run lint
-        run: npm run lint
+        run: npx eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix
 
       - name: Run type-check
         run: npm run type-check
