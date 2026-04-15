@@ -1,0 +1,286 @@
+package infrastructure
+
+import (
+	"fmt"
+	"log"
+	"mystravastats/domain/business"
+	domainStatistics "mystravastats/domain/statistics"
+	"mystravastats/domain/strava"
+	"mystravastats/internal/helpers"
+	"mystravastats/internal/platform/activityprovider"
+)
+
+func computeStatisticsByYearAndTypes(year *int, activityTypes ...business.ActivityType) []domainStatistics.Statistic {
+	if len(activityTypes) == 0 {
+		log.Printf("No activity types provided")
+		return []domainStatistics.Statistic{}
+	}
+
+	if year == nil {
+		log.Printf("Compute statistics for %v for all years", activityTypes)
+	} else {
+		log.Printf("Compute statistics for %v for %v", activityTypes, *year)
+	}
+
+	filteredActivities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	if len(filteredActivities) == 0 {
+		if year == nil {
+			log.Printf("No activities found for %v in all years", activityTypes)
+		} else {
+			log.Printf("No activities found for %v in year %v", activityTypes, *year)
+		}
+		return []domainStatistics.Statistic{}
+	}
+
+	activityType := activityTypes[0]
+	switch activityType {
+	case business.Ride, business.GravelRide, business.MountainBikeRide:
+		return computeRideStatistics(filteredActivities)
+	case business.VirtualRide:
+		return computeVirtualRideStatistics(filteredActivities)
+	case business.Commute:
+		return computeCommuteStatistics(filteredActivities)
+	case business.Run, business.TrailRun:
+		return computeRunStatistics(filteredActivities)
+	case business.InlineSkate:
+		return computeInlineSkateStatistics(filteredActivities)
+	case business.Hike:
+		return computeHikeStatistics(filteredActivities)
+	case business.AlpineSki:
+		return computeAlpineSkiStatistics(filteredActivities)
+	default:
+		return []domainStatistics.Statistic{}
+	}
+}
+
+func computeRunStatistics(runActivities []*strava.Activity) []domainStatistics.Statistic {
+	allStatistics := computeCommonStats(runActivities)
+	allStatistics = append(allStatistics, []domainStatistics.Statistic{
+		domainStatistics.NewCooperStatistic(runActivities),
+		domainStatistics.NewVO2maxStatistic(runActivities),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 200 m", runActivities, 200.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 400 m", runActivities, 400.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 1000 m", runActivities, 1000.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 5000 m", runActivities, 5000.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 10000 m", runActivities, 10000.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best half Marathon", runActivities, 21097.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best Marathon", runActivities, 42195.0),
+		domainStatistics.NewBestEffortTimeStatistic("Best 1 h", runActivities, 60*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 2 h", runActivities, 2*60*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 3 h", runActivities, 3*60*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 4 h", runActivities, 4*60*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 5 h", runActivities, 5*60*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 6 h", runActivities, 6*60*60),
+	}...)
+	return allStatistics
+}
+
+func computeRideStatistics(rideActivities []*strava.Activity) []domainStatistics.Statistic {
+	allStatistics := computeCommonStats(rideActivities)
+	allStatistics = append(allStatistics, []domainStatistics.Statistic{
+		domainStatistics.NewMaxSpeedStatistic(rideActivities),
+		domainStatistics.NewMaxMovingTimeStatistic(rideActivities),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 250 m", rideActivities, 250.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 500 m", rideActivities, 500.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 1000 m", rideActivities, 1000.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 5 km", rideActivities, 5000.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 10 km", rideActivities, 10000.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 20 km", rideActivities, 20000.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 50 km", rideActivities, 50000.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 100 km", rideActivities, 100000.0),
+		domainStatistics.NewBestEffortTimeStatistic("Best 30 min", rideActivities, 30*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 1 h", rideActivities, 60*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 2 h", rideActivities, 2*60*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 3 h", rideActivities, 3*60*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 4 h", rideActivities, 4*60*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 5 h", rideActivities, 5*60*60),
+		domainStatistics.NewBestElevationDistanceStatistic("Max gradient for 250 m", rideActivities, 250.0),
+		domainStatistics.NewBestElevationDistanceStatistic("Max gradient for 500 m", rideActivities, 500.0),
+		domainStatistics.NewBestElevationDistanceStatistic("Max gradient for 1000 m", rideActivities, 1000.0),
+		domainStatistics.NewBestElevationDistanceStatistic("Max gradient for 5 km", rideActivities, 5000.0),
+		domainStatistics.NewBestElevationDistanceStatistic("Max gradient for 10 km", rideActivities, 10000.0),
+		domainStatistics.NewBestElevationDistanceStatistic("Max gradient for 20 km", rideActivities, 20000.0),
+	}...)
+	return allStatistics
+}
+
+func computeVirtualRideStatistics(rideActivities []*strava.Activity) []domainStatistics.Statistic {
+	allStatistics := computeCommonStats(rideActivities)
+	allStatistics = append(allStatistics, []domainStatistics.Statistic{
+		domainStatistics.NewMaxSpeedStatistic(rideActivities),
+		domainStatistics.NewMaxMovingTimeStatistic(rideActivities),
+		domainStatistics.NewMaxAveragePowerStatistic(rideActivities),
+		domainStatistics.NewMaxWeightedAveragePowerStatistic(rideActivities),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 250 m", rideActivities, 250.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 500 m", rideActivities, 500.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 1000 m", rideActivities, 1000.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 5 km", rideActivities, 5000.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 10 km", rideActivities, 10000.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 20 km", rideActivities, 20000.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 50 km", rideActivities, 50000.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 100 km", rideActivities, 100000.0),
+		domainStatistics.NewBestEffortTimeStatistic("Best 30 min", rideActivities, 30*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 1 h", rideActivities, 60*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 2 h", rideActivities, 2*60*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 3 h", rideActivities, 3*60*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 4 h", rideActivities, 4*60*60),
+		domainStatistics.NewBestEffortPowerStatistic("Best average power for 20 min", rideActivities, 20*60),
+		domainStatistics.NewBestEffortPowerStatistic("Best average power for 1 h", rideActivities, 60*60),
+	}...)
+	return allStatistics
+}
+
+func computeAlpineSkiStatistics(filteredActivities []*strava.Activity) []domainStatistics.Statistic {
+	allStatistics := computeCommonStats(filteredActivities)
+	allStatistics = append(allStatistics, []domainStatistics.Statistic{
+		domainStatistics.NewMaxSpeedStatistic(filteredActivities),
+		domainStatistics.NewMaxMovingTimeStatistic(filteredActivities),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 250 m", filteredActivities, 250.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 500 m", filteredActivities, 500.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 1000 m", filteredActivities, 1000.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 5 km", filteredActivities, 5000.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 10 km", filteredActivities, 10000.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 20 km", filteredActivities, 20000.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 50 km", filteredActivities, 50000.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 100 km", filteredActivities, 100000.0),
+		domainStatistics.NewBestEffortTimeStatistic("Best 30 min", filteredActivities, 30*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 1 h", filteredActivities, 60*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 2 h", filteredActivities, 2*60*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 3 h", filteredActivities, 3*60*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 4 h", filteredActivities, 4*60*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 5 h", filteredActivities, 5*60*60),
+	}...)
+	return allStatistics
+}
+
+func computeCommuteStatistics(commuteActivities []*strava.Activity) []domainStatistics.Statistic {
+	allStatistics := computeCommonStats(commuteActivities)
+	allStatistics = append(allStatistics, []domainStatistics.Statistic{
+		domainStatistics.NewMaxSpeedStatistic(commuteActivities),
+		domainStatistics.NewMaxMovingTimeStatistic(commuteActivities),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 250 m", commuteActivities, 250.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 500 m", commuteActivities, 500.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 1000 m", commuteActivities, 1000.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 5 km", commuteActivities, 5000.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 10 km", commuteActivities, 10000.0),
+		domainStatistics.NewBestEffortTimeStatistic("Best 30 min", commuteActivities, 30*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 1 h", commuteActivities, 60*60),
+		domainStatistics.NewBestElevationDistanceStatistic("Max gradient for 250 m", commuteActivities, 250.0),
+		domainStatistics.NewBestElevationDistanceStatistic("Max gradient for 500 m", commuteActivities, 500.0),
+		domainStatistics.NewBestElevationDistanceStatistic("Max gradient for 1000 m", commuteActivities, 1000.0),
+	}...)
+	return allStatistics
+}
+
+func computeHikeStatistics(hikeActivities []*strava.Activity) []domainStatistics.Statistic {
+	statisticsList := computeCommonStats(hikeActivities)
+	statisticsList = append(statisticsList,
+		domainStatistics.NewBestDayStatistic("Max distance in a day", hikeActivities, "%.02f km - %s ",
+			func(activities []*strava.Activity) *domainStatistics.Pair {
+				activityMap := make(map[string]float64)
+				for _, activity := range activities {
+					date := activity.StartDateLocal
+					if len(date) >= 10 {
+						date = date[:10]
+					}
+					activityMap[date] += activity.Distance / 1000
+				}
+				var maxPair *domainStatistics.Pair
+				for date, distance := range activityMap {
+					if maxPair == nil || distance > maxPair.Value {
+						maxPair = &domainStatistics.Pair{Date: date, Value: distance}
+					}
+				}
+				return maxPair
+			}),
+		domainStatistics.NewBestDayStatistic("Max elevation in a day", hikeActivities, "%.02f km - %s ",
+			func(activities []*strava.Activity) *domainStatistics.Pair {
+				activityMap := make(map[string]float64)
+				for _, activity := range activities {
+					date := activity.StartDateLocal
+					if len(date) >= 10 {
+						date = date[:10]
+					}
+					activityMap[date] += activity.TotalElevationGain
+				}
+				var maxPair *domainStatistics.Pair
+				for date, elevation := range activityMap {
+					if maxPair == nil || elevation > maxPair.Value {
+						maxPair = &domainStatistics.Pair{Date: date, Value: elevation}
+					}
+				}
+				return maxPair
+			}),
+	)
+	return statisticsList
+}
+
+func computeInlineSkateStatistics(inlineSkateActivities []*strava.Activity) []domainStatistics.Statistic {
+	allStatistics := computeCommonStats(inlineSkateActivities)
+	allStatistics = append(allStatistics, []domainStatistics.Statistic{
+		domainStatistics.NewBestEffortDistanceStatistic("Best 200 m", inlineSkateActivities, 200.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 400 m", inlineSkateActivities, 400.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 1000 m", inlineSkateActivities, 1000.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best 10000 m", inlineSkateActivities, 10000.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best half Marathon", inlineSkateActivities, 21097.0),
+		domainStatistics.NewBestEffortDistanceStatistic("Best Marathon", inlineSkateActivities, 42195.0),
+		domainStatistics.NewBestEffortTimeStatistic("Best 1 h", inlineSkateActivities, 60*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 2 h", inlineSkateActivities, 2*60*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 3 h", inlineSkateActivities, 3*60*60),
+		domainStatistics.NewBestEffortTimeStatistic("Best 4 h", inlineSkateActivities, 4*60*60),
+	}...)
+	return allStatistics
+}
+
+func computeCommonStats(activities []*strava.Activity) []domainStatistics.Statistic {
+	totalDistance := 0.0
+	totalElevation := 0.0
+	elapsedTime := 0
+	for _, activity := range activities {
+		totalDistance += activity.Distance
+		elapsedTime += activity.ElapsedTime
+		totalElevation += activity.TotalElevationGain
+	}
+
+	return []domainStatistics.Statistic{
+		domainStatistics.NewGlobalStatistic("Nb activities", activities, func(activities []*strava.Activity) string {
+			return fmt.Sprintf("%d", len(activities))
+		}),
+		domainStatistics.NewGlobalStatistic("Nb actives days", activities, func(activities []*strava.Activity) string {
+			activeDays := make(map[string]struct{})
+			for _, activity := range activities {
+				date := activity.StartDateLocal
+				if len(date) >= 10 {
+					date = date[:10]
+				}
+				activeDays[date] = struct{}{}
+			}
+			return fmt.Sprintf("%d", len(activeDays))
+		}),
+		domainStatistics.NewMaxStreakStatistic(activities),
+		domainStatistics.NewGlobalStatistic("Total distance", activities, func(activities []*strava.Activity) string {
+			return fmt.Sprintf("%.2f km", totalDistance/1000)
+		}),
+		domainStatistics.NewGlobalStatistic("Elapsed time", activities, func(activities []*strava.Activity) string {
+			return helpers.FormatSeconds(elapsedTime)
+		}),
+		domainStatistics.NewGlobalStatistic("Total elevation", activities, func(activities []*strava.Activity) string {
+			return fmt.Sprintf("%.02f m", totalElevation)
+		}),
+		domainStatistics.NewGlobalStatistic("Km by activity", activities, func(activities []*strava.Activity) string {
+			if len(activities) == 0 {
+				return "Not available"
+			}
+			return fmt.Sprintf("%.2f km", totalDistance/float64(len(activities))/1000)
+		}),
+		domainStatistics.NewAverageSpeedStatistic(activities),
+		domainStatistics.NewMaxDistanceStatistic(activities),
+		domainStatistics.NewMaxDistanceInADayStatistic(activities),
+		domainStatistics.NewMaxElevationStatistic(activities),
+		domainStatistics.NewMaxElevationInADayStatistic(activities),
+		domainStatistics.NewHighestPointStatistic(activities),
+		domainStatistics.NewMaxMovingTimeStatistic(activities),
+		domainStatistics.NewMostActiveMonthStatistic(activities),
+		domainStatistics.NewEddingtonStatistic(activities),
+	}
+}

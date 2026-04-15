@@ -3,11 +3,9 @@ package infrastructure
 import (
 	"mystravastats/domain/business"
 	"mystravastats/internal/platform/activityprovider"
-	"mystravastats/internal/services"
 )
 
-// HeartRateServiceAdapter bridges the current internal/services layer
-// to the hexagonal outbound ports used by heart-rate use cases.
+// HeartRateServiceAdapter computes heart-rate zone analysis from provider data.
 type HeartRateServiceAdapter struct{}
 
 func NewHeartRateServiceAdapter() *HeartRateServiceAdapter {
@@ -23,5 +21,5 @@ func (adapter *HeartRateServiceAdapter) SaveHeartRateZoneSettings(settings busin
 }
 
 func (adapter *HeartRateServiceAdapter) FindHeartRateZoneAnalysisByYearAndTypes(year *int, activityTypes ...business.ActivityType) business.HeartRateZoneAnalysis {
-	return services.FetchHeartRateZoneAnalysisByActivityTypeAndYear(year, activityTypes...)
+	return computeHeartRateZoneAnalysisByYearAndTypes(year, activityTypes...)
 }
