@@ -17,7 +17,10 @@ func computeEddingtonNumber(activityTypes ...business.ActivityType) business.Edd
 	log.Printf("Get Eddington number for activity type %s", activityTypes)
 
 	activitiesByActiveDays := activityprovider.Get().GetActivitiesByActivityTypeGroupByActiveDays(activityTypes...)
+	return computeEddingtonFromDailyTotals(activitiesByActiveDays)
+}
 
+func computeEddingtonFromDailyTotals(activitiesByActiveDays map[string]int) business.EddingtonNumber {
 	var eddingtonList []int
 	if len(activitiesByActiveDays) == 0 {
 		eddingtonList = []int{}
@@ -28,8 +31,14 @@ func computeEddingtonNumber(activityTypes ...business.ActivityType) business.Edd
 				maxValue = value
 			}
 		}
+		if maxValue <= 0 {
+			return business.EddingtonNumber{Number: 0, List: []int{}}
+		}
 		counts := make([]int, maxValue)
 		for _, value := range activitiesByActiveDays {
+			if value <= 0 {
+				continue
+			}
 			for day := value; day > 0; day-- {
 				counts[day-1]++
 			}
