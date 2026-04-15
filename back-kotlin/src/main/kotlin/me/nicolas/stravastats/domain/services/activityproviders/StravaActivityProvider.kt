@@ -143,7 +143,15 @@ class StravaActivityProvider(
         logger.info("Get detailed activity for activity id $activityId")
 
         // find detailed activity in cache or retrieve from Strava
-        val activity = getActivity(activityId).orElse(null) ?: return Optional.empty()
+        val activity = getActivity(activityId).orElse(null)
+        if (activity == null) {
+            val cachedDetailed = loadDetailedActivityFromCacheAnyYear(activityId, LocalDate.now().year)
+            if (cachedDetailed != null) {
+                logger.info("Detailed activity $activityId loaded from cache without base activity metadata")
+                return Optional.of(cachedDetailed)
+            }
+            return Optional.empty()
+        }
         val year = resolveActivityYear(activity)
         val api = if (isRateLimitActive()) null else stravaApi ?: createStravaApiIfNeeded()
 

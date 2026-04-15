@@ -254,6 +254,37 @@ func TestGetDetailedActivity_SkipsStravaCallWhenRateLimitAlreadyActive(t *testin
 	}
 }
 
+func TestGetDetailedActivity_ReturnsCachedDetailedWithoutBaseActivity(t *testing.T) {
+	// GIVEN
+	cacheDir := t.TempDir()
+	repo := localrepository.NewStravaRepository(cacheDir)
+	clientID := "123"
+	repo.InitLocalStorageForClientId(clientID)
+	repo.SaveActivitiesToCache(clientID, 2024, []strava.Activity{})
+
+	expectedID := int64(4242)
+	repo.SaveDetailedActivityToCache(clientID, 2024, strava.DetailedActivity{
+		Id:   expectedID,
+		Name: "cached detailed activity",
+	})
+
+	provider := &StravaActivityProvider{
+		clientId:             clientID,
+		localStorageProvider: repo,
+	}
+
+	// WHEN
+	detailed := provider.GetDetailedActivity(expectedID)
+
+	// THEN
+	if detailed == nil {
+		t.Fatal("expected cached detailed activity even without base activity metadata")
+	}
+	if detailed.Id != expectedID {
+		t.Fatalf("expected detailed activity id %d, got %d", expectedID, detailed.Id)
+	}
+}
+
 func benchmarkProvider(size int) *StravaActivityProvider {
 	activities := make([]*strava.Activity, 0, size)
 	for i := 0; i < size; i++ {

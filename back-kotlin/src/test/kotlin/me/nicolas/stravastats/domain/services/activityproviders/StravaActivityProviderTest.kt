@@ -14,8 +14,10 @@ import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.business.strava.stream.TimeStream
 import me.nicolas.stravastats.domain.interfaces.IStravaApi
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import me.nicolas.stravastats.domain.services.toStravaDetailedActivity
 
 class StravaActivityProviderTest {
 
@@ -115,5 +117,45 @@ class StravaActivityProviderTest {
         // THEN
         assertTrue(secondCall.isPresent, "Expected cache-only detailed activity while rate limit is active")
         verify(exactly = 1) { api.getDetailedActivityFailFastOnRateLimit(42L) }
+    }
+
+    @Test
+    fun `getDetailedActivity returns cached detailed activity when base activity is missing`() {
+        // GIVEN
+        val repository = mockk<ILocalStorageProvider>(relaxed = true)
+        val api = mockk<IStravaApi>(relaxed = true)
+        coEvery { repository.readStravaAuthentication(any()) } returns Triple("12345", "secret", false)
+
+        val cachedActivityId = 77L
+        val cachedDetailed = StravaActivity(
+            id = cachedActivityId,
+            name = "cached-$cachedActivityId",
+            startDate = "2020-01-01T00:00:00Z",
+            athlete = AthleteRef(1),
+            averageSpeed = 0.0,
+            commute = false,
+            distance = 1000.0,
+            elapsedTime = 300,
+            elevHigh = 0.0,
+            maxSpeed = 0.0f,
+            movingTime = 290,
+            startDateLocal = "2020-01-01T00:00:00Z",
+            startLatlng = null,
+            totalElevationGain = 10.0,
+            type = "Ride",
+            uploadId = 12345L
+        ).toStravaDetailedActivity()
+
+        every { repository.loadDetailedActivityFromCache(any(), any(), cachedActivityId) } returns cachedDetailed
+
+        val provider = StravaActivityProvider(localStorageProvider = repository, stravaApi = api)
+
+        // WHEN
+        val detailed = provider.getDetailedActivity(cachedActivityId)
+
+        // THEN
+        assertTrue(detailed.isPresent, "Expected cached detailed activity")
+        assertEquals(cachedActivityId, detailed.get().id)
+        verify(exactly = 0) { api.getDetailedActivityFailFastOnRateLimit(any()) }
     }
 }

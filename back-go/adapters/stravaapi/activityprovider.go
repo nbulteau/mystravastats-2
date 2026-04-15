@@ -115,6 +115,10 @@ func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *s
 
 	activity := provider.findActivityById(activityId)
 	if activity == nil {
+		if cached := provider.loadDetailedActivityFromCacheAnyYear(activityId, time.Now().Year()); cached != nil {
+			log.Printf("Detailed activity %d loaded from cache without base activity metadata", activityId)
+			return cached
+		}
 		return nil
 	}
 
