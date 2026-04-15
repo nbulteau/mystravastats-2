@@ -5,11 +5,9 @@ import (
 	"mystravastats/domain/business"
 	"mystravastats/domain/strava"
 	"mystravastats/internal/platform/activityprovider"
-	"mystravastats/internal/services"
 )
 
-// DetailedActivityServiceAdapter bridges the current internal/services layer
-// to the hexagonal outbound port used by activities use cases.
+// DetailedActivityServiceAdapter computes activity read models from provider data.
 type DetailedActivityServiceAdapter struct{}
 
 func NewDetailedActivityServiceAdapter() *DetailedActivityServiceAdapter {
@@ -29,7 +27,7 @@ func (adapter *DetailedActivityServiceAdapter) FindActivitiesByYearAndTypes(year
 }
 
 func (adapter *DetailedActivityServiceAdapter) ExportCSVByYearAndTypes(year *int, activityTypes ...business.ActivityType) string {
-	return services.ExportCSV(year, activityTypes...)
+	return computeExportCSVByYearAndTypes(year, activityTypes...)
 }
 
 func (adapter *DetailedActivityServiceAdapter) FindGPXByYearAndTypes(year *int, activityTypes ...business.ActivityType) [][][]float64 {
