@@ -135,6 +135,8 @@ Detailed activity:
 
 ![Detailed Activity](screen-detailed-activity.png)
 
+The detailed-activity screenshot above reflects the V1.1 layout (hero summary, effort panel, and profile chart), captured on activity `15340076302`.
+
 Icons made by [Freepik](https://www.freepik.com) from [Flaticon](https://www.flaticon.com).
 
 ## Quick Start For Non-Developers
