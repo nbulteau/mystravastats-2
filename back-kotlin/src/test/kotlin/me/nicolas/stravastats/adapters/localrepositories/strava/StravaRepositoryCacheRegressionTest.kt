@@ -17,6 +17,7 @@ class StravaRepositoryCacheRegressionTest {
 
     @Test
     fun `repository can deserialize real cache json samples when available`() {
+        // GIVEN
         val cacheRoot = findRealCacheRoot()
         assumeTrue(cacheRoot != null, "real strava-cache directory not found")
         val resolvedCacheRoot = cacheRoot!!
@@ -33,8 +34,11 @@ class StravaRepositoryCacheRegressionTest {
         Files.copy(activitiesFile, targetYearDir.resolve(activitiesFile.name), StandardCopyOption.REPLACE_EXISTING)
 
         val repository = StravaRepository(tempCacheRoot.pathString)
+
+        // WHEN
         val activities = repository.loadActivitiesFromCache(clientId, year)
 
+        // THEN
         val detailedFile = findFirstMatchingFile(activitiesFile.parent, Regex("""stravaActivity-\d+"""))
         if (detailedFile != null) {
             Files.copy(detailedFile, targetYearDir.resolve(detailedFile.name), StandardCopyOption.REPLACE_EXISTING)

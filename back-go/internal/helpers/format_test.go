@@ -28,10 +28,11 @@ func TestFormatDate(t *testing.T) {
 		},
 	}
 
-	// WHEN & THEN
+	// WHEN
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := formatDate(tt.dateStr)
+			// THEN
 			if result != tt.expected {
 				t.Errorf("formatDate(%s) = %s, expected %s", tt.dateStr, result, tt.expected)
 			}
@@ -73,10 +74,11 @@ func TestFormatSeconds(t *testing.T) {
 		},
 	}
 
-	// WHEN & THEN
+	// WHEN
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := FormatSeconds(tt.seconds)
+			// THEN
 			if result != tt.expected {
 				t.Errorf("FormatSeconds(%d) = %s, expected %s", tt.seconds, result, tt.expected)
 			}
@@ -85,6 +87,7 @@ func TestFormatSeconds(t *testing.T) {
 }
 
 func TestFormatSecondsFloat(t *testing.T) {
+	// GIVEN: Test cases for floating second formatting
 	tests := []struct {
 		name     string
 		seconds  float64
@@ -117,9 +120,11 @@ func TestFormatSecondsFloat(t *testing.T) {
 		},
 	}
 
+	// WHEN
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := FormatSecondsFloat(tt.seconds)
+			// THEN
 			if result != tt.expected {
 				t.Errorf("FormatSecondsFloat(%f) = %s, expected %s", tt.seconds, result, tt.expected)
 			}

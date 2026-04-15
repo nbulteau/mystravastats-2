@@ -12,6 +12,7 @@ class StravaActivityServiceTest {
 
     @BeforeEach
     fun setUp() {
+        // GIVEN
         val activities = TestHelper.loadActivities()
 
         // use introspection to set the activities
@@ -22,6 +23,9 @@ class StravaActivityServiceTest {
         field.isAccessible = true
         field.set(stravaActivityProvider, activities)
 
+        // WHEN
         activityService = ActivityService(stravaActivityProvider)
+        // THEN
+        // service is initialized for downstream tests in this class
     }
 }
