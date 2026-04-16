@@ -206,4 +206,101 @@ Benefits:
 - Lazy fetching improves initial load
 - Cleaner separation of setup vs. side effects
 
+## Dependency Management
+
+### View Current Dependencies
+
+```sh
+# List all dependencies with their versions
+npm list
+
+# Check for outdated packages
+npm outdated
+```
+
+### Upgrade Dependencies
+
+#### Semantic Versioning (Safest)
+
+```sh
+# Upgrade to latest patch version (e.g., 3.5.32 → 3.5.33)
+npm update
+
+# Upgrade to latest minor version (e.g., 3.5.32 → 3.6.0)
+npm install vue@^3
+```
+
+### Testing After Upgrade
+
+```sh
+# 1. Type-check the project
+npm run type-check
+
+# 2. Lint code for style issues
+npm run lint
+
+# 3. Run dev server to verify
+npm run dev
+
+# 4. Build for production
+npm run build
+
+# 5. Preview production build locally
+npm run preview
+```
+
+### Key Dependencies to Monitor
+
+| Package | Purpose | Update Frequency |
+|---------|---------|------------------|
+| `vue` | Core framework | Monthly |
+| `vue-router` | Routing | Monthly |
+| `pinia` | State management | Monthly |
+| `vite` | Bundler | Every 2-3 weeks |
+| `typescript` | Type checker | Monthly |
+| `highcharts` | Charts library | Quarterly |
+| `leaflet` | Map library | Quarterly |
+| `bootstrap` | CSS framework | Quarterly |
+
+### Current Versions (as of 2026-04-16)
+
+```json
+{
+  "vue": "^3.5.32",
+  "vue-router": "^5.0.4",
+  "pinia": "^3.0.4",
+  "vite": "^8.0.8",
+  "typescript": "~6.0.2",
+  "highcharts": "^12.6.0",
+  "leaflet": "^1.9.4",
+  "bootstrap": "^5.3.8",
+  "mitt": "^3.0.1"
+}
+```
+
+### Best Practices
+
+✅ **DO:**
+- Upgrade patch versions regularly (`npm update`)
+- Test after each minor/major version upgrade
+- Read changelog before upgrading major versions
+- Keep Node.js up to date (`node >= 25.9.0`)
+- Use `npm ci` for production builds (instead of `npm install`)
+
+❌ **DON'T:**
+- Upgrade all dependencies at once
+- Skip type-checking after upgrades
+- Ignore breaking changes in changelogs
+- Use outdated security-critical packages
+
+### Node.js Version
+
+This project requires **Node.js 25.9.0 or higher**. Check your current version:
+
+```sh
+node -v
+npm -v
+```
+
+To upgrade Node.js, visit [nodejs.org](https://nodejs.org/)
 
