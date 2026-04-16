@@ -3,6 +3,7 @@ package me.nicolas.stravastats.domain.services.statistics
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.utils.dateFormatter
 import java.time.LocalDate
+import java.util.Locale
 
 internal class BestDayStatistic(
     name: String,
@@ -16,7 +17,7 @@ internal class BestDayStatistic(
             val pair: Pair<String, Number>? = function(activities)
             return if (pair != null) {
                 val date = LocalDate.parse(pair.first)
-                formatString.format(date.format(dateFormatter), pair.second)
+                formatString.format(Locale.FRANCE, date.format(dateFormatter), pair.second)
             } else {
                 "Not available"
             }

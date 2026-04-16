@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"mystravastats/domain/business"
 	"mystravastats/domain/strava"
+	application "mystravastats/internal/activities/application"
 	"mystravastats/internal/platform/activityprovider"
 )
 
@@ -30,7 +31,7 @@ func (adapter *DetailedActivityServiceAdapter) ExportCSVByYearAndTypes(year *int
 	return computeExportCSVByYearAndTypes(year, activityTypes...)
 }
 
-func (adapter *DetailedActivityServiceAdapter) FindGPXByYearAndTypes(year *int, activityTypes ...business.ActivityType) [][][]float64 {
+func (adapter *DetailedActivityServiceAdapter) FindGPXByYearAndTypes(year *int, activityTypes ...business.ActivityType) []application.MapTrack {
 	activities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
 
 	step := 100
@@ -38,7 +39,7 @@ func (adapter *DetailedActivityServiceAdapter) FindGPXByYearAndTypes(year *int, 
 		step = 10
 	}
 
-	var result [][][]float64
+	var result []application.MapTrack
 	for _, activity := range activities {
 		if activity.Stream == nil || activity.Stream.LatLng == nil {
 			continue
@@ -49,7 +50,24 @@ func (adapter *DetailedActivityServiceAdapter) FindGPXByYearAndTypes(year *int, 
 				coordinates = append(coordinates, []float64{pair[0], pair[1]})
 			}
 		}
-		result = append(result, coordinates)
+		if len(activity.Stream.LatLng.Data) > 0 {
+			lastPair := activity.Stream.LatLng.Data[len(activity.Stream.LatLng.Data)-1]
+			if len(coordinates) == 0 || coordinates[len(coordinates)-1][0] != lastPair[0] || coordinates[len(coordinates)-1][1] != lastPair[1] {
+				coordinates = append(coordinates, []float64{lastPair[0], lastPair[1]})
+			}
+		}
+		if len(coordinates) < 2 {
+			continue
+		}
+		result = append(result, application.MapTrack{
+			ActivityID:     activity.Id,
+			ActivityName:   activity.Name,
+			ActivityDate:   activity.StartDateLocal,
+			ActivityType:   activity.SportType,
+			DistanceKm:     activity.Distance / 1000.0,
+			ElevationGainM: activity.TotalElevationGain,
+			Coordinates:    coordinates,
+		})
 	}
 
 	return result

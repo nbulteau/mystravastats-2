@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
+import me.nicolas.stravastats.api.dto.MapTrackDto
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
@@ -38,20 +39,64 @@ class MapsController(
     fun getGPX(
         @RequestParam(required = true) activityType: String,
         @RequestParam(required = false) year: Int?,
-    ): List<List<List<Number>>> {
+    ): List<MapTrackDto> {
         val activityTypes = activityType.convertToActivityTypeSet()
 
         val activities = stravaProxy.getActivitiesByActivityTypeAndYear(activityTypes, year)
 
-        // Take 1 out 100 points for this map to avoid too many points
+        // Keep enough points to render smooth tracks while avoiding huge payloads.
         val step = year?.let { 10 } ?: 100
 
-        return activities.map { activity ->
-            // Take 1 out 100 points for this map
-            val coordinates = activity.stream?.latlng?.data?.windowed(1, step)?.flatten()
-            coordinates?.map { pair ->
-                listOf(pair.first(), pair.last())
-            } ?: emptyList()
+        return activities.mapNotNull { activity ->
+            val coordinates = sampleCoordinates(activity.stream?.latlng?.data, step)
+            if (coordinates.size < 2) {
+                return@mapNotNull null
+            }
+
+            MapTrackDto(
+                activityId = activity.id,
+                activityName = activity.name,
+                activityDate = activity.startDateLocal,
+                activityType = activity.sportType,
+                distanceKm = activity.distance / 1000.0,
+                elevationGainM = activity.totalElevationGain,
+                coordinates = coordinates,
+            )
         }
+    }
+
+    private fun sampleCoordinates(
+        latlng: List<List<Double>>?,
+        step: Int,
+    ): List<List<Double>> {
+        if (latlng.isNullOrEmpty()) {
+            return emptyList()
+        }
+
+        val sampled = latlng
+            .filter { pair ->
+                pair.size >= 2
+                    && pair[0].isFinite()
+                    && pair[1].isFinite()
+            }
+            .filterIndexed { index, _ -> index % step == 0 }
+            .map { pair -> listOf(pair[0], pair[1]) }
+            .toMutableList()
+
+        val last = latlng.lastOrNull()
+        if (
+            last != null
+            && last.size >= 2
+            && last[0].isFinite()
+            && last[1].isFinite()
+        ) {
+            val shouldAppendLast = sampled.isEmpty()
+                || sampled.last()[0] != last[0]
+                || sampled.last()[1] != last[1]
+            if (shouldAppendLast) {
+                sampled.add(listOf(last[0], last[1]))
+            }
+        }
+        return sampled
     }
 }

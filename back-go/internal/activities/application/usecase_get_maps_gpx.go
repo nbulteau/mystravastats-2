@@ -12,10 +12,10 @@ func NewGetMapsGPXUseCase(reader ActivitiesGPXReader) *GetMapsGPXUseCase {
 	}
 }
 
-func (uc *GetMapsGPXUseCase) Execute(year *int, activityTypes []business.ActivityType) [][][]float64 {
+func (uc *GetMapsGPXUseCase) Execute(year *int, activityTypes []business.ActivityType) []MapTrack {
 	gpx := uc.reader.FindGPXByYearAndTypes(year, activityTypes...)
 	if gpx == nil {
-		return [][][]float64{}
+		return []MapTrack{}
 	}
 
 	return gpx

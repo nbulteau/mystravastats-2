@@ -7,6 +7,7 @@ import me.nicolas.stravastats.domain.business.strava.stream.AltitudeStream
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.utils.formatDate
 import me.nicolas.stravastats.domain.utils.formatSeconds
+import java.util.Locale
 import kotlin.math.abs
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -64,7 +65,7 @@ data class StravaActivity(
         return if (type.endsWith("Run")) {
             (elapsedTime * 1000 / distance).formatSeconds()
         } else {
-            "%.02f".format(distance / elapsedTime * 3600 / 1000)
+            "%.02f".format(Locale.FRANCE, distance / elapsedTime * 3600 / 1000)
         }
     }
 

@@ -26,5 +26,5 @@ type ActivitiesCSVExporter interface {
 // ActivitiesGPXReader is an outbound port used by map/GPX use cases.
 // Infrastructure adapters implement this interface.
 type ActivitiesGPXReader interface {
-	FindGPXByYearAndTypes(year *int, activityTypes ...business.ActivityType) [][][]float64
+	FindGPXByYearAndTypes(year *int, activityTypes ...business.ActivityType) []MapTrack
 }

@@ -7,7 +7,7 @@ import (
 
 type activitiesExportAndMapsStub struct {
 	csv           string
-	gpx           [][][]float64
+	gpx           []MapTrack
 	receivedYear  *int
 	receivedTypes []business.ActivityType
 }
@@ -18,7 +18,7 @@ func (stub *activitiesExportAndMapsStub) ExportCSVByYearAndTypes(year *int, acti
 	return stub.csv
 }
 
-func (stub *activitiesExportAndMapsStub) FindGPXByYearAndTypes(year *int, activityTypes ...business.ActivityType) [][][]float64 {
+func (stub *activitiesExportAndMapsStub) FindGPXByYearAndTypes(year *int, activityTypes ...business.ActivityType) []MapTrack {
 	stub.receivedYear = year
 	stub.receivedTypes = append([]business.ActivityType(nil), activityTypes...)
 	return stub.gpx
@@ -58,5 +58,40 @@ func TestGetMapsGPXUseCase_Execute_ReturnsEmptySliceOnNilReaderResult(t *testing
 	}
 	if len(result) != 0 {
 		t.Fatalf("expected empty slice, got %d", len(result))
+	}
+}
+
+func TestGetMapsGPXUseCase_Execute_ReturnsMapTrackMetadata(t *testing.T) {
+	// GIVEN
+	year := 2026
+	expected := []MapTrack{
+		{
+			ActivityID:     123,
+			ActivityName:   "Morning Ride",
+			ActivityDate:   "2026-04-16T08:00:00Z",
+			ActivityType:   "Ride",
+			DistanceKm:     42.3,
+			ElevationGainM: 720,
+			Coordinates:    [][]float64{{48.1, 2.3}, {48.2, 2.4}},
+		},
+	}
+	stub := &activitiesExportAndMapsStub{gpx: expected}
+	useCase := NewGetMapsGPXUseCase(stub)
+
+	// WHEN
+	result := useCase.Execute(&year, []business.ActivityType{business.Ride})
+
+	// THEN
+	if len(result) != 1 {
+		t.Fatalf("expected 1 track, got %d", len(result))
+	}
+	if result[0].ActivityID != expected[0].ActivityID {
+		t.Fatalf("expected activity id %d, got %d", expected[0].ActivityID, result[0].ActivityID)
+	}
+	if result[0].ActivityName != expected[0].ActivityName {
+		t.Fatalf("expected activity name %q, got %q", expected[0].ActivityName, result[0].ActivityName)
+	}
+	if len(result[0].Coordinates) != 2 {
+		t.Fatalf("expected 2 coordinates, got %d", len(result[0].Coordinates))
 	}
 }
