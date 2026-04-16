@@ -14,6 +14,7 @@ data class RouteCoordinateDto(
 
 @Schema(description = "Route recommendation", name = "RouteRecommendation")
 data class RouteRecommendationDto(
+    val routeId: String,
     val activity: ActivityShortDto,
     val activityDate: String,
     val distanceKm: Double,
@@ -52,8 +53,69 @@ data class RouteExplorerResultDto(
     val closestLoops: List<RouteRecommendationDto>,
     val variants: List<RouteRecommendationDto>,
     val seasonal: List<RouteRecommendationDto>,
+    val roadGraphLoops: List<RouteRecommendationDto>,
     val shapeMatches: List<RouteRecommendationDto>,
     val shapeRemixes: List<ShapeRemixRecommendationDto>,
+)
+
+@Schema(description = "Route generation score", name = "RouteGenerationScore")
+data class RouteGenerationScoreDto(
+    val global: Double,
+    val distance: Double,
+    val elevation: Double,
+    val duration: Double,
+    val direction: Double,
+    val shape: Double,
+    val roadFitness: Double,
+)
+
+@Schema(description = "Generated route", name = "GeneratedRoute")
+data class GeneratedRouteDto(
+    val routeId: String,
+    val title: String,
+    val variantType: String,
+    val routeType: String?,
+    val startDirection: String?,
+    val distanceKm: Double,
+    val elevationGainM: Double,
+    val durationSec: Int,
+    val estimatedDurationSec: Int,
+    val score: RouteGenerationScoreDto,
+    val reasons: List<String>,
+    val previewLatLng: List<List<Double>>,
+    val start: RouteCoordinateDto?,
+    val end: RouteCoordinateDto?,
+    val activityId: Long?,
+    val isRoadGraphGenerated: Boolean,
+)
+
+@Schema(description = "Generated routes response", name = "GenerateRoutesResponse")
+data class GenerateRoutesResponseDto(
+    val routes: List<GeneratedRouteDto>,
+)
+
+data class RouteStartPointDto(
+    val lat: Double,
+    val lng: Double,
+)
+
+data class GenerateTargetRoutesRequestDto(
+    val startPoint: RouteStartPointDto?,
+    val routeType: String?,
+    val startDirection: String?,
+    val distanceTargetKm: Double?,
+    val elevationTargetM: Double?,
+    val variantCount: Int?,
+)
+
+data class GenerateShapeRoutesRequestDto(
+    val shapeInputType: String?,
+    val shapeData: String?,
+    val startPoint: RouteStartPointDto?,
+    val distanceTargetKm: Double?,
+    val elevationTargetM: Double?,
+    val routeType: String?,
+    val variantCount: Int?,
 )
 
 fun RouteExplorerResult.toDto(): RouteExplorerResultDto {
@@ -61,6 +123,7 @@ fun RouteExplorerResult.toDto(): RouteExplorerResultDto {
         closestLoops = closestLoops.map { recommendation -> recommendation.toDto() },
         variants = variants.map { recommendation -> recommendation.toDto() },
         seasonal = seasonal.map { recommendation -> recommendation.toDto() },
+        roadGraphLoops = roadGraphLoops.map { recommendation -> recommendation.toDto() },
         shapeMatches = shapeMatches.map { recommendation -> recommendation.toDto() },
         shapeRemixes = shapeRemixes.map { recommendation -> recommendation.toDto() },
     )
@@ -68,6 +131,7 @@ fun RouteExplorerResult.toDto(): RouteExplorerResultDto {
 
 private fun RouteRecommendation.toDto(): RouteRecommendationDto {
     return RouteRecommendationDto(
+        routeId = routeId,
         activity = activity.toDto(),
         activityDate = activityDate,
         distanceKm = distanceKm,
@@ -109,4 +173,3 @@ private fun Coordinates.toDto(): RouteCoordinateDto {
         lng = lng,
     )
 }
-

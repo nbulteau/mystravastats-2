@@ -6,6 +6,7 @@ type RouteCoordinateDto struct {
 }
 
 type RouteRecommendationDto struct {
+	RouteID        string              `json:"routeId"`
 	Activity       ActivityShortDto    `json:"activity"`
 	ActivityDate   string              `json:"activityDate"`
 	DistanceKm     float64             `json:"distanceKm"`
@@ -39,9 +40,10 @@ type ShapeRemixRecommendationDto struct {
 }
 
 type RouteExplorerResultDto struct {
-	ClosestLoops []RouteRecommendationDto      `json:"closestLoops"`
-	Variants     []RouteRecommendationDto      `json:"variants"`
-	Seasonal     []RouteRecommendationDto      `json:"seasonal"`
-	ShapeMatches []RouteRecommendationDto      `json:"shapeMatches"`
-	ShapeRemixes []ShapeRemixRecommendationDto `json:"shapeRemixes"`
+	ClosestLoops   []RouteRecommendationDto      `json:"closestLoops"`
+	Variants       []RouteRecommendationDto      `json:"variants"`
+	Seasonal       []RouteRecommendationDto      `json:"seasonal"`
+	RoadGraphLoops []RouteRecommendationDto      `json:"roadGraphLoops"`
+	ShapeMatches   []RouteRecommendationDto      `json:"shapeMatches"`
+	ShapeRemixes   []ShapeRemixRecommendationDto `json:"shapeRemixes"`
 }

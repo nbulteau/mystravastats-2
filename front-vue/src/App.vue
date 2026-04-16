@@ -60,22 +60,6 @@ const isCurrent = (name: string) => {
           role="presentation"
         >
           <RouterLink
-            id="map-tab"
-            class="nav-link"
-            :class="{ active: isCurrent('map') }"
-            role="tab"
-            aria-controls="map-tab-pane"
-            aria-selected="false"
-            to="/map"
-          >
-            Map
-          </RouterLink>
-        </li>
-        <li
-          class="nav-item"
-          role="presentation"
-        >
-          <RouterLink
             id="charts-tab"
             class="nav-link"
             :class="{ active: isCurrent('charts') }"
@@ -140,22 +124,6 @@ const isCurrent = (name: string) => {
           role="presentation"
         >
           <RouterLink
-            id="routes-tab"
-            class="nav-link"
-            :class="{ active: isCurrent('routes') }"
-            role="tab"
-            aria-controls="routes-tab-pane"
-            aria-selected="false"
-            to="/routes"
-          >
-            Routes
-          </RouterLink>
-        </li>
-        <li
-          class="nav-item"
-          role="presentation"
-        >
-          <RouterLink
             id="badges-tab"
             class="nav-link"
             :class="{ active: isCurrent('badges') }"
@@ -165,6 +133,39 @@ const isCurrent = (name: string) => {
             to="/badges"
           >
             Badges
+          </RouterLink>
+        </li>
+        <li
+          class="nav-item"
+          role="presentation"
+        >
+          <RouterLink
+            id="map-tab"
+            class="nav-link"
+            :class="{ active: isCurrent('map') }"
+            role="tab"
+            aria-controls="map-tab-pane"
+            aria-selected="false"
+            to="/map"
+          >
+            Map
+          </RouterLink>
+        </li>
+        <li
+          class="nav-item"
+          role="presentation"
+        >
+          <RouterLink
+            id="routes-tab"
+            class="nav-link"
+            :class="{ active: isCurrent('routes') }"
+            role="tab"
+            aria-controls="routes-tab-pane"
+            aria-selected="false"
+            to="/routes"
+          >
+            Routes
+            <span class="tab-beta">beta</span>
           </RouterLink>
         </li>
       </ul>
@@ -268,6 +269,20 @@ const isCurrent = (name: string) => {
   color: var(--ms-primary);
   background: #fff8f4;
   border-bottom-color: var(--ms-primary);
+}
+
+.tab-beta {
+  margin-left: 0.4rem;
+  border-radius: 999px;
+  border: 1px solid #f6b18a;
+  background: #fff0e6;
+  color: #c05a2f;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.06rem 0.35rem;
+  vertical-align: middle;
 }
 
 .app-main {

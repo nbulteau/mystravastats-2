@@ -1,96 +1,87 @@
 import { defineStore } from "pinia";
-import type {
-  RouteExplorerResult,
-} from "@/models/route-recommendation.model";
 import { requestJson } from "@/stores/api";
+import {
+  type GenerateRoutesResponse,
+  type GeneratedRoute,
+  type RouteMode,
+  type RouteType,
+  type ShapeInputType,
+  type StartDirection,
+} from "@/models/route-recommendation.model";
 import { useContextStore } from "@/stores/context";
 
-const ROUTES_CACHE_TTL_MS = 5 * 60 * 1000;
-
-type RoutesCacheEntry = {
-  data: RouteExplorerResult;
-  expiresAt: number;
-};
-
-type RouteShape =
-  | ""
-  | "LOOP"
-  | "OUT_AND_BACK"
-  | "POINT_TO_POINT"
-  | "FIGURE_EIGHT";
-
-type RouteSeason =
-  | ""
-  | "WINTER"
-  | "SPRING"
-  | "SUMMER"
-  | "AUTUMN";
-
-type RouteType =
-  | ""
-  | "RIDE"
-  | "MTB"
-  | "GRAVEL"
-  | "RUN"
-  | "TRAIL"
-  | "HIKE";
-
-type StartDirection =
-  | ""
-  | "N"
-  | "S"
-  | "E"
-  | "W";
+const DEFAULT_VARIANT_COUNT = 4;
 
 export const useRoutesStore = defineStore("routes", {
   state: () => ({
-    result: {
-      closestLoops: [],
-      variants: [],
-      seasonal: [],
-      shapeMatches: [],
-      shapeRemixes: [],
-    } as RouteExplorerResult,
-    distanceTargetKm: "" as string,
-    elevationTargetM: "" as string,
-    durationTargetMin: "" as string,
-    startDirection: "" as StartDirection,
-    routeType: "" as RouteType,
-    season: "" as RouteSeason,
-    shape: "" as RouteShape,
-    includeRemix: false,
-    limit: 6,
-    cacheByKey: {} as Record<string, RoutesCacheEntry>,
+    mode: "TARGET" as RouteMode,
+    routeType: "RIDE" as RouteType,
+    startDirection: "N" as StartDirection,
+    distanceTargetKm: "40" as string,
+    elevationTargetM: "800" as string,
+    variantCount: DEFAULT_VARIANT_COUNT,
+    startPoint: null as { lat: number; lng: number } | null,
+    shapeInputType: "draw" as ShapeInputType,
+    shapePoints: [] as number[][],
+    shapeDataText: "" as string,
+    isDrawingShape: false,
+    routes: [] as GeneratedRoute[],
+    selectedRouteId: "" as string,
+    isLoading: false,
   }),
   getters: {
-    hasAnyResults(state): boolean {
-      return (
-        state.result.closestLoops.length > 0
-        || state.result.variants.length > 0
-        || state.result.seasonal.length > 0
-        || state.result.shapeMatches.length > 0
-        || state.result.shapeRemixes.length > 0
-      );
+    selectedRoute(state): GeneratedRoute | null {
+      return state.routes.find((route) => route.routeId === state.selectedRouteId) ?? null;
+    },
+    hasRoutes(state): boolean {
+      return state.routes.length > 0;
+    },
+    hasShape(state): boolean {
+      return state.shapePoints.length >= 2 || state.shapeDataText.trim().length > 0;
+    },
+    canGenerateTarget(state): boolean {
+      return state.startPoint !== null && Number(state.distanceTargetKm) > 0;
+    },
+    canGenerateShape(state): boolean {
+      return state.shapePoints.length >= 2 || state.shapeDataText.trim().length > 0;
     },
   },
   actions: {
-    cacheKey(): string {
-      const contextStore = useContextStore();
-      return [
-        contextStore.currentYear,
-        contextStore.currentActivityType,
-        this.distanceTargetKm || "auto-distance",
-        this.elevationTargetM || "auto-elevation",
-        this.durationTargetMin || "auto-duration",
-        this.startDirection || "all-directions",
-        this.routeType || "all-route-types",
-        this.season || "all-seasons",
-        this.shape || "all-shapes",
-        this.includeRemix ? "with-remix" : "no-remix",
-        this.limit,
-      ].join("__");
+    setMode(mode: RouteMode) {
+      this.mode = mode;
     },
-    buildRoutesUrl(): string {
+    setStartPoint(lat: number, lng: number) {
+      this.startPoint = { lat, lng };
+    },
+    clearStartPoint() {
+      this.startPoint = null;
+    },
+    setShapeInputType(value: ShapeInputType) {
+      this.shapeInputType = value;
+    },
+    setShapeDataText(value: string) {
+      this.shapeDataText = value;
+    },
+    clearShape() {
+      this.shapePoints = [];
+      this.shapeDataText = "";
+      this.isDrawingShape = false;
+    },
+    toggleShapeDrawing() {
+      this.isDrawingShape = !this.isDrawingShape;
+    },
+    addShapePoint(lat: number, lng: number) {
+      this.shapePoints.push([lat, lng]);
+      this.shapeDataText = JSON.stringify(this.shapePoints);
+    },
+    setSelectedRoute(routeId: string) {
+      this.selectedRouteId = routeId;
+    },
+    resetRoutes() {
+      this.routes = [];
+      this.selectedRouteId = "";
+    },
+    buildFiltersQuery(): string {
       const contextStore = useContextStore();
       const params = new URLSearchParams({
         activityType: contextStore.currentActivityType,
@@ -98,99 +89,130 @@ export const useRoutesStore = defineStore("routes", {
       if (contextStore.currentYear !== "All years") {
         params.set("year", contextStore.currentYear);
       }
-
-      if (this.distanceTargetKm.trim().length > 0) {
-        params.set("distanceTargetKm", this.distanceTargetKm.trim());
-      }
-      if (this.elevationTargetM.trim().length > 0) {
-        params.set("elevationTargetM", this.elevationTargetM.trim());
-      }
-      if (this.durationTargetMin.trim().length > 0) {
-        params.set("durationTargetMin", this.durationTargetMin.trim());
-      }
-      if (this.startDirection) {
-        params.set("startDirection", this.startDirection);
-      }
-      if (this.routeType) {
-        params.set("routeType", this.routeType);
-      }
-      if (this.season) {
-        params.set("season", this.season);
-      }
-      if (this.shape) {
-        params.set("shape", this.shape);
-      }
-      if (this.includeRemix) {
-        params.set("includeRemix", "true");
-      }
-      params.set("limit", String(this.limit));
-
-      return `/api/routes/recommendations?${params.toString()}`;
+      return params.toString();
     },
-    updateFilters(payload: {
-      distanceTargetKm?: string;
-      elevationTargetM?: string;
-      durationTargetMin?: string;
-      startDirection?: StartDirection;
-      routeType?: RouteType;
-      season?: RouteSeason;
-      shape?: RouteShape;
-      includeRemix?: boolean;
-      limit?: number;
-    }) {
-      if (payload.distanceTargetKm !== undefined) {
-        this.distanceTargetKm = payload.distanceTargetKm;
+    parseOptionalNumber(raw: string): number | null {
+      const value = Number(raw);
+      if (!Number.isFinite(value) || value <= 0) {
+        return null;
       }
-      if (payload.elevationTargetM !== undefined) {
-        this.elevationTargetM = payload.elevationTargetM;
-      }
-      if (payload.durationTargetMin !== undefined) {
-        this.durationTargetMin = payload.durationTargetMin;
-      }
-      if (payload.startDirection !== undefined) {
-        this.startDirection = payload.startDirection;
-      }
-      if (payload.routeType !== undefined) {
-        this.routeType = payload.routeType;
-      }
-      if (payload.season !== undefined) {
-        this.season = payload.season;
-      }
-      if (payload.shape !== undefined) {
-        this.shape = payload.shape;
-      }
-      if (payload.includeRemix !== undefined) {
-        this.includeRemix = payload.includeRemix;
-      }
-      if (payload.limit !== undefined) {
-        this.limit = Math.max(1, Math.min(24, payload.limit));
+      return value;
+    },
+    async generateRoutes() {
+      this.isLoading = true;
+      try {
+        const query = this.buildFiltersQuery();
+        if (this.mode === "TARGET") {
+          await this.generateTargetRoutes(query);
+        } else {
+          await this.generateShapeRoutes(query);
+        }
+      } finally {
+        this.isLoading = false;
       }
     },
-    async fetchRecommendations() {
-      const data = await requestJson<RouteExplorerResult>(this.buildRoutesUrl());
-      this.result = {
-        closestLoops: data.closestLoops ?? [],
-        variants: data.variants ?? [],
-        seasonal: data.seasonal ?? [],
-        shapeMatches: data.shapeMatches ?? [],
-        shapeRemixes: data.shapeRemixes ?? [],
-      };
-      this.cacheByKey[this.cacheKey()] = {
-        data: this.result,
-        expiresAt: Date.now() + ROUTES_CACHE_TTL_MS,
-      };
-    },
-    async ensureLoaded(force = false) {
-      const key = this.cacheKey();
-      const cached = this.cacheByKey[key];
-      if (!force && cached && cached.expiresAt > Date.now()) {
-        this.result = cached.data;
+    async ensureLoaded() {
+      if (this.routes.length > 0) {
         return;
       }
-      await this.fetchRecommendations();
+      if (this.mode === "TARGET") {
+        if (this.startPoint && this.parseOptionalNumber(this.distanceTargetKm) !== null) {
+          await this.generateRoutes();
+        }
+        return;
+      }
+      if (this.shapePoints.length >= 2 || this.shapeDataText.trim().length > 0) {
+        await this.generateRoutes();
+      }
     },
-    invalidateCache() {
-      this.cacheByKey = {};
+    async generateTargetRoutes(query: string) {
+      const distanceTarget = this.parseOptionalNumber(this.distanceTargetKm);
+      if (this.startPoint === null || distanceTarget === null) {
+        throw new Error("start point and distance target are required");
+      }
+      const elevationTarget = this.parseOptionalNumber(this.elevationTargetM);
+      const payload = {
+        startPoint: this.startPoint,
+        routeType: this.routeType,
+        startDirection: this.startDirection,
+        distanceTargetKm: distanceTarget,
+        elevationTargetM: elevationTarget,
+        variantCount: this.variantCount,
+      };
+      const data = await requestJson<GenerateRoutesResponse>(
+        `/api/routes/generate/target?${query}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(payload),
+        },
+      );
+      this.routes = data.routes ?? [];
+      this.selectedRouteId = this.routes[0]?.routeId ?? "";
+    },
+    async generateShapeRoutes(query: string) {
+      const distanceTarget = this.parseOptionalNumber(this.distanceTargetKm);
+      const elevationTarget = this.parseOptionalNumber(this.elevationTargetM);
+      const hasDrawShape = this.shapePoints.length >= 2;
+      const shapeData = hasDrawShape
+        ? JSON.stringify(this.shapePoints)
+        : this.shapeDataText.trim();
+      if (!shapeData) {
+        throw new Error("shape is required");
+      }
+
+      const payload = {
+        shapeInputType: this.shapeInputType,
+        shapeData,
+        startPoint: this.startPoint,
+        distanceTargetKm: distanceTarget,
+        elevationTargetM: elevationTarget,
+        routeType: this.routeType,
+        variantCount: this.variantCount,
+      };
+      const data = await requestJson<GenerateRoutesResponse>(
+        `/api/routes/generate/shape?${query}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(payload),
+        },
+      );
+      this.routes = data.routes ?? [];
+      this.selectedRouteId = this.routes[0]?.routeId ?? "";
+    },
+    async exportRouteGpx(routeId: string) {
+      const response = await fetch(`/api/routes/${encodeURIComponent(routeId)}/gpx`, {
+        method: "GET",
+        headers: {
+          Accept: "application/gpx+xml",
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`Unable to export GPX (HTTP ${response.status})`);
+      }
+
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get("content-disposition") ?? "";
+      const match = contentDisposition.match(/filename="([^"]+)"/i);
+      const fileName = match?.[1] ?? `${routeId}.gpx`;
+      const objectUrl = URL.createObjectURL(blob);
+      try {
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
     },
   },
 });

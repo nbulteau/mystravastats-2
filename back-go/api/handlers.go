@@ -3,10 +3,12 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"mystravastats/api/dto"
 	"mystravastats/domain/business"
 	activitiesDomain "mystravastats/internal/activities/domain"
@@ -15,10 +17,54 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/mux"
 )
+
+const (
+	defaultRoutesVariantCount = 4
+	maxGeneratedVariantCount  = 24
+	generatedRouteCacheTTL    = 6 * time.Hour
+)
+
+type routeStartPointPayload struct {
+	Lat float64 `json:"lat"`
+	Lng float64 `json:"lng"`
+}
+
+type generateTargetRoutesPayload struct {
+	StartPoint      *routeStartPointPayload `json:"startPoint"`
+	RouteType       string                  `json:"routeType"`
+	StartDirection  string                  `json:"startDirection"`
+	DistanceTarget  float64                 `json:"distanceTargetKm"`
+	ElevationTarget *float64                `json:"elevationTargetM,omitempty"`
+	VariantCount    *int                    `json:"variantCount,omitempty"`
+}
+
+type generateShapeRoutesPayload struct {
+	ShapeInputType  string                  `json:"shapeInputType"`
+	ShapeData       string                  `json:"shapeData"`
+	StartPoint      *routeStartPointPayload `json:"startPoint,omitempty"`
+	DistanceTarget  *float64                `json:"distanceTargetKm,omitempty"`
+	ElevationTarget *float64                `json:"elevationTargetM,omitempty"`
+	RouteType       string                  `json:"routeType"`
+	VariantCount    *int                    `json:"variantCount,omitempty"`
+}
+
+type generatedRouteCacheEntry struct {
+	Name      string
+	Points    [][]float64
+	ExpiresAt time.Time
+}
+
+var generatedRouteCache = struct {
+	mu    sync.RWMutex
+	items map[string]generatedRouteCacheEntry
+}{
+	items: map[string]generatedRouteCacheEntry{},
+}
 
 // getHealthDetails godoc
 // @Summary Get cache health details
@@ -471,57 +517,10 @@ func getSegmentSummaryByActivityType(w http.ResponseWriter, r *http.Request) {
 }
 
 func getRouteRecommendationsByActivityType(w http.ResponseWriter, r *http.Request) {
-	year, err := getYearParam(r)
+	year, activityTypes, request, err := parseRouteExplorerRequestParams(r)
 	if err != nil {
 		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return
-	}
-	activityTypes, err := getActivityTypeParam(r)
-	if err != nil {
-		writeBadRequest(w, "Invalid request parameters", err.Error())
-		return
-	}
-
-	distanceTargetKm, err := getFloatParam(r, "distanceTargetKm")
-	if err != nil {
-		writeBadRequest(w, "Invalid request parameters", err.Error())
-		return
-	}
-	elevationTargetM, err := getFloatParam(r, "elevationTargetM")
-	if err != nil {
-		writeBadRequest(w, "Invalid request parameters", err.Error())
-		return
-	}
-	durationTargetMin, err := getIntParam(r, "durationTargetMin")
-	if err != nil {
-		writeBadRequest(w, "Invalid request parameters", err.Error())
-		return
-	}
-	startDirection := getOptionalStringParam(r, "startDirection")
-	routeType := getOptionalStringParam(r, "routeType")
-	season := getOptionalStringParam(r, "season")
-	shape := getOptionalStringParam(r, "shape")
-	limit, err := getIntParam(r, "limit")
-	if err != nil {
-		writeBadRequest(w, "Invalid request parameters", err.Error())
-		return
-	}
-	includeRemix, err := getBoolParam(r, "includeRemix")
-	if err != nil {
-		writeBadRequest(w, "Invalid request parameters", err.Error())
-		return
-	}
-
-	request := routesDomain.RouteExplorerRequest{
-		DistanceTargetKm:  distanceTargetKm,
-		ElevationTargetM:  elevationTargetM,
-		DurationTargetMin: durationTargetMin,
-		StartDirection:    startDirection,
-		RouteType:         routeType,
-		Season:            season,
-		Limit:             optionalIntValue(limit),
-		Shape:             shape,
-		IncludeRemix:      includeRemix != nil && *includeRemix,
 	}
 
 	explorer := getContainer().getRouteExplorerUseCase.Execute(year, request, activityTypes)
@@ -530,6 +529,672 @@ func getRouteRecommendationsByActivityType(w http.ResponseWriter, r *http.Reques
 		log.Printf("failed to write routes explorer response: %v", err)
 		writeInternalServerError(w, "Failed to encode routes explorer response")
 	}
+}
+
+func getRouteRecommendationGPXByActivityType(w http.ResponseWriter, r *http.Request) {
+	year, activityTypes, request, err := parseRouteExplorerRequestParams(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+
+	routeID := strings.TrimSpace(r.URL.Query().Get("routeId"))
+	if routeID == "" {
+		writeBadRequest(w, "Invalid request parameters", "routeId is required")
+		return
+	}
+
+	explorer := getContainer().getRouteExplorerUseCase.Execute(year, request, activityTypes)
+	name, points, found := findRouteForGPXExport(explorer, routeID)
+	if !found {
+		writeNotFound(w, "Route not found", fmt.Sprintf("No route found for routeId=%s with current filters", routeID))
+		return
+	}
+
+	gpxPayload, err := buildRouteGPX(name, points)
+	if err != nil {
+		writeBadRequest(w, "Invalid route geometry", err.Error())
+		return
+	}
+
+	fileName := sanitizeRouteFileName(routeID)
+	if fileName == "" {
+		fileName = "route"
+	}
+
+	w.Header().Set("Content-Type", "application/gpx+xml; charset=utf-8")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.gpx\"", fileName))
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write([]byte(gpxPayload)); err != nil {
+		log.Printf("failed to write route gpx response: %v", err)
+	}
+}
+
+func generateTargetRoutesByActivityType(w http.ResponseWriter, r *http.Request) {
+	year, activityTypes, err := parseRouteGenerationFilters(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+
+	payload, err := parseGenerateTargetRoutesPayload(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request body", err.Error())
+		return
+	}
+	if err := validateGenerateTargetRoutesPayload(payload); err != nil {
+		writeBadRequest(w, "Invalid request body", err.Error())
+		return
+	}
+
+	routeType := normalizeGenerateRouteType(payload.RouteType)
+	startDirection := normalizeGenerateStartDirection(payload.StartDirection)
+	variantCount := normalizeGenerateVariantCount(payload.VariantCount)
+	preferredStart := &routesDomain.Coordinates{
+		Lat: payload.StartPoint.Lat,
+		Lng: payload.StartPoint.Lng,
+	}
+	request := routesDomain.RouteExplorerRequest{
+		DistanceTargetKm: &payload.DistanceTarget,
+		ElevationTargetM: payload.ElevationTarget,
+		StartPoint:       preferredStart,
+		StartDirection:   optionalNonEmptyString(startDirection),
+		RouteType:        optionalNonEmptyString(routeType),
+		Limit:            variantCount,
+	}
+
+	result := getContainer().getRouteExplorerUseCase.Execute(year, request, activityTypes)
+	response := buildTargetGeneratedRoutesResponse(result, payload.DistanceTarget, payload.ElevationTarget, routeType, startDirection, variantCount)
+	cacheGeneratedRoutes(response.Routes)
+
+	if err := writeJSON(w, http.StatusOK, response); err != nil {
+		log.Printf("failed to write generated target routes response: %v", err)
+		writeInternalServerError(w, "Failed to encode generated routes response")
+	}
+}
+
+func generateShapeRoutesByActivityType(w http.ResponseWriter, r *http.Request) {
+	year, activityTypes, err := parseRouteGenerationFilters(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request parameters", err.Error())
+		return
+	}
+
+	payload, err := parseGenerateShapeRoutesPayload(r)
+	if err != nil {
+		writeBadRequest(w, "Invalid request body", err.Error())
+		return
+	}
+	if err := validateGenerateShapeRoutesPayload(payload); err != nil {
+		writeBadRequest(w, "Invalid request body", err.Error())
+		return
+	}
+
+	routeType := normalizeGenerateRouteType(payload.RouteType)
+	variantCount := normalizeGenerateVariantCount(payload.VariantCount)
+	shapeFilter := inferShapeFilter(payload.ShapeInputType, payload.ShapeData)
+	var preferredStart *routesDomain.Coordinates
+	if payload.StartPoint != nil {
+		preferredStart = &routesDomain.Coordinates{
+			Lat: payload.StartPoint.Lat,
+			Lng: payload.StartPoint.Lng,
+		}
+	}
+
+	request := routesDomain.RouteExplorerRequest{
+		DistanceTargetKm: payload.DistanceTarget,
+		ElevationTargetM: payload.ElevationTarget,
+		StartPoint:       preferredStart,
+		RouteType:        optionalNonEmptyString(routeType),
+		Limit:            variantCount,
+		Shape:            optionalNonEmptyString(shapeFilter),
+		ShapePolyline:    optionalNonEmptyString(strings.TrimSpace(payload.ShapeData)),
+		IncludeRemix:     true,
+	}
+	result := getContainer().getRouteExplorerUseCase.Execute(year, request, activityTypes)
+	response := buildShapeGeneratedRoutesResponse(
+		result,
+		payload.DistanceTarget,
+		payload.ElevationTarget,
+		routeType,
+		variantCount,
+	)
+	cacheGeneratedRoutes(response.Routes)
+
+	if err := writeJSON(w, http.StatusOK, response); err != nil {
+		log.Printf("failed to write generated shape routes response: %v", err)
+		writeInternalServerError(w, "Failed to encode generated routes response")
+	}
+}
+
+func getGeneratedRouteGPXByID(w http.ResponseWriter, r *http.Request) {
+	routeID := strings.TrimSpace(mux.Vars(r)["routeId"])
+	if routeID == "" {
+		writeBadRequest(w, "Invalid request parameters", "routeId is required")
+		return
+	}
+
+	entry, found := getGeneratedRouteFromCache(routeID)
+	if !found {
+		writeNotFound(w, "Route not found", fmt.Sprintf("No generated route found for routeId=%s", routeID))
+		return
+	}
+
+	gpxPayload, err := buildRouteGPX(entry.Name, entry.Points)
+	if err != nil {
+		writeBadRequest(w, "Invalid route geometry", err.Error())
+		return
+	}
+
+	fileName := sanitizeRouteFileName(routeID)
+	if fileName == "" {
+		fileName = "route"
+	}
+
+	w.Header().Set("Content-Type", "application/gpx+xml; charset=utf-8")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.gpx\"", fileName))
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write([]byte(gpxPayload)); err != nil {
+		log.Printf("failed to write generated route gpx response: %v", err)
+	}
+}
+
+func parseGenerateTargetRoutesPayload(r *http.Request) (generateTargetRoutesPayload, error) {
+	defer func() {
+		_ = r.Body.Close()
+	}()
+
+	var payload generateTargetRoutesPayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		return generateTargetRoutesPayload{}, fmt.Errorf("target payload is invalid")
+	}
+	return payload, nil
+}
+
+func parseGenerateShapeRoutesPayload(r *http.Request) (generateShapeRoutesPayload, error) {
+	defer func() {
+		_ = r.Body.Close()
+	}()
+
+	var payload generateShapeRoutesPayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		return generateShapeRoutesPayload{}, fmt.Errorf("shape payload is invalid")
+	}
+	return payload, nil
+}
+
+func validateGenerateTargetRoutesPayload(payload generateTargetRoutesPayload) error {
+	if payload.StartPoint == nil {
+		return fmt.Errorf("startPoint is required")
+	}
+	if !isValidLatLng(payload.StartPoint.Lat, payload.StartPoint.Lng) {
+		return fmt.Errorf("startPoint has invalid coordinates")
+	}
+	if payload.DistanceTarget <= 0 {
+		return fmt.Errorf("distanceTargetKm must be greater than 0")
+	}
+	if payload.ElevationTarget != nil && *payload.ElevationTarget < 0 {
+		return fmt.Errorf("elevationTargetM must be greater than or equal to 0")
+	}
+	if payload.VariantCount != nil && (*payload.VariantCount < 1 || *payload.VariantCount > maxGeneratedVariantCount) {
+		return fmt.Errorf("variantCount must be between 1 and %d", maxGeneratedVariantCount)
+	}
+	if direction := normalizeGenerateStartDirection(payload.StartDirection); payload.StartDirection != "" && direction == "" {
+		return fmt.Errorf("startDirection must be one of N/S/E/W")
+	}
+	return nil
+}
+
+func validateGenerateShapeRoutesPayload(payload generateShapeRoutesPayload) error {
+	inputType := strings.ToLower(strings.TrimSpace(payload.ShapeInputType))
+	if inputType == "" {
+		return fmt.Errorf("shapeInputType is required")
+	}
+	switch inputType {
+	case "draw", "gpx", "svg", "polyline":
+	default:
+		return fmt.Errorf("shapeInputType must be one of draw/gpx/svg/polyline")
+	}
+	if strings.TrimSpace(payload.ShapeData) == "" {
+		return fmt.Errorf("shapeData is required")
+	}
+	if payload.DistanceTarget != nil && *payload.DistanceTarget <= 0 {
+		return fmt.Errorf("distanceTargetKm must be greater than 0")
+	}
+	if payload.ElevationTarget != nil && *payload.ElevationTarget < 0 {
+		return fmt.Errorf("elevationTargetM must be greater than or equal to 0")
+	}
+	if payload.StartPoint != nil && !isValidLatLng(payload.StartPoint.Lat, payload.StartPoint.Lng) {
+		return fmt.Errorf("startPoint has invalid coordinates")
+	}
+	if payload.VariantCount != nil && (*payload.VariantCount < 1 || *payload.VariantCount > maxGeneratedVariantCount) {
+		return fmt.Errorf("variantCount must be between 1 and %d", maxGeneratedVariantCount)
+	}
+	return nil
+}
+
+func parseRouteGenerationFilters(r *http.Request) (*int, []business.ActivityType, error) {
+	year, err := getYearParam(r)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	activityTypeRaw := strings.TrimSpace(r.URL.Query().Get("activityType"))
+	if activityTypeRaw == "" {
+		return year, defaultRouteGenerationActivityTypes(), nil
+	}
+
+	activityTypes, err := getActivityTypeParam(r)
+	if err != nil {
+		return nil, nil, err
+	}
+	return year, activityTypes, nil
+}
+
+func defaultRouteGenerationActivityTypes() []business.ActivityType {
+	return []business.ActivityType{
+		business.Ride,
+		business.GravelRide,
+		business.MountainBikeRide,
+		business.Commute,
+		business.VirtualRide,
+		business.Run,
+		business.TrailRun,
+		business.Hike,
+	}
+}
+
+func buildTargetGeneratedRoutesResponse(
+	result routesDomain.RouteExplorerResult,
+	distanceTarget float64,
+	elevationTarget *float64,
+	routeType string,
+	startDirection string,
+	limit int,
+) dto.GenerateRoutesResponseDto {
+	recommendations := make([]routesDomain.RouteRecommendation, 0, len(result.RoadGraphLoops)+len(result.ClosestLoops)+len(result.Variants)+len(result.Seasonal))
+	recommendations = append(recommendations, result.RoadGraphLoops...)
+	recommendations = append(recommendations, result.ClosestLoops...)
+	recommendations = append(recommendations, result.Variants...)
+	recommendations = append(recommendations, result.Seasonal...)
+
+	routes := toGeneratedRoutesFromRecommendations(recommendations, &distanceTarget, elevationTarget, routeType, startDirection, limit)
+	return dto.GenerateRoutesResponseDto{Routes: routes}
+}
+
+func buildShapeGeneratedRoutesResponse(
+	result routesDomain.RouteExplorerResult,
+	distanceTarget *float64,
+	elevationTarget *float64,
+	routeType string,
+	limit int,
+) dto.GenerateRoutesResponseDto {
+	routes := make([]dto.GeneratedRouteDto, 0, limit)
+	seen := make(map[string]struct{}, limit)
+
+	appendRoute := func(recommendation routesDomain.RouteRecommendation) {
+		if len(routes) >= limit {
+			return
+		}
+		if _, exists := seen[recommendation.RouteID]; exists {
+			return
+		}
+		score := buildGeneratedRouteScore(recommendation, distanceTarget, elevationTarget, "")
+		converted := dto.ToGeneratedRouteDto(recommendation, score, routeType, "")
+		routes = append(routes, converted)
+		seen[recommendation.RouteID] = struct{}{}
+	}
+
+	for _, recommendation := range result.ShapeMatches {
+		appendRoute(recommendation)
+	}
+	for _, recommendation := range result.RoadGraphLoops {
+		appendRoute(recommendation)
+	}
+	for _, recommendation := range result.ClosestLoops {
+		appendRoute(recommendation)
+	}
+	for _, remix := range result.ShapeRemixes {
+		if len(routes) >= limit {
+			break
+		}
+		if _, exists := seen[remix.ID]; exists {
+			continue
+		}
+		score := dto.RouteGenerationScoreDto{
+			Global:      clampScore(remix.MatchScore),
+			Distance:    clampScore(remix.MatchScore),
+			Elevation:   clampScore(remix.MatchScore),
+			Duration:    clampScore(remix.MatchScore),
+			Direction:   clampScore(remix.MatchScore),
+			Shape:       clampScore(remix.MatchScore),
+			RoadFitness: 75.0,
+		}
+		routes = append(routes, dto.ToGeneratedRouteFromShapeRemixDto(remix, score, routeType))
+		seen[remix.ID] = struct{}{}
+	}
+
+	return dto.GenerateRoutesResponseDto{Routes: routes}
+}
+
+func toGeneratedRoutesFromRecommendations(
+	recommendations []routesDomain.RouteRecommendation,
+	distanceTarget *float64,
+	elevationTarget *float64,
+	routeType string,
+	startDirection string,
+	limit int,
+) []dto.GeneratedRouteDto {
+	routes := make([]dto.GeneratedRouteDto, 0, limit)
+	seen := make(map[string]struct{}, limit)
+	for _, recommendation := range recommendations {
+		if len(routes) >= limit {
+			break
+		}
+		if recommendation.RouteID == "" {
+			continue
+		}
+		if _, exists := seen[recommendation.RouteID]; exists {
+			continue
+		}
+		score := buildGeneratedRouteScore(recommendation, distanceTarget, elevationTarget, startDirection)
+		routes = append(routes, dto.ToGeneratedRouteDto(recommendation, score, routeType, startDirection))
+		seen[recommendation.RouteID] = struct{}{}
+	}
+	return routes
+}
+
+func buildGeneratedRouteScore(
+	recommendation routesDomain.RouteRecommendation,
+	distanceTarget *float64,
+	elevationTarget *float64,
+	startDirection string,
+) dto.RouteGenerationScoreDto {
+	global := clampScore(recommendation.MatchScore)
+	distance := global
+	elevation := global
+	duration := global
+	direction := global
+
+	if distanceTarget != nil && *distanceTarget > 0 {
+		distance = proximityScore(recommendation.DistanceKm, *distanceTarget)
+	}
+	if elevationTarget != nil && *elevationTarget >= 0 {
+		elevation = proximityScore(recommendation.ElevationGainM, *elevationTarget)
+	}
+	if startDirection != "" && recommendation.Start != nil && recommendation.End != nil {
+		direction = directionScore(*recommendation.Start, *recommendation.End, startDirection)
+	}
+
+	shape := 50.0
+	if recommendation.ShapeScore != nil {
+		shape = clampScore(*recommendation.ShapeScore * 100.0)
+	}
+
+	roadFitness := 70.0
+	if recommendation.VariantType == routesDomain.RouteVariantRoadGraph {
+		roadFitness = 100.0
+	} else if recommendation.IsLoop {
+		roadFitness = 82.0
+	}
+
+	return dto.RouteGenerationScoreDto{
+		Global:      global,
+		Distance:    distance,
+		Elevation:   elevation,
+		Duration:    duration,
+		Direction:   direction,
+		Shape:       shape,
+		RoadFitness: roadFitness,
+	}
+}
+
+func proximityScore(actual float64, target float64) float64 {
+	if target <= 0 {
+		return 50.0
+	}
+	deltaRatio := mathAbs(actual-target) / target
+	return clampScore(100.0 - (deltaRatio * 100.0))
+}
+
+func directionScore(start routesDomain.Coordinates, end routesDomain.Coordinates, expected string) float64 {
+	actual := normalizedDirectionFromCoordinates(start, end)
+	if actual == "" {
+		return 50.0
+	}
+	if actual == expected {
+		return 100.0
+	}
+	return 40.0
+}
+
+func normalizedDirectionFromCoordinates(start routesDomain.Coordinates, end routesDomain.Coordinates) string {
+	dLat := end.Lat - start.Lat
+	dLng := end.Lng - start.Lng
+	if mathAbs(dLat) < 0.0001 && mathAbs(dLng) < 0.0001 {
+		return ""
+	}
+	if mathAbs(dLat) >= mathAbs(dLng) {
+		if dLat >= 0 {
+			return "N"
+		}
+		return "S"
+	}
+	if dLng >= 0 {
+		return "E"
+	}
+	return "W"
+}
+
+func clampScore(value float64) float64 {
+	if value < 0 {
+		return 0
+	}
+	if value > 100 {
+		return 100
+	}
+	return math.Round(value*10.0) / 10.0
+}
+
+func cacheGeneratedRoutes(routes []dto.GeneratedRouteDto) {
+	now := time.Now()
+	generatedRouteCache.mu.Lock()
+	defer generatedRouteCache.mu.Unlock()
+
+	for routeID, entry := range generatedRouteCache.items {
+		if entry.ExpiresAt.Before(now) {
+			delete(generatedRouteCache.items, routeID)
+		}
+	}
+
+	for _, route := range routes {
+		if strings.TrimSpace(route.RouteID) == "" || len(route.PreviewLatLng) < 2 {
+			continue
+		}
+		generatedRouteCache.items[route.RouteID] = generatedRouteCacheEntry{
+			Name:      route.Title,
+			Points:    route.PreviewLatLng,
+			ExpiresAt: now.Add(generatedRouteCacheTTL),
+		}
+	}
+}
+
+func getGeneratedRouteFromCache(routeID string) (generatedRouteCacheEntry, bool) {
+	now := time.Now()
+	generatedRouteCache.mu.RLock()
+	entry, found := generatedRouteCache.items[routeID]
+	generatedRouteCache.mu.RUnlock()
+	if !found {
+		return generatedRouteCacheEntry{}, false
+	}
+
+	if entry.ExpiresAt.Before(now) {
+		generatedRouteCache.mu.Lock()
+		delete(generatedRouteCache.items, routeID)
+		generatedRouteCache.mu.Unlock()
+		return generatedRouteCacheEntry{}, false
+	}
+	return entry, true
+}
+
+func normalizeGenerateRouteType(value string) string {
+	normalized := strings.ToUpper(strings.TrimSpace(value))
+	switch normalized {
+	case "RIDE", "MTB", "GRAVEL", "RUN", "TRAIL", "HIKE":
+		return normalized
+	default:
+		return "RIDE"
+	}
+}
+
+func normalizeGenerateStartDirection(value string) string {
+	normalized := strings.ToUpper(strings.TrimSpace(value))
+	switch normalized {
+	case "N", "S", "E", "W":
+		return normalized
+	default:
+		return ""
+	}
+}
+
+func normalizeGenerateVariantCount(value *int) int {
+	if value == nil {
+		return defaultRoutesVariantCount
+	}
+	if *value < 1 {
+		return 1
+	}
+	if *value > maxGeneratedVariantCount {
+		return maxGeneratedVariantCount
+	}
+	return *value
+}
+
+func optionalNonEmptyString(value string) *string {
+	normalized := strings.TrimSpace(value)
+	if normalized == "" {
+		return nil
+	}
+	return &normalized
+}
+
+func inferShapeFilter(shapeInputType string, shapeData string) string {
+	switch strings.ToLower(strings.TrimSpace(shapeInputType)) {
+	case "draw", "polyline":
+		points, err := parseShapePolylineCoordinates(shapeData)
+		if err != nil || len(points) < 2 {
+			return ""
+		}
+		return inferShapeFromCoordinates(points)
+	default:
+		return ""
+	}
+}
+
+func parseShapePolylineCoordinates(raw string) ([][]float64, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return nil, errors.New("shape data is empty")
+	}
+
+	var points [][]float64
+	if err := json.Unmarshal([]byte(trimmed), &points); err == nil {
+		return sanitizePolylineCoordinates(points), nil
+	}
+
+	var wrapped struct {
+		Points      [][]float64 `json:"points"`
+		Coordinates [][]float64 `json:"coordinates"`
+		LatLng      [][]float64 `json:"latLng"`
+	}
+	if err := json.Unmarshal([]byte(trimmed), &wrapped); err != nil {
+		return nil, errors.New("shapeData must be a JSON array of [lat,lng] coordinates")
+	}
+	switch {
+	case len(wrapped.Points) > 0:
+		return sanitizePolylineCoordinates(wrapped.Points), nil
+	case len(wrapped.Coordinates) > 0:
+		return sanitizePolylineCoordinates(wrapped.Coordinates), nil
+	case len(wrapped.LatLng) > 0:
+		return sanitizePolylineCoordinates(wrapped.LatLng), nil
+	default:
+		return nil, errors.New("shapeData does not contain coordinates")
+	}
+}
+
+func sanitizePolylineCoordinates(points [][]float64) [][]float64 {
+	result := make([][]float64, 0, len(points))
+	for _, point := range points {
+		if len(point) < 2 {
+			continue
+		}
+		if !isValidLatLng(point[0], point[1]) {
+			continue
+		}
+		result = append(result, []float64{point[0], point[1]})
+	}
+	return result
+}
+
+func inferShapeFromCoordinates(points [][]float64) string {
+	if len(points) < 2 {
+		return ""
+	}
+	start := routesDomain.Coordinates{Lat: points[0][0], Lng: points[0][1]}
+	end := routesDomain.Coordinates{Lat: points[len(points)-1][0], Lng: points[len(points)-1][1]}
+	startEndDistance := haversineDistanceMeters(start, end)
+	pathDistance := 0.0
+	maxFromStart := 0.0
+	for index := 1; index < len(points); index++ {
+		prev := routesDomain.Coordinates{Lat: points[index-1][0], Lng: points[index-1][1]}
+		next := routesDomain.Coordinates{Lat: points[index][0], Lng: points[index][1]}
+		segment := haversineDistanceMeters(prev, next)
+		pathDistance += segment
+		startDistance := haversineDistanceMeters(start, next)
+		if startDistance > maxFromStart {
+			maxFromStart = startDistance
+		}
+	}
+
+	loopThreshold := maxFloat(350.0, pathDistance*0.08)
+	if startEndDistance <= loopThreshold {
+		return "LOOP"
+	}
+	if maxFromStart > 0 && startEndDistance <= maxFloat(220.0, maxFromStart*0.18) {
+		return "OUT_AND_BACK"
+	}
+	return "POINT_TO_POINT"
+}
+
+func haversineDistanceMeters(left routesDomain.Coordinates, right routesDomain.Coordinates) float64 {
+	const earthRadiusM = 6371000.0
+	lat1 := left.Lat * (math.Pi / 180.0)
+	lat2 := right.Lat * (math.Pi / 180.0)
+	dLat := (right.Lat - left.Lat) * (math.Pi / 180.0)
+	dLng := (right.Lng - left.Lng) * (math.Pi / 180.0)
+
+	a := math.Sin(dLat/2.0)*math.Sin(dLat/2.0) +
+		math.Cos(lat1)*math.Cos(lat2)*math.Sin(dLng/2.0)*math.Sin(dLng/2.0)
+	c := 2.0 * math.Atan2(math.Sqrt(a), math.Sqrt(1.0-a))
+	return earthRadiusM * c
+}
+
+func isValidLatLng(lat float64, lng float64) bool {
+	return lat >= -90.0 && lat <= 90.0 && lng >= -180.0 && lng <= 180.0
+}
+
+func maxFloat(left float64, right float64) float64 {
+	if left > right {
+		return left
+	}
+	return right
+}
+
+func mathAbs(value float64) float64 {
+	if value < 0 {
+		return -value
+	}
+	return value
 }
 
 // getMapsGPX godoc
@@ -1028,6 +1693,191 @@ func getOptionalStringParam(r *http.Request, key string) *string {
 		return nil
 	}
 	return &value
+}
+
+func toOptionalStartPoint(lat *float64, lng *float64) (*routesDomain.Coordinates, error) {
+	if lat == nil && lng == nil {
+		return nil, nil
+	}
+	if lat == nil || lng == nil {
+		return nil, fmt.Errorf("startLat and startLng must be provided together")
+	}
+	if !isValidLatLng(*lat, *lng) {
+		return nil, fmt.Errorf("invalid startLat/startLng coordinates")
+	}
+	return &routesDomain.Coordinates{
+		Lat: *lat,
+		Lng: *lng,
+	}, nil
+}
+
+func parseRouteExplorerRequestParams(r *http.Request) (*int, []business.ActivityType, routesDomain.RouteExplorerRequest, error) {
+	year, err := getYearParam(r)
+	if err != nil {
+		return nil, nil, routesDomain.RouteExplorerRequest{}, err
+	}
+	activityTypes, err := getActivityTypeParam(r)
+	if err != nil {
+		return nil, nil, routesDomain.RouteExplorerRequest{}, err
+	}
+
+	distanceTargetKm, err := getFloatParam(r, "distanceTargetKm")
+	if err != nil {
+		return nil, nil, routesDomain.RouteExplorerRequest{}, err
+	}
+	elevationTargetM, err := getFloatParam(r, "elevationTargetM")
+	if err != nil {
+		return nil, nil, routesDomain.RouteExplorerRequest{}, err
+	}
+	durationTargetMin, err := getIntParam(r, "durationTargetMin")
+	if err != nil {
+		return nil, nil, routesDomain.RouteExplorerRequest{}, err
+	}
+	startLat, err := getFloatParam(r, "startLat")
+	if err != nil {
+		return nil, nil, routesDomain.RouteExplorerRequest{}, err
+	}
+	startLng, err := getFloatParam(r, "startLng")
+	if err != nil {
+		return nil, nil, routesDomain.RouteExplorerRequest{}, err
+	}
+	startPoint, err := toOptionalStartPoint(startLat, startLng)
+	if err != nil {
+		return nil, nil, routesDomain.RouteExplorerRequest{}, err
+	}
+	startDirection := getOptionalStringParam(r, "startDirection")
+	routeType := getOptionalStringParam(r, "routeType")
+	season := getOptionalStringParam(r, "season")
+	shape := getOptionalStringParam(r, "shape")
+	shapePolyline := getOptionalStringParam(r, "shapePolyline")
+	limit, err := getIntParam(r, "limit")
+	if err != nil {
+		return nil, nil, routesDomain.RouteExplorerRequest{}, err
+	}
+	includeRemix, err := getBoolParam(r, "includeRemix")
+	if err != nil {
+		return nil, nil, routesDomain.RouteExplorerRequest{}, err
+	}
+
+	request := routesDomain.RouteExplorerRequest{
+		DistanceTargetKm:  distanceTargetKm,
+		ElevationTargetM:  elevationTargetM,
+		DurationTargetMin: durationTargetMin,
+		StartPoint:        startPoint,
+		StartDirection:    startDirection,
+		RouteType:         routeType,
+		Season:            season,
+		Limit:             optionalIntValue(limit),
+		Shape:             shape,
+		ShapePolyline:     shapePolyline,
+		IncludeRemix:      includeRemix != nil && *includeRemix,
+	}
+	return year, activityTypes, request, nil
+}
+
+func findRouteForGPXExport(
+	result routesDomain.RouteExplorerResult,
+	routeID string,
+) (string, [][]float64, bool) {
+	recommendations := make([]routesDomain.RouteRecommendation, 0, len(result.ClosestLoops)+len(result.Variants)+len(result.Seasonal)+len(result.RoadGraphLoops)+len(result.ShapeMatches))
+	recommendations = append(recommendations, result.ClosestLoops...)
+	recommendations = append(recommendations, result.Variants...)
+	recommendations = append(recommendations, result.Seasonal...)
+	recommendations = append(recommendations, result.RoadGraphLoops...)
+	recommendations = append(recommendations, result.ShapeMatches...)
+
+	for _, recommendation := range recommendations {
+		if recommendation.RouteID == routeID {
+			name := recommendation.Activity.Name
+			if name == "" {
+				name = recommendation.RouteID
+			}
+			return name, recommendation.PreviewLatLng, true
+		}
+	}
+
+	for _, remix := range result.ShapeRemixes {
+		if remix.ID == routeID {
+			name := remix.ID
+			if len(remix.Components) > 0 && remix.Components[0].Name != "" {
+				name = fmt.Sprintf("Remix - %s", remix.Components[0].Name)
+			}
+			return name, remix.PreviewLatLng, true
+		}
+	}
+
+	return "", nil, false
+}
+
+func buildRouteGPX(name string, latLng [][]float64) (string, error) {
+	validPoints := make([][]float64, 0, len(latLng))
+	for _, point := range latLng {
+		if len(point) < 2 {
+			continue
+		}
+		lat := point[0]
+		lng := point[1]
+		if lat < -90 || lat > 90 || lng < -180 || lng > 180 {
+			continue
+		}
+		validPoints = append(validPoints, []float64{lat, lng})
+	}
+
+	if len(validPoints) < 2 {
+		return "", errors.New("at least 2 valid points are required to export GPX")
+	}
+
+	safeName := strings.TrimSpace(name)
+	if safeName == "" {
+		safeName = "MyStravaStats route"
+	}
+	var escapedNameBuffer bytes.Buffer
+	if err := xml.EscapeText(&escapedNameBuffer, []byte(safeName)); err != nil {
+		return "", err
+	}
+	escapedName := escapedNameBuffer.String()
+
+	var builder strings.Builder
+	builder.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
+	builder.WriteString(`<gpx version="1.1" creator="MyStravaStats" xmlns="http://www.topografix.com/GPX/1/1">` + "\n")
+	builder.WriteString("  <trk>\n")
+	builder.WriteString("    <name>" + escapedName + "</name>\n")
+	builder.WriteString("    <trkseg>\n")
+	for _, point := range validPoints {
+		builder.WriteString(fmt.Sprintf("      <trkpt lat=\"%.7f\" lon=\"%.7f\"></trkpt>\n", point[0], point[1]))
+	}
+	builder.WriteString("    </trkseg>\n")
+	builder.WriteString("  </trk>\n")
+	builder.WriteString("</gpx>\n")
+	return builder.String(), nil
+}
+
+func sanitizeRouteFileName(input string) string {
+	value := strings.ToLower(strings.TrimSpace(input))
+	if value == "" {
+		return ""
+	}
+
+	replacer := strings.NewReplacer(
+		" ", "-",
+		"/", "-",
+		"\\", "-",
+		":", "-",
+		";", "-",
+		",", "-",
+		"\"", "",
+		"'", "",
+		"(", "",
+		")", "",
+		"[", "",
+		"]", "",
+	)
+	value = replacer.Replace(value)
+	value = strings.Trim(value, "-._")
+	if value == "" {
+		return ""
+	}
+	return value
 }
 
 func optionalIntValue(value *int) int {

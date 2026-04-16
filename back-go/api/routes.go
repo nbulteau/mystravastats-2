@@ -103,6 +103,30 @@ var routes = Routes{
 		getRouteRecommendationsByActivityType,
 	},
 	Route{
+		"GetRouteRecommendationGpxByActivityType",
+		"GET",
+		"/api/routes/recommendations/gpx",
+		getRouteRecommendationGPXByActivityType,
+	},
+	Route{
+		"GenerateTargetRoutesByActivityType",
+		"POST",
+		"/api/routes/generate/target",
+		generateTargetRoutesByActivityType,
+	},
+	Route{
+		"GenerateShapeRoutesByActivityType",
+		"POST",
+		"/api/routes/generate/shape",
+		generateShapeRoutesByActivityType,
+	},
+	Route{
+		"GetGeneratedRouteGpx",
+		"GET",
+		"/api/routes/{routeId}/gpx",
+		getGeneratedRouteGPXByID,
+	},
+	Route{
 		"GetMapsGPX",
 		"GET",
 		"/api/maps/gpx",

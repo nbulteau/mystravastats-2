@@ -3,6 +3,7 @@ package me.nicolas.stravastats.domain.services
 import io.mockk.every
 import io.mockk.mockk
 import me.nicolas.stravastats.domain.business.ActivityType
+import me.nicolas.stravastats.domain.business.Coordinates
 import me.nicolas.stravastats.domain.business.RouteExplorerRequest
 import me.nicolas.stravastats.domain.business.strava.AthleteRef
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
@@ -99,6 +100,8 @@ class RouteExplorerServiceTest {
         assertTrue(result.variants.size >= 3, "smart variants should include shorter/longer/hillier")
         assertTrue(result.seasonal.isNotEmpty(), "seasonal recommendations should not be empty")
         assertTrue(result.shapeMatches.isNotEmpty(), "shape matches should not be empty")
+        assertTrue(result.closestLoops.first().routeId.isNotBlank(), "closest loops should expose a stable route id")
+        assertTrue(result.variants.first().routeId.isNotBlank(), "smart variants should expose a stable route id")
     }
 
     @Test
@@ -253,6 +256,57 @@ class RouteExplorerServiceTest {
         assertTrue(hikeResult.closestLoops.isNotEmpty(), "hike closest loops should not be empty")
         assertEquals("Distance Focused", rideResult.closestLoops.first().activity.name)
         assertEquals("Climb Focused", hikeResult.closestLoops.first().activity.name)
+    }
+
+    @Test
+    fun `route explorer prioritizes preferred start point when provided`() {
+        // GIVEN
+        val activityTypes = setOf(ActivityType.Ride)
+        val activities = listOf(
+            buildActivity(
+                id = 51L,
+                name = "Near Start Loop",
+                startDateLocal = "2025-07-01T08:00:00+02:00",
+                distanceKm = 42.0,
+                elevationM = 600.0,
+                durationSec = 7800,
+                start = listOf(45.0008, 6.0006),
+                track = listOf(
+                    listOf(45.0008, 6.0006), listOf(45.012, 6.018), listOf(45.0008, 6.0006),
+                ),
+            ),
+            buildActivity(
+                id = 52L,
+                name = "Far Start Loop",
+                startDateLocal = "2025-07-02T08:00:00+02:00",
+                distanceKm = 42.0,
+                elevationM = 600.0,
+                durationSec = 7800,
+                start = listOf(45.55, 6.55),
+                track = listOf(
+                    listOf(45.55, 6.55), listOf(45.57, 6.57), listOf(45.55, 6.55),
+                ),
+            ),
+        )
+        every { activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, null) } returns activities
+        val request = RouteExplorerRequest(
+            distanceTargetKm = 42.0,
+            elevationTargetM = 600.0,
+            durationTargetMin = 130,
+            startPoint = Coordinates(lat = 45.0, lng = 6.0),
+            routeType = "RIDE",
+            season = null,
+            limit = 4,
+            shape = null,
+            includeRemix = false,
+        )
+
+        // WHEN
+        val result = routeExplorerService.getRouteExplorer(activityTypes, null, request)
+
+        // THEN
+        assertTrue(result.closestLoops.isNotEmpty(), "closest loops should not be empty")
+        assertEquals("Near Start Loop", result.closestLoops.first().activity.name)
     }
 
     private fun buildActivity(

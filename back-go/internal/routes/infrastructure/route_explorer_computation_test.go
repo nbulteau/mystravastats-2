@@ -52,6 +52,12 @@ func TestComputeRouteExplorerFromActivities_ReturnsMVPAndVariants(t *testing.T) 
 	if len(result.ShapeMatches) == 0 {
 		t.Fatal("expected shape match recommendations for LOOP")
 	}
+	if result.ClosestLoops[0].RouteID == "" {
+		t.Fatal("expected closest loop recommendation to have a stable route id")
+	}
+	if result.Variants[0].RouteID == "" {
+		t.Fatal("expected smart variant recommendation to have a stable route id")
+	}
 }
 
 func TestComputeRouteExplorerFromActivities_BuildsExperimentalShapeRemix(t *testing.T) {
@@ -165,6 +171,42 @@ func TestComputeRouteExplorerFromActivities_CalibratesScoringByRouteType(t *test
 	}
 	if hikeResult.ClosestLoops[0].Activity.Name != "Climb Focused" {
 		t.Fatalf("expected hike scoring to prioritize elevation match, got %q", hikeResult.ClosestLoops[0].Activity.Name)
+	}
+}
+
+func TestComputeRouteExplorerFromActivities_PrioritizesPreferredStartPoint(t *testing.T) {
+	// GIVEN
+	targetDistance := 40.0
+	targetElevation := 700.0
+	targetDuration := 130
+	routeType := "RIDE"
+	preferredStart := &routesDomain.Coordinates{Lat: 45.2000, Lng: 6.1000}
+	activities := []*strava.Activity{
+		buildRouteActivity(51, "Near start", "2025-10-01T08:00:00Z", 38.5, 680, 7800, []float64{45.201, 6.101}, [][]float64{
+			{45.201, 6.101}, {45.220, 6.140}, {45.201, 6.101},
+		}),
+		buildRouteActivity(52, "Far start", "2025-10-02T08:00:00Z", 40.2, 705, 7900, []float64{45.480, 6.460}, [][]float64{
+			{45.480, 6.460}, {45.500, 6.500}, {45.480, 6.460},
+		}),
+	}
+	request := routesDomain.RouteExplorerRequest{
+		DistanceTargetKm:  &targetDistance,
+		ElevationTargetM:  &targetElevation,
+		DurationTargetMin: &targetDuration,
+		StartPoint:        preferredStart,
+		RouteType:         &routeType,
+		Limit:             6,
+	}
+
+	// WHEN
+	result := computeRouteExplorerFromActivities(activities, request)
+
+	// THEN
+	if len(result.ClosestLoops) == 0 {
+		t.Fatal("expected at least one closest loop recommendation")
+	}
+	if result.ClosestLoops[0].Activity.Name != "Near start" {
+		t.Fatalf("expected preferred start point to influence ranking, got %q", result.ClosestLoops[0].Activity.Name)
 	}
 }
 

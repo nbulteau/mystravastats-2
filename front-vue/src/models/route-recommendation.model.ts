@@ -1,48 +1,57 @@
-import type { ActivityShort } from "@/models/activity.model";
+export type RouteMode = "TARGET" | "SHAPE";
+
+export type RouteType =
+  | "RIDE"
+  | "MTB"
+  | "GRAVEL"
+  | "RUN"
+  | "TRAIL"
+  | "HIKE";
+
+export type StartDirection =
+  | "N"
+  | "S"
+  | "E"
+  | "W";
+
+export type ShapeInputType =
+  | "draw"
+  | "polyline";
 
 export interface RouteCoordinate {
   lat: number;
   lng: number;
 }
 
-export interface RouteRecommendation {
-  activity: ActivityShort;
-  activityDate: string;
+export interface RouteGenerationScore {
+  global: number;
+  distance: number;
+  elevation: number;
+  duration: number;
+  direction: number;
+  shape: number;
+  roadFitness: number;
+}
+
+export interface GeneratedRoute {
+  routeId: string;
+  title: string;
+  variantType: string;
+  routeType?: string;
+  startDirection?: string;
   distanceKm: number;
   elevationGainM: number;
   durationSec: number;
-  isLoop: boolean;
+  estimatedDurationSec: number;
+  score: RouteGenerationScore;
+  reasons: string[];
+  previewLatLng: number[][];
   start?: RouteCoordinate;
   end?: RouteCoordinate;
-  startArea: string;
-  season: string;
-  variantType: string;
-  matchScore: number;
-  reasons: string[];
-  previewLatLng: number[][];
-  shape?: string;
-  shapeScore?: number;
-  experimental: boolean;
+  activityId?: number;
+  isRoadGraphGenerated: boolean;
 }
 
-export interface ShapeRemixRecommendation {
-  id: string;
-  shape: string;
-  distanceKm: number;
-  elevationGainM: number;
-  durationSec: number;
-  matchScore: number;
-  reasons: string[];
-  components: ActivityShort[];
-  previewLatLng: number[][];
-  experimental: boolean;
+export interface GenerateRoutesResponse {
+  routes: GeneratedRoute[];
 }
-
-export interface RouteExplorerResult {
-  closestLoops: RouteRecommendation[];
-  variants: RouteRecommendation[];
-  seasonal: RouteRecommendation[];
-  shapeMatches: RouteRecommendation[];
-  shapeRemixes: ShapeRemixRecommendation[];
-}
-

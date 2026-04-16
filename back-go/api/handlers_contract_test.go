@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 
@@ -16,6 +17,8 @@ import (
 	dashboardDomain "mystravastats/internal/dashboard/domain"
 	healthApp "mystravastats/internal/health/application"
 	heartrateApp "mystravastats/internal/heartrate/application"
+	routesApp "mystravastats/internal/routes/application"
+	routesDomain "mystravastats/internal/routes/domain"
 	segmentsApp "mystravastats/internal/segments/application"
 	segmentsDomain "mystravastats/internal/segments/domain"
 	statisticsApp "mystravastats/internal/statistics/application"
@@ -126,6 +129,14 @@ func (stub *contractSegmentsReaderStub) FindSegmentEffortsByYearMetricRangeAndTy
 
 func (stub *contractSegmentsReaderStub) FindSegmentSummaryByYearMetricRangeAndTypes(_ *int, _ *string, _ int64, _ *string, _ *string, _ ...business.ActivityType) *segmentsDomain.SegmentSummary {
 	return stub.summary
+}
+
+type contractRoutesReaderStub struct {
+	result routesDomain.RouteExplorerResult
+}
+
+func (stub *contractRoutesReaderStub) FindRouteExplorerByYearAndTypes(_ *int, _ routesDomain.RouteExplorerRequest, _ ...business.ActivityType) routesDomain.RouteExplorerResult {
+	return stub.result
 }
 
 type contractChartsReaderStub struct {
@@ -714,5 +725,99 @@ func TestGetDashboardEddingtonNumber_Returns200(t *testing.T) {
 	}
 	if got := int(response["eddingtonNumber"].(float64)); got != 55 {
 		t.Fatalf("expected eddingtonNumber=55, got %d", got)
+	}
+}
+
+func TestGenerateTargetRoutesByActivityType_ReturnsGeneratedRoutesAndCachesForGPX(t *testing.T) {
+	// GIVEN
+	// WHEN
+	// THEN
+	generatedRouteCache.mu.Lock()
+	generatedRouteCache.items = map[string]generatedRouteCacheEntry{}
+	generatedRouteCache.mu.Unlock()
+
+	setTestContainer(t, &container{
+		getRouteExplorerUseCase: routesApp.NewGetRouteExplorerUseCase(&contractRoutesReaderStub{
+			result: routesDomain.RouteExplorerResult{
+				RoadGraphLoops: []routesDomain.RouteRecommendation{
+					{
+						RouteID:        "generated-loop-1",
+						Activity:       business.ActivityShort{Id: 1234, Name: "Generated loop", Type: business.Ride},
+						DistanceKm:     42.1,
+						ElevationGainM: 860,
+						DurationSec:    7200,
+						VariantType:    routesDomain.RouteVariantRoadGraph,
+						MatchScore:     91.4,
+						Reasons:        []string{"Road-graph generated loop"},
+						PreviewLatLng:  [][]float64{{45.0, 6.0}, {45.01, 6.02}, {45.0, 6.0}},
+					},
+				},
+			},
+		}),
+	})
+
+	request := httptest.NewRequest(http.MethodPost, "/api/routes/generate/target?activityType=Ride&year=2025", strings.NewReader(`{
+	  "startPoint": {"lat": 45.1, "lng": 6.1},
+	  "routeType": "RIDE",
+	  "startDirection": "N",
+	  "distanceTargetKm": 42,
+	  "elevationTargetM": 900,
+	  "variantCount": 3
+	}`))
+	request.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	generateTargetRoutesByActivityType(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d (%s)", recorder.Code, recorder.Body.String())
+	}
+
+	var response map[string]any
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode JSON response: %v", err)
+	}
+	routes, ok := response["routes"].([]any)
+	if !ok || len(routes) == 0 {
+		t.Fatalf("expected routes array, got %+v", response)
+	}
+
+	gpxRequest := httptest.NewRequest(http.MethodGet, "/api/routes/generated-loop-1/gpx", nil)
+	gpxRequest = mux.SetURLVars(gpxRequest, map[string]string{"routeId": "generated-loop-1"})
+	gpxRecorder := httptest.NewRecorder()
+	getGeneratedRouteGPXByID(gpxRecorder, gpxRequest)
+
+	if gpxRecorder.Code != http.StatusOK {
+		t.Fatalf("expected gpx status 200, got %d (%s)", gpxRecorder.Code, gpxRecorder.Body.String())
+	}
+	if !strings.Contains(gpxRecorder.Body.String(), "<gpx") {
+		t.Fatalf("expected GPX payload, got %s", gpxRecorder.Body.String())
+	}
+}
+
+func TestGenerateShapeRoutesByActivityType_InvalidShapeInputType_Returns400(t *testing.T) {
+	// GIVEN
+	// WHEN
+	// THEN
+	request := httptest.NewRequest(http.MethodPost, "/api/routes/generate/shape?activityType=Ride", strings.NewReader(`{
+	  "shapeInputType": "invalid",
+	  "shapeData": "[[45.0,6.0],[45.1,6.1]]",
+	  "routeType": "RIDE"
+	}`))
+	request.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	generateShapeRoutesByActivityType(recorder, request)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", recorder.Code)
+	}
+
+	var response contractErrorResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode JSON response: %v", err)
+	}
+	if response.Message != "Invalid request body" {
+		t.Fatalf("expected message 'Invalid request body', got %q", response.Message)
 	}
 }

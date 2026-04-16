@@ -7,11 +7,12 @@ import (
 
 func ToRouteExplorerResultDto(result routesDomain.RouteExplorerResult) RouteExplorerResultDto {
 	return RouteExplorerResultDto{
-		ClosestLoops: toRouteRecommendationDtos(result.ClosestLoops),
-		Variants:     toRouteRecommendationDtos(result.Variants),
-		Seasonal:     toRouteRecommendationDtos(result.Seasonal),
-		ShapeMatches: toRouteRecommendationDtos(result.ShapeMatches),
-		ShapeRemixes: toShapeRemixRecommendationDtos(result.ShapeRemixes),
+		ClosestLoops:   toRouteRecommendationDtos(result.ClosestLoops),
+		Variants:       toRouteRecommendationDtos(result.Variants),
+		Seasonal:       toRouteRecommendationDtos(result.Seasonal),
+		RoadGraphLoops: toRouteRecommendationDtos(result.RoadGraphLoops),
+		ShapeMatches:   toRouteRecommendationDtos(result.ShapeMatches),
+		ShapeRemixes:   toShapeRemixRecommendationDtos(result.ShapeRemixes),
 	}
 }
 
@@ -23,6 +24,7 @@ func toRouteRecommendationDtos(recommendations []routesDomain.RouteRecommendatio
 	result := make([]RouteRecommendationDto, len(recommendations))
 	for index, recommendation := range recommendations {
 		result[index] = RouteRecommendationDto{
+			RouteID:        recommendation.RouteID,
 			Activity:       toActivityShortDto(recommendation.Activity),
 			ActivityDate:   recommendation.ActivityDate,
 			DistanceKm:     recommendation.DistanceKm,

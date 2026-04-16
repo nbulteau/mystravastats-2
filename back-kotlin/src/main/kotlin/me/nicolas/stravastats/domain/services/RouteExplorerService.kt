@@ -17,6 +17,7 @@ import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.util.PriorityQueue
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -57,6 +58,7 @@ class RouteExplorerService(
                 closestLoops = emptyList(),
                 variants = emptyList(),
                 seasonal = emptyList(),
+                roadGraphLoops = emptyList(),
                 shapeMatches = emptyList(),
                 shapeRemixes = emptyList(),
             )
@@ -71,7 +73,8 @@ class RouteExplorerService(
             ?: median(candidates.map { candidate -> candidate.durationSec.toDouble() }, 2.5 * 3600.0).roundToInt()
         val routeType = normalizeRouteType(request.routeType)
         val startDirection = normalizeStartDirection(request.startDirection)
-        val scoringProfile = buildRouteScoringProfile(routeType, startDirection)
+        val preferredStart = normalizePreferredStartPoint(request.startPoint)
+        val scoringProfile = buildRouteScoringProfile(routeType, startDirection, preferredStart != null)
 
         val seasonFilter = normalizeSeason(request.season)
         val shapeFilter = normalizeShape(request.shape)
@@ -84,6 +87,7 @@ class RouteExplorerService(
             durationTargetSec,
             scoringProfile,
             startDirection,
+            preferredStart,
             limit,
         )
         val variants = buildSmartVariants(
@@ -93,8 +97,19 @@ class RouteExplorerService(
             durationTargetSec,
             scoringProfile,
             startDirection,
+            preferredStart,
         )
         val seasonal = buildSeasonalRecommendations(candidates, seasonFilter, distanceTarget, elevationTarget, durationTargetSec, limit)
+        val roadGraphLoops = buildRoadGraphRecommendations(
+            candidates = baseCandidates,
+            distanceTarget = distanceTarget,
+            elevationTarget = elevationTarget,
+            durationTargetSec = durationTargetSec,
+            scoringProfile = scoringProfile,
+            startDirection = startDirection,
+            preferredStart = preferredStart,
+            limit = limit,
+        )
         val shapeMatches = buildShapeMatchRecommendations(baseCandidates, shapeFilter, distanceTarget, elevationTarget, durationTargetSec, limit)
         val remixes = if (request.includeRemix) {
             buildShapeRemixRecommendations(baseCandidates, distanceTarget, elevationTarget, durationTargetSec, limit)
@@ -106,6 +121,7 @@ class RouteExplorerService(
             closestLoops = closest,
             variants = variants,
             seasonal = seasonal,
+            roadGraphLoops = roadGraphLoops,
             shapeMatches = shapeMatches,
             shapeRemixes = remixes,
         )
@@ -159,13 +175,22 @@ class RouteExplorerService(
         durationTargetSec: Int,
         scoringProfile: RouteScoringProfile,
         startDirection: String?,
+        preferredStart: Coordinates?,
         limit: Int,
     ): List<RouteRecommendation> {
         val loopCandidates = candidates.filter { candidate -> candidate.isLoop }.ifEmpty { candidates }
 
         return loopCandidates
             .map { candidate ->
-                val score = closenessScore(candidate, distanceTarget, elevationTarget, durationTargetSec, scoringProfile, startDirection)
+                val score = closenessScore(
+                    candidate = candidate,
+                    distanceTarget = distanceTarget,
+                    elevationTarget = elevationTarget,
+                    durationTargetSec = durationTargetSec,
+                    scoringProfile = scoringProfile,
+                    startDirection = startDirection,
+                    preferredStart = preferredStart,
+                )
                 candidate to score
             }
             .sortedWith(compareByDescending<Pair<RouteCandidate, Double>> { (_, score) -> score }.thenByDescending { (candidate, _) -> candidate.date ?: Instant.EPOCH })
@@ -177,6 +202,12 @@ class RouteExplorerService(
                 )
                 if (startDirection != null) {
                     reasons += "Departure direction: ${startDirectionLabel(startDirection)}"
+                }
+                if (preferredStart != null) {
+                    val startDistanceKm = startDistanceKm(candidate, preferredStart)
+                    if (startDistanceKm.isFinite()) {
+                        reasons += "Start proximity: ${formatDistanceDelta(startDistanceKm)}"
+                    }
                 }
                 toRouteRecommendation(
                     candidate = candidate,
@@ -196,6 +227,7 @@ class RouteExplorerService(
         durationTargetSec: Int,
         scoringProfile: RouteScoringProfile,
         startDirection: String?,
+        preferredStart: Coordinates?,
     ): List<RouteRecommendation> {
         val shorter = pickBestVariant(
             candidates = candidates,
@@ -205,6 +237,7 @@ class RouteExplorerService(
             durationTargetSec = durationTargetSec,
             scoringProfile = scoringProfile,
             startDirection = startDirection,
+            preferredStart = preferredStart,
         )
 
         val longer = pickBestVariant(
@@ -215,6 +248,7 @@ class RouteExplorerService(
             durationTargetSec = durationTargetSec,
             scoringProfile = scoringProfile,
             startDirection = startDirection,
+            preferredStart = preferredStart,
         )
 
         val hillier = pickBestVariant(
@@ -232,6 +266,7 @@ class RouteExplorerService(
             durationTargetSec = durationTargetSec,
             scoringProfile = scoringProfile,
             startDirection = startDirection,
+            preferredStart = preferredStart,
         )
 
         return buildList {
@@ -314,6 +349,286 @@ class RouteExplorerService(
                 )
             }
             .distinctBy { recommendation -> recommendation.activity.id }
+    }
+
+    private fun buildRoadGraphRecommendations(
+        candidates: List<RouteCandidate>,
+        distanceTarget: Double,
+        elevationTarget: Double,
+        durationTargetSec: Int,
+        scoringProfile: RouteScoringProfile,
+        startDirection: String?,
+        preferredStart: Coordinates?,
+        limit: Int,
+    ): List<RouteRecommendation> {
+        if (candidates.size < 2) {
+            return emptyList()
+        }
+        val loopCandidates = candidates
+            .filter { candidate -> candidate.isLoop && candidate.previewLatLng.size >= 8 }
+            .take(70)
+        if (loopCandidates.size < 2) {
+            return emptyList()
+        }
+        val graph = buildRoadGraph(loopCandidates)
+        if (graph.nodes.isEmpty()) {
+            return emptyList()
+        }
+
+        val elevationPerKm = estimateElevationPerKm(loopCandidates)
+        val durationPerKm = estimateDurationPerKm(loopCandidates)
+        val scored = mutableListOf<Pair<RouteRecommendation, Double>>()
+        val seenRouteIds = mutableSetOf<String>()
+
+        for (leftIndex in 0 until loopCandidates.size) {
+            val left = loopCandidates[leftIndex]
+            for (rightIndex in leftIndex + 1 until loopCandidates.size) {
+                val right = loopCandidates[rightIndex]
+                val built = buildRoadGraphRecommendationFromPair(
+                    graph = graph,
+                    left = left,
+                    right = right,
+                    distanceTarget = distanceTarget,
+                    elevationTarget = elevationTarget,
+                    durationTargetSec = durationTargetSec,
+                    scoringProfile = scoringProfile,
+                    startDirection = startDirection,
+                    preferredStart = preferredStart,
+                    elevationPerKm = elevationPerKm,
+                    durationPerKm = durationPerKm,
+                ) ?: continue
+
+                if (!seenRouteIds.add(built.first.routeId)) {
+                    continue
+                }
+                scored += built
+                if (scored.size >= MAX_ROUTE_LIMIT * 4) {
+                    break
+                }
+            }
+            if (scored.size >= MAX_ROUTE_LIMIT * 4) {
+                break
+            }
+        }
+
+        return scored
+            .sortedWith(
+                compareByDescending<Pair<RouteRecommendation, Double>> { (_, score) -> score }
+                    .thenBy { (recommendation, _) -> recommendation.routeId }
+            )
+            .take(min(limit, 6))
+            .map { (recommendation, _) -> recommendation }
+    }
+
+    private fun buildRoadGraphRecommendationFromPair(
+        graph: RoadGraph,
+        left: RouteCandidate,
+        right: RouteCandidate,
+        distanceTarget: Double,
+        elevationTarget: Double,
+        durationTargetSec: Int,
+        scoringProfile: RouteScoringProfile,
+        startDirection: String?,
+        preferredStart: Coordinates?,
+        elevationPerKm: Double,
+        durationPerKm: Double,
+    ): Pair<RouteRecommendation, Double>? {
+        if (left.previewLatLng.size < 4 || right.previewLatLng.size < 4) {
+            return null
+        }
+        val leftStart = left.previewLatLng.firstOrNull() ?: return null
+        val leftEnd = left.previewLatLng.lastOrNull() ?: return null
+        val rightStart = right.previewLatLng.firstOrNull() ?: return null
+        val rightEnd = right.previewLatLng.lastOrNull() ?: return null
+
+        val connectorA = shortestGraphPath(graph, leftEnd, rightStart) ?: return null
+        val connectorB = shortestGraphPath(graph, rightEnd, leftStart) ?: return null
+
+        var merged = mergePreview(left.previewLatLng, connectorA)
+        merged = mergePreview(merged, right.previewLatLng)
+        merged = mergePreview(merged, connectorB)
+        merged = sampleLatLng(merged, PREVIEW_POINT_MAX_SIZE)
+        if (merged.size < 6) {
+            return null
+        }
+
+        val distanceKm = pathDistanceMeters(merged) / 1000.0
+        if (distanceKm < 3.0) {
+            return null
+        }
+        val estimatedElevation = max(0.0, distanceKm * elevationPerKm)
+        val estimatedDuration = (distanceKm * durationPerKm).roundToInt()
+        val scoreCandidate = RouteCandidate(
+            activity = left.activity.copy(id = 0L, name = "Road-graph loop: ${left.activity.name} + ${right.activity.name}"),
+            date = left.date,
+            activityDate = left.activityDate,
+            distanceKm = distanceKm,
+            elevationGainM = estimatedElevation,
+            durationSec = estimatedDuration,
+            isLoop = true,
+            start = toCoordinates(leftStart),
+            end = toCoordinates(leftStart),
+            startArea = left.startArea,
+            season = left.season,
+            previewLatLng = merged,
+            shape = "LOOP",
+            shapeScore = 0.85,
+        )
+
+        val score = closenessScore(
+            candidate = scoreCandidate,
+            distanceTarget = distanceTarget,
+            elevationTarget = elevationTarget,
+            durationTargetSec = durationTargetSec,
+            scoringProfile = scoringProfile,
+            startDirection = startDirection,
+            preferredStart = preferredStart,
+        )
+        if (score < 40.0) {
+            return null
+        }
+
+        val recommendation = toRouteRecommendation(
+            candidate = scoreCandidate,
+            variantType = RouteVariantType.ROAD_GRAPH,
+            score = score,
+            reasons = listOf(
+                "Generated on cache road-graph (beta)",
+                "Anchors: ${left.activity.name} + ${right.activity.name}",
+                "Estimated profile: ${formatDistanceDelta(distanceKm)} / ${formatElevationDelta(estimatedElevation)}",
+            ),
+            experimental = true,
+        ).copy(
+            routeId = "road-graph-${minLong(left.activity.id, right.activity.id)}-${maxLong(left.activity.id, right.activity.id)}"
+        )
+        return recommendation to score
+    }
+
+    private fun buildRoadGraph(candidates: List<RouteCandidate>): RoadGraph {
+        val nodes = mutableMapOf<String, RoadGraphNode>()
+        val edges = mutableMapOf<String, MutableList<RoadGraphEdge>>()
+
+        candidates.forEach { candidate ->
+            val preview = candidate.previewLatLng
+            if (preview.size < 2) {
+                return@forEach
+            }
+            for (index in 0 until preview.size - 1) {
+                val left = preview[index]
+                val right = preview[index + 1]
+                val leftNode = quantizedRoadNode(left) ?: continue
+                val rightNode = quantizedRoadNode(right) ?: continue
+                if (leftNode.id == rightNode.id) {
+                    continue
+                }
+                nodes[leftNode.id] = leftNode
+                nodes[rightNode.id] = rightNode
+                val distance = distanceBetween(
+                    Coordinates(leftNode.lat, leftNode.lng),
+                    Coordinates(rightNode.lat, rightNode.lng)
+                )
+                if (distance <= 0.0 || distance.isInfinite() || distance.isNaN()) {
+                    continue
+                }
+                edges.computeIfAbsent(leftNode.id) { mutableListOf() }.add(RoadGraphEdge(rightNode.id, distance))
+                edges.computeIfAbsent(rightNode.id) { mutableListOf() }.add(RoadGraphEdge(leftNode.id, distance))
+            }
+        }
+        return RoadGraph(nodes = nodes, edges = edges)
+    }
+
+    private fun quantizedRoadNode(point: List<Double>): RoadGraphNode? {
+        if (point.size < 2) {
+            return null
+        }
+        val lat = point[0]
+        val lng = point[1]
+        if (lat !in -90.0..90.0 || lng !in -180.0..180.0) {
+            return null
+        }
+        val roundedLat = round(lat * 10000.0) / 10000.0
+        val roundedLng = round(lng * 10000.0) / 10000.0
+        val id = "%.4f,%.4f".format(roundedLat, roundedLng)
+        return RoadGraphNode(id = id, lat = roundedLat, lng = roundedLng)
+    }
+
+    private fun shortestGraphPath(graph: RoadGraph, from: List<Double>, to: List<Double>): List<List<Double>>? {
+        val startNode = quantizedRoadNode(from) ?: return null
+        val endNode = quantizedRoadNode(to) ?: return null
+        if (!graph.nodes.containsKey(startNode.id) || !graph.nodes.containsKey(endNode.id)) {
+            return null
+        }
+        if (startNode.id == endNode.id) {
+            val node = graph.nodes[startNode.id] ?: return null
+            return listOf(listOf(node.lat, node.lng))
+        }
+
+        val distances = mutableMapOf(startNode.id to 0.0)
+        val parents = mutableMapOf<String, String>()
+        val visited = mutableSetOf<String>()
+        val queue = PriorityQueue(compareBy<RoadPathState> { state -> state.distance })
+        queue.add(RoadPathState(nodeId = startNode.id, distance = 0.0))
+
+        while (queue.isNotEmpty()) {
+            val current = queue.poll()
+            if (!visited.add(current.nodeId)) {
+                continue
+            }
+            if (current.nodeId == endNode.id) {
+                break
+            }
+            graph.edges[current.nodeId].orEmpty().forEach { edge ->
+                val nextDistance = current.distance + edge.distance
+                val knownDistance = distances[edge.to]
+                if (knownDistance == null || nextDistance < knownDistance) {
+                    distances[edge.to] = nextDistance
+                    parents[edge.to] = current.nodeId
+                    queue.add(RoadPathState(nodeId = edge.to, distance = nextDistance))
+                }
+            }
+        }
+        if (!distances.containsKey(endNode.id)) {
+            return null
+        }
+
+        val ids = mutableListOf(endNode.id)
+        var cursor = endNode.id
+        while (cursor != startNode.id) {
+            val parent = parents[cursor] ?: return null
+            ids.add(parent)
+            cursor = parent
+        }
+        ids.reverse()
+        return ids.mapNotNull { id ->
+            graph.nodes[id]?.let { node -> listOf(node.lat, node.lng) }
+        }
+    }
+
+    private fun pathDistanceMeters(points: List<List<Double>>): Double {
+        if (points.size < 2) {
+            return 0.0
+        }
+        var total = 0.0
+        for (index in 0 until points.size - 1) {
+            val from = toCoordinates(points[index]) ?: continue
+            val to = toCoordinates(points[index + 1]) ?: continue
+            total += distanceBetween(from, to)
+        }
+        return total
+    }
+
+    private fun estimateElevationPerKm(candidates: List<RouteCandidate>): Double {
+        val values = candidates
+            .filter { candidate -> candidate.distanceKm > 0.0 }
+            .map { candidate -> candidate.elevationGainM / candidate.distanceKm }
+        return median(values, 12.0)
+    }
+
+    private fun estimateDurationPerKm(candidates: List<RouteCandidate>): Double {
+        val values = candidates
+            .filter { candidate -> candidate.distanceKm > 0.0 && candidate.durationSec > 0 }
+            .map { candidate -> candidate.durationSec.toDouble() / candidate.distanceKm }
+        return median(values, 190.0)
     }
 
     private fun buildShapeMatchRecommendations(
@@ -467,18 +782,20 @@ class RouteExplorerService(
         durationTargetSec: Int,
         scoringProfile: RouteScoringProfile,
         startDirection: String?,
+        preferredStart: Coordinates?,
     ): Pair<RouteCandidate, Double>? {
         return candidates
             .asSequence()
             .filter { candidate -> filter(candidate) }
             .map { candidate ->
                 candidate to closenessScore(
-                    candidate,
-                    distanceTarget,
-                    elevationTarget,
-                    durationTargetSec,
-                    scoringProfile,
-                    startDirection,
+                    candidate = candidate,
+                    distanceTarget = distanceTarget,
+                    elevationTarget = elevationTarget,
+                    durationTargetSec = durationTargetSec,
+                    scoringProfile = scoringProfile,
+                    startDirection = startDirection,
+                    preferredStart = preferredStart,
                 )
             }
             .maxByOrNull { (_, score) -> score }
@@ -493,6 +810,7 @@ class RouteExplorerService(
     ): RouteRecommendation {
         val shape = candidate.shape.ifBlank { "UNKNOWN" }
         return RouteRecommendation(
+            routeId = routeRecommendationId(candidate, variantType),
             activity = toActivityShort(candidate.activity),
             activityDate = candidate.activityDate,
             distanceKm = round(candidate.distanceKm * 100) / 100,
@@ -511,6 +829,15 @@ class RouteExplorerService(
             shapeScore = candidate.shapeScore * 100.0,
             experimental = experimental,
         )
+    }
+
+    private fun routeRecommendationId(candidate: RouteCandidate, variantType: RouteVariantType): String {
+        val type = variantType.name.lowercase()
+        return when {
+            candidate.activity.id > 0L -> "route-${candidate.activity.id}-$type"
+            candidate.activityDate.isNotBlank() -> "route-${candidate.activityDate}-$type"
+            else -> "route-${System.currentTimeMillis()}-$type"
+        }
     }
 
     private fun toActivityShort(activity: StravaActivity): ActivityShort {
@@ -701,8 +1028,9 @@ class RouteExplorerService(
             distanceTarget = distanceTarget,
             elevationTarget = elevationTarget,
             durationTargetSec = durationTargetSec,
-            scoringProfile = buildRouteScoringProfile(null, null),
+            scoringProfile = buildRouteScoringProfile(null, null, hasPreferredStart = false),
             startDirection = null,
+            preferredStart = null,
         )
     }
 
@@ -713,20 +1041,23 @@ class RouteExplorerService(
         durationTargetSec: Int,
         scoringProfile: RouteScoringProfile,
         startDirection: String?,
+        preferredStart: Coordinates?,
     ): Double {
         val profile = normalizeScoringProfile(scoringProfile)
         val distanceComponent = abs(candidate.distanceKm - distanceTarget) / max(distanceTarget, 1.0)
         val elevationComponent = abs(candidate.elevationGainM - elevationTarget) / max(elevationTarget, 200.0)
         val durationComponent = abs(candidate.durationSec.toDouble() - durationTargetSec.toDouble()) / max(durationTargetSec.toDouble(), 1800.0)
         val directionComponent = directionPenaltyComponent(candidate, startDirection)
+        val startPointComponent = startPointPenaltyComponent(candidate, preferredStart)
         val weighted = distanceComponent * profile.distanceWeight +
             elevationComponent * profile.elevationWeight +
             durationComponent * profile.durationWeight +
-            directionComponent * profile.directionWeight
+            directionComponent * profile.directionWeight +
+            startPointComponent * profile.startPointWeight
         return max(0.0, 100.0 - weighted * 100.0)
     }
 
-    private fun buildRouteScoringProfile(routeType: String?, startDirection: String?): RouteScoringProfile {
+    private fun buildRouteScoringProfile(routeType: String?, startDirection: String?, hasPreferredStart: Boolean): RouteScoringProfile {
         val normalizedType = routeType?.trim()?.uppercase()
         val (baseDistance, baseElevation, baseDuration) = when (normalizedType) {
             "MTB" -> Triple(0.44, 0.39, 0.17)
@@ -750,25 +1081,37 @@ class RouteExplorerService(
             }
         }
 
-        val core = max(0.05, 1.0 - directionWeight)
+        val startPointWeight = if (hasPreferredStart) {
+            when (normalizedType) {
+                "RUN", "TRAIL", "HIKE" -> 0.22
+                "MTB", "GRAVEL" -> 0.16
+                else -> 0.14
+            }
+        } else {
+            0.0
+        }
+
+        val core = max(0.05, 1.0 - directionWeight - startPointWeight)
         return normalizeScoringProfile(
             RouteScoringProfile(
                 distanceWeight = baseDistance * core,
                 elevationWeight = baseElevation * core,
                 durationWeight = baseDuration * core,
                 directionWeight = directionWeight,
+                startPointWeight = startPointWeight,
             )
         )
     }
 
     private fun normalizeScoringProfile(profile: RouteScoringProfile): RouteScoringProfile {
-        val total = profile.distanceWeight + profile.elevationWeight + profile.durationWeight + profile.directionWeight
+        val total = profile.distanceWeight + profile.elevationWeight + profile.durationWeight + profile.directionWeight + profile.startPointWeight
         if (total <= 0.0) {
             return RouteScoringProfile(
                 distanceWeight = 0.5,
                 elevationWeight = 0.3,
                 durationWeight = 0.2,
                 directionWeight = 0.0,
+                startPointWeight = 0.0,
             )
         }
         return RouteScoringProfile(
@@ -776,6 +1119,7 @@ class RouteExplorerService(
             elevationWeight = profile.elevationWeight / total,
             durationWeight = profile.durationWeight / total,
             directionWeight = profile.directionWeight / total,
+            startPointWeight = profile.startPointWeight / total,
         )
     }
 
@@ -818,6 +1162,39 @@ class RouteExplorerService(
         val rawDiff = abs(initialBearing - targetBearing)
         val normalizedDiff = if (rawDiff > 180.0) 360.0 - rawDiff else rawDiff
         return normalizedDiff / 180.0
+    }
+
+    private fun normalizePreferredStartPoint(value: Coordinates?): Coordinates? {
+        if (value == null) {
+            return null
+        }
+        return if (value.lat in -90.0..90.0 && value.lng in -180.0..180.0) {
+            Coordinates(lat = value.lat, lng = value.lng)
+        } else {
+            null
+        }
+    }
+
+    private fun startPointPenaltyComponent(candidate: RouteCandidate, preferredStart: Coordinates?): Double {
+        if (preferredStart == null) {
+            return 0.0
+        }
+        val distanceKm = startDistanceKm(candidate, preferredStart)
+        if (!distanceKm.isFinite()) {
+            return 1.0
+        }
+        return min(1.0, max(0.0, distanceKm / 18.0))
+    }
+
+    private fun startDistanceKm(candidate: RouteCandidate, preferredStart: Coordinates?): Double {
+        if (preferredStart == null || candidate.start == null) {
+            return Double.POSITIVE_INFINITY
+        }
+        val distanceMeters = distanceBetween(candidate.start, preferredStart)
+        if (!distanceMeters.isFinite() || distanceMeters == Double.MAX_VALUE) {
+            return Double.POSITIVE_INFINITY
+        }
+        return distanceMeters / 1000.0
     }
 
     private fun initialBearingDegrees(candidate: RouteCandidate): Double? {
@@ -927,6 +1304,25 @@ class RouteExplorerService(
         }
     }
 
+    private fun mergePreview(left: List<List<Double>>, right: List<List<Double>>): List<List<Double>> {
+        if (left.isEmpty()) {
+            return right
+        }
+        if (right.isEmpty()) {
+            return left
+        }
+        val merged = left.toMutableList()
+        val rightHead = right.first()
+        if (merged.lastOrNull()?.size ?: 0 >= 2 &&
+            rightHead.size >= 2 &&
+            (merged.last()[0] != rightHead[0] || merged.last()[1] != rightHead[1])
+        ) {
+            merged += rightHead
+        }
+        merged += right.drop(1)
+        return merged
+    }
+
     private fun firstNonEmpty(vararg values: String?): String? {
         return values.firstOrNull { value -> !value.isNullOrBlank() }?.trim()
     }
@@ -986,6 +1382,14 @@ class RouteExplorerService(
         }
     }
 
+    private fun minLong(left: Long, right: Long): Long {
+        return if (left < right) left else right
+    }
+
+    private fun maxLong(left: Long, right: Long): Long {
+        return if (left > right) left else right
+    }
+
     private data class RouteCandidate(
         val activity: StravaActivity,
         val date: Instant?,
@@ -1008,5 +1412,27 @@ class RouteExplorerService(
         val elevationWeight: Double,
         val durationWeight: Double,
         val directionWeight: Double,
+        val startPointWeight: Double,
+    )
+
+    private data class RoadGraphNode(
+        val id: String,
+        val lat: Double,
+        val lng: Double,
+    )
+
+    private data class RoadGraphEdge(
+        val to: String,
+        val distance: Double,
+    )
+
+    private data class RoadGraph(
+        val nodes: Map<String, RoadGraphNode>,
+        val edges: Map<String, List<RoadGraphEdge>>,
+    )
+
+    private data class RoadPathState(
+        val nodeId: String,
+        val distance: Double,
     )
 }

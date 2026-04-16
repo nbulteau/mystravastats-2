@@ -6,6 +6,7 @@ enum class RouteVariantType {
     LONGER,
     HILLIER,
     SEASONAL,
+    ROAD_GRAPH,
     SHAPE_MATCH,
     SHAPE_REMIX,
 }
@@ -16,6 +17,7 @@ data class Coordinates(
 )
 
 data class RouteRecommendation(
+    val routeId: String = "",
     val activity: ActivityShort,
     val activityDate: String,
     val distanceKm: Double,
@@ -53,10 +55,12 @@ data class RouteExplorerRequest(
     val elevationTargetM: Double?,
     val durationTargetMin: Int?,
     val startDirection: String? = null,
+    val startPoint: Coordinates? = null,
     val routeType: String? = null,
     val season: String?,
     val limit: Int,
     val shape: String?,
+    val shapePolyline: String? = null,
     val includeRemix: Boolean,
 )
 
@@ -64,6 +68,7 @@ data class RouteExplorerResult(
     val closestLoops: List<RouteRecommendation>,
     val variants: List<RouteRecommendation>,
     val seasonal: List<RouteRecommendation>,
+    val roadGraphLoops: List<RouteRecommendation>,
     val shapeMatches: List<RouteRecommendation>,
     val shapeRemixes: List<ShapeRemixRecommendation>,
 )

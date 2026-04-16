@@ -5,13 +5,14 @@ import "mystravastats/domain/business"
 type RouteVariantType string
 
 const (
-	RouteVariantClosest  RouteVariantType = "CLOSE_MATCH"
-	RouteVariantShorter  RouteVariantType = "SHORTER"
-	RouteVariantLonger   RouteVariantType = "LONGER"
-	RouteVariantHillier  RouteVariantType = "HILLIER"
-	RouteVariantSeasonal RouteVariantType = "SEASONAL"
-	RouteVariantShape    RouteVariantType = "SHAPE_MATCH"
-	RouteVariantShapeMix RouteVariantType = "SHAPE_REMIX"
+	RouteVariantClosest   RouteVariantType = "CLOSE_MATCH"
+	RouteVariantShorter   RouteVariantType = "SHORTER"
+	RouteVariantLonger    RouteVariantType = "LONGER"
+	RouteVariantHillier   RouteVariantType = "HILLIER"
+	RouteVariantSeasonal  RouteVariantType = "SEASONAL"
+	RouteVariantRoadGraph RouteVariantType = "ROAD_GRAPH"
+	RouteVariantShape     RouteVariantType = "SHAPE_MATCH"
+	RouteVariantShapeMix  RouteVariantType = "SHAPE_REMIX"
 )
 
 type Coordinates struct {
@@ -20,6 +21,7 @@ type Coordinates struct {
 }
 
 type RouteRecommendation struct {
+	RouteID        string
 	Activity       business.ActivityShort
 	ActivityDate   string
 	DistanceKm     float64
@@ -56,18 +58,21 @@ type RouteExplorerRequest struct {
 	DistanceTargetKm  *float64
 	ElevationTargetM  *float64
 	DurationTargetMin *int
+	StartPoint        *Coordinates
 	StartDirection    *string
 	RouteType         *string
 	Season            *string
 	Limit             int
 	Shape             *string
+	ShapePolyline     *string
 	IncludeRemix      bool
 }
 
 type RouteExplorerResult struct {
-	ClosestLoops []RouteRecommendation
-	Variants     []RouteRecommendation
-	Seasonal     []RouteRecommendation
-	ShapeMatches []RouteRecommendation
-	ShapeRemixes []ShapeRemixRecommendation
+	ClosestLoops   []RouteRecommendation
+	Variants       []RouteRecommendation
+	Seasonal       []RouteRecommendation
+	RoadGraphLoops []RouteRecommendation
+	ShapeMatches   []RouteRecommendation
+	ShapeRemixes   []ShapeRemixRecommendation
 }

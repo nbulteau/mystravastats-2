@@ -31,6 +31,9 @@ func (uc *GetRouteExplorerUseCase) Execute(
 	if result.Seasonal == nil {
 		result.Seasonal = []routesDomain.RouteRecommendation{}
 	}
+	if result.RoadGraphLoops == nil {
+		result.RoadGraphLoops = []routesDomain.RouteRecommendation{}
+	}
 	if result.ShapeMatches == nil {
 		result.ShapeMatches = []routesDomain.RouteRecommendation{}
 	}
