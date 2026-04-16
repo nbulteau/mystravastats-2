@@ -3,11 +3,11 @@ package infrastructure
 import (
 	"log"
 	"math"
-	"mystravastats/domain/business"
 	"mystravastats/domain/statistics"
-	"mystravastats/domain/strava"
 	dashboardDomain "mystravastats/internal/dashboard/domain"
 	"mystravastats/internal/platform/activityprovider"
+	"mystravastats/internal/shared/domain/business"
+	"mystravastats/internal/shared/domain/strava"
 	"sort"
 	"strconv"
 	"time"

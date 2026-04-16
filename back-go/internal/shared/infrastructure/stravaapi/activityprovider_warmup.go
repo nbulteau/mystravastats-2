@@ -3,10 +3,10 @@ package stravaapi
 import (
 	"fmt"
 	"log"
-	"mystravastats/domain/business"
 	"mystravastats/domain/statistics"
-	"mystravastats/domain/strava"
 	"mystravastats/internal/helpers"
+	"mystravastats/internal/shared/domain/business"
+	"mystravastats/internal/shared/domain/strava"
 	"sort"
 	"time"
 )

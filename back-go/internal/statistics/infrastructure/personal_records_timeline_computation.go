@@ -3,11 +3,11 @@ package infrastructure
 import (
 	"fmt"
 	"math"
-	"mystravastats/domain/business"
 	"mystravastats/domain/statistics"
-	"mystravastats/domain/strava"
 	"mystravastats/internal/helpers"
 	"mystravastats/internal/platform/activityprovider"
+	"mystravastats/internal/shared/domain/business"
+	"mystravastats/internal/shared/domain/strava"
 	"sort"
 	"strings"
 	"time"

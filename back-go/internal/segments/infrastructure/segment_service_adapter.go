@@ -1,8 +1,8 @@
 package infrastructure
 
 import (
-	"mystravastats/domain/business"
 	"mystravastats/internal/segments/domain"
+	"mystravastats/internal/shared/domain/business"
 )
 
 // SegmentServiceAdapter computes segment read models directly from provider data.

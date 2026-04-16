@@ -1,6 +1,6 @@
 package application
 
-import "mystravastats/domain/business"
+import "mystravastats/internal/shared/domain/business"
 
 type GetBadgesUseCase struct {
 	reader BadgesReader

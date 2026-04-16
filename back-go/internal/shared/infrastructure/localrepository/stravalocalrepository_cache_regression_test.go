@@ -2,7 +2,7 @@ package localrepository
 
 import (
 	"fmt"
-	"mystravastats/domain/strava"
+	"mystravastats/internal/shared/domain/strava"
 	"os"
 	"path/filepath"
 	"regexp"

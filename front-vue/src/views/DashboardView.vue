@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useContextStore } from "@/stores/context.js";
 import { useDashboardStore } from "@/stores/dashboard";
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 import TooltipHint from "@/components/TooltipHint.vue";
 import { getMetricTooltip } from "@/utils/metric-tooltips";
 import CumulativeDistancePerYearChart from "@/components/charts/CumulativeDataPerYearChart.vue";
@@ -16,7 +16,7 @@ import DistanceElevationPerYearChart from "@/components/charts/DistanceElevation
 
 const contextStore = useContextStore();
 const dashboardStore = useDashboardStore();
-contextStore.updateCurrentView("dashboard");
+onMounted(() => contextStore.updateCurrentView("dashboard"));
 
 const currentActivityType = computed(() => contextStore.currentActivityType);
 const cumulativeDistancePerYear = computed(() => dashboardStore.cumulativeDistancePerYear);

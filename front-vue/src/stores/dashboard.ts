@@ -42,7 +42,7 @@ export const useDashboardStore = defineStore("dashboard", {
   actions: {
     currentDashboardKey(): string {
       const contextStore = useContextStore();
-      return `${contextStore.currentActivityType}__${contextStore.currentYear}`;
+      return contextStore.currentFiltersKey;
     },
     currentHeatmapKey(): string {
       const contextStore = useContextStore();

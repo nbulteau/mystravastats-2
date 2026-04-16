@@ -1,8 +1,8 @@
 package application
 
 import (
-	"mystravastats/domain/business"
 	dashboardDomain "mystravastats/internal/dashboard/domain"
+	"mystravastats/internal/shared/domain/business"
 )
 
 // DashboardReader is an outbound port used by dashboard use cases.

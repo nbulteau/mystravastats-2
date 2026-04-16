@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"mystravastats/domain/badges"
-	"mystravastats/domain/business"
-	"mystravastats/domain/strava"
+	"mystravastats/internal/shared/domain/business"
+	"mystravastats/internal/shared/domain/strava"
 )
 
 func TestToAthleteDto_NilDates(t *testing.T) {

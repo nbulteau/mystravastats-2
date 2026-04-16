@@ -5,10 +5,11 @@ import { computed } from "vue";
 import ByMonthsChart from "@/components/charts/ByMonthsChart.vue";
 import ByWeeksChart from "@/components/charts/ByWeeksChart.vue";
 import AverageSpeedByMonthsChart from "@/components/charts/AverageSpeedByMonthsChart.vue";
+import { onMounted } from "vue";
 
 const contextStore = useContextStore();
 const chartsStore = useChartsStore();
-contextStore.updateCurrentView("charts");
+onMounted(() => contextStore.updateCurrentView("charts"));
 
 const currentYear = computed(() => contextStore.currentYear);
 const currentActivity = computed(() => contextStore.currentActivityType);

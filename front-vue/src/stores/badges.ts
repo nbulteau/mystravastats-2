@@ -20,8 +20,7 @@ export const useBadgesStore = defineStore("badges", {
   },
   actions: {
     currentFiltersKey(): string {
-      const contextStore = useContextStore();
-      return `${contextStore.currentActivityType}__${contextStore.currentYear}`;
+      return useContextStore().currentFiltersKey;
     },
     setFromCacheEntry(entry: BadgesCacheEntry) {
       this.generalBadgesCheckResults = entry.generalBadgesCheckResults;

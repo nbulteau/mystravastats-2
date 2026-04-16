@@ -1,8 +1,8 @@
 package infrastructure
 
 import (
-	"mystravastats/domain/business"
 	domainStatistics "mystravastats/domain/statistics"
+	"mystravastats/internal/shared/domain/business"
 )
 
 // StatisticsServiceAdapter computes statistics directly and still delegates

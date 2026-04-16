@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, onMounted } from "vue";
 import type { MapTrack } from "@/models/map.model";
 import { useContextStore } from "@/stores/context.js";
 import AllTracksMap from "@/components/AllTracksMap.vue";
@@ -8,7 +8,7 @@ import { getActivityTypeColor } from "@/utils/mapTrackColors";
 
 const contextStore = useContextStore();
 const mapStore = useMapStore();
-contextStore.updateCurrentView("map");
+onMounted(() => contextStore.updateCurrentView("map"));
 
 const mapTracks = computed(() => mapStore.mapTracks);
 const activityTypeFilter = ref("ALL");

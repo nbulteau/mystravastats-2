@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Chart } from "highcharts-vue";
 import type { Options } from "highcharts";
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, onMounted } from "vue";
 import { RouterLink } from "vue-router";
 import type {
   SegmentEffort,
@@ -18,7 +18,7 @@ type ChartMode = "PERFORMANCE" | "PHYSIOLOGY";
 
 const contextStore = useContextStore();
 const segmentsStore = useSegmentsStore();
-contextStore.updateCurrentView("segments");
+onMounted(() => contextStore.updateCurrentView("segments"));
 
 const filterMetric = ref<SegmentMetric>(segmentsStore.metric);
 const filterQuery = ref<string>(segmentsStore.query);

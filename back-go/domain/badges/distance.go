@@ -1,7 +1,7 @@
 package badges
 
 import (
-	"mystravastats/domain/strava"
+	"mystravastats/internal/shared/domain/strava"
 )
 
 type DistanceBadge struct {

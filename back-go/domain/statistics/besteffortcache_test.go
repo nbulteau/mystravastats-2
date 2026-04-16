@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"mystravastats/domain/business"
-	"mystravastats/domain/strava"
+	"mystravastats/internal/shared/domain/business"
+	"mystravastats/internal/shared/domain/strava"
 )
 
 func TestBestEffortCache_SaveLoadRoundTrip(t *testing.T) {

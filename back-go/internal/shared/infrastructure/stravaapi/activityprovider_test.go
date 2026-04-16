@@ -3,9 +3,9 @@ package stravaapi
 import (
 	"errors"
 	"fmt"
-	"mystravastats/adapters/localrepository"
-	"mystravastats/domain/business"
-	"mystravastats/domain/strava"
+	"mystravastats/internal/shared/domain/business"
+	"mystravastats/internal/shared/domain/strava"
+	"mystravastats/internal/shared/infrastructure/localrepository"
 	"net/http"
 	"net/http/httptest"
 	"os"

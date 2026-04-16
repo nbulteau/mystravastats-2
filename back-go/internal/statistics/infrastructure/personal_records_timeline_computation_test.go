@@ -1,8 +1,8 @@
 package infrastructure
 
 import (
-	"mystravastats/domain/business"
-	"mystravastats/domain/strava"
+	"mystravastats/internal/shared/domain/business"
+	"mystravastats/internal/shared/domain/strava"
 	"testing"
 )
 

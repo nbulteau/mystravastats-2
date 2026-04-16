@@ -18,8 +18,7 @@ export const useMapStore = defineStore("map", {
   }),
   actions: {
     currentFiltersKey(): string {
-      const contextStore = useContextStore();
-      return `${contextStore.currentActivityType}__${contextStore.currentYear}`;
+      return useContextStore().currentFiltersKey;
     },
     setViewportForCurrentFilters(viewport: MapViewport) {
       this.viewportByKey[this.currentFiltersKey()] = viewport;

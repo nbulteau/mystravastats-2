@@ -151,7 +151,9 @@ const bootstrap = async (): Promise<void> => {
 
     // Init athlete store
     const athleteStore = useAthleteStore(pinia);
-    athleteStore.fetchAthlete().then(() => {});
+    athleteStore.fetchAthlete().catch((err: unknown) => {
+        console.error('Failed to load athlete profile:', err);
+    });
 
     const app = createApp(App);
     app.provide('eventBus', eventBus);

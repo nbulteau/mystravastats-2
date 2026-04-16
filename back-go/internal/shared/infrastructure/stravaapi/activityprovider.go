@@ -3,11 +3,11 @@ package stravaapi
 import (
 	"fmt"
 	"log"
-	"mystravastats/adapters/localrepository"
-	"mystravastats/domain/business"
 	"mystravastats/domain/statistics"
-	"mystravastats/domain/strava"
 	"mystravastats/internal/helpers"
+	"mystravastats/internal/shared/domain/business"
+	"mystravastats/internal/shared/domain/strava"
+	"mystravastats/internal/shared/infrastructure/localrepository"
 	"runtime"
 	"sort"
 	"strconv"
@@ -54,7 +54,25 @@ func NewStravaActivityProvider(stravaCache string, serverPort string) *StravaAct
 
 	id, secret, useCache := provider.localStorageProvider.ReadStravaAuthentication(stravaCache)
 	if id == "" {
-		log.Fatal("Strava authentication not found")
+		log.Fatal(`
+FATAL: Strava authentication not found!
+
+Configuration required:
+1. Create strava-cache/auth.json with structure:
+{
+  "clientId": "YOUR_CLIENT_ID",
+  "clientSecret": "YOUR_CLIENT_SECRET"
+}
+
+2. Get credentials from: https://www.strava.com/settings/api
+
+3. Run: go run main.go
+`)
+	}
+
+	if secret == "" && !useCache {
+		log.Printf("WARNING: Strava clientSecret is empty but cache mode is false")
+		log.Printf("         You will not be able to refresh data from Strava API")
 	}
 
 	provider.clientId = id

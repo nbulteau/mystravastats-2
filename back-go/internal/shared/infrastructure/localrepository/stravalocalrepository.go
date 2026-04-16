@@ -4,12 +4,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"mystravastats/domain/business"
-	"mystravastats/domain/strava"
+	"mystravastats/internal/shared/domain/business"
+	"mystravastats/internal/shared/domain/strava"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+)
+
+const (
+	// Secure file permissions: readable/writable by owner only
+	secureFileMode = 0600
+	// Secure directory permissions: accessible by owner only
+	secureDir = 0700
 )
 
 type StravaRepository struct {
@@ -25,7 +32,10 @@ func NewStravaRepository(stravaCache string) *StravaRepository {
 func (repo *StravaRepository) InitLocalStorageForClientId(clientId string) {
 	activitiesDirectory := filepath.Join(repo.cacheDirectory, fmt.Sprintf("strava-%s", clientId))
 	if _, err := os.Stat(activitiesDirectory); os.IsNotExist(err) {
-		_ = os.MkdirAll(activitiesDirectory, os.ModePerm)
+		err := os.MkdirAll(activitiesDirectory, secureDir)
+		if err != nil {
+			log.Printf("failed to create secure directory %s: %v", activitiesDirectory, err)
+		}
 	}
 }
 
@@ -55,7 +65,11 @@ func (repo *StravaRepository) LoadAthleteFromCache(clientId string) strava.Athle
 
 func (repo *StravaRepository) SaveAthleteToCache(clientId string, stravaAthlete strava.Athlete) {
 	activitiesDirectory := filepath.Join(repo.cacheDirectory, fmt.Sprintf("strava-%s", clientId))
-	_ = os.MkdirAll(activitiesDirectory, os.ModePerm)
+	err := os.MkdirAll(activitiesDirectory, secureDir)
+	if err != nil {
+		log.Printf("failed to create secure directory %s: %v", activitiesDirectory, err)
+		return
+	}
 	athleteJsonFile := filepath.Join(activitiesDirectory, fmt.Sprintf("athlete-%s.json", clientId))
 
 	data, err := json.MarshalIndent(stravaAthlete, "", "  ")
@@ -64,7 +78,7 @@ func (repo *StravaRepository) SaveAthleteToCache(clientId string, stravaAthlete 
 		return
 	}
 
-	if err := os.WriteFile(athleteJsonFile, data, os.ModePerm); err != nil {
+	if err := os.WriteFile(athleteJsonFile, data, secureFileMode); err != nil {
 		log.Printf("Failed to write athlete file '%s': %v", athleteJsonFile, err)
 		return
 	}
@@ -114,7 +128,11 @@ func (repo *StravaRepository) GetLocalCacheLastModified(clientId string, year in
 func (repo *StravaRepository) SaveActivitiesToCache(clientId string, year int, activities []strava.Activity) {
 	activitiesDirectory := filepath.Join(repo.cacheDirectory, fmt.Sprintf("strava-%s", clientId))
 	yearActivitiesDirectory := filepath.Join(activitiesDirectory, fmt.Sprintf("strava-%s-%d", clientId, year))
-	_ = os.MkdirAll(yearActivitiesDirectory, os.ModePerm)
+	err := os.MkdirAll(yearActivitiesDirectory, secureDir)
+	if err != nil {
+		log.Printf("failed to create secure directory %s: %v", yearActivitiesDirectory, err)
+		return
+	}
 
 	data, err := json.MarshalIndent(activities, "", "  ")
 	if err != nil {
@@ -123,7 +141,7 @@ func (repo *StravaRepository) SaveActivitiesToCache(clientId string, year int, a
 	}
 
 	yearActivitiesJsonFile := filepath.Join(yearActivitiesDirectory, fmt.Sprintf("activities-%s-%d.json", clientId, year))
-	if err := os.WriteFile(yearActivitiesJsonFile, data, os.ModePerm); err != nil {
+	if err := os.WriteFile(yearActivitiesJsonFile, data, secureFileMode); err != nil {
 		log.Printf("Failed to write activities file '%s': %v", yearActivitiesJsonFile, err)
 		return
 	}
@@ -164,7 +182,7 @@ func (repo *StravaRepository) SaveDetailedActivityToCache(clientId string, year 
 		return
 	}
 
-	if err := os.WriteFile(detailedActivityFile, data, os.ModePerm); err != nil {
+	if err := os.WriteFile(detailedActivityFile, data, secureFileMode); err != nil {
 		log.Printf("Failed to write detailed activity file '%s': %v", detailedActivityFile, err)
 		return
 	}
@@ -205,7 +223,7 @@ func (repo *StravaRepository) SaveActivitiesStreamsToCache(clientId string, year
 		return
 	}
 
-	if err := os.WriteFile(streamFile, data, os.ModePerm); err != nil {
+	if err := os.WriteFile(streamFile, data, secureFileMode); err != nil {
 		log.Printf("Failed to write stream file '%s': %v", streamFile, err)
 		return
 	}
@@ -292,8 +310,8 @@ func (repo *StravaRepository) LoadHeartRateZoneSettings(clientId string) busines
 
 func (repo *StravaRepository) SaveHeartRateZoneSettings(clientId string, settings business.HeartRateZoneSettings) {
 	activitiesDirectory := filepath.Join(repo.cacheDirectory, fmt.Sprintf("strava-%s", clientId))
-	if err := os.MkdirAll(activitiesDirectory, os.ModePerm); err != nil {
-		log.Printf("Failed to create heart rate settings directory '%s': %v", activitiesDirectory, err)
+	if err := os.MkdirAll(activitiesDirectory, secureDir); err != nil {
+		log.Printf("Failed to create secure heart rate settings directory '%s': %v", activitiesDirectory, err)
 		return
 	}
 
@@ -304,7 +322,7 @@ func (repo *StravaRepository) SaveHeartRateZoneSettings(clientId string, setting
 		return
 	}
 
-	if err := os.WriteFile(settingsFile, data, os.ModePerm); err != nil {
+	if err := os.WriteFile(settingsFile, data, secureFileMode); err != nil {
 		log.Printf("Failed to write heart rate zone settings file '%s': %v", settingsFile, err)
 	}
 }

@@ -2,7 +2,7 @@ package stravaapi
 
 import (
 	"fmt"
-	"mystravastats/domain/strava"
+	"mystravastats/internal/shared/domain/strava"
 	"net/http"
 	"net/http/httptest"
 	"strings"

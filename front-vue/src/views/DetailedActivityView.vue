@@ -80,7 +80,7 @@
           <header class="detail-card__header">
             <h2>Route map</h2>
           </header>
-          <div id="map-container" class="detail-map" />
+          <div id="map-container" ref="mapContainerRef" class="detail-map" />
         </article>
 
         <aside class="detail-card detail-card--efforts">
@@ -168,7 +168,7 @@
           v-if="activity"
           :activity="activity"
           :historical-data="[]"
-          :weight="85"
+          :weight="athleteStore.athleteWeight || 75"
           :display-in-watts-per-kg="true"
         />
       </section>
@@ -184,12 +184,10 @@
 </template>
 
 <script setup lang="ts">
-import "bootstrap";
-import "bootstrap/dist/css/bootstrap.min.css";
-import { Tooltip } from "bootstrap"; // Import Bootstrap Tooltip
+import { Tooltip } from "bootstrap";
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { ActivityEffort, DetailedActivity } from "@/models/activity.model"; 
+import type { ActivityEffort, DetailedActivity } from "@/models/activity.model";
 import { formatSpeedWithUnit, formatTime } from "@/utils/formatters";
 import { useContextStore } from "@/stores/context.js";
 import { useAthleteStore } from "@/stores/athlete";
@@ -237,7 +235,6 @@ const hasPowerData = computed(() => {
 
 const contextStore = useContextStore();
 const athleteStore = useAthleteStore();
-contextStore.updateCurrentView("activity");
 
 const route = useRoute();
 
@@ -249,6 +246,7 @@ const loadError = ref<string | null>(null);
 const loadWarning = ref<string | null>(null);
 
 const map = ref<L.Map>();
+const mapContainerRef = ref<HTMLElement | null>(null);
 const basePolyline = ref<L.Polyline | null>(null);
 const selectedPolyline = ref<L.Polyline | null>(null);
 const hoverMarker = ref<L.Marker | null>(null);
@@ -515,9 +513,8 @@ function getDetailedActivityWarning(detailed: DetailedActivity): string | null {
 }
 
 const initMap = () => {
-  const mapContainer = document.getElementById("map-container");
-  if (mapContainer) {
-    map.value = L.map(mapContainer);
+  if (mapContainerRef.value) {
+    map.value = L.map(mapContainerRef.value);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
     }).addTo(map.value);
@@ -892,6 +889,7 @@ const handleRadioClick = (key: string) => {
 };
 
 onMounted(async () => {
+  contextStore.updateCurrentView("activity");
   initMap();
   try {
     await athleteStore.fetchHeartRateZoneSettings().catch(() => undefined);

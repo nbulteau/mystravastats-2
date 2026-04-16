@@ -1,8 +1,8 @@
 package infrastructure
 
 import (
-	"mystravastats/domain/business"
 	"mystravastats/internal/platform/activityprovider"
+	"mystravastats/internal/shared/domain/business"
 )
 
 // HeartRateServiceAdapter computes heart-rate zone analysis from provider data.

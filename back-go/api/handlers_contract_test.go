@@ -8,9 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"mystravastats/domain/business"
 	domainStatistics "mystravastats/domain/statistics"
-	"mystravastats/domain/strava"
 	activitiesApp "mystravastats/internal/activities/application"
 	chartsApp "mystravastats/internal/charts/application"
 	dashboardApp "mystravastats/internal/dashboard/application"
@@ -21,6 +19,8 @@ import (
 	routesDomain "mystravastats/internal/routes/domain"
 	segmentsApp "mystravastats/internal/segments/application"
 	segmentsDomain "mystravastats/internal/segments/domain"
+	"mystravastats/internal/shared/domain/business"
+	"mystravastats/internal/shared/domain/strava"
 	statisticsApp "mystravastats/internal/statistics/application"
 
 	"github.com/gorilla/mux"
@@ -191,15 +191,16 @@ func setTestContainer(t *testing.T, testContainer *container) {
 	t.Helper()
 
 	previousContainer := sharedContainer
-	previousOnce := containerOnce
 
+	// Reset: create new Once without copying the old one (sync.Once contains sync.noCopy)
 	containerOnce = sync.Once{}
 	containerOnce.Do(func() {})
 	sharedContainer = testContainer
 
 	t.Cleanup(func() {
 		sharedContainer = previousContainer
-		containerOnce = previousOnce
+		// Reset for next test to avoid sync.Once copy issues
+		containerOnce = sync.Once{}
 	})
 }
 

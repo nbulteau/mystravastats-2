@@ -1,8 +1,8 @@
 package infrastructure
 
 import (
-	"mystravastats/domain/business"
 	dashboardDomain "mystravastats/internal/dashboard/domain"
+	"mystravastats/internal/shared/domain/business"
 )
 
 // DashboardServiceAdapter computes dashboard read models directly from provider data.

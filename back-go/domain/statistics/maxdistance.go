@@ -2,8 +2,8 @@ package statistics
 
 import (
 	"fmt"
-	"mystravastats/domain/business"
-	"mystravastats/domain/strava"
+	"mystravastats/internal/shared/domain/business"
+	"mystravastats/internal/shared/domain/strava"
 )
 
 type MaxDistanceStatistic struct {

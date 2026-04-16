@@ -4,10 +4,10 @@ export function formatTime(time: number): string {
     const seconds = (time ?? 0) % 60;
 
     if (hours === 0) {
-        return `${minutes}m ${seconds}s`; // Customize the formatting as needed
+        return `${minutes}m ${seconds}s`;
     }
 
-    return `${hours}h ${minutes}m ${seconds}s`; // Customize the formatting as needed
+    return `${hours}h ${minutes}m ${seconds}s`;
 }
 
 const options: Intl.DateTimeFormatOptions = {

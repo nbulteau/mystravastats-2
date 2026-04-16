@@ -18,8 +18,8 @@ export const useRoutesStore = defineStore("routes", {
     mode: "TARGET" as RouteMode,
     routeType: "RIDE" as RouteType,
     startDirection: "N" as StartDirection,
-    distanceTargetKm: "40" as string,
-    elevationTargetM: "800" as string,
+    distanceTargetKm: 40 as number,
+    elevationTargetM: 800 as number,
     variantCount: DEFAULT_VARIANT_COUNT,
     startPoint: null as { lat: number; lng: number } | null,
     shapeInputType: "draw" as ShapeInputType,
@@ -43,7 +43,7 @@ export const useRoutesStore = defineStore("routes", {
       return state.shapePoints.length >= 2 || state.shapeDataText.trim().length > 0;
     },
     canGenerateTarget(state): boolean {
-      return state.startPoint !== null && Number(state.distanceTargetKm) > 0;
+      return state.startPoint !== null && state.distanceTargetKm > 0;
     },
     canGenerateShape(state): boolean {
       return state.shapePoints.length >= 2 || state.shapeDataText.trim().length > 0;
@@ -96,12 +96,11 @@ export const useRoutesStore = defineStore("routes", {
       }
       return params.toString();
     },
-    parseOptionalNumber(raw: string): number | null {
-      const value = Number(raw);
-      if (!Number.isFinite(value) || value <= 0) {
+    parseOptionalNumber(raw: number): number | null {
+      if (!Number.isFinite(raw) || raw <= 0) {
         return null;
       }
-      return value;
+      return raw;
     },
     async generateRoutes() {
       this.isLoading = true;

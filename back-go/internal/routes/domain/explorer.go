@@ -1,6 +1,6 @@
 package domain
 
-import "mystravastats/domain/business"
+import "mystravastats/internal/shared/domain/business"
 
 type RouteVariantType string
 

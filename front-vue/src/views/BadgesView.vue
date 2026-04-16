@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { useContextStore } from "@/stores/context.js";
 import { useBadgesStore } from "@/stores/badges";
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, onMounted } from "vue";
 import BadgeItem from "@/components/BadgeItem.vue";
 import type { BadgeCheckResult } from "@/models/badge-check-result.model";
 
 const contextStore = useContextStore();
 const badgesStore = useBadgesStore();
-contextStore.updateCurrentView("badges");
+onMounted(() => contextStore.updateCurrentView("badges"));
 
 const currentYear = computed(() => contextStore.currentYear);
 const currentActivity = computed(() => contextStore.currentActivityType);

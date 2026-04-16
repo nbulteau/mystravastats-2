@@ -2,7 +2,7 @@ package statistics
 
 import (
 	"fmt"
-	"mystravastats/domain/strava"
+	"mystravastats/internal/shared/domain/strava"
 	"time"
 )
 

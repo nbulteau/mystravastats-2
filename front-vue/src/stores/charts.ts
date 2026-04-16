@@ -24,7 +24,7 @@ export const useChartsStore = defineStore("charts", {
   actions: {
     currentFiltersKey(): string {
       const contextStore = useContextStore();
-      return `${contextStore.currentActivityType}__${contextStore.currentYear}`;
+      return contextStore.currentFiltersKey;
     },
     updateCacheForCurrentKey() {
       this.chartsByKey[this.currentFiltersKey()] = {

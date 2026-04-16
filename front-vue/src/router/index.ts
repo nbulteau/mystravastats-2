@@ -1,15 +1,4 @@
 import {createRouter, createWebHistory, type Router} from 'vue-router'
-import StatisticsView from '../views/StatisticsView.vue'
-import ActivitiesView from "@/views/ActivitiesView.vue";
-import ChartsView from "@/views/ChartsView.vue";
-import MapView from "@/views/MapView.vue";
-import BadgesView from "@/views/BadgesView.vue";
-import DetailedActivityView from "@/views/DetailedActivityView.vue";
-import DashboardView from "@/views/DashboardView.vue";
-import HeatmapView from "@/views/HeatmapView.vue";
-import SegmentsView from "@/views/SegmentsView.vue";
-import RoutesView from "@/views/RoutesView.vue";
-
 
 const router: Router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -17,54 +6,54 @@ const router: Router = createRouter({
     {
       path: '/',
       name: 'statistics',
-      component: StatisticsView
+      component: () => import('../views/StatisticsView.vue'),
     },
     {
       path: '/activities',
       name: 'activities',
-      component: ActivitiesView
+      component: () => import('@/views/ActivitiesView.vue'),
     },
     {
       path: '/map',
       name: 'map',
-      component: MapView
+      component: () => import('@/views/MapView.vue'),
     },
     {
       path: '/charts',
       name: 'charts',
-      component: ChartsView
+      component: () => import('@/views/ChartsView.vue'),
     },
     {
       path: '/dashboard',
       name: 'dashboard',
-      component: DashboardView
+      component: () => import('@/views/DashboardView.vue'),
     },
     {
       path: '/heatmap',
       name: 'heatmap',
-      component: HeatmapView
+      component: () => import('@/views/HeatmapView.vue'),
     },
     {
       path: '/segments',
       name: 'segments',
-      component: SegmentsView
+      component: () => import('@/views/SegmentsView.vue'),
     },
     {
       path: '/routes',
       name: 'routes',
-      component: RoutesView
+      component: () => import('@/views/RoutesView.vue'),
     },
     {
       path: '/badges',
       name: 'badges',
-      component: BadgesView
+      component: () => import('@/views/BadgesView.vue'),
     },
     {
       path: '/activities/:id',
       name: 'activity',
-      component: DetailedActivityView
-    }
-  ]
+      component: () => import('@/views/DetailedActivityView.vue'),
+    },
+  ],
 })
 
 export default router

@@ -1,6 +1,6 @@
 package application
 
-import "mystravastats/domain/strava"
+import "mystravastats/internal/shared/domain/strava"
 
 // AthleteReader is an outbound port used by athlete use cases.
 // Infrastructure adapters implement this interface.

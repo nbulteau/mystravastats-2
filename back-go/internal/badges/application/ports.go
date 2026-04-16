@@ -1,6 +1,6 @@
 package application
 
-import "mystravastats/domain/business"
+import "mystravastats/internal/shared/domain/business"
 
 // BadgesReader is an outbound port used by badges use cases.
 // Infrastructure adapters implement this interface.

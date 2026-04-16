@@ -1,6 +1,6 @@
 package application
 
-import "mystravastats/domain/business"
+import "mystravastats/internal/shared/domain/business"
 
 // HeartRateReader is an outbound port used by heart-rate use cases.
 // Infrastructure adapters implement this interface.

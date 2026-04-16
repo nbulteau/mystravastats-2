@@ -2,7 +2,7 @@ package statistics
 
 import (
 	"math"
-	"mystravastats/domain/strava"
+	"mystravastats/internal/shared/domain/strava"
 	"testing"
 )
 

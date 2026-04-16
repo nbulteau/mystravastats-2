@@ -11,7 +11,7 @@ import { formatTime } from "@/utils/formatters";
 const contextStore = useContextStore();
 const routesStore = useRoutesStore();
 const uiStore = useUiStore();
-contextStore.updateCurrentView("routes");
+onMounted(() => contextStore.updateCurrentView("routes"));
 
 const mapContainer = ref<HTMLDivElement | null>(null);
 const map = ref<L.Map>();
@@ -516,13 +516,15 @@ onBeforeUnmount(() => {
         v-else
         class="routes-results-grid"
       >
-        <button
+        <article
           v-for="route in routesStore.routes"
           :key="route.routeId"
-          type="button"
+          role="button"
+          tabindex="0"
           class="route-card"
           :class="{ 'route-card--active': selectedRoute?.routeId === route.routeId }"
           @click="pickRoute(route.routeId)"
+          @keydown.enter.space.prevent="pickRoute(route.routeId)"
         >
           <div class="route-card-head">
             <strong>{{ route.title }}</strong>
@@ -535,7 +537,7 @@ onBeforeUnmount(() => {
             {{ route.variantType.replaceAll('_', ' ') }}
             <span v-if="route.isRoadGraphGenerated">• road-graph</span>
           </p>
-        </button>
+        </article>
       </div>
     </section>
   </section>

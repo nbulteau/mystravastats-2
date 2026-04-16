@@ -1,7 +1,7 @@
 package application
 
 import (
-	"mystravastats/domain/strava"
+	"mystravastats/internal/shared/domain/strava"
 	"testing"
 )
 

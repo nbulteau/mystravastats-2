@@ -6,12 +6,12 @@ import type { HeartRateZoneSettings } from "@/models/heart-rate-zone.model";
 import { useContextStore } from "@/stores/context.js";
 import { useStatisticsStore } from "@/stores/statistics";
 import { useAthleteStore } from "@/stores/athlete";
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 
 const contextStore = useContextStore();
 const statisticsStore = useStatisticsStore();
 const athleteStore = useAthleteStore();
-contextStore.updateCurrentView("statistics");
+onMounted(() => contextStore.updateCurrentView("statistics"));
 
 const currentYear = computed(() => contextStore.currentYear);
 const statistics = computed(() => statisticsStore.statistics);

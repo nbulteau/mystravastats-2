@@ -24,8 +24,7 @@ export const useStatisticsStore = defineStore("statistics", {
   }),
   actions: {
     currentFiltersKey(): string {
-      const contextStore = useContextStore();
-      return `${contextStore.currentActivityType}__${contextStore.currentYear}`;
+      return useContextStore().currentFiltersKey;
     },
     applyCacheEntry(entry: StatisticsCacheEntry) {
       this.statistics = entry.statistics;

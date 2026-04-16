@@ -3,8 +3,8 @@ package statistics
 import (
 	"encoding/json"
 	"fmt"
-	"mystravastats/domain/business"
-	"mystravastats/domain/strava"
+	"mystravastats/internal/shared/domain/business"
+	"mystravastats/internal/shared/domain/strava"
 	"os"
 	"path/filepath"
 	"sort"

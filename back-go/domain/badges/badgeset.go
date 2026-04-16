@@ -1,8 +1,8 @@
 package badges
 
 import (
-	"mystravastats/domain/business"
-	"mystravastats/domain/strava"
+	"mystravastats/internal/shared/domain/business"
+	"mystravastats/internal/shared/domain/strava"
 )
 
 type BadgeSet struct {

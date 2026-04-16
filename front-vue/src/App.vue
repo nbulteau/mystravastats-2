@@ -1,16 +1,15 @@
 <script setup lang="ts">
-import "../node_modules/bootstrap/scss/bootstrap.scss";
+import "bootstrap/scss/bootstrap.scss";
 import HeaderBar from "@/components/HeaderBar.vue";
-import { RouterLink } from "vue-router";
-import { useContextStore } from "@/stores/context.js";
+import { RouterLink, useRoute } from "vue-router";
 import { useUiStore } from "@/stores/ui";
+import { useContextStore } from "@/stores/context.js";
 
 const contextStore = useContextStore();
 const uiStore = useUiStore();
+const route = useRoute();
 
-const isCurrent = (name: string) => {
-  return contextStore.currentView === name;
-};
+const isCurrent = (name: string) => route.name === name;
 </script>
 
 <template>
@@ -33,7 +32,7 @@ const isCurrent = (name: string) => {
             :class="{ active: isCurrent('statistics') }"
             role="tab"
             aria-controls="home-tab-pane"
-            aria-selected="true"
+            :aria-selected="isCurrent('statistics')"
             to="/"
           >
             Statistics
@@ -49,7 +48,7 @@ const isCurrent = (name: string) => {
             :class="{ active: isCurrent('activities') }"
             role="tab"
             aria-controls="activities-tab-pane"
-            aria-selected="false"
+            :aria-selected="isCurrent('activities')"
             to="/activities"
           >
             Activities
@@ -65,7 +64,7 @@ const isCurrent = (name: string) => {
             :class="{ active: isCurrent('charts') }"
             role="tab"
             aria-controls="chart-tab-pane"
-            aria-selected="false"
+            :aria-selected="isCurrent('charts')"
             to="/charts"
           >
             Charts
@@ -81,7 +80,7 @@ const isCurrent = (name: string) => {
             :class="{ active: isCurrent('dashboard') }"
             role="tab"
             aria-controls="dashboard-tab-pane"
-            aria-selected="false"
+            :aria-selected="isCurrent('dashboard')"
             to="/dashboard"
           >
             Dashboard
@@ -97,7 +96,7 @@ const isCurrent = (name: string) => {
             :class="{ active: isCurrent('heatmap') }"
             role="tab"
             aria-controls="heatmap-tab-pane"
-            aria-selected="false"
+            :aria-selected="isCurrent('heatmap')"
             to="/heatmap"
           >
             Heatmap
@@ -113,7 +112,7 @@ const isCurrent = (name: string) => {
             :class="{ active: isCurrent('segments') }"
             role="tab"
             aria-controls="segments-tab-pane"
-            aria-selected="false"
+            :aria-selected="isCurrent('segments')"
             to="/segments"
           >
             Segments
@@ -129,7 +128,7 @@ const isCurrent = (name: string) => {
             :class="{ active: isCurrent('badges') }"
             role="tab"
             aria-controls="badges-tab-pane"
-            aria-selected="false"
+            :aria-selected="isCurrent('badges')"
             to="/badges"
           >
             Badges
@@ -145,7 +144,7 @@ const isCurrent = (name: string) => {
             :class="{ active: isCurrent('map') }"
             role="tab"
             aria-controls="map-tab-pane"
-            aria-selected="false"
+            :aria-selected="isCurrent('map')"
             to="/map"
           >
             Map
@@ -161,7 +160,7 @@ const isCurrent = (name: string) => {
             :class="{ active: isCurrent('routes') }"
             role="tab"
             aria-controls="routes-tab-pane"
-            aria-selected="false"
+            :aria-selected="isCurrent('routes')"
             to="/routes"
           >
             Routes

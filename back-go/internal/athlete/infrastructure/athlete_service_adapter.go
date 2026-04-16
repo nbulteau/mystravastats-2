@@ -1,8 +1,8 @@
 package infrastructure
 
 import (
-	"mystravastats/domain/strava"
 	"mystravastats/internal/platform/activityprovider"
+	"mystravastats/internal/shared/domain/strava"
 )
 
 // AthleteServiceAdapter bridges the current internal/services layer

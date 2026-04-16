@@ -1,6 +1,6 @@
 package application
 
-import "mystravastats/domain/strava"
+import "mystravastats/internal/shared/domain/strava"
 
 type GetAthleteUseCase struct {
 	reader AthleteReader

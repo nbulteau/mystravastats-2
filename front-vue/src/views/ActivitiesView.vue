@@ -2,11 +2,11 @@
 import ActivitiesGrid from "@/components/ActivitiesGrid.vue";
 import { useContextStore } from "@/stores/context.js";
 import { useActivitiesStore } from "@/stores/activities";
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 
 const contextStore = useContextStore();
 const activitiesStore = useActivitiesStore();
-contextStore.updateCurrentView("activities");
+onMounted(() => contextStore.updateCurrentView("activities"));
 
 const currentYear = computed(() => contextStore.currentYear);
 const currentActivity = computed(() => contextStore.currentActivityType);

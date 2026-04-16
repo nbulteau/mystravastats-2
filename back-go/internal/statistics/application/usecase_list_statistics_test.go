@@ -1,8 +1,8 @@
 package application
 
 import (
-	"mystravastats/domain/business"
 	domainStatistics "mystravastats/domain/statistics"
+	"mystravastats/internal/shared/domain/business"
 	"testing"
 )
 

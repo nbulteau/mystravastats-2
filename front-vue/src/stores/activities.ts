@@ -10,8 +10,7 @@ export const useActivitiesStore = defineStore("activities", {
   }),
   actions: {
     currentFiltersKey(): string {
-      const contextStore = useContextStore();
-      return `${contextStore.currentActivityType}__${contextStore.currentYear}`;
+      return useContextStore().currentFiltersKey;
     },
     async fetchActivities() {
       const contextStore = useContextStore();

@@ -1,6 +1,6 @@
 package business
 
-import "mystravastats/domain/strava"
+import "mystravastats/internal/shared/domain/strava"
 
 type BadgeSetEnum string
 

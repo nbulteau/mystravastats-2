@@ -2,8 +2,8 @@ package application
 
 import (
 	"errors"
-	"mystravastats/domain/strava"
 	activitiesDomain "mystravastats/internal/activities/domain"
+	"mystravastats/internal/shared/domain/strava"
 	"testing"
 )
 

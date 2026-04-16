@@ -26,6 +26,9 @@ export const useContextStore = defineStore("context", {
     currentActivityType: "Commute_GravelRide_MountainBikeRide_Ride_VirtualRide",
     currentView: "statistics" as AppView,
   }),
+  getters: {
+    currentFiltersKey: (state) => `${state.currentActivityType}__${state.currentYear}`,
+  },
   actions: {
     async refreshCurrentViewData() {
       switch (this.currentView) {

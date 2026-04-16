@@ -1,8 +1,8 @@
 package activityprovider
 
 import (
-	"mystravastats/adapters/stravaapi"
 	"mystravastats/internal/helpers"
+	"mystravastats/internal/shared/infrastructure/stravaapi"
 	"sync"
 )
 

@@ -1,9 +1,9 @@
 package infrastructure
 
 import (
-	"mystravastats/domain/business"
 	"mystravastats/internal/platform/activityprovider"
 	routesDomain "mystravastats/internal/routes/domain"
+	"mystravastats/internal/shared/domain/business"
 )
 
 // RouteServiceAdapter computes route explorer recommendations from cached activities.

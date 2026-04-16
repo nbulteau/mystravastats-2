@@ -1,8 +1,8 @@
 package dto
 
 import (
-	"mystravastats/domain/business"
 	routesDomain "mystravastats/internal/routes/domain"
+	"mystravastats/internal/shared/domain/business"
 )
 
 func ToRouteExplorerResultDto(result routesDomain.RouteExplorerResult) RouteExplorerResultDto {

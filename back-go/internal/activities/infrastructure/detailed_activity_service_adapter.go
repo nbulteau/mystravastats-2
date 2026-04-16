@@ -2,10 +2,10 @@ package infrastructure
 
 import (
 	"fmt"
-	"mystravastats/domain/business"
-	"mystravastats/domain/strava"
 	application "mystravastats/internal/activities/application"
 	"mystravastats/internal/platform/activityprovider"
+	"mystravastats/internal/shared/domain/business"
+	"mystravastats/internal/shared/domain/strava"
 )
 
 // DetailedActivityServiceAdapter computes activity read models from provider data.

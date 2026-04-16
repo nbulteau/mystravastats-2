@@ -1,6 +1,6 @@
 package application
 
-import "mystravastats/domain/business"
+import "mystravastats/internal/shared/domain/business"
 
 // ChartsReader is an outbound port used by chart use cases.
 // Infrastructure adapters implement this interface.

@@ -5,6 +5,7 @@ import type { HeartRateZoneSettings } from "@/models/heart-rate-zone.model";
 export const useAthleteStore = defineStore("athlete", {
   state: () => ({
     athleteDisplayName: "",
+    athleteWeight: 0,
     athleteLoaded: false,
     heartRateZoneSettings: {
       maxHr: null,
@@ -23,6 +24,7 @@ export const useAthleteStore = defineStore("athlete", {
       }
       const data = await requestJson<Record<string, string>>("/api/athletes/me");
       this.athleteDisplayName = `${data.firstname ?? ""} ${data.lastname ?? ""}`.trim();
+      this.athleteWeight = data.weight ? parseFloat(data.weight) : 0;
       this.athleteLoaded = true;
     },
     async fetchHeartRateZoneSettings(force = false) {

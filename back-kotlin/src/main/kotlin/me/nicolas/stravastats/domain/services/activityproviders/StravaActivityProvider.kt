@@ -65,6 +65,8 @@ class StravaActivityProvider(
     private val rateLimitUntilMs = AtomicLong(0L)
     private val cacheRoot = stravaCache
     private val manifestLock = Any()
+    /** Dedicated lock object for heartRateZoneSettings to avoid using `this` as a monitor. */
+    private val heartRateSettingsLock = Any()
     /** Coroutine-safe mutex replacing @Synchronized on createStravaApiIfNeeded. */
     private val stravaApiMutex = Mutex()
     @Volatile
@@ -75,9 +77,27 @@ class StravaActivityProvider(
     companion object {
         // Reload a year's cache if it is older than this duration (avoids a fixed hardcoded date)
         private val CACHE_MAX_AGE_MS: Long = TimeUnit.DAYS.toMillis(365L)
+
+        /**
+         * Maximum number of stream requests sent to the Strava API in parallel.
+         * Strava enforces a rate limit of 200 requests/15 min and 2 000 requests/day;
+         * keeping this low avoids exhausting the quota during backfill.
+         */
         private const val MAX_CONCURRENT_STREAM_LOADS = 8
+
+        /**
+         * Delay between consecutive detailed-activity requests during the backfill phase (ms).
+         * 1 500 ms ≈ 40 requests/min, well within Strava's 200 requests/15 min limit.
+         */
         private const val DETAILED_BACKFILL_REQUEST_DELAY_MS = 1_500L
+
+        /**
+         * Duration to stay in cache-only mode after a Strava rate-limit response (ms).
+         * Strava resets its 15-minute window every 15 minutes, so we wait the full window
+         * before retrying any API call.
+         */
         private const val RATE_LIMIT_COOLDOWN_MS = 15 * 60 * 1_000L
+
         /** Earliest year from which Strava activity data is considered available. */
         const val STRAVA_FIRST_YEAR = 2010
     }
@@ -157,7 +177,8 @@ class StravaActivityProvider(
                 logger.info("Detailed activity $activityId loaded from cache without base activity metadata")
                 return cachedDetailed
             }
-            val api = if (isRateLimitActive()) null else stravaApi ?: runBlocking { createStravaApiIfNeeded() }
+            // Use Dispatchers.IO to avoid blocking the calling thread's pool (deadlock risk without an explicit dispatcher)
+            val api = if (isRateLimitActive()) null else stravaApi ?: runBlocking(Dispatchers.IO) { createStravaApiIfNeeded() }
             if (api != null) {
                 try {
                     val detailed = api.getDetailedActivityFailFastOnRateLimit(activityId)
@@ -181,7 +202,8 @@ class StravaActivityProvider(
         var api: IStravaApi? = if (isRateLimitActive()) null else stravaApi
         val needsApiCall = stravaDetailedActivity == null || stream == null
         if (needsApiCall && api == null) {
-            api = runBlocking { createStravaApiIfNeeded() }
+            // Use Dispatchers.IO to avoid blocking the calling thread's pool (deadlock risk without an explicit dispatcher)
+            api = runBlocking(Dispatchers.IO) { createStravaApiIfNeeded() }
         }
 
         if (api != null && stravaDetailedActivity == null) {
@@ -226,11 +248,13 @@ class StravaActivityProvider(
         return heartRateZoneSettings
     }
 
-    @Synchronized
     override fun saveHeartRateZoneSettings(settings: HeartRateZoneSettings): HeartRateZoneSettings {
-        heartRateZoneSettings = settings
-        storageProvider.saveHeartRateZoneSettings(clientId, settings)
-        return heartRateZoneSettings
+        // Use a dedicated lock object instead of @Synchronized (which locks on `this`, incompatible with coroutine usage)
+        synchronized(heartRateSettingsLock) {
+            heartRateZoneSettings = settings
+            storageProvider.saveHeartRateZoneSettings(clientId, settings)
+            return heartRateZoneSettings
+        }
     }
 
     private suspend fun loadFromLocalCache(): List<StravaActivity> = coroutineScope {
@@ -628,10 +652,13 @@ class StravaActivityProvider(
             )
         )
 
+        // Persist manifest to disk before acquiring the in-memory lock to avoid blocking threads on I/O
+        runCatching { CacheManifestStore.save(cacheRoot, updatedManifest) }
+            .onFailure { exception -> logger.error("Unable to save cache manifest", exception) }
+
+        // Only update in-memory state under lock (fast, non-blocking)
         synchronized(manifestLock) {
             cacheManifest = updatedManifest
-            runCatching { CacheManifestStore.save(cacheRoot, updatedManifest) }
-                .onFailure { exception -> logger.error("Unable to save cache manifest", exception) }
         }
 
         logger.info("Loaded best-effort cache: {} entries", loadedEntries)
@@ -702,35 +729,45 @@ class StravaActivityProvider(
         }
     }
 
-    private fun persistWarmupArtifacts(
+    private suspend fun persistWarmupArtifacts(
         payload: WarmupSummariesFile,
         priority1: String,
         priority2: String,
         priority3: String,
         preparedYears: List<Int>,
     ) {
-        synchronized(manifestLock) {
-            val entries = BestEffortCache.saveToDisk(
-                CacheManifestStore.bestEffortCachePath(cacheRoot, clientId, cacheManifest)
-            )
+        // 1. Snapshot current manifest state under lock (non-blocking read)
+        val manifestSnapshot = synchronized(manifestLock) { cacheManifest }
 
-            val updatedManifest = cacheManifest.copy(
-                updatedAt = Instant.now().toString(),
-                bestEffortCache = cacheManifest.bestEffortCache.copy(
-                    entries = entries,
-                    lastPersistedAt = Instant.now().toString(),
-                ),
-                warmup = cacheManifest.warmup.copy(
-                    priority1 = priority1,
-                    priority2 = priority2,
-                    priority3 = priority3,
-                    preparedYears = preparedYears,
-                    lastRunAt = Instant.now().toString(),
-                )
-            )
+        val bestEffortPath = CacheManifestStore.bestEffortCachePath(cacheRoot, clientId, manifestSnapshot)
 
+        // 2. Perform disk I/O on Dispatchers.IO — outside the synchronized block to avoid blocking threads
+        val entries = withContext(Dispatchers.IO) {
+            BestEffortCache.saveToDisk(bestEffortPath)
+        }
+
+        val updatedManifest = manifestSnapshot.copy(
+            updatedAt = Instant.now().toString(),
+            bestEffortCache = manifestSnapshot.bestEffortCache.copy(
+                entries = entries,
+                lastPersistedAt = Instant.now().toString(),
+            ),
+            warmup = manifestSnapshot.warmup.copy(
+                priority1 = priority1,
+                priority2 = priority2,
+                priority3 = priority3,
+                preparedYears = preparedYears,
+                lastRunAt = Instant.now().toString(),
+            )
+        )
+
+        withContext(Dispatchers.IO) {
             CacheManifestStore.saveWarmupSummaries(cacheRoot, clientId, payload, updatedManifest)
             CacheManifestStore.save(cacheRoot, updatedManifest)
+        }
+
+        // 3. Update in-memory manifest under lock (fast, non-blocking)
+        synchronized(manifestLock) {
             cacheManifest = updatedManifest
         }
     }
@@ -992,7 +1029,15 @@ class StravaActivityProvider(
         return null
     }
 
-    private data class MutableWarmupYearSummary(
+    /**
+     * Mutable accumulator used only inside [computeWarmupYearSummaries].
+     *
+     * Intentionally a plain class (not a data class) because:
+     * - its fields are mutable (`var`), which makes `equals`/`hashCode`/`copy` from `data class`
+     *   unreliable and misleading (two accumulators with the same counters are not semantically equal);
+     * - it is never used as a map key, in a set, or copied via `copy()`.
+     */
+    private class MutableWarmupYearSummary(
         val year: Int,
         var activityCount: Int = 0,
         var totalDistanceKm: Double = 0.0,

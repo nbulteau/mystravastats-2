@@ -1,8 +1,8 @@
 package infrastructure
 
 import (
-	"mystravastats/domain/strava"
 	routesDomain "mystravastats/internal/routes/domain"
+	"mystravastats/internal/shared/domain/strava"
 	"testing"
 )
 

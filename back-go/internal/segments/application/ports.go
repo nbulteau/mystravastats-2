@@ -1,8 +1,8 @@
 package application
 
 import (
-	"mystravastats/domain/business"
 	segmentsDomain "mystravastats/internal/segments/domain"
+	"mystravastats/internal/shared/domain/business"
 )
 
 // SegmentsReader is an outbound port used by segment-related use cases.

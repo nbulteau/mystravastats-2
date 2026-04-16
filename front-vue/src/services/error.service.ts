@@ -3,22 +3,22 @@ import { type Toast, ToastTypeEnum } from '@/models/toast.model'
 import type { APIResponseError } from '@/models/error.model'
 
 export class ErrorService {
-    static async catchError(response: Response) {
+    static async catchError(response: Response): Promise<never> {
         const uiStore = useUiStore()
 
         if ((response.status === 401 || response.status === 403) && response.headers.get('X-Goog-IAP-Generated-Response') !== null) {
             window.location.reload()
-            return
+            throw new Error('Session expired, reloading...')
         }
-        let apiError: APIResponseError | null 
+        let apiError: APIResponseError | null
         try {
             apiError = ((await response.json()) as unknown) as APIResponseError
         } catch (e) {
-            const message = response.statusText ? `${response.status} - ${response.statusText}` : 'Uknown Error'
+            const message = response.statusText ? `${response.status} - ${response.statusText}` : 'Unknown Error'
             apiError = {
                 message,
                 code: response.status,
-                path: 'null',
+                path: null,
                 description: message,
                 name: 'customError',
                 timestamp: `${Date.now()}`,
@@ -31,11 +31,9 @@ export class ErrorService {
                 : 'Une erreur s\'est produite, veuillez réessayer ultérieurement',
             apiErrorCode: apiError.code,
             type: ToastTypeEnum.ERROR,
+            timeout: 5000,
         }
         uiStore.showToast(toast)
-        setTimeout(() => {
-            uiStore.removeToast(toast)
-        }, 5000)
 
         throw new Error(apiError.message)
     }

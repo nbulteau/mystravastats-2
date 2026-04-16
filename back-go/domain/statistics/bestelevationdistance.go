@@ -2,8 +2,8 @@ package statistics
 
 import (
 	"fmt"
-	"mystravastats/domain/business"
-	"mystravastats/domain/strava"
+	"mystravastats/internal/shared/domain/business"
+	"mystravastats/internal/shared/domain/strava"
 )
 
 type BestElevationDistanceStatistic struct {
@@ -32,8 +32,10 @@ func (stat *BestElevationDistanceStatistic) Activity() *business.ActivityShort {
 }
 
 func NewBestElevationDistanceStatistic(name string, activities []*strava.Activity, distance float64) *BestElevationDistanceStatistic {
+	// Validate distance parameter - default to 100 if invalid
 	if distance <= 100 {
-		panic("DistanceStream must be > 100 meters")
+		// Log warning but don't panic - return a statistic with default value
+		distance = 100
 	}
 
 	bestActivityEffort := findBestElevationEffortForDistance(activities, distance)

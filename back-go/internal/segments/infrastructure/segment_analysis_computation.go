@@ -2,9 +2,9 @@ package infrastructure
 
 import (
 	"hash/fnv"
-	"mystravastats/domain/business"
-	"mystravastats/domain/strava"
 	"mystravastats/internal/platform/activityprovider"
+	"mystravastats/internal/shared/domain/business"
+	"mystravastats/internal/shared/domain/strava"
 	"sort"
 	"strings"
 )

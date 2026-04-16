@@ -3,7 +3,7 @@ package infrastructure
 import (
 	"fmt"
 	"math"
-	"mystravastats/domain/strava"
+	"mystravastats/internal/shared/domain/strava"
 	"strings"
 )
 

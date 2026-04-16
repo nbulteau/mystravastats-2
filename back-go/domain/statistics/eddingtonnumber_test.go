@@ -1,7 +1,7 @@
 package statistics
 
 import (
-	"mystravastats/domain/strava"
+	"mystravastats/internal/shared/domain/strava"
 	"testing"
 	"time"
 )

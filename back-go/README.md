@@ -1,84 +1,98 @@
 ## Back-Go
 
-## Hexagonal Refactor (In Progress)
+MyStravaStats Backend API - A Golang backend service for Strava statistics and activity analysis built with Clean Architecture principles.
 
-Goal: migrate to a maintainable hexagonal architecture incrementally (no big-bang rewrite).
+## Architecture Overview
 
-Current migrated slices:
-- `GET /api/health/details`
-- `GET /api/activities/{activityId}`
-- `GET /api/activities`
-- `GET /api/activities/csv`
-- `GET /api/maps/gpx`
-- `GET /api/athletes/me`
-- `GET /api/badges`
-- `GET /api/statistics`
-- `GET /api/statistics/personal-records-timeline`
-- `GET /api/statistics/segment-climb-progression`
-- `GET /api/segments`
-- `GET /api/segments/{segmentId}/efforts`
-- `GET /api/segments/{segmentId}/summary`
-- `GET /api/athletes/me/heart-rate-zones`
-- `PUT /api/athletes/me/heart-rate-zones`
-- `GET /api/statistics/heart-rate-zones`
-- `GET /api/charts/distance-by-period`
-- `GET /api/charts/elevation-by-period`
-- `GET /api/charts/average-speed-by-period`
-- `GET /api/charts/average-cadence-by-period`
-- `GET /api/dashboard`
-- `GET /api/dashboard/cumulative-data-per-year`
-- `GET /api/dashboard/eddington-number`
-- `GET /api/dashboard/activity-heatmap`
-- HTTP handler (`api`) -> use case (`internal/<bounded-context>/application`) -> outbound port -> infrastructure adapter -> legacy services
+Back-Go follows a **Clean Architecture** pattern with clear separation of concerns. The project is organized into layered modules, each with its own domain, application (use cases), and infrastructure layers.
 
-New packages introduced:
-- `internal/activities/application`
-- `internal/activities/domain`
-- `internal/activities/infrastructure`
-- `internal/athlete/application`
-- `internal/athlete/infrastructure`
-- `internal/badges/application`
-- `internal/badges/infrastructure`
-- `internal/charts/application`
-- `internal/charts/infrastructure`
-- `internal/dashboard/application`
-- `internal/dashboard/domain`
-- `internal/dashboard/infrastructure`
-- `internal/heartrate/application`
-- `internal/heartrate/infrastructure`
-- `internal/health/application`
-- `internal/health/infrastructure`
-- `internal/platform/activityprovider`
-- `internal/segments/application`
-- `internal/segments/domain`
-- `internal/segments/infrastructure`
-- `internal/statistics/application`
-- `internal/statistics/infrastructure`
+### Architecture Diagram
 
-Migration principles:
-- keep existing API contract unchanged
-- migrate endpoint-by-endpoint
-- keep legacy `internal/services` as a temporary adapter target
-- add tests at the use-case layer first
-
-Latest cleanup pass:
-- `main.go` no longer initializes provider through `internal/services`
-- `api/handlers.go` no longer imports `internal/services`
-- provider singleton extracted to `internal/platform/activityprovider`
-
-Next recommended slices:
-1. keep shrinking `internal/services` (split by bounded context)
-2. add contract tests at HTTP boundary per migrated endpoint
-3. standardize package names and boundaries (`*_service_adapter` + bounded contexts)
-
-Target shape:
-```text
-api/                       # primary adapters (HTTP)
-internal/<bounded-context>/
-  domain/                  # entities/value objects/domain errors
-  application/             # use cases + ports
-  infrastructure/          # secondary adapters (strava, cache, file system)
 ```
+┌─────────────────────────────────────────────────────────────────┐
+│                           HTTP Server                            │
+│              (Port 8080 + CORS Support + Static Files)          │
+└────────────┬────────────────────────────────────────────────────┘
+             │
+┌────────────▼────────────────────────────────────────────────────┐
+│                    API Layer (api/)                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │   Router     │  │  Handlers    │  │  Container   │          │
+│  │  (routes)    │  │  (endpoints) │  │  (wiring)    │          │
+│  └──────────────┘  └──────────────┘  └──────────────┘          │
+└────────────┬────────────────────────────────────────────────────┘
+             │
+┌────────────▼────────────────────────────────────────────────────┐
+│              Internal Modules (Clean Architecture)               │
+│                                                                   │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  Module (e.g., Activities, Athlete, Statistics, etc.)  │   │
+│  │                                                          │   │
+│  │  ┌──────────────────────────────────────────────────┐  │   │
+│  │  │     Application Layer                            │  │   │
+│  │  │  ├─ Use Cases (business logic)                   │  │   │
+│  │  │  └─ Ports (interfaces)                           │  │   │
+│  │  └──────────────────────────────────────────────────┘  │   │
+│  │                      △                                  │   │
+│  │                      │                                  │   │
+│  │  ┌──────────────────────────────────────────────────┐  │   │
+│  │  │     Domain Layer                                 │  │   │
+│  │  │  ├─ Business Rules                               │  │   │
+│  │  │  └─ Domain Models                                │  │   │
+│  │  └──────────────────────────────────────────────────┘  │   │
+│  │                      △                                  │   │
+│  │                      │                                  │   │
+│  │  ┌──────────────────────────────────────────────────┐  │   │
+│  │  │     Infrastructure Layer                         │  │   │
+│  │  │  ├─ Service Adapters (Strava API)                │  │   │
+│  │  │  └─ External Dependencies                        │  │   │
+│  │  └──────────────────────────────────────────────────┘  │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                   │
+│  Available Modules:                                              │
+│  • Activities - Activity retrieval and export (CSV/GPX)          │
+│  • Athlete - Athlete profile information                         │
+│  • Statistics - Performance metrics & personal records           │
+│  • Badges - Achievement system                                  │
+│  • Charts - Data visualization & trends                          │
+│  • Dashboard - Cumulative data & heat maps                       │
+│  • Routes - Route exploration & generation                       │
+│  • Segments - Segment analysis & progression                     │
+│  • HeartRate - HR zone analysis & configuration                  │
+│  • Health - System health monitoring                             │
+└─────────────────────────────────────────────────────────────────┘
+             │
+┌────────────▼────────────────────────────────────────────────────┐
+│              External Services & Storage                         │
+│  ┌──────────────────────┐  ┌──────────────────────────────────┐ │
+│  │   Strava API         │  │  Cache Storage (Memory/Disk)     │ │
+│  │  (Activity Data)     │  │  (Configuration)                 │ │
+│  └──────────────────────┘  └──────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### Key Components
+
+- **API Layer** (`api/`): HTTP handlers, routing, and manual dependency wiring (singleton `container` that instantiates and connects use cases to their adapters)
+- **Internal Modules** (`internal/`): Feature-specific modules following clean architecture
+  - Each module has: `application/` (use cases), `domain/` (business logic), `infrastructure/` (external adapters)
+- **Domain** (`domain/`): Cross-cutting domain logic (statistics, badges)
+- **Adapters** (`adapters/`): External service integrations
+
+### Data Flow
+
+1. **Request** → HTTP Handler (Gorilla Mux)
+2. **Handler** → Container (resolve Use Case via singleton wiring)
+3. **Use Case** → Domain Logic / Application Service
+4. **Service** → Infrastructure Adapter (Strava API)
+5. **Response** → DTO → JSON
+
+### Technology Stack
+
+- **Framework**: Gorilla Mux (HTTP routing)
+- **Documentation**: Swagger (Swag)
+- **CORS**: rs/cors
+- **Language**: Go 1.25.2
 
 ---
 

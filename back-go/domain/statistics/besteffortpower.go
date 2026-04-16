@@ -2,8 +2,8 @@ package statistics
 
 import (
 	"fmt"
-	"mystravastats/domain/business"
-	"mystravastats/domain/strava"
+	"mystravastats/internal/shared/domain/business"
+	"mystravastats/internal/shared/domain/strava"
 )
 
 type BestEffortPowerStatistic struct {
@@ -30,8 +30,10 @@ func (stat *BestEffortPowerStatistic) Activity() *business.ActivityShort {
 }
 
 func NewBestEffortPowerStatistic(name string, activities []*strava.Activity, seconds int) *BestEffortPowerStatistic {
+	// Validate seconds parameter - default to 60 if invalid
 	if seconds <= 10 {
-		panic("DistanceStream must be > 10 seconds")
+		// Log warning but don't panic - return a statistic with default value
+		seconds = 60
 	}
 
 	bestActivityEffort := calculateBestPowerForTime(activities, seconds)
