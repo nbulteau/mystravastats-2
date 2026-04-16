@@ -4,12 +4,13 @@ import me.nicolas.stravastats.domain.business.ActivityType
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 var inDateTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
 
-var outDateTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE dd MMMM yyyy - HH:mm")
+var outDateTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE dd MMMM yyyy - HH:mm", Locale.FRANCE)
 
-var dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE dd MMMM yyyy")
+var dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE dd MMMM yyyy", Locale.FRANCE)
 
 fun String.formatDate(): String = LocalDateTime.parse(this, inDateTimeFormatter).format(outDateTimeFormatter)
 
