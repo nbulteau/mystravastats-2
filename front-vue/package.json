@@ -12,7 +12,7 @@
         "preview": "vite preview",
         "build-only": "vite build",
         "type-check": "vue-tsc --build --force",
-        "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
+        "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
         "serve": "vite"
     },
     "dependencies": {
@@ -32,6 +32,8 @@
         "@rolldown/binding-darwin-arm64": "^1.0.0-rc.15"
     },
     "devDependencies": {
+        "@eslint/eslintrc": "^3.3.5",
+        "@eslint/js": "^10.0.1",
         "@rushstack/eslint-patch": "^1.16.1",
         "@tsconfig/node20": "^20.1.9",
         "@types/bootstrap": "^5.2.10",
@@ -39,6 +41,7 @@
         "@types/node": "^25.6.0",
         "@types/uuid": "^11.0.0",
         "@vitejs/plugin-vue": "^6.0.6",
+        "@vue/eslint-config-typescript": "^14.7.0",
         "@vue/tsconfig": "^0.9.1",
         "eslint": "^10.2.0",
         "eslint-plugin-vue": "^10.8.0",

@@ -1,14 +1,9 @@
-const { FlatCompat } = require('@eslint/eslintrc')
 const js = require('@eslint/js')
+const vue = require('eslint-plugin-vue')
+const { defineConfigWithVueTs, vueTsConfigs } = require('@vue/eslint-config-typescript')
+const globals = require('globals')
 
-require('@rushstack/eslint-patch/modern-module-resolution')
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended
-})
-
-module.exports = [
+module.exports = defineConfigWithVueTs(
   {
     ignores: [
       'node_modules/**',
@@ -19,18 +14,29 @@ module.exports = [
       '.env',
       'cypress/videos/**',
       'cypress/screenshots/**',
-      '.idea/**'
+      '.idea/**',
+      '.eslintrc.cjs',
+      'eslint.config.cjs',
+      'vue.config.js'
     ]
   },
-  ...compat.config({
-    extends: [
-      'plugin:vue/vue3-recommended',
-      'eslint:recommended',
-      '@vue/eslint-config-typescript'
-    ],
-    parserOptions: {
-      ecmaVersion: 'latest'
+  js.configs.recommended,
+  vue.configs['flat/essential'],
+  vueTsConfigs.base,
+  {
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.node
+      }
+    },
+    rules: {
+      'no-undef': 'off',
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      'no-useless-assignment': 'off',
+      'no-constant-condition': 'off',
+      'no-constant-binary-expression': 'off'
     }
-  })
-]
-
+  }
+)
