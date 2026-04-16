@@ -52,6 +52,8 @@ data class RouteExplorerRequest(
     val distanceTargetKm: Double?,
     val elevationTargetM: Double?,
     val durationTargetMin: Int?,
+    val startDirection: String? = null,
+    val routeType: String? = null,
     val season: String?,
     val limit: Int,
     val shape: String?,
@@ -65,4 +67,3 @@ data class RouteExplorerResult(
     val shapeMatches: List<RouteRecommendation>,
     val shapeRemixes: List<ShapeRemixRecommendation>,
 )
-

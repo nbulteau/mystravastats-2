@@ -17,6 +17,8 @@ const isLoading = ref<boolean>(false);
 const filterDistance = ref<string>(routesStore.distanceTargetKm);
 const filterElevation = ref<string>(routesStore.elevationTargetM);
 const filterDuration = ref<string>(routesStore.durationTargetMin);
+const filterStartDirection = ref<"" | "N" | "S" | "E" | "W">(routesStore.startDirection);
+const filterRouteType = ref<"" | "RIDE" | "MTB" | "GRAVEL" | "RUN" | "TRAIL" | "HIKE">(routesStore.routeType);
 const filterSeason = ref<"" | "WINTER" | "SPRING" | "SUMMER" | "AUTUMN">(routesStore.season);
 const filterShape = ref<"" | "LOOP" | "OUT_AND_BACK" | "POINT_TO_POINT" | "FIGURE_EIGHT">(routesStore.shape);
 const filterIncludeRemix = ref<boolean>(routesStore.includeRemix);
@@ -44,6 +46,8 @@ async function applyFilters(force = false) {
     distanceTargetKm: filterDistance.value,
     elevationTargetM: filterElevation.value,
     durationTargetMin: filterDuration.value,
+    startDirection: filterStartDirection.value,
+    routeType: filterRouteType.value,
     season: filterSeason.value,
     shape: filterShape.value,
     includeRemix: filterIncludeRemix.value,
@@ -70,6 +74,8 @@ async function resetFilters() {
   filterDistance.value = "";
   filterElevation.value = "";
   filterDuration.value = "";
+  filterStartDirection.value = "";
+  filterRouteType.value = "";
   filterSeason.value = "";
   filterShape.value = "";
   filterIncludeRemix.value = false;
@@ -150,6 +156,60 @@ onMounted(async () => {
             class="form-control"
             placeholder="Auto"
           >
+        </label>
+
+        <label class="routes-field">
+          <span>Departure direction</span>
+          <select
+            v-model="filterStartDirection"
+            class="form-select"
+          >
+            <option value="">
+              Any
+            </option>
+            <option value="N">
+              North
+            </option>
+            <option value="S">
+              South
+            </option>
+            <option value="E">
+              East
+            </option>
+            <option value="W">
+              West
+            </option>
+          </select>
+        </label>
+
+        <label class="routes-field">
+          <span>Route type</span>
+          <select
+            v-model="filterRouteType"
+            class="form-select"
+          >
+            <option value="">
+              Any
+            </option>
+            <option value="RIDE">
+              Ride
+            </option>
+            <option value="MTB">
+              MTB
+            </option>
+            <option value="GRAVEL">
+              Gravel
+            </option>
+            <option value="RUN">
+              Run
+            </option>
+            <option value="TRAIL">
+              Trail
+            </option>
+            <option value="HIKE">
+              Hike
+            </option>
+          </select>
         </label>
 
         <label class="routes-field">

@@ -51,6 +51,8 @@ class RoutesController(
         @RequestParam(required = false) distanceTargetKm: Double?,
         @RequestParam(required = false) elevationTargetM: Double?,
         @RequestParam(required = false) durationTargetMin: Int?,
+        @RequestParam(required = false) startDirection: String?,
+        @RequestParam(required = false) routeType: String?,
         @RequestParam(required = false) season: String?,
         @RequestParam(required = false) shape: String?,
         @RequestParam(required = false, defaultValue = "false") includeRemix: Boolean,
@@ -61,6 +63,8 @@ class RoutesController(
             distanceTargetKm = distanceTargetKm,
             elevationTargetM = elevationTargetM,
             durationTargetMin = durationTargetMin,
+            startDirection = startDirection,
+            routeType = routeType,
             season = season,
             limit = limit,
             shape = shape,
@@ -69,4 +73,3 @@ class RoutesController(
         return routeExplorerService.getRouteExplorer(activityTypes, year, request).toDto()
     }
 }
-

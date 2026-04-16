@@ -143,3 +143,23 @@ Basé uniquement sur les traces déjà présentes en cache (pas besoin d'API ext
 Expérience plus orientée usage terrain, meilleure réutilisation des données de carte, et différenciation fonctionnelle forte du produit.
 
 ---
+
+#### Plan de delivery (Routes)
+
+- [x] Sprint 1 - Stabilisation UX & contrat
+  - 2 modes/contrats consolidés dans la couche Routes.
+  - Harmonisation parsing/validation des query params Go/Kotlin.
+  - Route Explorer intégré front/back avec filtres et cache court côté UI.
+
+- [x] Sprint 2 - Qualité du moteur Target
+  - Scoring amélioré sur distance + D+ + direction de départ.
+  - Calibration des poids par type de parcours (`RIDE`, `MTB`, `GRAVEL`, `RUN`, `TRAIL`, `HIKE`).
+  - Tests de non-régression Go/Kotlin pour garantir le ranking attendu.
+
+- [ ] Sprint 3 - Infra routage praticable (road-graph)
+  - Génération de nouvelles boucles praticables sur graphe routier.
+  - Export GPX des routes générées.
+
+- [ ] Sprint 4 - Shape-based generator avancé
+  - Contrainte forme (dessin/import) avec projection sur routes praticables.
+  - Variantes et scoring forme/km/D+.

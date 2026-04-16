@@ -497,6 +497,8 @@ func getRouteRecommendationsByActivityType(w http.ResponseWriter, r *http.Reques
 		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return
 	}
+	startDirection := getOptionalStringParam(r, "startDirection")
+	routeType := getOptionalStringParam(r, "routeType")
 	season := getOptionalStringParam(r, "season")
 	shape := getOptionalStringParam(r, "shape")
 	limit, err := getIntParam(r, "limit")
@@ -514,6 +516,8 @@ func getRouteRecommendationsByActivityType(w http.ResponseWriter, r *http.Reques
 		DistanceTargetKm:  distanceTargetKm,
 		ElevationTargetM:  elevationTargetM,
 		DurationTargetMin: durationTargetMin,
+		StartDirection:    startDirection,
+		RouteType:         routeType,
 		Season:            season,
 		Limit:             optionalIntValue(limit),
 		Shape:             shape,

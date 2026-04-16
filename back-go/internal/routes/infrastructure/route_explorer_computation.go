@@ -40,6 +40,13 @@ type remixCandidate struct {
 	score float64
 }
 
+type routeScoringProfile struct {
+	distanceWeight  float64
+	elevationWeight float64
+	durationWeight  float64
+	directionWeight float64
+}
+
 func computeRouteExplorerFromActivities(
 	activities []*strava.Activity,
 	request routesDomain.RouteExplorerRequest,
@@ -59,6 +66,9 @@ func computeRouteExplorerFromActivities(
 	distanceTargetKm := resolveDistanceTargetKm(request.DistanceTargetKm, candidates)
 	elevationTargetM := resolveElevationTargetM(request.ElevationTargetM, candidates)
 	durationTargetSec := resolveDurationTargetSec(request.DurationTargetMin, candidates)
+	routeType := normalizeRouteType(request.RouteType)
+	startDirection := normalizeStartDirection(request.StartDirection)
+	scoringProfile := buildRouteScoringProfile(routeType, startDirection)
 	seasonFilter := normalizeSeason(request.Season)
 	shapeFilter := normalizeShape(request.Shape)
 
@@ -76,6 +86,8 @@ func computeRouteExplorerFromActivities(
 			distanceTargetKm,
 			elevationTargetM,
 			durationTargetSec,
+			scoringProfile,
+			startDirection,
 			limit,
 		),
 		Variants: buildSmartVariants(
@@ -83,6 +95,8 @@ func computeRouteExplorerFromActivities(
 			distanceTargetKm,
 			elevationTargetM,
 			durationTargetSec,
+			scoringProfile,
+			startDirection,
 		),
 		Seasonal: buildSeasonalRecommendations(
 			candidates,
@@ -181,6 +195,8 @@ func buildClosestLoopRecommendations(
 	targetDistanceKm float64,
 	targetElevationM float64,
 	targetDurationSec int,
+	scoringProfile routeScoringProfile,
+	startDirection string,
 	limit int,
 ) []routesDomain.RouteRecommendation {
 	loopCandidates := make([]routeCandidate, 0, len(candidates))
@@ -199,7 +215,7 @@ func buildClosestLoopRecommendations(
 	}
 	scoredCandidates := make([]scored, 0, len(loopCandidates))
 	for _, candidate := range loopCandidates {
-		score := closenessScore(candidate, targetDistanceKm, targetElevationM, targetDurationSec)
+		score := closenessScoreWithProfile(candidate, targetDistanceKm, targetElevationM, targetDurationSec, scoringProfile, startDirection)
 		scoredCandidates = append(scoredCandidates, scored{candidate: candidate, score: score})
 	}
 
@@ -216,14 +232,19 @@ func buildClosestLoopRecommendations(
 			break
 		}
 
+		reasons := []string{
+			fmt.Sprintf("Distance delta: %s", formatDistanceDelta(entry.candidate.distanceKm-targetDistanceKm)),
+			fmt.Sprintf("Elevation delta: %s", formatElevationDelta(entry.candidate.elevationGainM-targetElevationM)),
+		}
+		if startDirection != "" {
+			reasons = append(reasons, fmt.Sprintf("Departure direction: %s", startDirectionLabel(startDirection)))
+		}
+
 		result = append(result, toRouteRecommendation(
 			entry.candidate,
 			routesDomain.RouteVariantClosest,
 			entry.score,
-			[]string{
-				fmt.Sprintf("Distance delta: %s", formatDistanceDelta(entry.candidate.distanceKm-targetDistanceKm)),
-				fmt.Sprintf("Elevation delta: %s", formatElevationDelta(entry.candidate.elevationGainM-targetElevationM)),
-			},
+			reasons,
 			false,
 		))
 	}
@@ -236,14 +257,16 @@ func buildSmartVariants(
 	targetDistanceKm float64,
 	targetElevationM float64,
 	targetDurationSec int,
+	scoringProfile routeScoringProfile,
+	startDirection string,
 ) []routesDomain.RouteRecommendation {
 	shorter := pickBestVariant(candidates, func(candidate routeCandidate) bool {
 		return candidate.distanceKm < targetDistanceKm*0.95
-	}, targetDistanceKm, targetElevationM, targetDurationSec)
+	}, targetDistanceKm, targetElevationM, targetDurationSec, scoringProfile, startDirection)
 
 	longer := pickBestVariant(candidates, func(candidate routeCandidate) bool {
 		return candidate.distanceKm > targetDistanceKm*1.05
-	}, targetDistanceKm, targetElevationM, targetDurationSec)
+	}, targetDistanceKm, targetElevationM, targetDurationSec, scoringProfile, startDirection)
 
 	hillier := pickBestVariant(candidates, func(candidate routeCandidate) bool {
 		if candidate.elevationGainM < math.Max(targetElevationM+120.0, targetElevationM*1.15) {
@@ -251,7 +274,7 @@ func buildSmartVariants(
 		}
 		distanceDelta := math.Abs(candidate.distanceKm - targetDistanceKm)
 		return distanceDelta <= math.Max(targetDistanceKm*0.45, 15.0)
-	}, targetDistanceKm, targetElevationM, targetDurationSec)
+	}, targetDistanceKm, targetElevationM, targetDurationSec, scoringProfile, startDirection)
 
 	result := make([]routesDomain.RouteRecommendation, 0, 3)
 	if shorter != nil {
@@ -548,6 +571,8 @@ func pickBestVariant(
 	targetDistanceKm float64,
 	targetElevationM float64,
 	targetDurationSec int,
+	scoringProfile routeScoringProfile,
+	startDirection string,
 ) *struct {
 	candidate routeCandidate
 	score     float64
@@ -558,7 +583,7 @@ func pickBestVariant(
 		if !filter(candidate) {
 			continue
 		}
-		score := closenessScore(candidate, targetDistanceKm, targetElevationM, targetDurationSec)
+		score := closenessScoreWithProfile(candidate, targetDistanceKm, targetElevationM, targetDurationSec, scoringProfile, startDirection)
 		if score > bestScore {
 			candidateCopy := candidate
 			bestCandidate = &candidateCopy
@@ -853,13 +878,224 @@ func closenessScore(
 	targetElevationM float64,
 	targetDurationSec int,
 ) float64 {
+	return closenessScoreWithProfile(
+		candidate,
+		targetDistanceKm,
+		targetElevationM,
+		targetDurationSec,
+		buildRouteScoringProfile("", ""),
+		"",
+	)
+}
+
+func closenessScoreWithProfile(
+	candidate routeCandidate,
+	targetDistanceKm float64,
+	targetElevationM float64,
+	targetDurationSec int,
+	scoringProfile routeScoringProfile,
+	startDirection string,
+) float64 {
+	scoringProfile = normalizeScoringProfile(scoringProfile)
 	distanceComponent := math.Abs(candidate.distanceKm-targetDistanceKm) / math.Max(targetDistanceKm, 1.0)
 	elevationComponent := math.Abs(candidate.elevationGainM-targetElevationM) / math.Max(targetElevationM, 200.0)
 	durationComponent := math.Abs(float64(candidate.durationSec-targetDurationSec)) / math.Max(float64(targetDurationSec), 1800.0)
-
-	weighted := distanceComponent*0.5 + elevationComponent*0.3 + durationComponent*0.2
+	directionComponent := directionPenaltyComponent(candidate, startDirection)
+	weighted := distanceComponent*scoringProfile.distanceWeight +
+		elevationComponent*scoringProfile.elevationWeight +
+		durationComponent*scoringProfile.durationWeight +
+		directionComponent*scoringProfile.directionWeight
 	score := 100.0 - weighted*100.0
 	return math.Max(0, score)
+}
+
+func buildRouteScoringProfile(routeType string, startDirection string) routeScoringProfile {
+	normalizedType := strings.ToUpper(strings.TrimSpace(routeType))
+	distanceWeight := 0.52
+	elevationWeight := 0.30
+	durationWeight := 0.18
+
+	switch normalizedType {
+	case "MTB":
+		distanceWeight = 0.44
+		elevationWeight = 0.39
+		durationWeight = 0.17
+	case "GRAVEL":
+		distanceWeight = 0.48
+		elevationWeight = 0.34
+		durationWeight = 0.18
+	case "RUN":
+		distanceWeight = 0.45
+		elevationWeight = 0.22
+		durationWeight = 0.33
+	case "TRAIL":
+		distanceWeight = 0.36
+		elevationWeight = 0.40
+		durationWeight = 0.24
+	case "HIKE":
+		distanceWeight = 0.30
+		elevationWeight = 0.45
+		durationWeight = 0.25
+	}
+
+	directionWeight := 0.0
+	if startDirection != "" {
+		switch normalizedType {
+		case "MTB":
+			directionWeight = 0.10
+		case "GRAVEL":
+			directionWeight = 0.09
+		case "RUN":
+			directionWeight = 0.10
+		case "TRAIL":
+			directionWeight = 0.12
+		case "HIKE":
+			directionWeight = 0.12
+		default:
+			directionWeight = 0.08
+		}
+	}
+
+	core := math.Max(0.05, 1.0-directionWeight)
+	return normalizeScoringProfile(routeScoringProfile{
+		distanceWeight:  distanceWeight * core,
+		elevationWeight: elevationWeight * core,
+		durationWeight:  durationWeight * core,
+		directionWeight: directionWeight,
+	})
+}
+
+func normalizeScoringProfile(profile routeScoringProfile) routeScoringProfile {
+	total := profile.distanceWeight + profile.elevationWeight + profile.durationWeight + profile.directionWeight
+	if total <= 0 {
+		return routeScoringProfile{
+			distanceWeight:  0.5,
+			elevationWeight: 0.3,
+			durationWeight:  0.2,
+			directionWeight: 0.0,
+		}
+	}
+	return routeScoringProfile{
+		distanceWeight:  profile.distanceWeight / total,
+		elevationWeight: profile.elevationWeight / total,
+		durationWeight:  profile.durationWeight / total,
+		directionWeight: profile.directionWeight / total,
+	}
+}
+
+func normalizeRouteType(value *string) string {
+	if value == nil {
+		return ""
+	}
+	switch strings.ToUpper(strings.TrimSpace(*value)) {
+	case "RIDE", "MTB", "GRAVEL", "RUN", "TRAIL", "HIKE":
+		return strings.ToUpper(strings.TrimSpace(*value))
+	default:
+		return ""
+	}
+}
+
+func normalizeStartDirection(value *string) string {
+	if value == nil {
+		return ""
+	}
+	switch strings.ToUpper(strings.TrimSpace(*value)) {
+	case "N", "S", "E", "W":
+		return strings.ToUpper(strings.TrimSpace(*value))
+	default:
+		return ""
+	}
+}
+
+func startDirectionLabel(value string) string {
+	switch value {
+	case "N":
+		return "North"
+	case "S":
+		return "South"
+	case "E":
+		return "East"
+	case "W":
+		return "West"
+	default:
+		return "Any"
+	}
+}
+
+func directionPenaltyComponent(candidate routeCandidate, startDirection string) float64 {
+	if startDirection == "" {
+		return 0.0
+	}
+	bearing, ok := initialBearingDegrees(candidate)
+	if !ok {
+		return 1.0
+	}
+	target := targetBearingDegrees(startDirection)
+	diff := math.Abs(bearing - target)
+	if diff > 180.0 {
+		diff = 360.0 - diff
+	}
+	return diff / 180.0
+}
+
+func initialBearingDegrees(candidate routeCandidate) (float64, bool) {
+	if len(candidate.previewLatLng) < 2 {
+		return 0, false
+	}
+	start := candidate.previewLatLng[0]
+	if len(start) < 2 {
+		return 0, false
+	}
+	for idx := 1; idx < len(candidate.previewLatLng); idx++ {
+		next := candidate.previewLatLng[idx]
+		if len(next) < 2 {
+			continue
+		}
+		if distanceBetweenPointsMeters(start[0], start[1], next[0], next[1]) < 35.0 {
+			continue
+		}
+		return bearingDegrees(start[0], start[1], next[0], next[1]), true
+	}
+	last := candidate.previewLatLng[len(candidate.previewLatLng)-1]
+	if len(last) < 2 {
+		return 0, false
+	}
+	return bearingDegrees(start[0], start[1], last[0], last[1]), true
+}
+
+func targetBearingDegrees(startDirection string) float64 {
+	switch startDirection {
+	case "N":
+		return 0.0
+	case "E":
+		return 90.0
+	case "S":
+		return 180.0
+	case "W":
+		return 270.0
+	default:
+		return 0.0
+	}
+}
+
+func bearingDegrees(lat1, lng1, lat2, lng2 float64) float64 {
+	lat1r := toRadians(lat1)
+	lat2r := toRadians(lat2)
+	deltaLng := toRadians(lng2 - lng1)
+	y := math.Sin(deltaLng) * math.Cos(lat2r)
+	x := math.Cos(lat1r)*math.Sin(lat2r) - math.Sin(lat1r)*math.Cos(lat2r)*math.Cos(deltaLng)
+	bearing := math.Atan2(y, x) * 180.0 / math.Pi
+	if bearing < 0 {
+		bearing += 360.0
+	}
+	return bearing
+}
+
+func distanceBetweenPointsMeters(lat1, lng1, lat2, lng2 float64) float64 {
+	return greatCircleDistanceMeters(
+		&routesDomain.Coordinates{Lat: lat1, Lng: lng1},
+		&routesDomain.Coordinates{Lat: lat2, Lng: lng2},
+	)
 }
 
 func resolveDistanceTargetKm(target *float64, candidates []routeCandidate) float64 {

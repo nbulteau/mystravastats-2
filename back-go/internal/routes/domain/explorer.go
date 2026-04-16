@@ -56,6 +56,8 @@ type RouteExplorerRequest struct {
 	DistanceTargetKm  *float64
 	ElevationTargetM  *float64
 	DurationTargetMin *int
+	StartDirection    *string
+	RouteType         *string
 	Season            *string
 	Limit             int
 	Shape             *string

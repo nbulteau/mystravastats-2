@@ -86,6 +86,88 @@ func TestComputeRouteExplorerFromActivities_BuildsExperimentalShapeRemix(t *test
 	}
 }
 
+func TestComputeRouteExplorerFromActivities_PrioritizesDepartureDirection(t *testing.T) {
+	// GIVEN
+	targetDistance := 45.0
+	targetElevation := 650.0
+	targetDuration := 140
+	startDirection := "N"
+	routeType := "RIDE"
+	activities := []*strava.Activity{
+		buildRouteActivity(31, "North Aligned", "2025-08-01T08:00:00Z", 46.0, 670, 8500, []float64{45.0, 6.0}, [][]float64{
+			{45.0, 6.0}, {45.03, 6.0}, {45.04, 6.03}, {45.0, 6.0},
+		}),
+		buildRouteActivity(32, "South Aligned", "2025-08-02T08:00:00Z", 45.0, 650, 8400, []float64{45.0, 6.0}, [][]float64{
+			{45.0, 6.0}, {44.97, 6.0}, {44.96, 5.97}, {45.0, 6.0},
+		}),
+	}
+	request := routesDomain.RouteExplorerRequest{
+		DistanceTargetKm:  &targetDistance,
+		ElevationTargetM:  &targetElevation,
+		DurationTargetMin: &targetDuration,
+		StartDirection:    &startDirection,
+		RouteType:         &routeType,
+		Limit:             6,
+	}
+
+	// WHEN
+	result := computeRouteExplorerFromActivities(activities, request)
+
+	// THEN
+	if len(result.ClosestLoops) == 0 {
+		t.Fatal("expected at least one closest loop recommendation")
+	}
+	if result.ClosestLoops[0].Activity.Name != "North Aligned" {
+		t.Fatalf("expected north aligned route first when direction is requested, got %q", result.ClosestLoops[0].Activity.Name)
+	}
+}
+
+func TestComputeRouteExplorerFromActivities_CalibratesScoringByRouteType(t *testing.T) {
+	// GIVEN
+	targetDistance := 45.0
+	targetElevation := 650.0
+	targetDuration := 140
+	rideType := "RIDE"
+	hikeType := "HIKE"
+	activities := []*strava.Activity{
+		buildRouteActivity(41, "Distance Focused", "2025-09-01T08:00:00Z", 45.0, 520, 8400, []float64{45.1, 6.1}, [][]float64{
+			{45.1, 6.1}, {45.13, 6.12}, {45.1, 6.1},
+		}),
+		buildRouteActivity(42, "Climb Focused", "2025-09-02T08:00:00Z", 56.0, 650, 8400, []float64{45.1, 6.1}, [][]float64{
+			{45.1, 6.1}, {45.14, 6.15}, {45.1, 6.1},
+		}),
+	}
+	rideRequest := routesDomain.RouteExplorerRequest{
+		DistanceTargetKm:  &targetDistance,
+		ElevationTargetM:  &targetElevation,
+		DurationTargetMin: &targetDuration,
+		RouteType:         &rideType,
+		Limit:             6,
+	}
+	hikeRequest := routesDomain.RouteExplorerRequest{
+		DistanceTargetKm:  &targetDistance,
+		ElevationTargetM:  &targetElevation,
+		DurationTargetMin: &targetDuration,
+		RouteType:         &hikeType,
+		Limit:             6,
+	}
+
+	// WHEN
+	rideResult := computeRouteExplorerFromActivities(activities, rideRequest)
+	hikeResult := computeRouteExplorerFromActivities(activities, hikeRequest)
+
+	// THEN
+	if len(rideResult.ClosestLoops) == 0 || len(hikeResult.ClosestLoops) == 0 {
+		t.Fatal("expected closest loop recommendations for both route types")
+	}
+	if rideResult.ClosestLoops[0].Activity.Name != "Distance Focused" {
+		t.Fatalf("expected ride scoring to prioritize distance match, got %q", rideResult.ClosestLoops[0].Activity.Name)
+	}
+	if hikeResult.ClosestLoops[0].Activity.Name != "Climb Focused" {
+		t.Fatalf("expected hike scoring to prioritize elevation match, got %q", hikeResult.ClosestLoops[0].Activity.Name)
+	}
+}
+
 func buildRouteActivity(
 	id int64,
 	name string,

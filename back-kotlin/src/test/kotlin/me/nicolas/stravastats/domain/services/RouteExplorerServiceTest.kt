@@ -152,6 +152,109 @@ class RouteExplorerServiceTest {
         assertEquals(2, result.shapeRemixes.first().components.size, "shape remix should contain 2 activities")
     }
 
+    @Test
+    fun `route explorer prioritizes requested departure direction`() {
+        // GIVEN
+        val activityTypes = setOf(ActivityType.Ride)
+        val activities = listOf(
+            buildActivity(
+                id = 31L,
+                name = "North Aligned",
+                startDateLocal = "2025-08-01T08:00:00+02:00",
+                distanceKm = 46.0,
+                elevationM = 670.0,
+                durationSec = 8500,
+                start = listOf(45.0, 6.0),
+                track = listOf(
+                    listOf(45.0, 6.0), listOf(45.03, 6.0), listOf(45.04, 6.03), listOf(45.0, 6.0),
+                ),
+            ),
+            buildActivity(
+                id = 32L,
+                name = "South Aligned",
+                startDateLocal = "2025-08-02T08:00:00+02:00",
+                distanceKm = 45.0,
+                elevationM = 650.0,
+                durationSec = 8400,
+                start = listOf(45.0, 6.0),
+                track = listOf(
+                    listOf(45.0, 6.0), listOf(44.97, 6.0), listOf(44.96, 5.97), listOf(45.0, 6.0),
+                ),
+            ),
+        )
+        every { activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, null) } returns activities
+        val request = RouteExplorerRequest(
+            distanceTargetKm = 45.0,
+            elevationTargetM = 650.0,
+            durationTargetMin = 140,
+            startDirection = "N",
+            routeType = "RIDE",
+            season = null,
+            limit = 6,
+            shape = null,
+            includeRemix = false,
+        )
+
+        // WHEN
+        val result = routeExplorerService.getRouteExplorer(activityTypes, null, request)
+
+        // THEN
+        assertTrue(result.closestLoops.isNotEmpty(), "closest loops should not be empty")
+        assertEquals("North Aligned", result.closestLoops.first().activity.name)
+    }
+
+    @Test
+    fun `route explorer calibrates scoring profile by route type`() {
+        // GIVEN
+        val activityTypes = setOf(ActivityType.Ride)
+        val activities = listOf(
+            buildActivity(
+                id = 41L,
+                name = "Distance Focused",
+                startDateLocal = "2025-09-01T08:00:00+02:00",
+                distanceKm = 45.0,
+                elevationM = 520.0,
+                durationSec = 8400,
+                start = listOf(45.1, 6.1),
+                track = listOf(
+                    listOf(45.1, 6.1), listOf(45.13, 6.12), listOf(45.1, 6.1),
+                ),
+            ),
+            buildActivity(
+                id = 42L,
+                name = "Climb Focused",
+                startDateLocal = "2025-09-02T08:00:00+02:00",
+                distanceKm = 56.0,
+                elevationM = 650.0,
+                durationSec = 8400,
+                start = listOf(45.1, 6.1),
+                track = listOf(
+                    listOf(45.1, 6.1), listOf(45.14, 6.15), listOf(45.1, 6.1),
+                ),
+            ),
+        )
+        every { activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, null) } returns activities
+        val baseRequest = RouteExplorerRequest(
+            distanceTargetKm = 45.0,
+            elevationTargetM = 650.0,
+            durationTargetMin = 140,
+            season = null,
+            limit = 6,
+            shape = null,
+            includeRemix = false,
+        )
+
+        // WHEN
+        val rideResult = routeExplorerService.getRouteExplorer(activityTypes, null, baseRequest.copy(routeType = "RIDE"))
+        val hikeResult = routeExplorerService.getRouteExplorer(activityTypes, null, baseRequest.copy(routeType = "HIKE"))
+
+        // THEN
+        assertTrue(rideResult.closestLoops.isNotEmpty(), "ride closest loops should not be empty")
+        assertTrue(hikeResult.closestLoops.isNotEmpty(), "hike closest loops should not be empty")
+        assertEquals("Distance Focused", rideResult.closestLoops.first().activity.name)
+        assertEquals("Climb Focused", hikeResult.closestLoops.first().activity.name)
+    }
+
     private fun buildActivity(
         id: Long,
         name: String,
@@ -210,4 +313,3 @@ class RouteExplorerServiceTest {
         )
     }
 }
-

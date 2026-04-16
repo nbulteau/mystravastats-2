@@ -69,13 +69,31 @@ class RouteExplorerService(
             ?: median(candidates.map { candidate -> candidate.elevationGainM }, 600.0)
         val durationTargetSec = request.durationTargetMin?.takeIf { value -> value > 0 }?.times(60)
             ?: median(candidates.map { candidate -> candidate.durationSec.toDouble() }, 2.5 * 3600.0).roundToInt()
+        val routeType = normalizeRouteType(request.routeType)
+        val startDirection = normalizeStartDirection(request.startDirection)
+        val scoringProfile = buildRouteScoringProfile(routeType, startDirection)
 
         val seasonFilter = normalizeSeason(request.season)
         val shapeFilter = normalizeShape(request.shape)
         val baseCandidates = filterBySeason(candidates, seasonFilter).ifEmpty { candidates }
 
-        val closest = buildClosestLoopRecommendations(baseCandidates, distanceTarget, elevationTarget, durationTargetSec, limit)
-        val variants = buildSmartVariants(baseCandidates, distanceTarget, elevationTarget, durationTargetSec)
+        val closest = buildClosestLoopRecommendations(
+            baseCandidates,
+            distanceTarget,
+            elevationTarget,
+            durationTargetSec,
+            scoringProfile,
+            startDirection,
+            limit,
+        )
+        val variants = buildSmartVariants(
+            baseCandidates,
+            distanceTarget,
+            elevationTarget,
+            durationTargetSec,
+            scoringProfile,
+            startDirection,
+        )
         val seasonal = buildSeasonalRecommendations(candidates, seasonFilter, distanceTarget, elevationTarget, durationTargetSec, limit)
         val shapeMatches = buildShapeMatchRecommendations(baseCandidates, shapeFilter, distanceTarget, elevationTarget, durationTargetSec, limit)
         val remixes = if (request.includeRemix) {
@@ -139,26 +157,32 @@ class RouteExplorerService(
         distanceTarget: Double,
         elevationTarget: Double,
         durationTargetSec: Int,
+        scoringProfile: RouteScoringProfile,
+        startDirection: String?,
         limit: Int,
     ): List<RouteRecommendation> {
         val loopCandidates = candidates.filter { candidate -> candidate.isLoop }.ifEmpty { candidates }
 
         return loopCandidates
             .map { candidate ->
-                val score = closenessScore(candidate, distanceTarget, elevationTarget, durationTargetSec)
+                val score = closenessScore(candidate, distanceTarget, elevationTarget, durationTargetSec, scoringProfile, startDirection)
                 candidate to score
             }
             .sortedWith(compareByDescending<Pair<RouteCandidate, Double>> { (_, score) -> score }.thenByDescending { (candidate, _) -> candidate.date ?: Instant.EPOCH })
             .take(limit)
             .map { (candidate, score) ->
+                val reasons = mutableListOf(
+                    "Distance delta: ${formatDistanceDelta(candidate.distanceKm - distanceTarget)}",
+                    "Elevation delta: ${formatElevationDelta(candidate.elevationGainM - elevationTarget)}",
+                )
+                if (startDirection != null) {
+                    reasons += "Departure direction: ${startDirectionLabel(startDirection)}"
+                }
                 toRouteRecommendation(
                     candidate = candidate,
                     variantType = RouteVariantType.CLOSE_MATCH,
                     score = score,
-                    reasons = listOf(
-                        "Distance delta: ${formatDistanceDelta(candidate.distanceKm - distanceTarget)}",
-                        "Elevation delta: ${formatElevationDelta(candidate.elevationGainM - elevationTarget)}",
-                    ),
+                    reasons = reasons,
                     experimental = false,
                 )
             }
@@ -170,6 +194,8 @@ class RouteExplorerService(
         distanceTarget: Double,
         elevationTarget: Double,
         durationTargetSec: Int,
+        scoringProfile: RouteScoringProfile,
+        startDirection: String?,
     ): List<RouteRecommendation> {
         val shorter = pickBestVariant(
             candidates = candidates,
@@ -177,6 +203,8 @@ class RouteExplorerService(
             distanceTarget = distanceTarget,
             elevationTarget = elevationTarget,
             durationTargetSec = durationTargetSec,
+            scoringProfile = scoringProfile,
+            startDirection = startDirection,
         )
 
         val longer = pickBestVariant(
@@ -185,6 +213,8 @@ class RouteExplorerService(
             distanceTarget = distanceTarget,
             elevationTarget = elevationTarget,
             durationTargetSec = durationTargetSec,
+            scoringProfile = scoringProfile,
+            startDirection = startDirection,
         )
 
         val hillier = pickBestVariant(
@@ -200,6 +230,8 @@ class RouteExplorerService(
             distanceTarget = distanceTarget,
             elevationTarget = elevationTarget,
             durationTargetSec = durationTargetSec,
+            scoringProfile = scoringProfile,
+            startDirection = startDirection,
         )
 
         return buildList {
@@ -433,11 +465,22 @@ class RouteExplorerService(
         distanceTarget: Double,
         elevationTarget: Double,
         durationTargetSec: Int,
+        scoringProfile: RouteScoringProfile,
+        startDirection: String?,
     ): Pair<RouteCandidate, Double>? {
         return candidates
             .asSequence()
             .filter { candidate -> filter(candidate) }
-            .map { candidate -> candidate to closenessScore(candidate, distanceTarget, elevationTarget, durationTargetSec) }
+            .map { candidate ->
+                candidate to closenessScore(
+                    candidate,
+                    distanceTarget,
+                    elevationTarget,
+                    durationTargetSec,
+                    scoringProfile,
+                    startDirection,
+                )
+            }
             .maxByOrNull { (_, score) -> score }
     }
 
@@ -653,11 +696,164 @@ class RouteExplorerService(
         elevationTarget: Double,
         durationTargetSec: Int,
     ): Double {
+        return closenessScore(
+            candidate = candidate,
+            distanceTarget = distanceTarget,
+            elevationTarget = elevationTarget,
+            durationTargetSec = durationTargetSec,
+            scoringProfile = buildRouteScoringProfile(null, null),
+            startDirection = null,
+        )
+    }
+
+    private fun closenessScore(
+        candidate: RouteCandidate,
+        distanceTarget: Double,
+        elevationTarget: Double,
+        durationTargetSec: Int,
+        scoringProfile: RouteScoringProfile,
+        startDirection: String?,
+    ): Double {
+        val profile = normalizeScoringProfile(scoringProfile)
         val distanceComponent = abs(candidate.distanceKm - distanceTarget) / max(distanceTarget, 1.0)
         val elevationComponent = abs(candidate.elevationGainM - elevationTarget) / max(elevationTarget, 200.0)
         val durationComponent = abs(candidate.durationSec.toDouble() - durationTargetSec.toDouble()) / max(durationTargetSec.toDouble(), 1800.0)
-        val weighted = distanceComponent * 0.5 + elevationComponent * 0.3 + durationComponent * 0.2
+        val directionComponent = directionPenaltyComponent(candidate, startDirection)
+        val weighted = distanceComponent * profile.distanceWeight +
+            elevationComponent * profile.elevationWeight +
+            durationComponent * profile.durationWeight +
+            directionComponent * profile.directionWeight
         return max(0.0, 100.0 - weighted * 100.0)
+    }
+
+    private fun buildRouteScoringProfile(routeType: String?, startDirection: String?): RouteScoringProfile {
+        val normalizedType = routeType?.trim()?.uppercase()
+        val (baseDistance, baseElevation, baseDuration) = when (normalizedType) {
+            "MTB" -> Triple(0.44, 0.39, 0.17)
+            "GRAVEL" -> Triple(0.48, 0.34, 0.18)
+            "RUN" -> Triple(0.45, 0.22, 0.33)
+            "TRAIL" -> Triple(0.36, 0.40, 0.24)
+            "HIKE" -> Triple(0.30, 0.45, 0.25)
+            else -> Triple(0.52, 0.30, 0.18)
+        }
+
+        val directionWeight = if (startDirection.isNullOrBlank()) {
+            0.0
+        } else {
+            when (normalizedType) {
+                "MTB" -> 0.10
+                "GRAVEL" -> 0.09
+                "RUN" -> 0.10
+                "TRAIL" -> 0.12
+                "HIKE" -> 0.12
+                else -> 0.08
+            }
+        }
+
+        val core = max(0.05, 1.0 - directionWeight)
+        return normalizeScoringProfile(
+            RouteScoringProfile(
+                distanceWeight = baseDistance * core,
+                elevationWeight = baseElevation * core,
+                durationWeight = baseDuration * core,
+                directionWeight = directionWeight,
+            )
+        )
+    }
+
+    private fun normalizeScoringProfile(profile: RouteScoringProfile): RouteScoringProfile {
+        val total = profile.distanceWeight + profile.elevationWeight + profile.durationWeight + profile.directionWeight
+        if (total <= 0.0) {
+            return RouteScoringProfile(
+                distanceWeight = 0.5,
+                elevationWeight = 0.3,
+                durationWeight = 0.2,
+                directionWeight = 0.0,
+            )
+        }
+        return RouteScoringProfile(
+            distanceWeight = profile.distanceWeight / total,
+            elevationWeight = profile.elevationWeight / total,
+            durationWeight = profile.durationWeight / total,
+            directionWeight = profile.directionWeight / total,
+        )
+    }
+
+    private fun normalizeRouteType(value: String?): String? {
+        return when (value?.trim()?.uppercase()) {
+            "RIDE", "MTB", "GRAVEL", "RUN", "TRAIL", "HIKE" -> value.trim().uppercase()
+            else -> null
+        }
+    }
+
+    private fun normalizeStartDirection(value: String?): String? {
+        return when (value?.trim()?.uppercase()) {
+            "N", "S", "E", "W" -> value.trim().uppercase()
+            else -> null
+        }
+    }
+
+    private fun startDirectionLabel(value: String): String {
+        return when (value) {
+            "N" -> "North"
+            "S" -> "South"
+            "E" -> "East"
+            "W" -> "West"
+            else -> "Any"
+        }
+    }
+
+    private fun directionPenaltyComponent(candidate: RouteCandidate, startDirection: String?): Double {
+        if (startDirection.isNullOrBlank()) {
+            return 0.0
+        }
+        val initialBearing = initialBearingDegrees(candidate) ?: return 1.0
+        val targetBearing = when (startDirection) {
+            "N" -> 0.0
+            "E" -> 90.0
+            "S" -> 180.0
+            "W" -> 270.0
+            else -> return 1.0
+        }
+        val rawDiff = abs(initialBearing - targetBearing)
+        val normalizedDiff = if (rawDiff > 180.0) 360.0 - rawDiff else rawDiff
+        return normalizedDiff / 180.0
+    }
+
+    private fun initialBearingDegrees(candidate: RouteCandidate): Double? {
+        if (candidate.previewLatLng.size < 2) {
+            return null
+        }
+        val start = candidate.previewLatLng.firstOrNull()?.takeIf { point -> point.size >= 2 } ?: return null
+        val startLat = start[0]
+        val startLng = start[1]
+        for (index in 1 until candidate.previewLatLng.size) {
+            val next = candidate.previewLatLng[index]
+            if (next.size < 2) {
+                continue
+            }
+            val nextLat = next[0]
+            val nextLng = next[1]
+            if (distanceBetween(Coordinates(startLat, startLng), Coordinates(nextLat, nextLng)) < 35.0) {
+                continue
+            }
+            return bearingDegrees(startLat, startLng, nextLat, nextLng)
+        }
+        val fallback = candidate.previewLatLng.lastOrNull()?.takeIf { point -> point.size >= 2 } ?: return null
+        return bearingDegrees(startLat, startLng, fallback[0], fallback[1])
+    }
+
+    private fun bearingDegrees(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Double {
+        val lat1r = lat1 * PI / 180.0
+        val lat2r = lat2 * PI / 180.0
+        val deltaLng = (lng2 - lng1) * PI / 180.0
+        val y = sin(deltaLng) * cos(lat2r)
+        val x = cos(lat1r) * sin(lat2r) - sin(lat1r) * cos(lat2r) * cos(deltaLng)
+        var bearing = atan2(y, x) * 180.0 / PI
+        if (bearing < 0.0) {
+            bearing += 360.0
+        }
+        return bearing
     }
 
     private fun normalizeLimit(limit: Int): Int {
@@ -806,5 +1002,11 @@ class RouteExplorerService(
         val shape: String,
         val shapeScore: Double,
     )
-}
 
+    private data class RouteScoringProfile(
+        val distanceWeight: Double,
+        val elevationWeight: Double,
+        val durationWeight: Double,
+        val directionWeight: Double,
+    )
+}

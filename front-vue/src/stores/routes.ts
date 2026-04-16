@@ -26,6 +26,22 @@ type RouteSeason =
   | "SUMMER"
   | "AUTUMN";
 
+type RouteType =
+  | ""
+  | "RIDE"
+  | "MTB"
+  | "GRAVEL"
+  | "RUN"
+  | "TRAIL"
+  | "HIKE";
+
+type StartDirection =
+  | ""
+  | "N"
+  | "S"
+  | "E"
+  | "W";
+
 export const useRoutesStore = defineStore("routes", {
   state: () => ({
     result: {
@@ -38,6 +54,8 @@ export const useRoutesStore = defineStore("routes", {
     distanceTargetKm: "" as string,
     elevationTargetM: "" as string,
     durationTargetMin: "" as string,
+    startDirection: "" as StartDirection,
+    routeType: "" as RouteType,
     season: "" as RouteSeason,
     shape: "" as RouteShape,
     includeRemix: false,
@@ -64,6 +82,8 @@ export const useRoutesStore = defineStore("routes", {
         this.distanceTargetKm || "auto-distance",
         this.elevationTargetM || "auto-elevation",
         this.durationTargetMin || "auto-duration",
+        this.startDirection || "all-directions",
+        this.routeType || "all-route-types",
         this.season || "all-seasons",
         this.shape || "all-shapes",
         this.includeRemix ? "with-remix" : "no-remix",
@@ -88,6 +108,12 @@ export const useRoutesStore = defineStore("routes", {
       if (this.durationTargetMin.trim().length > 0) {
         params.set("durationTargetMin", this.durationTargetMin.trim());
       }
+      if (this.startDirection) {
+        params.set("startDirection", this.startDirection);
+      }
+      if (this.routeType) {
+        params.set("routeType", this.routeType);
+      }
       if (this.season) {
         params.set("season", this.season);
       }
@@ -105,6 +131,8 @@ export const useRoutesStore = defineStore("routes", {
       distanceTargetKm?: string;
       elevationTargetM?: string;
       durationTargetMin?: string;
+      startDirection?: StartDirection;
+      routeType?: RouteType;
       season?: RouteSeason;
       shape?: RouteShape;
       includeRemix?: boolean;
@@ -118,6 +146,12 @@ export const useRoutesStore = defineStore("routes", {
       }
       if (payload.durationTargetMin !== undefined) {
         this.durationTargetMin = payload.durationTargetMin;
+      }
+      if (payload.startDirection !== undefined) {
+        this.startDirection = payload.startDirection;
+      }
+      if (payload.routeType !== undefined) {
+        this.routeType = payload.routeType;
       }
       if (payload.season !== undefined) {
         this.season = payload.season;
@@ -160,4 +194,3 @@ export const useRoutesStore = defineStore("routes", {
     },
   },
 });
-
