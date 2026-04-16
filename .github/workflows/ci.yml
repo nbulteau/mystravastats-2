@@ -26,6 +26,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: current
+          cache: npm
+          cache-dependency-path: front-vue/package-lock.json
+
+      - name: Build front-vue
+        working-directory: front-vue
+        env:
+          VITE_CJS_TRACE: "false"
+          NODE_OPTIONS: --no-deprecation
+        run: |
+          npm ci
+          npm run build-only
+          cp -r dist ../back-go/public
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
