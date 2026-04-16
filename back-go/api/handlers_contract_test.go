@@ -821,3 +821,55 @@ func TestGenerateShapeRoutesByActivityType_InvalidShapeInputType_Returns400(t *t
 		t.Fatalf("expected message 'Invalid request body', got %q", response.Message)
 	}
 }
+
+func TestGenerateTargetRoutesByActivityType_DoesNotFallbackToHistoricalRoutes(t *testing.T) {
+	// GIVEN
+	// WHEN
+	// THEN
+	setTestContainer(t, &container{
+		getRouteExplorerUseCase: routesApp.NewGetRouteExplorerUseCase(&contractRoutesReaderStub{
+			result: routesDomain.RouteExplorerResult{
+				ClosestLoops: []routesDomain.RouteRecommendation{
+					{
+						RouteID:        "route-legacy-1",
+						Activity:       business.ActivityShort{Id: 111, Name: "Already done ride", Type: business.Ride},
+						DistanceKm:     41.5,
+						ElevationGainM: 780,
+						DurationSec:    7100,
+						VariantType:    routesDomain.RouteVariantClosest,
+						MatchScore:     88.0,
+						PreviewLatLng:  [][]float64{{45.0, 6.0}, {45.1, 6.1}},
+					},
+				},
+			},
+		}),
+	})
+
+	request := httptest.NewRequest(http.MethodPost, "/api/routes/generate/target?activityType=Ride&year=2025", strings.NewReader(`{
+	  "startPoint": {"lat": 45.1, "lng": 6.1},
+	  "routeType": "RIDE",
+	  "startDirection": "N",
+	  "distanceTargetKm": 42,
+	  "elevationTargetM": 900
+	}`))
+	request.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	generateTargetRoutesByActivityType(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d (%s)", recorder.Code, recorder.Body.String())
+	}
+
+	var response map[string]any
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode JSON response: %v", err)
+	}
+	routes, ok := response["routes"].([]any)
+	if !ok {
+		t.Fatalf("expected routes array, got %+v", response)
+	}
+	if len(routes) != 0 {
+		t.Fatalf("expected no generated routes when road-graph generation is unavailable, got %d", len(routes))
+	}
+}

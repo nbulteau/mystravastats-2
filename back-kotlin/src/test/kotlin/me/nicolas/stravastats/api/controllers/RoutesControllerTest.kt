@@ -192,4 +192,60 @@ class RoutesControllerTest {
             .andExpect(content().contentType("application/gpx+xml"))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("<gpx")))
     }
+
+    @Test
+    fun `generate target routes does not fallback to historical routes`() {
+        // GIVEN
+        every {
+            routeExplorerService.getRouteExplorer(any(), any(), any())
+        } returns RouteExplorerResult(
+            closestLoops = listOf(
+                RouteRecommendation(
+                    routeId = "legacy-route-kt",
+                    activity = ActivityShort(90L, "Already done ride", ActivityType.Ride),
+                    activityDate = "2025-01-01",
+                    distanceKm = 40.0,
+                    elevationGainM = 700.0,
+                    durationSec = 6800,
+                    isLoop = true,
+                    start = null,
+                    end = null,
+                    startArea = "Grenoble",
+                    season = "SPRING",
+                    variantType = RouteVariantType.CLOSE_MATCH,
+                    matchScore = 85.0,
+                    reasons = listOf("Historical match"),
+                    previewLatLng = listOf(listOf(45.18, 5.72), listOf(45.19, 5.73)),
+                    shape = "LOOP",
+                    shapeScore = 0.8,
+                    experimental = false,
+                )
+            ),
+            variants = emptyList(),
+            seasonal = emptyList(),
+            roadGraphLoops = emptyList(),
+            shapeMatches = emptyList(),
+            shapeRemixes = emptyList(),
+        )
+
+        // WHEN
+        mockMvc.perform(
+            post("/api/routes/generate/target")
+                .param("activityType", "Ride")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "startPoint": {"lat": 45.19, "lng": 5.73},
+                      "routeType": "RIDE",
+                      "startDirection": "N",
+                      "distanceTargetKm": 42.0
+                    }
+                    """.trimIndent()
+                )
+        )
+            // THEN
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.routes.length()").value(0))
+    }
 }

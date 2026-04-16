@@ -361,29 +361,37 @@ class RouteExplorerService(
         preferredStart: Coordinates?,
         limit: Int,
     ): List<RouteRecommendation> {
-        if (candidates.size < 2) {
+        if (candidates.isEmpty()) {
             return emptyList()
         }
-        val loopCandidates = candidates
-            .filter { candidate -> candidate.isLoop && candidate.previewLatLng.size >= 8 }
-            .take(70)
-        if (loopCandidates.size < 2) {
+        val sourceCandidates = candidates
+            .filter { candidate -> candidate.previewLatLng.size >= 8 }
+            .let { filtered ->
+                if (preferredStart == null) {
+                    filtered
+                } else {
+                    filtered.sortedBy { candidate -> startDistanceKm(candidate, preferredStart) }
+                }
+            }
+            .take(120)
+        if (sourceCandidates.isEmpty()) {
             return emptyList()
         }
-        val graph = buildRoadGraph(loopCandidates)
+        val graph = buildRoadGraph(sourceCandidates)
         if (graph.nodes.isEmpty()) {
             return emptyList()
         }
 
-        val elevationPerKm = estimateElevationPerKm(loopCandidates)
-        val durationPerKm = estimateDurationPerKm(loopCandidates)
+        val elevationPerKm = estimateElevationPerKm(sourceCandidates)
+        val durationPerKm = estimateDurationPerKm(sourceCandidates)
         val scored = mutableListOf<Pair<RouteRecommendation, Double>>()
         val seenRouteIds = mutableSetOf<String>()
+        val seenGeometries = mutableSetOf<String>()
 
-        for (leftIndex in 0 until loopCandidates.size) {
-            val left = loopCandidates[leftIndex]
-            for (rightIndex in leftIndex + 1 until loopCandidates.size) {
-                val right = loopCandidates[rightIndex]
+        for (leftIndex in 0 until sourceCandidates.size) {
+            val left = sourceCandidates[leftIndex]
+            for (rightIndex in leftIndex + 1 until sourceCandidates.size) {
+                val right = sourceCandidates[rightIndex]
                 val built = buildRoadGraphRecommendationFromPair(
                     graph = graph,
                     left = left,
@@ -399,6 +407,10 @@ class RouteExplorerService(
                 ) ?: continue
 
                 if (!seenRouteIds.add(built.first.routeId)) {
+                    continue
+                }
+                val geometryKey = routeGeometrySignature(built.first.previewLatLng)
+                if (geometryKey.isBlank() || !seenGeometries.add(geometryKey)) {
                     continue
                 }
                 scored += built
@@ -447,30 +459,43 @@ class RouteExplorerService(
         var merged = mergePreview(left.previewLatLng, connectorA)
         merged = mergePreview(merged, right.previewLatLng)
         merged = mergePreview(merged, connectorB)
-        merged = sampleLatLng(merged, PREVIEW_POINT_MAX_SIZE)
         if (merged.size < 6) {
             return null
         }
+        if (preferredStart != null) {
+            merged = anchorLoopToPreferredStart(merged, preferredStart) ?: return null
+        }
+        if (merged.size < 6) {
+            return null
+        }
+        if (!isLoopWithoutHeavySegmentReuse(merged)) {
+            return null
+        }
+        val preview = sampleLatLng(merged, PREVIEW_POINT_MAX_SIZE)
 
         val distanceKm = pathDistanceMeters(merged) / 1000.0
         if (distanceKm < 3.0) {
             return null
         }
         val estimatedElevation = max(0.0, distanceKm * elevationPerKm)
+        if (!isTargetMatchAcceptable(distanceKm, estimatedElevation, distanceTarget, elevationTarget)) {
+            return null
+        }
+        val generatedName = "Generated loop near ${firstNonEmpty(left.startArea, right.startArea, "your start point")}"
         val estimatedDuration = (distanceKm * durationPerKm).roundToInt()
         val scoreCandidate = RouteCandidate(
-            activity = left.activity.copy(id = 0L, name = "Road-graph loop: ${left.activity.name} + ${right.activity.name}"),
+            activity = left.activity.copy(id = 0L, name = generatedName),
             date = left.date,
             activityDate = left.activityDate,
             distanceKm = distanceKm,
             elevationGainM = estimatedElevation,
             durationSec = estimatedDuration,
             isLoop = true,
-            start = toCoordinates(leftStart),
-            end = toCoordinates(leftStart),
+            start = toCoordinates(merged.first()),
+            end = toCoordinates(merged.last()),
             startArea = left.startArea,
             season = left.season,
-            previewLatLng = merged,
+            previewLatLng = preview,
             shape = "LOOP",
             shapeScore = 0.85,
         )
@@ -484,7 +509,7 @@ class RouteExplorerService(
             startDirection = startDirection,
             preferredStart = preferredStart,
         )
-        if (score < 40.0) {
+        if (score < 20.0) {
             return null
         }
 
@@ -494,7 +519,7 @@ class RouteExplorerService(
             score = score,
             reasons = listOf(
                 "Generated on cache road-graph (beta)",
-                "Anchors: ${left.activity.name} + ${right.activity.name}",
+                "Built from local road-network connectivity",
                 "Estimated profile: ${formatDistanceDelta(distanceKm)} / ${formatElevationDelta(estimatedElevation)}",
             ),
             experimental = true,
@@ -829,6 +854,106 @@ class RouteExplorerService(
             shapeScore = candidate.shapeScore * 100.0,
             experimental = experimental,
         )
+    }
+
+    private fun buildFallbackRoadGraphRecommendation(
+        candidates: List<RouteCandidate>,
+        distanceTarget: Double,
+        elevationTarget: Double,
+        durationTargetSec: Int,
+        scoringProfile: RouteScoringProfile,
+        startDirection: String?,
+        preferredStart: Coordinates?,
+        elevationPerKm: Double,
+        durationPerKm: Double,
+    ): Pair<RouteRecommendation, Double>? {
+        if (candidates.isEmpty()) {
+            return null
+        }
+
+        val rankedCandidates = candidates
+            .filter { candidate -> candidate.previewLatLng.size >= 2 }
+            .filter { candidate -> preferredStart == null || startDistanceKm(candidate, preferredStart) <= 5.0 }
+            .map { candidate ->
+                val score = closenessScore(
+                    candidate = candidate,
+                    distanceTarget = distanceTarget,
+                    elevationTarget = elevationTarget,
+                    durationTargetSec = durationTargetSec,
+                    scoringProfile = scoringProfile,
+                    startDirection = startDirection,
+                    preferredStart = preferredStart,
+                )
+                candidate to score
+            }
+            .sortedWith(compareByDescending<Pair<RouteCandidate, Double>> { (_, score) -> score }.thenByDescending { (candidate, _) -> candidate.date ?: Instant.EPOCH })
+            .take(12)
+
+        for ((candidate, _) in rankedCandidates) {
+            var preview = buildOutAndBackPreview(candidate.previewLatLng, distanceTarget)
+            if (preview.size < 4) {
+                continue
+            }
+            if (preferredStart != null) {
+                preview = anchorLoopToPreferredStart(preview, preferredStart) ?: continue
+            }
+            if (preview.size < 4) {
+                continue
+            }
+
+            val distanceKm = pathDistanceMeters(preview) / 1000.0
+            if (distanceKm < 2.0) {
+                continue
+            }
+
+            val estimatedElevation = max(0.0, distanceKm * elevationPerKm)
+            if (!isTargetMatchAcceptable(distanceKm, estimatedElevation, distanceTarget, elevationTarget)) {
+                continue
+            }
+            val estimatedDuration = (distanceKm * durationPerKm).roundToInt()
+            val start = toCoordinates(preview.first())
+            val scoreCandidate = RouteCandidate(
+                activity = candidate.activity.copy(id = 0L, name = "Generated out-and-back near ${firstNonEmpty(candidate.startArea, "your start point")}"),
+                date = candidate.date,
+                activityDate = candidate.activityDate,
+                distanceKm = distanceKm,
+                elevationGainM = estimatedElevation,
+                durationSec = estimatedDuration,
+                isLoop = true,
+                start = start,
+                end = start,
+                startArea = candidate.startArea,
+                season = candidate.season,
+                previewLatLng = preview,
+                shape = "LOOP",
+                shapeScore = 0.78,
+            )
+
+            val score = closenessScore(
+                candidate = scoreCandidate,
+                distanceTarget = distanceTarget,
+                elevationTarget = elevationTarget,
+                durationTargetSec = durationTargetSec,
+                scoringProfile = scoringProfile,
+                startDirection = startDirection,
+                preferredStart = preferredStart,
+            )
+            val recommendation = toRouteRecommendation(
+                candidate = scoreCandidate,
+                variantType = RouteVariantType.ROAD_GRAPH,
+                score = score,
+                reasons = listOf(
+                    "Generated fallback route (out-and-back loop)",
+                    "Built from local cached roads",
+                    "Estimated profile: ${formatDistanceDelta(distanceKm)} / ${formatElevationDelta(estimatedElevation)}",
+                ),
+                experimental = true,
+            ).copy(routeId = "road-graph-fallback-${candidate.activity.id}-${(distanceTarget * 10.0).roundToInt()}")
+
+            return recommendation to score
+        }
+
+        return null
     }
 
     private fun routeRecommendationId(candidate: RouteCandidate, variantType: RouteVariantType): String {
@@ -1321,6 +1446,218 @@ class RouteExplorerService(
         }
         merged += right.drop(1)
         return merged
+    }
+
+    private fun buildOutAndBackPreview(points: List<List<Double>>, targetDistanceKm: Double): List<List<Double>> {
+        if (points.size < 2) {
+            return emptyList()
+        }
+        val outboundTargetKm = max(2.0, targetDistanceKm / 2.0)
+        val outbound = mutableListOf(points.first())
+        var accumulatedKm = 0.0
+        for (index in 1 until points.size) {
+            val previous = points[index - 1]
+            val next = points[index]
+            if (previous.size < 2 || next.size < 2) {
+                continue
+            }
+            accumulatedKm += distanceBetween(
+                Coordinates(previous[0], previous[1]),
+                Coordinates(next[0], next[1])
+            ) / 1000.0
+            outbound += next
+            if (accumulatedKm >= outboundTargetKm) {
+                break
+            }
+        }
+
+        if (outbound.size < 2 && points.size >= 2) {
+            outbound += points[1]
+        }
+        val loop = mutableListOf<List<Double>>()
+        loop += outbound
+        for (index in outbound.size - 2 downTo 0) {
+            loop += outbound[index]
+        }
+        return sampleLatLng(loop, PREVIEW_POINT_MAX_SIZE)
+    }
+
+    private fun inflateLoopToTargetDistance(points: List<List<Double>>, targetDistanceKm: Double): List<List<Double>> {
+        if (points.size < 2 || targetDistanceKm <= 0.0) {
+            return points
+        }
+        val baseDistanceKm = pathDistanceMeters(points) / 1000.0
+        if (baseDistanceKm <= 0.0 || baseDistanceKm >= targetDistanceKm * 0.9) {
+            return points
+        }
+        var laps = (targetDistanceKm / baseDistanceKm).roundToInt()
+        if (laps < 1) {
+            laps = 1
+        }
+        if (laps > 8) {
+            laps = 8
+        }
+        if (laps == 1) {
+            return points
+        }
+        val expanded = mutableListOf<List<Double>>()
+        expanded += points
+        repeat(laps - 1) {
+            expanded += points.drop(1)
+        }
+        return expanded
+    }
+
+    private fun anchorLoopToPreferredStart(points: List<List<Double>>, preferredStart: Coordinates): List<List<Double>>? {
+        if (points.size < 2) {
+            return null
+        }
+        var bestIndex = -1
+        var bestDistance = Double.MAX_VALUE
+        points.forEachIndexed { index, point ->
+            if (point.size < 2) {
+                return@forEachIndexed
+            }
+            val distance = distanceBetween(preferredStart, Coordinates(point[0], point[1]))
+            if (distance < bestDistance) {
+                bestDistance = distance
+                bestIndex = index
+            }
+        }
+        if (bestIndex < 0 || bestDistance > 1500.0) {
+            return null
+        }
+
+        val rotated = mutableListOf<List<Double>>()
+        rotated += points.drop(bestIndex)
+        rotated += points.take(bestIndex)
+        if (rotated.size < 2) {
+            return null
+        }
+        val anchored = buildList {
+            add(listOf(preferredStart.lat, preferredStart.lng))
+            addAll(rotated)
+            add(listOf(preferredStart.lat, preferredStart.lng))
+        }
+        val normalized = removeConsecutiveDuplicatePoints(anchored)
+        if (normalized.size < 4) {
+            return null
+        }
+        val firstId = quantizedPointId(normalized.first())
+        val lastId = quantizedPointId(normalized.last())
+        if (firstId.isNotBlank() && lastId.isNotBlank() && firstId != lastId) {
+            return normalized + listOf(normalized.first())
+        }
+        return normalized
+    }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun isTargetMatchAcceptable(
+        actualDistanceKm: Double,
+        actualElevationM: Double,
+        targetDistanceKm: Double,
+        targetElevationM: Double,
+    ): Boolean {
+        if (targetDistanceKm > 0.0) {
+            val minDistanceKm = max(2.0, targetDistanceKm * 0.30)
+            val maxDistanceKm = targetDistanceKm * 2.60
+            if (actualDistanceKm < minDistanceKm || actualDistanceKm > maxDistanceKm) {
+                return false
+            }
+        }
+        return true
+    }
+
+    private fun routeGeometrySignature(points: List<List<Double>>): String {
+        if (points.size < 2) {
+            return ""
+        }
+        val sampled = sampleLatLng(points, 12)
+        if (sampled.size < 2) {
+            return ""
+        }
+        val parts = sampled.mapNotNull { point ->
+            if (point.size < 2) {
+                null
+            } else {
+                "%.3f,%.3f".format(point[0], point[1])
+            }
+        }.toMutableList()
+        if (parts.isEmpty()) {
+            return ""
+        }
+        val distanceKm = pathDistanceMeters(points) / 1000.0
+        parts += "d=%.1f".format(round(distanceKm * 10.0) / 10.0)
+        return parts.joinToString("|")
+    }
+
+    private fun isLoopWithoutHeavySegmentReuse(points: List<List<Double>>): Boolean {
+        val normalized = removeConsecutiveDuplicatePoints(points)
+        if (normalized.size < 4) {
+            return false
+        }
+        val firstId = quantizedPointId(normalized.first())
+        val lastId = quantizedPointId(normalized.last())
+        if (firstId.isBlank() || lastId.isBlank() || firstId != lastId) {
+            return false
+        }
+
+        val seenSegments = mutableMapOf<String, Int>()
+        var repeatedSegments = 0
+        var lastLeft = ""
+        var lastRight = ""
+        for (index in 0 until normalized.size - 1) {
+            val left = quantizedPointId(normalized[index])
+            val right = quantizedPointId(normalized[index + 1])
+            if (left.isBlank() || right.isBlank() || left == right) {
+                return false
+            }
+            if (index > 0 && left == lastRight && right == lastLeft) {
+                return false
+            }
+            val segmentKey = normalizedSegmentKey(left, right)
+            if ((seenSegments[segmentKey] ?: 0) > 0) {
+                repeatedSegments++
+            }
+            seenSegments[segmentKey] = (seenSegments[segmentKey] ?: 0) + 1
+            lastLeft = left
+            lastRight = right
+        }
+        val maxRepeatedSegments = max(1, normalized.size / 12)
+        return repeatedSegments <= maxRepeatedSegments
+    }
+
+    private fun quantizedPointId(point: List<Double>): String {
+        val node = quantizedRoadNode(point) ?: return ""
+        return node.id
+    }
+
+    private fun normalizedSegmentKey(left: String, right: String): String {
+        return if (left <= right) {
+            "$left|$right"
+        } else {
+            "$right|$left"
+        }
+    }
+
+    private fun removeConsecutiveDuplicatePoints(points: List<List<Double>>): List<List<Double>> {
+        if (points.size <= 1) {
+            return points
+        }
+        val result = mutableListOf<List<Double>>()
+        var lastId = ""
+        for (point in points) {
+            val id = quantizedPointId(point)
+            if (id.isBlank()) {
+                continue
+            }
+            if (result.isNotEmpty() && id == lastId) {
+                continue
+            }
+            lastId = id
+            result += point
+        }
+        return result
     }
 
     private fun firstNonEmpty(vararg values: String?): String? {

@@ -119,6 +119,25 @@ func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *s
 			log.Printf("Detailed activity %d loaded from cache without base activity metadata", activityId)
 			return cached
 		}
+		api := provider.StravaApi
+		if provider.isStravaRateLimitedNow() {
+			api = nil
+		}
+		if api == nil && !provider.useCacheAuth && provider.clientSecret != "" && !provider.isStravaRateLimitedNow() {
+			api = provider.ensureStravaAPI()
+		}
+		if api != nil {
+			detailedActivity, err := api.GetDetailedActivity(activityId)
+			if err == nil && detailedActivity != nil {
+				year := resolveDetailedActivityYear(detailedActivity)
+				provider.localStorageProvider.SaveDetailedActivityToCache(provider.clientId, year, *detailedActivity)
+				return detailedActivity
+			}
+			if err != nil {
+				provider.markStravaRateLimited(err, fmt.Sprintf("detailed activity %d", activityId))
+				log.Printf("Unable to load detailed activity %d from Strava API without base activity metadata: %v", activityId, err)
+			}
+		}
 		return nil
 	}
 
@@ -132,10 +151,10 @@ func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *s
 	}
 
 	stravaDetailedActivity := provider.loadDetailedActivityFromCacheAnyYear(activityId, year)
+	cacheHit := stravaDetailedActivity != nil
 	if api != nil && stravaDetailedActivity == nil {
 		detailedActivity, err := api.GetDetailedActivity(activityId)
 		if err == nil && detailedActivity != nil {
-			provider.localStorageProvider.SaveDetailedActivityToCache(provider.clientId, year, *detailedActivity)
 			stravaDetailedActivity = detailedActivity
 		} else if err != nil {
 			provider.markStravaRateLimited(err, fmt.Sprintf("detailed activity %d", activityId))
@@ -160,6 +179,9 @@ func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *s
 		}
 	}
 	stravaDetailedActivity.Stream = stream
+	if !cacheHit {
+		provider.localStorageProvider.SaveDetailedActivityToCache(provider.clientId, year, *stravaDetailedActivity)
+	}
 
 	return stravaDetailedActivity
 }
@@ -716,6 +738,23 @@ func (provider *StravaActivityProvider) launchBackgroundDataRefresh() {
 }
 
 func resolveActivityYear(activity *strava.Activity) int {
+	if activity == nil {
+		return time.Now().Year()
+	}
+	if len(activity.StartDateLocal) >= 4 {
+		if parsedYear, err := strconv.Atoi(activity.StartDateLocal[:4]); err == nil {
+			return parsedYear
+		}
+	}
+	if len(activity.StartDate) >= 4 {
+		if parsedYear, err := strconv.Atoi(activity.StartDate[:4]); err == nil {
+			return parsedYear
+		}
+	}
+	return time.Now().Year()
+}
+
+func resolveDetailedActivityYear(activity *strava.DetailedActivity) int {
 	if activity == nil {
 		return time.Now().Year()
 	}

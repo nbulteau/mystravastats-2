@@ -812,11 +812,9 @@ func buildTargetGeneratedRoutesResponse(
 	startDirection string,
 	limit int,
 ) dto.GenerateRoutesResponseDto {
-	recommendations := make([]routesDomain.RouteRecommendation, 0, len(result.RoadGraphLoops)+len(result.ClosestLoops)+len(result.Variants)+len(result.Seasonal))
+	// Target mode must return newly generated loops only.
+	recommendations := make([]routesDomain.RouteRecommendation, 0, len(result.RoadGraphLoops))
 	recommendations = append(recommendations, result.RoadGraphLoops...)
-	recommendations = append(recommendations, result.ClosestLoops...)
-	recommendations = append(recommendations, result.Variants...)
-	recommendations = append(recommendations, result.Seasonal...)
 
 	routes := toGeneratedRoutesFromRecommendations(recommendations, &distanceTarget, elevationTarget, routeType, startDirection, limit)
 	return dto.GenerateRoutesResponseDto{Routes: routes}

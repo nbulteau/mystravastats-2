@@ -441,30 +441,35 @@ func buildRoadGraphRecommendations(
 	startDirection string,
 	limit int,
 ) []routesDomain.RouteRecommendation {
-	if len(candidates) < 2 {
+	if len(candidates) == 0 {
 		return []routesDomain.RouteRecommendation{}
 	}
 
-	loopCandidates := make([]routeCandidate, 0, len(candidates))
+	sourceCandidates := make([]routeCandidate, 0, len(candidates))
 	for _, candidate := range candidates {
-		if candidate.isLoop && len(candidate.previewLatLng) >= 8 {
-			loopCandidates = append(loopCandidates, candidate)
+		if len(candidate.previewLatLng) >= 8 {
+			sourceCandidates = append(sourceCandidates, candidate)
 		}
 	}
-	if len(loopCandidates) < 2 {
+	if len(sourceCandidates) == 0 {
 		return []routesDomain.RouteRecommendation{}
 	}
 
-	sourceLimit := minInt(len(loopCandidates), 70)
-	loopCandidates = loopCandidates[:sourceLimit]
+	if preferredStart != nil {
+		sort.Slice(sourceCandidates, func(i, j int) bool {
+			return startDistanceKm(sourceCandidates[i], preferredStart) < startDistanceKm(sourceCandidates[j], preferredStart)
+		})
+	}
+	sourceLimit := minInt(len(sourceCandidates), 120)
+	sourceCandidates = sourceCandidates[:sourceLimit]
 
-	graph := buildRoadGraph(loopCandidates)
+	graph := buildRoadGraph(sourceCandidates)
 	if len(graph.nodes) == 0 {
 		return []routesDomain.RouteRecommendation{}
 	}
 
-	elevationPerKm := estimateElevationPerKm(loopCandidates)
-	durationPerKm := estimateDurationPerKm(loopCandidates)
+	elevationPerKm := estimateElevationPerKm(sourceCandidates)
+	durationPerKm := estimateDurationPerKm(sourceCandidates)
 
 	type scoredRecommendation struct {
 		recommendation routesDomain.RouteRecommendation
@@ -472,11 +477,12 @@ func buildRoadGraphRecommendations(
 	}
 	scored := make([]scoredRecommendation, 0, sourceLimit)
 	seenIDs := make(map[string]struct{})
+	seenGeometries := make(map[string]struct{})
 
-	for i := 0; i < len(loopCandidates); i++ {
-		left := loopCandidates[i]
-		for j := i + 1; j < len(loopCandidates); j++ {
-			right := loopCandidates[j]
+	for i := 0; i < len(sourceCandidates); i++ {
+		left := sourceCandidates[i]
+		for j := i + 1; j < len(sourceCandidates); j++ {
+			right := sourceCandidates[j]
 			recommendation, score, ok := buildRoadGraphRecommendationFromPair(
 				graph,
 				left,
@@ -496,7 +502,15 @@ func buildRoadGraphRecommendations(
 			if _, exists := seenIDs[recommendation.RouteID]; exists {
 				continue
 			}
+			geometryKey := routeGeometrySignature(recommendation.PreviewLatLng)
+			if geometryKey == "" {
+				continue
+			}
+			if _, exists := seenGeometries[geometryKey]; exists {
+				continue
+			}
 			seenIDs[recommendation.RouteID] = struct{}{}
+			seenGeometries[geometryKey] = struct{}{}
 			scored = append(scored, scoredRecommendation{
 				recommendation: recommendation,
 				score:          score,
@@ -568,10 +582,23 @@ func buildRoadGraphRecommendationFromPair(
 	merged := mergePreviewLatLng(left.previewLatLng, connectorA)
 	merged = mergePreviewLatLng(merged, right.previewLatLng)
 	merged = mergePreviewLatLng(merged, connectorB)
-	merged = sampleLatLng(merged, previewPointMaxSize)
 	if len(merged) < 6 {
 		return routesDomain.RouteRecommendation{}, 0, false
 	}
+	if preferredStart != nil {
+		anchored, ok := anchorLoopToPreferredStart(merged, preferredStart)
+		if !ok {
+			return routesDomain.RouteRecommendation{}, 0, false
+		}
+		merged = anchored
+	}
+	if len(merged) < 6 {
+		return routesDomain.RouteRecommendation{}, 0, false
+	}
+	if !isLoopWithoutHeavySegmentReuse(merged) {
+		return routesDomain.RouteRecommendation{}, 0, false
+	}
+	preview := sampleLatLng(merged, previewPointMaxSize)
 
 	distanceMeters := pathDistanceMeters(merged)
 	distanceKm := distanceMeters / 1000.0
@@ -580,23 +607,30 @@ func buildRoadGraphRecommendationFromPair(
 	}
 
 	estimatedElevation := math.Max(0, distanceKm*elevationPerKm)
+	if !isTargetMatchAcceptable(distanceKm, estimatedElevation, targetDistanceKm, targetElevationM) {
+		return routesDomain.RouteRecommendation{}, 0, false
+	}
 	estimatedDuration := int(math.Round(distanceKm * durationPerKm))
+	generatedName := fmt.Sprintf(
+		"Generated loop near %s",
+		helpers.FirstNonEmpty(left.startArea, right.startArea, "your start point"),
+	)
 	synthetic := routeCandidate{
 		distanceKm:     distanceKm,
 		elevationGainM: estimatedElevation,
 		durationSec:    estimatedDuration,
 		isLoop:         true,
-		start:          toCoordinates(leftStart),
-		end:            toCoordinates(leftStart),
+		start:          toCoordinates(merged[0]),
+		end:            toCoordinates(merged[len(merged)-1]),
 		startArea:      left.startArea,
 		season:         left.season,
-		previewLatLng:  merged,
+		previewLatLng:  preview,
 		shape:          "LOOP",
 		shapeScore:     0.85,
 		activityDate:   left.activityDate,
 		activity: &strava.Activity{
 			Id:        0,
-			Name:      fmt.Sprintf("Road-graph loop: %s + %s", left.activity.Name, right.activity.Name),
+			Name:      generatedName,
 			Type:      left.activity.Type,
 			SportType: left.activity.SportType,
 			Commute:   left.activity.Commute,
@@ -612,7 +646,7 @@ func buildRoadGraphRecommendationFromPair(
 		preferredStart,
 		startDirection,
 	)
-	if score < 40.0 {
+	if score < 20.0 {
 		return routesDomain.RouteRecommendation{}, 0, false
 	}
 
@@ -622,13 +656,364 @@ func buildRoadGraphRecommendationFromPair(
 		score,
 		[]string{
 			"Generated on cache road-graph (beta)",
-			fmt.Sprintf("Anchors: %s + %s", left.activity.Name, right.activity.Name),
+			"Built from local road-network connectivity",
 			fmt.Sprintf("Estimated profile: %s / %s", formatDistanceDelta(distanceKm), formatElevationDelta(estimatedElevation)),
 		},
 		true,
 	)
 	recommendation.RouteID = fmt.Sprintf("road-graph-%d-%d", minInt64(left.activity.Id, right.activity.Id), maxInt64(left.activity.Id, right.activity.Id))
 	return recommendation, score, true
+}
+
+func buildFallbackRoadGraphRecommendation(
+	candidates []routeCandidate,
+	targetDistanceKm float64,
+	targetElevationM float64,
+	targetDurationSec int,
+	scoringProfile routeScoringProfile,
+	preferredStart *routesDomain.Coordinates,
+	startDirection string,
+	elevationPerKm float64,
+	durationPerKm float64,
+) (routesDomain.RouteRecommendation, float64, bool) {
+	if len(candidates) == 0 {
+		return routesDomain.RouteRecommendation{}, 0, false
+	}
+
+	type scoredCandidate struct {
+		candidate routeCandidate
+		score     float64
+	}
+	scored := make([]scoredCandidate, 0, len(candidates))
+	for _, candidate := range candidates {
+		if len(candidate.previewLatLng) < 2 {
+			continue
+		}
+		if preferredStart != nil && startDistanceKm(candidate, preferredStart) > 5.0 {
+			continue
+		}
+		score := closenessScoreWithProfile(
+			candidate,
+			targetDistanceKm,
+			targetElevationM,
+			targetDurationSec,
+			scoringProfile,
+			preferredStart,
+			startDirection,
+		)
+		scored = append(scored, scoredCandidate{
+			candidate: candidate,
+			score:     score,
+		})
+	}
+	if len(scored) == 0 {
+		return routesDomain.RouteRecommendation{}, 0, false
+	}
+
+	sort.Slice(scored, func(i, j int) bool {
+		if scored[i].score == scored[j].score {
+			return scored[i].candidate.date.After(scored[j].candidate.date)
+		}
+		return scored[i].score > scored[j].score
+	})
+
+	maxCandidates := minInt(len(scored), 12)
+	for idx := 0; idx < maxCandidates; idx++ {
+		selected := scored[idx].candidate
+		preview := buildOutAndBackPreview(selected.previewLatLng, targetDistanceKm)
+		if len(preview) < 4 {
+			continue
+		}
+		if preferredStart != nil {
+			anchored, ok := anchorLoopToPreferredStart(preview, preferredStart)
+			if !ok {
+				continue
+			}
+			preview = anchored
+		}
+		if len(preview) < 4 {
+			continue
+		}
+
+		distanceKm := pathDistanceMeters(preview) / 1000.0
+		if distanceKm < 2.0 {
+			continue
+		}
+		estimatedElevation := math.Max(0, distanceKm*elevationPerKm)
+		if !isTargetMatchAcceptable(distanceKm, estimatedElevation, targetDistanceKm, targetElevationM) {
+			continue
+		}
+		estimatedDuration := int(math.Round(distanceKm * durationPerKm))
+		start := toCoordinates(preview[0])
+		synthetic := routeCandidate{
+			distanceKm:     distanceKm,
+			elevationGainM: estimatedElevation,
+			durationSec:    estimatedDuration,
+			isLoop:         true,
+			start:          start,
+			end:            start,
+			startArea:      selected.startArea,
+			season:         selected.season,
+			previewLatLng:  preview,
+			shape:          "LOOP",
+			shapeScore:     0.78,
+			activityDate:   selected.activityDate,
+			activity: &strava.Activity{
+				Id:        0,
+				Name:      fmt.Sprintf("Generated out-and-back near %s", helpers.FirstNonEmpty(selected.startArea, "your start point")),
+				Type:      selected.activity.Type,
+				SportType: selected.activity.SportType,
+				Commute:   selected.activity.Commute,
+			},
+		}
+
+		score := closenessScoreWithProfile(
+			synthetic,
+			targetDistanceKm,
+			targetElevationM,
+			targetDurationSec,
+			scoringProfile,
+			preferredStart,
+			startDirection,
+		)
+		recommendation := toRouteRecommendation(
+			synthetic,
+			routesDomain.RouteVariantRoadGraph,
+			score,
+			[]string{
+				"Generated fallback route (out-and-back loop)",
+				"Built from local cached roads",
+				fmt.Sprintf("Estimated profile: %s / %s", formatDistanceDelta(distanceKm), formatElevationDelta(estimatedElevation)),
+			},
+			true,
+		)
+		recommendation.RouteID = fmt.Sprintf("road-graph-fallback-%d-%d", selected.activity.Id, int(math.Round(targetDistanceKm*10)))
+		return recommendation, score, true
+	}
+	return routesDomain.RouteRecommendation{}, 0, false
+}
+
+func buildOutAndBackPreview(points [][]float64, targetDistanceKm float64) [][]float64 {
+	if len(points) < 2 {
+		return [][]float64{}
+	}
+	outboundTargetKm := math.Max(2.0, targetDistanceKm/2.0)
+	outbound := make([][]float64, 0, len(points))
+	outbound = append(outbound, points[0])
+	accumulatedKm := 0.0
+
+	for index := 1; index < len(points); index++ {
+		left := points[index-1]
+		right := points[index]
+		if len(left) < 2 || len(right) < 2 {
+			continue
+		}
+		segmentKm := distanceBetweenPointsMeters(left[0], left[1], right[0], right[1]) / 1000.0
+		accumulatedKm += segmentKm
+		outbound = append(outbound, right)
+		if accumulatedKm >= outboundTargetKm {
+			break
+		}
+	}
+
+	if len(outbound) < 2 {
+		outbound = append(outbound, points[1])
+	}
+	loop := make([][]float64, 0, (2*len(outbound))-1)
+	loop = append(loop, outbound...)
+	for index := len(outbound) - 2; index >= 0; index-- {
+		loop = append(loop, outbound[index])
+	}
+	return sampleLatLng(loop, previewPointMaxSize)
+}
+
+func inflateLoopToTargetDistance(points [][]float64, targetDistanceKm float64) [][]float64 {
+	if len(points) < 2 || targetDistanceKm <= 0 {
+		return points
+	}
+	baseDistanceKm := pathDistanceMeters(points) / 1000.0
+	if baseDistanceKm <= 0 || baseDistanceKm >= targetDistanceKm*0.9 {
+		return points
+	}
+	laps := int(math.Round(targetDistanceKm / baseDistanceKm))
+	if laps < 1 {
+		laps = 1
+	}
+	if laps > 8 {
+		laps = 8
+	}
+	if laps == 1 {
+		return points
+	}
+
+	expanded := make([][]float64, 0, len(points)+(laps-1)*maxInt(0, len(points)-1))
+	expanded = append(expanded, points...)
+	for lap := 1; lap < laps; lap++ {
+		expanded = append(expanded, points[1:]...)
+	}
+	return expanded
+}
+
+func anchorLoopToPreferredStart(points [][]float64, preferredStart *routesDomain.Coordinates) ([][]float64, bool) {
+	if len(points) < 2 || preferredStart == nil {
+		return points, true
+	}
+
+	bestIndex := -1
+	bestDistance := math.MaxFloat64
+	for index, point := range points {
+		if len(point) < 2 {
+			continue
+		}
+		distance := greatCircleDistanceMeters(preferredStart, &routesDomain.Coordinates{Lat: point[0], Lng: point[1]})
+		if distance < bestDistance {
+			bestDistance = distance
+			bestIndex = index
+		}
+	}
+	if bestIndex < 0 || bestDistance > 1500.0 {
+		return nil, false
+	}
+
+	rotated := make([][]float64, 0, len(points)+2)
+	rotated = append(rotated, points[bestIndex:]...)
+	rotated = append(rotated, points[:bestIndex]...)
+	if len(rotated) < 2 {
+		return nil, false
+	}
+
+	anchored := make([][]float64, 0, len(rotated)+2)
+	anchored = append(anchored, []float64{preferredStart.Lat, preferredStart.Lng})
+	anchored = append(anchored, rotated...)
+	anchored = append(anchored, []float64{preferredStart.Lat, preferredStart.Lng})
+	anchored = removeConsecutiveDuplicatePoints(anchored)
+	if len(anchored) < 4 {
+		return nil, false
+	}
+	firstID := quantizedPointID(anchored[0])
+	lastID := quantizedPointID(anchored[len(anchored)-1])
+	if firstID != "" && lastID != "" && firstID != lastID {
+		anchored = append(anchored, anchored[0])
+	}
+	return anchored, true
+}
+
+func isTargetMatchAcceptable(
+	actualDistanceKm float64,
+	actualElevationM float64,
+	targetDistanceKm float64,
+	targetElevationM float64,
+) bool {
+	if targetDistanceKm > 0 {
+		minDistanceKm := math.Max(2.0, targetDistanceKm*0.30)
+		maxDistanceKm := targetDistanceKm * 2.60
+		if actualDistanceKm < minDistanceKm || actualDistanceKm > maxDistanceKm {
+			return false
+		}
+	}
+	_ = actualElevationM
+	_ = targetElevationM
+	return true
+}
+
+func routeGeometrySignature(points [][]float64) string {
+	if len(points) < 2 {
+		return ""
+	}
+	sampled := sampleLatLng(points, 12)
+	if len(sampled) < 2 {
+		return ""
+	}
+	parts := make([]string, 0, len(sampled)+1)
+	for _, point := range sampled {
+		if len(point) < 2 {
+			continue
+		}
+		parts = append(parts, fmt.Sprintf("%.3f,%.3f", point[0], point[1]))
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	distanceKm := pathDistanceMeters(points) / 1000.0
+	parts = append(parts, fmt.Sprintf("d=%.1f", roundFloat(distanceKm, 1)))
+	return strings.Join(parts, "|")
+}
+
+func isLoopWithoutHeavySegmentReuse(points [][]float64) bool {
+	normalized := removeConsecutiveDuplicatePoints(points)
+	if len(normalized) < 4 {
+		return false
+	}
+	firstID := quantizedPointID(normalized[0])
+	lastID := quantizedPointID(normalized[len(normalized)-1])
+	if firstID == "" || lastID == "" || firstID != lastID {
+		return false
+	}
+
+	seenSegments := make(map[string]int, len(normalized))
+	repeatedSegments := 0
+	lastLeft := ""
+	lastRight := ""
+	for idx := 0; idx < len(normalized)-1; idx++ {
+		left := quantizedPointID(normalized[idx])
+		right := quantizedPointID(normalized[idx+1])
+		if left == "" || right == "" || left == right {
+			return false
+		}
+		if idx > 0 && left == lastRight && right == lastLeft {
+			return false
+		}
+		segment := normalizedSegmentKey(left, right)
+		if seenSegments[segment] > 0 {
+			repeatedSegments++
+		}
+		seenSegments[segment]++
+		lastLeft = left
+		lastRight = right
+	}
+	maxRepeatedSegments := maxInt(1, len(normalized)/12)
+	if repeatedSegments > maxRepeatedSegments {
+		return false
+	}
+	return true
+}
+
+func quantizedPointID(point []float64) string {
+	if len(point) < 2 {
+		return ""
+	}
+	id, _, ok := quantizedRoadNode(point[0], point[1])
+	if !ok {
+		return ""
+	}
+	return id
+}
+
+func normalizedSegmentKey(left, right string) string {
+	if left <= right {
+		return left + "|" + right
+	}
+	return right + "|" + left
+}
+
+func removeConsecutiveDuplicatePoints(points [][]float64) [][]float64 {
+	if len(points) <= 1 {
+		return points
+	}
+	result := make([][]float64, 0, len(points))
+	var lastID string
+	for _, point := range points {
+		id := quantizedPointID(point)
+		if id == "" {
+			continue
+		}
+		if len(result) > 0 && id == lastID {
+			continue
+		}
+		lastID = id
+		result = append(result, point)
+	}
+	return result
 }
 
 func buildRoadGraph(candidates []routeCandidate) roadGraph {
@@ -1875,6 +2260,13 @@ func toRadians(value float64) float64 {
 
 func minInt(left, right int) int {
 	if left < right {
+		return left
+	}
+	return right
+}
+
+func maxInt(left, right int) int {
+	if left > right {
 		return left
 	}
 	return right

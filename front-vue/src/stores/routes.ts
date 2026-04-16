@@ -11,6 +11,7 @@ import {
 import { useContextStore } from "@/stores/context";
 
 const DEFAULT_VARIANT_COUNT = 4;
+const TARGET_GENERATION_POOL_SIZE = 6;
 
 export const useRoutesStore = defineStore("routes", {
   state: () => ({
@@ -28,6 +29,8 @@ export const useRoutesStore = defineStore("routes", {
     routes: [] as GeneratedRoute[],
     selectedRouteId: "" as string,
     isLoading: false,
+    targetGenerationIndex: 0,
+    lastGeneratedTargetRouteNumber: 0,
   }),
   getters: {
     selectedRoute(state): GeneratedRoute | null {
@@ -80,6 +83,8 @@ export const useRoutesStore = defineStore("routes", {
     resetRoutes() {
       this.routes = [];
       this.selectedRouteId = "";
+      this.targetGenerationIndex = 0;
+      this.lastGeneratedTargetRouteNumber = 0;
     },
     buildFiltersQuery(): string {
       const contextStore = useContextStore();
@@ -137,7 +142,7 @@ export const useRoutesStore = defineStore("routes", {
         startDirection: this.startDirection,
         distanceTargetKm: distanceTarget,
         elevationTargetM: elevationTarget,
-        variantCount: this.variantCount,
+        variantCount: TARGET_GENERATION_POOL_SIZE,
       };
       const data = await requestJson<GenerateRoutesResponse>(
         `/api/routes/generate/target?${query}`,
@@ -151,7 +156,15 @@ export const useRoutesStore = defineStore("routes", {
         },
       );
       this.routes = data.routes ?? [];
-      this.selectedRouteId = this.routes[0]?.routeId ?? "";
+      if (this.routes.length === 0) {
+        this.selectedRouteId = "";
+        this.lastGeneratedTargetRouteNumber = 0;
+        return;
+      }
+      const index = this.targetGenerationIndex % this.routes.length;
+      this.lastGeneratedTargetRouteNumber = index + 1;
+      this.selectedRouteId = this.routes[index]?.routeId ?? this.routes[0]?.routeId ?? "";
+      this.targetGenerationIndex += 1;
     },
     async generateShapeRoutes(query: string) {
       const distanceTarget = this.parseOptionalNumber(this.distanceTargetKm);
@@ -186,6 +199,7 @@ export const useRoutesStore = defineStore("routes", {
       );
       this.routes = data.routes ?? [];
       this.selectedRouteId = this.routes[0]?.routeId ?? "";
+      this.lastGeneratedTargetRouteNumber = 0;
     },
     async exportRouteGpx(routeId: string) {
       const response = await fetch(`/api/routes/${encodeURIComponent(routeId)}/gpx`, {

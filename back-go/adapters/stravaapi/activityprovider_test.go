@@ -285,6 +285,88 @@ func TestGetDetailedActivity_ReturnsCachedDetailedWithoutBaseActivity(t *testing
 	}
 }
 
+func TestGetDetailedActivity_PersistsFallbackDetailedToDiskCache(t *testing.T) {
+	// GIVEN
+	cacheDir := t.TempDir()
+	repo := localrepository.NewStravaRepository(cacheDir)
+	clientID := "123"
+	repo.InitLocalStorageForClientId(clientID)
+
+	activityID := int64(42)
+	activityYear := 2021
+	repo.SaveActivitiesToCache(clientID, activityYear, []strava.Activity{})
+	provider := &StravaActivityProvider{
+		clientId:             clientID,
+		localStorageProvider: repo,
+		activities: []*strava.Activity{
+			{
+				Id:             activityID,
+				Name:           "fallback detailed",
+				StartDateLocal: "2021-07-01T08:00:00Z",
+				StartDate:      "2021-07-01T08:00:00Z",
+				Distance:       1234,
+				ElapsedTime:    300,
+				MovingTime:     295,
+				Type:           "Ride",
+				SportType:      "Ride",
+				UploadId:       1,
+			},
+		},
+	}
+	provider.indexActivities()
+
+	// WHEN
+	detailed := provider.GetDetailedActivity(activityID)
+
+	// THEN
+	if detailed == nil {
+		t.Fatal("expected fallback detailed activity")
+	}
+	cachedDetailed := repo.LoadDetailedActivityFromCache(clientID, activityYear, activityID)
+	if cachedDetailed == nil {
+		t.Fatalf("expected detailed activity %d to be persisted in local cache for year %d", activityID, activityYear)
+	}
+}
+
+func TestGetDetailedActivity_PersistsDetailedFetchedWithoutBaseActivity(t *testing.T) {
+	// GIVEN
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"id":77,"start_date":"2019-02-03T00:00:00Z","start_date_local":"2019-02-03T00:00:00Z"}`))
+	}))
+	defer server.Close()
+
+	cacheDir := t.TempDir()
+	repo := localrepository.NewStravaRepository(cacheDir)
+	clientID := "123"
+	repo.InitLocalStorageForClientId(clientID)
+	repo.SaveActivitiesToCache(clientID, 2019, []strava.Activity{})
+
+	provider := &StravaActivityProvider{
+		clientId:             clientID,
+		localStorageProvider: repo,
+		StravaApi: &StravaApi{
+			accessToken: "test-token",
+			properties: StravaProperties{
+				URL: server.URL,
+			},
+			httpClient: server.Client(),
+		},
+	}
+
+	// WHEN
+	detailed := provider.GetDetailedActivity(77)
+
+	// THEN
+	if detailed == nil {
+		t.Fatal("expected detailed activity fetched from Strava API")
+	}
+	cachedDetailed := repo.LoadDetailedActivityFromCache(clientID, 2019, 77)
+	if cachedDetailed == nil {
+		t.Fatal("expected fetched detailed activity to be persisted in local cache")
+	}
+}
+
 func benchmarkProvider(size int) *StravaActivityProvider {
 	activities := make([]*strava.Activity, 0, size)
 	for i := 0; i < size; i++ {

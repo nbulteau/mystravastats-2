@@ -150,6 +150,20 @@ class StravaActivityProvider(
                 logger.info("Detailed activity $activityId loaded from cache without base activity metadata")
                 return Optional.of(cachedDetailed)
             }
+            val api = if (isRateLimitActive()) null else stravaApi ?: createStravaApiIfNeeded()
+            if (api != null) {
+                try {
+                    val detailedActivity = api.getDetailedActivityFailFastOnRateLimit(activityId)
+                    if (detailedActivity.isPresent) {
+                        val detailed = detailedActivity.get()
+                        val year = resolveDetailedActivityYear(detailed)
+                        storageProvider.saveDetailedActivityToCache(clientId, year, detailed)
+                        return Optional.of(detailed)
+                    }
+                } catch (exception: StravaRateLimitException) {
+                    markRateLimitActive("detailed activity $activityId", exception)
+                }
+            }
             return Optional.empty()
         }
         val year = resolveActivityYear(activity)
@@ -157,12 +171,12 @@ class StravaActivityProvider(
 
         // load detailed activity from cache or retrieve from Strava
         var stravaDetailedActivity = loadDetailedActivityFromCacheAnyYear(activityId, year)
+        val cacheHit = stravaDetailedActivity != null
         if (api != null && stravaDetailedActivity == null) {
             // It's not in local cache, retrieve from Strava
             try {
                 val detailedActivity = api.getDetailedActivityFailFastOnRateLimit(activityId)
                 if (detailedActivity.isPresent) {
-                    storageProvider.saveDetailedActivityToCache(clientId, year, detailedActivity.get())
                     stravaDetailedActivity = detailedActivity.get()
                 }
             } catch (exception: StravaRateLimitException) {
@@ -188,6 +202,9 @@ class StravaActivityProvider(
             }
         }
         stravaDetailedActivity.stream = stream
+        if (!cacheHit) {
+            storageProvider.saveDetailedActivityToCache(clientId, year, stravaDetailedActivity)
+        }
 
         return Optional.of(stravaDetailedActivity)
     }
@@ -943,6 +960,12 @@ class StravaActivityProvider(
     }
 
     private fun resolveActivityYear(activity: StravaActivity): Int {
+        return activity.startDateLocal.take(4).toIntOrNull()
+            ?: activity.startDate.take(4).toIntOrNull()
+            ?: LocalDate.now().year
+    }
+
+    private fun resolveDetailedActivityYear(activity: StravaDetailedActivity): Int {
         return activity.startDateLocal.take(4).toIntOrNull()
             ?: activity.startDate.take(4).toIntOrNull()
             ?: LocalDate.now().year

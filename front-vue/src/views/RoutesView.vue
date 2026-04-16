@@ -19,12 +19,22 @@ const startMarker = ref<L.CircleMarker>();
 const shapePolylineLayer = ref<L.Polyline>();
 const selectedRouteLayer = ref<L.Polyline>();
 const isExporting = ref(false);
+const isLocating = ref(false);
 
 const selectedRoute = computed(() => routesStore.selectedRoute);
 const canGenerate = computed(() =>
   routesStore.mode === "TARGET" ? routesStore.canGenerateTarget : routesStore.canGenerateShape,
 );
 const isShapeMode = computed(() => routesStore.mode === "SHAPE");
+const generateRouteButtonLabel = computed(() => {
+  if (routesStore.isLoading) {
+    return "Generating...";
+  }
+  if (routesStore.mode === "TARGET" && routesStore.lastGeneratedTargetRouteNumber > 0) {
+    return `Generate route (last: #${routesStore.lastGeneratedTargetRouteNumber})`;
+  }
+  return "Generate route";
+});
 
 const routeTypeOptions = [
   { value: "RIDE", label: "Ride" },
@@ -85,8 +95,42 @@ function initMap() {
       return;
     }
     routesStore.setStartPoint(event.latlng.lat, event.latlng.lng);
+    persistStartPoint(event.latlng.lat, event.latlng.lng);
     redrawMapLayers({ fitBounds: false });
   });
+}
+
+function getStoredStartPoint(): { lat: number; lng: number } | null {
+  try {
+    const raw = localStorage.getItem("routes-last-location");
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as { lat?: number; lng?: number };
+    if (typeof parsed.lat !== "number" || typeof parsed.lng !== "number") {
+      return null;
+    }
+    return { lat: parsed.lat, lng: parsed.lng };
+  } catch {
+    return null;
+  }
+}
+
+function persistStartPoint(lat: number, lng: number) {
+  try {
+    localStorage.setItem("routes-last-location", JSON.stringify({ lat, lng }));
+  } catch {
+    // best effort only
+  }
+}
+
+function applyStartPoint(lat: number, lng: number, zoom = 12) {
+  routesStore.setStartPoint(lat, lng);
+  if (map.value) {
+    map.value.setView([lat, lng], zoom);
+    map.value.invalidateSize();
+  }
+  redrawMapLayers({ fitBounds: false });
 }
 
 function collectAllMapPoints(): L.LatLng[] {
@@ -168,30 +212,79 @@ function redrawMapLayers(options: { fitBounds?: boolean } = {}) {
   }
 }
 
-async function useMyLocation() {
-  if (!navigator.geolocation) {
-    showToast("Geolocation is not available in this browser", ToastTypeEnum.ERROR, 3800);
+function describeGeolocationError(error: GeolocationPositionError): string {
+  switch (error.code) {
+    case error.PERMISSION_DENIED:
+      return "permission denied";
+    case error.POSITION_UNAVAILABLE:
+      return "position unavailable";
+    case error.TIMEOUT:
+      return "timeout";
+    default:
+      return error.message || "unknown error";
+  }
+}
+
+async function requestMyLocation(silent = false) {
+  if (isLocating.value) {
     return;
   }
+  if (!navigator.geolocation) {
+    if (!silent) {
+      showToast("Geolocation is not available in this browser", ToastTypeEnum.ERROR, 3800);
+    }
+    return;
+  }
+  const host = window.location.hostname;
+  const isLocalhost = host === "localhost" || host === "127.0.0.1" || host === "::1";
+  if (!window.isSecureContext && !isLocalhost) {
+    if (!silent) {
+      showToast("Geolocation requires HTTPS outside localhost", ToastTypeEnum.ERROR, 4200);
+    }
+    return;
+  }
+  isLocating.value = true;
   navigator.geolocation.getCurrentPosition(
     (position) => {
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
-      routesStore.setStartPoint(lat, lng);
-      if (map.value) {
-        map.value.setView([lat, lng], 12);
+      applyStartPoint(lat, lng, 12);
+      persistStartPoint(lat, lng);
+      if (!silent) {
+        showToast("Start point set from your current location");
       }
-      redrawMapLayers({ fitBounds: false });
-      showToast("Start point set from your current location");
+      isLocating.value = false;
     },
-    () => {
-      showToast("Unable to access your location (permission denied or unavailable)", ToastTypeEnum.ERROR, 4200);
+    (error) => {
+      const fallback = getStoredStartPoint();
+      if (fallback) {
+        applyStartPoint(fallback.lat, fallback.lng, 11);
+        if (!silent) {
+          showToast("Unable to access live location, using your last known start point", ToastTypeEnum.WARN, 4200);
+        }
+      } else {
+        if (map.value) {
+          const center = map.value.getCenter();
+          applyStartPoint(center.lat, center.lng, map.value.getZoom());
+          persistStartPoint(center.lat, center.lng);
+        }
+        if (!silent) {
+          const reason = describeGeolocationError(error);
+          showToast(`Unable to access your location (${reason}). Using current map center as start point.`, ToastTypeEnum.WARN, 4600);
+        }
+      }
+      isLocating.value = false;
     },
     {
-      enableHighAccuracy: true,
-      timeout: 10000,
+      enableHighAccuracy: false,
+      timeout: 20000,
+      maximumAge: 10 * 60 * 1000,
     },
   );
+}
+
+async function useMyLocation() {
+  await requestMyLocation(false);
 }
 
 function switchMode(mode: "TARGET" | "SHAPE") {
@@ -205,6 +298,10 @@ async function generateRoutes() {
     redrawMapLayers();
     if (!routesStore.hasRoutes) {
       showToast("No route generated with current constraints. Try widening your targets.", ToastTypeEnum.ERROR, 4200);
+      return;
+    }
+    if (routesStore.mode === "TARGET" && routesStore.lastGeneratedTargetRouteNumber > 0) {
+      showToast(`Route #${routesStore.lastGeneratedTargetRouteNumber} generated and shown on the map.`, ToastTypeEnum.NORMAL, 2600);
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to generate routes";
@@ -242,8 +339,12 @@ watch(
 onMounted(async () => {
   await nextTick();
   initMap();
+  const storedStartPoint = getStoredStartPoint();
+  if (storedStartPoint) {
+    applyStartPoint(storedStartPoint.lat, storedStartPoint.lng, 11);
+  }
   redrawMapLayers({ fitBounds: false });
-  useMyLocation();
+  requestMyLocation(true);
 });
 
 onBeforeUnmount(() => {
@@ -283,9 +384,10 @@ onBeforeUnmount(() => {
         <button
           type="button"
           class="btn btn-outline-primary routes-location-btn"
+          :disabled="isLocating"
           @click="useMyLocation"
         >
-          Use my location
+          {{ isLocating ? "Locating..." : "Use my location" }}
         </button>
 
         <label class="routes-field">
@@ -345,17 +447,6 @@ onBeforeUnmount(() => {
           >
         </label>
 
-        <label class="routes-field">
-          <span>Variants</span>
-          <input
-            v-model.number="routesStore.variantCount"
-            type="number"
-            min="1"
-            max="24"
-            class="form-control"
-          >
-        </label>
-
         <div
           v-if="isShapeMode"
           class="routes-shape-tools"
@@ -386,7 +477,7 @@ onBeforeUnmount(() => {
           :disabled="routesStore.isLoading || !canGenerate"
           @click="generateRoutes"
         >
-          {{ routesStore.isLoading ? "Generating..." : "Generate route" }}
+          {{ generateRouteButtonLabel }}
         </button>
       </aside>
 

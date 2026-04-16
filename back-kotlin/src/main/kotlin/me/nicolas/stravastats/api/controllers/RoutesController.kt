@@ -363,7 +363,8 @@ class RoutesController(
     ): List<GeneratedRouteDto> {
         val routes = mutableListOf<GeneratedRouteDto>()
         val seen = mutableSetOf<String>()
-        val ordered = result.roadGraphLoops + result.closestLoops + result.variants + result.seasonal
+        // Target mode must return newly generated loops only.
+        val ordered = result.roadGraphLoops
         for (recommendation in ordered) {
             if (routes.size >= limit) {
                 break

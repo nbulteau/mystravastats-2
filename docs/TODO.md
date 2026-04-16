@@ -109,6 +109,35 @@ Expérience plus orientée usage terrain, meilleure réutilisation des données 
 
 #### Plan de delivery (Routes)
 
+#### État actuel de l'onglet Routes (livré)
+
+- UI unifiée en 2 modes:
+  - `Target loop generator`
+  - `Shape based generator`
+- Carte unique pour:
+  - sélection du point de départ,
+  - affichage de la route générée,
+  - support de dessin/import de forme côté shape.
+- UX:
+  - `Use my location`,
+  - `Generate route` (target),
+  - export GPX par route depuis le panneau latéral.
+- Backends Go + Kotlin:
+  - contrat API unifié pour la génération target/shape,
+  - génération road-graph **beta** basée sur le cache local d'activités (pas encore sur un graphe OSM externe),
+  - scoring distance / D+ / direction / profil de pratique.
+- Persistance cache:
+  - les detailed activities manquantes récupérées à la demande sont sauvegardées en cache local pour les appels suivants.
+
+#### Limites connues (à corriger)
+
+- Le moteur road-graph actuel recycle encore des tronçons issus des traces historiques:
+  - risque de boucles trop proches entre elles,
+  - respect imparfait des contraintes strictes (ex: 40 km / 800 m).
+- Qualité de boucle variable selon la densité du cache local autour du point de départ.
+- En cas d'échec (`No route generated`), l'explication des causes est encore insuffisante.
+- Le mode shape reste en version intermédiaire et n'optimise pas encore la projection forme -> réseau routier réel.
+
 - [x] Sprint 1 - Stabilisation UX & contrat
   - 2 modes/contrats consolidés dans la couche Routes.
   - Harmonisation parsing/validation des query params Go/Kotlin.
@@ -126,6 +155,88 @@ Expérience plus orientée usage terrain, meilleure réutilisation des données 
 - [ ] Sprint 4 - Shape-based generator avancé
   - Contrainte forme (dessin/import) avec projection sur routes praticables.
   - Variantes et scoring forme/km/D+.
+
+#### Étude d'intégration d'un routeur OSM (ou moteur maison)
+
+Objectif:
+- Générer des routes **nouvelles et praticables** sur un vrai réseau routier OSM, en respectant au mieux:
+  - point de départ,
+  - distance cible,
+  - dénivelé cible,
+  - direction de départ,
+  - type de pratique.
+
+Options étudiées:
+
+1. OSRM local (recommandé pour MVP rapidité)
+- Avantages:
+  - très rapide, mature, éprouvé.
+  - simple à déployer en Docker avec extrait `.osm.pbf`.
+  - bon pour calcul d'itinéraires courts/alternatifs.
+- Limites:
+  - personnalisation "coût métier" moins souple que GraphHopper.
+  - gestion D+ dépend d'une source d'altitude externe ou d'un post-traitement.
+
+2. GraphHopper local (recommandé pour version produit complète)
+- Avantages:
+  - bon support des profils (route, gravel, mtb, run, hike) et du weighting custom.
+  - meilleure extensibilité pour pénalités métier (revêtement, pente, trafic, etc.).
+  - plus adapté au mode shape + scoring multi-objectif.
+- Limites:
+  - intégration un peu plus lourde que OSRM.
+  - tuning nécessaire pour obtenir des résultats stables.
+
+3. Valhalla local (option avancée)
+- Avantages:
+  - très puissant (coût dynamique, multi-modal).
+  - bonne base pour cas complexes.
+- Limites:
+  - plus complexe à opérer et à tuner.
+  - courbe d'apprentissage plus longue pour l'équipe.
+
+4. Développer un moteur maison complet
+- Avantages:
+  - contrôle total.
+- Limites majeures:
+  - coût de dev/maintenance très élevé,
+  - dette technique importante,
+  - faible ROI versus OSRM/GraphHopper.
+- Conclusion: **non recommandé**.
+
+Décision proposée:
+- Étape 1 (court terme): OSRM local pour débloquer rapidement la qualité des boucles target.
+- Étape 2 (moyen terme): migration/complément GraphHopper pour profils avancés + shape-based generation robuste.
+
+Architecture cible (Go + Kotlin):
+- Introduire un port hexagonal commun:
+  - `RoutingEnginePort`
+  - méthodes: `route`, `matrix/nearest` (optionnel), `alternatives`.
+- Adapter `OsmRoutingAdapter` (OSRM puis GraphHopper) derrière ce port.
+- Garder le moteur de scoring dans le domaine (distance/D+/direction/forme) et rendre le routeur interchangeable.
+- Ajouter une stratégie de fallback:
+  - routeur indisponible => message explicite + pas de faux résultat.
+
+Plan d'implémentation concret:
+
+- Sprint OSM-1:
+  - Docker `osrm` + extraction régionale OSM.
+  - endpoint health `routing`.
+  - implémentation `RoutingEnginePort` côté Go/Kotlin.
+  - génération de boucle target via waypoints synthétiques + alternatives OSRM.
+- Sprint OSM-2:
+  - calibration scoring et pénalités par type de pratique.
+  - contraintes "éviter repassage immédiat" et minimum de diversité de segments.
+  - logs de raisons d'échec (`no candidate`, `km too far`, `d+ too low`, etc.).
+- Sprint OSM-3:
+  - shape projection v1: snap shape->route + optimisation distance forme/km/D+.
+  - variantes scorées.
+  - tests de non-régression cross backend (Go/Kotlin).
+
+Definition of Done (OSM):
+- Une génération target produit une boucle praticable dans la majorité des cas courants (>90% sur dataset de test local).
+- Le point de départ est respecté (tolérance configurable).
+- Distance et D+ restent dans une tolérance explicite (ex: +/-15% km, +/-25% D+).
+- Les raisons de non génération sont lisibles côté UI et logs.
 
 ---
 
