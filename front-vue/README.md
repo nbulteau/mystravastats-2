@@ -46,3 +46,164 @@ npm run serve
 ### Open the application
 
 Open your browser and navigate to <http://localhost:5173/>
+
+## Architecture
+
+### Project Structure
+
+MyStravaStats follows a modern Vue 3 + TypeScript architecture with a clear separation of concerns:
+
+```
+front-vue/
+├── src/
+│   ├── App.vue                    # Root component with main navigation
+│   ├── main.ts                    # Application entry point (Pinia, Router setup)
+│   │
+│   ├── router/
+│   │   └── index.ts               # Vue Router configuration (lazy-loaded routes)
+│   │
+│   ├── stores/                    # Pinia state management
+│   │   ├── context.ts             # Global context (current view, year, activity type)
+│   │   ├── api.ts                 # API utility functions
+│   │   ├── athlete.ts             # Athlete profile & settings
+│   │   ├── activities.ts          # Activities cache
+│   │   ├── statistics.ts          # Statistics data
+│   │   ├── charts.ts              # Chart data
+│   │   ├── dashboard.ts           # Dashboard data (heatmap, Eddington)
+│   │   ├── map.ts                 # Map tracks & viewport
+│   │   ├── badges.ts              # Badge achievements
+│   │   ├── segments.ts            # Segment analysis
+│   │   ├── routes.ts              # Route generation
+│   │   └── ui.ts                  # UI state (toasts)
+│   │
+│   ├── views/                     # Page-level components (lazy-loaded)
+│   │   ├── StatisticsView.vue
+│   │   ├── ActivitiesView.vue
+│   │   ├── ChartsView.vue
+│   │   ├── DashboardView.vue
+│   │   ├── DetailedActivityView.vue
+│   │   ├── MapView.vue
+│   │   ├── HeatmapView.vue
+│   │   ├── BadgesView.vue
+│   │   ├── SegmentsView.vue
+│   │   └── RoutesView.vue
+│   │
+│   ├── components/                # Reusable UI components
+│   │   ├── HeaderBar.vue
+│   │   ├── StatisticsGrid.vue
+│   │   ├── ActivitiesGrid.vue
+│   │   ├── AllTracksMap.vue
+│   │   └── charts/                # Chart components
+│   │       ├── ByMonthsChart.vue
+│   │       ├── EddingtonNumberChart.vue
+│   │       └── ...
+│   │
+│   ├── models/                    # TypeScript interfaces
+│   │   ├── activity.model.ts      # Activity, DetailedActivity, ActivityEffort
+│   │   ├── statistics.model.ts
+│   │   ├── badge.model.ts
+│   │   ├── error.model.ts
+│   │   └── ...
+│   │
+│   ├── services/                  # Business logic
+│   │   └── error.service.ts       # Error handling & toast notifications
+│   │
+│   ├── utils/                     # Helper functions
+│   │   ├── formatters.ts          # Date, time, speed formatting
+│   │   ├── charts.ts              # Chart utilities
+│   │   ├── mapTrackColors.ts
+│   │   └── heart-rate-zones.ts
+│   │
+│   └── assets/                    # Static files
+│       ├── main.css
+│       ├── base.css
+│       ├── buttons/               # SVG icons
+│       ├── badges/
+│       └── images/
+│
+└── Configuration files
+    ├── vite.config.ts             # Vite bundler config
+    ├── tsconfig.json              # TypeScript config
+    ├── package.json               # Dependencies
+    └── eslint.config.cjs          # Linting rules
+```
+
+### Data Flow Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        User Interface                            │
+│                      (Vue Components)                            │
+└──────────┬──────────────────────┬──────────────────────────────┘
+           │                      │
+           │ (computed/watch)     │ (@click, @change)
+           ▼                      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     Pinia State Stores                           │
+│  ┌───────────────┐  ┌───────────────┐  ┌──────────────────┐    │
+│  │ contextStore  │  │ activitiesStore   │ statisticsStore  │    │
+│  │ (global ctx) │  │ (cache)        │  │ (cache)       │    │
+│  └───────────────┘  └───────────────┘  └──────────────────┘    │
+│                                                                  │
+│  ┌─────────────┐  ┌───────────┐  ┌───────────────┐            │
+│  │ athleteStore│  │ chartsStore   │ dashboardStore │            │
+│  └─────────────┘  └───────────┘  └───────────────┘            │
+└──────────┬──────────────────────────────────────────────────────┘
+           │
+           │ actions (async)
+           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    API Layer (Pinia actions)                    │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ api.ts (requestJson)  →  Error Handling (catchError)     │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└──────────┬──────────────────────────────────────────────────────┘
+           │
+           │ fetch() HTTP
+           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Backend API Server                           │
+│              (/api/activities, /api/statistics, ...)            │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Key Design Patterns
+
+#### 1. **State Management (Pinia)**
+- Each feature area has its own store
+- **Cache Strategy**: Data cached by filter key `${activityType}__${year}`
+- **Lazy-loaded routes**: Code-splitting for better performance
+
+#### 2. **Error Handling**
+- Centralized `ErrorService.catchError()` 
+- IAP (Identity-Aware Proxy) support (401/403 redirect)
+- Toast notifications for all errors
+- `Promise<never>` return type ensures execution stops after error
+
+#### 3. **Reactive Dependencies**
+- `contextStore.currentFiltersKey` getter — eliminates key duplication
+- Computed properties auto-update when filters change
+- Stores refresh data on context changes
+
+#### 4. **Type Safety**
+- All models as TypeScript **interfaces** (zero runtime overhead)
+- Strict `verbatimModuleSyntax` requires `import type` for interfaces
+- Type narrowing prevents runtime errors
+
+### Component Lifecycle
+
+Views follow this pattern:
+```typescript
+// In onMounted() — NOT in setup()
+onMounted(() => {
+  contextStore.updateCurrentView("view-name");
+  // Fetch data only when component is mounted
+});
+```
+
+Benefits:
+- Avoids side effects during component setup
+- Lazy fetching improves initial load
+- Cleaner separation of setup vs. side effects
+
+
