@@ -14,7 +14,7 @@ const currentMonthDay = `${String(currentDate.getMonth() + 1).padStart(2, "0")}-
   currentDate.getDate()
 ).padStart(2, "0")}`;
 
-let today = computed(() => {
+const today = computed(() => {
   const currentYearData = props.cumulativeDistancePerYear.get(actual.toString());
   if (currentYearData) {
     const keysArray = Array.from(currentYearData.keys());

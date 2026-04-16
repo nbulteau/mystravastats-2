@@ -73,9 +73,9 @@ const cadenceUnit = computed(() => {
       class="chart-panel"
     >
       <ByWeeksChart
-          title="Cadence"
-          :unit="cadenceUnit"
-          :items-by-weeks="cadenceByWeeks"
+        title="Cadence"
+        :unit="cadenceUnit"
+        :items-by-weeks="cadenceByWeeks"
       />
     </section>
   </div>

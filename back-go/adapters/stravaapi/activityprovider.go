@@ -142,16 +142,19 @@ func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *s
 	}
 
 	year := resolveActivityYear(activity)
+	stravaDetailedActivity := provider.loadDetailedActivityFromCacheAnyYear(activityId, year)
+	cacheHit := stravaDetailedActivity != nil
+	stream := provider.localStorageProvider.LoadActivitiesStreamsFromCache(provider.clientId, year, *activity)
+
 	api := provider.StravaApi
 	if provider.isStravaRateLimitedNow() {
 		api = nil
 	}
-	if api == nil && !provider.useCacheAuth && provider.clientSecret != "" && !provider.isStravaRateLimitedNow() {
+	needsAPICall := stravaDetailedActivity == nil || stream == nil
+	if needsAPICall && api == nil && !provider.useCacheAuth && provider.clientSecret != "" && !provider.isStravaRateLimitedNow() {
 		api = provider.ensureStravaAPI()
 	}
 
-	stravaDetailedActivity := provider.loadDetailedActivityFromCacheAnyYear(activityId, year)
-	cacheHit := stravaDetailedActivity != nil
 	if api != nil && stravaDetailedActivity == nil {
 		detailedActivity, err := api.GetDetailedActivity(activityId)
 		if err == nil && detailedActivity != nil {
@@ -169,7 +172,6 @@ func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *s
 		stravaDetailedActivity = activity.ToStravaDetailedActivity()
 	}
 
-	stream := provider.localStorageProvider.LoadActivitiesStreamsFromCache(provider.clientId, year, *activity)
 	if api != nil && stream == nil {
 		stream, err := api.GetActivityStream(*activity)
 		if err == nil && stream != nil {

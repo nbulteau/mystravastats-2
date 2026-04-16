@@ -167,11 +167,21 @@ class StravaActivityProvider(
             return Optional.empty()
         }
         val year = resolveActivityYear(activity)
-        val api = if (isRateLimitActive()) null else stravaApi ?: createStravaApiIfNeeded()
 
         // load detailed activity from cache or retrieve from Strava
         var stravaDetailedActivity = loadDetailedActivityFromCacheAnyYear(activityId, year)
         val cacheHit = stravaDetailedActivity != null
+        var stream = storageProvider.loadActivitiesStreamsFromCache(clientId, year, activity)
+        var api: IStravaApi? = if (isRateLimitActive()) {
+            null
+        } else {
+            stravaApi
+        }
+        val needsApiCall = stravaDetailedActivity == null || stream == null
+        if (needsApiCall && api == null) {
+            api = createStravaApiIfNeeded()
+        }
+
         if (api != null && stravaDetailedActivity == null) {
             // It's not in local cache, retrieve from Strava
             try {
@@ -189,8 +199,6 @@ class StravaActivityProvider(
             stravaDetailedActivity = activity.toStravaDetailedActivity()
         }
 
-        // load stream from cache or retrieve from Strava
-        var stream = storageProvider.loadActivitiesStreamsFromCache(clientId, year, activity)
         if (api != null && stream == null) {
             try {
                 stream = api.getActivityStreamFailFastOnRateLimit(activity)
