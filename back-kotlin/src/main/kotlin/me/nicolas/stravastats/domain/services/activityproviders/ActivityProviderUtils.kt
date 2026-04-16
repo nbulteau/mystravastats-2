@@ -4,8 +4,16 @@ import me.nicolas.stravastats.adapters.srtm.SRTMProvider
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.stream.AltitudeStream
 import org.slf4j.LoggerFactory
+import java.time.LocalDate
 
 private val logger = LoggerFactory.getLogger("ActivityProviderUtils")
+
+/**
+ * Extracts the year from a Strava ISO-8601-like date string (e.g. "2024-06-15T10:30:00Z").
+ * Returns [fallback] if the string is too short or the year prefix is not a valid integer.
+ */
+internal fun resolveYearFromDateString(dateStr: String, fallback: Int = LocalDate.now().year): Int =
+    dateStr.take(4).toIntOrNull() ?: fallback
 
 /**
  * For each activity whose stream has no altitude data, retrieves elevation from SRTM

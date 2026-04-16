@@ -4,10 +4,9 @@ import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
-import java.util.*
 
 interface IStravaApi {
-    fun retrieveLoggedInAthlete(): Optional<StravaAthlete>
+    fun retrieveLoggedInAthlete(): StravaAthlete?
 
     fun getActivities(year: Int): List<StravaActivity>
 
@@ -17,8 +16,8 @@ interface IStravaApi {
 
     fun getActivityStreamFailFastOnRateLimit(stravaActivity: StravaActivity): Stream? = getActivityStream(stravaActivity)
 
-    fun getDetailedActivity(activityId: Long): Optional<StravaDetailedActivity>
+    fun getDetailedActivity(activityId: Long): StravaDetailedActivity?
 
-    fun getDetailedActivityFailFastOnRateLimit(activityId: Long): Optional<StravaDetailedActivity> =
+    fun getDetailedActivityFailFastOnRateLimit(activityId: Long): StravaDetailedActivity? =
         getDetailedActivity(activityId)
 }

@@ -9,7 +9,6 @@ import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.services.toStravaDetailedActivity
 import org.slf4j.LoggerFactory
 import java.time.LocalDate
-import java.util.*
 import kotlin.system.measureTimeMillis
 
 class GpxActivityProvider(gpxCache: String, private val srtmProvider: SRTMProvider) : AbstractActivityProvider() {
@@ -24,13 +23,8 @@ class GpxActivityProvider(gpxCache: String, private val srtmProvider: SRTMProvid
         activities = loadFromLocalCache()
     }
 
-    override fun getDetailedActivity(activityId: Long): Optional<StravaDetailedActivity> {
-        val activity = getActivity(activityId)
-        return if (activity.isPresent) {
-            Optional.of(activity.get().toStravaDetailedActivity())
-        } else {
-            Optional.empty()
-        }
+    override fun getDetailedActivity(activityId: Long): StravaDetailedActivity? {
+        return getActivity(activityId)?.toStravaDetailedActivity()
     }
 
     private fun loadFromLocalCache(): List<StravaActivity> {
@@ -39,7 +33,7 @@ class GpxActivityProvider(gpxCache: String, private val srtmProvider: SRTMProvid
         val loadedActivities = mutableListOf<StravaActivity>()
         val elapsed = measureTimeMillis {
             runBlocking {
-                for (currentYear in LocalDate.now().year downTo 2010) {
+                for (currentYear in LocalDate.now().year downTo StravaActivityProvider.STRAVA_FIRST_YEAR) {
                     logger.info("Load $currentYear activities ...")
                     loadedActivities.addAll(localStorageProvider.loadActivitiesFromCache(currentYear))
                 }

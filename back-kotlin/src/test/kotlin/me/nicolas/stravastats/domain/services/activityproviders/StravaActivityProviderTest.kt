@@ -6,19 +6,20 @@ import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
 import me.nicolas.stravastats.adapters.strava.StravaRateLimitException
-import me.nicolas.stravastats.domain.interfaces.ILocalStorageProvider
-import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.AthleteRef
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.stream.DistanceStream
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.business.strava.stream.TimeStream
+import me.nicolas.stravastats.domain.interfaces.ILocalStorageProvider
 import me.nicolas.stravastats.domain.interfaces.IStravaApi
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
 import me.nicolas.stravastats.domain.services.toStravaDetailedActivity
-import java.util.Optional
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Test
+import kotlin.reflect.KMutableProperty
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.jvm.isAccessible
 
 class StravaActivityProviderTest {
 
@@ -83,7 +84,6 @@ class StravaActivityProviderTest {
         every { repository.loadDetailedActivityFromCache(any(), any(), any()) } answers { detailedCache }
         every { repository.saveDetailedActivityToCache(any(), any(), any()) } answers {
             detailedCache = thirdArg()
-            Unit
         }
         every { repository.loadActivitiesStreamsFromCache(any(), any(), any()) } returns null
         every { api.getDetailedActivityFailFastOnRateLimit(any()) } throws StravaRateLimitException("429")
@@ -107,21 +107,24 @@ class StravaActivityProviderTest {
             type = "Ride",
             uploadId = 12345L
         )
-        val activitiesField = AbstractActivityProvider::class.java.getDeclaredField("activities")
-        activitiesField.isAccessible = true
-        activitiesField.set(provider, listOf(activity))
+        // Use Kotlin reflection to call the property setter, which also updates activitiesIndex
+        val activitiesProp = AbstractActivityProvider::class.memberProperties
+            .filterIsInstance<KMutableProperty<*>>()
+            .first { it.name == "activities" }
+        activitiesProp.isAccessible = true
+        activitiesProp.setter.call(provider, listOf(activity))
 
         // WHEN
         val firstCall = provider.getDetailedActivity(42L)
 
         // THEN
-        assertTrue(firstCall.isPresent, "Expected cache fallback detailed activity after rate limit")
+        assertNotNull(firstCall, "Expected cache fallback detailed activity after rate limit")
 
         // WHEN - second call while rate limit is active
         val secondCall = provider.getDetailedActivity(42L)
 
         // THEN
-        assertTrue(secondCall.isPresent, "Expected cache-only detailed activity while rate limit is active")
+        assertNotNull(secondCall, "Expected cache-only detailed activity while rate limit is active")
         verify(exactly = 1) { api.getDetailedActivityFailFastOnRateLimit(42L) }
         verify(exactly = 1) { repository.saveDetailedActivityToCache(any(), 2020, any()) }
     }
@@ -161,8 +164,8 @@ class StravaActivityProviderTest {
         val detailed = provider.getDetailedActivity(cachedActivityId)
 
         // THEN
-        assertTrue(detailed.isPresent, "Expected cached detailed activity")
-        assertEquals(cachedActivityId, detailed.get().id)
+        assertNotNull(detailed, "Expected cached detailed activity")
+        assertEquals(cachedActivityId, detailed!!.id)
         verify(exactly = 0) { api.getDetailedActivityFailFastOnRateLimit(any()) }
     }
 
@@ -177,7 +180,6 @@ class StravaActivityProviderTest {
         every { repository.loadDetailedActivityFromCache(any(), any(), any()) } answers { detailedCache }
         every { repository.saveDetailedActivityToCache(any(), any(), any()) } answers {
             detailedCache = thirdArg()
-            Unit
         }
 
         val activityId = 901L
@@ -199,7 +201,7 @@ class StravaActivityProviderTest {
             type = "Ride",
             uploadId = 12345L
         ).toStravaDetailedActivity()
-        every { api.getDetailedActivityFailFastOnRateLimit(activityId) } returns Optional.of(fromApi)
+        every { api.getDetailedActivityFailFastOnRateLimit(activityId) } returns fromApi
 
         val provider = StravaActivityProvider(localStorageProvider = repository, stravaApi = api)
 
@@ -208,9 +210,9 @@ class StravaActivityProviderTest {
         val secondCall = provider.getDetailedActivity(activityId)
 
         // THEN
-        assertTrue(firstCall.isPresent, "Expected detailed activity fetched from Strava API")
-        assertTrue(secondCall.isPresent, "Expected detailed activity loaded from cache on second call")
-        assertEquals(activityId, secondCall.get().id)
+        assertNotNull(firstCall, "Expected detailed activity fetched from Strava API")
+        assertNotNull(secondCall, "Expected detailed activity loaded from cache on second call")
+        assertEquals(activityId, secondCall!!.id)
         verify(exactly = 1) { api.getDetailedActivityFailFastOnRateLimit(activityId) }
         verify(exactly = 1) { repository.saveDetailedActivityToCache(any(), 2022, any()) }
     }

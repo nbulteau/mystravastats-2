@@ -11,13 +11,11 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
-import java.util.*
-import kotlin.jvm.optionals.getOrElse
 
 
 interface IActivityService {
 
-    fun getDetailedActivity(activityId: Long): Optional<StravaDetailedActivity>
+    fun getDetailedActivity(activityId: Long): StravaDetailedActivity?
 
     fun getActivitiesByActivityTypeAndYear(activityTypes: Set<ActivityType>, year: Int?): List<StravaActivity>
 
@@ -90,14 +88,8 @@ internal class ActivityService(
         return exporter.export()
     }
 
-    override fun getDetailedActivity(activityId: Long): Optional<StravaDetailedActivity> {
+    override fun getDetailedActivity(activityId: Long): StravaDetailedActivity? {
         logger.info("Get detailed activity $activityId")
-
-        val detailedActivity = activityProvider.getDetailedActivity(activityId).getOrElse {
-            logger.error("Activity $activityId not found")
-            return Optional.empty()
-        }
-
-        return Optional.of(detailedActivity)
+        return activityProvider.getDetailedActivity(activityId)
     }
 }

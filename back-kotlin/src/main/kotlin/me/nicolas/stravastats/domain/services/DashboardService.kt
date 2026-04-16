@@ -6,6 +6,7 @@ import me.nicolas.stravastats.domain.business.EddingtonNumber
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.services.ActivityHelper.groupActivitiesByDay
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
+import me.nicolas.stravastats.domain.services.activityproviders.StravaActivityProvider
 import me.nicolas.stravastats.domain.services.statistics.BestEffortDistanceStatistic
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -284,7 +285,7 @@ class DashboardService(
         calculate: (Map<String, List<StravaActivity>>) -> Map<String, T>,
     ): Map<String, Map<String, T>> {
         val activitiesByYear = activityProvider.getActivitiesByActivityTypeGroupByYear(activityTypes)
-        return (2010..LocalDate.now().year).mapNotNull { year ->
+        return (StravaActivityProvider.STRAVA_FIRST_YEAR..LocalDate.now().year).mapNotNull { year ->
             activitiesByYear[year.toString()]?.let { activities ->
                 val activitiesByDay = groupActivitiesByDay(activities, year)
                 year.toString() to calculate(activitiesByDay)

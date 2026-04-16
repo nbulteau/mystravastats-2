@@ -218,7 +218,7 @@ internal class StatisticsService(
 
         val rawAttempts = filteredActivities.flatMap { activity ->
             val detailedActivity = activityProvider.getCachedDetailedActivity(activity.id)
-                .orElseGet { activityProvider.getDetailedActivity(activity.id).orElse(null) }
+                ?: activityProvider.getDetailedActivity(activity.id)
                 ?: return@flatMap emptyList()
 
             detailedActivity.segmentEfforts
@@ -582,7 +582,7 @@ internal class StatisticsService(
 
         val segmentEffortAttempts = filteredActivities.flatMap { activity ->
             val detailedActivity = activityProvider.getCachedDetailedActivity(activity.id)
-                .orElseGet { activityProvider.getDetailedActivity(activity.id).orElse(null) }
+                ?: activityProvider.getDetailedActivity(activity.id)
                 ?: return@flatMap emptyList()
 
             detailedActivity.segmentEfforts
@@ -690,7 +690,7 @@ internal class StatisticsService(
 
     private fun routeNameBasedTargetId(nameKey: String): Long {
         // Keep fallback IDs negative to avoid collisions with real Strava segment IDs.
-        return -nameKey.hashCode().toLong().let { hash -> kotlin.math.abs(hash) + 1L }
+        return -nameKey.hashCode().toLong().let { hash -> abs(hash) + 1L }
     }
 
     private fun buildSegmentAttemptsCacheKey(
@@ -1281,7 +1281,7 @@ internal class StatisticsService(
         }
         val ratio = (recentAverage - previousAverage) / previousAverage
         val isImproving = if (lowerIsBetter) ratio < 0 else ratio > 0
-        val percentage = kotlin.math.abs(ratio * 100.0)
+        val percentage = abs(ratio * 100.0)
         return when {
             percentage < 1.0 -> "Stable"
             isImproving -> String.format(Locale.ENGLISH, "Improving %.1f%% (%s)", percentage, unit)

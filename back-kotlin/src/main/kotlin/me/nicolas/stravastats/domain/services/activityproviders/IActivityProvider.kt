@@ -7,7 +7,6 @@ import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
-import java.util.*
 
 data class ActivityProviderCacheIdentity(
     val cacheRoot: String,
@@ -20,11 +19,11 @@ interface IActivityProvider {
 
     fun listActivitiesPaginated(pageable: Pageable): Page<StravaActivity>
 
-    fun getActivity(activityId: Long): Optional<StravaActivity>
+    fun getActivity(activityId: Long): StravaActivity?
 
-    fun getDetailedActivity(activityId: Long): Optional<StravaDetailedActivity>
+    fun getDetailedActivity(activityId: Long): StravaDetailedActivity?
 
-    fun getCachedDetailedActivity(activityId: Long): Optional<StravaDetailedActivity> = Optional.empty()
+    fun getCachedDetailedActivity(activityId: Long): StravaDetailedActivity? = null
 
     fun getActivitiesByActivityTypeGroupByActiveDays(activityTypes: Set<ActivityType>): Map<String, Int>
 

@@ -1,7 +1,9 @@
 package me.nicolas.stravastats.domain.services.activityproviders
 
 import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import me.nicolas.stravastats.adapters.localrepositories.strava.StravaRepository
 import me.nicolas.stravastats.adapters.strava.StravaApi
@@ -32,11 +34,12 @@ import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.time.LocalDate
 import java.time.Instant
-import java.util.*
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.system.measureTimeMillis
+import kotlin.time.Duration.Companion.milliseconds
 
 class StravaActivityProvider(
     // allow injection for testability; accept the interface publicly to avoid exposing internal implementation
@@ -62,6 +65,8 @@ class StravaActivityProvider(
     private val rateLimitUntilMs = AtomicLong(0L)
     private val cacheRoot = stravaCache
     private val manifestLock = Any()
+    /** Coroutine-safe mutex replacing @Synchronized on createStravaApiIfNeeded. */
+    private val stravaApiMutex = Mutex()
     @Volatile
     private var cacheManifest: CacheManifest = CacheManifestStore.defaultManifest("unknown")
     @Volatile
@@ -73,6 +78,8 @@ class StravaActivityProvider(
         private const val MAX_CONCURRENT_STREAM_LOADS = 8
         private const val DETAILED_BACKFILL_REQUEST_DELAY_MS = 1_500L
         private const val RATE_LIMIT_COOLDOWN_MS = 15 * 60 * 1_000L
+        /** Earliest year from which Strava activity data is considered available. */
+        const val STRAVA_FIRST_YEAR = 2010
     }
 
     init {
@@ -139,32 +146,31 @@ class StravaActivityProvider(
         launchBackgroundDataRefresh()
     }
 
-    override fun getDetailedActivity(activityId: Long): Optional<StravaDetailedActivity> {
+    override fun getDetailedActivity(activityId: Long): StravaDetailedActivity? {
         logger.info("Get detailed activity for activity id $activityId")
 
         // find detailed activity in cache or retrieve from Strava
-        val activity = getActivity(activityId).orElse(null)
+        val activity = getActivity(activityId)
         if (activity == null) {
             val cachedDetailed = loadDetailedActivityFromCacheAnyYear(activityId, LocalDate.now().year)
             if (cachedDetailed != null) {
                 logger.info("Detailed activity $activityId loaded from cache without base activity metadata")
-                return Optional.of(cachedDetailed)
+                return cachedDetailed
             }
-            val api = if (isRateLimitActive()) null else stravaApi ?: createStravaApiIfNeeded()
+            val api = if (isRateLimitActive()) null else stravaApi ?: runBlocking { createStravaApiIfNeeded() }
             if (api != null) {
                 try {
-                    val detailedActivity = api.getDetailedActivityFailFastOnRateLimit(activityId)
-                    if (detailedActivity.isPresent) {
-                        val detailed = detailedActivity.get()
+                    val detailed = api.getDetailedActivityFailFastOnRateLimit(activityId)
+                    if (detailed != null) {
                         val year = resolveDetailedActivityYear(detailed)
                         storageProvider.saveDetailedActivityToCache(clientId, year, detailed)
-                        return Optional.of(detailed)
+                        return detailed
                     }
                 } catch (exception: StravaRateLimitException) {
                     markRateLimitActive("detailed activity $activityId", exception)
                 }
             }
-            return Optional.empty()
+            return null
         }
         val year = resolveActivityYear(activity)
 
@@ -172,23 +178,16 @@ class StravaActivityProvider(
         var stravaDetailedActivity = loadDetailedActivityFromCacheAnyYear(activityId, year)
         val cacheHit = stravaDetailedActivity != null
         var stream = storageProvider.loadActivitiesStreamsFromCache(clientId, year, activity)
-        var api: IStravaApi? = if (isRateLimitActive()) {
-            null
-        } else {
-            stravaApi
-        }
+        var api: IStravaApi? = if (isRateLimitActive()) null else stravaApi
         val needsApiCall = stravaDetailedActivity == null || stream == null
         if (needsApiCall && api == null) {
-            api = createStravaApiIfNeeded()
+            api = runBlocking { createStravaApiIfNeeded() }
         }
 
         if (api != null && stravaDetailedActivity == null) {
             // It's not in local cache, retrieve from Strava
             try {
-                val detailedActivity = api.getDetailedActivityFailFastOnRateLimit(activityId)
-                if (detailedActivity.isPresent) {
-                    stravaDetailedActivity = detailedActivity.get()
-                }
+                stravaDetailedActivity = api.getDetailedActivityFailFastOnRateLimit(activityId)
             } catch (exception: StravaRateLimitException) {
                 markRateLimitActive("detailed activity $activityId", exception)
             }
@@ -214,15 +213,13 @@ class StravaActivityProvider(
             storageProvider.saveDetailedActivityToCache(clientId, year, stravaDetailedActivity)
         }
 
-        return Optional.of(stravaDetailedActivity)
+        return stravaDetailedActivity
     }
 
-    override fun getCachedDetailedActivity(activityId: Long): Optional<StravaDetailedActivity> {
-        val activity = getActivity(activityId).orElse(null) ?: return Optional.empty()
+    override fun getCachedDetailedActivity(activityId: Long): StravaDetailedActivity? {
+        val activity = getActivity(activityId) ?: return null
         val year = resolveActivityYear(activity)
-        val cached = loadDetailedActivityFromCacheAnyYear(activityId, year)
-
-        return Optional.ofNullable(cached)
+        return loadDetailedActivityFromCacheAnyYear(activityId, year)
     }
 
     override fun getHeartRateZoneSettings(): HeartRateZoneSettings {
@@ -241,7 +238,7 @@ class StravaActivityProvider(
 
         val loadedActivities = mutableListOf<StravaActivity>()
         val elapsed = measureTimeMillis {
-            val deferredActivities = (LocalDate.now().year downTo 2010).map { year ->
+            val deferredActivities = (LocalDate.now().year downTo STRAVA_FIRST_YEAR).map { year ->
                 async(Dispatchers.IO) {
                     try {
                         logger.info("Load $year activities ...")
@@ -264,7 +261,7 @@ class StravaActivityProvider(
         val currentYear = LocalDate.now().year
         val loadedActivities = mutableListOf<StravaActivity>()
         val elapsed = measureTimeMillis {
-            val deferredActivities = (currentYear downTo 2010).map { year ->
+            val deferredActivities = (currentYear downTo STRAVA_FIRST_YEAR).map { year ->
                 async(Dispatchers.IO) {
                     try {
                         // Check if we should load from cache or API
@@ -360,7 +357,7 @@ class StravaActivityProvider(
     }
 
     // Retrieves activities from Strava API
-    private fun retrieveActivitiesFromApi(year: Int, failFastOnRateLimit: Boolean = true): List<StravaActivity> {
+    private suspend fun retrieveActivitiesFromApi(year: Int, failFastOnRateLimit: Boolean = true): List<StravaActivity> {
         if (isRateLimitActive()) {
             throw StravaRateLimitException("strava rate limit reached (cooldown active)")
         }
@@ -389,17 +386,17 @@ class StravaActivityProvider(
         }
     }
 
-    private fun retrieveLoggedInAthlete(): StravaAthlete {
+    private suspend fun retrieveLoggedInAthlete(): StravaAthlete {
         logger.info("Load stravaAthlete with id $clientId description from Strava")
         val api = if (isRateLimitActive()) null else stravaApi ?: createStravaApiIfNeeded()
 
         return if (api != null) {
             try {
                 val athlete = api.retrieveLoggedInAthlete()
-                if (athlete.isPresent) {
-                    storageProvider.saveAthleteToCache(clientId, athlete.get())
+                if (athlete != null) {
+                    storageProvider.saveAthleteToCache(clientId, athlete)
                 }
-                athlete.get()
+                athlete ?: storageProvider.loadAthleteFromCache(clientId)
             } catch (exception: StravaRateLimitException) {
                 markRateLimitActive("athlete", exception)
                 storageProvider.loadAthleteFromCache(clientId)
@@ -412,31 +409,28 @@ class StravaActivityProvider(
         }
     }
 
-    @Synchronized
-    private fun createStravaApiIfNeeded(): IStravaApi? {
+    private suspend fun createStravaApiIfNeeded(): IStravaApi? = stravaApiMutex.withLock {
         if (isRateLimitActive()) {
-            return null
+            return@withLock null
         }
         val existing = stravaApi
         if (existing != null) {
-            return existing
+            return@withLock existing
         }
-        val secret = authSecret ?: return null
-        return try {
+        val secret = authSecret ?: return@withLock null
+        try {
             StravaApi(clientId, secret).also { created ->
                 stravaApi = created
             }
         } catch (exception: Exception) {
             logger.error("Failed to initialize Strava API (token fetch error): ${exception.message}", exception)
             logger.warn("Switching to cache-only mode: activities will be loaded from cache but no API calls will be made until next restart")
-
-            // Return null to indicate API is not available
             null
         }
     }
 
     private suspend fun refreshAllYearsActivitiesInBackground(startYear: Int): Boolean {
-        for (year in startYear downTo 2010) {
+        for (year in startYear downTo STRAVA_FIRST_YEAR) {
             val refreshedActivities = try {
                 retrieveActivitiesFromApi(year, failFastOnRateLimit = true)
             } catch (_: StravaRateLimitException) {
@@ -456,7 +450,7 @@ class StravaActivityProvider(
 
             val existingActivities = activities
             val mergedActivities = existingActivities
-                .filterNot { activity -> activity.startDateLocal.take(4).toIntOrNull() == year }
+                .filterNot { activity -> resolveYearFromDateString(activity.startDateLocal) == year }
                 .plus(refreshedActivities)
                 .sortedBy { activity -> activity.startDateLocal }
 
@@ -464,7 +458,7 @@ class StravaActivityProvider(
 
             // Invalidate only touched activities so the cache keeps unaffected entries.
             val invalidatedActivityIds = existingActivities
-                .filter { activity -> activity.startDateLocal.take(4).toIntOrNull() == year }
+                .filter { activity -> resolveYearFromDateString(activity.startDateLocal) == year }
                 .map { activity -> activity.id }
                 .toMutableSet()
                 .apply { addAll(refreshedActivities.map { activity -> activity.id }) }
@@ -486,7 +480,7 @@ class StravaActivityProvider(
     private suspend fun backfillMissingStreamsInBackground() = coroutineScope {
         val activitiesByYear = activities
             .filter { activity -> activity.stream == null }
-            .groupBy { activity -> activity.startDateLocal.take(4).toIntOrNull() ?: LocalDate.now().year }
+            .groupBy { activity -> resolveYearFromDateString(activity.startDateLocal) }
 
         if (activitiesByYear.isEmpty()) {
             logger.info("All cached activities already have streams; skipping stream backfill")
@@ -521,7 +515,7 @@ class StravaActivityProvider(
             .asSequence()
             .mapNotNull { activity ->
                 val year = resolveActivityYear(activity)
-                if (year !in 2010..startYear) {
+                if (year !in STRAVA_FIRST_YEAR..startYear) {
                     return@mapNotNull null
                 }
                 if (storageProvider.loadDetailedActivityFromCache(clientId, year, activity.id) != null) {
@@ -541,7 +535,7 @@ class StravaActivityProvider(
         var totalLoaded = 0
         var firstRequest = true
 
-        for (year in startYear downTo 2010) {
+        for (year in startYear downTo STRAVA_FIRST_YEAR) {
             val yearActivities = activitiesByYear[year]
                 ?.sortedByDescending { activity -> activity.startDateLocal }
                 ?: continue
@@ -549,7 +543,7 @@ class StravaActivityProvider(
             var loadedForYear = 0
             for (activity in yearActivities) {
                 if (!firstRequest) {
-                    delay(DETAILED_BACKFILL_REQUEST_DELAY_MS)
+                    delay(DETAILED_BACKFILL_REQUEST_DELAY_MS.milliseconds)
                 }
                 firstRequest = false
 
@@ -558,8 +552,8 @@ class StravaActivityProvider(
                         return@coroutineScope true
                     }
                     val detailedActivity = api.getDetailedActivityFailFastOnRateLimit(activity.id)
-                    if (detailedActivity.isPresent) {
-                        storageProvider.saveDetailedActivityToCache(clientId, year, detailedActivity.get())
+                    if (detailedActivity != null) {
+                        storageProvider.saveDetailedActivityToCache(clientId, year, detailedActivity)
                         loadedForYear += 1
                         totalLoaded += 1
                     }
@@ -967,24 +961,22 @@ class StravaActivityProvider(
         )
     }
 
-    private fun resolveActivityYear(activity: StravaActivity): Int {
-        return activity.startDateLocal.take(4).toIntOrNull()
-            ?: activity.startDate.take(4).toIntOrNull()
-            ?: LocalDate.now().year
-    }
+    private fun resolveActivityYear(activity: StravaActivity): Int =
+        resolveYearFromDateString(activity.startDateLocal)
+            .takeIf { it > 0 }
+            ?: resolveYearFromDateString(activity.startDate)
 
-    private fun resolveDetailedActivityYear(activity: StravaDetailedActivity): Int {
-        return activity.startDateLocal.take(4).toIntOrNull()
-            ?: activity.startDate.take(4).toIntOrNull()
-            ?: LocalDate.now().year
-    }
+    private fun resolveDetailedActivityYear(activity: StravaDetailedActivity): Int =
+        resolveYearFromDateString(activity.startDateLocal)
+            .takeIf { it > 0 }
+            ?: resolveYearFromDateString(activity.startDate)
 
     private fun loadDetailedActivityFromCacheAnyYear(activityId: Long, preferredYear: Int): StravaDetailedActivity? {
         val yearsToTry = buildList {
-            if (preferredYear >= 2010) {
+            if (preferredYear >= STRAVA_FIRST_YEAR) {
                 add(preferredYear)
             }
-            for (year in LocalDate.now().year downTo 2010) {
+            for (year in LocalDate.now().year downTo STRAVA_FIRST_YEAR) {
                 if (year != preferredYear) {
                     add(year)
                 }

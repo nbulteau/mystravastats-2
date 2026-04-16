@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
-import java.util.*
 import kotlin.math.roundToInt
 
 abstract class AbstractActivityProvider : IActivityProvider {
@@ -17,10 +16,21 @@ abstract class AbstractActivityProvider : IActivityProvider {
 
     protected lateinit var stravaAthlete: StravaAthlete
 
+    /** Index for O(1) activity lookups by id. Kept in sync with [activities]. */
+    @Volatile
+    private var activitiesIndex: Map<Long, StravaActivity> = emptyMap()
+
     @Volatile
     protected var activities: List<StravaActivity> = emptyList()
+        set(value) {
+            field = value
+            activitiesIndex = value.associateBy { stravaActivity -> stravaActivity.id }
+        }
 
     override fun athlete(): StravaAthlete {
+        check(::stravaAthlete.isInitialized) {
+            "Athlete has not been loaded yet. Ensure initializeAndLoadActivities() completed successfully before calling athlete()."
+        }
         return stravaAthlete
     }
 
@@ -63,7 +73,8 @@ abstract class AbstractActivityProvider : IActivityProvider {
                     "weightedAverageWatts" -> compareBy { it.weightedAverageWatts }
                     else -> compareBy { it.startDateLocal }
                 }
-                result = if (order.isDescending) result.sortedWith(comparator.reversed()) else result.sortedWith(comparator)
+                result =
+                    if (order.isDescending) result.sortedWith(comparator.reversed()) else result.sortedWith(comparator)
             }
             result
         } else {
@@ -75,10 +86,9 @@ abstract class AbstractActivityProvider : IActivityProvider {
         return PageImpl(subList, pageable, activitiesSnapshot.size.toLong())
     }
 
-    override fun getActivity(activityId: Long): Optional<StravaActivity> {
+    override fun getActivity(activityId: Long): StravaActivity? {
         logger.info("Get stravaActivity for stravaActivity id $activityId")
-
-        return Optional.ofNullable(activities.firstOrNull { activity -> activity.id == activityId })
+        return activitiesIndex[activityId]
     }
 
     override fun getActivitiesByActivityTypeGroupByActiveDays(activityTypes: Set<ActivityType>): Map<String, Int> {

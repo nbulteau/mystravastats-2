@@ -201,9 +201,7 @@ class ActivitiesController(
     fun getDetailedActivity(
         @PathVariable activityId: Long,
     ): DetailedActivityDto {
-
-        return activityService.getDetailedActivity(activityId).orElseThrow {
-            ResourceNotFoundException("StravaActivity id $activityId not found")
-        }.toDto()
+        return (activityService.getDetailedActivity(activityId)
+            ?: throw ResourceNotFoundException("StravaActivity id $activityId not found")).toDto()
     }
 }
