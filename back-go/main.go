@@ -29,7 +29,7 @@ import (
 	"github.com/rs/cors"
 )
 
-//go:embed public
+//go:embed all:public
 var public embed.FS
 
 func main() {

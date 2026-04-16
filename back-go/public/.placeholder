@@ -1,0 +1,1 @@
+This file ensures the public directory is present in source control for Go embed builds.
