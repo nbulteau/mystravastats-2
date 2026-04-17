@@ -11,14 +11,6 @@ const props = defineProps<{
 
 const ALL_METRICS = "__ALL__";
 const selectedMetric = ref(ALL_METRICS);
-const sortOrder = ref<"ASC" | "DESC">("ASC");
-const onlyImprovements = ref(false);
-const minImprovement = ref<number | null>(null);
-const minImprovementThreshold = computed(() => {
-  const parsed = Number(minImprovement.value);
-  if (!Number.isFinite(parsed) || parsed <= 0) return null;
-  return parsed;
-});
 
 const metricOptions = computed(() => {
   const uniqueMetrics = Array.from(
@@ -97,11 +89,9 @@ function toSortableDateMs(dateValue: string): number {
 const rows = computed(() => {
   const enriched = filteredTimeline.value.map((entry) => {
     const sortableDate = toSortableDateMs(entry.activityDate);
-    const isInitial = !entry.previousValue || !entry.improvement;
     return {
       ...entry,
       sortableDate,
-      isInitial,
       improvementValue: parseImprovementValue(entry.improvement),
       activityDate: entry.activityDate.split("T")[0],
       previousValue: entry.previousValue ?? "-",
@@ -109,25 +99,11 @@ const rows = computed(() => {
     };
   });
 
-  const filtered = enriched.filter((entry) => {
-    if (onlyImprovements.value && entry.isInitial) {
-      return false;
-    }
-    if (minImprovementThreshold.value !== null) {
-      if (entry.improvementValue === null || entry.improvementValue < minImprovementThreshold.value) {
-        return false;
-      }
-    }
-    return true;
-  });
-
-  const sorted = [...filtered].sort((left, right) => {
+  const sorted = [...enriched].sort((left, right) => {
     if (left.sortableDate === right.sortableDate) {
       return left.activityDate.localeCompare(right.activityDate);
     }
-    return sortOrder.value === "ASC"
-      ? left.sortableDate - right.sortableDate
-      : right.sortableDate - left.sortableDate;
+    return left.sortableDate - right.sortableDate;
   });
 
   return sorted;
@@ -175,29 +151,6 @@ const columns = [
           {{ option.label }}
         </option>
       </select>
-      <label for="timelineSort" class="form-label mb-0">Sort</label>
-      <select id="timelineSort" v-model="sortOrder" class="form-select form-select-sm sort-select">
-        <option value="ASC">
-          Oldest to newest
-        </option>
-        <option value="DESC">
-          Newest to oldest
-        </option>
-      </select>
-      <label class="form-check form-check-inline mb-0 only-improvement-toggle">
-        <input v-model="onlyImprovements" type="checkbox" class="form-check-input">
-        <span class="form-check-label">Only improvements</span>
-      </label>
-      <label for="timelineMinImprovement" class="form-label mb-0">Min improvement</label>
-      <input
-        id="timelineMinImprovement"
-        v-model.number="minImprovement"
-        type="number"
-        min="0"
-        step="0.1"
-        class="form-control form-control-sm min-improvement-input"
-        placeholder="Any"
-      >
       <span class="timeline-count">{{ summary.count }} PR events</span>
     </div>
 
@@ -217,7 +170,7 @@ const columns = [
     </div>
 
     <div v-if="rows.length === 0" class="timeline-empty">
-      No PR events found for the selected filters.
+      No PR events found for the selected metric.
     </div>
 
     <section
@@ -266,19 +219,6 @@ const columns = [
   border-radius: 10px;
   border: 1px solid var(--ms-border);
   background: #ffffff;
-}
-
-.sort-select {
-  min-width: 190px;
-  max-width: 230px;
-}
-
-.min-improvement-input {
-  width: 120px;
-}
-
-.only-improvement-toggle {
-  margin-left: 2px;
 }
 
 .timeline-summary {
