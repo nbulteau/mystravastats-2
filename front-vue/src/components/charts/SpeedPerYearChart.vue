@@ -115,10 +115,25 @@ function updateChartData() {
   }
 
   if (chartOptions.series && chartOptions.series.length > 0) {
-    const averageSpeedByYear = Object.values(props.averageSpeedByYear);
-    const maxSpeedByYear = Object.values(props.maxSpeedByYear);
+    const years = Array.from(
+      new Set([...Object.keys(props.averageSpeedByYear), ...Object.keys(props.maxSpeedByYear)]),
+    ).sort();
+    const averageSpeedByYear = years.map((year) => {
+      const value = props.averageSpeedByYear[year];
+      return Number.isFinite(value) ? value : 0;
+    });
+    const maxSpeedByYear = years.map((year) => {
+      const value = props.maxSpeedByYear[year];
+      return Number.isFinite(value) ? value : 0;
+    });
 
-    chartOptions.xAxis.categories = Object.keys(props.averageSpeedByYear);
+    chartOptions.xAxis.categories = years;
+    if (years.length === 0) {
+      (chartOptions.series[0] as SeriesColumnOptions).data = [];
+      (chartOptions.series[1] as SeriesColumnOptions).data = [];
+      (chartOptions.series[2] as SeriesLineOptions).data = [];
+      return;
+    }
 
     const maxAverageSpeed = Math.max(...averageSpeedByYear);
     const maxAverageSpeedIndex = averageSpeedByYear.indexOf(maxAverageSpeed);
@@ -157,15 +172,28 @@ function updateChartData() {
 
 function calculateTrendLine(data: number[]): number[] {
   const n = data.length;
+  if (n === 0) {
+    return [];
+  }
+  if (n === 1) {
+    return [data[0]];
+  }
   const xSum = data.reduce((sum, _, index) => sum + index, 0);
   const ySum = data.reduce((sum, value) => sum + value, 0);
   const xySum = data.reduce((sum, value, index) => sum + index * value, 0);
   const xSquaredSum = data.reduce((sum, _, index) => sum + index * index, 0);
+  const denominator = (n * xSquaredSum - xSum * xSum);
+  if (denominator === 0) {
+    return [...data];
+  }
 
-  const slope = (n * xySum - xSum * ySum) / (n * xSquaredSum - xSum * xSum);
+  const slope = (n * xySum - xSum * ySum) / denominator;
   const intercept = (ySum - slope * xSum) / n;
 
-  return data.map((_, index) => slope * index + intercept);
+  return data.map((_, index) => {
+    const value = slope * index + intercept;
+    return Number.isFinite(value) ? value : 0;
+  });
 }
 
 watch(

@@ -124,12 +124,16 @@ func computeDashboardData(activityTypes ...business.ActivityType) business.Dashb
 	activitiesGroupedByYear := groupActivitiesByYear(activities)
 
 	nbActivitiesByYear := make(map[string]int)
+	activeDaysByYear := make(map[string]int)
+	consistencyByYear := make(map[string]float64)
+	movingTimeByYear := make(map[string]int)
 	totalDistanceByYear := make(map[string]float64)
 	averageDistanceByYear := make(map[string]float64)
 	maxDistanceByYear := make(map[string]float64)
 	totalElevationByYear := make(map[string]int)
 	averageElevationByYear := make(map[string]int)
 	maxElevationByYear := make(map[string]int)
+	elevationEfficiencyByYear := make(map[string]float64)
 	averageSpeedByYear := make(map[string]float64)
 	maxSpeedByYear := make(map[string]float64)
 	averageHeartRateByYear := make(map[string]int)
@@ -139,12 +143,18 @@ func computeDashboardData(activityTypes ...business.ActivityType) business.Dashb
 
 	for year, yearActivities := range activitiesGroupedByYear {
 		nbActivitiesByYear[year] = len(yearActivities)
+		activeDaysByYear[year] = countActiveDays(yearActivities)
+		consistencyByYear[year] = computeConsistencyByYear(year, activeDaysByYear[year])
+		movingTimeByYear[year] = sumMovingTime(yearActivities)
 		totalDistanceByYear[year] = sumDistance(yearActivities)
 		averageDistanceByYear[year] = averageDistance(yearActivities)
 		maxDistanceByYear[year] = maxDistance(yearActivities)
 		totalElevationByYear[year] = sumElevation(yearActivities)
 		averageElevationByYear[year] = averageElevation(yearActivities)
 		maxElevationByYear[year] = maxElevation(yearActivities)
+		if totalDistanceByYear[year] > 0 {
+			elevationEfficiencyByYear[year] = (float64(totalElevationByYear[year]) / totalDistanceByYear[year]) * 10.0
+		}
 		averageSpeedByYear[year] = averageSpeed(yearActivities)
 		maxSpeedByYear[year] = maxSpeed(yearActivities)
 		averageHeartRateByYear[year] = averageHeartRate(yearActivities)
@@ -154,19 +164,23 @@ func computeDashboardData(activityTypes ...business.ActivityType) business.Dashb
 	}
 
 	return business.DashboardData{
-		NbActivities:           nbActivitiesByYear,
-		TotalDistanceByYear:    totalDistanceByYear,
-		AverageDistanceByYear:  averageDistanceByYear,
-		MaxDistanceByYear:      maxDistanceByYear,
-		TotalElevationByYear:   totalElevationByYear,
-		AverageElevationByYear: averageElevationByYear,
-		MaxElevationByYear:     maxElevationByYear,
-		AverageSpeedByYear:     averageSpeedByYear,
-		MaxSpeedByYear:         maxSpeedByYear,
-		AverageHeartRateByYear: averageHeartRateByYear,
-		MaxHeartRateByYear:     maxHeartRateByYear,
-		AverageWattsByYear:     averageWattsByYear,
-		MaxWattsByYear:         maxWattsByYear,
+		NbActivities:              nbActivitiesByYear,
+		ActiveDaysByYear:          activeDaysByYear,
+		ConsistencyByYear:         consistencyByYear,
+		MovingTimeByYear:          movingTimeByYear,
+		TotalDistanceByYear:       totalDistanceByYear,
+		AverageDistanceByYear:     averageDistanceByYear,
+		MaxDistanceByYear:         maxDistanceByYear,
+		TotalElevationByYear:      totalElevationByYear,
+		AverageElevationByYear:    averageElevationByYear,
+		MaxElevationByYear:        maxElevationByYear,
+		ElevationEfficiencyByYear: elevationEfficiencyByYear,
+		AverageSpeedByYear:        averageSpeedByYear,
+		MaxSpeedByYear:            maxSpeedByYear,
+		AverageHeartRateByYear:    averageHeartRateByYear,
+		MaxHeartRateByYear:        maxHeartRateByYear,
+		AverageWattsByYear:        averageWattsByYear,
+		MaxWattsByYear:            maxWattsByYear,
 	}
 }
 
@@ -203,6 +217,18 @@ func maxDistance(activities []*strava.Activity) float64 {
 		}
 	}
 	return maxDistanceValue
+}
+
+func countActiveDays(activities []*strava.Activity) int {
+	uniqueDays := make(map[string]struct{})
+	for _, activity := range activities {
+		if len(activity.StartDateLocal) < 10 {
+			continue
+		}
+		dayKey := activity.StartDateLocal[:10]
+		uniqueDays[dayKey] = struct{}{}
+	}
+	return len(uniqueDays)
 }
 
 func sumElevation(activities []*strava.Activity) int {
@@ -302,6 +328,45 @@ func maxWatts(activities []*strava.Activity) float64 {
 		}
 	}
 	return maxWattsValue
+}
+
+func sumMovingTime(activities []*strava.Activity) int {
+	var sum int
+	for _, activity := range activities {
+		movingTime := activity.MovingTime
+		if movingTime <= 0 {
+			movingTime = activity.ElapsedTime
+		}
+		sum += movingTime
+	}
+	return sum
+}
+
+func computeConsistencyByYear(year string, activeDays int) float64 {
+	yearNumber, err := strconv.Atoi(year)
+	if err != nil || activeDays <= 0 {
+		return 0
+	}
+	now := time.Now()
+	daysScope := daysInScopeForYear(yearNumber, now)
+	if daysScope <= 0 {
+		return 0
+	}
+	return math.Round((float64(activeDays)/float64(daysScope))*1000) / 10
+}
+
+func daysInScopeForYear(year int, now time.Time) int {
+	if year == now.Year() {
+		return now.YearDay()
+	}
+	return daysInYear(year)
+}
+
+func daysInYear(year int) int {
+	if isLeapYear(year) {
+		return 366
+	}
+	return 365
 }
 
 func computeActivityHeatmap(activityTypes ...business.ActivityType) map[string]map[string]dashboardDomain.ActivityHeatmapDay {

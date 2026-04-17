@@ -514,20 +514,24 @@ func ToHeartRateZoneAnalysisDto(analysis business.HeartRateZoneAnalysis) HeartRa
 
 func ToDashboardDataDto(data business.DashboardData) DashboardDataDto {
 	return DashboardDataDto{
-		NbActivitiesByYear:     data.NbActivities,
-		TotalDistanceByYear:    data.TotalDistanceByYear,
-		AverageDistanceByYear:  data.AverageDistanceByYear,
-		MaxDistanceByYear:      data.MaxDistanceByYear,
-		TotalElevationByYear:   data.TotalElevationByYear,
-		AverageElevationByYear: data.AverageElevationByYear,
-		MaxElevationByYear:     data.MaxElevationByYear,
-		AverageSpeedByYear:     data.AverageSpeedByYear,
-		MaxSpeedByYear:         data.MaxSpeedByYear,
-		AverageHeartRateByYear: data.AverageHeartRateByYear,
-		MaxHeartRateByYear:     data.MaxHeartRateByYear,
-		AverageWattsByYear:     data.AverageWattsByYear,
-		MaxWattsByYear:         data.MaxWattsByYear,
-		AverageCadenceByYear:   data.AverageCadence,
+		NbActivitiesByYear:        data.NbActivities,
+		ActiveDaysByYear:          data.ActiveDaysByYear,
+		ConsistencyByYear:         data.ConsistencyByYear,
+		MovingTimeByYear:          data.MovingTimeByYear,
+		TotalDistanceByYear:       data.TotalDistanceByYear,
+		AverageDistanceByYear:     data.AverageDistanceByYear,
+		MaxDistanceByYear:         data.MaxDistanceByYear,
+		TotalElevationByYear:      data.TotalElevationByYear,
+		AverageElevationByYear:    data.AverageElevationByYear,
+		MaxElevationByYear:        data.MaxElevationByYear,
+		ElevationEfficiencyByYear: data.ElevationEfficiencyByYear,
+		AverageSpeedByYear:        data.AverageSpeedByYear,
+		MaxSpeedByYear:            data.MaxSpeedByYear,
+		AverageHeartRateByYear:    data.AverageHeartRateByYear,
+		MaxHeartRateByYear:        data.MaxHeartRateByYear,
+		AverageWattsByYear:        data.AverageWattsByYear,
+		MaxWattsByYear:            data.MaxWattsByYear,
+		AverageCadenceByYear:      data.AverageCadence,
 	}
 }
 

@@ -53,13 +53,15 @@ In practice:
 The frontend is implemented in Vue 3 with Vite and Pinia.
 
 Main areas:
+- dashboard
+- charts
+- heatmap
 - statistics
+- badges
 - activities
 - map
-- charts
-- dashboard
-- heatmap
-- badges
+- segments
+- routes (beta)
 - detailed activity view
 
 Useful entry points:
@@ -99,9 +101,25 @@ This improves perceived startup performance while protecting the app from noisy 
 
 ## Screenshots
 
+Dashboard:
+
+![Dashboard](screen-dashboard.png)
+
+Charts:
+
+![Charts](screen-charts.png)
+
+Heatmap:
+
+![Heatmap](screen-heatmap.png)
+
 Statistics:
 
 ![Statistics](screen-statistics.png)
+
+Badges:
+
+![Badges](screen-badges.png)
 
 Activities:
 
@@ -111,25 +129,9 @@ Map:
 
 ![Map](screen-map.png)
 
-Charts:
-
-![Charts](screen-charts.png)
-
-Dashboard:
-
-![Dashboard](screen-dashboard.png)
-
-Heatmap:
-
-![Heatmap](screen-heatmap.png)
-
 Segments:
 
 ![Segments](screen-segments.png)
-
-Badges:
-
-![Badges](screen-badges.png)
 
 Detailed activity:
 
@@ -617,11 +619,15 @@ Why it is interesting:
 
 The dashboard summarizes yearly progression with metrics such as:
 - number of activities per year
+- active days per year
+- consistency (%) per year
+- moving time per year
 - total distance per year
 - average distance per year
 - max distance per year
 - total elevation per year
 - average elevation per year
+- elevation efficiency (`m / 10 km`) per year
 - average speed per year
 - average heart rate per year
 - average watts per year

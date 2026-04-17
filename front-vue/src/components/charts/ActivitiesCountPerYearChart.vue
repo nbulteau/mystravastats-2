@@ -42,7 +42,7 @@ const chartOptions = reactive({
                 color: any; series: { name: string }; y: string
               }
           ) {
-            return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${point.y} km`;
+            return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${point.y}`;
           },
           "<b>" + this.x + "</b>");
     },
@@ -78,9 +78,15 @@ function updateChartData() {
   }
 
   if (chartOptions.series && chartOptions.series.length > 0) {
-    const activitiesCount = Object.values(props.activitiesCount);
+    const entries = Object.entries(props.activitiesCount).sort(([left], [right]) => left.localeCompare(right));
+    const activitiesCount = entries.map(([, value]) => Number.isFinite(value) ? value : 0);
+    chartOptions.xAxis.categories = entries.map(([year]) => year);
 
-    chartOptions.xAxis.categories = Object.keys(props.activitiesCount);
+    if (activitiesCount.length === 0) {
+      (chartOptions.series[0] as SeriesColumnOptions).data = [];
+      (chartOptions.series[1] as SeriesLineOptions).data = [];
+      return;
+    }
 
     const maxActivitiesCount = Math.max(...activitiesCount);
     const maxActivitiesCountIndex = activitiesCount.indexOf(maxActivitiesCount);
@@ -104,15 +110,28 @@ function updateChartData() {
 
 function calculateTrendLine(data: number[]): number[] {
   const n = data.length;
+  if (n === 0) {
+    return [];
+  }
+  if (n === 1) {
+    return [data[0]];
+  }
   const xSum = data.reduce((sum, _, index) => sum + index, 0);
   const ySum = data.reduce((sum, value) => sum + value, 0);
   const xySum = data.reduce((sum, value, index) => sum + index * value, 0);
   const xSquaredSum = data.reduce((sum, _, index) => sum + index * index, 0);
+  const denominator = n * xSquaredSum - xSum * xSum;
+  if (denominator === 0) {
+    return [...data];
+  }
 
-  const slope = (n * xySum - xSum * ySum) / (n * xSquaredSum - xSum * xSum);
+  const slope = (n * xySum - xSum * ySum) / denominator;
   const intercept = (ySum - slope * xSum) / n;
 
-  return data.map((_, index) => slope * index + intercept);
+  return data.map((_, index) => {
+    const value = slope * index + intercept;
+    return Number.isFinite(value) ? value : 0;
+  });
 }
 
 

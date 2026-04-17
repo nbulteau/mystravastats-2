@@ -140,6 +140,18 @@ class DashboardService(
             .mapValues { (_, stats) -> stats.nbActivities }
             .filter { it.value > 0 }
 
+        val activeDaysByYear = activitiesByYear
+            .mapValues { (_, activities) -> countActiveDays(activities) }
+            .filter { it.value > 0 }
+
+        val consistencyByYear = activeDaysByYear
+            .mapValues { (year, activeDays) -> computeConsistencyByYear(year, activeDays) }
+            .filter { it.value > 0F }
+
+        val movingTimeByYear = activitiesByYear
+            .mapValues { (_, activities) -> sumMovingTimeSeconds(activities) }
+            .filter { it.value > 0 }
+
         val totalDistanceByYear = yearlyAccumulators
             .mapValues { (_, stats) -> stats.totalDistanceKm.toFloat() }
             .filter { it.value > 0 }
@@ -167,6 +179,17 @@ class DashboardService(
         val maxElevationByYear = yearlyAccumulators
             .mapValues { (_, stats) -> stats.maxElevation }
             .filter { entry -> entry.value > 0 }
+
+        val elevationEfficiencyByYear = totalDistanceByYear
+            .mapNotNull { (year, distanceKm) ->
+                val totalElevation = totalElevationByYear[year] ?: return@mapNotNull null
+                if (distanceKm <= 0f || totalElevation <= 0) {
+                    return@mapNotNull null
+                }
+                val value = ((totalElevation.toDouble() / distanceKm.toDouble()) * 10.0).toFloat()
+                year to value
+            }
+            .toMap()
 
         val averageSpeedByYear = yearlyAccumulators
             .mapValues { (_, stats) ->
@@ -202,12 +225,16 @@ class DashboardService(
 
         return DashboardData(
             nbActivitiesByYear,
+            activeDaysByYear,
+            consistencyByYear,
+            movingTimeByYear,
             totalDistanceByYear,
             averageDistanceByYear,
             maxDistanceByYear,
             totalElevationByYear,
             averageElevationByYear,
             maxElevationByYear,
+            elevationEfficiencyByYear,
             averageSpeedByYear,
             maxSpeedByYear,
             averageHeartRateByYear,
@@ -316,4 +343,32 @@ class DashboardService(
     }
 
     private fun roundOneDecimal(value: Double): Double = round(value * 10.0) / 10.0
+
+    private fun countActiveDays(activities: List<StravaActivity>): Int {
+        return activities.mapNotNull { activity ->
+            activity.startDateLocal.takeIf { it.length >= 10 }?.substring(0, 10)
+        }.toSet().size
+    }
+
+    private fun sumMovingTimeSeconds(activities: List<StravaActivity>): Int {
+        return activities.sumOf { activity ->
+            if (activity.movingTime > 0) activity.movingTime else activity.elapsedTime
+        }
+    }
+
+    private fun computeConsistencyByYear(year: String, activeDays: Int): Float {
+        val yearNumber = year.toIntOrNull() ?: return 0F
+        if (activeDays <= 0) return 0F
+        val now = LocalDate.now()
+        val scopeDays = if (yearNumber == now.year) now.dayOfYear else if (isLeapYear(yearNumber)) 366 else 365
+        if (scopeDays <= 0) return 0F
+        val ratio = (activeDays.toDouble() / scopeDays.toDouble()) * 100.0
+        return (round(ratio * 10.0) / 10.0).toFloat()
+    }
+
+    private fun isLeapYear(year: Int): Boolean {
+        if (year % 400 == 0) return true
+        if (year % 100 == 0) return false
+        return year % 4 == 0
+    }
 }

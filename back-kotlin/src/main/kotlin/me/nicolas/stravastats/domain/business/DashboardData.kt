@@ -2,12 +2,16 @@ package me.nicolas.stravastats.domain.business
 
 data class DashboardData(
     val nbActivitiesByYear: Map<String, Int>,
+    val activeDaysByYear: Map<String, Int>,
+    val consistencyByYear: Map<String, Float>,
+    val movingTimeByYear: Map<String, Int>,
     val totalDistanceByYear: Map<String, Float>,
     val averageDistanceByYear: Map<String, Float>,
     val maxDistanceByYear: Map<String, Float>,
     val totalElevationByYear: Map<String, Int>,
     val averageElevationByYear: Map<String, Int>,
     val maxElevationByYear: Map<String, Int>,
+    val elevationEfficiencyByYear: Map<String, Float>,
     val averageSpeedByYear: Map<String, Float>,
     val maxSpeedByYear: Map<String, Float>,
     val averageHeartRateByYear: Map<String, Int>,

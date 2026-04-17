@@ -2,7 +2,11 @@ package infrastructure
 
 import (
 	"fmt"
+	"math"
+	"mystravastats/internal/shared/domain/strava"
+	"strconv"
 	"testing"
+	"time"
 )
 
 func TestComputeEddingtonFromDailyTotals_ReturnsZeroForEmptyInput(t *testing.T) {
@@ -71,5 +75,71 @@ func TestComputeEddingtonFromDailyTotals_IgnoresNonPositiveDailyTotals(t *testin
 		if count != 4 {
 			t.Fatalf("expected 4 days for threshold index %d, got %d", day, count)
 		}
+	}
+}
+
+func TestCountActiveDays_CountsUniqueCalendarDatesOnly(t *testing.T) {
+	// GIVEN
+	activities := []*strava.Activity{
+		{StartDateLocal: "2025-01-01T08:00:00Z"},
+		{StartDateLocal: "2025-01-01T18:00:00Z"},
+		{StartDateLocal: "2025-01-03T07:30:00Z"},
+	}
+
+	// WHEN
+	activeDays := countActiveDays(activities)
+
+	// THEN
+	if activeDays != 2 {
+		t.Fatalf("expected 2 active days, got %d", activeDays)
+	}
+}
+
+func TestSumMovingTime_FallsBackToElapsedTimeWhenMovingTimeIsZero(t *testing.T) {
+	// GIVEN
+	activities := []*strava.Activity{
+		{MovingTime: 3600, ElapsedTime: 3700},
+		{MovingTime: 0, ElapsedTime: 1800},
+		{MovingTime: 1200, ElapsedTime: 1500},
+	}
+
+	// WHEN
+	totalMoving := sumMovingTime(activities)
+
+	// THEN
+	expected := 3600 + 1800 + 1200
+	if totalMoving != expected {
+		t.Fatalf("expected moving time %d, got %d", expected, totalMoving)
+	}
+}
+
+func TestComputeConsistencyByYear_UsesFullYearForPastYears(t *testing.T) {
+	// GIVEN
+	year := "2024"
+	activeDays := 183
+
+	// WHEN
+	consistency := computeConsistencyByYear(year, activeDays)
+
+	// THEN
+	expected := 50.0 // 183 / 366 * 100 rounded to 1 decimal
+	if math.Abs(consistency-expected) > 0.0001 {
+		t.Fatalf("expected consistency %.1f, got %.1f", expected, consistency)
+	}
+}
+
+func TestComputeConsistencyByYear_UsesYearToDateForCurrentYear(t *testing.T) {
+	// GIVEN
+	currentYear := strconv.Itoa(time.Now().Year())
+	activeDays := 1
+
+	// WHEN
+	consistency := computeConsistencyByYear(currentYear, activeDays)
+
+	// THEN
+	daysInScope := time.Now().YearDay()
+	expected := math.Round((float64(activeDays)/float64(daysInScope))*1000) / 10
+	if math.Abs(consistency-expected) > 0.0001 {
+		t.Fatalf("expected consistency %.1f, got %.1f", expected, consistency)
 	}
 }

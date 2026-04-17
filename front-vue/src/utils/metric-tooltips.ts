@@ -60,6 +60,10 @@ const exactMetricTooltips: Record<string, string> = {
   "Highest point": "Highest altitude point reached.",
   "Max moving time":
     "Longest moving time in a single activity, excluding paused duration.",
+  "Moving time by year":
+    "Total moving time aggregated per year (in seconds in API, rendered as hours in charts).",
+  "Elevation efficiency":
+    "How much climbing you get for distance: total elevation gain divided by total distance, scaled to m per 10 km.",
   "Most active month":
     "Month with the highest number of activities in the selected period.",
   "Eddington number":

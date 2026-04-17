@@ -43,38 +43,6 @@ const isCurrent = (name: string) => route.name === name;
           role="presentation"
         >
           <RouterLink
-            id="statistics-tab"
-            class="nav-link"
-            :class="{ active: isCurrent('statistics') }"
-            role="tab"
-            aria-controls="home-tab-pane"
-            :aria-selected="isCurrent('statistics')"
-            to="/statistics"
-          >
-            Statistics
-          </RouterLink>
-        </li>
-        <li
-          class="nav-item"
-          role="presentation"
-        >
-          <RouterLink
-            id="activities-tab"
-            class="nav-link"
-            :class="{ active: isCurrent('activities') }"
-            role="tab"
-            aria-controls="activities-tab-pane"
-            :aria-selected="isCurrent('activities')"
-            to="/activities"
-          >
-            Activities
-          </RouterLink>
-        </li>
-        <li
-          class="nav-item"
-          role="presentation"
-        >
-          <RouterLink
             id="charts-tab"
             class="nav-link"
             :class="{ active: isCurrent('charts') }"
@@ -107,15 +75,15 @@ const isCurrent = (name: string) => route.name === name;
           role="presentation"
         >
           <RouterLink
-            id="segments-tab"
+            id="statistics-tab"
             class="nav-link"
-            :class="{ active: isCurrent('segments') }"
+            :class="{ active: isCurrent('statistics') }"
             role="tab"
-            aria-controls="segments-tab-pane"
-            :aria-selected="isCurrent('segments')"
-            to="/segments"
+            aria-controls="home-tab-pane"
+            :aria-selected="isCurrent('statistics')"
+            to="/statistics"
           >
-            Segments
+            Statistics
           </RouterLink>
         </li>
         <li
@@ -139,6 +107,22 @@ const isCurrent = (name: string) => route.name === name;
           role="presentation"
         >
           <RouterLink
+            id="activities-tab"
+            class="nav-link"
+            :class="{ active: isCurrent('activities') }"
+            role="tab"
+            aria-controls="activities-tab-pane"
+            :aria-selected="isCurrent('activities')"
+            to="/activities"
+          >
+            Activities
+          </RouterLink>
+        </li>
+        <li
+          class="nav-item"
+          role="presentation"
+        >
+          <RouterLink
             id="map-tab"
             class="nav-link"
             :class="{ active: isCurrent('map') }"
@@ -148,6 +132,22 @@ const isCurrent = (name: string) => route.name === name;
             to="/map"
           >
             Map
+          </RouterLink>
+        </li>
+        <li
+          class="nav-item"
+          role="presentation"
+        >
+          <RouterLink
+            id="segments-tab"
+            class="nav-link"
+            :class="{ active: isCurrent('segments') }"
+            role="tab"
+            aria-controls="segments-tab-pane"
+            :aria-selected="isCurrent('segments')"
+            to="/segments"
+          >
+            Segments
           </RouterLink>
         </li>
         <li

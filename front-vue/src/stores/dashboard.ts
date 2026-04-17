@@ -34,10 +34,12 @@ export const useDashboardStore = defineStore("dashboard", {
     cumulativeDistancePerYear: new Map<string, Map<string, number>>(),
     cumulativeElevationPerYear: new Map<string, Map<string, number>>(),
     eddingtonNumber: new EddingtonNumber(),
-    dashboardData: new DashboardData({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, []),
+    dashboardData: new DashboardData({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, []),
     activityHeatmap: {} as ActivityHeatmap,
     dashboardByKey: {} as Record<string, DashboardCacheEntry>,
     heatmapByActivityType: {} as Record<string, ActivityHeatmap>,
+    isLoading: false,
+    error: null as string | null,
   }),
   actions: {
     currentDashboardKey(): string {
@@ -104,14 +106,23 @@ export const useDashboardStore = defineStore("dashboard", {
       const cached = this.dashboardByKey[key];
       if (!force && cached) {
         this.applyDashboardCacheEntry(cached);
+        this.error = null;
         return;
       }
 
-      await Promise.all([
-        this.fetchEddingtonNumber(),
-        this.fetchCumulativeDataPerYear(),
-        this.fetchDashboardData(),
-      ]);
+      this.isLoading = true;
+      this.error = null;
+      try {
+        await Promise.all([
+          this.fetchEddingtonNumber(),
+          this.fetchCumulativeDataPerYear(),
+          this.fetchDashboardData(),
+        ]);
+      } catch (error: unknown) {
+        this.error = error instanceof Error ? error.message : "Failed to load dashboard data.";
+      } finally {
+        this.isLoading = false;
+      }
     },
     async ensureHeatmapLoaded(force = false) {
       const key = this.currentHeatmapKey();

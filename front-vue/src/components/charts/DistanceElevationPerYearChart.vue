@@ -79,7 +79,6 @@ tooltip: {
     {
       name: "Elevation",
       type: "line",
-      yAxis: 1,
       dataLabels: {
         enabled: true,
         y: -10,
@@ -93,6 +92,7 @@ tooltip: {
     {
       name: "Distance",
       type: "line",
+      yAxis: 1,
       dataLabels: {
         enabled: true,
         y: -10,
@@ -106,6 +106,7 @@ tooltip: {
     {
       name: "Trend line",
       type: "line",
+      yAxis: 1,
       dashStyle: "ShortDash",
       marker: {
         enabled: false,
@@ -122,18 +123,33 @@ function updateChartData() {
   }
 
   if (chartOptions.series && chartOptions.series.length > 0) {
-    const alevationByYear = Object.values(props.elevationByYear);
-    const distanceByYear = Object.values(props.distanceByYear);
+    const years = Array.from(
+      new Set([...Object.keys(props.elevationByYear), ...Object.keys(props.distanceByYear)]),
+    ).sort();
+    const elevationByYear = years.map((year) => {
+      const value = props.elevationByYear[year];
+      return Number.isFinite(value) ? value : 0;
+    });
+    const distanceByYear = years.map((year) => {
+      const value = props.distanceByYear[year];
+      return Number.isFinite(value) ? value : 0;
+    });
 
-    chartOptions.xAxis.categories = Object.keys(props.elevationByYear);
+    chartOptions.xAxis.categories = years;
+    if (years.length === 0) {
+      (chartOptions.series[0] as SeriesColumnOptions).data = [];
+      (chartOptions.series[1] as SeriesColumnOptions).data = [];
+      (chartOptions.series[2] as SeriesLineOptions).data = [];
+      return;
+    }
 
-    const maxElevation = Math.max(...alevationByYear);
-    const maxElevationIndex = alevationByYear.indexOf(maxElevation);
+    const maxElevation = Math.max(...elevationByYear);
+    const maxElevationIndex = elevationByYear.indexOf(maxElevation);
 
     const maxDistance = Math.max(...distanceByYear);
     const maxDistanceIndex = distanceByYear.indexOf(maxDistance);
 
-    (chartOptions.series[0] as SeriesColumnOptions).data = alevationByYear.map(
+    (chartOptions.series[0] as SeriesColumnOptions).data = elevationByYear.map(
       (value, index) =>
         index === maxElevationIndex
           ? { y: value, marker: { enabled: true, radius: 6, fillColor: "red" } }
@@ -163,15 +179,28 @@ function updateChartData() {
 
 function calculateTrendLine(data: number[]): number[] {
   const n = data.length;
+  if (n === 0) {
+    return [];
+  }
+  if (n === 1) {
+    return [data[0]];
+  }
   const xSum = data.reduce((sum, _, index) => sum + index, 0);
   const ySum = data.reduce((sum, value) => sum + value, 0);
   const xySum = data.reduce((sum, value, index) => sum + index * value, 0);
   const xSquaredSum = data.reduce((sum, _, index) => sum + index * index, 0);
+  const denominator = n * xSquaredSum - xSum * xSum;
+  if (denominator === 0) {
+    return [...data];
+  }
 
-  const slope = (n * xySum - xSum * ySum) / (n * xSquaredSum - xSum * xSum);
+  const slope = (n * xySum - xSum * ySum) / denominator;
   const intercept = (ySum - slope * xSum) / n;
 
-  return data.map((_, index) => slope * index + intercept);
+  return data.map((_, index) => {
+    const value = slope * index + intercept;
+    return Number.isFinite(value) ? value : 0;
+  });
 }
 
 watch(() => props.elevationByYear || props.distanceByYear, updateChartData, {
