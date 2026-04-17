@@ -8,8 +8,6 @@ import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import me.nicolas.stravastats.domain.services.csv.*
 import org.slf4j.LoggerFactory
-import org.springframework.data.domain.Page
-import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 
 
@@ -18,10 +16,6 @@ interface IActivityService {
     fun getDetailedActivity(activityId: Long): StravaDetailedActivity?
 
     fun getActivitiesByActivityTypeAndYear(activityTypes: Set<ActivityType>, year: Int?): List<StravaActivity>
-
-    fun getActivitiesByActivityTypeGroupByActiveDays(activityTypes: Set<ActivityType>): Map<String, Int>
-
-    fun listActivitiesPaginated(pageable: Pageable): Page<StravaActivity>
 
     fun exportCSV(activityTypes: Set<ActivityType>, year: Int?): String
 }
@@ -32,18 +26,6 @@ internal class ActivityService(
 ) : IActivityService, AbstractStravaService(activityProvider) {
 
     private val logger = LoggerFactory.getLogger(ActivityService::class.java)
-
-    override fun getActivitiesByActivityTypeGroupByActiveDays(activityTypes: Set<ActivityType>): Map<String, Int> {
-        logger.info("Get activities by activity type ($activityTypes) group by active days")
-
-        return activityProvider.getActivitiesByActivityTypeGroupByActiveDays(activityTypes)
-    }
-
-    override fun listActivitiesPaginated(pageable: Pageable): Page<StravaActivity> {
-        logger.info("List activities paginated")
-
-        return activityProvider.listActivitiesPaginated(pageable)
-    }
 
     override fun getActivitiesByActivityTypeAndYear(activityTypes: Set<ActivityType>, year: Int?): List<StravaActivity> {
         logger.info("Get activities by activity type ($activityTypes) for ${year ?: "all years"}")

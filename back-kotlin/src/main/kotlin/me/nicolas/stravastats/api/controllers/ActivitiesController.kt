@@ -10,12 +10,8 @@ import me.nicolas.stravastats.api.dto.ActivityDto
 import me.nicolas.stravastats.api.dto.DetailedActivityDto
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
 import me.nicolas.stravastats.api.dto.toDto
-import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.services.IActivityService
-import org.springframework.data.domain.Page
-import org.springframework.data.domain.Pageable
 import org.springframework.data.rest.webmvc.ResourceNotFoundException
-import org.springframework.data.web.PagedModel
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -29,70 +25,17 @@ class ActivitiesController(
     private val activityService: IActivityService,
 ) {
 
-    private val validActivitySortProperties = setOf(
-        "averageSpeed",
-        "averageCadence",
-        "averageHeartrate",
-        "maxHeartrate",
-        "averageWatts",
-        "distance",
-        "elapsedTime",
-        "elevHigh",
-        "maxSpeed",
-        "movingTime",
-        "startDate",
-        "totalElevationGain",
-        "weightedAverageWatts"
-    )
-
     @Operation(
-        description = "Get all activities",
-        summary = "Get all activities from the authenticated user",
+        description = "Get activities by activity type and year. If year is null, all activities are returned.",
+        summary = "Get activities by activity type",
         responses = [ApiResponse(
             responseCode = "200", description = "Activities found",
-            content = [Content(
-                mediaType = MediaType.APPLICATION_JSON_VALUE,
-                schema = Schema(implementation = PagedModel::class)
-            )]
-        ), ApiResponse(
-            responseCode = "404", description = "Activities not found",
-            content = [Content(
-                mediaType = MediaType.APPLICATION_JSON_VALUE,
-                schema = Schema(implementation = ErrorResponseMessageDto::class)
-            )]
-        )],
-    )
-    @GetMapping(("/by-page"))
-    fun listActivitiesWithPageable(
-        pageable: Pageable,
-    ): PagedModel<ActivityDto> {
-        // Check if the pageable is valid
-        pageable.pageNumber.takeIf { it >= 0 } ?: throw ResourceNotFoundException()
-        pageable.pageSize.takeIf { it > 0 } ?: throw ResourceNotFoundException()
-
-        if (pageable.sort.isSorted && pageable.sort.any { sort -> sort.property !in validActivitySortProperties }) {
-            throw IllegalArgumentException("Invalid sort property : ${pageable.sort}")
-        }
-
-        val resultPage: Page<StravaActivity> = activityService.listActivitiesPaginated(pageable)
-        if (pageable.pageNumber > resultPage.totalPages) {
-            throw ResourceNotFoundException("Page not found")
-        }
-
-        return PagedModel(resultPage.map { activity -> activity.toDto() })
-    }
-
-    @Operation(
-        description = "Get activities by stravaActivity type and year. If year is null, all activities are returned. It return a map with the date as key and the cumulated distance in km as value.",
-        summary = "Get the active days by stravaActivity type for a year",
-        responses = [ApiResponse(
-            responseCode = "200", description = "Active days found",
             content = [Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
                 array = ArraySchema(schema = Schema(implementation = ActivityDto::class))
             )]
         ), ApiResponse(
-            responseCode = "404", description = "Active days not found",
+            responseCode = "404", description = "Activities not found",
             content = [Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
                 schema = Schema(implementation = ErrorResponseMessageDto::class)
@@ -109,32 +52,6 @@ class ActivitiesController(
 
         return activityService.getActivitiesByActivityTypeAndYear(activityTypes, year)
             .map { activity -> activity.toDto() }
-    }
-
-    @Operation(
-        description = "Get the active days by stravaActivity type",
-        summary = "Get the active days by stravaActivity type",
-        responses = [ApiResponse(
-            responseCode = "200", description = "Active days found",
-            content = [Content(
-                mediaType = MediaType.APPLICATION_JSON_VALUE,
-                schema = Schema(implementation = Map::class)
-            )]
-        ), ApiResponse(
-            responseCode = "404", description = "Active days not found",
-            content = [Content(
-                mediaType = MediaType.APPLICATION_JSON_VALUE,
-                schema = Schema(implementation = ErrorResponseMessageDto::class)
-            )]
-        )],
-    )
-    @GetMapping("/active-days")
-    fun getActiveDaysByActivityType(
-        @RequestParam(required = true) activityType: String,
-    ): Map<String, Int> {
-        val activityTypes = activityType.convertToActivityTypeSet()
-
-        return activityService.getActivitiesByActivityTypeGroupByActiveDays(activityTypes)
     }
 
     @Operation(
