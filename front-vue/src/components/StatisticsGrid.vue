@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import VGrid, { VGridVueTemplate, type CellProps } from "@revolist/vue3-datagrid";
 import type { Statistics } from "@/models/statistics.model";
 import ActivityCellRenderer from "./cell-renderers/ActivityCellRenderer.vue";
@@ -12,6 +12,9 @@ const props = withDefaults(defineProps<{
 }>(), {
   height: "calc(100vh - 150px)",
 });
+
+const yearLabel = computed(() => props.year === "All years" ? "All years" : props.year);
+const statisticsCount = computed(() => props.statistics.length);
 
 const columns = ref([
   {
@@ -31,6 +34,14 @@ const columns = ref([
 
 <template>
   <section class="grid-shell">
+    <header class="statistics-grid-header">
+      <div class="statistics-grid-title">
+        Statistics · {{ yearLabel }}
+      </div>
+      <div class="statistics-grid-meta">
+        {{ statisticsCount }} metrics
+      </div>
+    </header>
     <VGrid
       name="statisticsGrid"
       theme="material"
@@ -42,4 +53,21 @@ const columns = ref([
   </section>
 </template>
 
-<style scoped></style>
+<style scoped>
+.statistics-grid-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.statistics-grid-title {
+  font-weight: 700;
+  color: var(--ms-text);
+}
+
+.statistics-grid-meta {
+  color: var(--ms-text-muted);
+  font-size: 0.9rem;
+}
+</style>

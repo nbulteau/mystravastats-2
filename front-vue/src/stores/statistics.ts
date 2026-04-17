@@ -20,6 +20,12 @@ export const useStatisticsStore = defineStore("statistics", {
     statistics: [] as Statistics[],
     personalRecordsTimeline: [] as PersonalRecordTimeline[],
     heartRateZoneAnalysis: emptyHeartRateZoneAnalysis() as HeartRateZoneAnalysis,
+    isStatisticsLoading: false,
+    isPersonalRecordsTimelineLoading: false,
+    isHeartRateZoneAnalysisLoading: false,
+    statisticsError: null as string | null,
+    personalRecordsTimelineError: null as string | null,
+    heartRateZoneAnalysisError: null as string | null,
     cacheByKey: {} as Record<string, StatisticsCacheEntry>,
   }),
   actions: {
@@ -45,8 +51,21 @@ export const useStatisticsStore = defineStore("statistics", {
     async fetchStatistics() {
       const contextStore = useContextStore();
       const url = buildFilteredApiUrl("statistics", contextStore.currentActivityType, contextStore.currentYear);
-      this.statistics = await requestJson<Statistics[]>(url);
-      this.updateCacheForCurrentKey();
+      const key = this.currentFiltersKey();
+      this.isStatisticsLoading = true;
+      this.statisticsError = null;
+      try {
+        this.statistics = await requestJson<Statistics[]>(url);
+        this.updateCacheForCurrentKey();
+      } catch (error) {
+        this.statisticsError = error instanceof Error ? error.message : "Unable to load statistics.";
+        const cached = this.cacheByKey[key];
+        if (cached) {
+          this.statistics = cached.statistics;
+        }
+      } finally {
+        this.isStatisticsLoading = false;
+      }
     },
     async fetchPersonalRecordsTimeline() {
       const contextStore = useContextStore();
@@ -55,8 +74,21 @@ export const useStatisticsStore = defineStore("statistics", {
         contextStore.currentActivityType,
         contextStore.currentYear,
       );
-      this.personalRecordsTimeline = await requestJson<PersonalRecordTimeline[]>(url);
-      this.updateCacheForCurrentKey();
+      const key = this.currentFiltersKey();
+      this.isPersonalRecordsTimelineLoading = true;
+      this.personalRecordsTimelineError = null;
+      try {
+        this.personalRecordsTimeline = await requestJson<PersonalRecordTimeline[]>(url);
+        this.updateCacheForCurrentKey();
+      } catch (error) {
+        this.personalRecordsTimelineError = error instanceof Error ? error.message : "Unable to load PR timeline.";
+        const cached = this.cacheByKey[key];
+        if (cached) {
+          this.personalRecordsTimeline = cached.personalRecordsTimeline;
+        }
+      } finally {
+        this.isPersonalRecordsTimelineLoading = false;
+      }
     },
     async fetchHeartRateZoneAnalysis() {
       const contextStore = useContextStore();
@@ -65,19 +97,38 @@ export const useStatisticsStore = defineStore("statistics", {
         contextStore.currentActivityType,
         contextStore.currentYear,
       );
-      this.heartRateZoneAnalysis = await requestJson<HeartRateZoneAnalysis>(url);
-      this.updateCacheForCurrentKey();
+      const key = this.currentFiltersKey();
+      this.isHeartRateZoneAnalysisLoading = true;
+      this.heartRateZoneAnalysisError = null;
+      try {
+        this.heartRateZoneAnalysis = await requestJson<HeartRateZoneAnalysis>(url);
+        this.updateCacheForCurrentKey();
+      } catch (error) {
+        this.heartRateZoneAnalysisError = error instanceof Error ? error.message : "Unable to load HR zone analysis.";
+        const cached = this.cacheByKey[key];
+        if (cached) {
+          this.heartRateZoneAnalysis = cached.heartRateZoneAnalysis;
+        }
+      } finally {
+        this.isHeartRateZoneAnalysisLoading = false;
+      }
     },
     async ensureLoaded(force = false) {
       const key = this.currentFiltersKey();
       const cached = this.cacheByKey[key];
       if (!force && cached) {
         this.applyCacheEntry(cached);
+        this.statisticsError = null;
+        this.personalRecordsTimelineError = null;
+        this.heartRateZoneAnalysisError = null;
+        this.isStatisticsLoading = false;
+        this.isPersonalRecordsTimelineLoading = false;
+        this.isHeartRateZoneAnalysisLoading = false;
         return;
       }
 
       const athleteStore = useAthleteStore();
-      await Promise.all([
+      await Promise.allSettled([
         this.fetchStatistics(),
         this.fetchPersonalRecordsTimeline(),
         athleteStore.fetchHeartRateZoneSettings(),

@@ -114,10 +114,8 @@ const filteredActivities = computed<Activity[]>(() => {
     if (withHeartRate.value && resolveAverageHeartRate(activity) <= 0) {
       return false;
     }
-    if (withPower.value && resolvePower(activity) <= 0) {
-      return false;
-    }
-    return true;
+    return !(withPower.value && resolvePower(activity) <= 0);
+
   });
 });
 
