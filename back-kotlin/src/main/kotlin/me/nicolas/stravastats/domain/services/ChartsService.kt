@@ -1,6 +1,7 @@
 package me.nicolas.stravastats.domain.services
 
 import me.nicolas.stravastats.domain.business.ActivityType
+import me.nicolas.stravastats.domain.business.ChartPeriodPoint
 import me.nicolas.stravastats.domain.business.Period
 import me.nicolas.stravastats.domain.business.runActivities
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
@@ -18,25 +19,25 @@ interface IChartsService {
         activityTypes: Set<ActivityType>,
         year: Int,
         period: Period,
-    ): List<Pair<String, Double>>
+    ): List<ChartPeriodPoint>
 
     fun getElevationByPeriodByActivityTypeByYear(
         activityTypes: Set<ActivityType>,
         year: Int,
         period: Period,
-    ): List<Pair<String, Double>>
+    ): List<ChartPeriodPoint>
 
     fun getAverageSpeedByPeriodByActivityTypeByYear(
         activityTypes: Set<ActivityType>,
         year: Int,
         period: Period
-    ): List<Pair<String, Double>>
+    ): List<ChartPeriodPoint>
 
     fun getAverageCadenceByPeriodByActivityTypeByYear(
         activityTypes: Set<ActivityType>,
         year: Int,
         period: Period
-    ): List<Pair<String, Double>>
+    ): List<ChartPeriodPoint>
 
 }
 
@@ -60,15 +61,13 @@ internal class ChartsService(
         activityTypes: Set<ActivityType>,
         year: Int,
         period: Period,
-    ): List<Pair<String, Double>> {
+    ): List<ChartPeriodPoint> {
         logger.info("Get distance by $period by activity ($activityTypes) type by year ($year)")
 
         val activitiesByPeriod = this.activitiesByPeriod(activityTypes, year, period)
-        return activitiesByPeriod.mapValues { (_, activities) ->
-            activities.sumOf { activity ->
-                activity.distance / 1000
-            }
-        }.toList()
+        return activitiesByPeriod.mapToChartPoints { activities ->
+            activities.sumOf { activity -> activity.distance / 1000 }
+        }
     }
 
     /**
@@ -83,15 +82,13 @@ internal class ChartsService(
         activityTypes: Set<ActivityType>,
         year: Int,
         period: Period,
-    ): List<Pair<String, Double>> {
+    ): List<ChartPeriodPoint> {
         logger.info("Get elevation by $period by activity ($activityTypes) type by year ($year)")
 
         val activitiesByPeriod = activitiesByPeriod(activityTypes, year, period)
-        return activitiesByPeriod.mapValues { (_, activities) ->
-            activities.sumOf { activity ->
-                activity.totalElevationGain
-            }
-        }.toList()
+        return activitiesByPeriod.mapToChartPoints { activities ->
+            activities.sumOf { activity -> activity.totalElevationGain }
+        }
     }
 
     /**
@@ -106,36 +103,36 @@ internal class ChartsService(
         activityTypes: Set<ActivityType>,
         year: Int,
         period: Period
-    ): List<Pair<String, Double>> {
+    ): List<ChartPeriodPoint> {
         logger.info("Get average speed by $period by activity ($activityTypes) type by year ($year)")
 
         val activitiesByPeriod = activitiesByPeriod(activityTypes, year, period)
-        return activitiesByPeriod.mapValues { (_, activities) ->
+        return activitiesByPeriod.mapToChartPoints { activities ->
             if (activities.isEmpty()) {
                 0.0
             } else {
                 activities.sumOf { activity -> activity.averageSpeed } / activities.size
             }
-        }.toList()
+        }
     }
 
     override fun getAverageCadenceByPeriodByActivityTypeByYear(
         activityTypes: Set<ActivityType>,
         year: Int,
         period: Period
-    ): List<Pair<String, Double>>
+    ): List<ChartPeriodPoint>
     {
         logger.info("Get average cadence by $period by activity ($activityTypes) type by year ($year)")
 
         val activitiesByPeriod = activitiesByPeriod(activityTypes, year, period)
-        return activitiesByPeriod.mapValues { (_, activities) ->
+        return activitiesByPeriod.mapToChartPoints { activities ->
             if (activities.isEmpty()) {
                 0.0
             } else {
                 val cadence = activities.sumOf { activity -> activity.averageCadence } / activities.size
                 if (activityTypes.first() in runActivities) cadence * 2 else cadence
             }
-        }.toList()
+        }
     }
 
 
@@ -171,4 +168,15 @@ internal class ChartsService(
         activitiesByPeriodCache[key] = activitiesByPeriod
         return activitiesByPeriod
     }
+
+    private fun Map<String, List<StravaActivity>>.mapToChartPoints(
+        valueExtractor: (List<StravaActivity>) -> Double,
+    ): List<ChartPeriodPoint> =
+        this.map { (periodKey, activities) ->
+            ChartPeriodPoint(
+                periodKey = periodKey,
+                value = valueExtractor(activities),
+                activityCount = activities.size,
+            )
+        }
 }

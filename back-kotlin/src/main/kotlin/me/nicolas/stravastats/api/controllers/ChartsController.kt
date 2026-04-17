@@ -5,7 +5,9 @@ import io.swagger.v3.oas.annotations.media.ArraySchema
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
+import me.nicolas.stravastats.api.dto.ChartPeriodPointDto
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
+import me.nicolas.stravastats.api.dto.toDto
 import me.nicolas.stravastats.domain.business.Period
 import me.nicolas.stravastats.domain.services.IChartsService
 import org.springframework.http.MediaType
@@ -28,7 +30,7 @@ class ChartsController(
             responseCode = "200", description = "DistanceStream found",
             content = [Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
-                array = ArraySchema(schema = Schema(implementation = Map::class))
+                array = ArraySchema(schema = Schema(implementation = ChartPeriodPointDto::class))
             )]
         ), ApiResponse(
             responseCode = "404", description = "DistanceStream not found",
@@ -43,11 +45,11 @@ class ChartsController(
         @RequestParam(required = true) activityType: String,
         @RequestParam(required = true) year: Int,
         @RequestParam(required = true) period: Period,
-    ): List<Map<String, Double>> {
+    ): List<ChartPeriodPointDto> {
         val activityTypes = activityType.convertToActivityTypeSet()
 
         return chartsService.getDistanceByPeriodByActivityTypeByYear(activityTypes, year, period)
-            .map { mapOf(it.first to it.second) }
+            .map { it.toDto() }
     }
 
     @Operation(
@@ -57,7 +59,7 @@ class ChartsController(
             responseCode = "200", description = "Elevation found",
             content = [Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
-                array = ArraySchema(schema = Schema(implementation = Map::class))
+                array = ArraySchema(schema = Schema(implementation = ChartPeriodPointDto::class))
             )]
         ), ApiResponse(
             responseCode = "404", description = "Elevation not found",
@@ -72,11 +74,11 @@ class ChartsController(
         @RequestParam(required = true) activityType: String,
         @RequestParam(required = true) year: Int,
         @RequestParam(required = true) period: Period,
-    ): List<Map<String, Double>> {
+    ): List<ChartPeriodPointDto> {
         val activityTypes = activityType.convertToActivityTypeSet()
 
         return chartsService.getElevationByPeriodByActivityTypeByYear(activityTypes, year, period)
-            .map { mapOf(it.first to it.second) }
+            .map { it.toDto() }
     }
 
     @Operation(
@@ -86,7 +88,7 @@ class ChartsController(
             responseCode = "200", description = "Average speed found",
             content = [Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
-                array = ArraySchema(schema = Schema(implementation = Map::class))
+                array = ArraySchema(schema = Schema(implementation = ChartPeriodPointDto::class))
             )]
         ), ApiResponse(
             responseCode = "404", description = "Average speed not found",
@@ -101,11 +103,11 @@ class ChartsController(
         @RequestParam(required = true) activityType: String,
         @RequestParam(required = true) year: Int,
         @RequestParam(required = true) period: Period,
-    ): List<Map<String, Double>> {
+    ): List<ChartPeriodPointDto> {
         val activityTypes = activityType.convertToActivityTypeSet()
 
         return chartsService.getAverageSpeedByPeriodByActivityTypeByYear(activityTypes, year, period)
-            .map { mapOf(it.first to it.second) }
+            .map { it.toDto() }
     }
 
 
@@ -114,10 +116,10 @@ class ChartsController(
         @RequestParam(required = true) activityType: String,
         @RequestParam(required = true) year: Int,
         @RequestParam(required = true) period: Period,
-    ): List<Map<String, Double>> {
+    ): List<ChartPeriodPointDto> {
         val activityTypes = activityType.convertToActivityTypeSet()
 
         return chartsService.getAverageCadenceByPeriodByActivityTypeByYear(activityTypes, year, period)
-            .map { mapOf(it.first to it.second) }
+            .map { it.toDto() }
     }
 }

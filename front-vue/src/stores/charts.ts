@@ -2,14 +2,16 @@ import { defineStore } from "pinia";
 import { buildFilteredApiUrl, requestJson } from "@/stores/api";
 import { useContextStore } from "@/stores/context";
 import { DashboardData } from "@/models/dashboard-data.model";
+import type { ChartPeriodPoint } from "@/models/chart-period-point.model";
+import { normalizePeriodPoints } from "@/utils/charts";
 
 type ChartsCacheEntry = {
-  distanceByMonths: Record<string, number>[];
-  elevationByMonths: Record<string, number>[];
-  averageSpeedByMonths: Record<string, number>[];
-  distanceByWeeks: Record<string, number>[];
-  elevationByWeeks: Record<string, number>[];
-  cadenceByWeeks: Record<string, number>[];
+  distanceByMonths: ChartPeriodPoint[];
+  elevationByMonths: ChartPeriodPoint[];
+  averageSpeedByMonths: ChartPeriodPoint[];
+  distanceByWeeks: ChartPeriodPoint[];
+  elevationByWeeks: ChartPeriodPoint[];
+  cadenceByWeeks: ChartPeriodPoint[];
   activitiesCountByYear: Record<string, number>;
   totalDistanceByYear: Record<string, number>;
   totalElevationByYear: Record<string, number>;
@@ -17,14 +19,17 @@ type ChartsCacheEntry = {
   maxSpeedByYear: Record<string, number>;
 };
 
+type LegacyPeriodPoint = Record<string, number>;
+type ChartPeriodPointResponse = ChartPeriodPoint | LegacyPeriodPoint;
+
 export const useChartsStore = defineStore("charts", {
   state: () => ({
-    distanceByMonths: [] as Record<string, number>[],
-    elevationByMonths: [] as Record<string, number>[],
-    averageSpeedByMonths: [] as Record<string, number>[],
-    distanceByWeeks: [] as Record<string, number>[],
-    elevationByWeeks: [] as Record<string, number>[],
-    cadenceByWeeks: [] as Record<string, number>[],
+    distanceByMonths: [] as ChartPeriodPoint[],
+    elevationByMonths: [] as ChartPeriodPoint[],
+    averageSpeedByMonths: [] as ChartPeriodPoint[],
+    distanceByWeeks: [] as ChartPeriodPoint[],
+    elevationByWeeks: [] as ChartPeriodPoint[],
+    cadenceByWeeks: [] as ChartPeriodPoint[],
     activitiesCountByYear: {} as Record<string, number>,
     totalDistanceByYear: {} as Record<string, number>,
     totalElevationByYear: {} as Record<string, number>,
@@ -73,7 +78,7 @@ export const useChartsStore = defineStore("charts", {
       const url =
         buildFilteredApiUrl("charts/distance-by-period", contextStore.currentActivityType, contextStore.currentYear) +
         "&period=MONTHS";
-      this.distanceByMonths = await requestJson<Record<string, number>[]>(url);
+      this.distanceByMonths = normalizePeriodPoints(await requestJson<ChartPeriodPointResponse[]>(url));
       this.updateCacheForCurrentKey();
     },
     async fetchElevationByMonths() {
@@ -81,7 +86,7 @@ export const useChartsStore = defineStore("charts", {
       const url =
         buildFilteredApiUrl("charts/elevation-by-period", contextStore.currentActivityType, contextStore.currentYear) +
         "&period=MONTHS";
-      this.elevationByMonths = await requestJson<Record<string, number>[]>(url);
+      this.elevationByMonths = normalizePeriodPoints(await requestJson<ChartPeriodPointResponse[]>(url));
       this.updateCacheForCurrentKey();
     },
     async fetchAverageSpeedByMonths() {
@@ -92,7 +97,7 @@ export const useChartsStore = defineStore("charts", {
           contextStore.currentActivityType,
           contextStore.currentYear,
         ) + "&period=MONTHS";
-      this.averageSpeedByMonths = await requestJson<Record<string, number>[]>(url);
+      this.averageSpeedByMonths = normalizePeriodPoints(await requestJson<ChartPeriodPointResponse[]>(url));
       this.updateCacheForCurrentKey();
     },
     async fetchDistanceByWeeks() {
@@ -100,7 +105,7 @@ export const useChartsStore = defineStore("charts", {
       const url =
         buildFilteredApiUrl("charts/distance-by-period", contextStore.currentActivityType, contextStore.currentYear) +
         "&period=WEEKS";
-      this.distanceByWeeks = await requestJson<Record<string, number>[]>(url);
+      this.distanceByWeeks = normalizePeriodPoints(await requestJson<ChartPeriodPointResponse[]>(url));
       this.updateCacheForCurrentKey();
     },
     async fetchElevationByWeeks() {
@@ -108,7 +113,7 @@ export const useChartsStore = defineStore("charts", {
       const url =
         buildFilteredApiUrl("charts/elevation-by-period", contextStore.currentActivityType, contextStore.currentYear) +
         "&period=WEEKS";
-      this.elevationByWeeks = await requestJson<Record<string, number>[]>(url);
+      this.elevationByWeeks = normalizePeriodPoints(await requestJson<ChartPeriodPointResponse[]>(url));
       this.updateCacheForCurrentKey();
     },
     async fetchCadenceByWeeks() {
@@ -119,7 +124,7 @@ export const useChartsStore = defineStore("charts", {
           contextStore.currentActivityType,
           contextStore.currentYear,
         ) + "&period=WEEKS";
-      this.cadenceByWeeks = await requestJson<Record<string, number>[]>(url);
+      this.cadenceByWeeks = normalizePeriodPoints(await requestJson<ChartPeriodPointResponse[]>(url));
       this.updateCacheForCurrentKey();
     },
     async fetchAllYearsOverview() {

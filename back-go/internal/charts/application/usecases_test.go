@@ -6,22 +6,22 @@ import (
 )
 
 type chartsReaderStub struct {
-	result []map[string]float64
+	result []ChartPeriodPoint
 }
 
-func (stub *chartsReaderStub) FindDistanceByPeriod(_ *int, _ business.Period, _ ...business.ActivityType) []map[string]float64 {
+func (stub *chartsReaderStub) FindDistanceByPeriod(_ *int, _ business.Period, _ ...business.ActivityType) []ChartPeriodPoint {
 	return stub.result
 }
 
-func (stub *chartsReaderStub) FindElevationByPeriod(_ *int, _ business.Period, _ ...business.ActivityType) []map[string]float64 {
+func (stub *chartsReaderStub) FindElevationByPeriod(_ *int, _ business.Period, _ ...business.ActivityType) []ChartPeriodPoint {
 	return stub.result
 }
 
-func (stub *chartsReaderStub) FindAverageSpeedByPeriod(_ *int, _ business.Period, _ ...business.ActivityType) []map[string]float64 {
+func (stub *chartsReaderStub) FindAverageSpeedByPeriod(_ *int, _ business.Period, _ ...business.ActivityType) []ChartPeriodPoint {
 	return stub.result
 }
 
-func (stub *chartsReaderStub) FindAverageCadenceByPeriod(_ *int, _ business.Period, _ ...business.ActivityType) []map[string]float64 {
+func (stub *chartsReaderStub) FindAverageCadenceByPeriod(_ *int, _ business.Period, _ ...business.ActivityType) []ChartPeriodPoint {
 	return stub.result
 }
 
@@ -39,7 +39,7 @@ func TestChartsUseCases_ReturnEmptySliceOnNilReaderResult(t *testing.T) {
 	cadence := NewGetAverageCadenceByPeriodUseCase(reader).Execute(&year, period, activityTypes)
 
 	// THEN
-	for _, result := range [][]map[string]float64{distance, elevation, speed, cadence} {
+	for _, result := range [][]ChartPeriodPoint{distance, elevation, speed, cadence} {
 		if result == nil {
 			t.Fatal("expected non-nil empty slice")
 		}

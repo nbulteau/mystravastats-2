@@ -21,7 +21,24 @@ describe("charts utils", () => {
     expect(label).toBe("W07");
   });
 
-  it("extracts period entries from API objects", () => {
+  it("extracts period entries from structured API objects", () => {
+    // GIVEN
+    const source = [
+      { periodKey: "01", value: 12.3, activityCount: 4 },
+      { periodKey: "02", value: 0, activityCount: 0 },
+    ];
+
+    // WHEN
+    const entries = extractPeriodEntries(source);
+
+    // THEN
+    expect(entries).toEqual([
+      { key: "01", value: 12.3, activityCount: 4 },
+      { key: "02", value: 0, activityCount: 0 },
+    ]);
+  });
+
+  it("keeps backward compatibility with legacy map payloads", () => {
     // GIVEN
     const source = [{ "01": 12.3 }, { "02": 0 }];
 
@@ -30,8 +47,8 @@ describe("charts utils", () => {
 
     // THEN
     expect(entries).toEqual([
-      { key: "01", value: 12.3 },
-      { key: "02", value: 0 },
+      { key: "01", value: 12.3, activityCount: 0 },
+      { key: "02", value: 0, activityCount: 0 },
     ]);
   });
 

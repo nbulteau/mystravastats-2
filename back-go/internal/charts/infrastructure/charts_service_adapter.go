@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"fmt"
 	"log"
+	"mystravastats/internal/charts/application"
 	"mystravastats/internal/platform/activityprovider"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
@@ -17,10 +18,10 @@ func NewChartsServiceAdapter() *ChartsServiceAdapter {
 	return &ChartsServiceAdapter{}
 }
 
-func (adapter *ChartsServiceAdapter) FindDistanceByPeriod(year *int, period business.Period, activityTypes ...business.ActivityType) []map[string]float64 {
+func (adapter *ChartsServiceAdapter) FindDistanceByPeriod(year *int, period business.Period, activityTypes ...business.ActivityType) []application.ChartPeriodPoint {
 	resolvedYear, ok := resolveChartYear(year, period, activityTypes, "distance")
 	if !ok {
-		return []map[string]float64{}
+		return []application.ChartPeriodPoint{}
 	}
 
 	log.Printf("Get distance by %s by activity (%v) type by year (%d)", period, activityTypes, resolvedYear)
@@ -28,23 +29,27 @@ func (adapter *ChartsServiceAdapter) FindDistanceByPeriod(year *int, period busi
 	activities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
 	activitiesByPeriod := activitiesByPeriod(activities, resolvedYear, period)
 
-	result := make([]map[string]float64, 0, len(activitiesByPeriod))
+	result := make([]application.ChartPeriodPoint, 0, len(activitiesByPeriod))
 	for _, periodKey := range sortedPeriodKeys(activitiesByPeriod) {
 		periodActivities := activitiesByPeriod[periodKey]
 		totalDistance := 0.0
 		for _, activity := range periodActivities {
 			totalDistance += activity.Distance / 1000
 		}
-		result = append(result, map[string]float64{periodKey: totalDistance})
+		result = append(result, application.ChartPeriodPoint{
+			PeriodKey:     periodKey,
+			Value:         totalDistance,
+			ActivityCount: len(periodActivities),
+		})
 	}
 
 	return result
 }
 
-func (adapter *ChartsServiceAdapter) FindElevationByPeriod(year *int, period business.Period, activityTypes ...business.ActivityType) []map[string]float64 {
+func (adapter *ChartsServiceAdapter) FindElevationByPeriod(year *int, period business.Period, activityTypes ...business.ActivityType) []application.ChartPeriodPoint {
 	resolvedYear, ok := resolveChartYear(year, period, activityTypes, "elevation")
 	if !ok {
-		return []map[string]float64{}
+		return []application.ChartPeriodPoint{}
 	}
 
 	log.Printf("Get elevation by %s by activity (%v) type by year (%d)", period, activityTypes, resolvedYear)
@@ -60,23 +65,27 @@ func (adapter *ChartsServiceAdapter) FindElevationByPeriod(year *int, period bus
 		size = 365
 	}
 
-	result := make([]map[string]float64, 0, size)
+	result := make([]application.ChartPeriodPoint, 0, size)
 	for _, periodKey := range sortedPeriodKeys(activitiesByPeriod) {
 		periodActivities := activitiesByPeriod[periodKey]
 		totalElevation := 0.0
 		for _, activity := range periodActivities {
 			totalElevation += activity.TotalElevationGain
 		}
-		result = append(result, map[string]float64{periodKey: totalElevation})
+		result = append(result, application.ChartPeriodPoint{
+			PeriodKey:     periodKey,
+			Value:         totalElevation,
+			ActivityCount: len(periodActivities),
+		})
 	}
 
 	return result
 }
 
-func (adapter *ChartsServiceAdapter) FindAverageSpeedByPeriod(year *int, period business.Period, activityTypes ...business.ActivityType) []map[string]float64 {
+func (adapter *ChartsServiceAdapter) FindAverageSpeedByPeriod(year *int, period business.Period, activityTypes ...business.ActivityType) []application.ChartPeriodPoint {
 	resolvedYear, ok := resolveChartYear(year, period, activityTypes, "average speed")
 	if !ok {
-		return []map[string]float64{}
+		return []application.ChartPeriodPoint{}
 	}
 
 	log.Printf("Get average speed by %s by activity (%v) type by year (%d)", period, activityTypes, resolvedYear)
@@ -92,11 +101,15 @@ func (adapter *ChartsServiceAdapter) FindAverageSpeedByPeriod(year *int, period 
 		size = 365
 	}
 
-	result := make([]map[string]float64, 0, size)
+	result := make([]application.ChartPeriodPoint, 0, size)
 	for _, periodKey := range sortedPeriodKeys(activitiesByPeriod) {
 		periodActivities := activitiesByPeriod[periodKey]
 		if len(periodActivities) == 0 {
-			result = append(result, map[string]float64{periodKey: 0.0})
+			result = append(result, application.ChartPeriodPoint{
+				PeriodKey:     periodKey,
+				Value:         0.0,
+				ActivityCount: 0,
+			})
 			continue
 		}
 		totalSpeed := 0.0
@@ -104,16 +117,20 @@ func (adapter *ChartsServiceAdapter) FindAverageSpeedByPeriod(year *int, period 
 			totalSpeed += activity.AverageSpeed
 		}
 		averageSpeed := totalSpeed / float64(len(periodActivities))
-		result = append(result, map[string]float64{periodKey: averageSpeed})
+		result = append(result, application.ChartPeriodPoint{
+			PeriodKey:     periodKey,
+			Value:         averageSpeed,
+			ActivityCount: len(periodActivities),
+		})
 	}
 
 	return result
 }
 
-func (adapter *ChartsServiceAdapter) FindAverageCadenceByPeriod(year *int, period business.Period, activityTypes ...business.ActivityType) []map[string]float64 {
+func (adapter *ChartsServiceAdapter) FindAverageCadenceByPeriod(year *int, period business.Period, activityTypes ...business.ActivityType) []application.ChartPeriodPoint {
 	resolvedYear, ok := resolveChartYear(year, period, activityTypes, "average cadence")
 	if !ok {
-		return []map[string]float64{}
+		return []application.ChartPeriodPoint{}
 	}
 
 	log.Printf("Get average cadence by %s by activity (%v) type by year (%d)", period, activityTypes, resolvedYear)
@@ -129,11 +146,15 @@ func (adapter *ChartsServiceAdapter) FindAverageCadenceByPeriod(year *int, perio
 		size = 365
 	}
 
-	result := make([]map[string]float64, 0, size)
+	result := make([]application.ChartPeriodPoint, 0, size)
 	for _, periodKey := range sortedPeriodKeys(activitiesByPeriod) {
 		periodActivities := activitiesByPeriod[periodKey]
 		if len(periodActivities) == 0 {
-			result = append(result, map[string]float64{periodKey: 0.0})
+			result = append(result, application.ChartPeriodPoint{
+				PeriodKey:     periodKey,
+				Value:         0.0,
+				ActivityCount: 0,
+			})
 			continue
 		}
 		totalCadence := 0.0
@@ -146,7 +167,11 @@ func (adapter *ChartsServiceAdapter) FindAverageCadenceByPeriod(year *int, perio
 			totalCadence += activity.AverageCadence
 		}
 		if nbActivitiesWithCadence == 0 {
-			result = append(result, map[string]float64{periodKey: 0.0})
+			result = append(result, application.ChartPeriodPoint{
+				PeriodKey:     periodKey,
+				Value:         0.0,
+				ActivityCount: len(periodActivities),
+			})
 			continue
 		}
 		averageCadence := totalCadence / float64(nbActivitiesWithCadence)
@@ -154,7 +179,11 @@ func (adapter *ChartsServiceAdapter) FindAverageCadenceByPeriod(year *int, perio
 		if len(activityTypes) > 0 && (activityTypes[0] == business.Run || activityTypes[0] == business.TrailRun) {
 			averageCadence = averageCadence * 2
 		}
-		result = append(result, map[string]float64{periodKey: averageCadence})
+		result = append(result, application.ChartPeriodPoint{
+			PeriodKey:     periodKey,
+			Value:         averageCadence,
+			ActivityCount: len(periodActivities),
+		})
 	}
 
 	return result

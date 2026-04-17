@@ -10,10 +10,10 @@ func NewGetDistanceByPeriodUseCase(reader ChartsReader) *GetDistanceByPeriodUseC
 	return &GetDistanceByPeriodUseCase{reader: reader}
 }
 
-func (uc *GetDistanceByPeriodUseCase) Execute(year *int, period business.Period, activityTypes []business.ActivityType) []map[string]float64 {
+func (uc *GetDistanceByPeriodUseCase) Execute(year *int, period business.Period, activityTypes []business.ActivityType) []ChartPeriodPoint {
 	result := uc.reader.FindDistanceByPeriod(year, period, activityTypes...)
 	if result == nil {
-		return []map[string]float64{}
+		return []ChartPeriodPoint{}
 	}
 	return result
 }
@@ -26,10 +26,10 @@ func NewGetElevationByPeriodUseCase(reader ChartsReader) *GetElevationByPeriodUs
 	return &GetElevationByPeriodUseCase{reader: reader}
 }
 
-func (uc *GetElevationByPeriodUseCase) Execute(year *int, period business.Period, activityTypes []business.ActivityType) []map[string]float64 {
+func (uc *GetElevationByPeriodUseCase) Execute(year *int, period business.Period, activityTypes []business.ActivityType) []ChartPeriodPoint {
 	result := uc.reader.FindElevationByPeriod(year, period, activityTypes...)
 	if result == nil {
-		return []map[string]float64{}
+		return []ChartPeriodPoint{}
 	}
 	return result
 }
@@ -42,10 +42,10 @@ func NewGetAverageSpeedByPeriodUseCase(reader ChartsReader) *GetAverageSpeedByPe
 	return &GetAverageSpeedByPeriodUseCase{reader: reader}
 }
 
-func (uc *GetAverageSpeedByPeriodUseCase) Execute(year *int, period business.Period, activityTypes []business.ActivityType) []map[string]float64 {
+func (uc *GetAverageSpeedByPeriodUseCase) Execute(year *int, period business.Period, activityTypes []business.ActivityType) []ChartPeriodPoint {
 	result := uc.reader.FindAverageSpeedByPeriod(year, period, activityTypes...)
 	if result == nil {
-		return []map[string]float64{}
+		return []ChartPeriodPoint{}
 	}
 	return result
 }
@@ -58,10 +58,10 @@ func NewGetAverageCadenceByPeriodUseCase(reader ChartsReader) *GetAverageCadence
 	return &GetAverageCadenceByPeriodUseCase{reader: reader}
 }
 
-func (uc *GetAverageCadenceByPeriodUseCase) Execute(year *int, period business.Period, activityTypes []business.ActivityType) []map[string]float64 {
+func (uc *GetAverageCadenceByPeriodUseCase) Execute(year *int, period business.Period, activityTypes []business.ActivityType) []ChartPeriodPoint {
 	result := uc.reader.FindAverageCadenceByPeriod(year, period, activityTypes...)
 	if result == nil {
-		return []map[string]float64{}
+		return []ChartPeriodPoint{}
 	}
 	return result
 }

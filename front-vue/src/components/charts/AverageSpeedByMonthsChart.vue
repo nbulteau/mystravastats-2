@@ -3,10 +3,12 @@ import { computed, reactive, watch } from "vue";
 import { Chart } from "highcharts-vue";
 import type { SeriesColumnOptions, YAxisOptions } from "highcharts";
 import {formatSpeed, formatSpeedWithUnit} from "@/utils/formatters";
+import type { ChartPeriodPoint } from "@/models/chart-period-point.model";
+import { extractPeriodEntries } from "@/utils/charts";
 
 const props = defineProps<{
   activityType: string;
-  dataByMonths: Record<string, number>[];
+  dataByMonths: ChartPeriodPoint[];
 }>();
 
 const unit = computed(() => ((props.activityType === "Run" || props.activityType === "TrailRun") ? "min/km" : "km/h"));
@@ -28,6 +30,9 @@ const MONTH_COLORS = [
 const chartOptions: Highcharts.Options = reactive({
   chart: { type: "column" },
   title: { text: "Average speed by month" },
+  subtitle: {
+    text: "",
+  },
   xAxis: {
     labels: {
       autoRotation: [-45, -90],
@@ -70,12 +75,14 @@ const chartOptions: Highcharts.Options = reactive({
   tooltip: {
     formatter: function (this: any): string {
       if(this.y === 0) {
-            return 'Not available';
-          }
+        return "Not available";
+      }
       const speed = formatSpeedWithUnit(this.y, props.activityType);
+      const activityCount = Number(this.point?.activityCount ?? 0);
+      const activityLabel = activityCount === 1 ? "activity" : "activities";
 
       return this.points.reduce(function (s: string) {
-        return `${s}: <span>${speed}</span>`;
+        return `${s}<br/><span>${speed} · ${activityCount} ${activityLabel}</span>`;
       }, `<b>${(chartOptions.xAxis as Highcharts.XAxisOptions).categories?.[this.point.index]}</b>`);
     },
     shared: true,
@@ -108,23 +115,25 @@ const chartOptions: Highcharts.Options = reactive({
   ],
 });
 
-// Function to convert the array of objects to an array of numbers
-function convertToNumberArray(data: Record<string, number>[]): number[] {
-  return data.map((item) => Object.values(item)[0], props.activityType);
-}
-
 // Watch for changes in distanceByMonths and update the chart data
 watch(
   () => props.dataByMonths,
   (newData) => {
+    const entries = extractPeriodEntries(newData);
     if (chartOptions.series && chartOptions.series.length > 0) {
-      (chartOptions.series[0] as SeriesColumnOptions).data = convertToNumberArray(
-        newData
-      );
+      (chartOptions.series[0] as SeriesColumnOptions).data = entries.map((entry) => ({
+        y: entry.value,
+        activityCount: entry.activityCount,
+      }));
     }
     if (chartOptions.yAxis && (chartOptions.yAxis as YAxisOptions).title) {
       (chartOptions.yAxis as YAxisOptions).title!.text = `Average speed ${unit.value}`;
     }
+    const activeMonths = entries.filter((entry) => entry.activityCount > 0).length;
+    const totalActivities = entries.reduce((sum, entry) => sum + entry.activityCount, 0);
+    chartOptions.subtitle = {
+      text: `${totalActivities} activities across ${activeMonths} active month(s)`,
+    };
   },
   { immediate: true }
 );

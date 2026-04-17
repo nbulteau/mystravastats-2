@@ -140,22 +140,22 @@ func (stub *contractRoutesReaderStub) FindRouteExplorerByYearAndTypes(_ *int, _ 
 }
 
 type contractChartsReaderStub struct {
-	result []map[string]float64
+	result []chartsApp.ChartPeriodPoint
 }
 
-func (stub *contractChartsReaderStub) FindDistanceByPeriod(_ *int, _ business.Period, _ ...business.ActivityType) []map[string]float64 {
+func (stub *contractChartsReaderStub) FindDistanceByPeriod(_ *int, _ business.Period, _ ...business.ActivityType) []chartsApp.ChartPeriodPoint {
 	return stub.result
 }
 
-func (stub *contractChartsReaderStub) FindElevationByPeriod(_ *int, _ business.Period, _ ...business.ActivityType) []map[string]float64 {
+func (stub *contractChartsReaderStub) FindElevationByPeriod(_ *int, _ business.Period, _ ...business.ActivityType) []chartsApp.ChartPeriodPoint {
 	return stub.result
 }
 
-func (stub *contractChartsReaderStub) FindAverageSpeedByPeriod(_ *int, _ business.Period, _ ...business.ActivityType) []map[string]float64 {
+func (stub *contractChartsReaderStub) FindAverageSpeedByPeriod(_ *int, _ business.Period, _ ...business.ActivityType) []chartsApp.ChartPeriodPoint {
 	return stub.result
 }
 
-func (stub *contractChartsReaderStub) FindAverageCadenceByPeriod(_ *int, _ business.Period, _ ...business.ActivityType) []map[string]float64 {
+func (stub *contractChartsReaderStub) FindAverageCadenceByPeriod(_ *int, _ business.Period, _ ...business.ActivityType) []chartsApp.ChartPeriodPoint {
 	return stub.result
 }
 
@@ -589,7 +589,11 @@ func TestGetChartsAverageSpeedByPeriod_Returns200(t *testing.T) {
 	year := 2025
 	setTestContainer(t, &container{
 		getAverageSpeedByPeriodUseCase: chartsApp.NewGetAverageSpeedByPeriodUseCase(&contractChartsReaderStub{
-			result: []map[string]float64{{"01": 26.5}},
+			result: []chartsApp.ChartPeriodPoint{{
+				PeriodKey:     "01",
+				Value:         26.5,
+				ActivityCount: 3,
+			}},
 		}),
 	})
 
@@ -602,12 +606,18 @@ func TestGetChartsAverageSpeedByPeriod_Returns200(t *testing.T) {
 		t.Fatalf("expected status 200, got %d", recorder.Code)
 	}
 
-	var response []map[string]float64
+	var response []chartsApp.ChartPeriodPoint
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 		t.Fatalf("failed to decode JSON response: %v", err)
 	}
 	if len(response) != 1 {
 		t.Fatalf("expected 1 entry, got %d", len(response))
+	}
+	if response[0].PeriodKey != "01" {
+		t.Fatalf("expected periodKey=01, got %q", response[0].PeriodKey)
+	}
+	if response[0].ActivityCount != 3 {
+		t.Fatalf("expected activityCount=3, got %d", response[0].ActivityCount)
 	}
 	if year != 2025 {
 		t.Fatalf("sanity check failed on year forwarding setup")

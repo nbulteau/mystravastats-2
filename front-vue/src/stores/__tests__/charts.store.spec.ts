@@ -53,19 +53,19 @@ describe("charts store", () => {
     contextStore.currentActivityType = "Ride";
     const chartsStore = useChartsStore();
     vi.mocked(requestJson)
-      .mockResolvedValueOnce([{ "01": 100 }])
-      .mockResolvedValueOnce([{ "01": 200 }])
-      .mockResolvedValueOnce([{ "01": 30 }])
-      .mockResolvedValueOnce([{ "01": 45 }])
-      .mockResolvedValueOnce([{ "01": 800 }])
-      .mockResolvedValueOnce([{ "01": 88 }]);
+      .mockResolvedValueOnce([{ periodKey: "01", value: 100, activityCount: 2 }])
+      .mockResolvedValueOnce([{ periodKey: "01", value: 200, activityCount: 2 }])
+      .mockResolvedValueOnce([{ periodKey: "01", value: 30, activityCount: 2 }])
+      .mockResolvedValueOnce([{ periodKey: "01", value: 45, activityCount: 3 }])
+      .mockResolvedValueOnce([{ periodKey: "01", value: 800, activityCount: 3 }])
+      .mockResolvedValueOnce([{ periodKey: "01", value: 88, activityCount: 3 }]);
 
     // WHEN
     await chartsStore.ensureLoaded(true);
 
     // THEN
     expect(requestJson).toHaveBeenCalledTimes(6);
-    expect(chartsStore.distanceByMonths).toEqual([{ "01": 100 }]);
+    expect(chartsStore.distanceByMonths).toEqual([{ periodKey: "01", value: 100, activityCount: 2 }]);
     expect(chartsStore.activitiesCountByYear).toEqual({});
     expect(chartsStore.isLoading).toBe(false);
     expect(chartsStore.error).toBeNull();

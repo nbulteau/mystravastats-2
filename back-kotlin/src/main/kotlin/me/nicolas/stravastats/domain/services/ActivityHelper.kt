@@ -11,8 +11,6 @@ import me.nicolas.stravastats.domain.services.statistics.calculateBestTimeForDis
 import me.nicolas.stravastats.domain.utils.inDateTimeFormatter
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.Month
-import java.time.format.TextStyle
 import java.time.temporal.WeekFields
 import java.util.*
 import kotlin.math.abs
@@ -110,9 +108,7 @@ object ActivityHelper {
             }
         }
 
-        return activitiesByMonth.toSortedMap().mapKeys { (key, _) ->
-            Month.of(key.toInt()).getDisplayName(TextStyle.FULL_STANDALONE, Locale.getDefault())
-        }.toMap()
+        return activitiesByMonth.toSortedMap()
     }
 
     /**

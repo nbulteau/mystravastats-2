@@ -84,6 +84,14 @@ const exactMetricTooltips: Record<string, string> = {
     "Breakdown of activity types recorded in the selected period.",
   "Heatmap Best Week":
     "Best calendar week for the selected metric, with active days and activity count.",
+  YTD:
+    "Year-To-Date: from January 1st of the selected year up to today. For past years, full-year values are used.",
+  "YTD average":
+    "Average computed on Year-To-Date data (from January 1st to today for current year, full year for past years).",
+  "Charts granularity":
+    "Monthly view groups values by month. Weekly view groups values by ISO week to reveal short-term variations.",
+  "Charts refresh":
+    "Reload chart data for current filters without changing year, activity type, or current view.",
 };
 
 const patternMetricTooltips: Array<{ pattern: RegExp; tooltip: string }> = [

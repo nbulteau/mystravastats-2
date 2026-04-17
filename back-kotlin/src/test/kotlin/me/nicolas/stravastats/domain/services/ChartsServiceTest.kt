@@ -47,8 +47,12 @@ class ChartsServiceTest {
 
         // THEN
         val delta = 0.01
-        assertEquals(84.54, result[0].second, delta)
-        assertEquals(10.32, result[2].second, delta)
+        assertEquals("01", result[0].periodKey)
+        assertTrue(result[0].activityCount > 0)
+        assertEquals(84.54, result[0].value, delta)
+        assertEquals("03", result[2].periodKey)
+        assertTrue(result[2].activityCount > 0)
+        assertEquals(10.32, result[2].value, delta)
     }
 
     @Test
@@ -64,8 +68,10 @@ class ChartsServiceTest {
         val result = chartsStravaService.getDistanceByPeriodByActivityTypeByYear(activityTypes, year, period)
 
         // THEN
-        assertTrue(result[0].second == 0.0)
-        assertTrue(result[11].second == 0.0)
+        assertTrue(result[0].value == 0.0)
+        assertTrue(result[11].value == 0.0)
+        assertTrue(result[0].activityCount == 0)
+        assertTrue(result[11].activityCount == 0)
     }
 
 }

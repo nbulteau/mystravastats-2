@@ -107,6 +107,9 @@ jobs:
       - name: Run type-check
         run: npm run type-check
 
+      - name: Run unit tests
+        run: npm run test:unit
+
       - name: Build
         env:
           VITE_CJS_TRACE: "false"

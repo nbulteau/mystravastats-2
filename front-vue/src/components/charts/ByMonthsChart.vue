@@ -3,17 +3,21 @@ import {reactive, watch} from "vue";
 import {Chart} from "highcharts-vue";
 import type {SeriesColumnOptions, Point} from "highcharts"; // Import Point here
 import {calculateYtdAverageLine, extractPeriodEntries} from "@/utils/charts";
+import type { ChartPeriodPoint } from "@/models/chart-period-point.model";
 
 const props = defineProps<{
   title: string;
   unit: string;
-  dataByMonths: Record<string, number>[];
+  dataByMonths: ChartPeriodPoint[];
   selectedYear: string;
 }>();
 
 const chartOptions: Highcharts.Options = reactive({
   chart: {type: "column"},
   title: {text: props.title + " by months"},
+  subtitle: {
+    text: "",
+  },
   xAxis: {
     labels: {
       autoRotation: [-45, -90],
@@ -48,8 +52,10 @@ const chartOptions: Highcharts.Options = reactive({
   },
   tooltip: {
     formatter: function (this: any): string {
-      return this.points.reduce(function (s: string, point: { x: string; y: number }) {
-        return `${s}: <span>${point.y.toFixed(2)} ${props.unit}</span>`;
+      return this.points.reduce(function (s: string, point: { x: string; y: number; point: { activityCount?: number } }) {
+        const activityCount = Number(point.point.activityCount ?? 0);
+        const activityLabel = activityCount === 1 ? "activity" : "activities";
+        return `${s}<br/><span>${point.y.toFixed(2)} ${props.unit} · ${activityCount} ${activityLabel}</span>`;
       }, `<b>${(chartOptions.xAxis as Highcharts.XAxisOptions).categories?.[this.point.index]}</b>`);
     },
     shared: true,
@@ -126,14 +132,23 @@ watch(
     (newData) => {
       if (chartOptions.series && chartOptions.series.length > 0) {
         const entries = extractPeriodEntries(newData);
-        const data = entries.map((entry) => entry.value);
+        const data = entries.map((entry) => ({
+          y: entry.value,
+          activityCount: entry.activityCount,
+        }));
         (chartOptions.series[0] as SeriesColumnOptions).data = data;
 
         (chartOptions.series[1] as SeriesColumnOptions).data = calculateYtdAverageLine(
-          data,
+          entries.map((entry) => entry.value),
           props.selectedYear,
           "MONTHS",
         );
+
+        const activeMonths = entries.filter((entry) => entry.activityCount > 0).length;
+        const totalActivities = entries.reduce((sum, entry) => sum + entry.activityCount, 0);
+        chartOptions.subtitle = {
+          text: `${totalActivities} activities across ${activeMonths} active month(s)`,
+        };
       }
     },
     {immediate: true}

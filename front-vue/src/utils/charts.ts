@@ -1,3 +1,5 @@
+import type { ChartPeriodPoint } from "@/models/chart-period-point.model";
+
 export function calculateTrendLine(data: number[]): number[] {
     const n = data.length;
     if (n === 0) {
@@ -29,18 +31,50 @@ export function calculateTrendLine(data: number[]): number[] {
 export type PeriodEntry = {
   key: string;
   value: number;
+  activityCount: number;
 };
 
-export function extractPeriodEntries(data: Array<Record<string, number>>): PeriodEntry[] {
+type LegacyPeriodPoint = Record<string, number>;
+type PeriodPointLike = ChartPeriodPoint | LegacyPeriodPoint;
+
+function isChartPeriodPoint(item: PeriodPointLike): item is ChartPeriodPoint {
+  return (
+    typeof (item as ChartPeriodPoint).periodKey === "string"
+    && typeof (item as ChartPeriodPoint).value === "number"
+  );
+}
+
+export function normalizePeriodPoints(data: PeriodPointLike[]): ChartPeriodPoint[] {
   return data
     .map((item) => {
+      if (isChartPeriodPoint(item)) {
+        return {
+          periodKey: item.periodKey,
+          value: Number(item.value ?? 0),
+          activityCount: Number(item.activityCount ?? 0),
+        };
+      }
+
       const [key, value] = Object.entries(item)[0] ?? [];
+      if (!key) {
+        return null;
+      }
+
       return {
-        key: key ?? "",
+        periodKey: key,
         value: Number(value ?? 0),
+        activityCount: 0,
       };
     })
-    .filter((entry) => entry.key !== "");
+    .filter((entry): entry is ChartPeriodPoint => entry !== null);
+}
+
+export function extractPeriodEntries(data: PeriodPointLike[]): PeriodEntry[] {
+  return normalizePeriodPoints(data).map((entry) => ({
+    key: entry.periodKey,
+    value: entry.value,
+    activityCount: entry.activityCount,
+  }));
 }
 
 export function weekLabel(periodKey: string): string {

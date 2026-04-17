@@ -4,6 +4,7 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import me.nicolas.stravastats.domain.business.Period
 import me.nicolas.stravastats.domain.business.ActivityType
+import me.nicolas.stravastats.domain.business.ChartPeriodPoint
 
 import me.nicolas.stravastats.domain.services.IChartsService
 import org.junit.jupiter.api.Test
@@ -33,7 +34,9 @@ class ChartsControllerTest {
         val year = 2022
         val period = Period.MONTHS
 
-        every { chartsService.getDistanceByPeriodByActivityTypeByYear(activityTypes, year, period) } returns listOf(Pair("January", 100.0))
+        every { chartsService.getDistanceByPeriodByActivityTypeByYear(activityTypes, year, period) } returns listOf(
+            ChartPeriodPoint(periodKey = "01", value = 100.0, activityCount = 2)
+        )
 
         // WHEN
         mockMvc.perform(
@@ -46,7 +49,9 @@ class ChartsControllerTest {
             // THEN
             .andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$[0].January").value(100.0))
+            .andExpect(jsonPath("$[0].periodKey").value("01"))
+            .andExpect(jsonPath("$[0].value").value(100.0))
+            .andExpect(jsonPath("$[0].activityCount").value(2))
     }
 
     @Test
@@ -130,7 +135,9 @@ class ChartsControllerTest {
         val year = 2022
         val period = Period.MONTHS
 
-        every { chartsService.getElevationByPeriodByActivityTypeByYear(activityTypes, year, period) } returns listOf(Pair("January", 500.0))
+        every { chartsService.getElevationByPeriodByActivityTypeByYear(activityTypes, year, period) } returns listOf(
+            ChartPeriodPoint(periodKey = "01", value = 500.0, activityCount = 4)
+        )
 
         // WHEN
         mockMvc.perform(
@@ -143,7 +150,9 @@ class ChartsControllerTest {
             // THEN
             .andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$[0].January").value(500.0))
+            .andExpect(jsonPath("$[0].periodKey").value("01"))
+            .andExpect(jsonPath("$[0].value").value(500.0))
+            .andExpect(jsonPath("$[0].activityCount").value(4))
     }
 
     @Test
