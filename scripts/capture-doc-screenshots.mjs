@@ -42,7 +42,7 @@ function printHelp() {
 Capture documentation screenshots for MyStravaStats.
 
 Usage:
-  npx --yes -p playwright node scripts/capture-doc-screenshots.mjs [options]
+  node scripts/capture-doc-screenshots.mjs [options]
 
 Options:
   --base-url <url>            Front URL (default: http://localhost:8080)
