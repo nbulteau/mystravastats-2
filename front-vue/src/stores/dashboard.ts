@@ -5,12 +5,26 @@ import { EddingtonNumber } from "@/models/eddington-number.model";
 import { DashboardData } from "@/models/dashboard-data.model";
 import type { ActivityHeatmap } from "@/models/activity-heatmap.model";
 
+export type HeatmapScope = "selection" | "all-sports";
+
 type DashboardCacheEntry = {
   cumulativeDistancePerYear: Map<string, Map<string, number>>;
   cumulativeElevationPerYear: Map<string, Map<string, number>>;
   eddingtonNumber: EddingtonNumber;
   dashboardData: DashboardData;
 };
+
+const ALL_SPORTS_ACTIVITY_TYPE = [
+  "AlpineSki",
+  "Commute",
+  "GravelRide",
+  "Hike",
+  "MountainBikeRide",
+  "Ride",
+  "Run",
+  "TrailRun",
+  "VirtualRide",
+].join("_");
 
 type CumulativeApiPayload = {
   distance: Record<string, Record<string, number>>;
@@ -37,7 +51,8 @@ export const useDashboardStore = defineStore("dashboard", {
     dashboardData: new DashboardData({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, []),
     activityHeatmap: {} as ActivityHeatmap,
     dashboardByKey: {} as Record<string, DashboardCacheEntry>,
-    heatmapByActivityType: {} as Record<string, ActivityHeatmap>,
+    heatmapByKey: {} as Record<string, ActivityHeatmap>,
+    heatmapScope: "selection" as HeatmapScope,
     isLoading: false,
     error: null as string | null,
   }),
@@ -46,9 +61,18 @@ export const useDashboardStore = defineStore("dashboard", {
       const contextStore = useContextStore();
       return contextStore.currentFiltersKey;
     },
-    currentHeatmapKey(): string {
+    currentHeatmapActivityType(): string {
       const contextStore = useContextStore();
+      if (this.heatmapScope === "all-sports") {
+        return ALL_SPORTS_ACTIVITY_TYPE;
+      }
       return contextStore.currentActivityType;
+    },
+    currentHeatmapKey(): string {
+      return `${this.heatmapScope}:${this.currentHeatmapActivityType()}`;
+    },
+    setHeatmapScope(scope: HeatmapScope) {
+      this.heatmapScope = scope;
     },
     updateDashboardCacheForCurrentKey() {
       this.dashboardByKey[this.currentDashboardKey()] = {
@@ -89,14 +113,13 @@ export const useDashboardStore = defineStore("dashboard", {
       this.updateDashboardCacheForCurrentKey();
     },
     async fetchActivityHeatmap() {
-      const contextStore = useContextStore();
       const params = new URLSearchParams({
-        activityType: contextStore.currentActivityType,
+        activityType: this.currentHeatmapActivityType(),
       });
       const url = `/api/dashboard/activity-heatmap?${params.toString()}`;
       try {
         this.activityHeatmap = await requestJson<ActivityHeatmap>(url);
-        this.heatmapByActivityType[this.currentHeatmapKey()] = this.activityHeatmap;
+        this.heatmapByKey[this.currentHeatmapKey()] = this.activityHeatmap;
       } catch (error) {
         console.warn("Activity heatmap data not available:", error);
       }
@@ -126,7 +149,7 @@ export const useDashboardStore = defineStore("dashboard", {
     },
     async ensureHeatmapLoaded(force = false) {
       const key = this.currentHeatmapKey();
-      const cached = this.heatmapByActivityType[key];
+      const cached = this.heatmapByKey[key];
       if (!force && cached) {
         this.activityHeatmap = cached;
         return;

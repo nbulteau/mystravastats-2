@@ -154,6 +154,9 @@ async function refreshMap() {
       v-if="activityTypeSummaries.length > 0"
       class="map-type-filters"
     >
+      <div class="map-type-filters__hint">
+        Type filters below refine the current top selection.
+      </div>
       <button
         type="button"
         class="type-pill"
@@ -231,6 +234,14 @@ async function refreshMap() {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
+}
+
+.map-type-filters__hint {
+  width: 100%;
+  margin-bottom: 2px;
+  font-size: 0.78rem;
+  color: var(--ms-text-muted);
 }
 
 .type-pill {

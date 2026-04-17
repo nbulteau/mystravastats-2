@@ -7,6 +7,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
 import me.nicolas.stravastats.api.dto.MapTrackDto
+import me.nicolas.stravastats.domain.business.ActivityType
+import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
@@ -57,7 +59,7 @@ class MapsController(
                 activityId = activity.id,
                 activityName = activity.name,
                 activityDate = activity.startDateLocal,
-                activityType = activity.sportType,
+                activityType = resolveMapTrackActivityType(activity),
                 distanceKm = activity.distance / 1000.0,
                 elevationGainM = activity.totalElevationGain,
                 coordinates = coordinates,
@@ -98,5 +100,15 @@ class MapsController(
             }
         }
         return sampled
+    }
+
+    private fun resolveMapTrackActivityType(activity: StravaActivity): String {
+        if (activity.commute) {
+            return ActivityType.Commute.name
+        }
+
+        return activity.sportType.takeIf { it.isNotBlank() }
+            ?: activity.type.takeIf { it.isNotBlank() }
+            ?: ActivityType.Ride.name
     }
 }

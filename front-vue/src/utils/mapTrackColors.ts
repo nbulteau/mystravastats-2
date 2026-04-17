@@ -1,5 +1,6 @@
 const ACTIVITY_TYPE_COLORS: Record<string, string> = {
   Ride: "#fc4c02",
+  Commute: "#3949ab",
   GravelRide: "#8d6e63",
   MountainBikeRide: "#2e7d32",
   VirtualRide: "#6d4c41",
@@ -16,4 +17,3 @@ const ACTIVITY_TYPE_COLORS: Record<string, string> = {
 export function getActivityTypeColor(activityType: string): string {
   return ACTIVITY_TYPE_COLORS[activityType] ?? "#546e7a";
 }
-

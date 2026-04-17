@@ -3,9 +3,11 @@ package infrastructure
 import (
 	"fmt"
 	application "mystravastats/internal/activities/application"
+	"mystravastats/internal/helpers"
 	"mystravastats/internal/platform/activityprovider"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
+	"strings"
 )
 
 // DetailedActivityServiceAdapter computes activity read models from provider data.
@@ -63,7 +65,7 @@ func (adapter *DetailedActivityServiceAdapter) FindGPXByYearAndTypes(year *int, 
 			ActivityID:     activity.Id,
 			ActivityName:   activity.Name,
 			ActivityDate:   activity.StartDateLocal,
-			ActivityType:   activity.SportType,
+			ActivityType:   resolveMapTrackActivityType(activity),
 			DistanceKm:     activity.Distance / 1000.0,
 			ElevationGainM: activity.TotalElevationGain,
 			Coordinates:    coordinates,
@@ -71,4 +73,20 @@ func (adapter *DetailedActivityServiceAdapter) FindGPXByYearAndTypes(year *int, 
 	}
 
 	return result
+}
+
+func resolveMapTrackActivityType(activity *strava.Activity) string {
+	if activity == nil {
+		return ""
+	}
+
+	if activity.Commute {
+		return business.Commute.String()
+	}
+
+	sportType := strings.TrimSpace(helpers.FirstNonEmpty(activity.SportType, activity.Type))
+	if sportType != "" {
+		return sportType
+	}
+	return business.Ride.String()
 }
