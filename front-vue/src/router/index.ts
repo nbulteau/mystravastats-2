@@ -5,6 +5,10 @@ const router: Router = createRouter({
   routes: [
     {
       path: '/',
+      redirect: '/dashboard',
+    },
+    {
+      path: '/statistics',
       name: 'statistics',
       component: () => import('../views/StatisticsView.vue'),
     },

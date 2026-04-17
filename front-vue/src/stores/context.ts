@@ -24,7 +24,7 @@ export const useContextStore = defineStore("context", {
   state: () => ({
     currentYear: new Date().getFullYear().toString(),
     currentActivityType: "Commute_GravelRide_MountainBikeRide_Ride_VirtualRide",
-    currentView: "statistics" as AppView,
+    currentView: "dashboard" as AppView,
   }),
   getters: {
     currentFiltersKey: (state) => `${state.currentActivityType}__${state.currentYear}`,

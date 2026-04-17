@@ -9,6 +9,11 @@ import AverageSpeedByMonthsChart from "@/components/charts/AverageSpeedByMonthsC
 import ActivitiesCountPerYearChart from "@/components/charts/ActivitiesCountPerYearChart.vue";
 import DistanceElevationPerYearChart from "@/components/charts/DistanceElevationPerYearChart.vue";
 import SpeedPerYearChart from "@/components/charts/SpeedPerYearChart.vue";
+import WeeklyTrainingLoadChart from "@/components/charts/WeeklyTrainingLoadChart.vue";
+import DistanceDistributionHistogramChart from "@/components/charts/DistanceDistributionHistogramChart.vue";
+import LongRideProgressionChart from "@/components/charts/LongRideProgressionChart.vue";
+import EasyHardRatioByMonthChart from "@/components/charts/EasyHardRatioByMonthChart.vue";
+import WeeklyConsistencyChart from "@/components/charts/WeeklyConsistencyChart.vue";
 import { getMetricTooltip } from "@/utils/metric-tooltips";
 
 const contextStore = useContextStore();
@@ -27,6 +32,11 @@ const totalDistanceByYear = computed(() => chartsStore.totalDistanceByYear);
 const totalElevationByYear = computed(() => chartsStore.totalElevationByYear);
 const averageSpeedByYear = computed(() => chartsStore.averageSpeedByYear);
 const maxSpeedByYear = computed(() => chartsStore.maxSpeedByYear);
+const activitiesForCharts = computed(() => chartsStore.activitiesForCharts);
+const heartRateZoneAnalysis = computed(() => chartsStore.heartRateZoneAnalysis);
+const heartRateByMonth = computed(() => heartRateZoneAnalysis.value.byMonth ?? []);
+const heartRateByActivity = computed(() => heartRateZoneAnalysis.value.activities ?? []);
+const hasHeartRateData = computed(() => heartRateZoneAnalysis.value.hasHeartRateData ?? false);
 const isLoading = computed(() => chartsStore.isLoading);
 const error = computed(() => chartsStore.error);
 const isAllYears = computed(() => currentYear.value === "All years");
@@ -75,6 +85,43 @@ const granularityTooltip = computed(
 );
 const refreshTooltip = computed(
   () => getMetricTooltip("Charts refresh") ?? "Reload chart data for current filters.",
+);
+const distanceTooltip = computed(
+  () => getMetricTooltip("Total distance") ?? "Total distance aggregated by the selected chart period.",
+);
+const elevationTooltip = computed(
+  () => getMetricTooltip("Total elevation") ?? "Total elevation gain aggregated by the selected chart period.",
+);
+const averageSpeedTooltip = computed(
+  () => getMetricTooltip("Average Speed") ?? "Average speed aggregated by period (month or week).",
+);
+const cadenceTooltip = computed(
+  () => getMetricTooltip("Average Cadence") ?? "Average cadence aggregated by period for activities with cadence data.",
+);
+const activitiesOverviewTooltip = computed(
+  () => getMetricTooltip("Nb activities") ?? "Number of activities by year for the selected activity types.",
+);
+const distanceElevationOverviewTooltip = computed(
+  () => "Combined yearly totals for distance and elevation gain.",
+);
+const speedOverviewTooltip = computed(
+  () => "Yearly speed overview with average and maximum speed trends.",
+);
+const trainingLoadTooltip = computed(
+  () => getMetricTooltip("Weekly training load (TRIMP)") ??
+    "Simplified TRIMP by week, computed from time spent in each heart-rate zone.",
+);
+const distanceDistributionTooltip = computed(
+  () => getMetricTooltip("Distance distribution") ?? "Histogram of ride distances to show short vs medium vs long tendencies.",
+);
+const longRideProgressionTooltip = computed(
+  () => getMetricTooltip("Long ride progression") ?? "Weekly max long ride distance with a 4-week moving average.",
+);
+const easyHardByMonthTooltip = computed(
+  () => getMetricTooltip("Easy / Hard ratio by month") ?? "Monthly easy vs hard HR-zone split, including easy/hard ratio trend.",
+);
+const weeklyConsistencyTooltip = computed(
+  () => getMetricTooltip("Weekly consistency") ?? "Number of active weeks vs inactive weeks in the selected year.",
 );
 
 type YearMetricComparison = {
@@ -227,6 +274,26 @@ watch([ytdTooltip, granularityTooltip, refreshTooltip], () => {
   void initBootstrapTooltips();
 });
 
+watch(
+  [
+    distanceTooltip,
+    elevationTooltip,
+    averageSpeedTooltip,
+    cadenceTooltip,
+    activitiesOverviewTooltip,
+    distanceElevationOverviewTooltip,
+    speedOverviewTooltip,
+    trainingLoadTooltip,
+    distanceDistributionTooltip,
+    longRideProgressionTooltip,
+    easyHardByMonthTooltip,
+    weeklyConsistencyTooltip,
+  ],
+  () => {
+    void initBootstrapTooltips();
+  },
+);
+
 </script>
 
 <template>
@@ -266,6 +333,88 @@ watch([ytdTooltip, granularityTooltip, refreshTooltip], () => {
               data-bs-toggle="tooltip"
               data-bs-placement="top"
               :data-bs-title="granularityTooltip"
+            >?</span>
+          </span>
+          <span class="chart-toolbar__hint">
+            Distance
+            <span
+              class="chart-toolbar__hint-icon"
+              tabindex="0"
+              role="button"
+              data-bs-toggle="tooltip"
+              data-bs-placement="top"
+              :data-bs-title="distanceTooltip"
+            >?</span>
+          </span>
+          <span class="chart-toolbar__hint">
+            Elevation
+            <span
+              class="chart-toolbar__hint-icon"
+              tabindex="0"
+              role="button"
+              data-bs-toggle="tooltip"
+              data-bs-placement="top"
+              :data-bs-title="elevationTooltip"
+            >?</span>
+          </span>
+          <span class="chart-toolbar__hint">
+            Avg speed
+            <span
+              class="chart-toolbar__hint-icon"
+              tabindex="0"
+              role="button"
+              data-bs-toggle="tooltip"
+              data-bs-placement="top"
+              :data-bs-title="averageSpeedTooltip"
+            >?</span>
+          </span>
+          <span class="chart-toolbar__hint">
+            Cadence
+            <span
+              class="chart-toolbar__hint-icon"
+              tabindex="0"
+              role="button"
+              data-bs-toggle="tooltip"
+              data-bs-placement="top"
+              :data-bs-title="cadenceTooltip"
+            >?</span>
+          </span>
+        </div>
+        <div
+          v-else
+          class="chart-toolbar__hints"
+        >
+          <span class="chart-toolbar__hint">
+            Activities
+            <span
+              class="chart-toolbar__hint-icon"
+              tabindex="0"
+              role="button"
+              data-bs-toggle="tooltip"
+              data-bs-placement="top"
+              :data-bs-title="activitiesOverviewTooltip"
+            >?</span>
+          </span>
+          <span class="chart-toolbar__hint">
+            Distance + Elevation
+            <span
+              class="chart-toolbar__hint-icon"
+              tabindex="0"
+              role="button"
+              data-bs-toggle="tooltip"
+              data-bs-placement="top"
+              :data-bs-title="distanceElevationOverviewTooltip"
+            >?</span>
+          </span>
+          <span class="chart-toolbar__hint">
+            Speed
+            <span
+              class="chart-toolbar__hint-icon"
+              tabindex="0"
+              role="button"
+              data-bs-toggle="tooltip"
+              data-bs-placement="top"
+              :data-bs-title="speedOverviewTooltip"
             >?</span>
           </span>
         </div>
@@ -420,6 +569,117 @@ watch([ytdTooltip, granularityTooltip, refreshTooltip], () => {
             :selected-year="currentYear"
           />
         </section>
+
+        <section class="chart-panel">
+          <div class="chart-panel__header">
+            <h3 class="chart-panel__title">
+              Weekly Training Load
+            </h3>
+            <span
+              class="chart-panel__hint"
+              tabindex="0"
+              role="button"
+              data-bs-toggle="tooltip"
+              data-bs-placement="top"
+              :data-bs-title="trainingLoadTooltip"
+            >?</span>
+          </div>
+          <WeeklyTrainingLoadChart
+            v-if="hasHeartRateData"
+            :activity-summaries="heartRateByActivity"
+            :selected-year="currentYear"
+          />
+          <div
+            v-else
+            class="chart-empty"
+          >
+            No heart-rate stream data available for training load analysis.
+          </div>
+        </section>
+
+        <section class="chart-panel">
+          <div class="chart-panel__header">
+            <h3 class="chart-panel__title">
+              Distance Distribution
+            </h3>
+            <span
+              class="chart-panel__hint"
+              tabindex="0"
+              role="button"
+              data-bs-toggle="tooltip"
+              data-bs-placement="top"
+              :data-bs-title="distanceDistributionTooltip"
+            >?</span>
+          </div>
+          <DistanceDistributionHistogramChart :activities="activitiesForCharts" />
+        </section>
+
+        <section class="chart-panel">
+          <div class="chart-panel__header">
+            <h3 class="chart-panel__title">
+              Long Ride Progression
+            </h3>
+            <span
+              class="chart-panel__hint"
+              tabindex="0"
+              role="button"
+              data-bs-toggle="tooltip"
+              data-bs-placement="top"
+              :data-bs-title="longRideProgressionTooltip"
+            >?</span>
+          </div>
+          <LongRideProgressionChart
+            :activities="activitiesForCharts"
+            :selected-year="currentYear"
+          />
+        </section>
+
+        <section class="chart-panel">
+          <div class="chart-panel__header">
+            <h3 class="chart-panel__title">
+              Easy / Hard Ratio By Month
+            </h3>
+            <span
+              class="chart-panel__hint"
+              tabindex="0"
+              role="button"
+              data-bs-toggle="tooltip"
+              data-bs-placement="top"
+              :data-bs-title="easyHardByMonthTooltip"
+            >?</span>
+          </div>
+          <EasyHardRatioByMonthChart
+            v-if="hasHeartRateData"
+            :by-month="heartRateByMonth"
+            :selected-year="currentYear"
+          />
+          <div
+            v-else
+            class="chart-empty"
+          >
+            No heart-rate stream data available for easy/hard monthly ratio.
+          </div>
+        </section>
+
+        <section class="chart-panel">
+          <div class="chart-panel__header">
+            <h3 class="chart-panel__title">
+              Weekly Consistency
+            </h3>
+            <span
+              class="chart-panel__hint"
+              tabindex="0"
+              role="button"
+              data-bs-toggle="tooltip"
+              data-bs-placement="top"
+              :data-bs-title="weeklyConsistencyTooltip"
+            >?</span>
+          </div>
+          <WeeklyConsistencyChart
+            :distance-by-weeks="distanceByWeeks"
+            :selected-year="currentYear"
+          />
+        </section>
       </div>
 
       <div
@@ -453,6 +713,36 @@ watch([ytdTooltip, granularityTooltip, refreshTooltip], () => {
   border-color: #f1b6bf;
   color: #8f2438;
   background: #fff0f3;
+}
+
+.chart-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.chart-panel__title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.chart-panel__hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid #ffc9b2;
+  border-radius: 999px;
+  color: #d44700;
+  background: #fff6f1;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+  user-select: none;
 }
 
 .chart-toolbar {

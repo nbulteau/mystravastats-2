@@ -85,12 +85,50 @@ export function weekLabel(periodKey: string): string {
   return `W${String(weekNumber).padStart(2, "0")}`;
 }
 
-function isoWeekNumber(date: Date): number {
+export function isoWeekNumber(date: Date): number {
   const workingDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
   const day = workingDate.getUTCDay() || 7;
   workingDate.setUTCDate(workingDate.getUTCDate() + 4 - day);
   const yearStart = new Date(Date.UTC(workingDate.getUTCFullYear(), 0, 1));
   return Math.ceil((((workingDate.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+}
+
+export function weeksInIsoYear(year: number): number {
+  const lastDayOfYear = new Date(Date.UTC(year, 11, 31));
+  const week = isoWeekNumber(lastDayOfYear);
+  if (week === 1) {
+    return 52;
+  }
+  return week;
+}
+
+export function parseActivityDate(value: string): Date | null {
+  if (!value) {
+    return null;
+  }
+  const normalized = value.includes("T") ? value : `${value}T00:00:00`;
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return date;
+}
+
+export function rollingAverage(values: Array<number | null>, windowSize: number): Array<number | null> {
+  if (windowSize <= 0) {
+    return values.map(() => null);
+  }
+
+  return values.map((_, index) => {
+    const start = Math.max(0, index - windowSize + 1);
+    const windowValues = values
+      .slice(start, index + 1)
+      .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+    if (windowValues.length === 0) {
+      return null;
+    }
+    return windowValues.reduce((sum, value) => sum + value, 0) / windowValues.length;
+  });
 }
 
 export function calculateYtdAverageLine(

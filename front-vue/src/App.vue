@@ -27,13 +27,29 @@ const isCurrent = (name: string) => route.name === name;
           role="presentation"
         >
           <RouterLink
+            id="dashboard-tab"
+            class="nav-link"
+            :class="{ active: isCurrent('dashboard') }"
+            role="tab"
+            aria-controls="dashboard-tab-pane"
+            :aria-selected="isCurrent('dashboard')"
+            to="/dashboard"
+          >
+            Dashboard
+          </RouterLink>
+        </li>
+        <li
+          class="nav-item"
+          role="presentation"
+        >
+          <RouterLink
             id="statistics-tab"
             class="nav-link"
             :class="{ active: isCurrent('statistics') }"
             role="tab"
             aria-controls="home-tab-pane"
             :aria-selected="isCurrent('statistics')"
-            to="/"
+            to="/statistics"
           >
             Statistics
           </RouterLink>
@@ -68,22 +84,6 @@ const isCurrent = (name: string) => route.name === name;
             to="/charts"
           >
             Charts
-          </RouterLink>
-        </li>
-        <li
-          class="nav-item"
-          role="presentation"
-        >
-          <RouterLink
-            id="dashboard-tab"
-            class="nav-link"
-            :class="{ active: isCurrent('dashboard') }"
-            role="tab"
-            aria-controls="dashboard-tab-pane"
-            :aria-selected="isCurrent('dashboard')"
-            to="/dashboard"
-          >
-            Dashboard
           </RouterLink>
         </li>
         <li

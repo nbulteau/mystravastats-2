@@ -13,18 +13,18 @@ const props = defineProps<{
 
 const unit = computed(() => ((props.activityType === "Run" || props.activityType === "TrailRun") ? "min/km" : "km/h"));
 const MONTH_COLORS = [
-  "#ffe3d5",
-  "#ffd7c5",
-  "#ffc9b2",
-  "#ffb998",
-  "#ffa983",
-  "#ff9a6e",
-  "#ff8a5b",
-  "#ff7a48",
-  "#ff6a36",
-  "#fc5a1b",
-  "#ef4b06",
-  "#dd3f00",
+  "#FF5733",
+  "#33C4FF",
+  "#9B59B6",
+  "#E67E22",
+  "#28B463",
+  "#F39C12",
+  "#8E44AD",
+  "#1ABC9C",
+  "#2ECC71",
+  "#3498DB",
+  "#D35400",
+  "#34495E",
 ];
 
 const chartOptions: Highcharts.Options = reactive({

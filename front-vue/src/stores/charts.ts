@@ -3,6 +3,11 @@ import { buildFilteredApiUrl, requestJson } from "@/stores/api";
 import { useContextStore } from "@/stores/context";
 import { DashboardData } from "@/models/dashboard-data.model";
 import type { ChartPeriodPoint } from "@/models/chart-period-point.model";
+import type { Activity } from "@/models/activity.model";
+import {
+  type HeartRateZoneAnalysis,
+  emptyHeartRateZoneAnalysis,
+} from "@/models/heart-rate-zone.model";
 import { normalizePeriodPoints } from "@/utils/charts";
 
 type ChartsCacheEntry = {
@@ -17,6 +22,8 @@ type ChartsCacheEntry = {
   totalElevationByYear: Record<string, number>;
   averageSpeedByYear: Record<string, number>;
   maxSpeedByYear: Record<string, number>;
+  activitiesForCharts: Activity[];
+  heartRateZoneAnalysis: HeartRateZoneAnalysis;
 };
 
 type LegacyPeriodPoint = Record<string, number>;
@@ -35,6 +42,8 @@ export const useChartsStore = defineStore("charts", {
     totalElevationByYear: {} as Record<string, number>,
     averageSpeedByYear: {} as Record<string, number>,
     maxSpeedByYear: {} as Record<string, number>,
+    activitiesForCharts: [] as Activity[],
+    heartRateZoneAnalysis: emptyHeartRateZoneAnalysis() as HeartRateZoneAnalysis,
     isLoading: false,
     error: null as string | null,
     chartsByKey: {} as Record<string, ChartsCacheEntry>,
@@ -57,6 +66,8 @@ export const useChartsStore = defineStore("charts", {
         totalElevationByYear: this.totalElevationByYear,
         averageSpeedByYear: this.averageSpeedByYear,
         maxSpeedByYear: this.maxSpeedByYear,
+        activitiesForCharts: this.activitiesForCharts,
+        heartRateZoneAnalysis: this.heartRateZoneAnalysis,
       };
     },
     applyCacheEntry(entry: ChartsCacheEntry) {
@@ -71,6 +82,8 @@ export const useChartsStore = defineStore("charts", {
       this.totalElevationByYear = entry.totalElevationByYear;
       this.averageSpeedByYear = entry.averageSpeedByYear;
       this.maxSpeedByYear = entry.maxSpeedByYear;
+      this.activitiesForCharts = entry.activitiesForCharts;
+      this.heartRateZoneAnalysis = entry.heartRateZoneAnalysis;
       this.error = null;
     },
     async fetchDistanceByMonths() {
@@ -139,6 +152,22 @@ export const useChartsStore = defineStore("charts", {
       this.maxSpeedByYear = data.maxSpeedByYear ?? {};
       this.updateCacheForCurrentKey();
     },
+    async fetchActivitiesForCharts() {
+      const contextStore = useContextStore();
+      const url = buildFilteredApiUrl("activities", contextStore.currentActivityType, contextStore.currentYear);
+      this.activitiesForCharts = await requestJson<Activity[]>(url);
+      this.updateCacheForCurrentKey();
+    },
+    async fetchHeartRateZoneAnalysis() {
+      const contextStore = useContextStore();
+      const url = buildFilteredApiUrl(
+        "statistics/heart-rate-zones",
+        contextStore.currentActivityType,
+        contextStore.currentYear,
+      );
+      this.heartRateZoneAnalysis = await requestJson<HeartRateZoneAnalysis>(url);
+      this.updateCacheForCurrentKey();
+    },
     resetYearlyCharts() {
       this.activitiesCountByYear = {};
       this.totalDistanceByYear = {};
@@ -154,6 +183,8 @@ export const useChartsStore = defineStore("charts", {
       this.elevationByWeeks = [];
       this.cadenceByWeeks = [];
       this.resetYearlyCharts();
+      this.activitiesForCharts = [];
+      this.heartRateZoneAnalysis = emptyHeartRateZoneAnalysis();
       this.error = null;
     },
     async ensureLoaded(force = false) {
@@ -175,7 +206,11 @@ export const useChartsStore = defineStore("charts", {
           this.distanceByWeeks = [];
           this.elevationByWeeks = [];
           this.cadenceByWeeks = [];
-          await this.fetchAllYearsOverview();
+          await Promise.all([
+            this.fetchAllYearsOverview(),
+            this.fetchActivitiesForCharts(),
+            this.fetchHeartRateZoneAnalysis(),
+          ]);
           return;
         }
 
@@ -188,6 +223,8 @@ export const useChartsStore = defineStore("charts", {
         this.fetchElevationByWeeks(),
         this.fetchCadenceByWeeks(),
         this.fetchAllYearsOverview(),
+        this.fetchActivitiesForCharts(),
+        this.fetchHeartRateZoneAnalysis(),
       ]);
       } catch {
         this.error = "Unable to load chart data for the selected filters.";
