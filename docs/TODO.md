@@ -219,10 +219,10 @@ Architecture cible (Go + Kotlin):
 Plan d'implémentation concret:
 
 - Sprint OSM-1:
-  - Docker `osrm` + extraction régionale OSM.
-  - endpoint health `routing`.
-  - implémentation `RoutingEnginePort` côté Go/Kotlin.
-  - génération de boucle target via waypoints synthétiques + alternatives OSRM.
+  - [x] Docker `osrm` + extraction régionale OSM.
+  - [x] endpoint health `routing`.
+  - [x] implémentation `RoutingEnginePort` côté Go/Kotlin.
+  - [x] génération de boucle target via waypoints synthétiques + alternatives OSRM.
 - Sprint OSM-2:
   - calibration scoring et pénalités par type de pratique.
   - contraintes "éviter repassage immédiat" et minimum de diversité de segments.

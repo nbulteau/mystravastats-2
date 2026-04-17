@@ -11,7 +11,18 @@ import {
 import { useContextStore } from "@/stores/context";
 
 const DEFAULT_VARIANT_COUNT = 4;
-const TARGET_GENERATION_POOL_SIZE = 6;
+const TARGET_GENERATION_POOL_SIZE = 5;
+
+type RoutingHealthStatus = "unknown" | "up" | "down" | "disabled" | "misconfigured";
+
+interface RoutingHealthPayload {
+  routing?: {
+    status?: string;
+    reachable?: boolean;
+    engine?: string;
+    enabled?: boolean;
+  };
+}
 
 export const useRoutesStore = defineStore("routes", {
   state: () => ({
@@ -31,6 +42,9 @@ export const useRoutesStore = defineStore("routes", {
     isLoading: false,
     targetGenerationIndex: 0,
     lastGeneratedTargetRouteNumber: 0,
+    routingHealthStatus: "unknown" as RoutingHealthStatus,
+    routingEngineName: "OSRM" as string,
+    routingReachable: null as boolean | null,
   }),
   getters: {
     selectedRoute(state): GeneratedRoute | null {
@@ -48,10 +62,44 @@ export const useRoutesStore = defineStore("routes", {
     canGenerateShape(state): boolean {
       return state.shapePoints.length >= 2 || state.shapeDataText.trim().length > 0;
     },
+    isRoutingEngineOnline(state): boolean {
+      return state.routingHealthStatus === "up" && state.routingReachable === true;
+    },
   },
   actions: {
     setMode(mode: RouteMode) {
       this.mode = mode;
+    },
+    async refreshRoutingHealth() {
+      try {
+        const response = await fetch("/api/health/details", {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
+        });
+        if (!response.ok) {
+          this.routingHealthStatus = "down";
+          this.routingReachable = false;
+          return;
+        }
+        const payload = await response.json() as RoutingHealthPayload;
+        const routing = payload.routing;
+        const status = String(routing?.status ?? "unknown").toLowerCase();
+        const reachable = typeof routing?.reachable === "boolean" ? routing.reachable : null;
+        const engine = String(routing?.engine ?? "osrm").trim();
+
+        if (status === "up" || status === "down" || status === "disabled" || status === "misconfigured") {
+          this.routingHealthStatus = status;
+        } else {
+          this.routingHealthStatus = "unknown";
+        }
+        this.routingReachable = reachable;
+        this.routingEngineName = engine.length > 0 ? engine.toUpperCase() : "OSRM";
+      } catch {
+        this.routingHealthStatus = "down";
+        this.routingReachable = false;
+      }
     },
     setStartPoint(lat: number, lng: number) {
       this.startPoint = { lat, lng };

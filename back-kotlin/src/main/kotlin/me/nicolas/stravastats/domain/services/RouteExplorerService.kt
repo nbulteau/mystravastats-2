@@ -10,6 +10,8 @@ import me.nicolas.stravastats.domain.business.RouteVariantType
 import me.nicolas.stravastats.domain.business.ShapeRemixRecommendation
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
+import me.nicolas.stravastats.domain.services.routing.RoutingEnginePort
+import me.nicolas.stravastats.domain.services.routing.RoutingEngineRequest
 import org.springframework.stereotype.Service
 import java.time.Instant
 import java.time.LocalDate
@@ -37,10 +39,11 @@ interface IRouteExplorerService {
 @Service
 class RouteExplorerService(
     activityProvider: IActivityProvider,
+    private val routingEngine: RoutingEnginePort,
 ) : IRouteExplorerService, AbstractStravaService(activityProvider) {
 
     companion object {
-        private const val DEFAULT_ROUTE_LIMIT = 6
+        private const val DEFAULT_ROUTE_LIMIT = 5
         private const val MAX_ROUTE_LIMIT = 24
         private const val PREVIEW_POINT_MAX_SIZE = 120
     }
@@ -100,7 +103,7 @@ class RouteExplorerService(
             preferredStart,
         )
         val seasonal = buildSeasonalRecommendations(candidates, seasonFilter, distanceTarget, elevationTarget, durationTargetSec, limit)
-        val roadGraphLoops = buildRoadGraphRecommendations(
+        val roadGraphFromCache = buildRoadGraphRecommendations(
             candidates = baseCandidates,
             distanceTarget = distanceTarget,
             elevationTarget = elevationTarget,
@@ -109,6 +112,13 @@ class RouteExplorerService(
             startDirection = startDirection,
             preferredStart = preferredStart,
             limit = limit,
+        )
+        val roadGraphLoops = buildRoadGraphRecommendationsFromEngine(
+            request = request,
+            distanceTarget = distanceTarget,
+            elevationTarget = elevationTarget,
+            limit = limit,
+            fallback = roadGraphFromCache,
         )
         val shapeMatches = buildShapeMatchRecommendations(baseCandidates, shapeFilter, distanceTarget, elevationTarget, durationTargetSec, limit)
         val remixes = if (request.includeRemix) {
@@ -125,6 +135,36 @@ class RouteExplorerService(
             shapeMatches = shapeMatches,
             shapeRemixes = remixes,
         )
+    }
+
+    private fun buildRoadGraphRecommendationsFromEngine(
+        request: RouteExplorerRequest,
+        distanceTarget: Double,
+        elevationTarget: Double,
+        limit: Int,
+        fallback: List<RouteRecommendation>,
+    ): List<RouteRecommendation> {
+        val start = request.startPoint
+        if (start == null || distanceTarget <= 0.0 || limit <= 0) {
+            return fallback
+        }
+
+        val generated = runCatching {
+            routingEngine.generateTargetLoops(
+                RoutingEngineRequest(
+                    startPoint = start,
+                    distanceTargetKm = distanceTarget,
+                    elevationTargetM = request.elevationTargetM ?: elevationTarget,
+                    startDirection = request.startDirection,
+                    routeType = request.routeType,
+                    limit = limit,
+                )
+            )
+        }.getOrElse {
+            emptyList()
+        }
+
+        return if (generated.isNotEmpty()) generated else emptyList()
     }
 
     private fun buildRouteCandidates(activities: List<StravaActivity>): List<RouteCandidate> {

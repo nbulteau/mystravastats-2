@@ -26,6 +26,35 @@ const canGenerate = computed(() =>
   routesStore.mode === "TARGET" ? routesStore.canGenerateTarget : routesStore.canGenerateShape,
 );
 const isShapeMode = computed(() => routesStore.mode === "SHAPE");
+const routingEngineLabel = computed(() => {
+  const engine = routesStore.routingEngineName || "OSRM";
+  switch (routesStore.routingHealthStatus) {
+    case "up":
+      return `${engine} online`;
+    case "disabled":
+      return `${engine} disabled`;
+    case "misconfigured":
+      return `${engine} misconfigured`;
+    case "down":
+      return `${engine} offline`;
+    default:
+      return `${engine} status unknown`;
+  }
+});
+const routingEngineClass = computed(() => {
+  switch (routesStore.routingHealthStatus) {
+    case "up":
+      return "routes-engine-chip routes-engine-chip--up";
+    case "disabled":
+      return "routes-engine-chip routes-engine-chip--disabled";
+    case "misconfigured":
+      return "routes-engine-chip routes-engine-chip--warn";
+    case "down":
+      return "routes-engine-chip routes-engine-chip--down";
+    default:
+      return "routes-engine-chip";
+  }
+});
 const generateRouteButtonLabel = computed(() => {
   if (routesStore.isLoading) {
     return "Generating...";
@@ -339,6 +368,7 @@ watch(
 onMounted(async () => {
   await nextTick();
   initMap();
+  await routesStore.refreshRoutingHealth();
   const storedStartPoint = getStoredStartPoint();
   if (storedStartPoint) {
     applyStartPoint(storedStartPoint.lat, storedStartPoint.lng, 11);
@@ -373,6 +403,10 @@ onBeforeUnmount(() => {
         >
           Shape based generator
         </button>
+        <span :class="routingEngineClass">
+          <span class="routes-engine-dot" />
+          {{ routingEngineLabel }}
+        </span>
       </div>
       <p class="routes-head-caption">
         Same map for start point, shape input and generated route preview.
@@ -575,6 +609,50 @@ onBeforeUnmount(() => {
   margin: 0;
   color: #5e6578;
   font-size: 0.92rem;
+}
+
+.routes-engine-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid #cfd8e6;
+  color: #4d566a;
+  background: #f6f8fc;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.routes-engine-chip--up {
+  border-color: #2e9c57;
+  color: #1d7f42;
+  background: #ecf9f1;
+}
+
+.routes-engine-chip--down {
+  border-color: #de5b5b;
+  color: #b23737;
+  background: #fff1f1;
+}
+
+.routes-engine-chip--warn {
+  border-color: #cf8b2d;
+  color: #8f5f1f;
+  background: #fff8ec;
+}
+
+.routes-engine-chip--disabled {
+  border-color: #a3adb9;
+  color: #5e6573;
+  background: #f1f4f8;
+}
+
+.routes-engine-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 .routes-layout {

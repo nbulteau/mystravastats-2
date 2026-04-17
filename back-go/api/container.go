@@ -65,9 +65,10 @@ func getContainer() *container {
 		badgesReader := badgesInfra.NewBadgesServiceAdapter()
 		statisticsReader := statisticsInfra.NewStatisticsServiceAdapter()
 		segmentsReader := segmentsInfra.NewSegmentServiceAdapter()
-		routesReader := routesInfra.NewRouteServiceAdapter()
+		routingEngine := routesInfra.NewOSMRoutingAdapter()
+		routesReader := routesInfra.NewRouteServiceAdapter(routingEngine)
 		heartRateReader := heartrateInfra.NewHeartRateServiceAdapter()
-		healthReader := healthInfra.NewHealthServiceAdapter()
+		healthReader := healthInfra.NewHealthServiceAdapter(routingEngine)
 		chartsReader := chartsInfra.NewChartsServiceAdapter()
 		dashboardReader := dashboardInfra.NewDashboardServiceAdapter()
 		sharedContainer = &container{

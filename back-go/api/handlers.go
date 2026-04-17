@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	defaultRoutesVariantCount = 4
+	defaultRoutesVariantCount = 5
 	maxGeneratedVariantCount  = 24
 	generatedRouteCacheTTL    = 6 * time.Hour
 )

@@ -3,8 +3,11 @@ package me.nicolas.stravastats.domain.services
 import io.mockk.every
 import io.mockk.mockk
 import me.nicolas.stravastats.domain.business.ActivityType
+import me.nicolas.stravastats.domain.business.ActivityShort
 import me.nicolas.stravastats.domain.business.Coordinates
 import me.nicolas.stravastats.domain.business.RouteExplorerRequest
+import me.nicolas.stravastats.domain.business.RouteRecommendation
+import me.nicolas.stravastats.domain.business.RouteVariantType
 import me.nicolas.stravastats.domain.business.strava.AthleteRef
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.stream.DistanceStream
@@ -12,6 +15,8 @@ import me.nicolas.stravastats.domain.business.strava.stream.LatLngStream
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.business.strava.stream.TimeStream
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
+import me.nicolas.stravastats.domain.services.routing.RoutingEnginePort
+import me.nicolas.stravastats.domain.services.routing.RoutingEngineRequest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -20,11 +25,15 @@ import kotlin.test.assertTrue
 class RouteExplorerServiceTest {
 
     private val activityProvider = mockk<IActivityProvider>()
+    private val routingEngine = object : RoutingEnginePort {
+        override fun generateTargetLoops(request: RoutingEngineRequest) = emptyList<me.nicolas.stravastats.domain.business.RouteRecommendation>()
+        override fun healthDetails(): Map<String, Any?> = mapOf("status" to "disabled")
+    }
     private lateinit var routeExplorerService: IRouteExplorerService
 
     @BeforeEach
     fun setUp() {
-        routeExplorerService = RouteExplorerService(activityProvider)
+        routeExplorerService = RouteExplorerService(activityProvider, routingEngine)
     }
 
     @Test
@@ -307,6 +316,122 @@ class RouteExplorerServiceTest {
         // THEN
         assertTrue(result.closestLoops.isNotEmpty(), "closest loops should not be empty")
         assertEquals("Near Start Loop", result.closestLoops.first().activity.name)
+    }
+
+    @Test
+    fun `route explorer uses routing engine output when available for road graph loops`() {
+        // GIVEN
+        val activityTypes = setOf(ActivityType.Ride)
+        val activities = listOf(
+            buildActivity(
+                id = 91L,
+                name = "Fallback Loop",
+                startDateLocal = "2025-10-01T08:00:00+02:00",
+                distanceKm = 30.0,
+                elevationM = 300.0,
+                durationSec = 5400,
+                start = listOf(45.0, 6.0),
+                track = listOf(
+                    listOf(45.0, 6.0), listOf(45.01, 6.01), listOf(45.0, 6.0),
+                ),
+            ),
+        )
+        every { activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, null) } returns activities
+
+        val generatedByEngine = RouteRecommendation(
+            routeId = "generated-osm-test",
+            activity = ActivityShort(id = 0L, name = "Generated OSM Loop", type = ActivityType.Ride),
+            activityDate = "2025-10-01T08:00:00Z",
+            distanceKm = 42.0,
+            elevationGainM = 600.0,
+            durationSec = 7200,
+            isLoop = true,
+            start = Coordinates(45.0, 6.0),
+            end = Coordinates(45.0, 6.0),
+            startArea = "45.0000, 6.0000",
+            season = "AUTUMN",
+            variantType = RouteVariantType.ROAD_GRAPH,
+            matchScore = 95.0,
+            reasons = listOf("Generated with OSM road graph (OSRM)"),
+            previewLatLng = listOf(
+                listOf(45.0, 6.0),
+                listOf(45.02, 6.02),
+                listOf(45.0, 6.0),
+            ),
+            shape = null,
+            shapeScore = null,
+            experimental = false,
+        )
+        val engine = object : RoutingEnginePort {
+            override fun generateTargetLoops(request: RoutingEngineRequest): List<RouteRecommendation> = listOf(generatedByEngine)
+            override fun healthDetails(): Map<String, Any?> = mapOf("status" to "up")
+        }
+        val serviceWithEngine = RouteExplorerService(activityProvider, engine)
+        val request = RouteExplorerRequest(
+            distanceTargetKm = 42.0,
+            elevationTargetM = 600.0,
+            durationTargetMin = 120,
+            startPoint = Coordinates(lat = 45.0, lng = 6.0),
+            routeType = "RIDE",
+            season = null,
+            limit = 4,
+            shape = null,
+            includeRemix = false,
+        )
+
+        // WHEN
+        val result = serviceWithEngine.getRouteExplorer(activityTypes, null, request)
+
+        // THEN
+        assertTrue(result.roadGraphLoops.isNotEmpty(), "road graph loops should not be empty")
+        assertEquals("generated-osm-test", result.roadGraphLoops.first().routeId)
+        assertEquals("Generated OSM Loop", result.roadGraphLoops.first().activity.name)
+    }
+
+    @Test
+    fun `route explorer does not fallback to cache road graph when routing engine returns empty`() {
+        // GIVEN
+        val activityTypes = setOf(ActivityType.Ride)
+        val activities = listOf(
+            buildActivity(
+                id = 101L,
+                name = "Cached Loop",
+                startDateLocal = "2025-10-10T08:00:00+02:00",
+                distanceKm = 25.0,
+                elevationM = 200.0,
+                durationSec = 3600,
+                start = listOf(45.0, 6.0),
+                track = listOf(
+                    listOf(45.0, 6.0),
+                    listOf(45.01, 6.01),
+                    listOf(45.0, 6.0),
+                ),
+            ),
+        )
+        every { activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, null) } returns activities
+
+        val emptyEngine = object : RoutingEnginePort {
+            override fun generateTargetLoops(request: RoutingEngineRequest): List<RouteRecommendation> = emptyList()
+            override fun healthDetails(): Map<String, Any?> = mapOf("status" to "up")
+        }
+        val serviceWithEmptyEngine = RouteExplorerService(activityProvider, emptyEngine)
+        val request = RouteExplorerRequest(
+            distanceTargetKm = 40.0,
+            elevationTargetM = 500.0,
+            durationTargetMin = 120,
+            startPoint = Coordinates(lat = 45.0, lng = 6.0),
+            routeType = "RIDE",
+            season = null,
+            limit = 5,
+            shape = null,
+            includeRemix = false,
+        )
+
+        // WHEN
+        val result = serviceWithEmptyEngine.getRouteExplorer(activityTypes, null, request)
+
+        // THEN
+        assertTrue(result.roadGraphLoops.isEmpty(), "road graph loops should be empty when OSRM returns no route")
     }
 
     private fun buildActivity(

@@ -2,15 +2,20 @@ package infrastructure
 
 import (
 	"mystravastats/internal/platform/activityprovider"
+	routeApp "mystravastats/internal/routes/application"
 	routesDomain "mystravastats/internal/routes/domain"
 	"mystravastats/internal/shared/domain/business"
 )
 
 // RouteServiceAdapter computes route explorer recommendations from cached activities.
-type RouteServiceAdapter struct{}
+type RouteServiceAdapter struct {
+	routingEngine routeApp.RoutingEnginePort
+}
 
-func NewRouteServiceAdapter() *RouteServiceAdapter {
-	return &RouteServiceAdapter{}
+func NewRouteServiceAdapter(routingEngine routeApp.RoutingEnginePort) *RouteServiceAdapter {
+	return &RouteServiceAdapter{
+		routingEngine: routingEngine,
+	}
 }
 
 func (adapter *RouteServiceAdapter) FindRouteExplorerByYearAndTypes(
@@ -19,5 +24,44 @@ func (adapter *RouteServiceAdapter) FindRouteExplorerByYearAndTypes(
 	activityTypes ...business.ActivityType,
 ) routesDomain.RouteExplorerResult {
 	activities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
-	return computeRouteExplorerFromActivities(activities, request)
+	result := computeRouteExplorerFromActivities(activities, request)
+
+	if adapter.routingEngine == nil || request.StartPoint == nil || request.DistanceTargetKm == nil {
+		return result
+	}
+	if *request.DistanceTargetKm <= 0 {
+		return result
+	}
+
+	routeType := ""
+	if request.RouteType != nil {
+		routeType = *request.RouteType
+	}
+	startDirection := ""
+	if request.StartDirection != nil {
+		startDirection = *request.StartDirection
+	}
+	limit := request.Limit
+	if limit <= 0 {
+		limit = 5
+	}
+
+	generatedLoops, err := adapter.routingEngine.GenerateTargetLoops(routeApp.RoutingEngineRequest{
+		StartPoint:       *request.StartPoint,
+		DistanceTargetKm: *request.DistanceTargetKm,
+		ElevationTargetM: request.ElevationTargetM,
+		StartDirection:   startDirection,
+		RouteType:        routeType,
+		Limit:            limit,
+	})
+	if err != nil {
+		result.RoadGraphLoops = []routesDomain.RouteRecommendation{}
+		return result
+	}
+	if len(generatedLoops) == 0 {
+		result.RoadGraphLoops = []routesDomain.RouteRecommendation{}
+		return result
+	}
+	result.RoadGraphLoops = generatedLoops
+	return result
 }

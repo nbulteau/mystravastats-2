@@ -13,6 +13,24 @@ import (
 	"time"
 )
 
+// calculateTotalDescent computes the total descent (in meters) from the altitude stream
+// by summing all negative differences between consecutive altitude points.
+// Returns 0 if the altitude stream is unavailable or has fewer than 2 points.
+func calculateTotalDescent(stream *strava.Stream) float64 {
+	if stream == nil || stream.Altitude == nil || len(stream.Altitude.Data) < 2 {
+		return 0
+	}
+	totalDescent := 0.0
+	data := stream.Altitude.Data
+	for i := 1; i < len(data); i++ {
+		diff := data[i] - data[i-1]
+		if diff < 0 {
+			totalDescent += math.Abs(diff)
+		}
+	}
+	return totalDescent
+}
+
 func FormatSpeed(speed float64, activityType string) string {
 	if strings.EqualFold(activityType, "Run") || strings.EqualFold(activityType, "TrailRun") {
 		if speed <= 0 {
@@ -145,7 +163,7 @@ func ToDetailedActivityDto(detailedActivity *strava.DetailedActivity) DetailedAc
 		StartLatlng:          detailedActivity.StartLatLng,
 		Stream:               toStreamDto(detailedActivity.Stream),
 		SufferScore:          detailedActivity.SufferScore,
-		TotalDescent:         detailedActivity.ElevLow,
+		TotalDescent:         calculateTotalDescent(detailedActivity.Stream),
 		TotalElevationGain:   int(detailedActivity.TotalElevationGain),
 		Type:                 detailedActivity.Type,
 		WeightedAverageWatts: detailedActivity.WeightedAverageWatts,

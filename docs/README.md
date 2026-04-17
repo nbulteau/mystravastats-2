@@ -99,6 +99,14 @@ Both backends now use the same reliability strategy for background refresh:
 
 This improves perceived startup performance while protecting the app from noisy rate-limit retry loops.
 
+## OSM Routing Engine (OSRM)
+
+The Routes target generator can use an external road graph engine (OSRM) in both backends.
+
+Implementation details and setup instructions are documented here:
+
+- [OSM Routing Setup](./osm-routing-setup.md)
+
 ## Screenshots
 
 Dashboard:

@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
+import me.nicolas.stravastats.domain.services.routing.RoutingEnginePort
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/health", produces = [MediaType.APPLICATION_JSON_VALUE])
 class HealthController(
     private val activityProvider: IActivityProvider,
+    private val routingEngine: RoutingEnginePort,
 ) {
 
     @Operation(
@@ -38,6 +40,8 @@ class HealthController(
     )
     @GetMapping("/details")
     fun getHealthDetails(): Map<String, Any?> {
-        return activityProvider.getCacheDiagnostics()
+        val details = activityProvider.getCacheDiagnostics().toMutableMap()
+        details["routing"] = routingEngine.healthDetails()
+        return details
     }
 }
