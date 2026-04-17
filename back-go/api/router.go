@@ -25,7 +25,7 @@ func NewRouter() *mux.Router {
 
 	}
 
-	// Ajout de la route Swagger UI
+	// Add Swagger UI route
 	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
 	return router

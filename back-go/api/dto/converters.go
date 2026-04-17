@@ -2,6 +2,7 @@ package dto
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"mystravastats/domain/badges"
 	"mystravastats/domain/statistics"
@@ -10,8 +11,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 func FormatSpeed(speed float64, activityType string) string {
@@ -86,12 +85,14 @@ func ToActivityDto(activity strava.Activity) ActivityDto {
 		Id:                               activity.Id,
 		Name:                             activity.Name,
 		Type:                             activity.Type,
+		Commute:                          activity.Commute,
 		Link:                             link,
 		Distance:                         int(activity.Distance),
 		ElapsedTime:                      activity.ElapsedTime,
 		MovingTime:                       activity.MovingTime,
 		TotalElevationGain:               int(activity.TotalElevationGain),
-		AverageSpeed:                     activity.AverageSpeed,       // in m/s
+		AverageSpeed:                     activity.AverageSpeed, // in m/s
+		AverageHeartrate:                 int(activity.AverageHeartrate),
 		BestSpeedForDistanceFor1000m:     bestTimeForDistanceFor1000m, // in m/s
 		BestElevationForDistanceFor500m:  bestElevationForDistanceFor500m,
 		BestElevationForDistanceFor1000m: bestElevationForDistanceFor1000m,
@@ -160,9 +161,12 @@ func parseTimePtr(value *string) time.Time {
 
 func toActivityEffortsDto(efforts []business.ActivityEffort) []ActivityEffortDto {
 	var effortsDto []ActivityEffortDto
-	for _, effort := range efforts {
+	for i, effort := range efforts {
+		// Use a deterministic ID based on index and effort properties to ensure
+		// stability across requests for the same activity data.
+		id := fmt.Sprintf("%d_%d_%d", i, effort.IdxStart, effort.IdxEnd)
 		effortsDto = append(effortsDto, ActivityEffortDto{
-			ID:            uuid.New().String(),
+			ID:            id,
 			Label:         effort.Label,
 			Distance:      effort.Distance,
 			Seconds:       effort.Seconds,
@@ -181,62 +185,41 @@ func toStreamDto(stream *strava.Stream) *StreamDto {
 		return nil
 	}
 
-	var Latlng [][]*float64
-	if stream.LatLng != nil {
-		Latlng = make([][]*float64, len(stream.LatLng.Data))
-		if stream.LatLng.Data != nil {
-			for i, latlng := range stream.LatLng.Data {
-				if len(latlng) >= 2 {
-					lat := latlng[0]
-					lng := latlng[1]
-					Latlng[i] = []*float64{&lat, &lng}
-				}
+	// Latlng: copy [][]float64 directly — no pointer boxing needed.
+	var latlng [][]float64
+	if stream.LatLng != nil && stream.LatLng.Data != nil {
+		latlng = make([][]float64, len(stream.LatLng.Data))
+		for i, coords := range stream.LatLng.Data {
+			if len(coords) >= 2 {
+				latlng[i] = []float64{coords[0], coords[1]}
 			}
 		}
 	}
 
-	var moving []*bool
-	if stream.Moving != nil {
-		moving = make([]*bool, len(stream.Moving.Data))
-		if stream.Moving.Data != nil {
-			for i, m := range stream.Moving.Data {
-				value := m
-				moving[i] = &value
-			}
-		}
+	// Moving: []bool — values are never null so no pointer boxing is needed.
+	var moving []bool
+	if stream.Moving != nil && stream.Moving.Data != nil {
+		moving = make([]bool, len(stream.Moving.Data))
+		copy(moving, stream.Moving.Data)
 	}
 
-	var altitude []*float64
-	if stream.Altitude != nil {
-		altitude = make([]*float64, len(stream.Altitude.Data))
-		if stream.Altitude.Data != nil {
-			for i, a := range stream.Altitude.Data {
-				value := a
-				altitude[i] = &value
-			}
-		}
+	// Altitude, Watts, VelocitySmooth: []float64 — copy directly.
+	var altitude []float64
+	if stream.Altitude != nil && stream.Altitude.Data != nil {
+		altitude = make([]float64, len(stream.Altitude.Data))
+		copy(altitude, stream.Altitude.Data)
 	}
 
-	var watts []*float64
-	if stream.Watts != nil {
-		watts = make([]*float64, len(stream.Watts.Data))
-		if stream.Watts.Data != nil {
-			for i, w := range stream.Watts.Data {
-				value := w
-				watts[i] = &value
-			}
-		}
+	var watts []float64
+	if stream.Watts != nil && stream.Watts.Data != nil {
+		watts = make([]float64, len(stream.Watts.Data))
+		copy(watts, stream.Watts.Data)
 	}
 
-	var velocitySmooth []*float64
-	if stream.VelocitySmooth != nil {
-		velocitySmooth = make([]*float64, len(stream.VelocitySmooth.Data))
-		if stream.VelocitySmooth.Data != nil {
-			for i, v := range stream.VelocitySmooth.Data {
-				value := v
-				velocitySmooth[i] = &value
-			}
-		}
+	var velocitySmooth []float64
+	if stream.VelocitySmooth != nil && stream.VelocitySmooth.Data != nil {
+		velocitySmooth = make([]float64, len(stream.VelocitySmooth.Data))
+		copy(velocitySmooth, stream.VelocitySmooth.Data)
 	}
 
 	var heartrate []int
@@ -248,7 +231,7 @@ func toStreamDto(stream *strava.Stream) *StreamDto {
 	return &StreamDto{
 		Distance:       stream.Distance.Data,
 		Time:           stream.Time.Data,
-		Latlng:         Latlng,
+		Latlng:         latlng,
 		Heartrate:      heartrate,
 		Moving:         moving,
 		Altitude:       altitude,
@@ -258,7 +241,10 @@ func toStreamDto(stream *strava.Stream) *StreamDto {
 }
 
 func parseTime(value string) time.Time {
-	parsedTime, _ := time.Parse(time.RFC3339, value)
+	parsedTime, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		log.Printf("parseTime: failed to parse %q as RFC3339: %v", value, err)
+	}
 	return parsedTime
 }
 
@@ -571,7 +557,7 @@ func BuildActivityEfforts(activity *strava.DetailedActivity) []business.Activity
 	var activityEfforts []business.ActivityEffort
 
 	slopes := activity.Stream.ListSlopesDefault()
-	//.filter { slope.type == SlopeType.ASCENT }
+	// Filter slopes to keep only ascent segments
 	ascentSlopes := make([]strava.Slope, 0, len(slopes))
 	for _, slope := range slopes {
 		if slope.Type == strava.ASCENT {
@@ -986,8 +972,11 @@ func computeFamousClimbEffortSeconds(activity *strava.Activity, badge badges.Fam
 }
 
 func ToBadgeDto(badge business.Badge, activityTypes ...business.ActivityType) BadgeDto {
+	if len(activityTypes) == 0 {
+		return BadgeDto{}
+	}
 
-	// TODO: handle case multiple activity types
+	// TODO: handle case with multiple activity types
 	activityType := activityTypes[0]
 
 	switch b := badge.(type) {

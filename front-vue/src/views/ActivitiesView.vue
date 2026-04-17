@@ -11,7 +11,8 @@ onMounted(() => contextStore.updateCurrentView("activities"));
 const currentYear = computed(() => contextStore.currentYear);
 const currentActivity = computed(() => contextStore.currentActivityType);
 const activities = computed(() => activitiesStore.activities);
-
+const isLoading = computed(() => activitiesStore.isLoading);
+const error = computed(() => activitiesStore.error);
 
 </script>
 
@@ -20,5 +21,7 @@ const activities = computed(() => activitiesStore.activities);
     :activities="activities"
     :current-activity="currentActivity"
     :current-year="currentYear"
+    :is-loading="isLoading"
+    :error="error"
   />
 </template>

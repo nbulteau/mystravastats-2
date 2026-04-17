@@ -2,6 +2,7 @@ export interface Activity {
     id: number;
     name: string;
     type: string;
+    commute: boolean;
     link: string;
     distance: number;
     elapsedTime: number;
@@ -9,6 +10,7 @@ export interface Activity {
     totalElevationGain: number;
     totalDescent: number;
     averageSpeed: number;
+    averageHeartrate: number;
     bestSpeedForDistanceFor1000m: number;
     bestElevationForDistanceFor500m: number;
     bestElevationForDistanceFor1000m: number;

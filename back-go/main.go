@@ -22,7 +22,9 @@ import (
 	"mystravastats/internal/platform/activityprovider"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	_ "mystravastats/docs" // Import for generated Swagger documentation
 
@@ -41,6 +43,11 @@ func main() {
 	// Get port from environment variable if not provided as flag
 	if envPort := os.Getenv("PORT"); envPort != "" {
 		*port = envPort
+	}
+
+	// Validate that the port is a valid number in range [1, 65535].
+	if portNum, err := strconv.Atoi(*port); err != nil || portNum < 1 || portNum > 65535 {
+		log.Fatalf("invalid port %q: must be a number between 1 and 65535", *port)
 	}
 
 	// Eager initialization keeps cache loading and background refresh
@@ -98,10 +105,10 @@ func main() {
 				r2.URL.Path = "/"
 				staticFileHandler.ServeHTTP(w, r2)
 				return
-			} else {
-				// Hashed assets can be cached for a long time
-				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 			}
+
+			// Hashed assets can be cached for a long time
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 
 			staticFileHandler.ServeHTTP(w, r)
 		})
@@ -113,5 +120,12 @@ func main() {
 
 	addr := fmt.Sprintf("localhost:%s", *port)
 	log.Printf("Starting server on http://%s", addr)
-	log.Fatal(http.ListenAndServe(addr, handler))
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      handler,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+	log.Fatal(srv.ListenAndServe())
 }

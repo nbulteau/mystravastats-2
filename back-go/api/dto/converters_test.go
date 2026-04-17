@@ -173,7 +173,7 @@ func TestBuildActivityEfforts_NaNAltitudeFallsBackToSegmentDelta(t *testing.T) {
 	t.Fatalf("expected segment effort to be present")
 }
 
-func TestToStreamDto_DistinctPointersAndValues(t *testing.T) {
+func TestToStreamDto_MapsValues(t *testing.T) {
 	// GIVEN
 	stream := &strava.Stream{
 		Distance: strava.DistanceStream{Data: []float64{1, 2}},
@@ -196,42 +196,27 @@ func TestToStreamDto_DistinctPointersAndValues(t *testing.T) {
 		t.Fatal("expected non-nil dto")
 	}
 
-	if dto.Moving[0] == dto.Moving[1] {
-		t.Fatal("expected moving pointers to be distinct")
-	}
-	if *dto.Moving[0] != true || *dto.Moving[1] != false {
-		t.Fatalf("unexpected moving values: %v %v", *dto.Moving[0], *dto.Moving[1])
+	if dto.Moving[0] != true || dto.Moving[1] != false {
+		t.Fatalf("unexpected moving values: %v %v", dto.Moving[0], dto.Moving[1])
 	}
 
-	if dto.Altitude[0] == dto.Altitude[1] {
-		t.Fatal("expected altitude pointers to be distinct")
-	}
-	if *dto.Altitude[0] != 100.5 || *dto.Altitude[1] != 101.5 {
-		t.Fatalf("unexpected altitude values: %.2f %.2f", *dto.Altitude[0], *dto.Altitude[1])
+	if dto.Altitude[0] != 100.5 || dto.Altitude[1] != 101.5 {
+		t.Fatalf("unexpected altitude values: %.2f %.2f", dto.Altitude[0], dto.Altitude[1])
 	}
 
-	if dto.Watts[0] == dto.Watts[1] {
-		t.Fatal("expected watts pointers to be distinct")
-	}
-	if *dto.Watts[0] != 210.0 || *dto.Watts[1] != 220.0 {
-		t.Fatalf("unexpected watts values: %.1f %.1f", *dto.Watts[0], *dto.Watts[1])
+	if dto.Watts[0] != 210.0 || dto.Watts[1] != 220.0 {
+		t.Fatalf("unexpected watts values: %.1f %.1f", dto.Watts[0], dto.Watts[1])
 	}
 
-	if dto.VelocitySmooth[0] == dto.VelocitySmooth[1] {
-		t.Fatal("expected velocity pointers to be distinct")
-	}
-	if *dto.VelocitySmooth[0] != 8.5 || *dto.VelocitySmooth[1] != 8.8 {
-		t.Fatalf("unexpected velocity values: %.1f %.1f", *dto.VelocitySmooth[0], *dto.VelocitySmooth[1])
+	if dto.VelocitySmooth[0] != 8.5 || dto.VelocitySmooth[1] != 8.8 {
+		t.Fatalf("unexpected velocity values: %.1f %.1f", dto.VelocitySmooth[0], dto.VelocitySmooth[1])
 	}
 
-	if dto.Latlng[0][0] == dto.Latlng[0][1] {
-		t.Fatal("expected latitude and longitude pointers to be distinct")
+	if dto.Latlng[0][0] != 10.1 || dto.Latlng[0][1] != 20.2 {
+		t.Fatalf("unexpected first latlng values: %.1f %.1f", dto.Latlng[0][0], dto.Latlng[0][1])
 	}
-	if *dto.Latlng[0][0] != 10.1 || *dto.Latlng[0][1] != 20.2 {
-		t.Fatalf("unexpected first latlng values: %.1f %.1f", *dto.Latlng[0][0], *dto.Latlng[0][1])
-	}
-	if *dto.Latlng[1][0] != 30.3 || *dto.Latlng[1][1] != 40.4 {
-		t.Fatalf("unexpected second latlng values: %.1f %.1f", *dto.Latlng[1][0], *dto.Latlng[1][1])
+	if dto.Latlng[1][0] != 30.3 || dto.Latlng[1][1] != 40.4 {
+		t.Fatalf("unexpected second latlng values: %.1f %.1f", dto.Latlng[1][0], dto.Latlng[1][1])
 	}
 }
 

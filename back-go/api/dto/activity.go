@@ -6,12 +6,14 @@ type ActivityDto struct {
 	Id                               int64   `json:"id"`
 	Name                             string  `json:"name"`
 	Type                             string  `json:"type"`
+	Commute                          bool    `json:"commute"`
 	Link                             string  `json:"link"`
 	Distance                         int     `json:"distance"`
 	ElapsedTime                      int     `json:"elapsedTime"`
 	MovingTime                       int     `json:"movingTime"`
 	TotalElevationGain               int     `json:"totalElevationGain"`
 	AverageSpeed                     float64 `json:"averageSpeed"`
+	AverageHeartrate                 int     `json:"averageHeartrate"`
 	BestSpeedForDistanceFor1000m     float64 `json:"bestSpeedForDistanceFor1000m"`
 	BestElevationForDistanceFor500m  float64 `json:"bestElevationForDistanceFor500m"`
 	BestElevationForDistanceFor1000m float64 `json:"bestElevationForDistanceFor1000m"`
@@ -67,12 +69,12 @@ type ActivityEffortDto struct {
 }
 
 type StreamDto struct {
-	Distance       []float64    `json:"distance"`
-	Time           []int        `json:"time"`
-	Latlng         [][]*float64 `json:"latlng,omitempty"`
-	Heartrate      []int        `json:"heartrate,omitempty"`
-	Moving         []*bool      `json:"moving,omitempty"`
-	Altitude       []*float64   `json:"altitude,omitempty"`
-	Watts          []*float64   `json:"watts,omitempty"`
-	VelocitySmooth []*float64   `json:"velocitySmooth,omitempty"`
+	Distance       []float64   `json:"distance"`
+	Time           []int       `json:"time"`
+	Latlng         [][]float64 `json:"latlng,omitempty"`
+	Heartrate      []int       `json:"heartrate,omitempty"`
+	Moving         []bool      `json:"moving,omitempty"`
+	Altitude       []float64   `json:"altitude,omitempty"`
+	Watts          []float64   `json:"watts,omitempty"`
+	VelocitySmooth []float64   `json:"velocitySmooth,omitempty"`
 }

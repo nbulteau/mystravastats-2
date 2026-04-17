@@ -66,6 +66,25 @@ var generatedRouteCache = struct {
 	items: map[string]generatedRouteCacheEntry{},
 }
 
+func init() {
+	// Background goroutine that evicts expired entries from generatedRouteCache
+	// every minute, preventing unbounded memory growth under load.
+	go func() {
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			now := time.Now()
+			generatedRouteCache.mu.Lock()
+			for key, entry := range generatedRouteCache.items {
+				if now.After(entry.ExpiresAt) {
+					delete(generatedRouteCache.items, key)
+				}
+			}
+			generatedRouteCache.mu.Unlock()
+		}
+	}()
+}
+
 // getHealthDetails godoc
 // @Summary Get cache health details
 // @Description Returns cache diagnostics including manifest/warmup/best-effort status
@@ -112,9 +131,8 @@ func getAthleteHeartRateZones(w http.ResponseWriter, _ *http.Request) {
 
 func putAthleteHeartRateZones(w http.ResponseWriter, r *http.Request) {
 	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-
+		if err := Body.Close(); err != nil {
+			log.Printf("failed to close request body: %v", err)
 		}
 	}(r.Body)
 
@@ -180,28 +198,28 @@ func getActivitiesByActivityType(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {string} string "Activity not found"
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/activities/{activityId} [get]
-func getDetailedActivity(writer http.ResponseWriter, request *http.Request) {
-	vars := mux.Vars(request)
+func getDetailedActivity(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
 	activityId, err := strconv.ParseInt(vars["activityId"], 10, 64)
 	if err != nil {
-		writeBadRequest(writer, "Invalid request parameters", "invalid activityId")
+		writeBadRequest(w, "Invalid request parameters", "invalid activityId")
 		return
 	}
 	activity, err := getContainer().getDetailedActivityUseCase.Execute(activityId)
 	if err != nil {
 		if errors.Is(err, activitiesDomain.ErrInvalidActivityID) {
-			writeBadRequest(writer, "Invalid request parameters", "activityId must be > 0")
+			writeBadRequest(w, "Invalid request parameters", "activityId must be > 0")
 			return
 		}
-		writeNotFound(writer, "Resource not found", fmt.Sprintf("Activity %d not found", activityId))
+		writeNotFound(w, "Resource not found", fmt.Sprintf("Activity %d not found", activityId))
 		return
 	}
 
 	detailedActivityDto := dto.ToDetailedActivityDto(activity)
 
-	if err := writeJSON(writer, http.StatusOK, detailedActivityDto); err != nil {
+	if err := writeJSON(w, http.StatusOK, detailedActivityDto); err != nil {
 		log.Printf("failed to write detailed activity response: %v", err)
-		writeInternalServerError(writer, "Failed to encode detailed activity response")
+		writeInternalServerError(w, "Failed to encode detailed activity response")
 	}
 }
 
@@ -216,23 +234,23 @@ func getDetailedActivity(writer http.ResponseWriter, request *http.Request) {
 // @Failure 400 {string} string "Invalid parameters"
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/activities/csv [get]
-func getExportCSV(writer http.ResponseWriter, request *http.Request) {
-	year, err := getYearParam(request)
+func getExportCSV(w http.ResponseWriter, r *http.Request) {
+	year, err := getYearParam(r)
 	if err != nil {
-		writeBadRequest(writer, "Invalid request parameters", err.Error())
+		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return
 	}
-	activityTypes, err := getActivityTypeParam(request)
+	activityTypes, err := getActivityTypeParam(r)
 	if err != nil {
-		writeBadRequest(writer, "Invalid request parameters", err.Error())
+		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return
 	}
 	csvData := getContainer().exportActivitiesCSVUseCase.Execute(year, activityTypes)
 
-	writer.Header().Set("Content-Type", "text/csv")
-	writer.Header().Set("Content-Disposition", "attachment; filename=\"activities.csv\"")
-	writer.WriteHeader(http.StatusOK)
-	if _, err := writer.Write([]byte(csvData)); err != nil {
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", "attachment; filename=\"activities.csv\"")
+	w.WriteHeader(http.StatusOK)
+	if _, err := io.WriteString(w, csvData); err != nil {
 		log.Printf("failed to write CSV response: %v", err)
 		return
 	}
@@ -1182,17 +1200,11 @@ func isValidLatLng(lat float64, lng float64) bool {
 }
 
 func maxFloat(left float64, right float64) float64 {
-	if left > right {
-		return left
-	}
-	return right
+	return math.Max(left, right)
 }
 
 func mathAbs(value float64) float64 {
-	if value < 0 {
-		return -value
-	}
-	return value
+	return math.Abs(value)
 }
 
 // getMapsGPX godoc

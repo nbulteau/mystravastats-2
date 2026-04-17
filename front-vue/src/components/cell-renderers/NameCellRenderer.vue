@@ -1,43 +1,29 @@
 <script setup lang="ts">
 import type {Activity} from "@/models/activity.model";
-import {eventBus} from "@/main";
 
 defineProps<{
   model: Activity;
 }>();
-
-
-// Emit the event to the event bus so that the parent component can handle it
-function handleDetailedActivityClick(id: string) {
-  eventBus.emit("detailledActivityClick", id);
-}
 </script>
 
 <template>
-  <div>
+  <div class="activity-name-cell">
     <RouterLink
         :to="`/activities/${model.id}`"
-        class="btn btn-light"
-    >
-      <img
-          src="@/assets/buttons/eye.png"
-          alt="Info"
-          width="16"
-          height="16"
-      >
-    </RouterLink>
-
-    <a
-        href="#"
         class="activity-link"
-        @click.prevent="handleDetailedActivityClick($props.model.id.toString())"
     >
       {{ model.name }}
-    </a>
+    </RouterLink>
   </div>
 </template>
 
 <style scoped>
+.activity-name-cell {
+  display: flex;
+  align-items: center;
+  min-height: 28px;
+}
+
 .activity-link {
   color: var(--ms-primary);
   text-decoration: underline;

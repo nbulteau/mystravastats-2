@@ -23,7 +23,8 @@ func (stat *BaseStatistic) Label() string {
 }
 
 func (stat *BaseStatistic) Value() string {
-	return stat.Value()
+	// Base implementation returns an empty string; subclasses must override this method.
+	return ""
 }
 
 func (stat *BaseStatistic) Activity() *business.ActivityShort {
@@ -60,7 +61,11 @@ type ActivityStatistic struct {
 }
 
 func (stat *ActivityStatistic) Value() string {
-	return fmt.Sprintf("%s - %v", stat.BaseStatistic.Label(), stat.Activity())
+	activity := stat.Activity()
+	if activity == nil {
+		return stat.BaseStatistic.Label()
+	}
+	return fmt.Sprintf("%s - %s", stat.BaseStatistic.Label(), activity.Name)
 }
 
 func (stat *ActivityStatistic) Label() string {

@@ -11,7 +11,13 @@ const props = defineProps<{
   value: number;
 }>();
 
-const gradient = computed(() => props.value ? props.value.toFixed(1) + ' %' : 'Not available');
+const gradient = computed(() => {
+  const numericValue = Number(props.value);
+  if (!Number.isFinite(numericValue)) {
+    return "Not available";
+  }
+  return `${numericValue.toFixed(1)} %`;
+});
 </script>
 
 <style scoped>

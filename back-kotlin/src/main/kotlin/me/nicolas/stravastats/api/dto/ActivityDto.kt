@@ -15,16 +15,22 @@ data class ActivityDto(
     val name: String,
     @param:Schema(description = "Activity type")
     val type: String,
+    @param:Schema(description = "Whether the activity was a commute")
+    val commute: Boolean,
     @param:Schema(description = "Activity link to ")
     val link: String,
     @param:Schema(description = "Activity distance in meters")
     val distance: Int,
     @param:Schema(description = "Activity elapsed time in seconds")
     val elapsedTime: Int,
+    @param:Schema(description = "Activity moving time in seconds")
+    val movingTime: Int,
     @param:Schema(description = "Activity total elevation gain in meters")
     val totalElevationGain: Int,
     @param:Schema(description = "Activity average speed (m/s)")
     val averageSpeed: Double,
+    @param:Schema(description = "Activity average heart rate (bpm)")
+    val averageHeartrate: Int,
     @param:Schema(description = "Activity best time for distance for 1000m")
     val bestSpeedForDistanceFor1000m: Double,
     @param:Schema(description = "Activity best elevation for distance for 500m in %")
@@ -43,7 +49,6 @@ data class ActivityDto(
     val bestPowerFor60minutes: Int,
     @param:Schema(description = "Activity FTP (Functional Threshold Power) in watts")
     val ftp: Int,
-    val movingTime: Int,
     @param:Schema(description = "Badge-specific effort duration in seconds (for famous climbs)")
     val badgeEffortSeconds: Int? = null,
 )
@@ -68,12 +73,14 @@ fun StravaActivity.toDto(): ActivityDto {
         id = this.id,
         name = this.name,
         type = this.type,
+        commute = this.commute,
         link = link,
         distance = this.distance.toInt(),
         elapsedTime = this.elapsedTime,
         movingTime = this.movingTime,
         totalElevationGain = this.totalElevationGain.toInt(),
         averageSpeed = this.averageSpeed,
+        averageHeartrate = this.averageHeartrate.toInt(),
         bestSpeedForDistanceFor1000m = calculateBestTimeForDistance(1000.0)?.getMSSpeed() ?: 0.0,
         bestElevationForDistanceFor500m = calculateBestElevationForDistance(500.0)?.getGradient() ?: 0.0,
         bestElevationForDistanceFor1000m = calculateBestElevationForDistance(1000.0)?.getGradient() ?: 0.0,
