@@ -58,15 +58,23 @@ describe("charts store", () => {
       .mockResolvedValueOnce([{ periodKey: "01", value: 30, activityCount: 2 }])
       .mockResolvedValueOnce([{ periodKey: "01", value: 45, activityCount: 3 }])
       .mockResolvedValueOnce([{ periodKey: "01", value: 800, activityCount: 3 }])
-      .mockResolvedValueOnce([{ periodKey: "01", value: 88, activityCount: 3 }]);
+      .mockResolvedValueOnce([{ periodKey: "01", value: 88, activityCount: 3 }])
+      .mockResolvedValueOnce({
+        nbActivitiesByYear: { "2025": 120, "2024": 95 },
+        totalDistanceByYear: { "2025": 4521, "2024": 4200 },
+        totalElevationByYear: { "2025": 51000, "2024": 47000 },
+        averageSpeedByYear: { "2025": 26.4, "2024": 25.8 },
+        maxSpeedByYear: { "2025": 73.5, "2024": 71.2 },
+      });
 
     // WHEN
     await chartsStore.ensureLoaded(true);
 
     // THEN
-    expect(requestJson).toHaveBeenCalledTimes(6);
+    expect(requestJson).toHaveBeenCalledTimes(7);
     expect(chartsStore.distanceByMonths).toEqual([{ periodKey: "01", value: 100, activityCount: 2 }]);
-    expect(chartsStore.activitiesCountByYear).toEqual({});
+    expect(chartsStore.activitiesCountByYear).toEqual({ "2025": 120, "2024": 95 });
+    expect(chartsStore.totalDistanceByYear["2025"]).toBe(4521);
     expect(chartsStore.isLoading).toBe(false);
     expect(chartsStore.error).toBeNull();
   });

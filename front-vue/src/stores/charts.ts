@@ -179,15 +179,16 @@ export const useChartsStore = defineStore("charts", {
           return;
         }
 
-        this.resetYearlyCharts();
-        await Promise.all([
-          this.fetchDistanceByMonths(),
-          this.fetchElevationByMonths(),
-          this.fetchAverageSpeedByMonths(),
-          this.fetchDistanceByWeeks(),
-          this.fetchElevationByWeeks(),
-          this.fetchCadenceByWeeks(),
-        ]);
+      this.resetYearlyCharts();
+      await Promise.all([
+        this.fetchDistanceByMonths(),
+        this.fetchElevationByMonths(),
+        this.fetchAverageSpeedByMonths(),
+        this.fetchDistanceByWeeks(),
+        this.fetchElevationByWeeks(),
+        this.fetchCadenceByWeeks(),
+        this.fetchAllYearsOverview(),
+      ]);
       } catch {
         this.error = "Unable to load chart data for the selected filters.";
       } finally {
