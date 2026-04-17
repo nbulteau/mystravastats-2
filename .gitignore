@@ -21,3 +21,4 @@ mystravastats*
 test-results/
 .idea/
 node_modules/
+/osm/
