@@ -2,11 +2,20 @@
 
 This guide explains how to set up a local OSRM router for MyStravaStats route generation.
 
+## Platform-Specific Setup
+
+This guide provides commands for **Windows (PowerShell)**, **macOS**, and **Linux**.
+
+Replace path examples with your actual project path:
+- **Windows:** `D:\workspace\mystravastats-2`
+- **macOS/Linux:** `/Users/nicolas/Workspace/mystravastats-2` (or your path)
+
 ## 1. Download an OSM extract (`.osm.pbf`)
 
 Put the file here:
 
-- `/Users/nicolas/Workspace/mystravastats-2/osm/region.osm.pbf`
+- **Windows:** `D:\workspace\mystravastats-2\osm\region.osm.pbf`
+- **macOS/Linux:** `/Users/nicolas/Workspace/mystravastats-2/osm/region.osm.pbf`
 
 ### Option A - Geofabrik (recommended)
 
@@ -14,7 +23,25 @@ Put the file here:
 - France extract example: [https://download.geofabrik.de/europe/france-latest.osm.pbf](https://download.geofabrik.de/europe/france-latest.osm.pbf)
 - Brittany extract example: [https://download.geofabrik.de/europe/france/bretagne-latest.osm.pbf](https://download.geofabrik.de/europe/france/bretagne-latest.osm.pbf)
 
-Example command:
+**Windows (PowerShell):**
+
+```powershell
+$ProjectRoot = "D:\workspace\mystravastats-2"
+New-Item -ItemType Directory -Path "$ProjectRoot\osm" -Force | Out-Null
+Invoke-WebRequest -Uri "https://download.geofabrik.de/europe/france-latest.osm.pbf" `
+  -OutFile "$ProjectRoot\osm\region.osm.pbf"
+```
+
+For Brittany only (recommended for lower RAM and faster preparation):
+
+```powershell
+$ProjectRoot = "D:\workspace\mystravastats-2"
+New-Item -ItemType Directory -Path "$ProjectRoot\osm" -Force | Out-Null
+Invoke-WebRequest -Uri "https://download.geofabrik.de/europe/france/bretagne-latest.osm.pbf" `
+  -OutFile "$ProjectRoot\osm\region.osm.pbf"
+```
+
+**macOS/Linux:**
 
 ```sh
 mkdir -p /Users/nicolas/Workspace/mystravastats-2/osm
@@ -33,8 +60,7 @@ curl -L "https://download.geofabrik.de/europe/france/bretagne-latest.osm.pbf" \
 ### Option B - BBBike (custom area)
 
 - Extract generator: [https://extract.bbbike.org/](https://extract.bbbike.org/)
-- Download your custom `.osm.pbf`, then rename/copy it as:
-  - `/Users/nicolas/Workspace/mystravastats-2/osm/region.osm.pbf`
+- Download your custom `.osm.pbf`, then copy it to your project
 
 Detailed steps:
 
@@ -48,7 +74,17 @@ Detailed steps:
 6. Enter your email address and submit the extract request.
 7. Wait for the BBBike email containing your download link.
 8. Download the generated `.osm.pbf` file.
-9. Copy it into the project and rename it:
+9. Copy it into your project:
+
+**Windows (PowerShell):**
+
+```powershell
+$ProjectRoot = "D:\workspace\mystravastats-2"
+New-Item -ItemType Directory -Path "$ProjectRoot\osm" -Force | Out-Null
+Copy-Item -Path "C:\path\to\your-download.osm.pbf" -Destination "$ProjectRoot\osm\region.osm.pbf"
+```
+
+**macOS/Linux:**
 
 ```sh
 mkdir -p /Users/nicolas/Workspace/mystravastats-2/osm
@@ -64,6 +100,15 @@ Tips:
 
 Run extract + partition + customize:
 
+**Windows (PowerShell):**
+
+```powershell
+$ProjectRoot = "D:\workspace\mystravastats-2"
+docker compose -f "$ProjectRoot\docker-compose-routing-osrm.yml" --profile prepare run --rm osrm-prepare
+```
+
+**macOS/Linux:**
+
 ```sh
 docker compose -f /Users/nicolas/Workspace/mystravastats-2/docker-compose-routing-osrm.yml --profile prepare run --rm osrm-prepare
 ```
@@ -73,14 +118,30 @@ By default, preprocessing runs with `2` threads to reduce memory pressure.
 
 If you want a different profile for extraction:
 
-- walking/hiking profile:
+**Windows (PowerShell) - walking/hiking:**
+
+```powershell
+$ProjectRoot = "D:\workspace\mystravastats-2"
+$env:OSRM_EXTRACT_PROFILE = "/opt/foot.lua"
+docker compose -f "$ProjectRoot\docker-compose-routing-osrm.yml" --profile prepare run --rm osrm-prepare
+```
+
+**macOS/Linux - walking/hiking:**
 
 ```sh
 OSRM_EXTRACT_PROFILE=/opt/foot.lua \
 docker compose -f /Users/nicolas/Workspace/mystravastats-2/docker-compose-routing-osrm.yml --profile prepare run --rm osrm-prepare
 ```
 
-- car profile:
+**Windows (PowerShell) - car profile:**
+
+```powershell
+$ProjectRoot = "D:\workspace\mystravastats-2"
+$env:OSRM_EXTRACT_PROFILE = "/opt/car.lua"
+docker compose -f "$ProjectRoot\docker-compose-routing-osrm.yml" --profile prepare run --rm osrm-prepare
+```
+
+**macOS/Linux - car profile:**
 
 ```sh
 OSRM_EXTRACT_PROFILE=/opt/car.lua \
@@ -89,12 +150,31 @@ docker compose -f /Users/nicolas/Workspace/mystravastats-2/docker-compose-routin
 
 If your machine has enough RAM and you want faster preprocessing:
 
+**Windows (PowerShell):**
+
+```powershell
+$ProjectRoot = "D:\workspace\mystravastats-2"
+$env:OSRM_THREADS = "4"
+docker compose -f "$ProjectRoot\docker-compose-routing-osrm.yml" --profile prepare run --rm osrm-prepare
+```
+
+**macOS/Linux:**
+
 ```sh
 OSRM_THREADS=4 \
 docker compose -f /Users/nicolas/Workspace/mystravastats-2/docker-compose-routing-osrm.yml --profile prepare run --rm osrm-prepare
 ```
 
 ## 3. Start the OSRM router
+
+**Windows (PowerShell):**
+
+```powershell
+$ProjectRoot = "D:\workspace\mystravastats-2"
+docker compose -f "$ProjectRoot\docker-compose-routing-osrm.yml" up -d osrm
+```
+
+**macOS/Linux:**
 
 ```sh
 docker compose -f /Users/nicolas/Workspace/mystravastats-2/docker-compose-routing-osrm.yml up -d osrm
@@ -133,9 +213,19 @@ Try these fixes:
 
 1. Use a smaller `.osm.pbf` extract (preferred).
 2. Keep `OSRM_THREADS=1` or `OSRM_THREADS=2`.
-3. Increase Docker Desktop memory (for macOS often at least 8 GB, ideally 12+ for larger extracts).
+3. Increase Docker Desktop memory (often at least 8 GB, ideally 12+ for larger extracts).
 
 Example low-memory run:
+
+**Windows (PowerShell):**
+
+```powershell
+$ProjectRoot = "D:\workspace\mystravastats-2"
+$env:OSRM_THREADS = "1"
+docker compose -f "$ProjectRoot\docker-compose-routing-osrm.yml" --profile prepare run --rm osrm-prepare
+```
+
+**macOS/Linux:**
 
 ```sh
 OSRM_THREADS=1 \
