@@ -20,3 +20,4 @@ mystravastats*
 .gradle-home-macos/
 test-results/
 .idea/
+node_modules/
