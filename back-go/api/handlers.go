@@ -819,6 +819,7 @@ func defaultRouteGenerationActivityTypes() []business.ActivityType {
 		business.Run,
 		business.TrailRun,
 		business.Hike,
+		business.Walk,
 	}
 }
 

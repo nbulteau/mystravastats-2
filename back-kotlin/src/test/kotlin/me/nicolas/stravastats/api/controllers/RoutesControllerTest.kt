@@ -2,6 +2,7 @@ package me.nicolas.stravastats.api.controllers
 
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
+import io.mockk.verify
 import me.nicolas.stravastats.domain.business.ActivityShort
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.RouteExplorerRequest
@@ -247,5 +248,45 @@ class RoutesControllerTest {
             // THEN
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.routes.length()").value(0))
+    }
+
+    @Test
+    fun `generate target routes defaults include walk when activityType is missing`() {
+        // GIVEN
+        every {
+            routeExplorerService.getRouteExplorer(any(), any(), any())
+        } returns RouteExplorerResult(
+            closestLoops = emptyList(),
+            variants = emptyList(),
+            seasonal = emptyList(),
+            roadGraphLoops = emptyList(),
+            shapeMatches = emptyList(),
+            shapeRemixes = emptyList(),
+        )
+
+        // WHEN
+        mockMvc.perform(
+            post("/api/routes/generate/target")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "startPoint": {"lat": 45.19, "lng": 5.73},
+                      "routeType": "RIDE",
+                      "distanceTargetKm": 30.0
+                    }
+                    """.trimIndent()
+                )
+        )
+            // THEN
+            .andExpect(status().isOk)
+
+        verify {
+            routeExplorerService.getRouteExplorer(
+                match { activityTypes -> activityTypes.contains(ActivityType.Walk) },
+                any(),
+                any(),
+            )
+        }
     }
 }

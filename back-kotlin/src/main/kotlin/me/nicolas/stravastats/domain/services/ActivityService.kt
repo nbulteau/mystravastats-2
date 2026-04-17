@@ -63,7 +63,7 @@ internal class ActivityService(
                 year = year
             )
 
-            ActivityType.Hike -> HikeCSVExporter(clientId = clientId, activities = activities, year = year)
+            ActivityType.Hike, ActivityType.Walk -> HikeCSVExporter(clientId = clientId, activities = activities, year = year)
             ActivityType.AlpineSki -> AlpineSkiCSVExporter(clientId = clientId, activities = activities, year = year)
             else -> RideCSVExporter(clientId = clientId, activities = activities, year = year)
         }

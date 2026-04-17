@@ -348,6 +348,7 @@ class RoutesController(
                 ActivityType.Run,
                 ActivityType.TrailRun,
                 ActivityType.Hike,
+                ActivityType.Walk,
             )
         }
         return raw.convertToActivityTypeSet()

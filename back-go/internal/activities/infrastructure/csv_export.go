@@ -25,7 +25,7 @@ func computeExportCSVByYearAndTypes(year *int, activityTypes ...business.Activit
 		return rideExport(activities)
 	case business.Run, business.TrailRun:
 		return runExport(activities)
-	case business.Hike:
+	case business.Hike, business.Walk:
 		return hikeExport(activities)
 	case business.AlpineSki:
 		return alpineSkiExport(activities)

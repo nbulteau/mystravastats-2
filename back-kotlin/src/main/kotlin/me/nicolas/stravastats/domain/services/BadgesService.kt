@@ -47,7 +47,7 @@ internal class BadgesService(
                         MovingTimeBadge.movingTimeBadgesSet.check(activities)
             }
 
-            ActivityType.Hike -> {
+            ActivityType.Hike, ActivityType.Walk -> {
                 DistanceBadge.hikeBadgeSet.check(activities) +
                         ElevationBadge.hikeBadgeSet.check(activities) +
                         MovingTimeBadge.movingTimeBadgesSet.check(activities)

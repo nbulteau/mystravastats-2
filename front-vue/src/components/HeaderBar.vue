@@ -15,8 +15,8 @@ const selectedActivity = computed(() => contextStore.currentActivityType);
 
 const cyclingActivities = ['Ride', 'Commute', 'GravelRide', 'MountainBikeRide', 'VirtualRide'];
 
-const runningActivities = ['Run', 'TrailRun'];
-const otherActivities = ['Hike', 'AlpineSki'];
+const runningActivities = ['Run', 'TrailRun', 'Hike', 'Walk'];
+const otherActivities = ['AlpineSki'];
 const allActivitiesForYearFilter = [...cyclingActivities, ...runningActivities, ...otherActivities];
 
 const splitActivities = (v?: string) =>
@@ -123,7 +123,7 @@ const toggleActivity = (activity: string, activities: string[], defaultActivity:
 };
 
 // Function to handle an activity type changes:
-const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 'MountainBikeRide' | 'Commute' | 'Run' | 'TrailRun' | 'Hike' | 'AlpineSki') => {
+const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 'MountainBikeRide' | 'Commute' | 'Run' | 'TrailRun' | 'Hike' | 'Walk' | 'AlpineSki') => {
 
   if (cyclingActivities.includes(activity)) {
     toggleActivity(activity, cyclingActivities, 'Ride');
@@ -330,13 +330,7 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
                 alt="trail run"
             >
           </button>
-        </div>
 
-        <div
-            class="btn-group btn-group-lg activity-group"
-            role="group"
-            aria-label="Activity"
-        >
           <button
               id="hike"
               type="button"
@@ -357,6 +351,32 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
             >
           </button>
 
+          <button
+              id="walk"
+              type="button"
+              class="btn icon-btn"
+              :class="{
+              'btn-outline-primary': !selectedActivitiesType.includes('Walk'),
+              'btn-primary': selectedActivitiesType.includes('Walk'),
+            }"
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              title="Walk"
+              aria-label="Walk"
+              @click="onChangeActivityType('Walk')"
+          >
+            <img
+                src="@/assets/buttons/walk.png"
+                alt="Walk"
+            >
+          </button>
+        </div>
+
+        <div
+            class="btn-group btn-group-lg activity-group"
+            role="group"
+            aria-label="WinterActivity"
+        >
           <button
               id="alpine-ski"
               type="button"

@@ -1305,7 +1305,7 @@ internal class StatisticsService(
         return when {
             activityTypes.any { type -> type in runActivities } -> ActivityType.Run
             activityTypes.contains(ActivityType.InlineSkate) -> ActivityType.InlineSkate
-            activityTypes.contains(ActivityType.Hike) -> ActivityType.Hike
+            activityTypes.contains(ActivityType.Hike) || activityTypes.contains(ActivityType.Walk) -> ActivityType.Hike
             activityTypes.contains(ActivityType.AlpineSki) -> ActivityType.AlpineSki
             else -> ActivityType.Ride
         }

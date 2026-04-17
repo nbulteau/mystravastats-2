@@ -41,7 +41,7 @@ func (adapter *BadgesServiceAdapter) FindGeneralBadges(year *int, activityTypes 
 		return append(append(badges.DistanceRideBadgeSet.Check(activities),
 			badges.ElevationRideBadgeSet.Check(activities)...),
 			badges.MovingTimeBadgesSet.Check(activities)...)
-	case business.Hike:
+	case business.Hike, business.Walk:
 		return append(append(badges.DistanceHikeBadgeSet.Check(activities),
 			badges.ElevationHikeBadgeSet.Check(activities)...),
 			badges.MovingTimeBadgesSet.Check(activities)...)

@@ -44,7 +44,7 @@ func computeStatisticsByYearAndTypes(year *int, activityTypes ...business.Activi
 		return computeRunStatistics(filteredActivities)
 	case business.InlineSkate:
 		return computeInlineSkateStatistics(filteredActivities)
-	case business.Hike:
+	case business.Hike, business.Walk:
 		return computeHikeStatistics(filteredActivities)
 	case business.AlpineSki:
 		return computeAlpineSkiStatistics(filteredActivities)

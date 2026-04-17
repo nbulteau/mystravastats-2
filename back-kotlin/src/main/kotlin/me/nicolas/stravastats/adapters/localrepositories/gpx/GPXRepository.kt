@@ -321,9 +321,10 @@ class GPXRepository(gpxDirectory: String) {
 }
 
 private fun String.toActivityType(): String {
-    return when (this) {
+    return when (this.lowercase()) {
         "cycling" -> ActivityType.Ride.name
         "running" -> ActivityType.Run.name
+        "walking", "walk" -> ActivityType.Walk.name
         else -> this
     }
 

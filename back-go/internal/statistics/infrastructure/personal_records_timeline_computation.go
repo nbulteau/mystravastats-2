@@ -143,7 +143,7 @@ func resolvePrimaryActivityType(activityTypes []business.ActivityType) business.
 		}
 	}
 	for _, activityType := range activityTypes {
-		if activityType == business.Hike {
+		if activityType == business.Hike || activityType == business.Walk {
 			return business.Hike
 		}
 	}

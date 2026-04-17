@@ -8,6 +8,7 @@ enum class ActivityType {
     MountainBikeRide,
     Ride,
     Run,
+    Walk,
     Commute,
     TrailRun,
     VirtualRide
