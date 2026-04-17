@@ -96,6 +96,32 @@ Back-Go follows a **Clean Architecture** pattern with clear separation of concer
 
 ---
 
+## Running With FIT Files (No Strava API)
+
+The Go backend can now run directly from local FIT files, similarly to Kotlin.
+
+Expected directory layout:
+
+```text
+fit-nicolas/
+  2026/
+    activity-1.fit
+    activity-2.fit
+  2025/
+    activity-3.fit
+```
+
+Set:
+
+```shell
+export FIT_FILES_PATH=/absolute/path/to/fit-nicolas
+```
+
+Then start the backend as usual.  
+When `FIT_FILES_PATH` is set, the Go backend uses the FIT provider instead of Strava API/bootstrap.
+
+---
+
 ## Quick API Links
 ### athlete
 http://localhost:8080/api/athletes/me
