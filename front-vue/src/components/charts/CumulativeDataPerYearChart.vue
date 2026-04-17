@@ -82,15 +82,18 @@ const chartOptions = reactive({
   },
   tooltip: {
     formatter: function (this: any): string {
+      const unit = chartType.value === "distance" ? "km" : "m";
       return this.points.reduce(function (
         s: any,
         point: {
           color: any;
           series: { name: string };
-          y: string;
+          y: number;
         }
       ) {
-        return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${parseInt(point.y)} km`;
+        const value = Number(point.y);
+        const formattedValue = Number.isFinite(value) ? Math.round(value).toLocaleString() : "0";
+        return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${formattedValue} ${unit}`;
       }, "<b>" + formatTooltip(this.key) + "</b>");
     },
     shared: true,

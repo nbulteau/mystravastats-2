@@ -15,9 +15,10 @@ const selectedActivity = computed(() => contextStore.currentActivityType);
 
 const cyclingActivities = ['Ride', 'Commute', 'GravelRide', 'MountainBikeRide', 'VirtualRide'];
 
-const runningActivities = ['Run', 'TrailRun', 'Hike', 'Walk'];
+const runningActivities = ['Run', 'TrailRun'];
+const hikingActivities = ['Hike', 'Walk'];
 const otherActivities = ['AlpineSki'];
-const allActivitiesForYearFilter = [...cyclingActivities, ...runningActivities, ...otherActivities];
+const allActivitiesForYearFilter = [...cyclingActivities, ...runningActivities, ...hikingActivities, ...otherActivities];
 
 const splitActivities = (v?: string) =>
     v && v.length > 0 ? v.split('_') as string[] : ['Ride'];
@@ -129,6 +130,8 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
     toggleActivity(activity, cyclingActivities, 'Ride');
   } else if (runningActivities.includes(activity)) {
     toggleActivity(activity, runningActivities, 'Run');
+  } else if (hikingActivities.includes(activity)) {
+    toggleActivity(activity, hikingActivities, 'Hike');
   } else {
     // For non-cycling activities, select that single activity
     selectedActivitiesType.value = [activity];
@@ -144,12 +147,19 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
       .filter(a => runningActivities.includes(a))
       .sort(); // Sort to ensure consistent ordering
 
+  const selectedHikingActivities = selectedActivitiesType.value
+      .filter(a => hikingActivities.includes(a))
+      .sort(); // Sort to ensure consistent ordering
+
   if (selectedCyclingActivities.length > 1) {
     // Create a combination name based on selected activities
     activityType = selectedCyclingActivities.join('_');
   } else if (selectedRunningActivities.length > 1) {
     // Create a combination name based on selected activities
     activityType = selectedRunningActivities.join('_');
+  } else if (selectedHikingActivities.length > 1) {
+    // Create a combination name based on selected activities
+    activityType = selectedHikingActivities.join('_');
   } else  {
     activityType = selectedActivitiesType.value[0];
   }
@@ -330,7 +340,13 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
                 alt="trail run"
             >
           </button>
+        </div>
 
+        <div
+            class="btn-group btn-group-lg activity-group"
+            role="group"
+            aria-label="HikeActivity"
+        >
           <button
               id="hike"
               type="button"
