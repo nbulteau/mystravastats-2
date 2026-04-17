@@ -1,0 +1,24 @@
+services:
+  osrm-prepare:
+    image: ghcr.io/project-osrm/osrm-backend:latest
+    container_name: mystravastats-osrm-prepare
+    profiles:
+      - prepare
+    volumes:
+      - ./osm:/data
+    command: >
+      sh -lc "
+      test -f /data/region.osm.pbf &&
+      osrm-extract -p ${OSRM_EXTRACT_PROFILE:-/opt/bicycle.lua} --threads ${OSRM_THREADS:-2} /data/region.osm.pbf &&
+      osrm-partition --threads ${OSRM_THREADS:-2} /data/region.osrm &&
+      osrm-customize --threads ${OSRM_THREADS:-2} /data/region.osrm
+      "
+
+  osrm:
+    image: ghcr.io/project-osrm/osrm-backend:latest
+    container_name: mystravastats-osrm
+    volumes:
+      - ./osm:/data
+    command: osrm-routed --algorithm mld /data/region.osrm
+    ports:
+      - "5000:5000"
