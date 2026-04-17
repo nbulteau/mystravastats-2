@@ -28,11 +28,8 @@ const uiStore = useUiStore();
 const searchQuery = ref("");
 const activityTypeFilter = ref("ALL");
 const distanceMinKm = ref<number | null>(null);
-const distanceMaxKm = ref<number | null>(null);
 const elevationMinM = ref<number | null>(null);
-const elevationMaxM = ref<number | null>(null);
 const durationMinMin = ref<number | null>(null);
-const durationMaxMin = ref<number | null>(null);
 const commuteOnly = ref(false);
 const withHeartRate = ref(false);
 const withPower = ref(false);
@@ -88,23 +85,14 @@ const filteredActivities = computed<Activity[]>(() => {
     if (distanceMinKm.value !== null && distanceKm < distanceMinKm.value) {
       return false;
     }
-    if (distanceMaxKm.value !== null && distanceKm > distanceMaxKm.value) {
-      return false;
-    }
 
     const elevation = Number(activity.totalElevationGain) || 0;
     if (elevationMinM.value !== null && elevation < elevationMinM.value) {
       return false;
     }
-    if (elevationMaxM.value !== null && elevation > elevationMaxM.value) {
-      return false;
-    }
 
     const durationMinutes = (Number(activity.elapsedTime) || 0) / 60;
     if (durationMinMin.value !== null && durationMinutes < durationMinMin.value) {
-      return false;
-    }
-    if (durationMaxMin.value !== null && durationMinutes > durationMaxMin.value) {
       return false;
     }
 
@@ -124,11 +112,8 @@ const hasActiveFilters = computed(
     searchQuery.value.trim().length > 0 ||
     activityTypeFilter.value !== "ALL" ||
     distanceMinKm.value !== null ||
-    distanceMaxKm.value !== null ||
     elevationMinM.value !== null ||
-    elevationMaxM.value !== null ||
     durationMinMin.value !== null ||
-    durationMaxMin.value !== null ||
     commuteOnly.value ||
     withHeartRate.value ||
     withPower.value,
@@ -138,11 +123,8 @@ function resetFilters() {
   searchQuery.value = "";
   activityTypeFilter.value = "ALL";
   distanceMinKm.value = null;
-  distanceMaxKm.value = null;
   elevationMinM.value = null;
-  elevationMaxM.value = null;
   durationMinMin.value = null;
-  durationMaxMin.value = null;
   commuteOnly.value = false;
   withHeartRate.value = false;
   withPower.value = false;
@@ -410,93 +392,50 @@ const pinnedBottomRows = computed(() => (footerData.value ? [footerData.value] :
         </select>
       </div>
 
-      <div class="filter-field">
-        <label
-          for="distance-min"
-          class="form-label"
-        >Distance min (km)</label>
-        <input
-          id="distance-min"
-          v-model.number="distanceMinKm"
-          type="number"
-          min="0"
-          step="0.1"
-          class="form-control form-control-sm"
-        >
+      <div class="min-filters-row">
+        <div class="filter-field">
+          <label
+            for="distance-min"
+            class="form-label"
+          >Distance min (km)</label>
+          <input
+            id="distance-min"
+            v-model.number="distanceMinKm"
+            type="number"
+            min="0"
+            step="0.1"
+            class="form-control form-control-sm"
+          >
+        </div>
+        <div class="filter-field">
+          <label
+            for="elevation-min"
+            class="form-label"
+          >D+ min (m)</label>
+          <input
+            id="elevation-min"
+            v-model.number="elevationMinM"
+            type="number"
+            min="0"
+            step="10"
+            class="form-control form-control-sm"
+          >
+        </div>
+        <div class="filter-field">
+          <label
+            for="duration-min"
+            class="form-label"
+          >Duration min (min)</label>
+          <input
+            id="duration-min"
+            v-model.number="durationMinMin"
+            type="number"
+            min="0"
+            step="1"
+            class="form-control form-control-sm"
+          >
+        </div>
       </div>
-      <div class="filter-field">
-        <label
-          for="distance-max"
-          class="form-label"
-        >Distance max (km)</label>
-        <input
-          id="distance-max"
-          v-model.number="distanceMaxKm"
-          type="number"
-          min="0"
-          step="0.1"
-          class="form-control form-control-sm"
-        >
-      </div>
-
-      <div class="filter-field">
-        <label
-          for="elevation-min"
-          class="form-label"
-        >D+ min (m)</label>
-        <input
-          id="elevation-min"
-          v-model.number="elevationMinM"
-          type="number"
-          min="0"
-          step="10"
-          class="form-control form-control-sm"
-        >
-      </div>
-      <div class="filter-field">
-        <label
-          for="elevation-max"
-          class="form-label"
-        >D+ max (m)</label>
-        <input
-          id="elevation-max"
-          v-model.number="elevationMaxM"
-          type="number"
-          min="0"
-          step="10"
-          class="form-control form-control-sm"
-        >
-      </div>
-
-      <div class="filter-field">
-        <label
-          for="duration-min"
-          class="form-label"
-        >Duration min (min)</label>
-        <input
-          id="duration-min"
-          v-model.number="durationMinMin"
-          type="number"
-          min="0"
-          step="1"
-          class="form-control form-control-sm"
-        >
-      </div>
-      <div class="filter-field">
-        <label
-          for="duration-max"
-          class="form-label"
-        >Duration max (min)</label>
-        <input
-          id="duration-max"
-          v-model.number="durationMaxMin"
-          type="number"
-          min="0"
-          step="1"
-          class="form-control form-control-sm"
-        >
-      </div>
-
       <div class="filter-toggles">
         <label class="form-check form-check-inline">
           <input
@@ -609,6 +548,13 @@ const pinnedBottomRows = computed(() => (footerData.value ? [footerData.value] :
   grid-column: span 2;
 }
 
+.min-filters-row {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .form-label {
   margin: 0;
   font-size: 0.75rem;
@@ -646,6 +592,12 @@ const pinnedBottomRows = computed(() => (footerData.value ? [footerData.value] :
   }
   .filter-field--wide {
     grid-column: span 2;
+  }
+}
+
+@media (max-width: 720px) {
+  .min-filters-row {
+    grid-template-columns: 1fr;
   }
 }
 </style>

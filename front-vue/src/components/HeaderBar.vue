@@ -16,6 +16,8 @@ const selectedActivity = computed(() => contextStore.currentActivityType);
 const cyclingActivities = ['Ride', 'Commute', 'GravelRide', 'MountainBikeRide', 'VirtualRide'];
 
 const runningActivities = ['Run', 'TrailRun'];
+const otherActivities = ['Hike', 'AlpineSki'];
+const allActivitiesForYearFilter = [...cyclingActivities, ...runningActivities, ...otherActivities];
 
 const splitActivities = (v?: string) =>
     v && v.length > 0 ? v.split('_') as string[] : ['Ride'];
@@ -29,15 +31,76 @@ watch(
     }
 );
 
-const currentYear = new Date().getFullYear();
-const years: string[] = Array.from({length: currentYear - 2010 + 1}, (_, i) => (currentYear - i).toString());
-years.push("All years");
+const years = ref<string[]>([contextStore.currentYear, "All years"]);
+
+type DashboardYearsPayload = {
+  nbActivitiesByYear?: Record<string, number>;
+  totalDistanceByYear?: Record<string, number>;
+  activeDaysByYear?: Record<string, number>;
+};
+
+function sortYearsDescending(left: string, right: string): number {
+  const leftYear = Number.parseInt(left, 10);
+  const rightYear = Number.parseInt(right, 10);
+  if (Number.isNaN(leftYear) && Number.isNaN(rightYear)) return 0;
+  if (Number.isNaN(leftYear)) return 1;
+  if (Number.isNaN(rightYear)) return -1;
+  return rightYear - leftYear;
+}
+
+function buildAvailableYears(payload: DashboardYearsPayload): string[] {
+  const entries = Object.entries(payload.nbActivitiesByYear ?? {});
+  const activityYears = entries
+    .filter(([, count]) => (Number(count) || 0) > 0)
+    .map(([year]) => year);
+
+  if (activityYears.length > 0) {
+    return [...new Set(activityYears)].sort(sortYearsDescending);
+  }
+
+  const fallbackYears = [
+    ...Object.keys(payload.totalDistanceByYear ?? {}),
+    ...Object.keys(payload.activeDaysByYear ?? {}),
+  ].filter((year) => /^\d{4}$/.test(year));
+
+  return [...new Set(fallbackYears)].sort(sortYearsDescending);
+}
+
+async function loadAvailableYears() {
+  const activityType = allActivitiesForYearFilter.join('_');
+  const url = `/api/dashboard?activityType=${encodeURIComponent(activityType)}`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      return;
+    }
+
+    const payload = await response.json() as DashboardYearsPayload;
+    const availableYears = buildAvailableYears(payload);
+    if (availableYears.length === 0) {
+      years.value = ["All years"];
+      if (selectedYear.value !== "All years") {
+        selectedYear.value = "All years";
+      }
+      return;
+    }
+
+    years.value = [...availableYears, "All years"];
+    if (!years.value.includes(selectedYear.value)) {
+      selectedYear.value = availableYears[0];
+    }
+  } catch (error) {
+    console.warn("Unable to load available years for selector:", error);
+  }
+}
 
 let tooltipInstances: Tooltip[] = [];
 
 onMounted(() => {
   const elements = document.querySelectorAll<HTMLElement>('[data-bs-toggle="tooltip"]');
   tooltipInstances = Array.from(elements).map(el => new Tooltip(el));
+  void loadAvailableYears();
 });
 
 onBeforeUnmount(() => {
