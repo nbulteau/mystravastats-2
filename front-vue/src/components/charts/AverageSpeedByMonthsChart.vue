@@ -6,7 +6,7 @@ import {formatSpeed, formatSpeedWithUnit} from "@/utils/formatters";
 
 const props = defineProps<{
   activityType: string;
-  dataByMonths: Map<string, number>[];
+  dataByMonths: Record<string, number>[];
 }>();
 
 const unit = computed(() => ((props.activityType === "Run" || props.activityType === "TrailRun") ? "min/km" : "km/h"));
@@ -109,7 +109,7 @@ const chartOptions: Highcharts.Options = reactive({
 });
 
 // Function to convert the array of objects to an array of numbers
-function convertToNumberArray(data: Map<string, number>[]): number[] {
+function convertToNumberArray(data: Record<string, number>[]): number[] {
   return data.map((item) => Object.values(item)[0], props.activityType);
 }
 

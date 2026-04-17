@@ -2,12 +2,13 @@
 import {reactive, watch} from "vue";
 import {Chart} from "highcharts-vue";
 import type {SeriesColumnOptions, Point} from "highcharts"; // Import Point here
-import {calculateAverageLine} from "@/utils/charts";
+import {calculateYtdAverageLine, extractPeriodEntries} from "@/utils/charts";
 
 const props = defineProps<{
   title: string;
   unit: string;
-  dataByMonths: Map<string, number>[];
+  dataByMonths: Record<string, number>[];
+  selectedYear: string;
 }>();
 
 const chartOptions: Highcharts.Options = reactive({
@@ -103,7 +104,9 @@ const chartOptions: Highcharts.Options = reactive({
         formatter: function (this: Point) { // Use Point here
           // Display the label only for the first point
           if (this.index === 0) {
-            return 'Average ' + props.title.toLowerCase() + ` by months : ${this.y ? this.y.toFixed(1) : 0} ` + props.unit;
+            const isCurrentYear = props.selectedYear === String(new Date().getFullYear());
+            const labelPrefix = isCurrentYear ? "YTD average" : "Average";
+            return `${labelPrefix} ${props.title.toLowerCase()} by months : ${this.y ? this.y.toFixed(1) : 0} ${props.unit}`;
           }
           return null;
         },
@@ -117,20 +120,20 @@ const chartOptions: Highcharts.Options = reactive({
   ],
 });
 
-// Function to convert the array of objects to an array of numbers
-function convertToNumberArray(data: Map<string, number>[]): number[] {
-  return data.map((item) => Object.values(item)[0]);
-}
-
 // Watch for changes in distanceByMonths and update the chart data
 watch(
     () => props.dataByMonths,
     (newData) => {
       if (chartOptions.series && chartOptions.series.length > 0) {
-        const data = convertToNumberArray(newData);
+        const entries = extractPeriodEntries(newData);
+        const data = entries.map((entry) => entry.value);
         (chartOptions.series[0] as SeriesColumnOptions).data = data;
 
-        (chartOptions.series[1] as SeriesColumnOptions).data = calculateAverageLine(data);
+        (chartOptions.series[1] as SeriesColumnOptions).data = calculateYtdAverageLine(
+          data,
+          props.selectedYear,
+          "MONTHS",
+        );
       }
     },
     {immediate: true}

@@ -1,24 +1,37 @@
 import { defineStore } from "pinia";
 import { buildFilteredApiUrl, requestJson } from "@/stores/api";
 import { useContextStore } from "@/stores/context";
+import { DashboardData } from "@/models/dashboard-data.model";
 
 type ChartsCacheEntry = {
-  distanceByMonths: Map<string, number>[];
-  elevationByMonths: Map<string, number>[];
-  averageSpeedByMonths: Map<string, number>[];
-  distanceByWeeks: Map<string, number>[];
-  elevationByWeeks: Map<string, number>[];
-  cadenceByWeeks: Map<string, number>[];
+  distanceByMonths: Record<string, number>[];
+  elevationByMonths: Record<string, number>[];
+  averageSpeedByMonths: Record<string, number>[];
+  distanceByWeeks: Record<string, number>[];
+  elevationByWeeks: Record<string, number>[];
+  cadenceByWeeks: Record<string, number>[];
+  activitiesCountByYear: Record<string, number>;
+  totalDistanceByYear: Record<string, number>;
+  totalElevationByYear: Record<string, number>;
+  averageSpeedByYear: Record<string, number>;
+  maxSpeedByYear: Record<string, number>;
 };
 
 export const useChartsStore = defineStore("charts", {
   state: () => ({
-    distanceByMonths: [] as Map<string, number>[],
-    elevationByMonths: [] as Map<string, number>[],
-    averageSpeedByMonths: [] as Map<string, number>[],
-    distanceByWeeks: [] as Map<string, number>[],
-    elevationByWeeks: [] as Map<string, number>[],
-    cadenceByWeeks: [] as Map<string, number>[],
+    distanceByMonths: [] as Record<string, number>[],
+    elevationByMonths: [] as Record<string, number>[],
+    averageSpeedByMonths: [] as Record<string, number>[],
+    distanceByWeeks: [] as Record<string, number>[],
+    elevationByWeeks: [] as Record<string, number>[],
+    cadenceByWeeks: [] as Record<string, number>[],
+    activitiesCountByYear: {} as Record<string, number>,
+    totalDistanceByYear: {} as Record<string, number>,
+    totalElevationByYear: {} as Record<string, number>,
+    averageSpeedByYear: {} as Record<string, number>,
+    maxSpeedByYear: {} as Record<string, number>,
+    isLoading: false,
+    error: null as string | null,
     chartsByKey: {} as Record<string, ChartsCacheEntry>,
   }),
   actions: {
@@ -34,6 +47,11 @@ export const useChartsStore = defineStore("charts", {
         distanceByWeeks: this.distanceByWeeks,
         elevationByWeeks: this.elevationByWeeks,
         cadenceByWeeks: this.cadenceByWeeks,
+        activitiesCountByYear: this.activitiesCountByYear,
+        totalDistanceByYear: this.totalDistanceByYear,
+        totalElevationByYear: this.totalElevationByYear,
+        averageSpeedByYear: this.averageSpeedByYear,
+        maxSpeedByYear: this.maxSpeedByYear,
       };
     },
     applyCacheEntry(entry: ChartsCacheEntry) {
@@ -43,13 +61,19 @@ export const useChartsStore = defineStore("charts", {
       this.distanceByWeeks = entry.distanceByWeeks;
       this.elevationByWeeks = entry.elevationByWeeks;
       this.cadenceByWeeks = entry.cadenceByWeeks;
+      this.activitiesCountByYear = entry.activitiesCountByYear;
+      this.totalDistanceByYear = entry.totalDistanceByYear;
+      this.totalElevationByYear = entry.totalElevationByYear;
+      this.averageSpeedByYear = entry.averageSpeedByYear;
+      this.maxSpeedByYear = entry.maxSpeedByYear;
+      this.error = null;
     },
     async fetchDistanceByMonths() {
       const contextStore = useContextStore();
       const url =
         buildFilteredApiUrl("charts/distance-by-period", contextStore.currentActivityType, contextStore.currentYear) +
         "&period=MONTHS";
-      this.distanceByMonths = await requestJson<Map<string, number>[]>(url);
+      this.distanceByMonths = await requestJson<Record<string, number>[]>(url);
       this.updateCacheForCurrentKey();
     },
     async fetchElevationByMonths() {
@@ -57,7 +81,7 @@ export const useChartsStore = defineStore("charts", {
       const url =
         buildFilteredApiUrl("charts/elevation-by-period", contextStore.currentActivityType, contextStore.currentYear) +
         "&period=MONTHS";
-      this.elevationByMonths = await requestJson<Map<string, number>[]>(url);
+      this.elevationByMonths = await requestJson<Record<string, number>[]>(url);
       this.updateCacheForCurrentKey();
     },
     async fetchAverageSpeedByMonths() {
@@ -68,7 +92,7 @@ export const useChartsStore = defineStore("charts", {
           contextStore.currentActivityType,
           contextStore.currentYear,
         ) + "&period=MONTHS";
-      this.averageSpeedByMonths = await requestJson<Map<string, number>[]>(url);
+      this.averageSpeedByMonths = await requestJson<Record<string, number>[]>(url);
       this.updateCacheForCurrentKey();
     },
     async fetchDistanceByWeeks() {
@@ -76,7 +100,7 @@ export const useChartsStore = defineStore("charts", {
       const url =
         buildFilteredApiUrl("charts/distance-by-period", contextStore.currentActivityType, contextStore.currentYear) +
         "&period=WEEKS";
-      this.distanceByWeeks = await requestJson<Map<string, number>[]>(url);
+      this.distanceByWeeks = await requestJson<Record<string, number>[]>(url);
       this.updateCacheForCurrentKey();
     },
     async fetchElevationByWeeks() {
@@ -84,7 +108,7 @@ export const useChartsStore = defineStore("charts", {
       const url =
         buildFilteredApiUrl("charts/elevation-by-period", contextStore.currentActivityType, contextStore.currentYear) +
         "&period=WEEKS";
-      this.elevationByWeeks = await requestJson<Map<string, number>[]>(url);
+      this.elevationByWeeks = await requestJson<Record<string, number>[]>(url);
       this.updateCacheForCurrentKey();
     },
     async fetchCadenceByWeeks() {
@@ -95,8 +119,27 @@ export const useChartsStore = defineStore("charts", {
           contextStore.currentActivityType,
           contextStore.currentYear,
         ) + "&period=WEEKS";
-      this.cadenceByWeeks = await requestJson<Map<string, number>[]>(url);
+      this.cadenceByWeeks = await requestJson<Record<string, number>[]>(url);
       this.updateCacheForCurrentKey();
+    },
+    async fetchAllYearsOverview() {
+      const contextStore = useContextStore();
+      const url = buildFilteredApiUrl("dashboard", contextStore.currentActivityType, contextStore.currentYear);
+      const data = await requestJson<DashboardData>(url);
+
+      this.activitiesCountByYear = data.nbActivitiesByYear ?? {};
+      this.totalDistanceByYear = data.totalDistanceByYear ?? {};
+      this.totalElevationByYear = data.totalElevationByYear ?? {};
+      this.averageSpeedByYear = data.averageSpeedByYear ?? {};
+      this.maxSpeedByYear = data.maxSpeedByYear ?? {};
+      this.updateCacheForCurrentKey();
+    },
+    resetYearlyCharts() {
+      this.activitiesCountByYear = {};
+      this.totalDistanceByYear = {};
+      this.totalElevationByYear = {};
+      this.averageSpeedByYear = {};
+      this.maxSpeedByYear = {};
     },
     resetCharts() {
       this.distanceByMonths = [];
@@ -105,14 +148,11 @@ export const useChartsStore = defineStore("charts", {
       this.distanceByWeeks = [];
       this.elevationByWeeks = [];
       this.cadenceByWeeks = [];
+      this.resetYearlyCharts();
+      this.error = null;
     },
     async ensureLoaded(force = false) {
       const contextStore = useContextStore();
-      if (contextStore.currentYear === "All years") {
-        this.resetCharts();
-        return;
-      }
-
       const key = this.currentFiltersKey();
       const cached = this.chartsByKey[key];
       if (!force && cached) {
@@ -120,14 +160,34 @@ export const useChartsStore = defineStore("charts", {
         return;
       }
 
-      await Promise.all([
-        this.fetchDistanceByMonths(),
-        this.fetchElevationByMonths(),
-        this.fetchAverageSpeedByMonths(),
-        this.fetchDistanceByWeeks(),
-        this.fetchElevationByWeeks(),
-        this.fetchCadenceByWeeks(),
-      ]);
+      this.isLoading = true;
+      this.error = null;
+      try {
+        if (contextStore.currentYear === "All years") {
+          this.distanceByMonths = [];
+          this.elevationByMonths = [];
+          this.averageSpeedByMonths = [];
+          this.distanceByWeeks = [];
+          this.elevationByWeeks = [];
+          this.cadenceByWeeks = [];
+          await this.fetchAllYearsOverview();
+          return;
+        }
+
+        this.resetYearlyCharts();
+        await Promise.all([
+          this.fetchDistanceByMonths(),
+          this.fetchElevationByMonths(),
+          this.fetchAverageSpeedByMonths(),
+          this.fetchDistanceByWeeks(),
+          this.fetchElevationByWeeks(),
+          this.fetchCadenceByWeeks(),
+        ]);
+      } catch {
+        this.error = "Unable to load chart data for the selected filters.";
+      } finally {
+        this.isLoading = false;
+      }
     },
     async refreshCharts() {
       await this.ensureLoaded(true);

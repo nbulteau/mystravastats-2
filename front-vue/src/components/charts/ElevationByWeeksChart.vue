@@ -5,7 +5,7 @@ import type { SeriesColumnOptions, XAxisOptions } from "highcharts";
 
 const props = defineProps<{
   title: string
-  elevationByWeeks: Map<string, number>[]
+  elevationByWeeks: Record<string, number>[]
 }>();
 
 const chartOptions: Highcharts.Options = reactive({
@@ -64,7 +64,7 @@ const chartOptions: Highcharts.Options = reactive({
 });
 
 // Function to convert the array of objects to an array of numbers
-function convertToNumberArray(data: Map<string, number>[]): number[] {
+function convertToNumberArray(data: Record<string, number>[]): number[] {
   return data.map((item) => Object.values(item)[0]);
 }
 
@@ -75,7 +75,7 @@ watch(
     if (chartOptions.series && chartOptions.series.length > 0) {
       (chartOptions.series[0] as SeriesColumnOptions).data = convertToNumberArray(newData);
     }
-    (chartOptions.xAxis as XAxisOptions).categories = Array.from(newData.keys()).map(String);
+    (chartOptions.xAxis as XAxisOptions).categories = newData.map((item) => String(Object.keys(item)[0] ?? ""));
   },
   { immediate: true } // Immediate to handle initial data
 ); 

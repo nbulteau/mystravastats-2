@@ -2,12 +2,13 @@
 import { reactive, watch } from "vue";
 import { Chart } from "highcharts-vue";
 import type { SeriesColumnOptions, XAxisOptions } from "highcharts";
-import { calculateAverageLine } from "@/utils/charts";
+import { calculateYtdAverageLine, extractPeriodEntries, weekLabel } from "@/utils/charts";
 
 const props = defineProps<{
   title: string;
   unit: string;
-  itemsByWeeks: Map<string, number>[];
+  itemsByWeeks: Record<string, number>[];
+  selectedYear: string;
 }>();
 
 const chartOptions: Highcharts.Options = reactive({
@@ -37,7 +38,7 @@ const chartOptions: Highcharts.Options = reactive({
         s: string,
         point: {x: string; y: number}
         ) { return `${s}: <span>${Math.round(point.y)} ${props.unit}</span>`; },
-        "<b>week: " + this.x + "</b>");
+        `<b>${this.x}</b>`);
     },
     shared: true,
   },
@@ -76,7 +77,9 @@ const chartOptions: Highcharts.Options = reactive({
         formatter: function (this: Highcharts.Point) {
           // Display the label only for the first point
           if (this.index === 0) {
-            return 'average ' + props.title.toLowerCase() + ` by weeks : ${this.y ? this.y.toFixed(1) : 0} ` + props.unit;
+            const isCurrentYear = props.selectedYear === String(new Date().getFullYear());
+            const labelPrefix = isCurrentYear ? "YTD average" : "Average";
+            return `${labelPrefix} ${props.title.toLowerCase()} by weeks : ${this.y ? this.y.toFixed(1) : 0} ${props.unit}`;
           }
           return null;
         },
@@ -90,21 +93,22 @@ const chartOptions: Highcharts.Options = reactive({
   ],
 });
 
-// Function to convert the array of objects to an array of numbers
-function convertToNumberArray(data: Map<string, number>[]): number[] {
-  return data.map((item) => Object.values(item)[0]);
-}
-
 // Watch for changes in itemsByWeeks and update the chart data
 watch(() => props.itemsByWeeks, (newData) => {
   if (chartOptions.series && chartOptions.series.length > 0) {
-    const data = convertToNumberArray(newData);
+    const entries = extractPeriodEntries(newData);
+    const data = entries.map((entry) => entry.value);
+    const categories = entries.map((entry) => weekLabel(entry.key));
 
     (chartOptions.series[0] as SeriesColumnOptions).data = data;
 
-    (chartOptions.series[1] as SeriesColumnOptions).data = calculateAverageLine(data);
+    (chartOptions.series[1] as SeriesColumnOptions).data = calculateYtdAverageLine(
+      data,
+      props.selectedYear,
+      "WEEKS",
+    );
+    (chartOptions.xAxis as XAxisOptions).categories = categories;
   }
-  (chartOptions.xAxis as XAxisOptions).categories = Array.from(newData.keys()).map(String);
 }, { immediate: true }); // Immediate to handle initial data
 </script>
 
@@ -115,5 +119,3 @@ watch(() => props.itemsByWeeks, (newData) => {
 
 <style scoped>
 </style>
-
-
