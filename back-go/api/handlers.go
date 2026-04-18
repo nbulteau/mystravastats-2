@@ -41,6 +41,7 @@ type generateTargetRoutesPayload struct {
 	CustomWaypoints []routeStartPointPayload `json:"customWaypoints,omitempty"`
 	RouteType       string                   `json:"routeType"`
 	StartDirection  string                   `json:"startDirection"`
+	StrictDirection *bool                    `json:"strictDirection,omitempty"`
 	DistanceTarget  float64                  `json:"distanceTargetKm"`
 	ElevationTarget *float64                 `json:"elevationTargetM,omitempty"`
 	VariantCount    *int                     `json:"variantCount,omitempty"`
@@ -611,8 +612,10 @@ func generateTargetRoutesByActivityType(w http.ResponseWriter, r *http.Request) 
 	routeType := normalizeGenerateRouteType(payload.RouteType)
 	targetMode := normalizeGenerateTargetMode(payload.GenerationMode)
 	startDirection := normalizeGenerateStartDirection(payload.StartDirection)
+	directionStrict := payload.StrictDirection != nil && *payload.StrictDirection
 	if targetMode == "CUSTOM" {
 		startDirection = ""
+		directionStrict = false
 	}
 	variantCount := normalizeGenerateVariantCount(payload.VariantCount)
 	preferredStart := &routesDomain.Coordinates{
@@ -625,6 +628,7 @@ func generateTargetRoutesByActivityType(w http.ResponseWriter, r *http.Request) 
 		ElevationTargetM: payload.ElevationTarget,
 		StartPoint:       preferredStart,
 		StartDirection:   optionalNonEmptyString(startDirection),
+		DirectionStrict:  optionalBool(directionStrict),
 		TargetMode:       optionalNonEmptyString(targetMode),
 		CustomWaypoints:  customWaypoints,
 		RouteType:        optionalNonEmptyString(routeType),
@@ -632,7 +636,16 @@ func generateTargetRoutesByActivityType(w http.ResponseWriter, r *http.Request) 
 	}
 
 	result := getContainer().getRouteExplorerUseCase.Execute(year, request, activityTypes)
-	response := buildTargetGeneratedRoutesResponse(result, payload.DistanceTarget, payload.ElevationTarget, routeType, startDirection, targetMode, variantCount)
+	response := buildTargetGeneratedRoutesResponse(
+		result,
+		payload.DistanceTarget,
+		payload.ElevationTarget,
+		routeType,
+		startDirection,
+		directionStrict,
+		targetMode,
+		variantCount,
+	)
 	cacheGeneratedRoutes(response.Routes)
 
 	if err := writeJSON(w, http.StatusOK, response); err != nil {
@@ -855,6 +868,7 @@ func buildTargetGeneratedRoutesResponse(
 	elevationTarget *float64,
 	routeType string,
 	startDirection string,
+	directionStrict bool,
 	targetMode string,
 	limit int,
 ) dto.GenerateRoutesResponseDto {
@@ -863,7 +877,7 @@ func buildTargetGeneratedRoutesResponse(
 	recommendations = append(recommendations, result.RoadGraphLoops...)
 
 	routes := toGeneratedRoutesFromRecommendations(recommendations, &distanceTarget, elevationTarget, routeType, startDirection, limit)
-	diagnostics := buildTargetGenerationDiagnostics(distanceTarget, elevationTarget, startDirection, targetMode, routes)
+	diagnostics := buildTargetGenerationDiagnostics(distanceTarget, elevationTarget, startDirection, directionStrict, targetMode, routes)
 	return dto.GenerateRoutesResponseDto{
 		Routes:      routes,
 		Diagnostics: diagnostics,
@@ -932,6 +946,7 @@ func buildTargetGenerationDiagnostics(
 	distanceTarget float64,
 	elevationTarget *float64,
 	startDirection string,
+	directionStrict bool,
 	targetMode string,
 	routes []dto.GeneratedRouteDto,
 ) []dto.RouteGenerationDiagnosticDto {
@@ -970,10 +985,10 @@ func buildTargetGenerationDiagnostics(
 		})
 	}
 
-	if strings.EqualFold(strings.TrimSpace(targetMode), "AUTOMATIC") && strings.TrimSpace(startDirection) != "" {
+	if strings.EqualFold(strings.TrimSpace(targetMode), "AUTOMATIC") && strings.TrimSpace(startDirection) != "" && directionStrict {
 		diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
 			Code:    "DIRECTION_CONFLICT",
-			Message: "Strict departure direction can filter out otherwise valid loops.",
+			Message: "Strict direction can filter out otherwise valid loops.",
 		})
 	}
 
@@ -1210,6 +1225,10 @@ func optionalNonEmptyString(value string) *string {
 		return nil
 	}
 	return &normalized
+}
+
+func optionalBool(value bool) *bool {
+	return &value
 }
 
 func inferShapeFilter(shapeInputType string, shapeData string) string {

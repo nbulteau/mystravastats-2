@@ -55,6 +55,7 @@ data class RouteExplorerRequest(
     val elevationTargetM: Double?,
     val durationTargetMin: Int?,
     val startDirection: String? = null,
+    val strictDirection: Boolean = false,
     val startPoint: Coordinates? = null,
     val targetMode: String? = null,
     val customWaypoints: List<Coordinates> = emptyList(),

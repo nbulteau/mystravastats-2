@@ -112,6 +112,7 @@ data class GenerateTargetRoutesRequestDto(
     val customWaypoints: List<RouteStartPointDto>?,
     val routeType: String?,
     val startDirection: String?,
+    val strictDirection: Boolean? = null,
     val distanceTargetKm: Double?,
     val elevationTargetM: Double?,
     val variantCount: Int?,

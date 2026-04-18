@@ -234,6 +234,26 @@ func TestSyntheticLoopWaypoints_WithNorthDirection_StayInForwardHemisphere(t *te
 	}
 }
 
+func TestBuildRouteRelaxationLevels_WhenDirectionStrict_ThenUsesStricterDirectionThresholds(t *testing.T) {
+	// GIVEN
+	regular := buildRouteRelaxationLevels("RIDE", true, false)
+	strict := buildRouteRelaxationLevels("RIDE", true, true)
+
+	// WHEN
+	regularStrictMax := regular[0].maxDirectionPenalty
+	strictStrictMax := strict[0].maxDirectionPenalty
+	regularFallbackMax := regular[len(regular)-1].maxDirectionPenalty
+	strictFallbackMax := strict[len(strict)-1].maxDirectionPenalty
+
+	// THEN
+	if strictStrictMax >= regularStrictMax {
+		t.Fatalf("expected strict mode to tighten strict-level direction threshold, strict=%f regular=%f", strictStrictMax, regularStrictMax)
+	}
+	if strictFallbackMax >= regularFallbackMax {
+		t.Fatalf("expected strict mode to tighten fallback-level direction threshold, strict=%f regular=%f", strictFallbackMax, regularFallbackMax)
+	}
+}
+
 func TestHalfPlaneViolationRatio_WhenPointsCrossForbiddenHalfPlane_ThenPenaltyIsPositive(t *testing.T) {
 	// GIVEN
 	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}

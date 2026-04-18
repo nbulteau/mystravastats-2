@@ -565,6 +565,27 @@ onBeforeUnmount(() => {
           </select>
         </label>
 
+        <label
+          v-if="isTargetMode && !isTargetCustomMode"
+          class="routes-field routes-checkbox-field"
+        >
+          <span>Direction strict</span>
+          <div class="form-check routes-form-check">
+            <input
+              id="strict-direction"
+              v-model="routesStore.strictDirection"
+              class="form-check-input"
+              type="checkbox"
+            >
+            <label
+              class="form-check-label"
+              for="strict-direction"
+            >
+              Keep the route globally oriented to the selected direction
+            </label>
+          </div>
+        </label>
+
         <div
           v-if="isTargetCustomMode"
           class="routes-custom-tools"
@@ -837,6 +858,22 @@ onBeforeUnmount(() => {
 .routes-field span {
   font-size: 0.85rem;
   font-weight: 700;
+  color: #4d566a;
+}
+
+.routes-checkbox-field {
+  gap: 6px;
+}
+
+.routes-form-check {
+  padding: 8px 10px;
+  border: 1px solid #d9e2ef;
+  border-radius: 10px;
+  background: #f8fbff;
+}
+
+.routes-form-check .form-check-label {
+  font-size: 0.84rem;
   color: #4d566a;
 }
 

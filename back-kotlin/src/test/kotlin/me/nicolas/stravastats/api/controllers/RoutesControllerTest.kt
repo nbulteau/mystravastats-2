@@ -104,6 +104,56 @@ class RoutesControllerTest {
     }
 
     @Test
+    fun `generate target routes forwards strictDirection in automatic mode`() {
+        // GIVEN
+        every {
+            routeExplorerService.getRouteExplorer(
+                any(),
+                any(),
+                any(),
+            )
+        } returns RouteExplorerResult(
+            closestLoops = emptyList(),
+            variants = emptyList(),
+            seasonal = emptyList(),
+            roadGraphLoops = emptyList(),
+            shapeMatches = emptyList(),
+            shapeRemixes = emptyList(),
+        )
+
+        // WHEN
+        mockMvc.perform(
+            post("/api/routes/generate/target")
+                .param("activityType", "Ride")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "startPoint": {"lat": 45.19, "lng": 5.73},
+                      "generationMode": "AUTOMATIC",
+                      "routeType": "RIDE",
+                      "startDirection": "N",
+                      "strictDirection": true,
+                      "distanceTargetKm": 42.0
+                    }
+                    """.trimIndent()
+                )
+        )
+            // THEN
+            .andExpect(status().isOk)
+
+        verify {
+            routeExplorerService.getRouteExplorer(
+                any(),
+                any(),
+                match { request: RouteExplorerRequest ->
+                    request.strictDirection && request.startDirection == "N"
+                }
+            )
+        }
+    }
+
+    @Test
     fun `generate shape routes rejects invalid shapeInputType`() {
         // GIVEN
         every {

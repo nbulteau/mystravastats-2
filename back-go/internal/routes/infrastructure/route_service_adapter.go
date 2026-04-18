@@ -45,6 +45,10 @@ func (adapter *RouteServiceAdapter) FindRouteExplorerByYearAndTypes(
 	if request.TargetMode != nil {
 		targetMode = *request.TargetMode
 	}
+	directionStrict := false
+	if request.DirectionStrict != nil {
+		directionStrict = *request.DirectionStrict
+	}
 	limit := request.Limit
 	if limit <= 0 {
 		limit = 2
@@ -55,6 +59,7 @@ func (adapter *RouteServiceAdapter) FindRouteExplorerByYearAndTypes(
 		DistanceTargetKm: *request.DistanceTargetKm,
 		ElevationTargetM: request.ElevationTargetM,
 		StartDirection:   startDirection,
+		DirectionStrict:  directionStrict,
 		TargetMode:       targetMode,
 		Waypoints:        request.CustomWaypoints,
 		RouteType:        routeType,

@@ -155,6 +155,7 @@ func (adapter *OSMRoutingAdapter) GenerateTargetLoops(
 
 	baseBearing := startDirectionToBearing(request.StartDirection)
 	hasDirection := strings.TrimSpace(request.StartDirection) != ""
+	directionStrict := hasDirection && request.DirectionStrict
 	radiusBaseKm := math.Max(1.0, request.DistanceTargetKm/(2.0*math.Pi))
 	radiusMultipliers := []float64{1.00, 0.92, 1.08, 0.84, 1.16, 1.24, 0.76, 1.32, 0.68, 1.40, 1.48, 0.60}
 	rotations := []float64{0, 22, -22, 45, -45, 68, -68, 95, -95, 125, -125, 155, -155}
@@ -162,6 +163,10 @@ func (adapter *OSMRoutingAdapter) GenerateTargetLoops(
 		// When a direction is requested in automatic mode, rotations stay tight around
 		// the requested bearing to preserve a clear global orientation.
 		rotations = []float64{0, 8, -8, 15, -15, 24, -24, 32, -32}
+		if directionStrict {
+			// Strict mode keeps the directional cone narrower.
+			rotations = []float64{0, 5, -5, 10, -10, 16, -16}
+		}
 	}
 	// Keep a high candidate pool even when request.Limit is small, otherwise
 	// strict anti-backtracking filters would only have near-identical routes to choose from.
@@ -637,7 +642,11 @@ func selectCandidatesWithRelaxation(
 	// Levels are evaluated in order: strict -> balanced -> relaxed -> fallback.
 	// We fill results incrementally: if strict cannot fill the target limit,
 	// next levels progressively loosen constraints while keeping quality.
-	levels := buildRouteRelaxationLevels(request.RouteType, strings.TrimSpace(request.StartDirection) != "")
+	levels := buildRouteRelaxationLevels(
+		request.RouteType,
+		strings.TrimSpace(request.StartDirection) != "",
+		request.DirectionStrict,
+	)
 	selected := make([]routesDomain.RouteRecommendation, 0, request.Limit)
 	selectedIDs := make(map[string]struct{}, request.Limit)
 
@@ -684,7 +693,7 @@ func selectCandidatesWithRelaxation(
 	return selected
 }
 
-func buildRouteRelaxationLevels(routeType string, hasDirection bool) []routeRelaxationLevel {
+func buildRouteRelaxationLevels(routeType string, hasDirection bool, directionStrict bool) []routeRelaxationLevel {
 	baseMinDiversity := minSegmentDiversityRatio(routeType)
 	strictDirection := 1.0
 	balancedDirection := 1.0
@@ -695,6 +704,12 @@ func buildRouteRelaxationLevels(routeType string, hasDirection bool) []routeRela
 		balancedDirection = 0.28
 		relaxedDirection = 0.40
 		fallbackDirection = 0.52
+		if directionStrict {
+			strictDirection = 0.10
+			balancedDirection = 0.16
+			relaxedDirection = 0.22
+			fallbackDirection = 0.30
+		}
 	}
 
 	return []routeRelaxationLevel{

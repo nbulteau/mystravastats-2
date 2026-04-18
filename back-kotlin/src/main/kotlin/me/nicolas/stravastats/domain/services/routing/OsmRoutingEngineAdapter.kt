@@ -126,6 +126,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         }
         val baseBearing = startDirectionToBearing(request.startDirection)
         val hasDirection = !request.startDirection.isNullOrBlank()
+        val directionStrict = hasDirection && request.directionStrict
         val baseRadiusKm = max(1.0, request.distanceTargetKm / (2.0 * PI))
         val radiusMultipliers = listOf(1.00, 0.92, 1.08, 0.84, 1.16, 1.24, 0.76, 1.32, 0.68, 1.40, 1.48, 0.60)
         var rotations = listOf(0.0, 22.0, -22.0, 45.0, -45.0, 68.0, -68.0, 95.0, -95.0, 125.0, -125.0, 155.0, -155.0)
@@ -133,6 +134,10 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             // With direction in automatic mode, keep rotations tight around the
             // requested bearing to preserve a clear global orientation.
             rotations = listOf(0.0, 8.0, -8.0, 15.0, -15.0, 24.0, -24.0, 32.0, -32.0)
+            if (directionStrict) {
+                // Strict mode keeps the directional cone narrower.
+                rotations = listOf(0.0, 5.0, -5.0, 10.0, -10.0, 16.0, -16.0)
+            }
         }
         // Keep a high candidate pool even when request.limit is small, otherwise
         // strict anti-backtracking filters only compare near-identical loops.
@@ -548,6 +553,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         val levels = buildRouteRelaxationLevels(
             routeType = request.routeType,
             hasDirection = !request.startDirection.isNullOrBlank(),
+            directionStrict = request.directionStrict,
         )
         val selected = mutableListOf<RouteRecommendation>()
         val selectedIds = mutableSetOf<String>()
@@ -590,16 +596,24 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         return selected
     }
 
-    private fun buildRouteRelaxationLevels(routeType: String?, hasDirection: Boolean): List<RouteRelaxationLevel> {
+    private fun buildRouteRelaxationLevels(
+        routeType: String?,
+        hasDirection: Boolean,
+        directionStrict: Boolean,
+    ): List<RouteRelaxationLevel> {
         val baseMinDiversity = minSegmentDiversityRatio(routeType)
         val strictDirection = if (hasDirection) 0.18 else 1.0
         val balancedDirection = if (hasDirection) 0.28 else 1.0
         val relaxedDirection = if (hasDirection) 0.40 else 1.0
         val fallbackDirection = if (hasDirection) 0.52 else 1.0
+        val strictLevelDirection = if (hasDirection && directionStrict) 0.10 else strictDirection
+        val balancedLevelDirection = if (hasDirection && directionStrict) 0.16 else balancedDirection
+        val relaxedLevelDirection = if (hasDirection && directionStrict) 0.22 else relaxedDirection
+        val fallbackLevelDirection = if (hasDirection && directionStrict) 0.30 else fallbackDirection
         return listOf(
             RouteRelaxationLevel(
                 name = "strict",
-                maxDirectionPenalty = strictDirection,
+                maxDirectionPenalty = strictLevelDirection,
                 maxBacktrackingRatio = 0.003,
                 maxCorridorOverlap = 0.008,
                 minSegmentDiversity = baseMinDiversity,
@@ -607,7 +621,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             ),
             RouteRelaxationLevel(
                 name = "balanced",
-                maxDirectionPenalty = balancedDirection,
+                maxDirectionPenalty = balancedLevelDirection,
                 maxBacktrackingRatio = 0.012,
                 maxCorridorOverlap = 0.016,
                 minSegmentDiversity = max(0.22, baseMinDiversity - 0.08),
@@ -615,7 +629,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             ),
             RouteRelaxationLevel(
                 name = "relaxed",
-                maxDirectionPenalty = relaxedDirection,
+                maxDirectionPenalty = relaxedLevelDirection,
                 maxBacktrackingRatio = 0.028,
                 maxCorridorOverlap = 0.026,
                 minSegmentDiversity = max(0.12, baseMinDiversity - 0.18),
@@ -623,7 +637,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             ),
             RouteRelaxationLevel(
                 name = "fallback",
-                maxDirectionPenalty = fallbackDirection,
+                maxDirectionPenalty = fallbackLevelDirection,
                 maxBacktrackingRatio = 0.07,
                 maxCorridorOverlap = 0.035,
                 minSegmentDiversity = 0.08,

@@ -146,6 +146,9 @@ class RoutesController(
         } else {
             normalizeStartDirection(payload.startDirection)
         }
+        val strictDirection = targetMode == "AUTOMATIC" &&
+            !startDirection.isNullOrBlank() &&
+            (payload.strictDirection == true)
         val variantCount = normalizeVariantCount(payload.variantCount)
         val distanceTarget = payload.distanceTargetKm!!
         val request = RouteExplorerRequest(
@@ -153,6 +156,7 @@ class RoutesController(
             elevationTargetM = payload.elevationTargetM,
             durationTargetMin = null,
             startDirection = startDirection,
+            strictDirection = strictDirection,
             startPoint = payload.startPoint?.toCoordinates(),
             targetMode = targetMode,
             customWaypoints = payload.customWaypoints.orEmpty().map { waypoint -> waypoint.toCoordinates() },
@@ -176,6 +180,7 @@ class RoutesController(
             distanceTarget = distanceTarget,
             elevationTarget = payload.elevationTargetM,
             startDirection = startDirection,
+            directionStrict = strictDirection,
             targetMode = targetMode,
             routes = routes,
         )
@@ -424,6 +429,7 @@ class RoutesController(
         distanceTarget: Double,
         elevationTarget: Double?,
         startDirection: String?,
+        directionStrict: Boolean,
         targetMode: String?,
         routes: List<GeneratedRouteDto>,
     ): List<RouteGenerationDiagnosticDto> {
@@ -462,10 +468,10 @@ class RoutesController(
             )
         }
 
-        if (targetMode == "AUTOMATIC" && !startDirection.isNullOrBlank()) {
+        if (targetMode == "AUTOMATIC" && !startDirection.isNullOrBlank() && directionStrict) {
             diagnostics += RouteGenerationDiagnosticDto(
                 code = "DIRECTION_CONFLICT",
-                message = "Strict departure direction can filter out otherwise valid loops.",
+                message = "Strict direction can filter out otherwise valid loops.",
             )
         }
 

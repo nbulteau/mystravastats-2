@@ -60,6 +60,7 @@ type RouteExplorerRequest struct {
 	DurationTargetMin *int
 	StartPoint        *Coordinates
 	StartDirection    *string
+	DirectionStrict   *bool
 	TargetMode        *string
 	CustomWaypoints   []Coordinates
 	RouteType         *string

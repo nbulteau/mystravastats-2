@@ -163,6 +163,7 @@ class RouteExplorerService(
                     distanceTargetKm = distanceTarget,
                     elevationTargetM = request.elevationTargetM ?: elevationTarget,
                     startDirection = request.startDirection,
+                    directionStrict = request.strictDirection,
                     targetMode = request.targetMode,
                     waypoints = request.customWaypoints,
                     routeType = request.routeType,
