@@ -113,6 +113,8 @@ data class GenerateTargetRoutesRequestDto(
     val routeType: String?,
     val startDirection: String?,
     val strictDirection: Boolean? = null,
+    val strictBacktracking: Boolean? = null,
+    val backtrackingProfile: String? = null,
     val distanceTargetKm: Double?,
     val elevationTargetM: Double?,
     val variantCount: Int?,

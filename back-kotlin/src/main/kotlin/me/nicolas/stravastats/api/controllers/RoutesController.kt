@@ -61,6 +61,9 @@ class RoutesController(
         private const val DEFAULT_VARIANT_COUNT = 2
         private const val MAX_VARIANT_COUNT = 24
         private const val GENERATED_ROUTE_CACHE_TTL_SECONDS = 6 * 3600L
+        private const val BACKTRACKING_PROFILE_BALANCED = "BALANCED"
+        private const val BACKTRACKING_PROFILE_STRICT = "STRICT"
+        private const val BACKTRACKING_PROFILE_ULTRA = "ULTRA"
     }
 
     private data class CachedGeneratedRoute(
@@ -147,6 +150,8 @@ class RoutesController(
             normalizeStartDirection(payload.startDirection)
         }
         val strictDirection = targetMode == "AUTOMATIC" && isUndefinedStartDirection(payload.startDirection)
+        val backtrackingProfile = normalizeBacktrackingProfile(payload.backtrackingProfile, payload.strictBacktracking)
+        val strictBacktracking = backtrackingProfile != BACKTRACKING_PROFILE_BALANCED
         val variantCount = normalizeVariantCount(payload.variantCount)
         val distanceTarget = payload.distanceTargetKm!!
         val request = RouteExplorerRequest(
@@ -155,6 +160,8 @@ class RoutesController(
             durationTargetMin = null,
             startDirection = startDirection,
             strictDirection = strictDirection,
+            strictBacktracking = strictBacktracking,
+            backtrackingProfile = backtrackingProfile,
             startPoint = payload.startPoint?.toCoordinates(),
             targetMode = targetMode,
             customWaypoints = payload.customWaypoints.orEmpty().map { waypoint -> waypoint.toCoordinates() },
@@ -179,6 +186,7 @@ class RoutesController(
             elevationTarget = payload.elevationTargetM,
             startDirection = startDirection,
             directionStrict = strictDirection,
+            backtrackingProfile = backtrackingProfile,
             targetMode = targetMode,
             routes = routes,
         )
@@ -428,6 +436,7 @@ class RoutesController(
         elevationTarget: Double?,
         startDirection: String?,
         directionStrict: Boolean,
+        backtrackingProfile: String,
         targetMode: String?,
         routes: List<GeneratedRouteDto>,
     ): List<RouteGenerationDiagnosticDto> {
@@ -470,6 +479,18 @@ class RoutesController(
             diagnostics += RouteGenerationDiagnosticDto(
                 code = "DIRECTION_CONFLICT",
                 message = "Strict direction can filter out otherwise valid loops.",
+            )
+        }
+        if (backtrackingProfile == BACKTRACKING_PROFILE_STRICT || backtrackingProfile == BACKTRACKING_PROFILE_ULTRA) {
+            diagnostics += RouteGenerationDiagnosticDto(
+                code = "STRICT_BACKTRACKING",
+                message = "Strict anti-backtracking mode rejects routes that reuse the same axis too much.",
+            )
+        }
+        if (backtrackingProfile == BACKTRACKING_PROFILE_ULTRA) {
+            diagnostics += RouteGenerationDiagnosticDto(
+                code = "ULTRA_BACKTRACKING",
+                message = "Ultra anti-backtracking mode strongly penalizes reused axes and may return fewer routes.",
             )
         }
 
@@ -613,6 +634,14 @@ class RoutesController(
         return when (normalized) {
             "N", "S", "E", "W" -> normalized
             else -> null
+        }
+    }
+
+    private fun normalizeBacktrackingProfile(value: String?, strictBacktracking: Boolean?): String {
+        val normalized = value?.trim()?.uppercase()
+        return when (normalized) {
+            BACKTRACKING_PROFILE_BALANCED, BACKTRACKING_PROFILE_STRICT, BACKTRACKING_PROFILE_ULTRA -> normalized
+            else -> if (strictBacktracking == true) BACKTRACKING_PROFILE_STRICT else BACKTRACKING_PROFILE_BALANCED
         }
     }
 

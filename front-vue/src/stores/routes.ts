@@ -9,6 +9,7 @@ import {
   type RouteGenerationDiagnostic,
   type ShapeInputType,
   type StartDirection,
+  type BacktrackingProfile,
 } from "@/models/route-recommendation.model";
 
 const DEFAULT_VARIANT_COUNT = 4;
@@ -31,6 +32,7 @@ export const useRoutesStore = defineStore("routes", {
     targetGenerationMode: "AUTOMATIC" as TargetGenerationMode,
     routeType: "RIDE" as RouteType,
     startDirection: "UNDEFINED" as StartDirection,
+    backtrackingProfile: "STRICT" as BacktrackingProfile,
     distanceTargetKm: 40 as number,
     elevationTargetM: 800 as number,
     variantCount: DEFAULT_VARIANT_COUNT,
@@ -205,6 +207,8 @@ export const useRoutesStore = defineStore("routes", {
         routeType: this.routeType,
         generationMode: this.targetGenerationMode,
         startDirection: this.targetGenerationMode === "AUTOMATIC" ? this.startDirection : undefined,
+        backtrackingProfile: this.backtrackingProfile,
+        strictBacktracking: this.backtrackingProfile !== "BALANCED",
         distanceTargetKm: distanceTarget,
         elevationTargetM: elevationTarget,
         customWaypoints: this.targetGenerationMode === "CUSTOM"

@@ -17,20 +17,24 @@ type RoutesReader interface {
 // RoutingEngineRequest captures the minimum information needed to generate
 // road-graph loops from an external routing engine.
 type RoutingEngineRequest struct {
-	StartPoint       routesDomain.Coordinates
-	DistanceTargetKm float64
-	ElevationTargetM *float64
-	StartDirection   string
-	DirectionStrict  bool
-	TargetMode       string
-	Waypoints        []routesDomain.Coordinates
-	RouteType        string
-	Limit            int
+	StartPoint          routesDomain.Coordinates
+	DistanceTargetKm    float64
+	ElevationTargetM    *float64
+	StartDirection      string
+	DirectionStrict     bool
+	StrictBacktracking  bool
+	BacktrackingProfile string
+	TargetMode          string
+	Waypoints           []routesDomain.Coordinates
+	ShapePolyline       string
+	RouteType           string
+	Limit               int
 }
 
 // RoutingEnginePort is an outbound port for external routing engines
 // (OSRM, GraphHopper, ...).
 type RoutingEnginePort interface {
 	GenerateTargetLoops(request RoutingEngineRequest) ([]routesDomain.RouteRecommendation, error)
+	GenerateShapeLoops(request RoutingEngineRequest) ([]routesDomain.RouteRecommendation, error)
 	HealthDetails() map[string]any
 }

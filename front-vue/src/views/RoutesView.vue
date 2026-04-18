@@ -89,6 +89,12 @@ const directionOptions = [
   { value: "W", label: "Ouest" },
 ];
 
+const backtrackingProfileOptions = [
+  { value: "BALANCED", label: "Balanced" },
+  { value: "STRICT", label: "Strict" },
+  { value: "ULTRA", label: "Ultra" },
+];
+
 function formatDistance(value: number): string {
   return `${value.toFixed(1)} km`;
 }
@@ -558,6 +564,24 @@ onBeforeUnmount(() => {
           >
             <option
               v-for="option in directionOptions"
+              :key="option.value"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+        <label
+          v-if="isTargetMode"
+          class="routes-field"
+        >
+          <span>Backtracking profile</span>
+          <select
+            v-model="routesStore.backtrackingProfile"
+            class="form-select"
+          >
+            <option
+              v-for="option in backtrackingProfileOptions"
               :key="option.value"
               :value="option.value"
             >

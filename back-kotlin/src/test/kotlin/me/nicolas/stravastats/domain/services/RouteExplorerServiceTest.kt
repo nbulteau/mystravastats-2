@@ -27,6 +27,7 @@ class RouteExplorerServiceTest {
     private val activityProvider = mockk<IActivityProvider>()
     private val routingEngine = object : RoutingEnginePort {
         override fun generateTargetLoops(request: RoutingEngineRequest) = emptyList<me.nicolas.stravastats.domain.business.RouteRecommendation>()
+        override fun generateShapeLoops(request: RoutingEngineRequest) = emptyList<me.nicolas.stravastats.domain.business.RouteRecommendation>()
         override fun healthDetails(): Map<String, Any?> = mapOf("status" to "disabled")
     }
     private lateinit var routeExplorerService: IRouteExplorerService
@@ -364,6 +365,7 @@ class RouteExplorerServiceTest {
         )
         val engine = object : RoutingEnginePort {
             override fun generateTargetLoops(request: RoutingEngineRequest): List<RouteRecommendation> = listOf(generatedByEngine)
+            override fun generateShapeLoops(request: RoutingEngineRequest): List<RouteRecommendation> = emptyList()
             override fun healthDetails(): Map<String, Any?> = mapOf("status" to "up")
         }
         val serviceWithEngine = RouteExplorerService(activityProvider, engine)
@@ -412,6 +414,7 @@ class RouteExplorerServiceTest {
 
         val emptyEngine = object : RoutingEnginePort {
             override fun generateTargetLoops(request: RoutingEngineRequest): List<RouteRecommendation> = emptyList()
+            override fun generateShapeLoops(request: RoutingEngineRequest): List<RouteRecommendation> = emptyList()
             override fun healthDetails(): Map<String, Any?> = mapOf("status" to "up")
         }
         val serviceWithEmptyEngine = RouteExplorerService(activityProvider, emptyEngine)
@@ -466,6 +469,7 @@ class RouteExplorerServiceTest {
         )
         val engine = object : RoutingEnginePort {
             override fun generateTargetLoops(request: RoutingEngineRequest): List<RouteRecommendation> = listOf(generatedByEngine)
+            override fun generateShapeLoops(request: RoutingEngineRequest): List<RouteRecommendation> = emptyList()
             override fun healthDetails(): Map<String, Any?> = mapOf("status" to "up")
         }
         val serviceWithEngine = RouteExplorerService(activityProvider, engine)

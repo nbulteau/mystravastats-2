@@ -18,11 +18,14 @@ import (
 )
 
 const (
-	defaultOSMRoutingBaseURL   = "http://localhost:5000"
-	defaultOSMRoutingTimeoutMs = 3000
-	maxOSRMRoutingCalls        = 16
-	startSnapToleranceMeters   = 900.0
-	directionToleranceMeters   = 120.0
+	defaultOSMRoutingBaseURL    = "http://localhost:5000"
+	defaultOSMRoutingTimeoutMs  = 3000
+	maxOSRMRoutingCalls         = 16
+	startSnapToleranceMeters    = 900.0
+	directionToleranceMeters    = 120.0
+	backtrackingProfileBalanced = "BALANCED"
+	backtrackingProfileStrict   = "STRICT"
+	backtrackingProfileUltra    = "ULTRA"
 )
 
 type osrmRouteCandidate struct {
@@ -30,6 +33,7 @@ type osrmRouteCandidate struct {
 	directionPenalty    float64
 	backtrackingRatio   float64
 	corridorOverlap     float64
+	edgeReuseRatio      float64
 	segmentDiversity    float64
 	distanceDeltaRatio  float64
 	effectiveMatchScore float64
@@ -40,6 +44,7 @@ type routeRelaxationLevel struct {
 	maxDirectionPenalty   float64
 	maxBacktrackingRatio  float64
 	maxCorridorOverlap    float64
+	maxEdgeReuseRatio     float64
 	minSegmentDiversity   float64
 	maxDistanceDeltaRatio float64
 }
@@ -255,6 +260,117 @@ func (adapter *OSMRoutingAdapter) GenerateTargetLoops(
 	return recommendations, nil
 }
 
+func (adapter *OSMRoutingAdapter) GenerateShapeLoops(
+	request application.RoutingEngineRequest,
+) ([]routesDomain.RouteRecommendation, error) {
+	if !adapter.enabled || adapter.baseURL == "" {
+		return []routesDomain.RouteRecommendation{}, nil
+	}
+	if request.Limit <= 0 {
+		return []routesDomain.RouteRecommendation{}, nil
+	}
+
+	shapePolyline := strings.TrimSpace(request.ShapePolyline)
+	if shapePolyline == "" {
+		return []routesDomain.RouteRecommendation{}, nil
+	}
+	rawShape := parseShapePolylineCoordinates(shapePolyline)
+	if len(rawShape) < 2 {
+		return []routesDomain.RouteRecommendation{}, nil
+	}
+
+	targetDistanceKm := request.DistanceTargetKm
+	if targetDistanceKm <= 0 {
+		targetDistanceKm = polylineDistanceKmFromCoordinates(rawShape)
+	}
+	if targetDistanceKm <= 0 {
+		targetDistanceKm = 20.0
+	}
+
+	projectedShape := projectShapePolylineToStart(rawShape, request.StartPoint, targetDistanceKm)
+	waypoints := buildShapeLoopWaypoints(request.StartPoint, projectedShape)
+	if len(waypoints) < 3 {
+		return []routesDomain.RouteRecommendation{}, nil
+	}
+
+	profile := adapter.profileForRouteType(request.RouteType)
+	routes, err := adapter.fetchOSRMRoutes(profile, waypoints)
+	if err != nil {
+		return []routesDomain.RouteRecommendation{}, err
+	}
+
+	shapeRequest := request
+	shapeRequest.DistanceTargetKm = targetDistanceKm
+	shapeRequest.StartDirection = ""
+	shapeRequest.DirectionStrict = false
+	shapePreview := coordinatesToLatLngPoints(projectedShape)
+	rejectCounts := make(map[string]int)
+	candidates := make([]osrmRouteCandidate, 0, len(routes))
+	seenSignatures := make(map[string]struct{}, len(routes))
+
+	for routeIndex, osrmRoute := range routes {
+		candidate, ok := adapter.toRouteCandidate(shapeRequest, osrmRoute, routeIndex, rejectCounts)
+		if !ok {
+			continue
+		}
+		signature := routeGeometrySignature(candidate.recommendation.PreviewLatLng)
+		if signature == "" {
+			incrementRejectCount(rejectCounts, "EMPTY_GEOMETRY_SIGNATURE")
+			continue
+		}
+		if _, exists := seenSignatures[signature]; exists {
+			incrementRejectCount(rejectCounts, "DUPLICATE_GEOMETRY")
+			continue
+		}
+
+		shapeScore := shapeSimilarityScore(candidate.recommendation.PreviewLatLng, shapePreview)
+		shapeName := "CUSTOM_SHAPE"
+		recommendation := candidate.recommendation
+		recommendation.VariantType = routesDomain.RouteVariantShape
+		recommendation.Shape = &shapeName
+		recommendation.ShapeScore = &shapeScore
+		recommendation.MatchScore = clampOSMScore(
+			recommendation.MatchScore*0.35 + shapeScore*100.0*0.65 -
+				candidate.backtrackingRatio*28.0 -
+				candidate.corridorOverlap*35.0 -
+				candidate.edgeReuseRatio*40.0,
+		)
+		recommendation.Reasons = append(
+			recommendation.Reasons,
+			fmt.Sprintf("Shape similarity: %.0f%%", shapeScore*100.0),
+			"Shape mode: projected waypoints",
+		)
+
+		candidate.recommendation = recommendation
+		candidate.effectiveMatchScore = clampOSMScore(
+			recommendation.MatchScore -
+				candidate.backtrackingRatio*95.0 -
+				candidate.corridorOverlap*125.0 -
+				candidate.edgeReuseRatio*140.0,
+		)
+		candidates = append(candidates, candidate)
+		seenSignatures[signature] = struct{}{}
+	}
+
+	recommendations := selectCandidatesWithRelaxation(shapeRequest, candidates, rejectCounts)
+	if len(recommendations) > request.Limit {
+		recommendations = recommendations[:request.Limit]
+	}
+
+	if adapter.debug || len(recommendations) == 0 {
+		log.Printf(
+			"OSRM shape generation summary: routeType=%s shapePoints=%d waypoints=%d fetched=%d accepted=%d rejects=%s",
+			strings.ToUpper(strings.TrimSpace(request.RouteType)),
+			len(rawShape),
+			len(waypoints),
+			len(routes),
+			len(recommendations),
+			formatRejectCounts(rejectCounts),
+		)
+	}
+	return recommendations, nil
+}
+
 func (adapter *OSMRoutingAdapter) generateCustomWaypointLoops(
 	request application.RoutingEngineRequest,
 	profile string,
@@ -343,6 +459,18 @@ func isCustomTargetMode(request application.RoutingEngineRequest) bool {
 		return true
 	}
 	return len(request.Waypoints) > 0
+}
+
+func normalizeBacktrackingProfile(profile string, strictBacktracking bool) string {
+	normalized := strings.ToUpper(strings.TrimSpace(profile))
+	switch normalized {
+	case backtrackingProfileBalanced, backtrackingProfileStrict, backtrackingProfileUltra:
+		return normalized
+	}
+	if strictBacktracking {
+		return backtrackingProfileStrict
+	}
+	return backtrackingProfileBalanced
 }
 
 func buildCustomLoopWaypoints(
@@ -525,6 +653,7 @@ func (adapter *OSMRoutingAdapter) toRouteCandidate(
 	directionPenalty := combinedDirectionPenalty(points, request.StartPoint, request.StartDirection, directionToleranceMeters)
 	backtrackingRatio := oppositeEdgeTraversalRatio(points)
 	corridorOverlap := corridorOverlapRatio(points)
+	edgeReuse := edgeReuseRatio(points)
 	diversityRatio := segmentDiversityRatio(points)
 	distanceDeltaRatio := math.Abs(distanceKm-request.DistanceTargetKm) / math.Max(1.0, request.DistanceTargetKm)
 
@@ -551,12 +680,20 @@ func (adapter *OSMRoutingAdapter) toRouteCandidate(
 		fmt.Sprintf("Directional alignment: %.0f%%", (1.0-directionPenalty)*100.0),
 		fmt.Sprintf("Backtracking: %.0f%%", backtrackingRatio*100.0),
 		fmt.Sprintf("Corridor overlap: %.0f%%", corridorOverlap*100.0),
+		fmt.Sprintf("Axis retrace: %.0f%%", edgeReuse*100.0),
 	}
 	if request.ElevationTargetM != nil {
 		reasons = append(reasons, fmt.Sprintf("Elevation estimate: %s", formatElevationDelta(elevationGainM-*request.ElevationTargetM)))
 	}
 	if request.StartDirection != "" {
 		reasons = append(reasons, fmt.Sprintf("Direction: %s", startDirectionLabel(request.StartDirection)))
+	}
+	backtrackingProfile := normalizeBacktrackingProfile(request.BacktrackingProfile, request.StrictBacktracking)
+	if backtrackingProfile == backtrackingProfileStrict {
+		reasons = append(reasons, "Anti-backtracking: strict")
+	}
+	if backtrackingProfile == backtrackingProfileUltra {
+		reasons = append(reasons, "Anti-backtracking: ultra")
 	}
 
 	recommendation := routesDomain.RouteRecommendation{
@@ -587,6 +724,7 @@ func (adapter *OSMRoutingAdapter) toRouteCandidate(
 		directionPenalty*22.0 -
 		backtrackingRatio*70.0 -
 		corridorOverlap*110.0 -
+		edgeReuse*120.0 -
 		math.Max(0.0, minSegmentDiversityRatio(request.RouteType)-diversityRatio)*35.0 -
 		math.Max(0.0, distanceDeltaRatio-0.15)*45.0)
 	// effectiveScore is an internal ranking score (not API score):
@@ -598,6 +736,7 @@ func (adapter *OSMRoutingAdapter) toRouteCandidate(
 		directionPenalty:    directionPenalty,
 		backtrackingRatio:   backtrackingRatio,
 		corridorOverlap:     corridorOverlap,
+		edgeReuseRatio:      edgeReuse,
 		segmentDiversity:    diversityRatio,
 		distanceDeltaRatio:  distanceDeltaRatio,
 		effectiveMatchScore: effectiveScore,
@@ -628,6 +767,9 @@ func selectCandidatesWithRelaxation(
 		if left.backtrackingRatio != right.backtrackingRatio {
 			return left.backtrackingRatio < right.backtrackingRatio
 		}
+		if left.edgeReuseRatio != right.edgeReuseRatio {
+			return left.edgeReuseRatio < right.edgeReuseRatio
+		}
 		if left.effectiveMatchScore != right.effectiveMatchScore {
 			return left.effectiveMatchScore > right.effectiveMatchScore
 		}
@@ -646,10 +788,12 @@ func selectCandidatesWithRelaxation(
 	// Levels are evaluated in order: strict -> balanced -> relaxed -> fallback.
 	// We fill results incrementally: if strict cannot fill the target limit,
 	// next levels progressively loosen constraints while keeping quality.
+	backtrackingProfile := normalizeBacktrackingProfile(request.BacktrackingProfile, request.StrictBacktracking)
 	levels := buildRouteRelaxationLevels(
 		request.RouteType,
 		strings.TrimSpace(request.StartDirection) != "",
 		request.DirectionStrict,
+		backtrackingProfile,
 	)
 	selected := make([]routesDomain.RouteRecommendation, 0, limit)
 	selectedIDs := make(map[string]struct{}, limit)
@@ -678,6 +822,10 @@ func selectCandidatesWithRelaxation(
 				incrementRejectCount(rejectCounts, "CORRIDOR_OVERLAP")
 				continue
 			}
+			if candidate.edgeReuseRatio > level.maxEdgeReuseRatio {
+				incrementRejectCount(rejectCounts, "EDGE_REUSE")
+				continue
+			}
 			if candidate.segmentDiversity < level.minSegmentDiversity {
 				incrementRejectCount(rejectCounts, "LOW_SEGMENT_DIVERSITY")
 				continue
@@ -697,22 +845,37 @@ func selectCandidatesWithRelaxation(
 	// Safety net: if all configured levels reject candidates, return the best
 	// ranked loops with softer anti-overlap limits instead of returning zero.
 	if len(selected) < limit {
+		softMaxBacktracking := 0.32
+		softMaxCorridor := 0.40
+		softMaxEdgeReuse := 0.24
+		if backtrackingProfile == backtrackingProfileStrict {
+			softMaxBacktracking = 0.20
+			softMaxCorridor = 0.12
+			softMaxEdgeReuse = 0.12
+		}
+		if backtrackingProfile == backtrackingProfileUltra {
+			softMaxBacktracking = 0.12
+			softMaxCorridor = 0.08
+			softMaxEdgeReuse = 0.08
+		}
 		selected = appendBestEffortCandidates(
 			sortedCandidates,
 			selected,
 			selectedIDs,
 			limit,
-			0.32, // still blocks extreme out-and-back routes
-			0.40, // still blocks heavy same-corridor reuse
+			softMaxBacktracking,
+			softMaxCorridor,
+			softMaxEdgeReuse,
 			"best-effort-soft",
 		)
 	}
-	if len(selected) < limit {
+	if len(selected) < limit && backtrackingProfile == backtrackingProfileBalanced {
 		selected = appendBestEffortCandidates(
 			sortedCandidates,
 			selected,
 			selectedIDs,
 			limit,
+			1.0,
 			1.0,
 			1.0,
 			"best-effort-hard",
@@ -729,6 +892,7 @@ func appendBestEffortCandidates(
 	limit int,
 	maxBacktrackingRatio float64,
 	maxCorridorOverlap float64,
+	maxEdgeReuseRatio float64,
 	profileName string,
 ) []routesDomain.RouteRecommendation {
 	for _, candidate := range sortedCandidates {
@@ -745,6 +909,9 @@ func appendBestEffortCandidates(
 		if candidate.corridorOverlap > maxCorridorOverlap {
 			continue
 		}
+		if candidate.edgeReuseRatio > maxEdgeReuseRatio {
+			continue
+		}
 		recommendation := candidate.recommendation
 		recommendation.Reasons = append(recommendation.Reasons, fmt.Sprintf("Selection profile: %s", profileName))
 		selected = append(selected, recommendation)
@@ -753,7 +920,7 @@ func appendBestEffortCandidates(
 	return selected
 }
 
-func buildRouteRelaxationLevels(routeType string, hasDirection bool, directionStrict bool) []routeRelaxationLevel {
+func buildRouteRelaxationLevels(routeType string, hasDirection bool, directionStrict bool, backtrackingProfile string) []routeRelaxationLevel {
 	baseMinDiversity := minSegmentDiversityRatio(routeType)
 	strictDirection := 1.0
 	balancedDirection := 1.0
@@ -771,37 +938,84 @@ func buildRouteRelaxationLevels(routeType string, hasDirection bool, directionSt
 			fallbackDirection = 0.30
 		}
 	}
+	profile := normalizeBacktrackingProfile(backtrackingProfile, false)
+	strictBacktrackingRatio := 0.0025
+	balancedBacktrackingRatio := 0.010
+	relaxedBacktrackingRatio := 0.022
+	fallbackBacktrackingRatio := 0.055
+	strictCorridorOverlap := 0.007
+	balancedCorridorOverlap := 0.014
+	relaxedCorridorOverlap := 0.022
+	fallbackCorridorOverlap := 0.030
+	strictEdgeReuseRatio := 0.018
+	balancedEdgeReuseRatio := 0.060
+	relaxedEdgeReuseRatio := 0.120
+	fallbackEdgeReuseRatio := 0.180
+	if profile == backtrackingProfileStrict {
+		baseMinDiversity = math.Min(0.92, baseMinDiversity+0.08)
+		strictBacktrackingRatio = 0.0015
+		balancedBacktrackingRatio = 0.006
+		relaxedBacktrackingRatio = 0.015
+		fallbackBacktrackingRatio = 0.035
+		strictCorridorOverlap = 0.006
+		balancedCorridorOverlap = 0.012
+		relaxedCorridorOverlap = 0.020
+		fallbackCorridorOverlap = 0.028
+		strictEdgeReuseRatio = 0.015
+		balancedEdgeReuseRatio = 0.040
+		relaxedEdgeReuseRatio = 0.080
+		fallbackEdgeReuseRatio = 0.120
+	}
+	if profile == backtrackingProfileUltra {
+		baseMinDiversity = math.Min(0.95, baseMinDiversity+0.12)
+		strictBacktrackingRatio = 0.0012
+		balancedBacktrackingRatio = 0.0045
+		relaxedBacktrackingRatio = 0.010
+		fallbackBacktrackingRatio = 0.024
+		strictCorridorOverlap = 0.005
+		balancedCorridorOverlap = 0.010
+		relaxedCorridorOverlap = 0.017
+		fallbackCorridorOverlap = 0.024
+		strictEdgeReuseRatio = 0.012
+		balancedEdgeReuseRatio = 0.030
+		relaxedEdgeReuseRatio = 0.060
+		fallbackEdgeReuseRatio = 0.090
+	}
 
 	return []routeRelaxationLevel{
 		{
 			name:                  "strict",
 			maxDirectionPenalty:   strictDirection,
-			maxBacktrackingRatio:  0.003,
-			maxCorridorOverlap:    0.008,
+			maxBacktrackingRatio:  strictBacktrackingRatio,
+			maxCorridorOverlap:    strictCorridorOverlap,
+			maxEdgeReuseRatio:     strictEdgeReuseRatio,
 			minSegmentDiversity:   baseMinDiversity,
 			maxDistanceDeltaRatio: 0.35,
 		},
 		{
 			name:                  "balanced",
 			maxDirectionPenalty:   balancedDirection,
-			maxBacktrackingRatio:  0.012,
-			maxCorridorOverlap:    0.016,
+			maxBacktrackingRatio:  balancedBacktrackingRatio,
+			maxCorridorOverlap:    balancedCorridorOverlap,
+			maxEdgeReuseRatio:     balancedEdgeReuseRatio,
 			minSegmentDiversity:   math.Max(0.22, baseMinDiversity-0.08),
 			maxDistanceDeltaRatio: 0.60,
 		},
 		{
 			name:                  "relaxed",
 			maxDirectionPenalty:   relaxedDirection,
-			maxBacktrackingRatio:  0.028,
-			maxCorridorOverlap:    0.026,
+			maxBacktrackingRatio:  relaxedBacktrackingRatio,
+			maxCorridorOverlap:    relaxedCorridorOverlap,
+			maxEdgeReuseRatio:     relaxedEdgeReuseRatio,
 			minSegmentDiversity:   math.Max(0.12, baseMinDiversity-0.18),
 			maxDistanceDeltaRatio: 1.00,
 		},
 		{
 			name:                  "fallback",
 			maxDirectionPenalty:   fallbackDirection,
-			maxBacktrackingRatio:  0.07,
-			maxCorridorOverlap:    0.035,
+			maxBacktrackingRatio:  fallbackBacktrackingRatio,
+			maxCorridorOverlap:    fallbackCorridorOverlap,
+			maxEdgeReuseRatio:     fallbackEdgeReuseRatio,
 			minSegmentDiversity:   0.08,
 			maxDistanceDeltaRatio: 2.20,
 		},
@@ -919,6 +1133,217 @@ func generatedOSMRouteID(points [][]float64, start routesDomain.Coordinates, ind
 		_, _ = hasher.Write([]byte(fmt.Sprintf("%.5f,%.5f|", point[0], point[1])))
 	}
 	return fmt.Sprintf("generated-osm-%x", hasher.Sum64())
+}
+
+func parseShapePolylineCoordinates(raw string) []routesDomain.Coordinates {
+	trimmed := strings.TrimSpace(raw)
+	if !strings.HasPrefix(trimmed, "[") {
+		return []routesDomain.Coordinates{}
+	}
+	var points [][]float64
+	if err := json.Unmarshal([]byte(trimmed), &points); err != nil {
+		return []routesDomain.Coordinates{}
+	}
+	result := make([]routesDomain.Coordinates, 0, len(points))
+	for _, point := range points {
+		if len(point) < 2 {
+			continue
+		}
+		lat := point[0]
+		lng := point[1]
+		if lat < -90 || lat > 90 || lng < -180 || lng > 180 {
+			continue
+		}
+		result = append(result, routesDomain.Coordinates{Lat: lat, Lng: lng})
+	}
+	return result
+}
+
+func polylineDistanceKmFromCoordinates(points []routesDomain.Coordinates) float64 {
+	if len(points) < 2 {
+		return 0.0
+	}
+	totalMeters := 0.0
+	for index := 0; index < len(points)-1; index++ {
+		left := points[index]
+		right := points[index+1]
+		totalMeters += haversineDistanceMeters(left.Lat, left.Lng, right.Lat, right.Lng)
+	}
+	return totalMeters / 1000.0
+}
+
+func projectShapePolylineToStart(
+	shape []routesDomain.Coordinates,
+	start routesDomain.Coordinates,
+	targetDistanceKm float64,
+) []routesDomain.Coordinates {
+	if len(shape) == 0 {
+		return []routesDomain.Coordinates{}
+	}
+	translated := make([]routesDomain.Coordinates, 0, len(shape))
+	deltaLat := start.Lat - shape[0].Lat
+	deltaLng := start.Lng - shape[0].Lng
+	for _, point := range shape {
+		translated = append(translated, routesDomain.Coordinates{
+			Lat: point.Lat + deltaLat,
+			Lng: point.Lng + deltaLng,
+		})
+	}
+
+	scale := 1.0
+	shapeDistanceKm := polylineDistanceKmFromCoordinates(translated)
+	if targetDistanceKm > 0 && shapeDistanceKm > 0 {
+		scale = targetDistanceKm / shapeDistanceKm
+		if scale < 0.45 {
+			scale = 0.45
+		}
+		if scale > 2.60 {
+			scale = 2.60
+		}
+	}
+
+	projected := make([]routesDomain.Coordinates, 0, len(translated))
+	projected = append(projected, start)
+	for index := 1; index < len(translated); index++ {
+		point := translated[index]
+		projected = append(projected, routesDomain.Coordinates{
+			Lat: start.Lat + (point.Lat-start.Lat)*scale,
+			Lng: start.Lng + (point.Lng-start.Lng)*scale,
+		})
+	}
+	return projected
+}
+
+func sampleCoordinates(points []routesDomain.Coordinates, maxPoints int) []routesDomain.Coordinates {
+	if len(points) <= maxPoints || maxPoints <= 0 {
+		return points
+	}
+	step := int(math.Ceil(float64(len(points)) / float64(maxPoints)))
+	if step < 1 {
+		step = 1
+	}
+	sampled := make([]routesDomain.Coordinates, 0, maxPoints+1)
+	lastIndex := len(points) - 1
+	for index := 0; index < len(points); index += step {
+		sampled = append(sampled, points[index])
+	}
+	lastSample := sampled[len(sampled)-1]
+	lastPoint := points[lastIndex]
+	if lastSample.Lat != lastPoint.Lat || lastSample.Lng != lastPoint.Lng {
+		sampled = append(sampled, lastPoint)
+	}
+	return sampled
+}
+
+func buildShapeLoopWaypoints(
+	start routesDomain.Coordinates,
+	shape []routesDomain.Coordinates,
+) []routesDomain.Coordinates {
+	sampled := sampleCoordinates(shape, 10)
+	waypoints := make([]routesDomain.Coordinates, 0, len(sampled)+2)
+	waypoints = append(waypoints, start)
+	previous := start
+	for index := 1; index < len(sampled); index++ {
+		point := sampled[index]
+		if haversineDistanceMeters(previous.Lat, previous.Lng, point.Lat, point.Lng) < 120.0 {
+			continue
+		}
+		waypoints = append(waypoints, point)
+		previous = point
+	}
+	waypoints = append(waypoints, start)
+	return waypoints
+}
+
+func coordinatesToLatLngPoints(points []routesDomain.Coordinates) [][]float64 {
+	result := make([][]float64, 0, len(points))
+	for _, point := range points {
+		result = append(result, []float64{point.Lat, point.Lng})
+	}
+	return result
+}
+
+type normalizedShapePoint struct {
+	x float64
+	y float64
+}
+
+func shapeSimilarityScore(routePoints [][]float64, shapePoints [][]float64) float64 {
+	normalizedRoute := normalizeShapePolyline(samplePolylinePoints(routePoints, 90))
+	normalizedShape := normalizeShapePolyline(samplePolylinePoints(shapePoints, 90))
+	if len(normalizedRoute) < 2 || len(normalizedShape) < 2 {
+		return 0.0
+	}
+	meanForward := meanNearestShapeDistance(normalizedShape, normalizedRoute)
+	meanBackward := meanNearestShapeDistance(normalizedRoute, normalizedShape)
+	distance := (meanForward + meanBackward) / 2.0
+	score := 1.0 - (distance / 1.35)
+	return clampUnit(score)
+}
+
+func normalizeShapePolyline(points [][]float64) []normalizedShapePoint {
+	if len(points) == 0 {
+		return []normalizedShapePoint{}
+	}
+	sumLat := 0.0
+	sumLng := 0.0
+	count := 0
+	for _, point := range points {
+		if len(point) < 2 {
+			continue
+		}
+		sumLat += point[0]
+		sumLng += point[1]
+		count++
+	}
+	if count == 0 {
+		return []normalizedShapePoint{}
+	}
+	centerLat := sumLat / float64(count)
+	centerLng := sumLng / float64(count)
+	cosLat := math.Cos(degreesToRadians(centerLat))
+	maxRadius := 0.0
+	normalized := make([]normalizedShapePoint, 0, count)
+	for _, point := range points {
+		if len(point) < 2 {
+			continue
+		}
+		x := (point[1] - centerLng) * 111320.0 * cosLat
+		y := (point[0] - centerLat) * 111320.0
+		radius := math.Sqrt(x*x + y*y)
+		if radius > maxRadius {
+			maxRadius = radius
+		}
+		normalized = append(normalized, normalizedShapePoint{x: x, y: y})
+	}
+	if maxRadius < 1.0 {
+		maxRadius = 1.0
+	}
+	for index := range normalized {
+		normalized[index].x = normalized[index].x / maxRadius
+		normalized[index].y = normalized[index].y / maxRadius
+	}
+	return normalized
+}
+
+func meanNearestShapeDistance(from []normalizedShapePoint, to []normalizedShapePoint) float64 {
+	if len(from) == 0 || len(to) == 0 {
+		return 1.0
+	}
+	total := 0.0
+	for _, left := range from {
+		minDistance := math.MaxFloat64
+		for _, right := range to {
+			dx := left.x - right.x
+			dy := left.y - right.y
+			distance := math.Sqrt(dx*dx + dy*dy)
+			if distance < minDistance {
+				minDistance = distance
+			}
+		}
+		total += minDistance
+	}
+	return total / float64(len(from))
 }
 
 func degreesToRadians(value float64) float64 {
@@ -1340,6 +1765,38 @@ func oppositeEdgeTraversalRatio(points [][]float64) float64 {
 	}
 
 	return float64(conflictingEdges) / float64(totalEdges)
+}
+
+func edgeReuseRatio(points [][]float64) float64 {
+	if len(points) < 3 {
+		return 0.0
+	}
+	usage := make(map[string]int, len(points))
+	totalEdges := 0
+	for index := 0; index < len(points)-1; index++ {
+		left := points[index]
+		right := points[index+1]
+		if len(left) < 2 || len(right) < 2 {
+			continue
+		}
+		fromID := quantizedPointKey(left[0], left[1])
+		toID := quantizedPointKey(right[0], right[1])
+		if fromID == "" || toID == "" || fromID == toID {
+			continue
+		}
+		totalEdges++
+		usage[canonicalEdgeKey(fromID, toID)]++
+	}
+	if totalEdges == 0 {
+		return 0.0
+	}
+	reusedEdges := 0
+	for _, count := range usage {
+		if count > 1 {
+			reusedEdges += count - 1
+		}
+	}
+	return float64(reusedEdges) / float64(totalEdges)
 }
 
 func hasMinimumSegmentDiversity(points [][]float64, routeType string) bool {

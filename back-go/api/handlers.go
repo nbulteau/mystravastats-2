@@ -24,10 +24,13 @@ import (
 )
 
 const (
-	defaultRoutesVariantCount = 2
-	maxGeneratedVariantCount  = 24
-	generatedRouteCacheTTL    = 6 * time.Hour
-	defaultTargetMode         = "AUTOMATIC"
+	defaultRoutesVariantCount   = 2
+	maxGeneratedVariantCount    = 24
+	generatedRouteCacheTTL      = 6 * time.Hour
+	defaultTargetMode           = "AUTOMATIC"
+	backtrackingProfileBalanced = "BALANCED"
+	backtrackingProfileStrict   = "STRICT"
+	backtrackingProfileUltra    = "ULTRA"
 )
 
 type routeStartPointPayload struct {
@@ -36,15 +39,17 @@ type routeStartPointPayload struct {
 }
 
 type generateTargetRoutesPayload struct {
-	StartPoint      *routeStartPointPayload  `json:"startPoint"`
-	GenerationMode  string                   `json:"generationMode,omitempty"`
-	CustomWaypoints []routeStartPointPayload `json:"customWaypoints,omitempty"`
-	RouteType       string                   `json:"routeType"`
-	StartDirection  string                   `json:"startDirection"`
-	StrictDirection *bool                    `json:"strictDirection,omitempty"`
-	DistanceTarget  float64                  `json:"distanceTargetKm"`
-	ElevationTarget *float64                 `json:"elevationTargetM,omitempty"`
-	VariantCount    *int                     `json:"variantCount,omitempty"`
+	StartPoint          *routeStartPointPayload  `json:"startPoint"`
+	GenerationMode      string                   `json:"generationMode,omitempty"`
+	CustomWaypoints     []routeStartPointPayload `json:"customWaypoints,omitempty"`
+	RouteType           string                   `json:"routeType"`
+	StartDirection      string                   `json:"startDirection"`
+	StrictDirection     *bool                    `json:"strictDirection,omitempty"`
+	StrictBacktracking  *bool                    `json:"strictBacktracking,omitempty"`
+	BacktrackingProfile string                   `json:"backtrackingProfile,omitempty"`
+	DistanceTarget      float64                  `json:"distanceTargetKm"`
+	ElevationTarget     *float64                 `json:"elevationTargetM,omitempty"`
+	VariantCount        *int                     `json:"variantCount,omitempty"`
 }
 
 type generateShapeRoutesPayload struct {
@@ -617,6 +622,8 @@ func generateTargetRoutesByActivityType(w http.ResponseWriter, r *http.Request) 
 		startDirection = ""
 		directionStrict = false
 	}
+	backtrackingProfile := normalizeGenerateBacktrackingProfile(payload.BacktrackingProfile, payload.StrictBacktracking)
+	strictBacktracking := backtrackingProfile != backtrackingProfileBalanced
 	variantCount := normalizeGenerateVariantCount(payload.VariantCount)
 	preferredStart := &routesDomain.Coordinates{
 		Lat: payload.StartPoint.Lat,
@@ -624,15 +631,17 @@ func generateTargetRoutesByActivityType(w http.ResponseWriter, r *http.Request) 
 	}
 	customWaypoints := toRouteCoordinates(payload.CustomWaypoints)
 	request := routesDomain.RouteExplorerRequest{
-		DistanceTargetKm: &payload.DistanceTarget,
-		ElevationTargetM: payload.ElevationTarget,
-		StartPoint:       preferredStart,
-		StartDirection:   optionalNonEmptyString(startDirection),
-		DirectionStrict:  optionalBool(directionStrict),
-		TargetMode:       optionalNonEmptyString(targetMode),
-		CustomWaypoints:  customWaypoints,
-		RouteType:        optionalNonEmptyString(routeType),
-		Limit:            variantCount,
+		DistanceTargetKm:    &payload.DistanceTarget,
+		ElevationTargetM:    payload.ElevationTarget,
+		StartPoint:          preferredStart,
+		StartDirection:      optionalNonEmptyString(startDirection),
+		DirectionStrict:     optionalBool(directionStrict),
+		StrictBacktracking:  optionalBool(strictBacktracking),
+		BacktrackingProfile: optionalNonEmptyString(backtrackingProfile),
+		TargetMode:          optionalNonEmptyString(targetMode),
+		CustomWaypoints:     customWaypoints,
+		RouteType:           optionalNonEmptyString(routeType),
+		Limit:               variantCount,
 	}
 
 	result := getContainer().getRouteExplorerUseCase.Execute(year, request, activityTypes)
@@ -643,6 +652,7 @@ func generateTargetRoutesByActivityType(w http.ResponseWriter, r *http.Request) 
 		routeType,
 		startDirection,
 		directionStrict,
+		backtrackingProfile,
 		targetMode,
 		variantCount,
 	)
@@ -869,6 +879,7 @@ func buildTargetGeneratedRoutesResponse(
 	routeType string,
 	startDirection string,
 	directionStrict bool,
+	backtrackingProfile string,
 	targetMode string,
 	limit int,
 ) dto.GenerateRoutesResponseDto {
@@ -877,7 +888,7 @@ func buildTargetGeneratedRoutesResponse(
 	recommendations = append(recommendations, result.RoadGraphLoops...)
 
 	routes := toGeneratedRoutesFromRecommendations(recommendations, &distanceTarget, elevationTarget, routeType, startDirection, limit)
-	diagnostics := buildTargetGenerationDiagnostics(distanceTarget, elevationTarget, startDirection, directionStrict, targetMode, routes)
+	diagnostics := buildTargetGenerationDiagnostics(distanceTarget, elevationTarget, startDirection, directionStrict, backtrackingProfile, targetMode, routes)
 	return dto.GenerateRoutesResponseDto{
 		Routes:      routes,
 		Diagnostics: diagnostics,
@@ -947,6 +958,7 @@ func buildTargetGenerationDiagnostics(
 	elevationTarget *float64,
 	startDirection string,
 	directionStrict bool,
+	backtrackingProfile string,
 	targetMode string,
 	routes []dto.GeneratedRouteDto,
 ) []dto.RouteGenerationDiagnosticDto {
@@ -989,6 +1001,18 @@ func buildTargetGenerationDiagnostics(
 		diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
 			Code:    "DIRECTION_CONFLICT",
 			Message: "Strict direction can filter out otherwise valid loops.",
+		})
+	}
+	if backtrackingProfile == backtrackingProfileStrict || backtrackingProfile == backtrackingProfileUltra {
+		diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
+			Code:    "STRICT_BACKTRACKING",
+			Message: "Strict anti-backtracking mode rejects routes that reuse the same axis too much.",
+		})
+	}
+	if backtrackingProfile == backtrackingProfileUltra {
+		diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
+			Code:    "ULTRA_BACKTRACKING",
+			Message: "Ultra anti-backtracking mode strongly penalizes reused axes and may return fewer routes.",
 		})
 	}
 
@@ -1190,6 +1214,19 @@ func normalizeGenerateStartDirection(value string) string {
 	default:
 		return ""
 	}
+}
+
+func normalizeGenerateBacktrackingProfile(value string, strictBacktracking *bool) string {
+	normalized := strings.ToUpper(strings.TrimSpace(value))
+	switch normalized {
+	case backtrackingProfileBalanced, backtrackingProfileStrict, backtrackingProfileUltra:
+		return normalized
+	}
+
+	if strictBacktracking != nil && *strictBacktracking {
+		return backtrackingProfileStrict
+	}
+	return backtrackingProfileBalanced
 }
 
 func isUndefinedGenerateStartDirection(value string) bool {

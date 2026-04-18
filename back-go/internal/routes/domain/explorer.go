@@ -55,20 +55,22 @@ type ShapeRemixRecommendation struct {
 }
 
 type RouteExplorerRequest struct {
-	DistanceTargetKm  *float64
-	ElevationTargetM  *float64
-	DurationTargetMin *int
-	StartPoint        *Coordinates
-	StartDirection    *string
-	DirectionStrict   *bool
-	TargetMode        *string
-	CustomWaypoints   []Coordinates
-	RouteType         *string
-	Season            *string
-	Limit             int
-	Shape             *string
-	ShapePolyline     *string
-	IncludeRemix      bool
+	DistanceTargetKm    *float64
+	ElevationTargetM    *float64
+	DurationTargetMin   *int
+	StartPoint          *Coordinates
+	StartDirection      *string
+	DirectionStrict     *bool
+	StrictBacktracking  *bool
+	BacktrackingProfile *string
+	TargetMode          *string
+	CustomWaypoints     []Coordinates
+	RouteType           *string
+	Season              *string
+	Limit               int
+	Shape               *string
+	ShapePolyline       *string
+	IncludeRemix        bool
 }
 
 type RouteExplorerResult struct {

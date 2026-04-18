@@ -127,7 +127,18 @@ class RouteExplorerService(
             limit = limit,
             fallback = roadGraphFromCache,
         )
-        val shapeMatches = buildShapeMatchRecommendations(baseCandidates, shapeFilter, distanceTarget, elevationTarget, durationTargetSec, limit)
+        val shapeMatchesFromCache = buildShapeMatchRecommendations(baseCandidates, shapeFilter, distanceTarget, elevationTarget, durationTargetSec, limit)
+        val shapeMatchesFromEngine = buildShapeMatchRecommendationsFromEngine(
+            request = request,
+            distanceTarget = distanceTarget,
+            elevationTarget = elevationTarget,
+            limit = limit,
+        )
+        val shapeMatches = mergeRouteRecommendations(
+            primary = shapeMatchesFromEngine,
+            secondary = shapeMatchesFromCache,
+            limit = limit,
+        )
         val remixes = if (request.includeRemix) {
             buildShapeRemixRecommendations(baseCandidates, distanceTarget, elevationTarget, durationTargetSec, limit)
         } else {
@@ -164,8 +175,11 @@ class RouteExplorerService(
                     elevationTargetM = request.elevationTargetM ?: elevationTarget,
                     startDirection = request.startDirection,
                     directionStrict = request.strictDirection,
+                    strictBacktracking = request.strictBacktracking,
+                    backtrackingProfile = request.backtrackingProfile,
                     targetMode = request.targetMode,
                     waypoints = request.customWaypoints,
+                    shapePolyline = request.shapePolyline,
                     routeType = request.routeType,
                     limit = limit,
                 )
@@ -175,6 +189,55 @@ class RouteExplorerService(
         }
 
         return if (generated.isNotEmpty()) generated else emptyList()
+    }
+
+    private fun buildShapeMatchRecommendationsFromEngine(
+        request: RouteExplorerRequest,
+        distanceTarget: Double,
+        elevationTarget: Double,
+        limit: Int,
+    ): List<RouteRecommendation> {
+        val start = request.startPoint
+        val shapePolyline = request.shapePolyline?.trim()
+        if (start == null || shapePolyline.isNullOrBlank() || limit <= 0) {
+            return emptyList()
+        }
+        return runCatching {
+            routingEngine.generateShapeLoops(
+                RoutingEngineRequest(
+                    startPoint = start,
+                    distanceTargetKm = request.distanceTargetKm ?: distanceTarget,
+                    elevationTargetM = request.elevationTargetM ?: elevationTarget,
+                    startDirection = null,
+                    directionStrict = false,
+                    strictBacktracking = request.strictBacktracking,
+                    backtrackingProfile = request.backtrackingProfile,
+                    targetMode = request.targetMode,
+                    waypoints = emptyList(),
+                    shapePolyline = shapePolyline,
+                    routeType = request.routeType,
+                    limit = limit,
+                )
+            )
+        }.getOrElse { emptyList() }
+    }
+
+    private fun mergeRouteRecommendations(
+        primary: List<RouteRecommendation>,
+        secondary: List<RouteRecommendation>,
+        limit: Int,
+    ): List<RouteRecommendation> {
+        if (limit <= 0) {
+            return emptyList()
+        }
+        val result = mutableListOf<RouteRecommendation>()
+        val seen = mutableSetOf<String>()
+        for (recommendation in primary + secondary) {
+            if (result.size >= limit) break
+            if (!seen.add(recommendation.routeId)) continue
+            result += recommendation
+        }
+        return result
     }
 
     private fun buildRouteCandidates(activities: List<StravaActivity>): List<RouteCandidate> {

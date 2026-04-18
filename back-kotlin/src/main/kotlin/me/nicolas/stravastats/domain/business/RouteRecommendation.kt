@@ -56,6 +56,8 @@ data class RouteExplorerRequest(
     val durationTargetMin: Int?,
     val startDirection: String? = null,
     val strictDirection: Boolean = false,
+    val strictBacktracking: Boolean = false,
+    val backtrackingProfile: String? = null,
     val startPoint: Coordinates? = null,
     val targetMode: String? = null,
     val customWaypoints: List<Coordinates> = emptyList(),

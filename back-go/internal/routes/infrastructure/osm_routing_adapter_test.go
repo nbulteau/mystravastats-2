@@ -236,8 +236,8 @@ func TestSyntheticLoopWaypoints_WithNorthDirection_StayInForwardHemisphere(t *te
 
 func TestBuildRouteRelaxationLevels_WhenDirectionStrict_ThenUsesStricterDirectionThresholds(t *testing.T) {
 	// GIVEN
-	regular := buildRouteRelaxationLevels("RIDE", true, false)
-	strict := buildRouteRelaxationLevels("RIDE", true, true)
+	regular := buildRouteRelaxationLevels("RIDE", true, false, backtrackingProfileBalanced)
+	strict := buildRouteRelaxationLevels("RIDE", true, true, backtrackingProfileBalanced)
 
 	// WHEN
 	regularStrictMax := regular[0].maxDirectionPenalty
@@ -251,6 +251,44 @@ func TestBuildRouteRelaxationLevels_WhenDirectionStrict_ThenUsesStricterDirectio
 	}
 	if strictFallbackMax >= regularFallbackMax {
 		t.Fatalf("expected strict mode to tighten fallback-level direction threshold, strict=%f regular=%f", strictFallbackMax, regularFallbackMax)
+	}
+}
+
+func TestBuildRouteRelaxationLevels_WhenStrictBacktracking_ThenTightensEdgeReuseThresholds(t *testing.T) {
+	// GIVEN
+	balanced := buildRouteRelaxationLevels("RIDE", false, false, backtrackingProfileBalanced)
+	strictBacktracking := buildRouteRelaxationLevels("RIDE", false, false, backtrackingProfileStrict)
+
+	// WHEN
+	balancedFallbackEdgeReuse := balanced[len(balanced)-1].maxEdgeReuseRatio
+	strictFallbackEdgeReuse := strictBacktracking[len(strictBacktracking)-1].maxEdgeReuseRatio
+
+	// THEN
+	if strictFallbackEdgeReuse >= balancedFallbackEdgeReuse {
+		t.Fatalf(
+			"expected strict anti-backtracking mode to tighten edge reuse threshold, strict=%f balanced=%f",
+			strictFallbackEdgeReuse,
+			balancedFallbackEdgeReuse,
+		)
+	}
+}
+
+func TestBuildRouteRelaxationLevels_WhenUltraProfile_ThenTightensBacktrackingBeyondStrict(t *testing.T) {
+	// GIVEN
+	strictProfile := buildRouteRelaxationLevels("RIDE", false, false, backtrackingProfileStrict)
+	ultraProfile := buildRouteRelaxationLevels("RIDE", false, false, backtrackingProfileUltra)
+
+	// WHEN
+	strictFallbackBacktracking := strictProfile[len(strictProfile)-1].maxBacktrackingRatio
+	ultraFallbackBacktracking := ultraProfile[len(ultraProfile)-1].maxBacktrackingRatio
+
+	// THEN
+	if ultraFallbackBacktracking >= strictFallbackBacktracking {
+		t.Fatalf(
+			"expected ultra profile to tighten fallback backtracking ratio, ultra=%f strict=%f",
+			ultraFallbackBacktracking,
+			strictFallbackBacktracking,
+		)
 	}
 }
 
@@ -366,5 +404,25 @@ func TestCorridorOverlapRatio_DetectsNearParallelOutAndBackCorridor(t *testing.T
 	// THEN
 	if overlapRatio <= 0.0 {
 		t.Fatalf("expected a positive corridor overlap ratio, got %.3f", overlapRatio)
+	}
+}
+
+func TestEdgeReuseRatio_WhenLoopReusesSameAxis_ThenPenaltyIsPositive(t *testing.T) {
+	// GIVEN
+	points := [][]float64{
+		{48.13000, -1.63000},
+		{48.13200, -1.62800},
+		{48.13400, -1.62600},
+		{48.13200, -1.62800},
+		{48.13400, -1.62600},
+		{48.13600, -1.62400},
+	}
+
+	// WHEN
+	reuse := edgeReuseRatio(points)
+
+	// THEN
+	if reuse <= 0.0 {
+		t.Fatalf("expected edge reuse ratio to be positive, got %.3f", reuse)
 	}
 }
