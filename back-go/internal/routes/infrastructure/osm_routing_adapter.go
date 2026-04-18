@@ -154,9 +154,15 @@ func (adapter *OSMRoutingAdapter) GenerateTargetLoops(
 	}
 
 	baseBearing := startDirectionToBearing(request.StartDirection)
+	hasDirection := strings.TrimSpace(request.StartDirection) != ""
 	radiusBaseKm := math.Max(1.0, request.DistanceTargetKm/(2.0*math.Pi))
 	radiusMultipliers := []float64{1.00, 0.92, 1.08, 0.84, 1.16, 1.24, 0.76, 1.32, 0.68, 1.40, 1.48, 0.60}
 	rotations := []float64{0, 22, -22, 45, -45, 68, -68, 95, -95, 125, -125, 155, -155}
+	if hasDirection {
+		// When a direction is requested in automatic mode, rotations stay tight around
+		// the requested bearing to preserve a clear global orientation.
+		rotations = []float64{0, 8, -8, 15, -15, 24, -24, 32, -32}
+	}
 	// Keep a high candidate pool even when request.Limit is small, otherwise
 	// strict anti-backtracking filters would only have near-identical routes to choose from.
 	// We intentionally explore the full candidate budget so we can keep
@@ -178,7 +184,13 @@ func (adapter *OSMRoutingAdapter) GenerateTargetLoops(
 	for callIndex := 0; callIndex < maxCalls; callIndex++ {
 		radiusKm := radiusBaseKm * radiusMultipliers[callIndex%len(radiusMultipliers)]
 		rotation := rotations[callIndex%len(rotations)]
-		waypoints := adapter.syntheticLoopWaypoints(request.StartPoint, radiusKm, baseBearing+rotation, callIndex)
+		waypoints := adapter.syntheticLoopWaypoints(
+			request.StartPoint,
+			radiusKm,
+			baseBearing+rotation,
+			request.StartDirection,
+			callIndex,
+		)
 		routes, err := adapter.fetchOSRMRoutes(profile, waypoints)
 		if err != nil {
 			fetchErrors++
@@ -348,11 +360,12 @@ func (adapter *OSMRoutingAdapter) syntheticLoopWaypoints(
 	start routesDomain.Coordinates,
 	radiusKm float64,
 	initialBearing float64,
+	startDirection string,
 	callIndex int,
 ) []routesDomain.Coordinates {
 	// We rotate through multiple waypoint "shapes" so OSRM gets distinct
 	// loop intents and does not keep returning the same corridor.
-	patterns := []struct {
+	circularPatterns := []struct {
 		bearingOffsets []float64
 		radiusScales   []float64
 	}{
@@ -373,7 +386,34 @@ func (adapter *OSMRoutingAdapter) syntheticLoopWaypoints(
 			radiusScales:   []float64{1.15, 0.90, 1.18, 0.86, 1.00},
 		},
 	}
-	pattern := patterns[callIndex%len(patterns)]
+	// Directional patterns keep waypoints in the forward half of the compass
+	// (relative to requested direction). This guides the loop's global heading.
+	directionalPatterns := []struct {
+		bearingOffsets []float64
+		radiusScales   []float64
+	}{
+		{
+			bearingOffsets: []float64{0, 28, -28, 56, -56},
+			radiusScales:   []float64{1.18, 1.06, 1.06, 0.90, 0.90},
+		},
+		{
+			bearingOffsets: []float64{12, -12, 40, -40, 70, -70},
+			radiusScales:   []float64{1.20, 1.20, 1.00, 1.00, 0.82, 0.82},
+		},
+		{
+			bearingOffsets: []float64{0, 22, -22, 48, -48, 78, -78},
+			radiusScales:   []float64{1.14, 1.12, 1.12, 0.98, 0.98, 0.78, 0.78},
+		},
+		{
+			bearingOffsets: []float64{6, -6, 34, -34, 62, -62},
+			radiusScales:   []float64{1.24, 1.24, 1.05, 1.05, 0.86, 0.86},
+		},
+	}
+	hasDirection := strings.TrimSpace(startDirection) != ""
+	pattern := circularPatterns[callIndex%len(circularPatterns)]
+	if hasDirection {
+		pattern = directionalPatterns[callIndex%len(directionalPatterns)]
+	}
 	waypoints := make([]routesDomain.Coordinates, 0, len(pattern.bearingOffsets)+2)
 	waypoints = append(waypoints, start)
 	for idx, bearingOffset := range pattern.bearingOffsets {
@@ -649,10 +689,12 @@ func buildRouteRelaxationLevels(routeType string, hasDirection bool) []routeRela
 	strictDirection := 1.0
 	balancedDirection := 1.0
 	relaxedDirection := 1.0
+	fallbackDirection := 1.0
 	if hasDirection {
-		strictDirection = 0.22
-		balancedDirection = 0.38
-		relaxedDirection = 0.55
+		strictDirection = 0.18
+		balancedDirection = 0.28
+		relaxedDirection = 0.40
+		fallbackDirection = 0.52
 	}
 
 	return []routeRelaxationLevel{
@@ -682,7 +724,7 @@ func buildRouteRelaxationLevels(routeType string, hasDirection bool) []routeRela
 		},
 		{
 			name:                  "fallback",
-			maxDirectionPenalty:   1.0,
+			maxDirectionPenalty:   fallbackDirection,
 			maxBacktrackingRatio:  0.07,
 			maxCorridorOverlap:    0.035,
 			minSegmentDiversity:   0.08,
@@ -911,13 +953,17 @@ func combinedDirectionPenalty(
 	if strings.TrimSpace(direction) == "" {
 		return 0.0
 	}
-	// We combine two direction signals:
+	// We combine three direction signals:
 	// - initial heading alignment (bearing-based)
 	// - half-plane violations (did the route go too much in the opposite side)
-	// Taking the max keeps direction enforcement robust in dense urban grids.
+	// - global lobe dominance (does the whole loop stay mostly in requested direction)
+	// The max keeps enforcement robust in dense urban grids.
+	// Bearing is intentionally softened because local street orientation near the
+	// start can temporarily oppose the desired global direction.
 	bearingPenalty := directionPenaltyFromPreview(points, direction)
 	halfPlanePenalty := halfPlaneViolationRatio(points, start, direction, toleranceMeters)
-	return math.Max(bearingPenalty, halfPlanePenalty)
+	lobePenalty := directionalLobePenalty(points, start, direction)
+	return math.Max(math.Max(bearingPenalty*0.65, halfPlanePenalty), lobePenalty)
 }
 
 func halfPlaneViolationRatio(
@@ -963,6 +1009,94 @@ func halfPlaneViolationRatio(
 		return 0.0
 	}
 	return float64(violations) / float64(total)
+}
+
+func directionalLobePenalty(
+	points [][]float64,
+	start routesDomain.Coordinates,
+	direction string,
+) float64 {
+	normalized := strings.ToUpper(strings.TrimSpace(direction))
+	if normalized == "" || len(points) == 0 {
+		return 0.0
+	}
+
+	desiredExtent := 0.0
+	oppositeExtent := 0.0
+	sumProjection := 0.0
+	projectionCount := 0
+
+	for _, point := range points {
+		if len(point) < 2 {
+			continue
+		}
+		projection, ok := directionProjectionMeters(point[0], point[1], start, normalized)
+		if !ok {
+			continue
+		}
+		if projection > desiredExtent {
+			desiredExtent = projection
+		}
+		if projection < 0 && -projection > oppositeExtent {
+			oppositeExtent = -projection
+		}
+		sumProjection += projection
+		projectionCount++
+	}
+
+	if projectionCount == 0 {
+		return 0.0
+	}
+
+	// Dominance asks: "how much of the route envelope is on requested side?"
+	// 1.0 means full dominance on requested side, 0.5 is symmetric, 0 is opposite.
+	dominancePenalty := 0.0
+	totalExtent := desiredExtent + oppositeExtent
+	if totalExtent > 1.0 {
+		dominanceRatio := desiredExtent / totalExtent
+		dominancePenalty = clampUnit((0.63 - dominanceRatio) / 0.63)
+	}
+
+	// Average projection guard: route center of mass should not drift opposite.
+	avgPenalty := 0.0
+	if desiredExtent > 1.0 {
+		avgProjection := sumProjection / float64(projectionCount)
+		avgPenalty = clampUnit((-avgProjection) / math.Max(desiredExtent*0.25, 1.0))
+	}
+
+	return math.Max(dominancePenalty, avgPenalty)
+}
+
+func directionProjectionMeters(
+	lat float64,
+	lng float64,
+	start routesDomain.Coordinates,
+	normalizedDirection string,
+) (float64, bool) {
+	latMeters := (lat - start.Lat) * 111320.0
+	lngMeters := (lng - start.Lng) * 111320.0 * math.Cos(degreesToRadians(start.Lat))
+	switch normalizedDirection {
+	case "N":
+		return latMeters, true
+	case "S":
+		return -latMeters, true
+	case "E":
+		return lngMeters, true
+	case "W":
+		return -lngMeters, true
+	default:
+		return 0.0, false
+	}
+}
+
+func clampUnit(value float64) float64 {
+	if value <= 0 {
+		return 0
+	}
+	if value >= 1 {
+		return 1
+	}
+	return value
 }
 
 type pathSegment struct {

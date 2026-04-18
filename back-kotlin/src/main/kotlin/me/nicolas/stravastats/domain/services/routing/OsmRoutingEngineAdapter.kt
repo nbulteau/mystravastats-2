@@ -125,9 +125,15 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             return generateCustomWaypointLoops(request, profile)
         }
         val baseBearing = startDirectionToBearing(request.startDirection)
+        val hasDirection = !request.startDirection.isNullOrBlank()
         val baseRadiusKm = max(1.0, request.distanceTargetKm / (2.0 * PI))
         val radiusMultipliers = listOf(1.00, 0.92, 1.08, 0.84, 1.16, 1.24, 0.76, 1.32, 0.68, 1.40, 1.48, 0.60)
-        val rotations = listOf(0.0, 22.0, -22.0, 45.0, -45.0, 68.0, -68.0, 95.0, -95.0, 125.0, -125.0, 155.0, -155.0)
+        var rotations = listOf(0.0, 22.0, -22.0, 45.0, -45.0, 68.0, -68.0, 95.0, -95.0, 125.0, -125.0, 155.0, -155.0)
+        if (hasDirection) {
+            // With direction in automatic mode, keep rotations tight around the
+            // requested bearing to preserve a clear global orientation.
+            rotations = listOf(0.0, 8.0, -8.0, 15.0, -15.0, 24.0, -24.0, 32.0, -32.0)
+        }
         // Keep a high candidate pool even when request.limit is small, otherwise
         // strict anti-backtracking filters only compare near-identical loops.
         // We intentionally explore the full candidate budget so we can keep
@@ -153,6 +159,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 start = request.startPoint,
                 radiusKm = radiusKm,
                 initialBearing = baseBearing + rotation,
+                startDirection = request.startDirection,
                 callIndex = callIndex,
             )
             val routes = runCatching { fetchRoutes(profile, waypoints) }
@@ -352,17 +359,31 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         start: Coordinates,
         radiusKm: Double,
         initialBearing: Double,
+        startDirection: String?,
         callIndex: Int,
     ): List<Coordinates> {
         // Rotate through multiple waypoint "shapes" so OSRM explores distinct loops
         // instead of repeatedly returning the same corridor.
-        val patterns = listOf(
+        val circularPatterns = listOf(
             Pair(listOf(0.0, 120.0, 240.0), listOf(1.00, 1.05, 0.95)),
             Pair(listOf(0.0, 85.0, 170.0, 255.0), listOf(1.10, 0.92, 1.08, 0.88)),
             Pair(listOf(0.0, 70.0, 155.0, 230.0, 300.0), listOf(1.00, 1.20, 0.85, 1.10, 0.90)),
             Pair(listOf(0.0, 60.0, 135.0, 210.0, 285.0), listOf(1.15, 0.90, 1.18, 0.86, 1.00)),
         )
-        val pattern = patterns[callIndex % patterns.size]
+        // Directional patterns keep waypoints in the forward half of the compass
+        // (relative to requested direction). This guides the loop's global heading.
+        val directionalPatterns = listOf(
+            Pair(listOf(0.0, 28.0, -28.0, 56.0, -56.0), listOf(1.18, 1.06, 1.06, 0.90, 0.90)),
+            Pair(listOf(12.0, -12.0, 40.0, -40.0, 70.0, -70.0), listOf(1.20, 1.20, 1.00, 1.00, 0.82, 0.82)),
+            Pair(listOf(0.0, 22.0, -22.0, 48.0, -48.0, 78.0, -78.0), listOf(1.14, 1.12, 1.12, 0.98, 0.98, 0.78, 0.78)),
+            Pair(listOf(6.0, -6.0, 34.0, -34.0, 62.0, -62.0), listOf(1.24, 1.24, 1.05, 1.05, 0.86, 0.86)),
+        )
+        val hasDirection = !startDirection.isNullOrBlank()
+        val pattern = if (hasDirection) {
+            directionalPatterns[callIndex % directionalPatterns.size]
+        } else {
+            circularPatterns[callIndex % circularPatterns.size]
+        }
         val waypoints = mutableListOf<Coordinates>()
         waypoints += start
         pattern.first.forEachIndexed { index, bearingOffset ->
@@ -571,9 +592,10 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
 
     private fun buildRouteRelaxationLevels(routeType: String?, hasDirection: Boolean): List<RouteRelaxationLevel> {
         val baseMinDiversity = minSegmentDiversityRatio(routeType)
-        val strictDirection = if (hasDirection) 0.22 else 1.0
-        val balancedDirection = if (hasDirection) 0.38 else 1.0
-        val relaxedDirection = if (hasDirection) 0.55 else 1.0
+        val strictDirection = if (hasDirection) 0.18 else 1.0
+        val balancedDirection = if (hasDirection) 0.28 else 1.0
+        val relaxedDirection = if (hasDirection) 0.40 else 1.0
+        val fallbackDirection = if (hasDirection) 0.52 else 1.0
         return listOf(
             RouteRelaxationLevel(
                 name = "strict",
@@ -601,7 +623,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             ),
             RouteRelaxationLevel(
                 name = "fallback",
-                maxDirectionPenalty = 1.0,
+                maxDirectionPenalty = fallbackDirection,
                 maxBacktrackingRatio = 0.07,
                 maxCorridorOverlap = 0.035,
                 minSegmentDiversity = 0.08,
@@ -798,13 +820,17 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         if (direction.isNullOrBlank()) {
             return 0.0
         }
-        // We combine two direction signals:
+        // We combine three direction signals:
         // - initial heading alignment (bearing-based)
         // - half-plane violations (did the route go too much in the opposite side)
+        // - global lobe dominance (does the whole loop stay mostly in requested direction)
         // Taking the max keeps direction enforcement robust in dense urban grids.
+        // Bearing is intentionally softened because local street orientation near
+        // the start can be briefly opposite to the desired global direction.
         val bearingPenalty = directionPenaltyFromPreview(points, direction)
         val halfPlanePenalty = halfPlaneViolationRatio(points, start, direction, toleranceMeters)
-        return max(bearingPenalty, halfPlanePenalty)
+        val lobePenalty = directionalLobePenalty(points, start, direction)
+        return max(max(bearingPenalty * 0.65, halfPlanePenalty), lobePenalty)
     }
 
     private fun halfPlaneViolationRatio(
@@ -833,6 +859,78 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         }
         if (total == 0) return 0.0
         return violations.toDouble() / total.toDouble()
+    }
+
+    private fun directionalLobePenalty(
+        points: List<List<Double>>,
+        start: Coordinates,
+        direction: String?,
+    ): Double {
+        val normalized = direction.orEmpty().trim().uppercase(Locale.getDefault())
+        if (normalized.isBlank() || points.isEmpty()) return 0.0
+
+        var desiredExtent = 0.0
+        var oppositeExtent = 0.0
+        var sumProjection = 0.0
+        var projectionCount = 0
+
+        for (point in points) {
+            if (point.size < 2) continue
+            val projection = directionProjectionMeters(point[0], point[1], start, normalized) ?: continue
+            if (projection > desiredExtent) {
+                desiredExtent = projection
+            }
+            if (projection < 0 && -projection > oppositeExtent) {
+                oppositeExtent = -projection
+            }
+            sumProjection += projection
+            projectionCount++
+        }
+
+        if (projectionCount == 0) return 0.0
+
+        // Dominance asks: "how much of the route envelope is on requested side?"
+        // 1.0 means full dominance on requested side, 0.5 is symmetric, 0 is opposite.
+        var dominancePenalty = 0.0
+        val totalExtent = desiredExtent + oppositeExtent
+        if (totalExtent > 1.0) {
+            val dominanceRatio = desiredExtent / totalExtent
+            dominancePenalty = clampUnit((0.63 - dominanceRatio) / 0.63)
+        }
+
+        // Average projection guard: route center of mass should not drift opposite.
+        var avgPenalty = 0.0
+        if (desiredExtent > 1.0) {
+            val avgProjection = sumProjection / projectionCount.toDouble()
+            avgPenalty = clampUnit((-avgProjection) / max(desiredExtent * 0.25, 1.0))
+        }
+
+        return max(dominancePenalty, avgPenalty)
+    }
+
+    private fun directionProjectionMeters(
+        lat: Double,
+        lng: Double,
+        start: Coordinates,
+        normalizedDirection: String,
+    ): Double? {
+        val latMeters = (lat - start.lat) * 111320.0
+        val lngMeters = (lng - start.lng) * 111320.0 * cos(Math.toRadians(start.lat))
+        return when (normalizedDirection) {
+            "N" -> latMeters
+            "S" -> -latMeters
+            "E" -> lngMeters
+            "W" -> -lngMeters
+            else -> null
+        }
+    }
+
+    private fun clampUnit(value: Double): Double {
+        return when {
+            value <= 0.0 -> 0.0
+            value >= 1.0 -> 1.0
+            else -> value
+        }
     }
 
     private fun corridorOverlapRatio(points: List<List<Double>>): Double {

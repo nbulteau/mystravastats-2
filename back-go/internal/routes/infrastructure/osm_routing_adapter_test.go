@@ -162,7 +162,7 @@ func TestSelectCandidatesWithRelaxation_WhenStrictFails_ThenRelaxedCandidateCanS
 				MatchScore:    88.0,
 				PreviewLatLng: [][]float64{{48.13, -1.63}, {48.16, -1.62}, {48.13, -1.63}},
 			},
-			directionPenalty:    0.34, // strict rejects (>0.22), balanced accepts (<=0.38)
+			directionPenalty:    0.24, // strict rejects (>0.18), balanced accepts (<=0.28)
 			backtrackingRatio:   0.04,
 			segmentDiversity:    0.40,
 			distanceDeltaRatio:  0.32,
@@ -180,6 +180,57 @@ func TestSelectCandidatesWithRelaxation_WhenStrictFails_ThenRelaxedCandidateCanS
 	}
 	if recommendations[0].RouteID != "candidate-relaxed" {
 		t.Fatalf("expected candidate-relaxed to be selected, got %s", recommendations[0].RouteID)
+	}
+}
+
+func TestDirectionalLobePenalty_PenalizesRoutesDominatingOppositeDirection(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}
+	northDominant := [][]float64{
+		{48.13000, -1.63000},
+		{48.14600, -1.62500},
+		{48.14200, -1.61800},
+		{48.13100, -1.62200},
+		{48.13000, -1.63000},
+	}
+	southDominant := [][]float64{
+		{48.13000, -1.63000},
+		{48.11200, -1.62500},
+		{48.11000, -1.61700},
+		{48.12600, -1.62000},
+		{48.13000, -1.63000},
+	}
+
+	// WHEN
+	northPenalty := directionalLobePenalty(northDominant, start, "N")
+	southPenalty := directionalLobePenalty(southDominant, start, "N")
+
+	// THEN
+	if northPenalty >= southPenalty {
+		t.Fatalf("expected north-dominant route to have lower lobe penalty, north=%.3f south=%.3f", northPenalty, southPenalty)
+	}
+}
+
+func TestSyntheticLoopWaypoints_WithNorthDirection_StayInForwardHemisphere(t *testing.T) {
+	// GIVEN
+	adapter := NewOSMRoutingAdapter()
+	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}
+
+	// WHEN
+	waypoints := adapter.syntheticLoopWaypoints(start, 6.0, 0.0, "N", 0)
+
+	// THEN
+	if len(waypoints) < 3 {
+		t.Fatalf("expected generated waypoints, got %d", len(waypoints))
+	}
+	for index, waypoint := range waypoints {
+		// start/end are expected to be at start point; we only assert intermediate points.
+		if index == 0 || index == len(waypoints)-1 {
+			continue
+		}
+		if waypoint.Lat < start.Lat-0.0005 {
+			t.Fatalf("expected directional waypoint %d to stay north-oriented, startLat=%.5f gotLat=%.5f", index, start.Lat, waypoint.Lat)
+		}
 	}
 }
 
