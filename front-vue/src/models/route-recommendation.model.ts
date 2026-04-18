@@ -10,6 +10,7 @@ export type RouteType =
   | "HIKE";
 
 export type StartDirection =
+  | "UNDEFINED"
   | "N"
   | "S"
   | "E"

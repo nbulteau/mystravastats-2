@@ -82,6 +82,7 @@ const routeTypeOptions = [
 ];
 
 const directionOptions = [
+  { value: "UNDEFINED", label: "Undefined" },
   { value: "N", label: "Nord" },
   { value: "S", label: "Sud" },
   { value: "E", label: "Est" },
@@ -563,27 +564,6 @@ onBeforeUnmount(() => {
               {{ option.label }}
             </option>
           </select>
-        </label>
-
-        <label
-          v-if="isTargetMode && !isTargetCustomMode"
-          class="routes-field routes-checkbox-field"
-        >
-          <span>Direction strict</span>
-          <div class="form-check routes-form-check">
-            <input
-              id="strict-direction"
-              v-model="routesStore.strictDirection"
-              class="form-check-input"
-              type="checkbox"
-            >
-            <label
-              class="form-check-label"
-              for="strict-direction"
-            >
-              Keep the route globally oriented to the selected direction
-            </label>
-          </div>
         </label>
 
         <div

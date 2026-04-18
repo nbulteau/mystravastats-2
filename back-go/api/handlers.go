@@ -612,7 +612,7 @@ func generateTargetRoutesByActivityType(w http.ResponseWriter, r *http.Request) 
 	routeType := normalizeGenerateRouteType(payload.RouteType)
 	targetMode := normalizeGenerateTargetMode(payload.GenerationMode)
 	startDirection := normalizeGenerateStartDirection(payload.StartDirection)
-	directionStrict := payload.StrictDirection != nil && *payload.StrictDirection
+	directionStrict := targetMode == "AUTOMATIC" && isUndefinedGenerateStartDirection(payload.StartDirection)
 	if targetMode == "CUSTOM" {
 		startDirection = ""
 		directionStrict = false
@@ -785,8 +785,8 @@ func validateGenerateTargetRoutesPayload(payload generateTargetRoutesPayload) er
 		return fmt.Errorf("variantCount must be between 1 and %d", maxGeneratedVariantCount)
 	}
 	if targetMode == "AUTOMATIC" {
-		if direction := normalizeGenerateStartDirection(payload.StartDirection); payload.StartDirection != "" && direction == "" {
-			return fmt.Errorf("startDirection must be one of N/S/E/W")
+		if direction := normalizeGenerateStartDirection(payload.StartDirection); payload.StartDirection != "" && direction == "" && !isUndefinedGenerateStartDirection(payload.StartDirection) {
+			return fmt.Errorf("startDirection must be one of N/S/E/W/UNDEFINED")
 		}
 	}
 	if targetMode == "CUSTOM" {
@@ -1190,6 +1190,10 @@ func normalizeGenerateStartDirection(value string) string {
 	default:
 		return ""
 	}
+}
+
+func isUndefinedGenerateStartDirection(value string) bool {
+	return strings.EqualFold(strings.TrimSpace(value), "UNDEFINED")
 }
 
 func normalizeGenerateVariantCount(value *int) int {

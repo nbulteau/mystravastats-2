@@ -612,6 +612,10 @@ func selectCandidatesWithRelaxation(
 	if len(candidates) == 0 {
 		return []routesDomain.RouteRecommendation{}
 	}
+	limit := request.Limit
+	if limit <= 0 {
+		limit = 1
+	}
 
 	sortedCandidates := make([]osrmRouteCandidate, len(candidates))
 	copy(sortedCandidates, candidates)
@@ -647,15 +651,15 @@ func selectCandidatesWithRelaxation(
 		strings.TrimSpace(request.StartDirection) != "",
 		request.DirectionStrict,
 	)
-	selected := make([]routesDomain.RouteRecommendation, 0, request.Limit)
-	selectedIDs := make(map[string]struct{}, request.Limit)
+	selected := make([]routesDomain.RouteRecommendation, 0, limit)
+	selectedIDs := make(map[string]struct{}, limit)
 
 	for _, level := range levels {
-		if len(selected) >= request.Limit {
+		if len(selected) >= limit {
 			break
 		}
 		for _, candidate := range sortedCandidates {
-			if len(selected) >= request.Limit {
+			if len(selected) >= limit {
 				break
 			}
 			routeID := candidate.recommendation.RouteID
@@ -690,6 +694,62 @@ func selectCandidatesWithRelaxation(
 		}
 	}
 
+	// Safety net: if all configured levels reject candidates, return the best
+	// ranked loops with softer anti-overlap limits instead of returning zero.
+	if len(selected) < limit {
+		selected = appendBestEffortCandidates(
+			sortedCandidates,
+			selected,
+			selectedIDs,
+			limit,
+			0.32, // still blocks extreme out-and-back routes
+			0.40, // still blocks heavy same-corridor reuse
+			"best-effort-soft",
+		)
+	}
+	if len(selected) < limit {
+		selected = appendBestEffortCandidates(
+			sortedCandidates,
+			selected,
+			selectedIDs,
+			limit,
+			1.0,
+			1.0,
+			"best-effort-hard",
+		)
+	}
+
+	return selected
+}
+
+func appendBestEffortCandidates(
+	sortedCandidates []osrmRouteCandidate,
+	selected []routesDomain.RouteRecommendation,
+	selectedIDs map[string]struct{},
+	limit int,
+	maxBacktrackingRatio float64,
+	maxCorridorOverlap float64,
+	profileName string,
+) []routesDomain.RouteRecommendation {
+	for _, candidate := range sortedCandidates {
+		if len(selected) >= limit {
+			break
+		}
+		routeID := candidate.recommendation.RouteID
+		if _, exists := selectedIDs[routeID]; exists {
+			continue
+		}
+		if candidate.backtrackingRatio > maxBacktrackingRatio {
+			continue
+		}
+		if candidate.corridorOverlap > maxCorridorOverlap {
+			continue
+		}
+		recommendation := candidate.recommendation
+		recommendation.Reasons = append(recommendation.Reasons, fmt.Sprintf("Selection profile: %s", profileName))
+		selected = append(selected, recommendation)
+		selectedIDs[routeID] = struct{}{}
+	}
 	return selected
 }
 

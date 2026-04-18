@@ -146,9 +146,7 @@ class RoutesController(
         } else {
             normalizeStartDirection(payload.startDirection)
         }
-        val strictDirection = targetMode == "AUTOMATIC" &&
-            !startDirection.isNullOrBlank() &&
-            (payload.strictDirection == true)
+        val strictDirection = targetMode == "AUTOMATIC" && isUndefinedStartDirection(payload.startDirection)
         val variantCount = normalizeVariantCount(payload.variantCount)
         val distanceTarget = payload.distanceTargetKm!!
         val request = RouteExplorerRequest(
@@ -322,8 +320,8 @@ class RoutesController(
         }
         if (targetMode == "AUTOMATIC") {
             payload.startDirection?.trim()?.takeIf { value -> value.isNotEmpty() }?.let { direction ->
-                if (normalizeStartDirection(direction) == null) {
-                    throw ResponseStatusException(HttpStatus.BAD_REQUEST, "startDirection must be one of N/S/E/W")
+                if (normalizeStartDirection(direction) == null && !isUndefinedStartDirection(direction)) {
+                    throw ResponseStatusException(HttpStatus.BAD_REQUEST, "startDirection must be one of N/S/E/W/UNDEFINED")
                 }
             }
         }
@@ -616,6 +614,10 @@ class RoutesController(
             "N", "S", "E", "W" -> normalized
             else -> null
         }
+    }
+
+    private fun isUndefinedStartDirection(value: String?): Boolean {
+        return value?.trim()?.equals("UNDEFINED", ignoreCase = true) == true
     }
 
     private fun normalizeVariantCount(value: Int?): Int {

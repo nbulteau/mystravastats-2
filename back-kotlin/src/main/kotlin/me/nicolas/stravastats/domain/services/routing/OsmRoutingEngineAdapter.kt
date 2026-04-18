@@ -538,6 +538,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         if (candidates.isEmpty()) {
             return emptyList()
         }
+        val limit = request.limit.coerceAtLeast(1)
         val sortedCandidates = candidates.sortedWith(
             compareBy<OsrmRouteCandidate> { it.corridorOverlap }
                 .thenBy { it.backtrackingRatio }
@@ -559,41 +560,84 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         val selectedIds = mutableSetOf<String>()
 
         for (level in levels) {
-            if (selected.size >= request.limit) break
+            if (selected.size >= limit) break
             for (candidate in sortedCandidates) {
-                if (selected.size >= request.limit) break
-                if (!selectedIds.add(candidate.recommendation.routeId)) continue
+                if (selected.size >= limit) break
+                if (selectedIds.contains(candidate.recommendation.routeId)) continue
                 if (candidate.directionPenalty > level.maxDirectionPenalty) {
                     incrementRejectCount(rejectCounts, "DIRECTION_CONSTRAINT")
-                    selectedIds.remove(candidate.recommendation.routeId)
                     continue
                 }
                 if (candidate.backtrackingRatio > level.maxBacktrackingRatio) {
                     incrementRejectCount(rejectCounts, "OPPOSITE_EDGE_TRAVERSAL")
-                    selectedIds.remove(candidate.recommendation.routeId)
                     continue
                 }
                 if (candidate.corridorOverlap > level.maxCorridorOverlap) {
                     incrementRejectCount(rejectCounts, "CORRIDOR_OVERLAP")
-                    selectedIds.remove(candidate.recommendation.routeId)
                     continue
                 }
                 if (candidate.segmentDiversity < level.minSegmentDiversity) {
                     incrementRejectCount(rejectCounts, "LOW_SEGMENT_DIVERSITY")
-                    selectedIds.remove(candidate.recommendation.routeId)
                     continue
                 }
                 if (candidate.distanceDeltaRatio > level.maxDistanceDeltaRatio) {
                     incrementRejectCount(rejectCounts, "DISTANCE_CONSTRAINT")
-                    selectedIds.remove(candidate.recommendation.routeId)
                     continue
                 }
+                selectedIds += candidate.recommendation.routeId
                 selected += candidate.recommendation.copy(
                     reasons = candidate.recommendation.reasons + "Selection profile: ${level.name}",
                 )
             }
         }
+
+        // Safety net: when strict/balanced/relaxed/fallback all reject candidates,
+        // return best-ranked loops with softer anti-overlap thresholds instead of 0 result.
+        if (selected.size < limit) {
+            appendBestEffortCandidates(
+                sortedCandidates = sortedCandidates,
+                selected = selected,
+                selectedIds = selectedIds,
+                limit = limit,
+                maxBacktrackingRatio = 0.32,
+                maxCorridorOverlap = 0.40,
+                profileName = "best-effort-soft",
+            )
+        }
+        if (selected.size < limit) {
+            appendBestEffortCandidates(
+                sortedCandidates = sortedCandidates,
+                selected = selected,
+                selectedIds = selectedIds,
+                limit = limit,
+                maxBacktrackingRatio = 1.0,
+                maxCorridorOverlap = 1.0,
+                profileName = "best-effort-hard",
+            )
+        }
+
         return selected
+    }
+
+    private fun appendBestEffortCandidates(
+        sortedCandidates: List<OsrmRouteCandidate>,
+        selected: MutableList<RouteRecommendation>,
+        selectedIds: MutableSet<String>,
+        limit: Int,
+        maxBacktrackingRatio: Double,
+        maxCorridorOverlap: Double,
+        profileName: String,
+    ) {
+        for (candidate in sortedCandidates) {
+            if (selected.size >= limit) break
+            if (selectedIds.contains(candidate.recommendation.routeId)) continue
+            if (candidate.backtrackingRatio > maxBacktrackingRatio) continue
+            if (candidate.corridorOverlap > maxCorridorOverlap) continue
+            selectedIds += candidate.recommendation.routeId
+            selected += candidate.recommendation.copy(
+                reasons = candidate.recommendation.reasons + "Selection profile: $profileName",
+            )
+        }
     }
 
     private fun buildRouteRelaxationLevels(

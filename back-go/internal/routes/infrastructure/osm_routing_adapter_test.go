@@ -313,6 +313,43 @@ func TestSelectCandidatesWithRelaxation_PrioritizesLowerBacktracking(t *testing.
 	}
 }
 
+func TestSelectCandidatesWithRelaxation_WhenAllLevelsReject_ThenBestEffortStillReturnsCandidate(t *testing.T) {
+	// GIVEN
+	request := application.RoutingEngineRequest{
+		StartPoint:       routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000},
+		DistanceTargetKm: 40.0,
+		StartDirection:   "N",
+		RouteType:        "RIDE",
+		Limit:            1,
+	}
+	candidates := []osrmRouteCandidate{
+		{
+			recommendation:      routesDomain.RouteRecommendation{RouteID: "needs-best-effort", MatchScore: 78.0},
+			directionPenalty:    0.80, // reject all configured levels with direction
+			backtrackingRatio:   0.12, // reject fallback (0.07), accept best-effort-soft (0.32)
+			corridorOverlap:     0.08, // reject fallback (0.035), accept best-effort-soft (0.40)
+			segmentDiversity:    0.02, // reject all configured levels
+			distanceDeltaRatio:  1.50, // reject strict/balanced/relaxed, fallback would pass distance only
+			effectiveMatchScore: 75.0,
+		},
+	}
+	rejectCounts := map[string]int{}
+
+	// WHEN
+	recommendations := selectCandidatesWithRelaxation(request, candidates, rejectCounts)
+
+	// THEN
+	if len(recommendations) != 1 {
+		t.Fatalf("expected 1 recommendation from best-effort fallback, got %d", len(recommendations))
+	}
+	if recommendations[0].RouteID != "needs-best-effort" {
+		t.Fatalf("expected needs-best-effort to be selected, got %s", recommendations[0].RouteID)
+	}
+	if len(recommendations[0].Reasons) == 0 {
+		t.Fatalf("expected selection reason to include best-effort profile")
+	}
+}
+
 func TestCorridorOverlapRatio_DetectsNearParallelOutAndBackCorridor(t *testing.T) {
 	// GIVEN
 	points := [][]float64{

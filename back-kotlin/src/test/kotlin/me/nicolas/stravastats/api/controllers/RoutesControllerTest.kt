@@ -104,7 +104,7 @@ class RoutesControllerTest {
     }
 
     @Test
-    fun `generate target routes forwards strictDirection in automatic mode`() {
+    fun `generate target routes infers strictDirection when startDirection is undefined`() {
         // GIVEN
         every {
             routeExplorerService.getRouteExplorer(
@@ -132,8 +132,7 @@ class RoutesControllerTest {
                       "startPoint": {"lat": 45.19, "lng": 5.73},
                       "generationMode": "AUTOMATIC",
                       "routeType": "RIDE",
-                      "startDirection": "N",
-                      "strictDirection": true,
+                      "startDirection": "UNDEFINED",
                       "distanceTargetKm": 42.0
                     }
                     """.trimIndent()
@@ -147,7 +146,7 @@ class RoutesControllerTest {
                 any(),
                 any(),
                 match { request: RouteExplorerRequest ->
-                    request.strictDirection && request.startDirection == "N"
+                    request.strictDirection && request.startDirection == null
                 }
             )
         }

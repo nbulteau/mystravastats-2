@@ -30,8 +30,7 @@ export const useRoutesStore = defineStore("routes", {
     mode: "TARGET" as RouteMode,
     targetGenerationMode: "AUTOMATIC" as TargetGenerationMode,
     routeType: "RIDE" as RouteType,
-    startDirection: "N" as StartDirection,
-    strictDirection: false as boolean,
+    startDirection: "UNDEFINED" as StartDirection,
     distanceTargetKm: 40 as number,
     elevationTargetM: 800 as number,
     variantCount: DEFAULT_VARIANT_COUNT,
@@ -206,7 +205,6 @@ export const useRoutesStore = defineStore("routes", {
         routeType: this.routeType,
         generationMode: this.targetGenerationMode,
         startDirection: this.targetGenerationMode === "AUTOMATIC" ? this.startDirection : undefined,
-        strictDirection: this.targetGenerationMode === "AUTOMATIC" ? this.strictDirection : undefined,
         distanceTargetKm: distanceTarget,
         elevationTargetM: elevationTarget,
         customWaypoints: this.targetGenerationMode === "CUSTOM"
