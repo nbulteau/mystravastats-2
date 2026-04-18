@@ -41,9 +41,13 @@ func (adapter *RouteServiceAdapter) FindRouteExplorerByYearAndTypes(
 	if request.StartDirection != nil {
 		startDirection = *request.StartDirection
 	}
+	targetMode := ""
+	if request.TargetMode != nil {
+		targetMode = *request.TargetMode
+	}
 	limit := request.Limit
 	if limit <= 0 {
-		limit = 5
+		limit = 2
 	}
 
 	generatedLoops, err := adapter.routingEngine.GenerateTargetLoops(routeApp.RoutingEngineRequest{
@@ -51,6 +55,8 @@ func (adapter *RouteServiceAdapter) FindRouteExplorerByYearAndTypes(
 		DistanceTargetKm: *request.DistanceTargetKm,
 		ElevationTargetM: request.ElevationTargetM,
 		StartDirection:   startDirection,
+		TargetMode:       targetMode,
+		Waypoints:        request.CustomWaypoints,
 		RouteType:        routeType,
 		Limit:            limit,
 	})

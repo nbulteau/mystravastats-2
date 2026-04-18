@@ -56,6 +56,8 @@ data class RouteExplorerRequest(
     val durationTargetMin: Int?,
     val startDirection: String? = null,
     val startPoint: Coordinates? = null,
+    val targetMode: String? = null,
+    val customWaypoints: List<Coordinates> = emptyList(),
     val routeType: String? = null,
     val season: String?,
     val limit: Int,

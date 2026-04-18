@@ -137,6 +137,29 @@ class RoutesControllerTest {
     }
 
     @Test
+    fun `generate target routes rejects custom mode without waypoints`() {
+        // GIVEN
+        // WHEN
+        mockMvc.perform(
+            post("/api/routes/generate/target")
+                .param("activityType", "Ride")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "startPoint": {"lat": 45.19, "lng": 5.73},
+                      "generationMode": "CUSTOM",
+                      "routeType": "RIDE",
+                      "distanceTargetKm": 42.0
+                    }
+                    """.trimIndent()
+                )
+        )
+            // THEN
+            .andExpect(status().isBadRequest)
+    }
+
+    @Test
     fun `generated route gpx endpoint returns file after generate`() {
         // GIVEN
         every {
@@ -248,6 +271,7 @@ class RoutesControllerTest {
             // THEN
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.routes.length()").value(0))
+            .andExpect(jsonPath("$.diagnostics[0].code").value("NO_CANDIDATE"))
     }
 
     @Test

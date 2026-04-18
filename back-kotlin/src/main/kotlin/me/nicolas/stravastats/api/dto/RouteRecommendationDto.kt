@@ -92,6 +92,13 @@ data class GeneratedRouteDto(
 @Schema(description = "Generated routes response", name = "GenerateRoutesResponse")
 data class GenerateRoutesResponseDto(
     val routes: List<GeneratedRouteDto>,
+    val diagnostics: List<RouteGenerationDiagnosticDto> = emptyList(),
+)
+
+@Schema(description = "Route generation diagnostic", name = "RouteGenerationDiagnostic")
+data class RouteGenerationDiagnosticDto(
+    val code: String,
+    val message: String,
 )
 
 data class RouteStartPointDto(
@@ -101,6 +108,8 @@ data class RouteStartPointDto(
 
 data class GenerateTargetRoutesRequestDto(
     val startPoint: RouteStartPointDto?,
+    val generationMode: String?,
+    val customWaypoints: List<RouteStartPointDto>?,
     val routeType: String?,
     val startDirection: String?,
     val distanceTargetKm: Double?,

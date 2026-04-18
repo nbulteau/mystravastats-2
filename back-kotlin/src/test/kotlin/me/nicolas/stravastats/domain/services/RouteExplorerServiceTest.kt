@@ -434,6 +434,62 @@ class RouteExplorerServiceTest {
         assertTrue(result.roadGraphLoops.isEmpty(), "road graph loops should be empty when OSRM returns no route")
     }
 
+    @Test
+    fun `route explorer still calls routing engine when cache candidates are empty`() {
+        // GIVEN
+        val activityTypes = setOf(ActivityType.Ride)
+        every { activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, 2026) } returns emptyList()
+
+        val generatedByEngine = RouteRecommendation(
+            routeId = "generated-osm-empty-cache",
+            activity = ActivityShort(id = 0L, name = "Generated Empty Cache Loop", type = ActivityType.Ride),
+            activityDate = "2026-01-01T08:00:00Z",
+            distanceKm = 39.5,
+            elevationGainM = 540.0,
+            durationSec = 7000,
+            isLoop = true,
+            start = Coordinates(45.0, 6.0),
+            end = Coordinates(45.0, 6.0),
+            startArea = "45.0000, 6.0000",
+            season = "WINTER",
+            variantType = RouteVariantType.ROAD_GRAPH,
+            matchScore = 90.0,
+            reasons = listOf("Generated with OSM road graph (OSRM)"),
+            previewLatLng = listOf(
+                listOf(45.0, 6.0),
+                listOf(45.02, 6.02),
+                listOf(45.0, 6.0),
+            ),
+            shape = null,
+            shapeScore = null,
+            experimental = false,
+        )
+        val engine = object : RoutingEnginePort {
+            override fun generateTargetLoops(request: RoutingEngineRequest): List<RouteRecommendation> = listOf(generatedByEngine)
+            override fun healthDetails(): Map<String, Any?> = mapOf("status" to "up")
+        }
+        val serviceWithEngine = RouteExplorerService(activityProvider, engine)
+        val request = RouteExplorerRequest(
+            distanceTargetKm = 40.0,
+            elevationTargetM = 500.0,
+            durationTargetMin = 120,
+            startPoint = Coordinates(lat = 45.0, lng = 6.0),
+            routeType = "RIDE",
+            season = null,
+            limit = 5,
+            shape = null,
+            includeRemix = false,
+        )
+
+        // WHEN
+        val result = serviceWithEngine.getRouteExplorer(activityTypes, 2026, request)
+
+        // THEN
+        assertTrue(result.closestLoops.isEmpty(), "closest loops should be empty when cache has no activities")
+        assertTrue(result.roadGraphLoops.isNotEmpty(), "road graph loops should still come from routing engine")
+        assertEquals("generated-osm-empty-cache", result.roadGraphLoops.first().routeId)
+    }
+
     private fun buildActivity(
         id: Long,
         name: String,

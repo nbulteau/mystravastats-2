@@ -8,6 +8,8 @@ data class RoutingEngineRequest(
     val distanceTargetKm: Double,
     val elevationTargetM: Double?,
     val startDirection: String?,
+    val targetMode: String? = null,
+    val waypoints: List<Coordinates> = emptyList(),
     val routeType: String?,
     val limit: Int,
 )

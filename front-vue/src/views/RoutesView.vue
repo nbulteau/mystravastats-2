@@ -17,15 +17,22 @@ const mapContainer = ref<HTMLDivElement | null>(null);
 const map = ref<L.Map>();
 const startMarker = ref<L.CircleMarker>();
 const shapePolylineLayer = ref<L.Polyline>();
+const customWaypointDraftLayer = ref<L.Polyline>();
+const customWaypointMarkers = ref<L.CircleMarker[]>([]);
 const selectedRouteLayer = ref<L.Polyline>();
 const isExporting = ref(false);
 const isLocating = ref(false);
 
 const selectedRoute = computed(() => routesStore.selectedRoute);
+const generationDiagnostics = computed(() => routesStore.generationDiagnostics);
 const canGenerate = computed(() =>
   routesStore.mode === "TARGET" ? routesStore.canGenerateTarget : routesStore.canGenerateShape,
 );
 const isShapeMode = computed(() => routesStore.mode === "SHAPE");
+const isTargetMode = computed(() => routesStore.mode === "TARGET");
+const isTargetCustomMode = computed(
+  () => routesStore.mode === "TARGET" && routesStore.targetGenerationMode === "CUSTOM",
+);
 const routingEngineLabel = computed(() => {
   const engine = routesStore.routingEngineName || "OSRM";
   switch (routesStore.routingHealthStatus) {
@@ -93,6 +100,10 @@ function modeButtonClass(mode: "TARGET" | "SHAPE"): string {
   return routesStore.mode === mode ? "btn btn-primary" : "btn btn-outline-secondary";
 }
 
+function targetModeButtonClass(mode: "AUTOMATIC" | "CUSTOM"): string {
+  return routesStore.targetGenerationMode === mode ? "btn btn-primary btn-sm" : "btn btn-outline-secondary btn-sm";
+}
+
 function showToast(message: string, type: ToastTypeEnum = ToastTypeEnum.NORMAL, timeout = 2800) {
   uiStore.showToast({
     id: `routes-${Date.now()}-${Math.random()}`,
@@ -120,6 +131,11 @@ function initMap() {
   map.value.on("click", (event: L.LeafletMouseEvent) => {
     if (routesStore.mode === "SHAPE" && routesStore.isDrawingShape) {
       routesStore.addShapePoint(event.latlng.lat, event.latlng.lng);
+      redrawMapLayers({ fitBounds: false });
+      return;
+    }
+    if (routesStore.mode === "TARGET" && routesStore.targetGenerationMode === "CUSTOM" && routesStore.startPoint) {
+      routesStore.addCustomWaypoint(event.latlng.lat, event.latlng.lng);
       redrawMapLayers({ fitBounds: false });
       return;
     }
@@ -172,6 +188,11 @@ function collectAllMapPoints(): L.LatLng[] {
       points.push(L.latLng(point[0], point[1]));
     }
   });
+  routesStore.customWaypoints.forEach((point) => {
+    if (point.length >= 2) {
+      points.push(L.latLng(point[0], point[1]));
+    }
+  });
   selectedRoute.value?.previewLatLng.forEach((point) => {
     if (point.length >= 2) {
       points.push(L.latLng(point[0], point[1]));
@@ -192,6 +213,14 @@ function redrawMapLayers(options: { fitBounds?: boolean } = {}) {
   if (shapePolylineLayer.value) {
     shapePolylineLayer.value.remove();
     shapePolylineLayer.value = undefined;
+  }
+  if (customWaypointDraftLayer.value) {
+    customWaypointDraftLayer.value.remove();
+    customWaypointDraftLayer.value = undefined;
+  }
+  if (customWaypointMarkers.value.length > 0) {
+    customWaypointMarkers.value.forEach((marker) => marker.remove());
+    customWaypointMarkers.value = [];
   }
   if (selectedRouteLayer.value) {
     selectedRouteLayer.value.remove();
@@ -217,6 +246,34 @@ function redrawMapLayers(options: { fitBounds?: boolean } = {}) {
       dashArray: "8 8",
       opacity: 0.9,
     }).addTo(map.value);
+  }
+
+  if (routesStore.customWaypoints.length > 0) {
+    const points = routesStore.customWaypoints
+      .filter((point) => point.length >= 2)
+      .map((point) => L.latLng(point[0], point[1]));
+
+    points.forEach((point, index) => {
+      const marker = L.circleMarker(point, {
+        radius: 5,
+        color: "#198754",
+        weight: 2,
+        fillColor: "#75d39a",
+        fillOpacity: 0.9,
+      }).addTo(map.value!);
+      marker.bindTooltip(`Waypoint ${index + 1}`, { direction: "top" });
+      customWaypointMarkers.value.push(marker);
+    });
+
+    if (routesStore.startPoint) {
+      const draftLatLngs = [L.latLng(routesStore.startPoint.lat, routesStore.startPoint.lng), ...points];
+      customWaypointDraftLayer.value = L.polyline(draftLatLngs, {
+        color: "#198754",
+        weight: 3,
+        dashArray: "6 8",
+        opacity: 0.9,
+      }).addTo(map.value);
+    }
   }
 
   if (selectedRoute.value && selectedRoute.value.previewLatLng.length >= 2) {
@@ -321,12 +378,38 @@ function switchMode(mode: "TARGET" | "SHAPE") {
   redrawMapLayers({ fitBounds: false });
 }
 
+function switchTargetGenerationMode(mode: "AUTOMATIC" | "CUSTOM") {
+  routesStore.setTargetGenerationMode(mode);
+  redrawMapLayers({ fitBounds: false });
+}
+
+function clearCustomWaypoints() {
+  routesStore.clearCustomWaypoints();
+  redrawMapLayers({ fitBounds: false });
+}
+
+function undoCustomWaypoint() {
+  routesStore.removeLastCustomWaypoint();
+  redrawMapLayers({ fitBounds: false });
+}
+
+function resetStartPoint() {
+  routesStore.clearStartPoint();
+  routesStore.clearCustomWaypoints();
+  redrawMapLayers({ fitBounds: false });
+  showToast("Start point cleared. Click the map or use your location to set a new start point.");
+}
+
 async function generateRoutes() {
   try {
     await routesStore.generateRoutes();
     redrawMapLayers();
     if (!routesStore.hasRoutes) {
-      showToast("No route generated with current constraints. Try widening your targets.", ToastTypeEnum.ERROR, 4200);
+      const firstDiagnostic = routesStore.generationDiagnostics[0]?.message;
+      const message = firstDiagnostic
+        ? `No route generated. ${firstDiagnostic}`
+        : "No route generated with current constraints. Try widening your targets.";
+      showToast(message, ToastTypeEnum.ERROR, 5000);
       return;
     }
     if (routesStore.mode === "TARGET" && routesStore.lastGeneratedTargetRouteNumber > 0) {
@@ -360,7 +443,7 @@ async function exportSelectedRoute() {
 }
 
 watch(
-  () => [routesStore.startPoint, routesStore.shapePoints, selectedRoute.value?.routeId],
+  () => [routesStore.startPoint, routesStore.shapePoints, routesStore.customWaypoints, selectedRoute.value?.routeId],
   () => redrawMapLayers({ fitBounds: false }),
   { deep: true },
 );
@@ -425,7 +508,7 @@ onBeforeUnmount(() => {
         </button>
 
         <label class="routes-field">
-          <span>Type of route</span>
+          <span>Route type</span>
           <select
             v-model="routesStore.routeType"
             class="form-select"
@@ -440,11 +523,34 @@ onBeforeUnmount(() => {
           </select>
         </label>
 
+        <div
+          v-if="isTargetMode"
+          class="routes-target-mode-switch"
+        >
+          <span>Target mode</span>
+          <div class="routes-target-mode-buttons">
+            <button
+              type="button"
+              :class="targetModeButtonClass('AUTOMATIC')"
+              @click="switchTargetGenerationMode('AUTOMATIC')"
+            >
+              Automatic
+            </button>
+            <button
+              type="button"
+              :class="targetModeButtonClass('CUSTOM')"
+              @click="switchTargetGenerationMode('CUSTOM')"
+            >
+              Custom
+            </button>
+          </div>
+        </div>
+
         <label
-          v-if="!isShapeMode"
+          v-if="isTargetMode && !isTargetCustomMode"
           class="routes-field"
         >
-          <span>Departure direction</span>
+          <span>Direction</span>
           <select
             v-model="routesStore.startDirection"
             class="form-select"
@@ -458,6 +564,44 @@ onBeforeUnmount(() => {
             </option>
           </select>
         </label>
+
+        <div
+          v-if="isTargetCustomMode"
+          class="routes-custom-tools"
+        >
+          <div class="routes-custom-tools-head">
+            <strong>Custom waypoints</strong>
+            <span>{{ routesStore.customWaypoints.length }} point(s)</span>
+          </div>
+          <small class="routes-hint">
+            Click on the map to add passage points after the start point.
+          </small>
+          <div class="routes-custom-tools-buttons">
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              :disabled="routesStore.customWaypoints.length === 0"
+              @click="undoCustomWaypoint"
+            >
+              Undo last point
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-danger btn-sm"
+              :disabled="routesStore.customWaypoints.length === 0"
+              @click="clearCustomWaypoints"
+            >
+              Clear points
+            </button>
+          </div>
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            @click="resetStartPoint"
+          >
+            Reset start point
+          </button>
+        </div>
 
         <label class="routes-field">
           <span>Distance target (km)</span>
@@ -543,8 +687,21 @@ onBeforeUnmount(() => {
         v-if="!routesStore.hasRoutes"
         class="routes-empty"
       >
-        Generate a route to see proposals here.
+        {{ generationDiagnostics.length > 0
+          ? "No route matched all constraints for this request."
+          : "Generate a route to see proposals here." }}
       </p>
+      <ul
+        v-if="!routesStore.hasRoutes && generationDiagnostics.length > 0"
+        class="routes-diagnostics"
+      >
+        <li
+          v-for="diagnostic in generationDiagnostics"
+          :key="diagnostic.code"
+        >
+          <strong>{{ diagnostic.code }}</strong>: {{ diagnostic.message }}
+        </li>
+      </ul>
 
       <div
         v-else
@@ -683,6 +840,47 @@ onBeforeUnmount(() => {
   color: #4d566a;
 }
 
+.routes-target-mode-switch {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.routes-target-mode-switch > span {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #4d566a;
+}
+
+.routes-target-mode-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.routes-custom-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #d9e2ef;
+  border-radius: 10px;
+  background: #f8fbff;
+}
+
+.routes-custom-tools-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #4d566a;
+}
+
+.routes-custom-tools-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 .routes-shape-tools {
   display: flex;
   flex-direction: column;
@@ -781,6 +979,16 @@ onBeforeUnmount(() => {
 .routes-empty {
   margin: 0;
   color: #6a7183;
+}
+
+.routes-diagnostics {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: #596173;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.9rem;
 }
 
 @media (max-width: 1100px) {

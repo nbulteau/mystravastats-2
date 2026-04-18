@@ -908,8 +908,10 @@ const chartOptions = computed((): any => ({
       <div v-if="advancedInsights" class="advanced-panel">
         <div class="advanced-panel__header">
           <div class="advanced-panel__title">
-            Advanced insights
-            <TooltipHint :text="getMetricTooltip('Heatmap Advanced Insights') ?? ''" />
+            <span class="advanced-panel__title-line">
+              <span>Advanced insights</span>
+              <TooltipHint :text="getMetricTooltip('Heatmap Advanced Insights') ?? ''" />
+            </span>
             <span class="advanced-panel__subtitle">
               {{ selectedMetricMeta.label }} focused insights for {{ displayYear }}
             </span>
@@ -1305,6 +1307,12 @@ const chartOptions = computed((): any => ({
   font-weight: 700;
   color: #2f3b4b;
   font-size: 1rem;
+}
+
+.advanced-panel__title-line {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
 }
 
 .advanced-panel__subtitle {

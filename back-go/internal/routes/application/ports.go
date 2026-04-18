@@ -21,6 +21,8 @@ type RoutingEngineRequest struct {
 	DistanceTargetKm float64
 	ElevationTargetM *float64
 	StartDirection   string
+	TargetMode       string
+	Waypoints        []routesDomain.Coordinates
 	RouteType        string
 	Limit            int
 }

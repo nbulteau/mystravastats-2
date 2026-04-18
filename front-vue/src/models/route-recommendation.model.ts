@@ -1,4 +1,5 @@
 export type RouteMode = "TARGET" | "SHAPE";
+export type TargetGenerationMode = "AUTOMATIC" | "CUSTOM";
 
 export type RouteType =
   | "RIDE"
@@ -54,4 +55,10 @@ export interface GeneratedRoute {
 
 export interface GenerateRoutesResponse {
   routes: GeneratedRoute[];
+  diagnostics?: RouteGenerationDiagnostic[];
+}
+
+export interface RouteGenerationDiagnostic {
+  code: string;
+  message: string;
 }

@@ -55,19 +55,26 @@ class RouteExplorerService(
     ): RouteExplorerResult {
         val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
         val candidates = buildRouteCandidates(activities)
+        val limit = normalizeLimit(request.limit)
+        val generatedWithoutCache = buildRoadGraphRecommendationsFromEngine(
+            request = request,
+            distanceTarget = request.distanceTargetKm ?: 0.0,
+            elevationTarget = request.elevationTargetM ?: 0.0,
+            limit = limit,
+            fallback = emptyList(),
+        )
 
         if (candidates.isEmpty()) {
             return RouteExplorerResult(
                 closestLoops = emptyList(),
                 variants = emptyList(),
                 seasonal = emptyList(),
-                roadGraphLoops = emptyList(),
+                roadGraphLoops = generatedWithoutCache,
                 shapeMatches = emptyList(),
                 shapeRemixes = emptyList(),
             )
         }
 
-        val limit = normalizeLimit(request.limit)
         val distanceTarget = request.distanceTargetKm?.takeIf { value -> value > 0 }
             ?: median(candidates.map { candidate -> candidate.distanceKm }, 45.0)
         val elevationTarget = request.elevationTargetM?.takeIf { value -> value > 0 }
@@ -156,6 +163,8 @@ class RouteExplorerService(
                     distanceTargetKm = distanceTarget,
                     elevationTargetM = request.elevationTargetM ?: elevationTarget,
                     startDirection = request.startDirection,
+                    targetMode = request.targetMode,
+                    waypoints = request.customWaypoints,
                     routeType = request.routeType,
                     limit = limit,
                 )
@@ -241,7 +250,7 @@ class RouteExplorerService(
                     "Elevation delta: ${formatElevationDelta(candidate.elevationGainM - elevationTarget)}",
                 )
                 if (startDirection != null) {
-                    reasons += "Departure direction: ${startDirectionLabel(startDirection)}"
+                    reasons += "Direction: ${startDirectionLabel(startDirection)}"
                 }
                 if (preferredStart != null) {
                     val startDistanceKm = startDistanceKm(candidate, preferredStart)

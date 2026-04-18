@@ -85,7 +85,7 @@ const exactMetricTooltips: Record<string, string> = {
   "Heatmap Top Days":
     "Top individual calendar days ranked by the selected metric value.",
   "Heatmap Activity Mix":
-    "Breakdown of activity types recorded in the selected period.",
+    "Breakdown of sports recorded in the selected period.",
   "Heatmap Best Week":
     "Best calendar week for the selected metric, with active days and activity count.",
   YTD:
@@ -95,7 +95,7 @@ const exactMetricTooltips: Record<string, string> = {
   "Charts granularity":
     "Monthly view groups values by month. Weekly view groups values by ISO week to reveal short-term variations.",
   "Charts refresh":
-    "Reload chart data for current filters without changing year, activity type, or current view.",
+    "Reload chart data for current filters without changing year, sport filter, or current view.",
   "Weekly training load (TRIMP)":
     "Simplified training load: weekly sum of heart-rate zone time weighted by zone intensity (Z1..Z5). Useful to monitor fatigue trends.",
   "Distance distribution":

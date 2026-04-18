@@ -24,9 +24,10 @@ import (
 )
 
 const (
-	defaultRoutesVariantCount = 5
+	defaultRoutesVariantCount = 2
 	maxGeneratedVariantCount  = 24
 	generatedRouteCacheTTL    = 6 * time.Hour
+	defaultTargetMode         = "AUTOMATIC"
 )
 
 type routeStartPointPayload struct {
@@ -35,12 +36,14 @@ type routeStartPointPayload struct {
 }
 
 type generateTargetRoutesPayload struct {
-	StartPoint      *routeStartPointPayload `json:"startPoint"`
-	RouteType       string                  `json:"routeType"`
-	StartDirection  string                  `json:"startDirection"`
-	DistanceTarget  float64                 `json:"distanceTargetKm"`
-	ElevationTarget *float64                `json:"elevationTargetM,omitempty"`
-	VariantCount    *int                    `json:"variantCount,omitempty"`
+	StartPoint      *routeStartPointPayload  `json:"startPoint"`
+	GenerationMode  string                   `json:"generationMode,omitempty"`
+	CustomWaypoints []routeStartPointPayload `json:"customWaypoints,omitempty"`
+	RouteType       string                   `json:"routeType"`
+	StartDirection  string                   `json:"startDirection"`
+	DistanceTarget  float64                  `json:"distanceTargetKm"`
+	ElevationTarget *float64                 `json:"elevationTargetM,omitempty"`
+	VariantCount    *int                     `json:"variantCount,omitempty"`
 }
 
 type generateShapeRoutesPayload struct {
@@ -606,23 +609,30 @@ func generateTargetRoutesByActivityType(w http.ResponseWriter, r *http.Request) 
 	}
 
 	routeType := normalizeGenerateRouteType(payload.RouteType)
+	targetMode := normalizeGenerateTargetMode(payload.GenerationMode)
 	startDirection := normalizeGenerateStartDirection(payload.StartDirection)
+	if targetMode == "CUSTOM" {
+		startDirection = ""
+	}
 	variantCount := normalizeGenerateVariantCount(payload.VariantCount)
 	preferredStart := &routesDomain.Coordinates{
 		Lat: payload.StartPoint.Lat,
 		Lng: payload.StartPoint.Lng,
 	}
+	customWaypoints := toRouteCoordinates(payload.CustomWaypoints)
 	request := routesDomain.RouteExplorerRequest{
 		DistanceTargetKm: &payload.DistanceTarget,
 		ElevationTargetM: payload.ElevationTarget,
 		StartPoint:       preferredStart,
 		StartDirection:   optionalNonEmptyString(startDirection),
+		TargetMode:       optionalNonEmptyString(targetMode),
+		CustomWaypoints:  customWaypoints,
 		RouteType:        optionalNonEmptyString(routeType),
 		Limit:            variantCount,
 	}
 
 	result := getContainer().getRouteExplorerUseCase.Execute(year, request, activityTypes)
-	response := buildTargetGeneratedRoutesResponse(result, payload.DistanceTarget, payload.ElevationTarget, routeType, startDirection, variantCount)
+	response := buildTargetGeneratedRoutesResponse(result, payload.DistanceTarget, payload.ElevationTarget, routeType, startDirection, targetMode, variantCount)
 	cacheGeneratedRoutes(response.Routes)
 
 	if err := writeJSON(w, http.StatusOK, response); err != nil {
@@ -748,6 +758,10 @@ func validateGenerateTargetRoutesPayload(payload generateTargetRoutesPayload) er
 	if !isValidLatLng(payload.StartPoint.Lat, payload.StartPoint.Lng) {
 		return fmt.Errorf("startPoint has invalid coordinates")
 	}
+	targetMode := normalizeGenerateTargetMode(payload.GenerationMode)
+	if targetMode == "" {
+		return fmt.Errorf("generationMode must be one of AUTOMATIC/CUSTOM")
+	}
 	if payload.DistanceTarget <= 0 {
 		return fmt.Errorf("distanceTargetKm must be greater than 0")
 	}
@@ -757,8 +771,20 @@ func validateGenerateTargetRoutesPayload(payload generateTargetRoutesPayload) er
 	if payload.VariantCount != nil && (*payload.VariantCount < 1 || *payload.VariantCount > maxGeneratedVariantCount) {
 		return fmt.Errorf("variantCount must be between 1 and %d", maxGeneratedVariantCount)
 	}
-	if direction := normalizeGenerateStartDirection(payload.StartDirection); payload.StartDirection != "" && direction == "" {
-		return fmt.Errorf("startDirection must be one of N/S/E/W")
+	if targetMode == "AUTOMATIC" {
+		if direction := normalizeGenerateStartDirection(payload.StartDirection); payload.StartDirection != "" && direction == "" {
+			return fmt.Errorf("startDirection must be one of N/S/E/W")
+		}
+	}
+	if targetMode == "CUSTOM" {
+		if len(payload.CustomWaypoints) == 0 {
+			return fmt.Errorf("customWaypoints must contain at least one waypoint when generationMode is CUSTOM")
+		}
+		for _, point := range payload.CustomWaypoints {
+			if !isValidLatLng(point.Lat, point.Lng) {
+				return fmt.Errorf("customWaypoints has invalid coordinates")
+			}
+		}
 	}
 	return nil
 }
@@ -829,6 +855,7 @@ func buildTargetGeneratedRoutesResponse(
 	elevationTarget *float64,
 	routeType string,
 	startDirection string,
+	targetMode string,
 	limit int,
 ) dto.GenerateRoutesResponseDto {
 	// Target mode must return newly generated loops only.
@@ -836,7 +863,11 @@ func buildTargetGeneratedRoutesResponse(
 	recommendations = append(recommendations, result.RoadGraphLoops...)
 
 	routes := toGeneratedRoutesFromRecommendations(recommendations, &distanceTarget, elevationTarget, routeType, startDirection, limit)
-	return dto.GenerateRoutesResponseDto{Routes: routes}
+	diagnostics := buildTargetGenerationDiagnostics(distanceTarget, elevationTarget, startDirection, targetMode, routes)
+	return dto.GenerateRoutesResponseDto{
+		Routes:      routes,
+		Diagnostics: diagnostics,
+	}
 }
 
 func buildShapeGeneratedRoutesResponse(
@@ -891,7 +922,67 @@ func buildShapeGeneratedRoutesResponse(
 		seen[remix.ID] = struct{}{}
 	}
 
-	return dto.GenerateRoutesResponseDto{Routes: routes}
+	return dto.GenerateRoutesResponseDto{
+		Routes:      routes,
+		Diagnostics: []dto.RouteGenerationDiagnosticDto{},
+	}
+}
+
+func buildTargetGenerationDiagnostics(
+	distanceTarget float64,
+	elevationTarget *float64,
+	startDirection string,
+	targetMode string,
+	routes []dto.GeneratedRouteDto,
+) []dto.RouteGenerationDiagnosticDto {
+	if len(routes) > 0 {
+		return []dto.RouteGenerationDiagnosticDto{}
+	}
+
+	diagnostics := []dto.RouteGenerationDiagnosticDto{
+		{
+			Code:    "NO_CANDIDATE",
+			Message: "No route candidate matched all current constraints.",
+		},
+	}
+
+	if distanceTarget >= 120.0 {
+		diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
+			Code:    "DISTANCE_TOO_FAR",
+			Message: "Distance target is high for the current area and may remove most candidates.",
+		})
+	}
+
+	if elevationTarget != nil && distanceTarget > 0 {
+		elevationPerKm := *elevationTarget / distanceTarget
+		if elevationPerKm > 35.0 {
+			diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
+				Code:    "ELEVATION_TOO_LOW",
+				Message: "Requested elevation gain is likely too high for the selected distance and area.",
+			})
+		}
+	}
+
+	if strings.EqualFold(strings.TrimSpace(targetMode), "CUSTOM") {
+		diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
+			Code:    "CUSTOM_WAYPOINTS_CONFLICT",
+			Message: "Custom waypoint geometry may be too constrained in this area.",
+		})
+	}
+
+	if strings.EqualFold(strings.TrimSpace(targetMode), "AUTOMATIC") && strings.TrimSpace(startDirection) != "" {
+		diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
+			Code:    "DIRECTION_CONFLICT",
+			Message: "Strict departure direction can filter out otherwise valid loops.",
+		})
+	}
+
+	diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
+		Code:    "BACKTRACKING_FILTERED",
+		Message: "Candidates that return over the same segment in reverse are rejected.",
+	})
+
+	return diagnostics
 }
 
 func toGeneratedRoutesFromRecommendations(
@@ -1064,6 +1155,18 @@ func normalizeGenerateRouteType(value string) string {
 	}
 }
 
+func normalizeGenerateTargetMode(value string) string {
+	normalized := strings.ToUpper(strings.TrimSpace(value))
+	switch normalized {
+	case "", defaultTargetMode:
+		return defaultTargetMode
+	case "CUSTOM":
+		return "CUSTOM"
+	default:
+		return ""
+	}
+}
+
 func normalizeGenerateStartDirection(value string) string {
 	normalized := strings.ToUpper(strings.TrimSpace(value))
 	switch normalized {
@@ -1085,6 +1188,20 @@ func normalizeGenerateVariantCount(value *int) int {
 		return maxGeneratedVariantCount
 	}
 	return *value
+}
+
+func toRouteCoordinates(points []routeStartPointPayload) []routesDomain.Coordinates {
+	if len(points) == 0 {
+		return []routesDomain.Coordinates{}
+	}
+	coords := make([]routesDomain.Coordinates, 0, len(points))
+	for _, point := range points {
+		coords = append(coords, routesDomain.Coordinates{
+			Lat: point.Lat,
+			Lng: point.Lng,
+		})
+	}
+	return coords
 }
 
 func optionalNonEmptyString(value string) *string {

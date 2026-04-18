@@ -29,6 +29,12 @@ type GeneratedRouteDto struct {
 	IsRoadGraphGenerated bool                    `json:"isRoadGraphGenerated"`
 }
 
+type RouteGenerationDiagnosticDto struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
 type GenerateRoutesResponseDto struct {
-	Routes []GeneratedRouteDto `json:"routes"`
+	Routes      []GeneratedRouteDto            `json:"routes"`
+	Diagnostics []RouteGenerationDiagnosticDto `json:"diagnostics,omitempty"`
 }

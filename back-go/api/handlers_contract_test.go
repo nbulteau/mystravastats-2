@@ -833,6 +833,34 @@ func TestGenerateShapeRoutesByActivityType_InvalidShapeInputType_Returns400(t *t
 	}
 }
 
+func TestGenerateTargetRoutesByActivityType_CustomModeWithoutWaypoints_Returns400(t *testing.T) {
+	// GIVEN
+	// WHEN
+	// THEN
+	request := httptest.NewRequest(http.MethodPost, "/api/routes/generate/target?activityType=Ride", strings.NewReader(`{
+	  "startPoint": {"lat": 45.1, "lng": 6.1},
+	  "generationMode": "CUSTOM",
+	  "routeType": "RIDE",
+	  "distanceTargetKm": 42
+	}`))
+	request.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	generateTargetRoutesByActivityType(recorder, request)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", recorder.Code)
+	}
+
+	var response contractErrorResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode JSON response: %v", err)
+	}
+	if response.Message != "Invalid request body" {
+		t.Fatalf("expected message 'Invalid request body', got %q", response.Message)
+	}
+}
+
 func TestGenerateTargetRoutesByActivityType_DoesNotFallbackToHistoricalRoutes(t *testing.T) {
 	// GIVEN
 	// WHEN
@@ -882,5 +910,16 @@ func TestGenerateTargetRoutesByActivityType_DoesNotFallbackToHistoricalRoutes(t 
 	}
 	if len(routes) != 0 {
 		t.Fatalf("expected no generated routes when road-graph generation is unavailable, got %d", len(routes))
+	}
+	diagnostics, ok := response["diagnostics"].([]any)
+	if !ok || len(diagnostics) == 0 {
+		t.Fatalf("expected generation diagnostics, got %+v", response["diagnostics"])
+	}
+	firstDiagnostic, ok := diagnostics[0].(map[string]any)
+	if !ok {
+		t.Fatalf("expected diagnostics[0] object, got %+v", diagnostics[0])
+	}
+	if got := firstDiagnostic["code"]; got != "NO_CANDIDATE" {
+		t.Fatalf("expected first diagnostic code NO_CANDIDATE, got %v", got)
 	}
 }

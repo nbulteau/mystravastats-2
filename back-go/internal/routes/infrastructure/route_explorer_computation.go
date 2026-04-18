@@ -265,7 +265,7 @@ func buildClosestLoopRecommendations(
 			fmt.Sprintf("Elevation delta: %s", formatElevationDelta(entry.candidate.elevationGainM-targetElevationM)),
 		}
 		if startDirection != "" {
-			reasons = append(reasons, fmt.Sprintf("Departure direction: %s", startDirectionLabel(startDirection)))
+			reasons = append(reasons, fmt.Sprintf("Direction: %s", startDirectionLabel(startDirection)))
 		}
 		if preferredStart != nil {
 			reasons = append(reasons, fmt.Sprintf("Start proximity: %s", formatDistanceDelta(startDistanceKm(entry.candidate, preferredStart))))

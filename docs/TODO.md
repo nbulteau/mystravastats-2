@@ -224,9 +224,9 @@ Plan d'implémentation concret:
   - [x] implémentation `RoutingEnginePort` côté Go/Kotlin.
   - [x] génération de boucle target via waypoints synthétiques + alternatives OSRM.
 - Sprint OSM-2:
-  - calibration scoring et pénalités par type de pratique.
-  - contraintes "éviter repassage immédiat" et minimum de diversité de segments.
-  - logs de raisons d'échec (`no candidate`, `km too far`, `d+ too low`, etc.).
+  - [x] calibration scoring et pénalités par type de pratique.
+  - [x] contraintes "éviter repassage immédiat" et minimum de diversité de segments.
+  - [x] logs de raisons d'échec (`no candidate`, `km too far`, `d+ too low`, etc.).
 - Sprint OSM-3:
   - shape projection v1: snap shape->route + optimisation distance forme/km/D+.
   - variantes scorées.
@@ -376,6 +376,104 @@ Réponse commune:
   - score global + sous-scores,
   - drapeau `isRoadGraphGenerated`,
   - `routeId`.
+
+### Spécification fonctionnelle verrouillée (parcours utilisateurs)
+
+Objectif:
+- Générer des parcours praticables (boucles) à partir d'un point de départ.
+- Couvrir 2 usages:
+  - génération par contraintes (`Target loop generator`),
+  - génération basée forme (`Shape based generator`).
+- Exporter immédiatement le GPX de la route sélectionnée.
+
+Préconditions:
+- Le moteur de routage peut être `online`, `offline`, `disabled` ou `misconfigured`.
+- Son état est visible dans l'UI (puce/statut moteur) et piloté par `/api/health/details`.
+
+Parcours 1 - Arrivée sur l'onglet Routes:
+- Le système initialise une carte unique.
+- Le système lit l'état moteur.
+- Le système tente une géolocalisation silencieuse.
+- En cas d'échec/refus:
+  - fallback sur le dernier point de départ mémorisé,
+  - sinon centre par défaut de la carte.
+
+Parcours 2 - Définir le point de départ:
+- L'utilisateur clique `Use my location`:
+  - le point de départ est positionné sur la carte,
+  - le point est mémorisé localement.
+- Alternative: clic direct sur la carte pour définir le départ.
+- Le marqueur de départ reste visible.
+
+Parcours 3 - Mode `Target loop generator`:
+- L'utilisateur choisit un sous-mode:
+  - `Automatic`
+  - `Custom`
+- Champs communs:
+  - `Route type` (`Ride`, `MTB`, `Gravel`, `Run`, `Trail`, `Hike`)
+  - point de départ sur carte
+
+Sous-mode `Automatic`:
+- Champs requis:
+  - `Direction` (`N`, `S`, `E`, `W`)
+  - `Distance target (km)`
+  - `Elevation target (m)`
+- Action:
+  - bouton `Generate route` -> `POST /api/routes/generate/target`
+- Résultat:
+  - liste `Generated routes`,
+  - sélection d'une route active affichée sur la carte,
+  - un nouveau clic sur `Generate route` relance une génération.
+
+Sous-mode `Custom`:
+- L'utilisateur ajoute des points de passage sur la carte.
+- Si un point est hors route:
+  - le backend/engine le "snap" sur la route praticable la plus proche.
+- Chaque génération produit une route point-à-point praticable.
+- La route générée est ajoutée à `Generated routes` et affichée sur la carte.
+
+Parcours 4 - Mode `Shape based generator`:
+- L'utilisateur fournit une forme (dessin / polyline / GPX / SVG).
+- L'utilisateur peut dessiner, arrêter, effacer la forme.
+- Action:
+  - bouton `Generate route` -> `POST /api/routes/generate/shape`
+- Résultat:
+  - route la plus proche de la forme (avec contraintes km/D+ si définies),
+  - variantes possibles avec score.
+
+Parcours 5 - Export GPX:
+- L'utilisateur sélectionne une route (ou garde la route active).
+- Action:
+  - bouton `Export GPX` -> `GET /api/routes/{routeId}/gpx`
+- Résultat:
+  - téléchargement immédiat du GPX (nom via `content-disposition` si présent).
+
+Règles fonctionnelles:
+- Une seule carte sert à:
+  - choisir le départ,
+  - dessiner/importer la forme,
+  - afficher la route générée.
+- Les filtres globaux (année / activité) de la header bar ne doivent pas biaiser les appels routes.
+- Blocage de génération:
+  - mode `Target` sans point de départ,
+  - mode `Target/Automatic` sans distance > 0,
+  - mode `Shape` sans forme exploitable.
+- `Direction` n'est affichée qu'en mode `Target/Automatic`.
+
+Gestion d'erreurs et diagnostics:
+- Si aucune route:
+  - message explicite `No route matched all constraints...`
+  - diagnostics normalisés (`NO_CANDIDATE`, `DIRECTION_CONFLICT`, `BACKTRACKING_FILTERED`, etc.).
+- Si géolocalisation indisponible:
+  - message utilisateur + fallback automatique.
+- Si export GPX échoue:
+  - toast d'erreur.
+
+Critères d'acceptation UX:
+- UX simple, sans doubles cartes ni champs techniques non nécessaires.
+- Le statut moteur est visible et compréhensible.
+- Le flux reste utilisable en mode cache/local (même si moteur externe indisponible).
+- Export GPX disponible en 1 clic depuis la route active/sélectionnée.
 
 ### Persistance/cache
 

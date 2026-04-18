@@ -11,6 +11,7 @@ import me.nicolas.stravastats.api.dto.GenerateTargetRoutesRequestDto
 import me.nicolas.stravastats.api.dto.GeneratedRouteDto
 import me.nicolas.stravastats.api.dto.RouteExplorerResultDto
 import me.nicolas.stravastats.api.dto.RouteGenerationScoreDto
+import me.nicolas.stravastats.api.dto.RouteGenerationDiagnosticDto
 import me.nicolas.stravastats.api.dto.RouteCoordinateDto
 import me.nicolas.stravastats.api.dto.RouteStartPointDto
 import me.nicolas.stravastats.api.dto.toDto
@@ -57,7 +58,7 @@ class RoutesController(
 ) {
 
     companion object {
-        private const val DEFAULT_VARIANT_COUNT = 4
+        private const val DEFAULT_VARIANT_COUNT = 2
         private const val MAX_VARIANT_COUNT = 24
         private const val GENERATED_ROUTE_CACHE_TTL_SECONDS = 6 * 3600L
     }
@@ -139,7 +140,12 @@ class RoutesController(
         validateTargetPayload(payload)
         val activityTypes = parseActivityTypesOrDefault(activityType)
         val routeType = normalizeRouteType(payload.routeType)
-        val startDirection = normalizeStartDirection(payload.startDirection)
+        val targetMode = normalizeTargetGenerationMode(payload.generationMode) ?: "AUTOMATIC"
+        val startDirection = if (targetMode == "CUSTOM") {
+            null
+        } else {
+            normalizeStartDirection(payload.startDirection)
+        }
         val variantCount = normalizeVariantCount(payload.variantCount)
         val distanceTarget = payload.distanceTargetKm!!
         val request = RouteExplorerRequest(
@@ -148,6 +154,8 @@ class RoutesController(
             durationTargetMin = null,
             startDirection = startDirection,
             startPoint = payload.startPoint?.toCoordinates(),
+            targetMode = targetMode,
+            customWaypoints = payload.customWaypoints.orEmpty().map { waypoint -> waypoint.toCoordinates() },
             routeType = routeType,
             season = null,
             limit = variantCount,
@@ -164,8 +172,18 @@ class RoutesController(
             startDirection = startDirection,
             limit = variantCount,
         )
+        val diagnostics = buildTargetGenerationDiagnostics(
+            distanceTarget = distanceTarget,
+            elevationTarget = payload.elevationTargetM,
+            startDirection = startDirection,
+            targetMode = targetMode,
+            routes = routes,
+        )
         cacheGeneratedRoutes(routes)
-        return GenerateRoutesResponseDto(routes = routes)
+        return GenerateRoutesResponseDto(
+            routes = routes,
+            diagnostics = diagnostics,
+        )
     }
 
     @PostMapping("/generate/shape")
@@ -201,7 +219,10 @@ class RoutesController(
             limit = variantCount,
         )
         cacheGeneratedRoutes(routes)
-        return GenerateRoutesResponseDto(routes = routes)
+        return GenerateRoutesResponseDto(
+            routes = routes,
+            diagnostics = emptyList(),
+        )
     }
 
     @GetMapping("/recommendations/gpx", produces = ["application/gpx+xml"])
@@ -283,6 +304,8 @@ class RoutesController(
         if (!isValidLatLng(startPoint.lat, startPoint.lng)) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "startPoint has invalid coordinates")
         }
+        val targetMode = normalizeTargetGenerationMode(payload.generationMode)
+            ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "generationMode must be one of AUTOMATIC/CUSTOM")
         val distanceTarget = payload.distanceTargetKm ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "distanceTargetKm is required")
         if (distanceTarget <= 0.0) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "distanceTargetKm must be greater than 0")
@@ -292,9 +315,22 @@ class RoutesController(
                 throw ResponseStatusException(HttpStatus.BAD_REQUEST, "elevationTargetM must be greater than or equal to 0")
             }
         }
-        payload.startDirection?.trim()?.takeIf { value -> value.isNotEmpty() }?.let { direction ->
-            if (normalizeStartDirection(direction) == null) {
-                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "startDirection must be one of N/S/E/W")
+        if (targetMode == "AUTOMATIC") {
+            payload.startDirection?.trim()?.takeIf { value -> value.isNotEmpty() }?.let { direction ->
+                if (normalizeStartDirection(direction) == null) {
+                    throw ResponseStatusException(HttpStatus.BAD_REQUEST, "startDirection must be one of N/S/E/W")
+                }
+            }
+        }
+        if (targetMode == "CUSTOM") {
+            val customWaypoints = payload.customWaypoints.orEmpty()
+            if (customWaypoints.isEmpty()) {
+                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "customWaypoints must contain at least one waypoint when generationMode is CUSTOM")
+            }
+            customWaypoints.forEach { point ->
+                if (!isValidLatLng(point.lat, point.lng)) {
+                    throw ResponseStatusException(HttpStatus.BAD_REQUEST, "customWaypoints has invalid coordinates")
+                }
             }
         }
         payload.variantCount?.let { value ->
@@ -382,6 +418,63 @@ class RoutesController(
             routes += recommendation.toGeneratedRouteDto(score, routeType, startDirection)
         }
         return routes
+    }
+
+    private fun buildTargetGenerationDiagnostics(
+        distanceTarget: Double,
+        elevationTarget: Double?,
+        startDirection: String?,
+        targetMode: String?,
+        routes: List<GeneratedRouteDto>,
+    ): List<RouteGenerationDiagnosticDto> {
+        if (routes.isNotEmpty()) {
+            return emptyList()
+        }
+
+        val diagnostics = mutableListOf(
+            RouteGenerationDiagnosticDto(
+                code = "NO_CANDIDATE",
+                message = "No route candidate matched all current constraints.",
+            )
+        )
+
+        if (distanceTarget >= 120.0) {
+            diagnostics += RouteGenerationDiagnosticDto(
+                code = "DISTANCE_TOO_FAR",
+                message = "Distance target is high for the current area and may remove most candidates.",
+            )
+        }
+
+        if (elevationTarget != null && distanceTarget > 0.0) {
+            val elevationPerKm = elevationTarget / distanceTarget
+            if (elevationPerKm > 35.0) {
+                diagnostics += RouteGenerationDiagnosticDto(
+                    code = "ELEVATION_TOO_LOW",
+                    message = "Requested elevation gain is likely too high for the selected distance and area.",
+                )
+            }
+        }
+
+        if (targetMode == "CUSTOM") {
+            diagnostics += RouteGenerationDiagnosticDto(
+                code = "CUSTOM_WAYPOINTS_CONFLICT",
+                message = "Custom waypoint geometry may be too constrained in this area.",
+            )
+        }
+
+        if (targetMode == "AUTOMATIC" && !startDirection.isNullOrBlank()) {
+            diagnostics += RouteGenerationDiagnosticDto(
+                code = "DIRECTION_CONFLICT",
+                message = "Strict departure direction can filter out otherwise valid loops.",
+            )
+        }
+
+        diagnostics += RouteGenerationDiagnosticDto(
+            code = "BACKTRACKING_FILTERED",
+            message = "Candidates that return over the same segment in reverse are rejected.",
+        )
+
+        return diagnostics
     }
 
     private fun buildShapeGeneratedRoutes(
@@ -500,6 +593,14 @@ class RoutesController(
         return when (normalized) {
             "RIDE", "MTB", "GRAVEL", "RUN", "TRAIL", "HIKE" -> normalized
             else -> "RIDE"
+        }
+    }
+
+    private fun normalizeTargetGenerationMode(value: String?): String? {
+        return when (value?.trim()?.uppercase()) {
+            null, "", "AUTOMATIC" -> "AUTOMATIC"
+            "CUSTOM" -> "CUSTOM"
+            else -> null
         }
     }
 
