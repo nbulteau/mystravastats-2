@@ -6,6 +6,7 @@ import { useContextStore } from "@/stores/context";
 import { useRoutesStore } from "@/stores/routes";
 import { useUiStore } from "@/stores/ui";
 import { ToastTypeEnum } from "@/models/toast.model";
+import type { RouteType } from "@/models/route-recommendation.model";
 import { formatTime } from "@/utils/formatters";
 
 const contextStore = useContextStore();
@@ -72,14 +73,39 @@ const generateRouteButtonLabel = computed(() => {
   return "Generate route";
 });
 
-const routeTypeOptions = [
+const routeTypeOptions: Array<{ value: RouteType; label: string }> = [
   { value: "RIDE", label: "Ride" },
-  { value: "MTB", label: "VTT" },
+  { value: "MTB", label: "MTB" },
   { value: "GRAVEL", label: "Gravel" },
-  { value: "RUN", label: "Course à pied" },
+  { value: "RUN", label: "Run" },
   { value: "TRAIL", label: "Trail" },
-  { value: "HIKE", label: "Randonnée" },
+  { value: "HIKE", label: "Hike" },
 ];
+const routeTypeOptionsWithAvailability = computed(() =>
+  routeTypeOptions.map((option) => ({
+    ...option,
+    disabled: !routesStore.isRouteTypeSupported(option.value),
+  })),
+);
+const unavailableRouteTypeLabels = computed(() =>
+  routeTypeOptionsWithAvailability.value
+    .filter((option) => option.disabled)
+    .map((option) => option.label),
+);
+const routingProfileSummary = computed(() => {
+  const extractProfile = routesStore.routingExtractProfile;
+  const effectiveProfile = routesStore.routingEffectiveProfile;
+  if (extractProfile === "/opt/bicycle.lua" || effectiveProfile === "cycling") {
+    return "OSRM profile: bicycle (Ride / MTB / Gravel)";
+  }
+  if (extractProfile === "/opt/foot.lua" || effectiveProfile === "walking") {
+    return "OSRM profile: foot (Run / Trail / Hike)";
+  }
+  if (extractProfile === "/opt/car.lua" || effectiveProfile === "driving") {
+    return "OSRM profile: car (limited route mode)";
+  }
+  return "OSRM profile: unknown (all route types enabled)";
+});
 
 const directionOptions = [
   { value: "UNDEFINED", label: "Undefined" },
@@ -87,12 +113,6 @@ const directionOptions = [
   { value: "S", label: "Sud" },
   { value: "E", label: "Est" },
   { value: "W", label: "Ouest" },
-];
-
-const backtrackingProfileOptions = [
-  { value: "BALANCED", label: "Balanced" },
-  { value: "STRICT", label: "Strict" },
-  { value: "ULTRA", label: "Ultra" },
 ];
 
 function formatDistance(value: number): string {
@@ -408,6 +428,7 @@ function resetStartPoint() {
 }
 
 async function generateRoutes() {
+  const previousCount = routesStore.routes.length;
   try {
     await routesStore.generateRoutes();
     redrawMapLayers();
@@ -417,6 +438,11 @@ async function generateRoutes() {
         ? `No route generated. ${firstDiagnostic}`
         : "No route generated with current constraints. Try widening your targets.";
       showToast(message, ToastTypeEnum.ERROR, 5000);
+      return;
+    }
+    if (routesStore.mode === "TARGET" && routesStore.routes.length === previousCount) {
+      const firstDiagnostic = routesStore.generationDiagnostics[0]?.message;
+      showToast(firstDiagnostic ?? "No additional unique route found with current constraints.", ToastTypeEnum.WARN, 4200);
       return;
     }
     if (routesStore.mode === "TARGET" && routesStore.lastGeneratedTargetRouteNumber > 0) {
@@ -521,13 +547,21 @@ onBeforeUnmount(() => {
             class="form-select"
           >
             <option
-              v-for="option in routeTypeOptions"
+              v-for="option in routeTypeOptionsWithAvailability"
               :key="option.value"
               :value="option.value"
+              :disabled="option.disabled"
             >
               {{ option.label }}
             </option>
           </select>
+          <small class="routes-hint">{{ routingProfileSummary }}</small>
+          <small
+            v-if="unavailableRouteTypeLabels.length > 0"
+            class="routes-hint"
+          >
+            Disabled with current profile: {{ unavailableRouteTypeLabels.join(", ") }}
+          </small>
         </label>
 
         <div
@@ -564,24 +598,6 @@ onBeforeUnmount(() => {
           >
             <option
               v-for="option in directionOptions"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-        </label>
-        <label
-          v-if="isTargetMode"
-          class="routes-field"
-        >
-          <span>Backtracking profile</span>
-          <select
-            v-model="routesStore.backtrackingProfile"
-            class="form-select"
-          >
-            <option
-              v-for="option in backtrackingProfileOptions"
               :key="option.value"
               :value="option.value"
             >

@@ -38,7 +38,13 @@ private const val DEFAULT_TIMEOUT_MS = 3000
 private const val DEFAULT_V3_ENABLED = true
 private const val MAX_OSRM_CALLS = 24
 private const val START_SNAP_TOLERANCE_METERS = 900.0
+private const val FALLBACK_START_SNAP_TOLERANCE_METERS = 4000.0
 private const val DIRECTION_TOLERANCE_METERS = 120.0
+private const val BACKTRACKING_START_ZONE_METERS = 2000.0
+private const val MIN_AXIS_SEGMENT_LENGTH_METERS = 25.0
+private const val MIN_OPPOSITE_REUSE_METERS = 120.0
+private const val DEFAULT_EXTRACT_PROFILE_FILE = "./osm/region.osrm.profile"
+private const val FALLBACK_EXTRACT_PROFILE_FILE = "../osm/region.osrm.profile"
 
 private data class OsrmRouteResponse(
     val code: String? = null,
@@ -46,15 +52,37 @@ private data class OsrmRouteResponse(
     val routes: List<OsrmRoute> = emptyList(),
 )
 
+private data class OsrmNearestResponse(
+    val code: String? = null,
+    val message: String? = null,
+    val waypoints: List<OsrmNearestWaypoint> = emptyList(),
+)
+
+private data class OsrmNearestWaypoint(
+    val distance: Double = 0.0,
+    val location: List<Double> = emptyList(),
+)
+
 private data class OsrmRoute(
     val distance: Double = 0.0,
     val duration: Double = 0.0,
     val geometry: OsrmGeometry? = null,
+    val legs: List<OsrmLeg> = emptyList(),
 )
 
 private data class OsrmGeometry(
     val type: String? = null,
     val coordinates: List<List<Double>> = emptyList(),
+)
+
+private data class OsrmLeg(
+    val steps: List<OsrmStep> = emptyList(),
+)
+
+private data class OsrmStep(
+    val distance: Double = 0.0,
+    val mode: String? = null,
+    val classes: List<String> = emptyList(),
 )
 
 private data class OsmScoringProfile(
@@ -74,6 +102,7 @@ private data class OsrmRouteCandidate(
     val maxAxisReuseRatio: Double,
     val segmentDiversity: Double,
     val distanceDeltaRatio: Double,
+    val pathRatio: Double,
     val effectiveMatchScore: Double,
 )
 
@@ -87,6 +116,33 @@ private data class RouteRelaxationLevel(
     val minSegmentDiversity: Double,
     val maxDistanceDeltaRatio: Double,
 )
+
+private data class RouteSurfaceBreakdown(
+    val pavedM: Double = 0.0,
+    val gravelM: Double = 0.0,
+    val trailM: Double = 0.0,
+    val unknownM: Double = 0.0,
+) {
+    fun totalDistanceM(): Double = pavedM + gravelM + trailM + unknownM
+
+    fun normalizedRatios(): List<Double> {
+        val total = totalDistanceM()
+        if (total <= 0.0) {
+            return listOf(0.0, 0.0, 0.0, 1.0)
+        }
+        return listOf(
+            pavedM / total,
+            gravelM / total,
+            trailM / total,
+            unknownM / total,
+        )
+    }
+
+    fun pathRatio(): Double {
+        val (_, gravel, trail, _) = normalizedRatios()
+        return (gravel + trail).coerceIn(0.0, 1.0)
+    }
+}
 
 private data class PathSegment(
     val startLat: Double,
@@ -115,6 +171,8 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
     private val baseUrl = readStringConfig("OSM_ROUTING_BASE_URL", DEFAULT_BASE_URL).trim().trimEnd('/')
     private val timeoutMs = readIntConfig("OSM_ROUTING_TIMEOUT_MS", DEFAULT_TIMEOUT_MS).coerceAtLeast(300)
     private val profileOverride = readStringConfig("OSM_ROUTING_PROFILE", "").trim()
+    private val extractProfileOverride = readStringConfig("OSM_ROUTING_EXTRACT_PROFILE", "").trim()
+    private val extractProfileFile = readStringConfig("OSM_ROUTING_EXTRACT_PROFILE_FILE", DEFAULT_EXTRACT_PROFILE_FILE).trim()
 
     private val mapper = JsonMapper.builder()
         .addModule(KotlinModule.Builder().build())
@@ -188,6 +246,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 radiusKm = radiusKm,
                 initialBearing = baseBearing + rotation,
                 startDirection = request.startDirection,
+                routeType = request.routeType,
                 callIndex = callIndex,
             )
             val routes = runCatching { fetchRoutes(profile, waypoints) }
@@ -223,6 +282,96 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         }
         var recommendations = selectCandidatesWithRelaxation(request, candidates, rejectCounts)
             .take(request.limit)
+        if (recommendations.isEmpty() && !request.startDirection.isNullOrBlank()) {
+            // Last-resort fallback: if direction-constrained generation yields no route,
+            // retry once without direction so the user still gets a practical loop.
+            val relaxedRequest = request.copy(
+                startDirection = null,
+                directionStrict = false,
+            )
+            val fallbackRecommendations = generateTargetLoops(relaxedRequest)
+            if (fallbackRecommendations.isNotEmpty()) {
+                return fallbackRecommendations.map { recommendation ->
+                    recommendation.copy(
+                        reasons = recommendation.reasons + "Direction relaxed: no route found with requested heading",
+                    )
+                }
+            }
+        }
+        if (recommendations.isEmpty() && request.strictBacktracking) {
+            // Secondary fallback: strict anti-backtracking can be too restrictive in dense
+            // urban/off-road graphs. Retry once with relaxed anti-backtracking instead
+            // of returning no route at all.
+            val relaxedRequest = request.copy(
+                strictBacktracking = false,
+                directionStrict = false,
+            )
+            val fallbackRecommendations = generateTargetLoops(relaxedRequest)
+            if (fallbackRecommendations.isNotEmpty()) {
+                return fallbackRecommendations.map { recommendation ->
+                    recommendation.copy(
+                        reasons = recommendation.reasons + "Anti-backtracking relaxed: strict mode found no valid loop",
+                    )
+                }
+            }
+        }
+        if (recommendations.isEmpty()) {
+            // Absolute fallback: snap start to nearest routable node and retry once.
+            val snappedStart = snapToNearestRoutablePoint(profile, request.startPoint)
+            if (snappedStart != null) {
+                val (snappedPoint, nearestDistanceM) = snappedStart
+                val snapOffsetM = haversineDistanceMeters(
+                    request.startPoint.lat,
+                    request.startPoint.lng,
+                    snappedPoint.lat,
+                    snappedPoint.lng,
+                )
+                if (snapOffsetM > 3.0) {
+                    val snappedRequest = request.copy(
+                        startPoint = snappedPoint,
+                        strictBacktracking = false,
+                        directionStrict = false,
+                        startDirection = null,
+                    )
+                    val fallbackRecommendations = generateTargetLoops(snappedRequest)
+                    if (fallbackRecommendations.isNotEmpty()) {
+                        return fallbackRecommendations.map { recommendation ->
+                            recommendation.copy(
+                                reasons = recommendation.reasons + (
+                                    "Start snapped to nearest routable point " +
+                                        "(+${snapOffsetM.roundToInt()}m from request, " +
+                                        "OSRM nearest ${nearestDistanceM.roundToInt()}m)"
+                                    ),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        if (recommendations.isEmpty()) {
+            // Route-type fallback chain:
+            // MTB -> Gravel -> Ride
+            // Gravel -> Ride
+            for (fallbackType in fallbackRouteTypes(request.routeType)) {
+                val fallbackRequest = request.copy(
+                    routeType = fallbackType,
+                    startDirection = null,
+                    directionStrict = false,
+                    strictBacktracking = false,
+                )
+                val fallbackRecommendations = generateTargetLoops(fallbackRequest)
+                if (fallbackRecommendations.isNotEmpty()) {
+                    return fallbackRecommendations.map { recommendation ->
+                        recommendation.copy(
+                            reasons = recommendation.reasons +
+                                "Route type fallback: ${
+                                    request.routeType.orEmpty().trim().uppercase(Locale.getDefault())
+                                } -> $fallbackType",
+                        )
+                    }
+                }
+            }
+        }
         if (usedLegacyFallback) {
             recommendations = recommendations.map { recommendation ->
                 recommendation.copy(
@@ -475,6 +624,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                     anchor = anchor,
                     start = request.startPoint,
                     startDirection = request.startDirection,
+                    routeType = request.routeType,
                     seed = anchorIndex + outboundIndex,
                 ).take(4)
 
@@ -504,11 +654,38 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                         }
 
                         val axisStats = evaluateAxisUsage(combinedPreview)
+                        val minOppositeReuseMetersForRequest = minimumOppositeReuseMetersForRequest(
+                            routeType = request.routeType,
+                            strict = request.strictBacktracking,
+                            distanceTargetKm = request.distanceTargetKm,
+                        )
+                        val (hasOppositeOutsideStart, maxAxisReuseOutsideStart, oppositeOutsideStartRatio) = evaluateAxisReuseOutsideStartZone(
+                            points = combinedPreview,
+                            start = request.startPoint,
+                            startZoneMeters = BACKTRACKING_START_ZONE_METERS,
+                            minOppositeMeters = minOppositeReuseMetersForRequest,
+                        )
+                        val maxAxisReuseOutsideStartLimit = outsideStartAxisReuseLimit(
+                            routeType = request.routeType,
+                            strict = request.strictBacktracking,
+                        )
+                        val oppositeOutsideStartLimit = allowedOppositeOutsideStartRatio(
+                            routeType = request.routeType,
+                            strict = request.strictBacktracking,
+                        )
                         // Construction-phase hard rules for v3:
-                        // 1) never accept opposite traversal on same axis
-                        // 2) cap repeated traversal of a single axis
-                        if (axisStats.conflictingAxisCount > 0) {
+                        // 1) never accept opposite traversal on same axis outside start/finish zone
+                        // 2) cap repeated traversal of a single axis outside start/finish zone
+                        if (request.strictBacktracking && hasOppositeOutsideStart) {
                             incrementRejectCount(rejectCounts, "NO_DISJOINT_LOOP")
+                            continue
+                        }
+                        if (!request.strictBacktracking && oppositeOutsideStartRatio > oppositeOutsideStartLimit) {
+                            incrementRejectCount(rejectCounts, "NO_DISJOINT_LOOP")
+                            continue
+                        }
+                        if (maxAxisReuseOutsideStart > maxAxisReuseOutsideStartLimit) {
+                            incrementRejectCount(rejectCounts, "AXIS_REUSE_OUTSIDE_START")
                             continue
                         }
                         if (axisStats.maxAxisReuseCount > hardAxisReuseCap) {
@@ -518,9 +695,14 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
 
                         val totalDistanceKm = (outboundRoute.distance + inboundRoute.distance) / 1000.0
                         val totalDurationSec = (outboundRoute.duration + inboundRoute.duration).roundToInt()
+                        val combinedSurfaceBreakdown = mergeSurfaceBreakdowns(
+                            computeSurfaceBreakdown(outboundRoute),
+                            computeSurfaceBreakdown(inboundRoute),
+                        )
                         val candidate = toRouteCandidateFromPreview(
                             request = request,
                             preview = combinedPreview,
+                            surfaceBreakdown = combinedSurfaceBreakdown,
                             distanceKm = totalDistanceKm,
                             durationSec = totalDurationSec,
                             index = candidateIndex++,
@@ -575,13 +757,38 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         val baseBearing = startDirectionToBearing(request.startDirection)
         val hasDirection = !request.startDirection.isNullOrBlank()
         val directionStrict = hasDirection && request.directionStrict
+        val normalizedRouteType = request.routeType.orEmpty().trim().uppercase(Locale.getDefault())
         val baseRadiusKm = max(1.0, request.distanceTargetKm / (2.0 * PI))
-        val radiusMultipliers = listOf(1.00, 0.92, 1.08, 0.84, 1.16, 1.24, 0.76, 1.32, 0.68, 1.40, 1.48, 0.60)
+        var radiusMultipliers = listOf(1.00, 0.92, 1.08, 0.84, 1.16, 1.24, 0.76, 1.32, 0.68, 1.40, 1.48, 0.60)
         var rotations = listOf(0.0, 22.0, -22.0, 45.0, -45.0, 68.0, -68.0, 95.0, -95.0, 125.0, -125.0, 155.0, -155.0)
+        when (normalizedRouteType) {
+            "GRAVEL" -> {
+                radiusMultipliers = listOf(1.00, 0.86, 1.14, 0.74, 1.26, 0.66, 1.34, 1.44, 0.58, 1.52)
+                rotations = listOf(0.0, 30.0, -30.0, 62.0, -62.0, 95.0, -95.0, 128.0, -128.0, 158.0, -158.0)
+            }
+            "MTB", "TRAIL", "HIKE" -> {
+                radiusMultipliers = listOf(0.90, 1.00, 0.82, 1.10, 0.72, 1.22, 0.64, 1.32, 1.42)
+                rotations = listOf(0.0, 34.0, -34.0, 70.0, -70.0, 108.0, -108.0, 145.0, -145.0)
+            }
+        }
         if (hasDirection) {
             rotations = listOf(0.0, 8.0, -8.0, 15.0, -15.0, 24.0, -24.0, 32.0, -32.0)
             if (directionStrict) {
                 rotations = listOf(0.0, 5.0, -5.0, 10.0, -10.0, 16.0, -16.0)
+            }
+            when (normalizedRouteType) {
+                "GRAVEL" -> {
+                    rotations = listOf(0.0, 10.0, -10.0, 20.0, -20.0, 32.0, -32.0, 44.0, -44.0)
+                    if (directionStrict) {
+                        rotations = listOf(0.0, 6.0, -6.0, 12.0, -12.0, 18.0, -18.0, 26.0, -26.0)
+                    }
+                }
+                "MTB", "TRAIL", "HIKE" -> {
+                    rotations = listOf(0.0, 12.0, -12.0, 24.0, -24.0, 38.0, -38.0, 52.0, -52.0)
+                    if (directionStrict) {
+                        rotations = listOf(0.0, 8.0, -8.0, 16.0, -16.0, 24.0, -24.0, 34.0, -34.0)
+                    }
+                }
             }
         }
 
@@ -606,12 +813,31 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         anchor: Coordinates,
         start: Coordinates,
         startDirection: String?,
+        routeType: String?,
         seed: Int,
     ): List<List<Coordinates>> {
         val distanceKm = max(1.0, haversineDistanceMeters(anchor.lat, anchor.lng, start.lat, start.lng) / 1000.0)
         val directBearing = bearingDegrees(anchor.lat, anchor.lng, start.lat, start.lng)
-        val offsets = listOf(58.0, -58.0, 92.0, -92.0, 125.0, -125.0, 155.0, -155.0)
-        val scales = listOf(0.48, 0.48, 0.56, 0.56, 0.68, 0.68, 0.80, 0.80)
+        var offsets = listOf(58.0, -58.0, 92.0, -92.0, 125.0, -125.0, 155.0, -155.0)
+        var scales = listOf(0.48, 0.48, 0.56, 0.56, 0.68, 0.68, 0.80, 0.80)
+        var directionBlend = 0.28
+        when (routeType.orEmpty().trim().uppercase(Locale.getDefault())) {
+            "GRAVEL" -> {
+                offsets = listOf(72.0, -72.0, 108.0, -108.0, 140.0, -140.0, 168.0, -168.0)
+                scales = listOf(0.56, 0.56, 0.66, 0.66, 0.78, 0.78, 0.90, 0.90)
+                directionBlend = 0.20
+            }
+            "MTB", "TRAIL", "HIKE" -> {
+                offsets = listOf(78.0, -78.0, 116.0, -116.0, 148.0, -148.0, 174.0, -174.0)
+                scales = listOf(0.60, 0.60, 0.72, 0.72, 0.84, 0.84, 0.96, 0.96)
+                directionBlend = 0.16
+            }
+            "RIDE" -> {
+                offsets = listOf(52.0, -52.0, 84.0, -84.0, 118.0, -118.0, 150.0, -150.0)
+                scales = listOf(0.42, 0.42, 0.50, 0.50, 0.62, 0.62, 0.74, 0.74)
+                directionBlend = 0.34
+            }
+        }
 
         val variants = mutableListOf<List<Coordinates>>()
         variants += listOf(anchor, start)
@@ -622,7 +848,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             if (!startDirection.isNullOrBlank()) {
                 val directionBearing = startDirectionToBearing(startDirection)
                 // Keep global orientation while forcing a clear outbound/inbound separation.
-                pivotBearing = normalizeBearing(pivotBearing * 0.72 + directionBearing * 0.28)
+                pivotBearing = normalizeBearing(pivotBearing * (1.0 - directionBlend) + directionBearing * directionBlend)
             }
             val pivot = destinationFromBearing(
                 start = anchor,
@@ -666,12 +892,18 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
     }
 
     override fun healthDetails(): Map<String, Any?> {
+        val extractProfile = detectExtractProfile()
+        val effectiveProfile = effectiveRoutingProfile(extractProfile)
         val details = mutableMapOf<String, Any?>(
             "engine" to "osrm",
             "enabled" to enabled,
             "v3Enabled" to v3Enabled,
             "debug" to debug,
             "baseUrl" to baseUrl,
+            "profile" to profileOverride,
+            "extractProfile" to extractProfile,
+            "effectiveProfile" to effectiveProfile,
+            "supportedRouteTypes" to supportedRouteTypesForProfiles(extractProfile, effectiveProfile),
         )
         if (!enabled) {
             details["status"] = "disabled"
@@ -701,7 +933,6 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             } else {
                 details["status"] = "up"
                 details["reachable"] = true
-                details["profile"] = profileOverride
             }
             details
         }.getOrElse { error ->
@@ -720,6 +951,70 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         return when (routeType.orEmpty().trim().uppercase(Locale.getDefault())) {
             "RUN", "TRAIL", "HIKE" -> "walking"
             else -> "cycling"
+        }
+    }
+
+    private fun detectExtractProfile(): String {
+        normalizeExtractProfile(extractProfileOverride)?.let { return it }
+        profileMarkerCandidatePaths().forEach { candidatePath ->
+            normalizeExtractProfile(readFirstLine(candidatePath).orEmpty())?.let { return it }
+        }
+        normalizeExtractProfile(profileOverride)?.let { return it }
+        return "unknown"
+    }
+
+    private fun profileMarkerCandidatePaths(): List<String> {
+        val rawCandidates = listOf(
+            extractProfileFile,
+            DEFAULT_EXTRACT_PROFILE_FILE,
+            FALLBACK_EXTRACT_PROFILE_FILE,
+        )
+        return rawCandidates
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+    }
+
+    private fun effectiveRoutingProfile(extractProfile: String): String {
+        normalizeExtractProfile(profileOverride)?.let { normalized ->
+            if (normalized == "/opt/bicycle.lua") return "cycling"
+            if (normalized == "/opt/foot.lua") return "walking"
+            if (normalized == "/opt/car.lua") return "driving"
+        }
+        return when (extractProfile) {
+            "/opt/bicycle.lua" -> "cycling"
+            "/opt/foot.lua" -> "walking"
+            "/opt/car.lua" -> "driving"
+            else -> "cycling"
+        }
+    }
+
+    private fun supportedRouteTypesForProfiles(extractProfile: String, effectiveProfile: String): List<String> {
+        return when (effectiveProfile.trim().lowercase(Locale.getDefault())) {
+            "cycling" -> listOf("RIDE", "MTB", "GRAVEL")
+            "walking" -> listOf("RUN", "TRAIL", "HIKE")
+            "driving" -> listOf("RIDE")
+            else -> supportedRouteTypesForExtractProfile(extractProfile)
+        }
+    }
+
+    private fun normalizeExtractProfile(raw: String?): String? {
+        val normalized = raw.orEmpty().trim().lowercase(Locale.getDefault())
+        return when {
+            normalized.isBlank() -> null
+            normalized.contains("bicycle.lua") || normalized == "cycling" -> "/opt/bicycle.lua"
+            normalized.contains("foot.lua") || normalized == "walking" -> "/opt/foot.lua"
+            normalized.contains("car.lua") || normalized == "driving" -> "/opt/car.lua"
+            else -> "unknown"
+        }
+    }
+
+    private fun supportedRouteTypesForExtractProfile(extractProfile: String): List<String> {
+        return when (extractProfile) {
+            "/opt/bicycle.lua" -> listOf("RIDE", "MTB", "GRAVEL")
+            "/opt/foot.lua" -> listOf("RUN", "TRAIL", "HIKE")
+            "/opt/car.lua" -> listOf("RIDE")
+            else -> listOf("RIDE", "MTB", "GRAVEL", "RUN", "TRAIL", "HIKE")
         }
     }
 
@@ -747,6 +1042,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         radiusKm: Double,
         initialBearing: Double,
         startDirection: String?,
+        routeType: String?,
         callIndex: Int,
     ): List<Coordinates> {
         // Rotate through multiple waypoint "shapes" so OSRM explores distinct loops
@@ -765,11 +1061,45 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             Pair(listOf(0.0, 22.0, 48.0, 78.0, -22.0, -48.0, -78.0), listOf(1.14, 1.12, 1.12, 0.98, 0.98, 0.78, 0.78)),
             Pair(listOf(6.0, 34.0, 62.0, -6.0, -34.0, -62.0), listOf(1.24, 1.24, 1.05, 1.05, 0.86, 0.86)),
         )
+        val normalizedRouteType = routeType.orEmpty().trim().uppercase(Locale.getDefault())
+        val (effectiveCircularPatterns, effectiveDirectionalPatterns) = when (normalizedRouteType) {
+            "GRAVEL" -> {
+                Pair(
+                    listOf(
+                        Pair(listOf(0.0, 78.0, 146.0, 214.0, 292.0), listOf(1.00, 1.18, 0.88, 1.14, 0.82)),
+                        Pair(listOf(0.0, 62.0, 124.0, 186.0, 248.0, 310.0), listOf(1.06, 0.94, 1.22, 0.86, 1.14, 0.80)),
+                    ),
+                    listOf(
+                        Pair(listOf(0.0, 24.0, 46.0, 68.0, 92.0, -22.0, -44.0, -66.0), listOf(1.20, 1.12, 1.00, 0.92, 0.84, 1.04, 0.92, 0.80)),
+                        Pair(listOf(8.0, 30.0, 52.0, 76.0, 98.0, -18.0, -40.0, -62.0, -84.0), listOf(1.24, 1.16, 1.04, 0.94, 0.86, 1.08, 0.96, 0.86, 0.78)),
+                    )
+                )
+            }
+            "MTB", "TRAIL", "HIKE" -> {
+                Pair(
+                    listOf(Pair(listOf(0.0, 66.0, 132.0, 198.0, 264.0, 330.0), listOf(1.00, 1.20, 0.90, 1.16, 0.84, 1.08))),
+                    listOf(Pair(listOf(0.0, 26.0, 50.0, 74.0, 98.0, -24.0, -48.0, -72.0), listOf(1.22, 1.14, 1.02, 0.92, 0.84, 1.06, 0.94, 0.82)))
+                )
+            }
+            "RIDE" -> {
+                Pair(
+                    listOf(
+                        Pair(listOf(0.0, 110.0, 220.0, 300.0), listOf(1.00, 1.04, 0.96, 1.00)),
+                        Pair(listOf(0.0, 95.0, 190.0, 285.0), listOf(1.08, 0.98, 1.02, 0.92)),
+                    ),
+                    listOf(
+                        Pair(listOf(0.0, 20.0, 40.0, -20.0, -40.0), listOf(1.14, 1.04, 0.94, 1.00, 0.88)),
+                        Pair(listOf(6.0, 26.0, 46.0, -14.0, -34.0, -54.0), listOf(1.18, 1.08, 0.96, 1.02, 0.90, 0.82)),
+                    )
+                )
+            }
+            else -> Pair(circularPatterns, directionalPatterns)
+        }
         val hasDirection = !startDirection.isNullOrBlank()
         val pattern = if (hasDirection) {
-            directionalPatterns[callIndex % directionalPatterns.size]
+            effectiveDirectionalPatterns[callIndex % effectiveDirectionalPatterns.size]
         } else {
-            circularPatterns[callIndex % circularPatterns.size]
+            effectiveCircularPatterns[callIndex % effectiveCircularPatterns.size]
         }
         val waypoints = mutableListOf<Coordinates>()
         waypoints += start
@@ -788,7 +1118,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
     private fun fetchRoutes(profile: String, waypoints: List<Coordinates>): List<OsrmRoute> {
         if (waypoints.size < 2) return emptyList()
         val coordinates = waypoints.joinToString(";") { waypoint -> "%.6f,%.6f".format(waypoint.lng, waypoint.lat) }
-        val url = "$baseUrl/route/v1/$profile/$coordinates?alternatives=true&steps=false&overview=full&geometries=geojson&continue_straight=true"
+        val url = "$baseUrl/route/v1/$profile/$coordinates?alternatives=true&steps=true&overview=full&geometries=geojson&continue_straight=true"
         val response = httpClient.send(
             HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -805,6 +1135,39 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             throw IllegalStateException("OSRM route API returned code ${payload.code}: ${payload.message}")
         }
         return payload.routes
+    }
+
+    private fun snapToNearestRoutablePoint(profile: String, point: Coordinates): Pair<Coordinates, Double>? {
+        val coordinate = "%.6f,%.6f".format(point.lng, point.lat)
+        val url = "$baseUrl/nearest/v1/$profile/$coordinate?number=1"
+        val response = runCatching {
+            httpClient.send(
+                HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(Duration.ofMillis(timeoutMs.toLong()))
+                    .GET()
+                    .build(),
+                HttpResponse.BodyHandlers.ofString(),
+            )
+        }.getOrElse { return null }
+
+        if (response.statusCode() !in 200..299) {
+            return null
+        }
+        val payload = runCatching { mapper.readValue<OsrmNearestResponse>(response.body()) }
+            .getOrElse { return null }
+        if (payload.code?.lowercase(Locale.getDefault()) != "ok") {
+            return null
+        }
+        val waypoint = payload.waypoints.firstOrNull() ?: return null
+        if (waypoint.location.size < 2) {
+            return null
+        }
+        val snappedPoint = Coordinates(
+            lat = waypoint.location[1],
+            lng = waypoint.location[0],
+        )
+        return snappedPoint to waypoint.distance
     }
 
     private fun toRouteCandidate(
@@ -827,6 +1190,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         return toRouteCandidateFromPreview(
             request = request,
             preview = preview,
+            surfaceBreakdown = computeSurfaceBreakdown(route),
             distanceKm = distanceKm,
             durationSec = durationSec,
             index = index,
@@ -837,6 +1201,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
     private fun toRouteCandidateFromPreview(
         request: RoutingEngineRequest,
         preview: List<List<Double>>,
+        surfaceBreakdown: RouteSurfaceBreakdown,
         distanceKm: Double,
         durationSec: Int,
         index: Int,
@@ -846,9 +1211,21 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             incrementRejectCount(rejectCounts, "INVALID_COORDINATES")
             return null
         }
+        val startOffsetMeters = haversineDistanceMeters(
+            preview.first()[0],
+            preview.first()[1],
+            request.startPoint.lat,
+            request.startPoint.lng,
+        )
         if (!startsNearRequestedStart(preview, request.startPoint, START_SNAP_TOLERANCE_METERS)) {
-            incrementRejectCount(rejectCounts, "START_TOO_FAR")
-            return null
+            // In fallback mode, allow larger snap distance to avoid returning no route.
+            if (
+                request.strictBacktracking ||
+                !startsNearRequestedStart(preview, request.startPoint, FALLBACK_START_SNAP_TOLERANCE_METERS)
+            ) {
+                incrementRejectCount(rejectCounts, "START_TOO_FAR")
+                return null
+            }
         }
 
         val start = Coordinates(lat = preview.first()[0], lng = preview.first()[1])
@@ -861,8 +1238,60 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         val maxAxisReuseCount = axisStats.maxAxisReuseCount
         val maxAxisReuseRatio = axisStats.maxAxisReuseRatio()
         val diversityRatio = axisStats.segmentDiversityRatio()
-        val distanceDeltaRatio = abs(distanceKm - request.distanceTargetKm) / max(1.0, request.distanceTargetKm)
-        if (backtrackingRatio > 0.32 || corridorOverlap > 0.30 || edgeReuse > 0.28 || maxAxisReuseCount > 8) {
+        val distanceDeltaRatio = distanceShortfallRatio(distanceKm, request.distanceTargetKm)
+        val distanceOvershootRatioValue = distanceOvershootRatio(distanceKm, request.distanceTargetKm)
+        val minOppositeReuseMetersForRequest = minimumOppositeReuseMetersForRequest(
+            routeType = request.routeType,
+            strict = request.strictBacktracking,
+            distanceTargetKm = request.distanceTargetKm,
+        )
+        val (hasOppositeOutsideStart, maxAxisReuseOutsideStart, oppositeOutsideStartRatio) = evaluateAxisReuseOutsideStartZone(
+            points = preview,
+            start = request.startPoint,
+            startZoneMeters = BACKTRACKING_START_ZONE_METERS,
+            minOppositeMeters = minOppositeReuseMetersForRequest,
+        )
+        val maxAxisReuseOutsideStartLimit = outsideStartAxisReuseLimit(
+            routeType = request.routeType,
+            strict = request.strictBacktracking,
+        )
+        val oppositeOutsideStartLimit = allowedOppositeOutsideStartRatio(
+            routeType = request.routeType,
+            strict = request.strictBacktracking,
+        )
+        if (request.strictBacktracking && hasOppositeOutsideStart) {
+            incrementRejectCount(rejectCounts, "STRICT_BACKTRACKING_OUTSIDE_START")
+            return null
+        }
+        if (!request.strictBacktracking && oppositeOutsideStartRatio > oppositeOutsideStartLimit) {
+            incrementRejectCount(rejectCounts, "BACKTRACKING_FILTERED")
+            return null
+        }
+        if (maxAxisReuseOutsideStart > maxAxisReuseOutsideStartLimit) {
+            incrementRejectCount(rejectCounts, "AXIS_REUSE_OUTSIDE_START")
+            return null
+        }
+        if (!meetsMinimumDistance(distanceKm, request.distanceTargetKm)) {
+            incrementRejectCount(rejectCounts, "DISTANCE_BELOW_MINIMUM")
+            return null
+        }
+        var maxBacktrackingReject = 0.32
+        var maxCorridorReject = 0.30
+        var maxEdgeReuseReject = 0.28
+        var maxAxisReuseReject = 8
+        if (!request.strictBacktracking) {
+            // Fallback pass: keep anti-retrace guardrails, but avoid returning 0 route.
+            maxBacktrackingReject = 0.60
+            maxCorridorReject = 0.55
+            maxEdgeReuseReject = 0.55
+            maxAxisReuseReject = 14
+        }
+        if (
+            backtrackingRatio > maxBacktrackingReject ||
+            corridorOverlap > maxCorridorReject ||
+            edgeReuse > maxEdgeReuseReject ||
+            maxAxisReuseCount > maxAxisReuseReject
+        ) {
             incrementRejectCount(rejectCounts, "EXCESSIVE_RETRACE")
             return null
         }
@@ -874,23 +1303,50 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         val routeId = generatedRouteId(preview, request.startPoint, index)
         val titleSuffix = if (index > 0) " #${index + 1}" else ""
         val title = "Generated loop near %.4f, %.4f%s".format(request.startPoint.lat, request.startPoint.lng, titleSuffix)
+        val surfaceScore = surfaceMatchScore(request.routeType, surfaceBreakdown)
+        val pathRatio = surfaceBreakdown.pathRatio()
+        val requiredPathRatio = requiredPathRatioForRequest(request.routeType, request.strictBacktracking)
+        val normalizedRouteType = request.routeType.orEmpty().trim().uppercase(Locale.getDefault())
+        if (normalizedRouteType == "GRAVEL" && pathRatio < requiredPathRatio) {
+            incrementRejectCount(rejectCounts, "GRAVEL_MIN_PATH_RATIO")
+            return null
+        }
 
         val reasons = buildList {
             add("Generated with OSM road graph (OSRM)")
-            add("Distance delta: ${formatDistanceDelta(distanceKm - request.distanceTargetKm)}")
+            add("Distance vs minimum target: ${formatDistanceDelta(distanceKm - request.distanceTargetKm)}")
             add("Segment diversity: ${(diversityRatio * 100.0).roundToInt()}% unique edges")
             add("Directional alignment: ${((1.0 - directionPenalty) * 100.0).roundToInt()}%")
             add("Backtracking: ${(backtrackingRatio * 100.0).roundToInt()}%")
             add("Corridor overlap: ${(corridorOverlap * 100.0).roundToInt()}%")
             add("Axis retrace: ${(edgeReuse * 100.0).roundToInt()}%")
             add("Max axis reuse: ${maxAxisReuseCount}x")
+            add("Max axis reuse outside start zone: ${maxAxisReuseOutsideStart}x (limit ${maxAxisReuseOutsideStartLimit}x)")
+            add(
+                "Opposite-axis overlap outside start zone: ${(oppositeOutsideStartRatio * 100.0).roundToInt()}% " +
+                    "(limit ${(allowedOppositeOutsideStartRatio(request.routeType, request.strictBacktracking) * 100.0).roundToInt()}%)",
+            )
             request.elevationTargetM?.let { target ->
                 add("Elevation estimate: ${formatElevationDelta(elevationEstimate - target)}")
             }
             request.startDirection?.takeIf { it.isNotBlank() }?.let { direction ->
                 add("Direction: ${direction.uppercase(Locale.getDefault())}")
             }
-            add("Anti-backtracking: native ultra")
+            if (!request.strictBacktracking && startOffsetMeters > START_SNAP_TOLERANCE_METERS) {
+                add(
+                    "Start offset accepted in fallback mode: ${startOffsetMeters.roundToInt()}m " +
+                        "(normal limit ${START_SNAP_TOLERANCE_METERS.roundToInt()}m)",
+                )
+            }
+            add("Surface mix: ${formatSurfaceBreakdown(surfaceBreakdown)}")
+            add("Path ratio: ${(pathRatio * 100.0).roundToInt()}%")
+            add("Surface fitness: ${surfaceScore.roundToInt()}%")
+            add("Surface source: OSRM step classes and mode")
+            if (request.strictBacktracking) {
+                add("Anti-backtracking: native ultra")
+            } else {
+                add("Anti-backtracking: relaxed fallback")
+            }
         }
 
         val recommendation = RouteRecommendation(
@@ -925,7 +1381,11 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 edgeReuse * 150.0 -
                 maxAxisReuseRatio * 180.0 -
                 max(0.0, minSegmentDiversityRatio(request.routeType) - diversityRatio) * 35.0 -
-                max(0.0, distanceDeltaRatio - 0.15) * 45.0,
+                max(0.0, distanceDeltaRatio - 0.15) * 45.0 +
+                // Overshoot is penalized softly: lower impact than shortfall.
+                -max(0.0, distanceOvershootRatioValue - 0.25) * 12.0 +
+                (surfaceScore - 70.0) * surfaceScoreWeight(request.routeType) +
+                pathPreferenceBonus(request.routeType, pathRatio),
         )
         // effectiveMatchScore is an internal ranking score (not API score):
         // it aggressively penalizes backtracking and bad directional fit to keep
@@ -940,6 +1400,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             maxAxisReuseRatio = maxAxisReuseRatio,
             segmentDiversity = diversityRatio,
             distanceDeltaRatio = distanceDeltaRatio,
+            pathRatio = pathRatio,
             effectiveMatchScore = effectiveScore,
         )
     }
@@ -953,11 +1414,19 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             return emptyList()
         }
         val limit = request.limit.coerceAtLeast(1)
+        val normalizedRouteType = request.routeType.orEmpty().trim().uppercase(Locale.getDefault())
         val sortedCandidates = candidates.sortedWith(
             compareBy<OsrmRouteCandidate> { it.corridorOverlap }
                 .thenBy { it.backtrackingRatio }
                 .thenBy { it.edgeReuseRatio }
                 .thenBy { it.maxAxisReuseCount }
+                .let { comparator ->
+                    if (normalizedRouteType == "MTB" || normalizedRouteType == "GRAVEL") {
+                        comparator.thenByDescending { it.pathRatio }
+                    } else {
+                        comparator
+                    }
+                }
                 .thenByDescending { it.effectiveMatchScore }
                 .thenBy { it.directionPenalty }
                 .thenByDescending { it.recommendation.matchScore }
@@ -1025,16 +1494,16 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             directionStrict = request.directionStrict,
         )
         if (selected.size < limit) {
-            var softMaxBacktracking = 0.10
-            var softMaxCorridor = 0.08
-            var softMaxEdgeReuse = 0.08
+            var softMaxBacktracking = 0.16
+            var softMaxCorridor = 0.12
+            var softMaxEdgeReuse = 0.12
             var softMaxDirection = 1.0
             // Directional generation naturally creates more corridor pressure.
             // We relax slightly, but stay far from permissive settings.
             if (hasDirection) {
-                softMaxBacktracking = 0.14
-                softMaxCorridor = 0.11
-                softMaxEdgeReuse = 0.10
+                softMaxBacktracking = 0.20
+                softMaxCorridor = 0.16
+                softMaxEdgeReuse = 0.14
                 softMaxDirection = 0.40
             }
             appendBestEffortCandidates(
@@ -1047,6 +1516,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 maxCorridorOverlap = softMaxCorridor,
                 maxEdgeReuseRatio = softMaxEdgeReuse,
                 maxAxisReuseCount = softAxisCap,
+                maxDistanceShortfallRatio = 0.20,
                 profileName = "best-effort-soft",
             )
         }
@@ -1063,8 +1533,18 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 maxCorridorOverlap = 0.14,
                 maxEdgeReuseRatio = 0.13,
                 maxAxisReuseCount = directionalAxisCap,
+                maxDistanceShortfallRatio = 0.25,
                 profileName = "directional-best-effort",
             )
+        }
+        if (selected.isEmpty()) {
+            // Absolute last resort: return best-ranked generated candidates rather than none.
+            // This keeps UX responsive while preserving all generation diagnostics in reasons.
+            sortedCandidates.take(limit).forEach { candidate ->
+                selected += candidate.recommendation.copy(
+                    reasons = candidate.recommendation.reasons + "Selection profile: emergency-fallback (constraints fully relaxed)",
+                )
+            }
         }
 
         return selected
@@ -1080,6 +1560,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         maxCorridorOverlap: Double,
         maxEdgeReuseRatio: Double,
         maxAxisReuseCount: Int,
+        maxDistanceShortfallRatio: Double,
         profileName: String,
     ) {
         for (candidate in sortedCandidates) {
@@ -1090,6 +1571,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             if (candidate.corridorOverlap > maxCorridorOverlap) continue
             if (candidate.edgeReuseRatio > maxEdgeReuseRatio) continue
             if (candidate.maxAxisReuseCount > maxAxisReuseCount) continue
+            if (candidate.distanceDeltaRatio > maxDistanceShortfallRatio) continue
             selectedIds += candidate.recommendation.routeId
             selected += candidate.recommendation.copy(
                 reasons = candidate.recommendation.reasons + "Selection profile: $profileName",
@@ -1114,7 +1596,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         val fallbackLevelDirection = if (hasDirection && directionStrict) 0.30 else fallbackDirection
 
         // Native ultra anti-backtracking policy (always-on).
-        baseMinDiversity = (baseMinDiversity + 0.12).coerceAtMost(0.95)
+        baseMinDiversity = (baseMinDiversity + 0.06).coerceAtMost(0.95)
         val strictBacktrackingRatio = 0.0010
         val balancedBacktrackingRatio = 0.0030
         val relaxedBacktrackingRatio = 0.0070
@@ -1142,7 +1624,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 maxEdgeReuseRatio = strictEdgeReuseRatio,
                 maxAxisReuseCount = strictAxisCap,
                 minSegmentDiversity = baseMinDiversity,
-                maxDistanceDeltaRatio = 0.35,
+                maxDistanceDeltaRatio = 0.04,
             ),
             RouteRelaxationLevel(
                 name = "balanced",
@@ -1152,7 +1634,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 maxEdgeReuseRatio = balancedEdgeReuseRatio,
                 maxAxisReuseCount = balancedAxisCap,
                 minSegmentDiversity = max(0.22, baseMinDiversity - 0.08),
-                maxDistanceDeltaRatio = 0.60,
+                maxDistanceDeltaRatio = 0.08,
             ),
             RouteRelaxationLevel(
                 name = "relaxed",
@@ -1162,7 +1644,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 maxEdgeReuseRatio = relaxedEdgeReuseRatio,
                 maxAxisReuseCount = relaxedAxisCap,
                 minSegmentDiversity = max(0.12, baseMinDiversity - 0.18),
-                maxDistanceDeltaRatio = 1.00,
+                maxDistanceDeltaRatio = 0.14,
             ),
             RouteRelaxationLevel(
                 name = "fallback",
@@ -1172,7 +1654,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 maxEdgeReuseRatio = fallbackEdgeReuseRatio,
                 maxAxisReuseCount = fallbackAxisCap,
                 minSegmentDiversity = 0.08,
-                maxDistanceDeltaRatio = 2.20,
+                maxDistanceDeltaRatio = 0.20,
             ),
         )
     }
@@ -1544,6 +2026,20 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         }
     }
 
+    private fun readFirstLine(path: String): String? {
+        val normalizedPath = path.trim()
+        if (normalizedPath.isEmpty()) {
+            return null
+        }
+        return runCatching {
+            File(normalizedPath)
+                .takeIf { it.exists() && it.isFile }
+                ?.useLines { lines ->
+                    lines.map { it.trim() }.firstOrNull { it.isNotEmpty() }
+                }
+        }.getOrNull()
+    }
+
     private fun readStringConfig(key: String, fallback: String): String {
         return readConfigValue(key) ?: fallback
     }
@@ -1912,6 +2408,74 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         }
     }
 
+    private fun evaluateAxisReuseOutsideStartZone(
+        points: List<List<Double>>,
+        start: Coordinates,
+        startZoneMeters: Double,
+        minOppositeMeters: Double,
+    ): Triple<Boolean, Int, Double> {
+        if (points.size < 2) return Triple(false, 0, 0.0)
+
+        data class LocalAxisUsage(
+            var count: Int = 0,
+            var directionMask: Int = 0,
+            var forwardMeters: Double = 0.0,
+            var reverseMeters: Double = 0.0,
+        )
+
+        val axisUsage = mutableMapOf<String, LocalAxisUsage>()
+        var maxReuseOutsideStart = 0
+        var outsideTotalMeters = 0.0
+
+        for (index in 0 until points.size - 1) {
+            val from = points[index]
+            val to = points[index + 1]
+            if (from.size < 2 || to.size < 2) continue
+
+            val fromDistance = haversineDistanceMeters(from[0], from[1], start.lat, start.lng)
+            val toDistance = haversineDistanceMeters(to[0], to[1], start.lat, start.lng)
+            if (min(fromDistance, toDistance) <= startZoneMeters) {
+                // Reuse around start/finish hub is allowed.
+                continue
+            }
+
+            val fromId = quantizedPointKey(from[0], from[1])
+            val toId = quantizedPointKey(to[0], to[1])
+            if (fromId.isBlank() || toId.isBlank() || fromId == toId) continue
+
+            val axisId = canonicalEdgeKey(fromId, toId)
+            val segmentMeters = haversineDistanceMeters(from[0], from[1], to[0], to[1])
+            if (segmentMeters < MIN_AXIS_SEGMENT_LENGTH_METERS) continue
+            val usage = axisUsage.getOrPut(axisId) { LocalAxisUsage() }
+            usage.count += 1
+            usage.directionMask = if (fromId < toId) {
+                usage.forwardMeters += segmentMeters
+                usage.directionMask or 0b01
+            } else {
+                usage.reverseMeters += segmentMeters
+                usage.directionMask or 0b10
+            }
+            outsideTotalMeters += segmentMeters
+            if (usage.count > maxReuseOutsideStart) {
+                maxReuseOutsideStart = usage.count
+            }
+        }
+
+        var oppositeMeters = 0.0
+        for (usage in axisUsage.values) {
+            if (usage.directionMask == 0b11) {
+                oppositeMeters += min(usage.forwardMeters, usage.reverseMeters)
+            }
+        }
+        if (outsideTotalMeters <= 0.0) {
+            return Triple(false, maxReuseOutsideStart, 0.0)
+        }
+        val oppositeRatio = clampUnit(oppositeMeters / outsideTotalMeters)
+        // Ignore tiny opposite-direction artifacts caused by local snap/geometry noise.
+        val minimum = max(MIN_OPPOSITE_REUSE_METERS, minOppositeMeters)
+        return Triple(oppositeMeters >= minimum, maxReuseOutsideStart, oppositeRatio)
+    }
+
     private fun oppositeEdgeTraversalRatio(points: List<List<Double>>): Double {
         return evaluateAxisUsage(points).oppositeTraversalRatio()
     }
@@ -1937,6 +2501,159 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             .joinToString(", ") { entry -> "${entry.key}=${entry.value}" }
     }
 
+    private fun computeSurfaceBreakdown(route: OsrmRoute): RouteSurfaceBreakdown {
+        var pavedM = 0.0
+        var gravelM = 0.0
+        var trailM = 0.0
+        var unknownM = 0.0
+
+        route.legs.forEach { leg ->
+            leg.steps.forEach { step ->
+                val distance = max(0.0, step.distance)
+                if (distance <= 0.0) return@forEach
+                when (classifySurfaceBucket(step)) {
+                    "paved" -> pavedM += distance
+                    "gravel" -> gravelM += distance
+                    "trail" -> trailM += distance
+                    else -> unknownM += distance
+                }
+            }
+        }
+
+        if (pavedM + gravelM + trailM + unknownM <= 0.0 && route.distance > 0.0) {
+            unknownM = route.distance
+        }
+
+        return RouteSurfaceBreakdown(
+            pavedM = pavedM,
+            gravelM = gravelM,
+            trailM = trailM,
+            unknownM = unknownM,
+        )
+    }
+
+    private fun mergeSurfaceBreakdowns(left: RouteSurfaceBreakdown, right: RouteSurfaceBreakdown): RouteSurfaceBreakdown {
+        return RouteSurfaceBreakdown(
+            pavedM = left.pavedM + right.pavedM,
+            gravelM = left.gravelM + right.gravelM,
+            trailM = left.trailM + right.trailM,
+            unknownM = left.unknownM + right.unknownM,
+        )
+    }
+
+    private fun classifySurfaceBucket(step: OsrmStep): String {
+        val mode = step.mode.orEmpty().trim().lowercase(Locale.getDefault())
+        if (mode.contains("pushing") || mode == "foot" || mode == "walking") {
+            return "trail"
+        }
+        val classes = step.classes
+            .asSequence()
+            .map { it.trim().lowercase(Locale.getDefault()) }
+            .filter { it.isNotBlank() }
+            .toSet()
+
+        if (classes.contains("ferry")) {
+            return "unknown"
+        }
+        if (hasAnyClass(classes, "path", "track", "steps", "bridleway", "cycleway_unpaved")) {
+            return "trail"
+        }
+        if (hasAnyClass(classes, "unpaved", "gravel", "dirt", "ground", "earth", "compacted", "fine_gravel", "sand", "mud")) {
+            return "gravel"
+        }
+        if (mode == "cycling" || mode == "driving" || mode == "running") {
+            return "paved"
+        }
+        return "unknown"
+    }
+
+    private fun hasAnyClass(classes: Set<String>, vararg keys: String): Boolean {
+        return keys.any { key -> classes.contains(key) }
+    }
+
+    private fun formatSurfaceBreakdown(breakdown: RouteSurfaceBreakdown): String {
+        val (paved, gravel, trail, unknown) = breakdown.normalizedRatios()
+        return "paved ${(paved * 100.0).roundToInt()}%, " +
+            "gravel ${(gravel * 100.0).roundToInt()}%, " +
+            "trail ${(trail * 100.0).roundToInt()}%, " +
+            "unknown ${(unknown * 100.0).roundToInt()}%"
+    }
+
+    private fun surfaceMatchScore(routeType: String?, breakdown: RouteSurfaceBreakdown): Double {
+        val (paved, gravel, trail, unknown) = breakdown.normalizedRatios()
+        val pathRatio = clampUnit(gravel + trail)
+        var targetPaved = 0.60
+        var targetGravel = 0.25
+        var targetTrail = 0.15
+
+        when (routeType.orEmpty().trim().uppercase(Locale.getDefault())) {
+            "RIDE" -> {
+                targetPaved = 0.92
+                targetGravel = 0.06
+                targetTrail = 0.02
+            }
+            "GRAVEL" -> {
+                // Gravel contract:
+                // - minimum 25% paths (gravel + trail)
+                // - no hard upper bound once this minimum is reached
+                val shortfall = max(0.0, 0.25 - pathRatio)
+                val pavedExcess = max(0.0, paved - 0.75)
+                val penalty = shortfall * 220.0 + pavedExcess * 36.0 + unknown * 22.0
+                return clampScore(100.0 - penalty)
+            }
+            "MTB" -> {
+                // MTB should prefer paths as much as possible.
+                val pavedExcess = max(0.0, paved - 0.20)
+                val score = 28.0 + pathRatio * 74.0 - unknown * 24.0 - pavedExcess * 48.0
+                return clampScore(score)
+            }
+            "RUN" -> {
+                targetPaved = 0.50
+                targetGravel = 0.25
+                targetTrail = 0.25
+            }
+            "TRAIL", "HIKE" -> {
+                targetPaved = 0.12
+                targetGravel = 0.28
+                targetTrail = 0.60
+            }
+        }
+
+        val penalty = abs(paved - targetPaved) * 85.0 +
+            abs(gravel - targetGravel) * 78.0 +
+            abs(trail - targetTrail) * 92.0 +
+            unknown * 35.0
+        return clampScore(100.0 - penalty)
+    }
+
+    private fun surfaceScoreWeight(routeType: String?): Double {
+        return when (routeType.orEmpty().trim().uppercase(Locale.getDefault())) {
+            "RIDE" -> 1.10
+            "GRAVEL" -> 1.25
+            "MTB" -> 1.70
+            "TRAIL", "HIKE" -> 1.40
+            else -> 0.45
+        }
+    }
+
+    private fun pathPreferenceBonus(routeType: String?, pathRatio: Double): Double {
+        return when (routeType.orEmpty().trim().uppercase(Locale.getDefault())) {
+            "RIDE" -> {
+                // Road rides should avoid off-road sections as much as possible.
+                (0.10 - pathRatio) * 35.0
+            }
+            "MTB" -> {
+                // Strongly reward path-heavy candidates for MTB.
+                (pathRatio - 0.50) * 60.0
+            }
+            "GRAVEL" -> {
+                // Encourage higher path ratio once the 25% minimum is reached.
+                (pathRatio - 0.25) * 30.0
+            }
+            else -> 0.0
+        }
+    }
+
     private fun hasMinimumSegmentDiversity(points: List<List<Double>>, routeType: String?): Boolean {
         val axisStats = evaluateAxisUsage(points)
         if (axisStats.totalTraversals == 0) return false
@@ -1947,17 +2664,110 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
 
     private fun minSegmentDiversityRatio(routeType: String?): Double {
         return when (routeType.orEmpty().trim().uppercase(Locale.getDefault())) {
-            "MTB" -> 0.40
-            "GRAVEL" -> 0.42
+            "MTB" -> 0.55
+            "GRAVEL" -> 0.54
             "RUN" -> 0.35
-            "TRAIL" -> 0.30
-            "HIKE" -> 0.28
-            else -> 0.45
+            "TRAIL" -> 0.46
+            "HIKE" -> 0.40
+            "WALK" -> 0.42
+            else -> 0.32
         }
     }
 
     private fun segmentDiversityRatio(points: List<List<Double>>): Double {
         return evaluateAxisUsage(points).segmentDiversityRatio()
+    }
+
+    private fun distanceShortfallRatio(distanceKm: Double, targetKm: Double): Double {
+        if (targetKm <= 0.0) {
+            return 0.0
+        }
+        val shortfall = targetKm - distanceKm
+        if (shortfall <= 0.0) {
+            return 0.0
+        }
+        return shortfall / max(1.0, targetKm)
+    }
+
+    private fun distanceOvershootRatio(distanceKm: Double, targetKm: Double): Double {
+        if (targetKm <= 0.0) {
+            return 0.0
+        }
+        val overshoot = distanceKm - targetKm
+        if (overshoot <= 0.0) {
+            return 0.0
+        }
+        return overshoot / max(1.0, targetKm)
+    }
+
+    private fun outsideStartAxisReuseLimit(routeType: String?, strict: Boolean): Int {
+        if (strict) {
+            // Strict mode: outside the start/finish zone, an axis cannot be reused.
+            return 1
+        }
+        return when (routeType.orEmpty().trim().uppercase(Locale.getDefault())) {
+            "MTB", "TRAIL", "HIKE" -> 3
+            else -> 2
+        }
+    }
+
+    private fun allowedOppositeOutsideStartRatio(routeType: String?, strict: Boolean): Double {
+        if (strict) {
+            // Strict mode forbids opposite-direction reuse outside start zone.
+            return 0.0
+        }
+        return when (routeType.orEmpty().trim().uppercase(Locale.getDefault())) {
+            "MTB", "TRAIL", "HIKE" -> 0.08
+            "GRAVEL" -> 0.06
+            else -> 0.04
+        }
+    }
+
+    private fun minimumOppositeReuseMetersForRequest(
+        routeType: String?,
+        strict: Boolean,
+        distanceTargetKm: Double,
+    ): Double {
+        val base = max(MIN_OPPOSITE_REUSE_METERS, distanceTargetKm * 6.0)
+        if (strict) {
+            return when (routeType.orEmpty().trim().uppercase(Locale.getDefault())) {
+                "MTB", "TRAIL", "HIKE" -> max(base, 320.0)
+                "GRAVEL" -> max(base, 280.0)
+                else -> max(base, 240.0)
+            }
+        }
+        return when (routeType.orEmpty().trim().uppercase(Locale.getDefault())) {
+            "MTB", "TRAIL", "HIKE" -> max(base, 900.0)
+            "GRAVEL" -> max(base, 700.0)
+            else -> max(base, 550.0)
+        }
+    }
+
+    private fun requiredPathRatioForRequest(routeType: String?, strict: Boolean): Double {
+        val normalized = routeType.orEmpty().trim().uppercase(Locale.getDefault())
+        if (normalized != "GRAVEL") {
+            return 0.0
+        }
+        // Gravel contract: keep a 25% path target; fallback to Ride handles impossible cases.
+        return 0.25
+    }
+
+    private fun meetsMinimumDistance(distanceKm: Double, targetKm: Double): Boolean {
+        if (targetKm <= 0.0) {
+            return true
+        }
+        // Keep a small tolerance for geometry simplification / snapping noise.
+        val toleranceKm = max(0.25, targetKm * 0.02)
+        return distanceKm + toleranceKm >= targetKm
+    }
+
+    private fun fallbackRouteTypes(routeType: String?): List<String> {
+        return when (routeType.orEmpty().trim().uppercase(Locale.getDefault())) {
+            "MTB" -> listOf("GRAVEL", "RIDE")
+            "GRAVEL" -> listOf("RIDE")
+            "RIDE" -> emptyList()
+            else -> listOf("RIDE")
+        }
     }
 
     private fun computeOsmMatchScore(
@@ -1970,7 +2780,8 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         val hasDirection = !request.startDirection.isNullOrBlank()
         val profile = buildOsmScoringProfile(request.routeType, hasElevationTarget, hasDirection)
 
-        val distanceComponent = abs(distanceKm - request.distanceTargetKm) / max(1.0, request.distanceTargetKm)
+        val distanceComponent = distanceShortfallRatio(distanceKm, request.distanceTargetKm) +
+            distanceOvershootRatio(distanceKm, request.distanceTargetKm) * 0.15
         val elevationComponent = if (hasElevationTarget) {
             abs(elevationGainM - (request.elevationTargetM ?: 0.0)) / max((request.elevationTargetM ?: 0.0), 150.0)
         } else {
@@ -1996,12 +2807,13 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         hasDirection: Boolean,
     ): OsmScoringProfile {
         var profile = when (routeType.orEmpty().trim().uppercase(Locale.getDefault())) {
-            "MTB" -> OsmScoringProfile(distanceWeight = 0.48, elevationWeight = 0.38, directionWeight = 0.09, diversityWeight = 0.05)
-            "GRAVEL" -> OsmScoringProfile(distanceWeight = 0.54, elevationWeight = 0.33, directionWeight = 0.08, diversityWeight = 0.05)
-            "RUN" -> OsmScoringProfile(distanceWeight = 0.55, elevationWeight = 0.20, directionWeight = 0.15, diversityWeight = 0.10)
-            "TRAIL" -> OsmScoringProfile(distanceWeight = 0.42, elevationWeight = 0.33, directionWeight = 0.15, diversityWeight = 0.10)
-            "HIKE" -> OsmScoringProfile(distanceWeight = 0.34, elevationWeight = 0.41, directionWeight = 0.15, diversityWeight = 0.10)
-            else -> OsmScoringProfile(distanceWeight = 0.58, elevationWeight = 0.30, directionWeight = 0.08, diversityWeight = 0.04)
+            "MTB" -> OsmScoringProfile(distanceWeight = 0.36, elevationWeight = 0.29, directionWeight = 0.07, diversityWeight = 0.28)
+            "GRAVEL" -> OsmScoringProfile(distanceWeight = 0.44, elevationWeight = 0.26, directionWeight = 0.06, diversityWeight = 0.24)
+            "RUN" -> OsmScoringProfile(distanceWeight = 0.56, elevationWeight = 0.17, directionWeight = 0.13, diversityWeight = 0.14)
+            "TRAIL" -> OsmScoringProfile(distanceWeight = 0.34, elevationWeight = 0.28, directionWeight = 0.10, diversityWeight = 0.28)
+            "HIKE" -> OsmScoringProfile(distanceWeight = 0.30, elevationWeight = 0.35, directionWeight = 0.09, diversityWeight = 0.26)
+            "WALK" -> OsmScoringProfile(distanceWeight = 0.33, elevationWeight = 0.28, directionWeight = 0.10, diversityWeight = 0.29)
+            else -> OsmScoringProfile(distanceWeight = 0.70, elevationWeight = 0.22, directionWeight = 0.06, diversityWeight = 0.02)
         }
 
         if (!hasElevationTarget) {

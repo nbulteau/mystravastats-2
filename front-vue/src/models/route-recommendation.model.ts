@@ -16,11 +16,6 @@ export type StartDirection =
   | "E"
   | "W";
 
-export type BacktrackingProfile =
-  | "BALANCED"
-  | "STRICT"
-  | "ULTRA";
-
 export type ShapeInputType =
   | "draw"
   | "polyline";

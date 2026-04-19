@@ -107,574 +107,115 @@ Expérience plus orientée usage terrain, meilleure réutilisation des données 
 
 ---
 
-#### Plan de delivery (Routes)
-
-#### État actuel de l'onglet Routes (livré)
-
-- UI unifiée en 2 modes:
-  - `Target loop generator`
-  - `Shape based generator`
-- Carte unique pour:
-  - sélection du point de départ,
-  - affichage de la route générée,
-  - support de dessin/import de forme côté shape.
-- UX:
-  - `Use my location`,
-  - `Generate route` (target),
-  - export GPX par route depuis le panneau latéral.
-- Backends Go + Kotlin:
-  - contrat API unifié pour la génération target/shape,
-  - génération road-graph **beta** basée sur le cache local d'activités (pas encore sur un graphe OSM externe),
-  - scoring distance / D+ / direction / profil de pratique.
-- Persistance cache:
-  - les detailed activities manquantes récupérées à la demande sont sauvegardées en cache local pour les appels suivants.
-
-#### Limites connues (à corriger)
-
-- Le moteur road-graph actuel recycle encore des tronçons issus des traces historiques:
-  - risque de boucles trop proches entre elles,
-  - respect imparfait des contraintes strictes (ex: 40 km / 800 m).
-- Qualité de boucle variable selon la densité du cache local autour du point de départ.
-- En cas d'échec (`No route generated`), l'explication des causes est encore insuffisante.
-- Le mode shape reste en version intermédiaire et n'optimise pas encore la projection forme -> réseau routier réel.
-
-- [x] Sprint 1 - Stabilisation UX & contrat
-  - 2 modes/contrats consolidés dans la couche Routes.
-  - Harmonisation parsing/validation des query params Go/Kotlin.
-  - Route Explorer intégré front/back avec filtres et cache court côté UI.
-
-- [x] Sprint 2 - Qualité du moteur Target
-  - Scoring amélioré sur distance + D+ + direction de départ.
-  - Calibration des poids par type de parcours (`RIDE`, `MTB`, `GRAVEL`, `RUN`, `TRAIL`, `HIKE`).
-  - Tests de non-régression Go/Kotlin pour garantir le ranking attendu.
-
-- [x] Sprint 3 - Infra routage praticable (road-graph)
-  - [x] Génération de nouvelles boucles praticables sur graphe routier (v1 beta sur graphe construit depuis le cache d'activités).
-  - [x] Export GPX des routes générées (Go + Kotlin + Front).
-
-- [ ] Sprint 4 - Shape-based generator avancé
-  - Contrainte forme (dessin/import) avec projection sur routes praticables.
-  - Variantes et scoring forme/km/D+.
-
-#### Étude d'intégration d'un routeur OSM (ou moteur maison)
-
-Objectif:
-- Générer des routes **nouvelles et praticables** sur un vrai réseau routier OSM, en respectant au mieux:
-  - point de départ,
-  - distance cible,
-  - dénivelé cible,
-  - direction de départ,
-  - type de pratique.
-
-Options étudiées:
-
-1. OSRM local (recommandé pour MVP rapidité)
-- Avantages:
-  - très rapide, mature, éprouvé.
-  - simple à déployer en Docker avec extrait `.osm.pbf`.
-  - bon pour calcul d'itinéraires courts/alternatifs.
-- Limites:
-  - personnalisation "coût métier" moins souple que GraphHopper.
-  - gestion D+ dépend d'une source d'altitude externe ou d'un post-traitement.
-
-2. GraphHopper local (recommandé pour version produit complète)
-- Avantages:
-  - bon support des profils (route, gravel, mtb, run, hike) et du weighting custom.
-  - meilleure extensibilité pour pénalités métier (revêtement, pente, trafic, etc.).
-  - plus adapté au mode shape + scoring multi-objectif.
-- Limites:
-  - intégration un peu plus lourde que OSRM.
-  - tuning nécessaire pour obtenir des résultats stables.
-
-3. Valhalla local (option avancée)
-- Avantages:
-  - très puissant (coût dynamique, multi-modal).
-  - bonne base pour cas complexes.
-- Limites:
-  - plus complexe à opérer et à tuner.
-  - courbe d'apprentissage plus longue pour l'équipe.
-
-4. Développer un moteur maison complet
-- Avantages:
-  - contrôle total.
-- Limites majeures:
-  - coût de dev/maintenance très élevé,
-  - dette technique importante,
-  - faible ROI versus OSRM/GraphHopper.
-- Conclusion: **non recommandé**.
-
-Décision proposée:
-- Étape 1 (court terme): OSRM local pour débloquer rapidement la qualité des boucles target.
-- Étape 2 (moyen terme): migration/complément GraphHopper pour profils avancés + shape-based generation robuste.
-
-Architecture cible (Go + Kotlin):
-- Introduire un port hexagonal commun:
-  - `RoutingEnginePort`
-  - méthodes: `route`, `matrix/nearest` (optionnel), `alternatives`.
-- Adapter `OsmRoutingAdapter` (OSRM puis GraphHopper) derrière ce port.
-- Garder le moteur de scoring dans le domaine (distance/D+/direction/forme) et rendre le routeur interchangeable.
-- Ajouter une stratégie de fallback:
-  - routeur indisponible => message explicite + pas de faux résultat.
-
-Plan d'implémentation concret:
-
-- Sprint OSM-1:
-  - [x] Docker `osrm` + extraction régionale OSM.
-  - [x] endpoint health `routing`.
-  - [x] implémentation `RoutingEnginePort` côté Go/Kotlin.
-  - [x] génération de boucle target via waypoints synthétiques + alternatives OSRM.
-- Sprint OSM-2:
-  - [x] calibration scoring et pénalités par type de pratique.
-  - [x] contraintes "éviter repassage immédiat" et minimum de diversité de segments.
-  - [x] logs de raisons d'échec (`no candidate`, `km too far`, `d+ too low`, etc.).
-- Sprint OSM-3:
-  - shape projection v1: snap shape->route + optimisation distance forme/km/D+.
-  - variantes scorées.
-  - tests de non-régression cross backend (Go/Kotlin).
-
-Definition of Done (OSM):
-- Une génération target produit une boucle praticable dans la majorité des cas courants (>90% sur dataset de test local).
-- Le point de départ est respecté (tolérance configurable).
-- Distance et D+ restent dans une tolérance explicite (ex: +/-15% km, +/-25% D+).
-- Les raisons de non génération sont lisibles côté UI et logs.
-
----
-
-#### Proposition détaillée - Routes v2 (Road-Graph + GPS Art)
-
-Objectif produit:
-- Passer d'un explorateur de sorties historiques à un vrai générateur de parcours praticables.
-- Conserver une UX très simple: une seule carte, deux modes, export GPX immédiat.
-- Produire des parcours réellement roulables/courables sur GPS (pas seulement "jolis" sur la carte).
-
-Principes UX:
-- Une carte unique sert à tout:
-  - choisir le point de départ,
-  - dessiner/importer une forme en mode shape,
-  - afficher et comparer les routes générées.
-- Deux modes explicites:
-  - `Target loop generator`
-  - `Shape based generator`
-- CTA principal clair:
-  - `Generate loop` en mode target,
-  - `Generate from shape` en mode shape.
-- `Use my location` visible et prioritaire.
-- Export GPX présent à côté de la carte pour chaque variante.
-
-### Mode 1 - Target loop generator (priorité utilitaire)
-
-Entrées:
-- Type de parcours: Ride, VTT, Gravel, Course à pied, Trail, Randonnée.
-- Direction de départ: Nord, Sud, Est, Ouest.
-- Distance cible (km).
-- Dénivelé cible (m).
-- Point de départ via carte (pas de saisie lat/lng manuelle).
-
-Sorties:
-- 1 meilleure boucle + variantes (ex: plus courte, plus longue, plus vallonnée).
-- Score explicite par contrainte:
-  - respect distance,
-  - respect D+,
-  - respect direction de départ,
-  - praticabilité route réseau.
-- Export GPX direct.
-
-Moteur:
-- Routage sur graphe routier (OSM via moteur local type OSRM/GraphHopper/Valhalla).
-- Coûts par type de pratique:
-  - vélo route: pénaliser segments non revêtus/risqués,
-  - gravel/VTT/trail: tolérer davantage chemins adaptés.
-- Fonction objectif:
-  - `score = w1*erreur_km + w2*erreur_D+ + w3*erreur_direction + w4*coût_praticabilité`.
-
-### Mode 2 - Shape based generator (GPS Art)
-
-Entrées:
-- Forme fournie par:
-  - dessin libre sur la carte,
-  - import GPX,
-  - import SVG/polyline.
-- Échelle distance cible (km).
-- Point de départ (optionnel si on veut imposer un ancrage).
-- Type de parcours (contraintes de praticabilité du profil).
-
-Pipeline shape-to-route:
-1. Normaliser la forme:
-   - simplification (Douglas-Peucker),
-   - rééchantillonnage régulier,
-   - normalisation translation/rotation/échelle.
-2. Placement géographique:
-   - ancrage proche du point de départ choisi,
-   - recherche locale de placement minimisant les segments impossibles.
-3. Projection sur réseau routier:
-   - snap des points-clés vers le graphe,
-   - routage entre points successifs.
-4. Optimisation multi-objectif:
-   - minimiser distance à la forme,
-   - minimiser erreur km cible,
-   - minimiser erreur D+ cible,
-   - minimiser non-praticabilité.
-5. Génération de variantes:
-   - stricte forme,
-   - équilibrée,
-   - plus roulante.
-
-Sorties:
-- 3 à 5 variantes scorées.
-- Indicateurs lisibles:
-  - shape similarity (%),
-  - erreur distance,
-  - erreur D+,
-  - confiance praticabilité.
-- Export GPX immédiat pour chaque variante.
-
-### Inspirations produit observées
-
-Ce qui est pertinent à reprendre:
-- `gpsartify`:
-  - focus "generator" simple orienté résultat,
-  - custom shape + téléchargement de routes.
-- `routedoodle`:
-  - modèle en couches `Picture -> Wireframe -> Route`,
-  - conversion automatique de points de contrôle en waypoints routés,
-  - modes de routage par pratique (bike/pedestrian),
-  - export GPX/TCX et workflow GPS art pragmatique.
-
-Ce qu'on garde différent pour MyStravaStats:
-- priorité à la praticabilité réelle et à l'usage GPS sportif,
-- mode target utilitaire au même niveau que le mode art,
-- intégration forte au cache historique et aux profils sportifs déjà connus.
-
-### Contrat API cible (Go + Kotlin identique)
-
-Endpoints:
-- `POST /api/routes/generate/target`
-- `POST /api/routes/generate/shape`
-- `GET /api/routes/{routeId}/gpx`
-
-Payload target:
-- `startPoint {lat,lng}`
-- `routeType`
-- `startDirection`
-- `distanceTargetKm`
-- `elevationTargetM`
-- `variantCount`
-
-Payload shape:
-- `shapeInputType` (`draw`, `gpx`, `svg`, `polyline`)
-- `shapeData`
-- `startPoint` (optionnel)
-- `distanceTargetKm`
-- `elevationTargetM` (optionnel)
-- `routeType`
-- `variantCount`
-
-Réponse commune:
-- `routes[]` avec:
-  - géométrie preview,
-  - métriques (km, D+, durée estimée),
-  - score global + sous-scores,
-  - drapeau `isRoadGraphGenerated`,
-  - `routeId`.
-
-### Spécification fonctionnelle verrouillée (parcours utilisateurs)
-
-Objectif:
-- Générer des parcours praticables (boucles) à partir d'un point de départ.
-- Couvrir 2 usages:
-  - génération par contraintes (`Target loop generator`),
-  - génération basée forme (`Shape based generator`).
-- Exporter immédiatement le GPX de la route sélectionnée.
-
-Préconditions:
-- Le moteur de routage peut être `online`, `offline`, `disabled` ou `misconfigured`.
-- Son état est visible dans l'UI (puce/statut moteur) et piloté par `/api/health/details`.
-
-Parcours 1 - Arrivée sur l'onglet Routes:
-- Le système initialise une carte unique.
-- Le système lit l'état moteur.
-- Le système tente une géolocalisation silencieuse.
-- En cas d'échec/refus:
-  - fallback sur le dernier point de départ mémorisé,
-  - sinon centre par défaut de la carte.
-
-Parcours 2 - Définir le point de départ:
-- L'utilisateur clique `Use my location`:
-  - le point de départ est positionné sur la carte,
-  - le point est mémorisé localement.
-- Alternative: clic direct sur la carte pour définir le départ.
-- Le marqueur de départ reste visible.
-
-Parcours 3 - Mode `Target loop generator`:
-- L'utilisateur choisit un sous-mode:
-  - `Automatic`
-  - `Custom`
-- Champs communs:
-  - `Route type` (`Ride`, `MTB`, `Gravel`, `Run`, `Trail`, `Hike`)
-  - point de départ sur carte
-
-Sous-mode `Automatic`:
-- Champs requis:
-  - `Direction` (`N`, `S`, `E`, `W`)
-  - `Distance target (km)`
-  - `Elevation target (m)`
-- Action:
-  - bouton `Generate route` -> `POST /api/routes/generate/target`
-- Résultat:
-  - liste `Generated routes`,
-  - sélection d'une route active affichée sur la carte,
-  - un nouveau clic sur `Generate route` relance une génération.
-
-Sous-mode `Custom`:
-- L'utilisateur ajoute des points de passage sur la carte.
-- Si un point est hors route:
-  - le backend/engine le "snap" sur la route praticable la plus proche.
-- Chaque génération produit une route point-à-point praticable.
-- La route générée est ajoutée à `Generated routes` et affichée sur la carte.
-
-Parcours 4 - Mode `Shape based generator`:
-- L'utilisateur fournit une forme (dessin / polyline / GPX / SVG).
-- L'utilisateur peut dessiner, arrêter, effacer la forme.
-- Action:
-  - bouton `Generate route` -> `POST /api/routes/generate/shape`
-- Résultat:
-  - route la plus proche de la forme (avec contraintes km/D+ si définies),
-  - variantes possibles avec score.
-
-Parcours 5 - Export GPX:
-- L'utilisateur sélectionne une route (ou garde la route active).
-- Action:
-  - bouton `Export GPX` -> `GET /api/routes/{routeId}/gpx`
-- Résultat:
-  - téléchargement immédiat du GPX (nom via `content-disposition` si présent).
-
-Règles fonctionnelles:
-- Une seule carte sert à:
-  - choisir le départ,
-  - dessiner/importer la forme,
-  - afficher la route générée.
-- Les filtres globaux (année / activité) de la header bar ne doivent pas biaiser les appels routes.
-- Blocage de génération:
-  - mode `Target` sans point de départ,
-  - mode `Target/Automatic` sans distance > 0,
-  - mode `Shape` sans forme exploitable.
-- `Direction` n'est affichée qu'en mode `Target/Automatic`.
-
-Gestion d'erreurs et diagnostics:
-- Si aucune route:
-  - message explicite `No route matched all constraints...`
-  - diagnostics normalisés (`NO_CANDIDATE`, `DIRECTION_CONFLICT`, `BACKTRACKING_FILTERED`, etc.).
-- Si géolocalisation indisponible:
-  - message utilisateur + fallback automatique.
-- Si export GPX échoue:
-  - toast d'erreur.
-
-Critères d'acceptation UX:
-- UX simple, sans doubles cartes ni champs techniques non nécessaires.
-- Le statut moteur est visible et compréhensible.
-- Le flux reste utilisable en mode cache/local (même si moteur externe indisponible).
-- Export GPX disponible en 1 clic depuis la route active/sélectionnée.
-
-### Persistance/cache
-
-- Persister les routes générées (manifest cache unifié déjà en place):
-  - éviter de recalculer une requête identique,
-  - permettre ré-ouverture rapide de la dernière génération.
-- Indexer par clé de requête normalisée:
-  - mode + profil + contraintes + hash de forme.
-- TTL configurable + invalidation explicite via bouton `Refresh`.
-
-### Plan de livraison recommandé
-
-Sprint A - Contrat + UX carte unique:
-- écran routes consolidé en 2 modes explicites,
-- picker start point + use my location + export GPX latéral,
-- API `generate/target` + `generate/shape` (stub stable Go/Kotlin).
-
-Sprint B - Target engine robuste:
-- génération boucle road-graph fiable,
-- calibration scoring par type de pratique,
-- tests de non-régression sur km/D+/direction.
-
-Sprint C - Shape engine v1:
-- import polyline/GPX,
-- normalisation de forme + projection routière,
-- variantes scorées + export GPX.
-
-Sprint D - Shape engine avancé:
-- import SVG + dessin libre assisté,
-- optimisation plus fine (forme vs praticabilité),
-- instrumentation qualité (taux de réussite, temps de calcul, satisfaction score).
-
-### Definition of Done (v2)
-
-- Les deux modes sont utilisables en production sur la même carte.
-- Chaque génération renvoie au moins une route praticable ou un message explicite de blocage.
-- Export GPX fonctionne pour chaque route proposée.
-- Le score explique clairement les compromis (forme, km, D+, praticabilité).
-- Parité fonctionnelle Go/Kotlin validée par tests de contrat.
-
-### Backlog exécutable (tickets prêts à coder)
-
-Convention:
-- Priorité: `P0` (bloquant MVP), `P1` (important), `P2` (amélioration).
-- Taille: `S` (<= 1 jour), `M` (1-3 jours), `L` (3-5 jours), `XL` (> 1 sprint).
-- Owners possibles: `Front`, `Back-Go`, `Back-Kotlin`, `Infra`, `QA`.
-
-#### Sprint A - Contrat + UX carte unique
-
-- [x] `ROUTE-A01` (`P0`, `M`) - Unifier l'écran Routes en 2 modes explicites.
-  Owners: `Front`.
-  Dépendances: aucune.
-  Scope: switch `Target loop generator` / `Shape based generator`, champs conditionnels par mode, suppression des champs non nécessaires.
-  Acceptance: le mode actif est persisté dans le store; aucun champ hors mode n'est affiché; pas de régression sur l'export GPX existant.
-
-- [x] `ROUTE-A02` (`P0`, `M`) - Carte unique shared state.
-  Owners: `Front`.
-  Dépendances: `ROUTE-A01`.
-  Scope: une seule carte pour start picker, dessin/import shape, preview résultats.
-  Acceptance: changement de mode sans remonter/recréer la carte; start point et shape restent synchronisés avec le store.
-
-- [x] `ROUTE-A03` (`P0`, `S`) - Bouton `Use my location` + fallback propre.
-  Owners: `Front`.
-  Dépendances: `ROUTE-A02`.
-  Scope: géolocalisation navigateur avec feedback utilisateur (toast/info erreur permissions).
-  Acceptance: clique => centre + marqueur start; en refus permission message clair et UI non bloquée.
-
-- [x] `ROUTE-A04` (`P0`, `M`) - Contrat API v2 Target (Go).
-  Owners: `Back-Go`.
-  Dépendances: aucune.
-  Scope: endpoint `POST /api/routes/generate/target`, validation payload, réponse standardisée `routes[]` + scores.
-  Acceptance: tests handlers + contrat JSON; erreurs 400 homogènes.
-
-- [x] `ROUTE-A05` (`P0`, `M`) - Contrat API v2 Target (Kotlin).
-  Owners: `Back-Kotlin`.
-  Dépendances: aucune.
-  Scope: endpoint équivalent Kotlin avec même schéma de réponse/erreur que Go.
-  Acceptance: tests controller + sérialisation DTO alignée avec Go.
-
-- [x] `ROUTE-A06` (`P0`, `M`) - Contrat API v2 Shape (Go + Kotlin).
+#### Routes (OSRM) - backlog restant uniquement
+
+Objectif produit conservé:
+- générer des boucles praticables depuis un point de départ,
+- 2 modes (`Target loop generator`, `Shape based generator`),
+- export GPX immédiat,
+- parité Go/Kotlin.
+
+Ce qui est déjà fait (retiré du backlog):
+- contrat API target/shape unifié,
+- carte unique et UX principale (`Use my location`, `Generate route`, export GPX),
+- intégration OSRM + endpoint health routing,
+- base de scoring distance/D+/direction,
+- fallback de route type (`MTB -> GRAVEL -> RIDE`).
+
+### Priorités restantes
+
+- [ ] `ROUTE-P0-01` (`P0`, `L`) - Stabiliser la génération target pour ne plus revenir à `0 route`.
   Owners: `Back-Go`, `Back-Kotlin`.
-  Dépendances: `ROUTE-A04`, `ROUTE-A05`.
-  Scope: endpoint `POST /api/routes/generate/shape` acceptant `draw/gpx/svg/polyline` (au moins `draw/polyline` dans ce sprint).
-  Acceptance: même schéma de réponse sur les deux backends; validation de `shapeInputType`.
+  Scope:
+  - pipeline d'assouplissement déterministe (strict -> relax -> best-effort) identique sur Go/Kotlin,
+  - garantie: si une boucle `Ride` valide existe, ne jamais renvoyer "no candidate" en `Gravel`/`MTB`,
+  - diagnostics normalisés et non contradictoires (`NO_CANDIDATE`, `BACKTRACKING_FILTERED`, etc.).
+  Acceptance:
+  - tests de non-régression verts,
+  - cas réel: `40km / 800m` génère une route sur zone urbaine dense.
 
-- [x] `ROUTE-A07` (`P1`, `S`) - Export GPX latéral immédiat.
-  Owners: `Front`.
-  Dépendances: `ROUTE-A04`, `ROUTE-A05`.
-  Scope: panneau de résultats avec bouton export par route, état "exporting", gestion erreur.
-  Acceptance: téléchargement GPX fonctionne pour chaque variante affichée.
+- [ ] `ROUTE-P0-02` (`P0`, `L`) - Anti-retours robuste hors zone départ/arrivée (2 km).
+  Owners: `Back-Go`, `Back-Kotlin`.
+  Scope:
+  - contrainte dure: pas de réutilisation d'axe OSM hors zone 2 km (même sens ou sens inverse),
+  - autoriser uniquement les croisements géométriques et la zone de retour,
+  - pénalités fortes sur corridor overlap + edge reuse dans le ranking final.
+  Acceptance:
+  - baisse nette des aller/retour sur les GPX générés,
+  - tests dédiés sur la métrique de réutilisation d'axes.
 
-- [ ] `ROUTE-A08` (`P1`, `S`) - Telemetry de base routes.
+- [ ] `ROUTE-P0-03` (`P0`, `M`) - Direction "globale" non bloquante.
+  Owners: `Back-Go`, `Back-Kotlin`.
+  Scope:
+  - `Direction` influence l'orientation moyenne de la boucle,
+  - ne doit plus bloquer la génération,
+  - fallback automatique vers direction relâchée avec raison explicite.
+  Acceptance:
+  - génération réussie avec et sans direction,
+  - la boucle respecte majoritairement le quadrant demandé quand possible.
+
+- [ ] `ROUTE-P1-01` (`P1`, `L`) - Vrai scoring surface (OSM tags `surface` / `tracktype`).
+  Owners: `Back-Go`, `Back-Kotlin`, `Infra`.
+  Scope:
+  - enrichir les segments routés pour récupérer la typologie de revêtement,
+  - appliquer les règles métier:
+    - `Ride`: privilégier asphalt/paved,
+    - `Gravel`: minimum 25% chemins (fallback Ride si impossible),
+    - `MTB`: maximiser chemins/track.
+  Acceptance:
+  - différence visible de parcours entre `Ride`, `Gravel`, `MTB`,
+  - tests de classement par type de surface.
+
+- [ ] `ROUTE-P1-02` (`P1`, `M`) - Statut moteur OSRM + profil réellement exploité dans l'UI.
   Owners: `Front`, `Back-Go`, `Back-Kotlin`.
-  Dépendances: `ROUTE-A04`, `ROUTE-A05`.
-  Scope: logs structurés `route_mode`, `generation_ms`, `variant_count`, `export_success`.
-  Acceptance: traces visibles en logs backend + console dev front.
+  Scope:
+  - afficher état `online/offline/misconfigured`,
+  - afficher profil actif (`bicycle.lua`, `foot.lua`, `car.lua`) et route types effectivement autorisés,
+  - désactiver côté UI les types incompatibles avec le profil.
+  Acceptance:
+  - cohérence entre health backend et options UI,
+  - plus d'option sélectionnable invalide.
 
-#### Sprint B - Target engine robuste (road-graph utile terrain)
-
-- [ ] `ROUTE-B01` (`P0`, `L`) - Intégration moteur routage local.
-  Owners: `Infra`, `Back-Go`, `Back-Kotlin`.
-  Dépendances: `ROUTE-A04`, `ROUTE-A05`.
-  Scope: abstraction `RoutingEnginePort` + impl locale (OSRM/GraphHopper), config Docker/dev.
-  Acceptance: healthcheck routage; appel simple entre 2 points OK.
-
-- [ ] `ROUTE-B02` (`P0`, `L`) - Génération boucle target (Go).
-  Owners: `Back-Go`.
-  Dépendances: `ROUTE-B01`.
-  Scope: algo boucle contraint par start point, direction initiale, distance cible, D+ cible.
-  Acceptance: au moins 1 route praticable pour cas standard; timeout contrôlé.
-
-- [ ] `ROUTE-B03` (`P0`, `L`) - Génération boucle target (Kotlin).
-  Owners: `Back-Kotlin`.
-  Dépendances: `ROUTE-B01`.
-  Scope: même logique/contrat que Go.
-  Acceptance: parité de réponse fonctionnelle avec Go sur dataset de test commun.
-
-- [ ] `ROUTE-B04` (`P1`, `M`) - Calibration par type de pratique.
-  Owners: `Back-Go`, `Back-Kotlin`.
-  Dépendances: `ROUTE-B02`, `ROUTE-B03`.
-  Scope: profils de coût route/gravel/mtb/run/trail/hike.
-  Acceptance: tests non-régression montrant des rankings différents par profil.
-
-- [ ] `ROUTE-B05` (`P1`, `M`) - Score explainability target.
-  Owners: `Back-Go`, `Back-Kotlin`, `Front`.
-  Dépendances: `ROUTE-B02`, `ROUTE-B03`.
-  Scope: sous-scores `distance`, `elevation`, `direction`, `roadFitness` dans la réponse + rendu UI.
-  Acceptance: UI affiche les sous-scores et la raison de sélection.
-
-- [ ] `ROUTE-B06` (`P1`, `M`) - Tests non-régression target.
-  Owners: `QA`, `Back-Go`, `Back-Kotlin`.
-  Dépendances: `ROUTE-B02`, `ROUTE-B03`, `ROUTE-B04`.
-  Scope: fixtures synthétiques + snapshots de classement.
-  Acceptance: tests GIVEN/WHEN/THEN sur cas limites (impossible D+, distance courte, direction inversée).
-
-#### Sprint C - Shape engine v1 (GPS Art exploitable)
-
-- [ ] `ROUTE-C01` (`P0`, `M`) - Import polyline/GPX côté front.
-  Owners: `Front`.
-  Dépendances: `ROUTE-A02`, `ROUTE-A06`.
-  Scope: upload/parse GPX, collage polyline, visualisation wireframe.
-  Acceptance: forme importée visible sur carte et stockée dans le store.
-
-- [ ] `ROUTE-C02` (`P0`, `M`) - Normalisation de forme backend.
-  Owners: `Back-Go`, `Back-Kotlin`.
-  Dépendances: `ROUTE-A06`.
-  Scope: simplification + rééchantillonnage + normalisation rotation/scale.
-  Acceptance: shape canonique déterministe pour une même entrée.
-
-- [ ] `ROUTE-C03` (`P0`, `L`) - Projection shape -> road graph.
-  Owners: `Back-Go`, `Back-Kotlin`.
-  Dépendances: `ROUTE-B01`, `ROUTE-C02`.
-  Scope: snap des points de contrôle + routage inter-points.
-  Acceptance: au moins une route praticable générée pour shape simple.
-
-- [ ] `ROUTE-C04` (`P1`, `M`) - Scoring multi-objectif shape.
-  Owners: `Back-Go`, `Back-Kotlin`.
-  Dépendances: `ROUTE-C03`.
-  Scope: score forme + erreur km + erreur D+ + praticabilité.
-  Acceptance: score cohérent affiché et trié dans le résultat.
-
-- [ ] `ROUTE-C05` (`P1`, `M`) - Variantes shape (3 profils).
-  Owners: `Back-Go`, `Back-Kotlin`, `Front`.
-  Dépendances: `ROUTE-C04`.
-  Scope: `strict shape`, `balanced`, `road-friendly`.
-  Acceptance: 3 variantes avec trade-offs lisibles et exportables.
-
-- [ ] `ROUTE-C06` (`P1`, `S`) - Empty/error UX shape.
-  Owners: `Front`.
-  Dépendances: `ROUTE-C03`.
-  Scope: messages explicites "shape impossible localement", conseils de retry (scale, point de départ).
-  Acceptance: pas de page vide ni erreur silencieuse.
-
-#### Sprint D - Shape engine avancé + qualité
-
-- [ ] `ROUTE-D01` (`P1`, `M`) - Import SVG (paths simples).
+- [ ] `ROUTE-P1-03` (`P1`, `M`) - Génération incrémentale côté UI (1 clic = 1 nouvelle route unique).
   Owners: `Front`, `Back-Go`, `Back-Kotlin`.
-  Dépendances: `ROUTE-C02`.
-  Scope: parser SVG -> polyline normalisée.
-  Acceptance: un SVG simple produit une génération shape valide.
+  Scope:
+  - à chaque clic `Generate route`, ajouter une route nouvelle,
+  - déduplication géométrique stricte,
+  - conserver l'historique de session et sélection active.
+  Acceptance:
+  - plus de doublons dans `Generated routes`,
+  - UX claire "last generated".
 
-- [ ] `ROUTE-D02` (`P1`, `L`) - Dessin libre assisté (éditeur wireframe).
-  Owners: `Front`.
-  Dépendances: `ROUTE-A02`.
-  Scope: move/scale/rotate shape directement sur carte.
-  Acceptance: manipulation fluide, undo/clear minimum.
+- [ ] `ROUTE-P1-04` (`P1`, `L`) - Shape mode v1 utilisable terrain.
+  Owners: `Front`, `Back-Go`, `Back-Kotlin`.
+  Scope:
+  - import polyline/GPX stable,
+  - projection shape -> réseau routier,
+  - au moins 2 variantes scorées (shape-first / road-first),
+  - export GPX par variante.
+  Acceptance:
+  - une forme simple produit au moins une route praticable.
 
-- [ ] `ROUTE-D03` (`P1`, `M`) - Cache des générations routes v2.
-  Owners: `Back-Go`, `Back-Kotlin`.
-  Dépendances: `ROUTE-B02`, `ROUTE-C03`.
-  Scope: persistance par clé normalisée (mode+profil+contraintes+hash shape) dans le manifest cache.
-  Acceptance: requête identique servie depuis cache avec hit observable.
+- [ ] `ROUTE-P2-01` (`P2`, `M`) - Observabilité routes.
+  Owners: `Back-Go`, `Back-Kotlin`, `Front`.
+  Scope:
+  - logs structurés (`requestId`, mode, routeType, target km/D+, temps de génération, raisons rejet),
+  - résumé compact affichable côté UI en cas d'échec.
+  Acceptance:
+  - diagnostic actionnable en moins d'1 minute sans lire tout le log brut.
 
-- [ ] `ROUTE-D04` (`P2`, `S`) - Bench & guardrails performance.
+- [ ] `ROUTE-P2-02` (`P2`, `M`) - Parité automatique Go/Kotlin.
   Owners: `QA`, `Back-Go`, `Back-Kotlin`.
-  Dépendances: `ROUTE-D03`.
-  Scope: budget de latence, timeout, circuit-breaker routage.
-  Acceptance: p95 mesurée; dégradation propre en cas de moteur indisponible.
+  Scope:
+  - fixtures communes + assertions de contrat sur le top résultat,
+  - comparaison des diagnostics de rejet.
+  Acceptance:
+  - CI rouge si divergence de comportement critique.
 
-- [ ] `ROUTE-D05` (`P2`, `S`) - Contrat de parité automatique Go/Kotlin.
-  Owners: `QA`, `Back-Go`, `Back-Kotlin`.
-  Dépendances: `ROUTE-B03`, `ROUTE-C05`.
-  Scope: tests de contrat croisés sur fixtures communes.
-  Acceptance: CI rouge si divergence schéma ou comportement critique.
+### Definition of Done (mise à jour)
+
+- `Target` génère une boucle praticable dans >90% des cas de test locaux.
+- Hors zone 2 km autour du départ/arrivée, pas de réutilisation d'axe (même sens ou inverse).
+- `Gravel` et `MTB` diffèrent réellement de `Ride` sur la part de chemins.
+- Plus de "0 route" tant qu'une solution `Ride` valide existe.
+- Parité Go/Kotlin validée en CI sur fixtures partagées.

@@ -115,6 +115,8 @@ docker compose -f /Users/nicolas/Workspace/mystravastats-2/docker-compose-routin
 
 By default, extraction uses `/opt/bicycle.lua` (cycling-oriented routing).
 By default, preprocessing runs with `2` threads to reduce memory pressure.
+The prepare step also writes the selected extract profile to `osm/region.osrm.profile`
+so MyStravaStats can expose profile-aware route type availability in the UI.
 
 If you want a different profile for extraction:
 
@@ -195,6 +197,8 @@ Expected fields:
 - `routing.engine = "osrm"`
 - `routing.status = "up"` (or `disabled` if routing is disabled)
 - `routing.reachable = true`
+- `routing.extractProfile` (for example `/opt/bicycle.lua`)
+- `routing.supportedRouteTypes` (Route Type combo availability in Routes tab)
 
 ## 5. Routing environment variables
 
@@ -202,6 +206,8 @@ Expected fields:
 - `OSM_ROUTING_BASE_URL` (default `http://localhost:5000`)
 - `OSM_ROUTING_TIMEOUT_MS` (default `3000`)
 - `OSM_ROUTING_PROFILE` (optional override, e.g. `cycling` or `walking`)
+- `OSM_ROUTING_EXTRACT_PROFILE` (optional backend override for extract profile detection)
+- `OSM_ROUTING_EXTRACT_PROFILE_FILE` (default `./osm/region.osrm.profile`)
 - `OSRM_EXTRACT_PROFILE` (default `/opt/bicycle.lua`, used at preprocess time)
 - `OSRM_THREADS` (default `2`, used for extract/partition/customize)
 

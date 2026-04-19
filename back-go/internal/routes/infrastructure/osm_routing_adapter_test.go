@@ -37,6 +37,144 @@ func TestOSMRoutingAdapter_WhenDisabled_ReturnsDisabledHealthAndNoGeneratedLoops
 	}
 }
 
+func TestOSMRoutingAdapter_HealthDetails_ExposeSupportedRouteTypesFromExtractProfile(t *testing.T) {
+	// GIVEN
+	t.Setenv("OSM_ROUTING_ENABLED", "false")
+	t.Setenv("OSM_ROUTING_EXTRACT_PROFILE", "/opt/foot.lua")
+	adapter := NewOSMRoutingAdapter()
+
+	// WHEN
+	health := adapter.HealthDetails()
+
+	// THEN
+	if got := health["extractProfile"]; got != "/opt/foot.lua" {
+		t.Fatalf("expected extractProfile=/opt/foot.lua, got %v", got)
+	}
+	routeTypes, ok := health["supportedRouteTypes"].([]string)
+	if !ok {
+		t.Fatalf("expected supportedRouteTypes to be []string, got %T", health["supportedRouteTypes"])
+	}
+	if len(routeTypes) != 3 || routeTypes[0] != "RUN" || routeTypes[1] != "TRAIL" || routeTypes[2] != "HIKE" {
+		t.Fatalf("expected [RUN TRAIL HIKE], got %v", routeTypes)
+	}
+}
+
+func TestOSMRoutingAdapter_HealthDetails_UsesOverridePathForEffectiveProfile(t *testing.T) {
+	// GIVEN
+	t.Setenv("OSM_ROUTING_ENABLED", "false")
+	t.Setenv("OSM_ROUTING_PROFILE", "/opt/bicycle.lua")
+	adapter := NewOSMRoutingAdapter()
+
+	// WHEN
+	health := adapter.HealthDetails()
+
+	// THEN
+	if got := health["effectiveProfile"]; got != "cycling" {
+		t.Fatalf("expected effectiveProfile=cycling, got %v", got)
+	}
+	routeTypes, ok := health["supportedRouteTypes"].([]string)
+	if !ok {
+		t.Fatalf("expected supportedRouteTypes to be []string, got %T", health["supportedRouteTypes"])
+	}
+	if len(routeTypes) != 3 || routeTypes[0] != "RIDE" || routeTypes[1] != "MTB" || routeTypes[2] != "GRAVEL" {
+		t.Fatalf("expected [RIDE MTB GRAVEL], got %v", routeTypes)
+	}
+}
+
+func TestEvaluateAxisReuseOutsideStartZone_DetectsOppositeTraversalAwayFromStart(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}
+	points := [][]float64{
+		{48.13000, -1.63000}, // start
+		{48.15000, -1.63000}, // far north
+		{48.15000, -1.62000}, // far east
+		{48.15000, -1.63000}, // back on same far axis (reverse traversal)
+		{48.13000, -1.63000}, // return start
+	}
+
+	// WHEN
+	hasOpposite, maxReuse, oppositeRatio := evaluateAxisReuseOutsideStartZone(
+		points,
+		start,
+		backtrackingStartZoneM,
+		minOppositeReuseMeters,
+	)
+
+	// THEN
+	if !hasOpposite {
+		t.Fatalf("expected opposite traversal outside start zone to be detected")
+	}
+	if maxReuse < 2 {
+		t.Fatalf("expected max axis reuse outside start zone >= 2, got %d", maxReuse)
+	}
+	if oppositeRatio <= 0 {
+		t.Fatalf("expected opposite ratio > 0, got %.3f", oppositeRatio)
+	}
+}
+
+func TestComputeSurfaceBreakdown_ClassifiesPavedGravelTrailAndUnknown(t *testing.T) {
+	// GIVEN
+	route := osrmRoute{
+		Distance: 2000.0,
+		Legs: []osrmLeg{
+			{
+				Steps: []osrmStep{
+					{Distance: 1000.0, Mode: "cycling"},
+					{Distance: 500.0, Mode: "cycling", Classes: []string{"unpaved"}},
+					{Distance: 300.0, Mode: "pushing bike"},
+					{Distance: 200.0, Mode: "cycling", Classes: []string{"ferry"}},
+				},
+			},
+		},
+	}
+
+	// WHEN
+	breakdown := computeSurfaceBreakdown(route)
+	pavedRatio, gravelRatio, trailRatio, unknownRatio := breakdown.normalizedRatios()
+
+	// THEN
+	if pavedRatio < 0.49 || pavedRatio > 0.51 {
+		t.Fatalf("expected paved ratio around 0.50, got %.3f", pavedRatio)
+	}
+	if gravelRatio < 0.24 || gravelRatio > 0.26 {
+		t.Fatalf("expected gravel ratio around 0.25, got %.3f", gravelRatio)
+	}
+	if trailRatio < 0.14 || trailRatio > 0.16 {
+		t.Fatalf("expected trail ratio around 0.15, got %.3f", trailRatio)
+	}
+	if unknownRatio < 0.09 || unknownRatio > 0.11 {
+		t.Fatalf("expected unknown ratio around 0.10, got %.3f", unknownRatio)
+	}
+}
+
+func TestSurfaceMatchScore_AdaptsToRequestedRouteType(t *testing.T) {
+	// GIVEN
+	mixedBreakdown := routeSurfaceBreakdown{
+		pavedM:  3500.0,
+		gravelM: 5500.0,
+		trailM:  1000.0,
+	}
+	trailBreakdown := routeSurfaceBreakdown{
+		pavedM:  800.0,
+		gravelM: 2900.0,
+		trailM:  6300.0,
+	}
+
+	// WHEN
+	gravelScore := surfaceMatchScore("GRAVEL", mixedBreakdown)
+	rideScoreOnMixed := surfaceMatchScore("RIDE", mixedBreakdown)
+	mtbScoreOnTrail := surfaceMatchScore("MTB", trailBreakdown)
+	rideScoreOnTrail := surfaceMatchScore("RIDE", trailBreakdown)
+
+	// THEN
+	if gravelScore <= rideScoreOnMixed {
+		t.Fatalf("expected gravel score to be higher than ride on mixed gravel profile, gravel=%.1f ride=%.1f", gravelScore, rideScoreOnMixed)
+	}
+	if mtbScoreOnTrail <= rideScoreOnTrail {
+		t.Fatalf("expected mtb score to be higher than ride on trail-heavy profile, mtb=%.1f ride=%.1f", mtbScoreOnTrail, rideScoreOnTrail)
+	}
+}
+
 func TestRespectsHalfPlaneDirection_NorthRejectsPointsSouthOfStart(t *testing.T) {
 	// GIVEN
 	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}
@@ -165,7 +303,7 @@ func TestSelectCandidatesWithRelaxation_WhenStrictFails_ThenRelaxedCandidateCanS
 			directionPenalty:    0.24, // strict rejects (>0.18), balanced accepts (<=0.28)
 			backtrackingRatio:   0.04,
 			segmentDiversity:    0.40,
-			distanceDeltaRatio:  0.32,
+			distanceDeltaRatio:  0.12,
 			effectiveMatchScore: 82.0,
 		},
 	}
@@ -217,7 +355,7 @@ func TestSyntheticLoopWaypoints_WithNorthDirection_StayInForwardHemisphere(t *te
 	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}
 
 	// WHEN
-	waypoints := adapter.syntheticLoopWaypoints(start, 6.0, 0.0, "N", 0)
+	waypoints := adapter.syntheticLoopWaypoints(start, 6.0, 0.0, "N", "RIDE", 0)
 
 	// THEN
 	if len(waypoints) < 3 {
@@ -360,7 +498,7 @@ func TestSelectCandidatesWithRelaxation_WhenAllLevelsReject_ThenBestEffortStillR
 			backtrackingRatio:   0.12, // reject fallback (0.015), accepted by directional best-effort (<= 0.18)
 			corridorOverlap:     0.08, // reject fallback (0.018), accepted by directional best-effort (<= 0.14)
 			segmentDiversity:    0.02, // reject all configured levels
-			distanceDeltaRatio:  1.50, // reject strict/balanced/relaxed, fallback would pass distance only
+			distanceDeltaRatio:  0.24, // reject strict/balanced/relaxed/fallback, accepted by directional best-effort
 			effectiveMatchScore: 75.0,
 		},
 	}
@@ -399,7 +537,7 @@ func TestSelectCandidatesWithRelaxation_WhenDirectionalStrictProfileRejectsAll_T
 			corridorOverlap:     0.13,
 			edgeReuseRatio:      0.12,
 			segmentDiversity:    0.18,
-			distanceDeltaRatio:  0.70,
+			distanceDeltaRatio:  0.23,
 			effectiveMatchScore: 68.0,
 		},
 	}

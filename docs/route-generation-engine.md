@@ -4,6 +4,11 @@ This document explains how `routeType` is used by the route generation engine in
 
 It focuses on the **Target loop generator** behavior (`/api/routes/generate/target`) and the scoring/fallback logic.
 
+Current default engine:
+
+- **v3 disjoint-anchor generator** (`OSM_ROUTING_V3_ENABLED=true` by default)
+- automatic fallback to legacy synthetic-waypoint generator if v3 returns no valid candidate.
+
 ## Accepted route types
 
 Valid values:
@@ -43,7 +48,25 @@ This is the high-level algorithm used by `/api/routes/generate/target`.
 - `RUN/TRAIL/HIKE` -> OSRM `walking` profile.
 - `RIDE/MTB/GRAVEL` -> OSRM `cycling` profile.
 
-### 3. Generate candidate loops from synthetic waypoint patterns
+### 3. Generate candidate loops (v3 disjoint anchors, then legacy fallback)
+
+#### 3.a v3 disjoint-anchor generation (default)
+
+For each sampled anchor around the start point:
+
+- compute outbound route `start -> anchor`
+- compute inbound candidates `anchor -> start` with pivot variants to avoid corridor reuse
+- merge outbound + inbound as one loop candidate
+- apply construction hard rules:
+  - reject opposite traversal on same axis
+  - reject excessive max axis reuse
+- convert surviving loops into scored candidates
+
+If v3 yields no accepted candidate:
+
+- fallback to legacy synthetic-waypoint mode.
+
+#### 3.b Legacy synthetic-waypoint generation (fallback)
 
 For each call iteration:
 
@@ -95,6 +118,7 @@ Each level applies limits on:
 - max direction penalty
 - max backtracking ratio
 - max corridor overlap
+- max axis reuse count
 - min segment diversity
 - max distance delta ratio
 
@@ -195,4 +219,5 @@ So, the matrix above reflects the **base profile** before dynamic redistribution
 ## Related docs
 
 - [OSM Routing Setup](./osm-routing-setup.md)
+- [Route Generation v3 (Constraint-First Spec)](./route-generation-v3-spec.md)
 - [Main project doc](./README.md)

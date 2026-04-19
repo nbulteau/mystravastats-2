@@ -104,6 +104,66 @@ class RoutesControllerTest {
     }
 
     @Test
+    fun `generate target routes uses surface fitness reason for road fitness score`() {
+        // GIVEN
+        every {
+            routeExplorerService.getRouteExplorer(any(), any(), any())
+        } returns RouteExplorerResult(
+            closestLoops = emptyList(),
+            variants = emptyList(),
+            seasonal = emptyList(),
+            roadGraphLoops = listOf(
+                RouteRecommendation(
+                    routeId = "generated-surface-kt",
+                    activity = ActivityShort(42L, "Generated surface loop", ActivityType.GravelRide),
+                    activityDate = "2025-01-01",
+                    distanceKm = 38.6,
+                    elevationGainM = 620.0,
+                    durationSec = 6400,
+                    isLoop = true,
+                    start = null,
+                    end = null,
+                    startArea = "Grenoble",
+                    season = "SPRING",
+                    variantType = RouteVariantType.ROAD_GRAPH,
+                    matchScore = 87.0,
+                    reasons = listOf(
+                        "Generated with OSM road graph (OSRM)",
+                        "Surface mix: paved 38%, gravel 52%, trail 10%, unknown 0%",
+                        "Surface fitness: 68%",
+                    ),
+                    previewLatLng = listOf(listOf(45.18, 5.72), listOf(45.20, 5.75), listOf(45.18, 5.72)),
+                    shape = "LOOP",
+                    shapeScore = 0.82,
+                    experimental = true,
+                )
+            ),
+            shapeMatches = emptyList(),
+            shapeRemixes = emptyList(),
+        )
+
+        // WHEN
+        mockMvc.perform(
+            post("/api/routes/generate/target")
+                .param("activityType", "Ride")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "startPoint": {"lat": 45.19, "lng": 5.73},
+                      "routeType": "GRAVEL",
+                      "distanceTargetKm": 40.0
+                    }
+                    """.trimIndent()
+                )
+        )
+            // THEN
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.routes[0].routeId").value("generated-surface-kt"))
+            .andExpect(jsonPath("$.routes[0].score.roadFitness").value(68.0))
+    }
+
+    @Test
     fun `generate target routes infers strictDirection when startDirection is undefined`() {
         // GIVEN
         every {

@@ -61,9 +61,7 @@ class RoutesController(
         private const val DEFAULT_VARIANT_COUNT = 2
         private const val MAX_VARIANT_COUNT = 24
         private const val GENERATED_ROUTE_CACHE_TTL_SECONDS = 6 * 3600L
-        private const val BACKTRACKING_PROFILE_BALANCED = "BALANCED"
-        private const val BACKTRACKING_PROFILE_STRICT = "STRICT"
-        private const val BACKTRACKING_PROFILE_ULTRA = "ULTRA"
+        private const val NATIVE_BACKTRACKING_PROFILE = "ULTRA"
     }
 
     private data class CachedGeneratedRoute(
@@ -150,8 +148,8 @@ class RoutesController(
             normalizeStartDirection(payload.startDirection)
         }
         val strictDirection = targetMode == "AUTOMATIC" && isUndefinedStartDirection(payload.startDirection)
-        val backtrackingProfile = normalizeBacktrackingProfile(payload.backtrackingProfile, payload.strictBacktracking)
-        val strictBacktracking = backtrackingProfile != BACKTRACKING_PROFILE_BALANCED
+        // Backtracking profile is now native ultra and no longer user-configurable.
+        val strictBacktracking = true
         val variantCount = normalizeVariantCount(payload.variantCount)
         val distanceTarget = payload.distanceTargetKm!!
         val request = RouteExplorerRequest(
@@ -161,7 +159,7 @@ class RoutesController(
             startDirection = startDirection,
             strictDirection = strictDirection,
             strictBacktracking = strictBacktracking,
-            backtrackingProfile = backtrackingProfile,
+            backtrackingProfile = NATIVE_BACKTRACKING_PROFILE,
             startPoint = payload.startPoint?.toCoordinates(),
             targetMode = targetMode,
             customWaypoints = payload.customWaypoints.orEmpty().map { waypoint -> waypoint.toCoordinates() },
@@ -186,7 +184,7 @@ class RoutesController(
             elevationTarget = payload.elevationTargetM,
             startDirection = startDirection,
             directionStrict = strictDirection,
-            backtrackingProfile = backtrackingProfile,
+            strictBacktracking = strictBacktracking,
             targetMode = targetMode,
             routes = routes,
         )
@@ -436,7 +434,7 @@ class RoutesController(
         elevationTarget: Double?,
         startDirection: String?,
         directionStrict: Boolean,
-        backtrackingProfile: String,
+        strictBacktracking: Boolean,
         targetMode: String?,
         routes: List<GeneratedRouteDto>,
     ): List<RouteGenerationDiagnosticDto> {
@@ -481,16 +479,10 @@ class RoutesController(
                 message = "Strict direction can filter out otherwise valid loops.",
             )
         }
-        if (backtrackingProfile == BACKTRACKING_PROFILE_STRICT || backtrackingProfile == BACKTRACKING_PROFILE_ULTRA) {
+        if (strictBacktracking) {
             diagnostics += RouteGenerationDiagnosticDto(
                 code = "STRICT_BACKTRACKING",
                 message = "Strict anti-backtracking mode rejects routes that reuse the same axis too much.",
-            )
-        }
-        if (backtrackingProfile == BACKTRACKING_PROFILE_ULTRA) {
-            diagnostics += RouteGenerationDiagnosticDto(
-                code = "ULTRA_BACKTRACKING",
-                message = "Ultra anti-backtracking mode strongly penalizes reused axes and may return fewer routes.",
             )
         }
 
@@ -572,7 +564,7 @@ class RoutesController(
             global
         }
         val shape = recommendation.shapeScore?.let { value -> clampScore(value * 100.0) } ?: 50.0
-        val roadFitness = when {
+        val roadFitness = parseSurfaceFitnessReason(recommendation.reasons) ?: when {
             recommendation.variantType == RouteVariantType.ROAD_GRAPH -> 100.0
             recommendation.isLoop -> 82.0
             else -> 70.0
@@ -586,6 +578,20 @@ class RoutesController(
             shape = shape,
             roadFitness = roadFitness,
         )
+    }
+
+    private fun parseSurfaceFitnessReason(reasons: List<String>): Double? {
+        reasons.forEach { reason ->
+            val normalized = reason.trim()
+            if (!normalized.startsWith("Surface fitness:", ignoreCase = false)) {
+                return@forEach
+            }
+            val payload = normalized.removePrefix("Surface fitness:").trim().removeSuffix("%").trim()
+            payload.toDoubleOrNull()?.let { value ->
+                return clampScore(value)
+            }
+        }
+        return null
     }
 
     private fun cacheGeneratedRoutes(routes: List<GeneratedRouteDto>) {
@@ -634,14 +640,6 @@ class RoutesController(
         return when (normalized) {
             "N", "S", "E", "W" -> normalized
             else -> null
-        }
-    }
-
-    private fun normalizeBacktrackingProfile(value: String?, strictBacktracking: Boolean?): String {
-        val normalized = value?.trim()?.uppercase()
-        return when (normalized) {
-            BACKTRACKING_PROFILE_BALANCED, BACKTRACKING_PROFILE_STRICT, BACKTRACKING_PROFILE_ULTRA -> normalized
-            else -> if (strictBacktracking == true) BACKTRACKING_PROFILE_STRICT else BACKTRACKING_PROFILE_BALANCED
         }
     }
 

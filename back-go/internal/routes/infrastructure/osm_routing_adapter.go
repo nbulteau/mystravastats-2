@@ -23,7 +23,13 @@ const (
 	defaultOSMRoutingV3Enabled = true
 	maxOSRMRoutingCalls        = 24
 	startSnapToleranceMeters   = 900.0
+	fallbackStartSnapTolerance = 4000.0
 	directionToleranceMeters   = 120.0
+	backtrackingStartZoneM     = 2000.0
+	minAxisSegmentLengthM      = 25.0
+	minOppositeReuseMeters     = 120.0
+	defaultOSRMProfileFilePath = "./osm/region.osrm.profile"
+	fallbackOSRMProfilePath    = "../osm/region.osrm.profile"
 )
 
 type osrmRouteCandidate struct {
@@ -36,6 +42,7 @@ type osrmRouteCandidate struct {
 	maxAxisReuseRatio   float64
 	segmentDiversity    float64
 	distanceDeltaRatio  float64
+	pathRatio           float64
 	effectiveMatchScore float64
 }
 
@@ -50,16 +57,35 @@ type routeRelaxationLevel struct {
 	maxDistanceDeltaRatio float64
 }
 
+type routeSurfaceBreakdown struct {
+	pavedM   float64
+	gravelM  float64
+	trailM   float64
+	unknownM float64
+}
+
 type osrmRouteResponse struct {
 	Code    string      `json:"code"`
 	Message string      `json:"message"`
 	Routes  []osrmRoute `json:"routes"`
 }
 
+type osrmNearestResponse struct {
+	Code      string             `json:"code"`
+	Message   string             `json:"message"`
+	Waypoints []osrmNearestPoint `json:"waypoints"`
+}
+
+type osrmNearestPoint struct {
+	Distance float64   `json:"distance"`
+	Location []float64 `json:"location"`
+}
+
 type osrmRoute struct {
 	Distance float64      `json:"distance"`
 	Duration float64      `json:"duration"`
 	Geometry osrmGeometry `json:"geometry"`
+	Legs     []osrmLeg    `json:"legs"`
 }
 
 type osrmGeometry struct {
@@ -67,15 +93,27 @@ type osrmGeometry struct {
 	Coordinates [][]float64 `json:"coordinates"`
 }
 
+type osrmLeg struct {
+	Steps []osrmStep `json:"steps"`
+}
+
+type osrmStep struct {
+	Distance float64  `json:"distance"`
+	Mode     string   `json:"mode"`
+	Classes  []string `json:"classes"`
+}
+
 // OSMRoutingAdapter integrates a local OSRM endpoint as a routing engine.
 type OSMRoutingAdapter struct {
-	enabled         bool
-	v3Enabled       bool
-	debug           bool
-	baseURL         string
-	timeout         time.Duration
-	client          *http.Client
-	profileOverride string
+	enabled               bool
+	v3Enabled             bool
+	debug                 bool
+	baseURL               string
+	timeout               time.Duration
+	client                *http.Client
+	profileOverride       string
+	extractProfileEnv     string
+	extractProfileCfgFile string
 }
 
 func NewOSMRoutingAdapter() *OSMRoutingAdapter {
@@ -86,25 +124,35 @@ func NewOSMRoutingAdapter() *OSMRoutingAdapter {
 		timeoutMs = defaultOSMRoutingTimeoutMs
 	}
 	profileOverride := strings.TrimSpace(readStringEnv("OSM_ROUTING_PROFILE", ""))
+	extractProfileEnv := strings.TrimSpace(readStringEnv("OSM_ROUTING_EXTRACT_PROFILE", ""))
+	extractProfileCfgFile := strings.TrimSpace(readStringEnv("OSM_ROUTING_EXTRACT_PROFILE_FILE", defaultOSRMProfileFilePath))
 
 	return &OSMRoutingAdapter{
-		enabled:         enabled,
-		v3Enabled:       readBoolEnv("OSM_ROUTING_V3_ENABLED", defaultOSMRoutingV3Enabled),
-		debug:           readBoolEnv("OSM_ROUTING_DEBUG", false),
-		baseURL:         baseURL,
-		timeout:         time.Duration(timeoutMs) * time.Millisecond,
-		client:          &http.Client{Timeout: time.Duration(timeoutMs) * time.Millisecond},
-		profileOverride: profileOverride,
+		enabled:               enabled,
+		v3Enabled:             readBoolEnv("OSM_ROUTING_V3_ENABLED", defaultOSMRoutingV3Enabled),
+		debug:                 readBoolEnv("OSM_ROUTING_DEBUG", false),
+		baseURL:               baseURL,
+		timeout:               time.Duration(timeoutMs) * time.Millisecond,
+		client:                &http.Client{Timeout: time.Duration(timeoutMs) * time.Millisecond},
+		profileOverride:       profileOverride,
+		extractProfileEnv:     extractProfileEnv,
+		extractProfileCfgFile: extractProfileCfgFile,
 	}
 }
 
 func (adapter *OSMRoutingAdapter) HealthDetails() map[string]any {
+	extractProfile := adapter.detectExtractProfile()
+	effectiveProfile := adapter.effectiveRoutingProfile(extractProfile)
 	details := map[string]any{
-		"engine":    "osrm",
-		"enabled":   adapter.enabled,
-		"v3Enabled": adapter.v3Enabled,
-		"debug":     adapter.debug,
-		"baseUrl":   adapter.baseURL,
+		"engine":              "osrm",
+		"enabled":             adapter.enabled,
+		"v3Enabled":           adapter.v3Enabled,
+		"debug":               adapter.debug,
+		"baseUrl":             adapter.baseURL,
+		"profile":             strings.TrimSpace(adapter.profileOverride),
+		"extractProfile":      extractProfile,
+		"effectiveProfile":    effectiveProfile,
+		"supportedRouteTypes": supportedRouteTypesByProfile(extractProfile, effectiveProfile),
 	}
 	if !adapter.enabled {
 		details["status"] = "disabled"
@@ -143,7 +191,6 @@ func (adapter *OSMRoutingAdapter) HealthDetails() map[string]any {
 
 	details["status"] = "up"
 	details["reachable"] = true
-	details["profile"] = adapter.profileOverride
 	return details
 }
 
@@ -213,6 +260,7 @@ func (adapter *OSMRoutingAdapter) GenerateTargetLoops(
 			radiusKm,
 			baseBearing+rotation,
 			request.StartDirection,
+			request.RouteType,
 			callIndex,
 		)
 		routes, err := adapter.fetchOSRMRoutes(profile, waypoints)
@@ -251,6 +299,94 @@ func (adapter *OSMRoutingAdapter) GenerateTargetLoops(
 	recommendations := selectCandidatesWithRelaxation(request, candidates, rejectCounts)
 	if len(recommendations) > request.Limit {
 		recommendations = recommendations[:request.Limit]
+	}
+	if len(recommendations) == 0 && strings.TrimSpace(request.StartDirection) != "" {
+		// Last-resort fallback: if direction-constrained generation yields no route,
+		// retry once without direction so the user still gets a practical loop.
+		relaxedRequest := request
+		relaxedRequest.StartDirection = ""
+		relaxedRequest.DirectionStrict = false
+		fallbackRecommendations, fallbackErr := adapter.GenerateTargetLoops(relaxedRequest)
+		if fallbackErr == nil && len(fallbackRecommendations) > 0 {
+			for index := range fallbackRecommendations {
+				fallbackRecommendations[index].Reasons = append(
+					fallbackRecommendations[index].Reasons,
+					"Direction relaxed: no route found with requested heading",
+				)
+			}
+			return fallbackRecommendations, nil
+		}
+	}
+	if len(recommendations) == 0 && request.StrictBacktracking {
+		// Secondary fallback: strict anti-backtracking can be too restrictive in dense
+		// urban/off-road graphs. Retry once with relaxed anti-backtracking instead
+		// of returning no route at all.
+		relaxedRequest := request
+		relaxedRequest.StrictBacktracking = false
+		relaxedRequest.DirectionStrict = false
+		fallbackRecommendations, fallbackErr := adapter.GenerateTargetLoops(relaxedRequest)
+		if fallbackErr == nil && len(fallbackRecommendations) > 0 {
+			for index := range fallbackRecommendations {
+				fallbackRecommendations[index].Reasons = append(
+					fallbackRecommendations[index].Reasons,
+					"Anti-backtracking relaxed: strict mode found no valid loop",
+				)
+			}
+			return fallbackRecommendations, nil
+		}
+	}
+	if len(recommendations) == 0 {
+		// Absolute fallback: snap start to nearest routable node and retry once.
+		if snappedStart, snapDistanceM, snapped := adapter.snapToNearestRoutablePoint(profile, request.StartPoint); snapped {
+			snapOffset := haversineDistanceMeters(request.StartPoint.Lat, request.StartPoint.Lng, snappedStart.Lat, snappedStart.Lng)
+			if snapOffset > 3.0 {
+				snappedRequest := request
+				snappedRequest.StartPoint = snappedStart
+				snappedRequest.StrictBacktracking = false
+				snappedRequest.DirectionStrict = false
+				snappedRequest.StartDirection = ""
+				fallbackRecommendations, fallbackErr := adapter.GenerateTargetLoops(snappedRequest)
+				if fallbackErr == nil && len(fallbackRecommendations) > 0 {
+					for index := range fallbackRecommendations {
+						fallbackRecommendations[index].Reasons = append(
+							fallbackRecommendations[index].Reasons,
+							fmt.Sprintf(
+								"Start snapped to nearest routable point (+%.0fm from request, OSRM nearest %.0fm)",
+								snapOffset,
+								snapDistanceM,
+							),
+						)
+					}
+					return fallbackRecommendations, nil
+				}
+			}
+		}
+	}
+	if len(recommendations) == 0 {
+		// Route-type fallback chain:
+		// MTB -> Gravel -> Ride
+		// Gravel -> Ride
+		for _, fallbackType := range fallbackRouteTypes(request.RouteType) {
+			fallbackRequest := request
+			fallbackRequest.RouteType = fallbackType
+			fallbackRequest.StartDirection = ""
+			fallbackRequest.DirectionStrict = false
+			fallbackRequest.StrictBacktracking = false
+			fallbackRecommendations, fallbackErr := adapter.GenerateTargetLoops(fallbackRequest)
+			if fallbackErr == nil && len(fallbackRecommendations) > 0 {
+				for index := range fallbackRecommendations {
+					fallbackRecommendations[index].Reasons = append(
+						fallbackRecommendations[index].Reasons,
+						fmt.Sprintf(
+							"Route type fallback: %s -> %s",
+							strings.ToUpper(strings.TrimSpace(request.RouteType)),
+							fallbackType,
+						),
+					)
+				}
+				return fallbackRecommendations, nil
+			}
+		}
 	}
 	if usedLegacyFallback {
 		for index := range recommendations {
@@ -505,7 +641,13 @@ outerAnchors:
 				continue
 			}
 
-			returnVariants := adapter.buildReturnWaypointVariants(anchor, request.StartPoint, request.StartDirection, anchorIndex+outboundIndex)
+			returnVariants := adapter.buildReturnWaypointVariants(
+				anchor,
+				request.StartPoint,
+				request.StartDirection,
+				request.RouteType,
+				anchorIndex+outboundIndex,
+			)
 			maxVariants := int(math.Min(4.0, float64(len(returnVariants))))
 			for variantIndex := 0; variantIndex < maxVariants; variantIndex++ {
 				inboundRoutes, err := adapter.fetchOSRMRoutes(profile, returnVariants[variantIndex])
@@ -535,11 +677,38 @@ outerAnchors:
 					}
 
 					axisStats := evaluateAxisUsage(combinedPreview)
+					minOppositeReuseMetersForRequest := minimumOppositeReuseMetersForRequest(
+						request.RouteType,
+						request.StrictBacktracking,
+						request.DistanceTargetKm,
+					)
+					hasOppositeOutsideStart, maxAxisReuseOutsideStart, oppositeOutsideStartRatio := evaluateAxisReuseOutsideStartZone(
+						combinedPreview,
+						request.StartPoint,
+						backtrackingStartZoneM,
+						minOppositeReuseMetersForRequest,
+					)
+					maxAxisReuseOutsideStartLimit := outsideStartAxisReuseLimit(
+						request.RouteType,
+						request.StrictBacktracking,
+					)
+					oppositeOutsideStartLimit := allowedOppositeOutsideStartRatio(
+						request.RouteType,
+						request.StrictBacktracking,
+					)
 					// Construction-phase hard rules for v3:
-					// 1) never accept opposite traversal on same axis
-					// 2) cap repeated traversal of a single axis
-					if axisStats.conflictingAxisCount > 0 {
+					// 1) never accept opposite traversal on same axis outside start/finish zone
+					// 2) cap repeated traversal of a single axis outside start/finish zone
+					if request.StrictBacktracking && hasOppositeOutsideStart {
 						incrementRejectCount(rejectCounts, "NO_DISJOINT_LOOP")
+						continue
+					}
+					if !request.StrictBacktracking && oppositeOutsideStartRatio > oppositeOutsideStartLimit {
+						incrementRejectCount(rejectCounts, "NO_DISJOINT_LOOP")
+						continue
+					}
+					if maxAxisReuseOutsideStart > maxAxisReuseOutsideStartLimit {
+						incrementRejectCount(rejectCounts, "AXIS_REUSE_OUTSIDE_START")
 						continue
 					}
 					if axisStats.maxAxisReuseCount > hardAxisReuseCap {
@@ -549,9 +718,14 @@ outerAnchors:
 
 					totalDistanceKm := (outboundRoute.Distance + inboundRoute.Distance) / 1000.0
 					totalDurationSec := int(math.Round(outboundRoute.Duration + inboundRoute.Duration))
+					combinedSurface := mergeSurfaceBreakdowns(
+						computeSurfaceBreakdown(outboundRoute),
+						computeSurfaceBreakdown(inboundRoute),
+					)
 					candidate, ok := adapter.toRouteCandidateFromPreview(
 						request,
 						combinedPreview,
+						combinedSurface,
 						totalDistanceKm,
 						totalDurationSec,
 						candidateIndex,
@@ -620,13 +794,34 @@ func (adapter *OSMRoutingAdapter) sampleTargetAnchors(
 	baseBearing := startDirectionToBearing(request.StartDirection)
 	hasDirection := strings.TrimSpace(request.StartDirection) != ""
 	directionStrict := hasDirection && request.DirectionStrict
+	normalizedRouteType := strings.ToUpper(strings.TrimSpace(request.RouteType))
 	radiusBaseKm := math.Max(1.0, request.DistanceTargetKm/(2.0*math.Pi))
 	radiusMultipliers := []float64{1.00, 0.92, 1.08, 0.84, 1.16, 1.24, 0.76, 1.32, 0.68, 1.40, 1.48, 0.60}
 	rotations := []float64{0, 22, -22, 45, -45, 68, -68, 95, -95, 125, -125, 155, -155}
+	switch normalizedRouteType {
+	case "GRAVEL":
+		radiusMultipliers = []float64{1.00, 0.86, 1.14, 0.74, 1.26, 0.66, 1.34, 1.44, 0.58, 1.52}
+		rotations = []float64{0, 30, -30, 62, -62, 95, -95, 128, -128, 158, -158}
+	case "MTB", "TRAIL", "HIKE":
+		radiusMultipliers = []float64{0.90, 1.00, 0.82, 1.10, 0.72, 1.22, 0.64, 1.32, 1.42}
+		rotations = []float64{0, 34, -34, 70, -70, 108, -108, 145, -145}
+	}
 	if hasDirection {
 		rotations = []float64{0, 8, -8, 15, -15, 24, -24, 32, -32}
 		if directionStrict {
 			rotations = []float64{0, 5, -5, 10, -10, 16, -16}
+		}
+		switch normalizedRouteType {
+		case "GRAVEL":
+			rotations = []float64{0, 10, -10, 20, -20, 32, -32, 44, -44}
+			if directionStrict {
+				rotations = []float64{0, 6, -6, 12, -12, 18, -18, 26, -26}
+			}
+		case "MTB", "TRAIL", "HIKE":
+			rotations = []float64{0, 12, -12, 24, -24, 38, -38, 52, -52}
+			if directionStrict {
+				rotations = []float64{0, 8, -8, 16, -16, 24, -24, 34, -34}
+			}
 		}
 	}
 
@@ -654,12 +849,28 @@ func (adapter *OSMRoutingAdapter) buildReturnWaypointVariants(
 	anchor routesDomain.Coordinates,
 	start routesDomain.Coordinates,
 	startDirection string,
+	routeType string,
 	seed int,
 ) [][]routesDomain.Coordinates {
 	distanceKm := math.Max(1.0, haversineDistanceMeters(anchor.Lat, anchor.Lng, start.Lat, start.Lng)/1000.0)
 	directBearing := osrmBearingDegrees(anchor.Lat, anchor.Lng, start.Lat, start.Lng)
 	offsets := []float64{58, -58, 92, -92, 125, -125, 155, -155}
 	scales := []float64{0.48, 0.48, 0.56, 0.56, 0.68, 0.68, 0.80, 0.80}
+	directionBlend := 0.28
+	switch strings.ToUpper(strings.TrimSpace(routeType)) {
+	case "GRAVEL":
+		offsets = []float64{72, -72, 108, -108, 140, -140, 168, -168}
+		scales = []float64{0.56, 0.56, 0.66, 0.66, 0.78, 0.78, 0.90, 0.90}
+		directionBlend = 0.20
+	case "MTB", "TRAIL", "HIKE":
+		offsets = []float64{78, -78, 116, -116, 148, -148, 174, -174}
+		scales = []float64{0.60, 0.60, 0.72, 0.72, 0.84, 0.84, 0.96, 0.96}
+		directionBlend = 0.16
+	case "RIDE":
+		offsets = []float64{52, -52, 84, -84, 118, -118, 150, -150}
+		scales = []float64{0.42, 0.42, 0.50, 0.50, 0.62, 0.62, 0.74, 0.74}
+		directionBlend = 0.34
+	}
 	variants := make([][]routesDomain.Coordinates, 0, len(offsets)+1)
 	// Keep direct route as first fallback.
 	variants = append(variants, []routesDomain.Coordinates{anchor, start})
@@ -677,7 +888,7 @@ func (adapter *OSMRoutingAdapter) buildReturnWaypointVariants(
 		// aligned with requested direction while still avoiding the outbound corridor.
 		if strings.TrimSpace(startDirection) != "" {
 			dirBearing := startDirectionToBearing(startDirection)
-			pivotBearing = normalizeBearing(pivotBearing*0.72 + dirBearing*0.28)
+			pivotBearing = normalizeBearing(pivotBearing*(1.0-directionBlend) + dirBearing*directionBlend)
 		}
 		pivot := destinationFromBearing(anchor, distanceKm*scale, pivotBearing)
 		variants = append(variants, []routesDomain.Coordinates{anchor, pivot, start})
@@ -769,6 +980,7 @@ func (adapter *OSMRoutingAdapter) syntheticLoopWaypoints(
 	radiusKm float64,
 	initialBearing float64,
 	startDirection string,
+	routeType string,
 	callIndex int,
 ) []routesDomain.Coordinates {
 	// We rotate through multiple waypoint "shapes" so OSRM gets distinct
@@ -818,6 +1030,81 @@ func (adapter *OSMRoutingAdapter) syntheticLoopWaypoints(
 		},
 	}
 	hasDirection := strings.TrimSpace(startDirection) != ""
+	switch strings.ToUpper(strings.TrimSpace(routeType)) {
+	case "GRAVEL":
+		circularPatterns = []struct {
+			bearingOffsets []float64
+			radiusScales   []float64
+		}{
+			{
+				bearingOffsets: []float64{0, 78, 146, 214, 292},
+				radiusScales:   []float64{1.00, 1.18, 0.88, 1.14, 0.82},
+			},
+			{
+				bearingOffsets: []float64{0, 62, 124, 186, 248, 310},
+				radiusScales:   []float64{1.06, 0.94, 1.22, 0.86, 1.14, 0.80},
+			},
+		}
+		directionalPatterns = []struct {
+			bearingOffsets []float64
+			radiusScales   []float64
+		}{
+			{
+				bearingOffsets: []float64{0, 24, 46, 68, 92, -22, -44, -66},
+				radiusScales:   []float64{1.20, 1.12, 1.00, 0.92, 0.84, 1.04, 0.92, 0.80},
+			},
+			{
+				bearingOffsets: []float64{8, 30, 52, 76, 98, -18, -40, -62, -84},
+				radiusScales:   []float64{1.24, 1.16, 1.04, 0.94, 0.86, 1.08, 0.96, 0.86, 0.78},
+			},
+		}
+	case "MTB", "TRAIL", "HIKE":
+		circularPatterns = []struct {
+			bearingOffsets []float64
+			radiusScales   []float64
+		}{
+			{
+				bearingOffsets: []float64{0, 66, 132, 198, 264, 330},
+				radiusScales:   []float64{1.00, 1.20, 0.90, 1.16, 0.84, 1.08},
+			},
+		}
+		directionalPatterns = []struct {
+			bearingOffsets []float64
+			radiusScales   []float64
+		}{
+			{
+				bearingOffsets: []float64{0, 26, 50, 74, 98, -24, -48, -72},
+				radiusScales:   []float64{1.22, 1.14, 1.02, 0.92, 0.84, 1.06, 0.94, 0.82},
+			},
+		}
+	case "RIDE":
+		circularPatterns = []struct {
+			bearingOffsets []float64
+			radiusScales   []float64
+		}{
+			{
+				bearingOffsets: []float64{0, 110, 220, 300},
+				radiusScales:   []float64{1.00, 1.04, 0.96, 1.00},
+			},
+			{
+				bearingOffsets: []float64{0, 95, 190, 285},
+				radiusScales:   []float64{1.08, 0.98, 1.02, 0.92},
+			},
+		}
+		directionalPatterns = []struct {
+			bearingOffsets []float64
+			radiusScales   []float64
+		}{
+			{
+				bearingOffsets: []float64{0, 20, 40, -20, -40},
+				radiusScales:   []float64{1.14, 1.04, 0.94, 1.00, 0.88},
+			},
+			{
+				bearingOffsets: []float64{6, 26, 46, -14, -34, -54},
+				radiusScales:   []float64{1.18, 1.08, 0.96, 1.02, 0.90, 0.82},
+			},
+		}
+	}
 	pattern := circularPatterns[callIndex%len(circularPatterns)]
 	if hasDirection {
 		pattern = directionalPatterns[callIndex%len(directionalPatterns)]
@@ -851,7 +1138,7 @@ func (adapter *OSMRoutingAdapter) fetchOSRMRoutes(
 		coordinates = append(coordinates, fmt.Sprintf("%.6f,%.6f", point.Lng, point.Lat))
 	}
 	url := fmt.Sprintf(
-		"%s/route/v1/%s/%s?alternatives=true&steps=false&overview=full&geometries=geojson&continue_straight=true",
+		"%s/route/v1/%s/%s?alternatives=true&steps=true&overview=full&geometries=geojson&continue_straight=true",
 		adapter.baseURL,
 		profile,
 		strings.Join(coordinates, ";"),
@@ -884,6 +1171,50 @@ func (adapter *OSMRoutingAdapter) fetchOSRMRoutes(
 	return payload.Routes, nil
 }
 
+func (adapter *OSMRoutingAdapter) snapToNearestRoutablePoint(
+	profile string,
+	point routesDomain.Coordinates,
+) (routesDomain.Coordinates, float64, bool) {
+	url := fmt.Sprintf(
+		"%s/nearest/v1/%s/%.6f,%.6f?number=1",
+		adapter.baseURL,
+		profile,
+		point.Lng,
+		point.Lat,
+	)
+
+	request, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return routesDomain.Coordinates{}, 0.0, false
+	}
+	response, err := adapter.client.Do(request)
+	if err != nil {
+		return routesDomain.Coordinates{}, 0.0, false
+	}
+	defer func() { _ = response.Body.Close() }()
+
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		return routesDomain.Coordinates{}, 0.0, false
+	}
+
+	var payload osrmNearestResponse
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		return routesDomain.Coordinates{}, 0.0, false
+	}
+	if strings.ToLower(strings.TrimSpace(payload.Code)) != "ok" || len(payload.Waypoints) == 0 {
+		return routesDomain.Coordinates{}, 0.0, false
+	}
+	location := payload.Waypoints[0].Location
+	if len(location) < 2 {
+		return routesDomain.Coordinates{}, 0.0, false
+	}
+	snapped := routesDomain.Coordinates{
+		Lat: location[1],
+		Lng: location[0],
+	}
+	return snapped, math.Max(0.0, payload.Waypoints[0].Distance), true
+}
+
 func (adapter *OSMRoutingAdapter) toRouteCandidate(
 	request application.RoutingEngineRequest,
 	route osrmRoute,
@@ -904,12 +1235,21 @@ func (adapter *OSMRoutingAdapter) toRouteCandidate(
 	if durationSec <= 0 {
 		durationSec = int(math.Round(distanceKm * 180.0))
 	}
-	return adapter.toRouteCandidateFromPreview(request, points, distanceKm, durationSec, index, rejectCounts)
+	return adapter.toRouteCandidateFromPreview(
+		request,
+		points,
+		computeSurfaceBreakdown(route),
+		distanceKm,
+		durationSec,
+		index,
+		rejectCounts,
+	)
 }
 
 func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreview(
 	request application.RoutingEngineRequest,
 	points [][]float64,
+	surfaceBreakdown routeSurfaceBreakdown,
 	distanceKm float64,
 	durationSec int,
 	index int,
@@ -919,9 +1259,13 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreview(
 		incrementRejectCount(rejectCounts, "INVALID_COORDINATES")
 		return osrmRouteCandidate{}, false
 	}
+	startOffsetMeters := haversineDistanceMeters(points[0][0], points[0][1], request.StartPoint.Lat, request.StartPoint.Lng)
 	if !startsNearRequestedStart(points, request.StartPoint, startSnapToleranceMeters) {
-		incrementRejectCount(rejectCounts, "START_TOO_FAR")
-		return osrmRouteCandidate{}, false
+		// In fallback mode, allow larger snap distance to avoid returning no route.
+		if request.StrictBacktracking || !startsNearRequestedStart(points, request.StartPoint, fallbackStartSnapTolerance) {
+			incrementRejectCount(rejectCounts, "START_TOO_FAR")
+			return osrmRouteCandidate{}, false
+		}
 	}
 	start := &routesDomain.Coordinates{Lat: points[0][0], Lng: points[0][1]}
 	end := &routesDomain.Coordinates{Lat: points[len(points)-1][0], Lng: points[len(points)-1][1]}
@@ -936,8 +1280,58 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreview(
 	maxAxisReuseCount := axisStats.maxAxisReuseCount
 	maxAxisReuseRatio := axisStats.maxAxisReuseRatio()
 	diversityRatio := axisStats.segmentDiversityRatio()
-	distanceDeltaRatio := math.Abs(distanceKm-request.DistanceTargetKm) / math.Max(1.0, request.DistanceTargetKm)
-	if backtrackingRatio > 0.32 || corridorOverlap > 0.30 || edgeReuse > 0.28 || maxAxisReuseCount > 8 {
+	distanceDeltaRatio := distanceShortfallRatio(distanceKm, request.DistanceTargetKm)
+	distanceOvershootRatioValue := distanceOvershootRatio(distanceKm, request.DistanceTargetKm)
+	minOppositeReuseMetersForRequest := minimumOppositeReuseMetersForRequest(
+		request.RouteType,
+		request.StrictBacktracking,
+		request.DistanceTargetKm,
+	)
+	hasOppositeOutsideStart, maxAxisReuseOutsideStart, oppositeOutsideStartRatio := evaluateAxisReuseOutsideStartZone(
+		points,
+		request.StartPoint,
+		backtrackingStartZoneM,
+		minOppositeReuseMetersForRequest,
+	)
+	maxAxisReuseOutsideStartLimit := outsideStartAxisReuseLimit(
+		request.RouteType,
+		request.StrictBacktracking,
+	)
+	oppositeOutsideStartLimit := allowedOppositeOutsideStartRatio(
+		request.RouteType,
+		request.StrictBacktracking,
+	)
+	if request.StrictBacktracking && hasOppositeOutsideStart {
+		incrementRejectCount(rejectCounts, "STRICT_BACKTRACKING_OUTSIDE_START")
+		return osrmRouteCandidate{}, false
+	}
+	if !request.StrictBacktracking && oppositeOutsideStartRatio > oppositeOutsideStartLimit {
+		incrementRejectCount(rejectCounts, "BACKTRACKING_FILTERED")
+		return osrmRouteCandidate{}, false
+	}
+	if maxAxisReuseOutsideStart > maxAxisReuseOutsideStartLimit {
+		incrementRejectCount(rejectCounts, "AXIS_REUSE_OUTSIDE_START")
+		return osrmRouteCandidate{}, false
+	}
+	if !meetsMinimumDistance(distanceKm, request.DistanceTargetKm) {
+		incrementRejectCount(rejectCounts, "DISTANCE_BELOW_MINIMUM")
+		return osrmRouteCandidate{}, false
+	}
+	maxBacktrackingReject := 0.32
+	maxCorridorReject := 0.30
+	maxEdgeReuseReject := 0.28
+	maxAxisReuseReject := 8
+	if !request.StrictBacktracking {
+		// Fallback pass: keep anti-retrace guardrails, but avoid returning 0 route.
+		maxBacktrackingReject = 0.60
+		maxCorridorReject = 0.55
+		maxEdgeReuseReject = 0.55
+		maxAxisReuseReject = 14
+	}
+	if backtrackingRatio > maxBacktrackingReject ||
+		corridorOverlap > maxCorridorReject ||
+		edgeReuse > maxEdgeReuseReject ||
+		maxAxisReuseCount > maxAxisReuseReject {
 		incrementRejectCount(rejectCounts, "EXCESSIVE_RETRACE")
 		return osrmRouteCandidate{}, false
 	}
@@ -960,13 +1354,19 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreview(
 
 	reasons := []string{
 		"Generated with OSM road graph (OSRM)",
-		fmt.Sprintf("Distance delta: %s", formatDistanceDelta(distanceKm-request.DistanceTargetKm)),
+		fmt.Sprintf("Distance vs minimum target: %s", formatDistanceDelta(distanceKm-request.DistanceTargetKm)),
 		fmt.Sprintf("Segment diversity: %.0f%% unique edges", diversityRatio*100.0),
 		fmt.Sprintf("Directional alignment: %.0f%%", (1.0-directionPenalty)*100.0),
 		fmt.Sprintf("Backtracking: %.0f%%", backtrackingRatio*100.0),
 		fmt.Sprintf("Corridor overlap: %.0f%%", corridorOverlap*100.0),
 		fmt.Sprintf("Axis retrace: %.0f%%", edgeReuse*100.0),
 		fmt.Sprintf("Max axis reuse: %dx", maxAxisReuseCount),
+		fmt.Sprintf("Max axis reuse outside start zone: %dx (limit %dx)", maxAxisReuseOutsideStart, maxAxisReuseOutsideStartLimit),
+		fmt.Sprintf(
+			"Opposite-axis overlap outside start zone: %.0f%% (limit %.0f%%)",
+			oppositeOutsideStartRatio*100.0,
+			allowedOppositeOutsideStartRatio(request.RouteType, request.StrictBacktracking)*100.0,
+		),
 	}
 	if request.ElevationTargetM != nil {
 		reasons = append(reasons, fmt.Sprintf("Elevation estimate: %s", formatElevationDelta(elevationGainM-*request.ElevationTargetM)))
@@ -974,7 +1374,36 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreview(
 	if request.StartDirection != "" {
 		reasons = append(reasons, fmt.Sprintf("Direction: %s", startDirectionLabel(request.StartDirection)))
 	}
-	reasons = append(reasons, "Anti-backtracking: native ultra")
+	if !request.StrictBacktracking && startOffsetMeters > startSnapToleranceMeters {
+		reasons = append(
+			reasons,
+			fmt.Sprintf(
+				"Start offset accepted in fallback mode: %.0fm (normal limit %.0fm)",
+				startOffsetMeters,
+				startSnapToleranceMeters,
+			),
+		)
+	}
+	surfaceScore := surfaceMatchScore(request.RouteType, surfaceBreakdown)
+	pathRatio := surfaceBreakdown.pathRatio()
+	requiredPathRatio := requiredPathRatioForRequest(request.RouteType, request.StrictBacktracking)
+	normalizedRouteType := strings.ToUpper(strings.TrimSpace(request.RouteType))
+	if normalizedRouteType == "GRAVEL" && pathRatio < requiredPathRatio {
+		incrementRejectCount(rejectCounts, "GRAVEL_MIN_PATH_RATIO")
+		return osrmRouteCandidate{}, false
+	}
+	reasons = append(
+		reasons,
+		fmt.Sprintf("Surface mix: %s", formatSurfaceBreakdown(surfaceBreakdown)),
+		fmt.Sprintf("Path ratio: %.0f%%", pathRatio*100.0),
+		fmt.Sprintf("Surface fitness: %.0f%%", surfaceScore),
+		"Surface source: OSRM step classes and mode",
+	)
+	if request.StrictBacktracking {
+		reasons = append(reasons, "Anti-backtracking: native ultra")
+	} else {
+		reasons = append(reasons, "Anti-backtracking: relaxed fallback")
+	}
 
 	recommendation := routesDomain.RouteRecommendation{
 		RouteID: routeID,
@@ -1007,7 +1436,11 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreview(
 		edgeReuse*150.0 -
 		maxAxisReuseRatio*180.0 -
 		math.Max(0.0, minSegmentDiversityRatio(request.RouteType)-diversityRatio)*35.0 -
-		math.Max(0.0, distanceDeltaRatio-0.15)*45.0)
+		math.Max(0.0, distanceDeltaRatio-0.15)*45.0 +
+		// Overshoot is penalized softly: lower impact than shortfall.
+		-math.Max(0.0, distanceOvershootRatioValue-0.25)*12.0 +
+		(surfaceScore-70.0)*surfaceScoreWeight(request.RouteType) +
+		pathPreferenceBonus(request.RouteType, pathRatio))
 	// effectiveScore is an internal ranking score (not API score):
 	// it aggressively penalizes backtracking and bad directional fit to keep
 	// generated loops practical even in relaxed levels.
@@ -1022,6 +1455,7 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreview(
 		maxAxisReuseRatio:   maxAxisReuseRatio,
 		segmentDiversity:    diversityRatio,
 		distanceDeltaRatio:  distanceDeltaRatio,
+		pathRatio:           pathRatio,
 		effectiveMatchScore: effectiveScore,
 	}, true
 }
@@ -1055,6 +1489,10 @@ func selectCandidatesWithRelaxation(
 		}
 		if left.maxAxisReuseCount != right.maxAxisReuseCount {
 			return left.maxAxisReuseCount < right.maxAxisReuseCount
+		}
+		normalizedRouteType := strings.ToUpper(strings.TrimSpace(request.RouteType))
+		if (normalizedRouteType == "MTB" || normalizedRouteType == "GRAVEL") && left.pathRatio != right.pathRatio {
+			return left.pathRatio > right.pathRatio
 		}
 		if left.effectiveMatchScore != right.effectiveMatchScore {
 			return left.effectiveMatchScore > right.effectiveMatchScore
@@ -1136,16 +1574,16 @@ func selectCandidatesWithRelaxation(
 	// ranked loops with softer anti-overlap limits instead of returning zero.
 	softAxisCap, directionalAxisCap := bestEffortAxisReuseCaps(request.DistanceTargetKm, hasDirection, request.DirectionStrict)
 	if len(selected) < limit {
-		softMaxBacktracking := 0.10
-		softMaxCorridor := 0.08
-		softMaxEdgeReuse := 0.08
+		softMaxBacktracking := 0.16
+		softMaxCorridor := 0.12
+		softMaxEdgeReuse := 0.12
 		softMaxDirection := 1.0
 		// Directional generation naturally creates more corridor pressure.
 		// We relax slightly, but stay far from permissive settings.
 		if hasDirection {
-			softMaxBacktracking = 0.14
-			softMaxCorridor = 0.11
-			softMaxEdgeReuse = 0.10
+			softMaxBacktracking = 0.20
+			softMaxCorridor = 0.16
+			softMaxEdgeReuse = 0.14
 			softMaxDirection = 0.40
 		}
 		selected = appendBestEffortCandidates(
@@ -1158,6 +1596,7 @@ func selectCandidatesWithRelaxation(
 			softMaxCorridor,
 			softMaxEdgeReuse,
 			softAxisCap,
+			0.20,
 			"best-effort-soft",
 		)
 	}
@@ -1174,8 +1613,24 @@ func selectCandidatesWithRelaxation(
 			0.14,
 			0.13,
 			directionalAxisCap,
+			0.25,
 			"directional-best-effort",
 		)
+	}
+	if len(selected) == 0 {
+		// Absolute last resort: return best-ranked generated candidates rather than none.
+		// This keeps UX responsive while preserving all generation diagnostics in reasons.
+		for _, candidate := range sortedCandidates {
+			if len(selected) >= limit {
+				break
+			}
+			recommendation := candidate.recommendation
+			recommendation.Reasons = append(
+				recommendation.Reasons,
+				"Selection profile: emergency-fallback (constraints fully relaxed)",
+			)
+			selected = append(selected, recommendation)
+		}
 	}
 
 	return selected
@@ -1191,6 +1646,7 @@ func appendBestEffortCandidates(
 	maxCorridorOverlap float64,
 	maxEdgeReuseRatio float64,
 	maxAxisReuseCount int,
+	maxDistanceShortfallRatio float64,
 	profileName string,
 ) []routesDomain.RouteRecommendation {
 	for _, candidate := range sortedCandidates {
@@ -1214,6 +1670,9 @@ func appendBestEffortCandidates(
 			continue
 		}
 		if candidate.maxAxisReuseCount > maxAxisReuseCount {
+			continue
+		}
+		if candidate.distanceDeltaRatio > maxDistanceShortfallRatio {
 			continue
 		}
 		recommendation := candidate.recommendation
@@ -1243,7 +1702,7 @@ func buildRouteRelaxationLevels(routeType string, hasDirection bool, directionSt
 		}
 	}
 	// Native ultra anti-backtracking policy (always-on).
-	baseMinDiversity = math.Min(0.95, baseMinDiversity+0.12)
+	baseMinDiversity = math.Min(0.95, baseMinDiversity+0.06)
 	strictBacktrackingRatio := 0.0010
 	balancedBacktrackingRatio := 0.0030
 	relaxedBacktrackingRatio := 0.0070
@@ -1267,7 +1726,7 @@ func buildRouteRelaxationLevels(routeType string, hasDirection bool, directionSt
 			maxEdgeReuseRatio:     strictEdgeReuseRatio,
 			maxAxisReuseCount:     strictAxisCap,
 			minSegmentDiversity:   baseMinDiversity,
-			maxDistanceDeltaRatio: 0.35,
+			maxDistanceDeltaRatio: 0.04,
 		},
 		{
 			name:                  "balanced",
@@ -1277,7 +1736,7 @@ func buildRouteRelaxationLevels(routeType string, hasDirection bool, directionSt
 			maxEdgeReuseRatio:     balancedEdgeReuseRatio,
 			maxAxisReuseCount:     balancedAxisCap,
 			minSegmentDiversity:   math.Max(0.22, baseMinDiversity-0.08),
-			maxDistanceDeltaRatio: 0.60,
+			maxDistanceDeltaRatio: 0.08,
 		},
 		{
 			name:                  "relaxed",
@@ -1287,7 +1746,7 @@ func buildRouteRelaxationLevels(routeType string, hasDirection bool, directionSt
 			maxEdgeReuseRatio:     relaxedEdgeReuseRatio,
 			maxAxisReuseCount:     relaxedAxisCap,
 			minSegmentDiversity:   math.Max(0.12, baseMinDiversity-0.18),
-			maxDistanceDeltaRatio: 1.00,
+			maxDistanceDeltaRatio: 0.14,
 		},
 		{
 			name:                  "fallback",
@@ -1297,7 +1756,7 @@ func buildRouteRelaxationLevels(routeType string, hasDirection bool, directionSt
 			maxEdgeReuseRatio:     fallbackEdgeReuseRatio,
 			maxAxisReuseCount:     fallbackAxisCap,
 			minSegmentDiversity:   0.08,
-			maxDistanceDeltaRatio: 2.20,
+			maxDistanceDeltaRatio: 0.20,
 		},
 	}
 }
@@ -1395,6 +1854,175 @@ func formatRejectCounts(rejectCounts map[string]int) string {
 		parts = append(parts, fmt.Sprintf("%s=%d", key, rejectCounts[key]))
 	}
 	return strings.Join(parts, ", ")
+}
+
+func computeSurfaceBreakdown(route osrmRoute) routeSurfaceBreakdown {
+	breakdown := routeSurfaceBreakdown{}
+	for _, leg := range route.Legs {
+		for _, step := range leg.Steps {
+			distance := math.Max(0.0, step.Distance)
+			if distance <= 0 {
+				continue
+			}
+			switch classifySurfaceBucket(step) {
+			case "paved":
+				breakdown.pavedM += distance
+			case "gravel":
+				breakdown.gravelM += distance
+			case "trail":
+				breakdown.trailM += distance
+			default:
+				breakdown.unknownM += distance
+			}
+		}
+	}
+	// If no step-level data is available, keep an explicit "unknown" fallback.
+	if breakdown.totalDistanceM() <= 0 && route.Distance > 0 {
+		breakdown.unknownM = route.Distance
+	}
+	return breakdown
+}
+
+func mergeSurfaceBreakdowns(left routeSurfaceBreakdown, right routeSurfaceBreakdown) routeSurfaceBreakdown {
+	return routeSurfaceBreakdown{
+		pavedM:   left.pavedM + right.pavedM,
+		gravelM:  left.gravelM + right.gravelM,
+		trailM:   left.trailM + right.trailM,
+		unknownM: left.unknownM + right.unknownM,
+	}
+}
+
+func classifySurfaceBucket(step osrmStep) string {
+	mode := strings.ToLower(strings.TrimSpace(step.Mode))
+	if strings.Contains(mode, "pushing") || mode == "foot" || mode == "walking" {
+		return "trail"
+	}
+	classes := make(map[string]struct{}, len(step.Classes))
+	for _, rawClass := range step.Classes {
+		normalized := strings.ToLower(strings.TrimSpace(rawClass))
+		if normalized == "" {
+			continue
+		}
+		classes[normalized] = struct{}{}
+	}
+	if _, hasFerry := classes["ferry"]; hasFerry {
+		return "unknown"
+	}
+	if hasAnyClass(classes, "path", "track", "steps", "bridleway", "cycleway_unpaved") {
+		return "trail"
+	}
+	if hasAnyClass(classes, "unpaved", "gravel", "dirt", "ground", "earth", "compacted", "fine_gravel", "sand", "mud") {
+		return "gravel"
+	}
+	if mode == "cycling" || mode == "driving" || mode == "running" {
+		return "paved"
+	}
+	return "unknown"
+}
+
+func hasAnyClass(classes map[string]struct{}, keys ...string) bool {
+	for _, key := range keys {
+		if _, exists := classes[key]; exists {
+			return true
+		}
+	}
+	return false
+}
+
+func (breakdown routeSurfaceBreakdown) totalDistanceM() float64 {
+	return breakdown.pavedM + breakdown.gravelM + breakdown.trailM + breakdown.unknownM
+}
+
+func (breakdown routeSurfaceBreakdown) normalizedRatios() (float64, float64, float64, float64) {
+	total := breakdown.totalDistanceM()
+	if total <= 0 {
+		return 0, 0, 0, 1
+	}
+	return breakdown.pavedM / total, breakdown.gravelM / total, breakdown.trailM / total, breakdown.unknownM / total
+}
+
+func (breakdown routeSurfaceBreakdown) pathRatio() float64 {
+	_, gravel, trail, _ := breakdown.normalizedRatios()
+	return clampUnit(gravel + trail)
+}
+
+func formatSurfaceBreakdown(breakdown routeSurfaceBreakdown) string {
+	paved, gravel, trail, unknown := breakdown.normalizedRatios()
+	return fmt.Sprintf(
+		"paved %.0f%%, gravel %.0f%%, trail %.0f%%, unknown %.0f%%",
+		paved*100.0,
+		gravel*100.0,
+		trail*100.0,
+		unknown*100.0,
+	)
+}
+
+func surfaceMatchScore(routeType string, breakdown routeSurfaceBreakdown) float64 {
+	paved, gravel, trail, unknown := breakdown.normalizedRatios()
+	pathRatio := clampUnit(gravel + trail)
+
+	targetPaved := 0.60
+	targetGravel := 0.25
+	targetTrail := 0.15
+	switch strings.ToUpper(strings.TrimSpace(routeType)) {
+	case "RIDE":
+		targetPaved, targetGravel, targetTrail = 0.92, 0.06, 0.02
+	case "GRAVEL":
+		// Gravel contract:
+		// - minimum 25% paths (gravel + trail)
+		// - no hard upper bound once this minimum is reached
+		shortfall := math.Max(0.0, 0.25-pathRatio)
+		pavedExcess := math.Max(0.0, paved-0.75)
+		penalty := shortfall*220.0 + pavedExcess*36.0 + unknown*22.0
+		return clampOSMScore(100.0 - penalty)
+	case "MTB":
+		// MTB should prefer paths as much as possible.
+		pavedExcess := math.Max(0.0, paved-0.20)
+		score := 28.0 + pathRatio*74.0 - unknown*24.0 - pavedExcess*48.0
+		return clampOSMScore(score)
+	case "RUN":
+		targetPaved, targetGravel, targetTrail = 0.50, 0.25, 0.25
+	case "TRAIL", "HIKE":
+		targetPaved, targetGravel, targetTrail = 0.12, 0.28, 0.60
+	}
+
+	penalty := math.Abs(paved-targetPaved)*85.0 +
+		math.Abs(gravel-targetGravel)*78.0 +
+		math.Abs(trail-targetTrail)*92.0 +
+		unknown*35.0
+	return clampOSMScore(100.0 - penalty)
+}
+
+func surfaceScoreWeight(routeType string) float64 {
+	switch strings.ToUpper(strings.TrimSpace(routeType)) {
+	case "RIDE":
+		return 1.10
+	case "GRAVEL":
+		return 1.25
+	case "MTB":
+		return 1.70
+	case "TRAIL", "HIKE":
+		return 1.40
+	default:
+		return 0.45
+	}
+}
+
+func pathPreferenceBonus(routeType string, pathRatio float64) float64 {
+	normalizedType := strings.ToUpper(strings.TrimSpace(routeType))
+	switch normalizedType {
+	case "RIDE":
+		// Road rides should avoid off-road sections as much as possible.
+		return (0.10 - pathRatio) * 35.0
+	case "MTB":
+		// Strongly reward path-heavy candidates for MTB.
+		return (pathRatio - 0.50) * 60.0
+	case "GRAVEL":
+		// Encourage higher path ratio once the 25% minimum is reached.
+		return (pathRatio - 0.25) * 30.0
+	default:
+		return 0.0
+	}
 }
 
 func activityTypeFromRouteType(routeType string) business.ActivityType {
@@ -2137,6 +2765,83 @@ func extractAxisTraversals(points [][]float64) []axisTraversal {
 	return traversals
 }
 
+func evaluateAxisReuseOutsideStartZone(
+	points [][]float64,
+	start routesDomain.Coordinates,
+	startZoneMeters float64,
+	minOppositeMeters float64,
+) (bool, int, float64) {
+	if len(points) < 2 {
+		return false, 0, 0.0
+	}
+
+	type localAxisUsage struct {
+		count         int
+		directionMask uint8
+		forwardMeters float64
+		reverseMeters float64
+	}
+
+	axisUsage := make(map[string]localAxisUsage, len(points))
+	maxReuseOutsideStart := 0
+	outsideTotalMeters := 0.0
+
+	for index := 0; index < len(points)-1; index++ {
+		left := points[index]
+		right := points[index+1]
+		if len(left) < 2 || len(right) < 2 {
+			continue
+		}
+
+		distFrom := haversineDistanceMeters(left[0], left[1], start.Lat, start.Lng)
+		distTo := haversineDistanceMeters(right[0], right[1], start.Lat, start.Lng)
+		if math.Min(distFrom, distTo) <= startZoneMeters {
+			// Reuse around start/finish hub is allowed.
+			continue
+		}
+
+		fromID := quantizedPointKey(left[0], left[1])
+		toID := quantizedPointKey(right[0], right[1])
+		if fromID == "" || toID == "" || fromID == toID {
+			continue
+		}
+
+		axisID := canonicalEdgeKey(fromID, toID)
+		segmentMeters := haversineDistanceMeters(left[0], left[1], right[0], right[1])
+		if segmentMeters < minAxisSegmentLengthM {
+			continue
+		}
+		current := axisUsage[axisID]
+		current.count++
+		if fromID < toID {
+			current.directionMask |= 0b01
+			current.forwardMeters += segmentMeters
+		} else {
+			current.directionMask |= 0b10
+			current.reverseMeters += segmentMeters
+		}
+		axisUsage[axisID] = current
+		outsideTotalMeters += segmentMeters
+		if current.count > maxReuseOutsideStart {
+			maxReuseOutsideStart = current.count
+		}
+	}
+
+	oppositeMeters := 0.0
+	for _, usage := range axisUsage {
+		if usage.directionMask == 0b11 {
+			oppositeMeters += math.Min(usage.forwardMeters, usage.reverseMeters)
+		}
+	}
+	if outsideTotalMeters <= 0 {
+		return false, maxReuseOutsideStart, 0.0
+	}
+	oppositeRatio := oppositeMeters / outsideTotalMeters
+	// Ignore tiny opposite-direction artifacts caused by local snap/geometry noise.
+	minimum := math.Max(minOppositeReuseMeters, minOppositeMeters)
+	return oppositeMeters >= minimum, maxReuseOutsideStart, clampUnit(oppositeRatio)
+}
+
 func (summary axisUsageSummary) oppositeTraversalRatio() float64 {
 	if summary.totalTraversals == 0 {
 		return 0.0
@@ -2192,22 +2897,129 @@ func hasMinimumSegmentDiversity(points [][]float64, routeType string) bool {
 func minSegmentDiversityRatio(routeType string) float64 {
 	switch strings.ToUpper(strings.TrimSpace(routeType)) {
 	case "MTB":
-		return 0.40
+		return 0.55
 	case "GRAVEL":
-		return 0.42
+		return 0.54
 	case "RUN":
 		return 0.35
 	case "TRAIL":
-		return 0.30
+		return 0.46
 	case "HIKE":
-		return 0.28
+		return 0.40
+	case "WALK":
+		return 0.42
 	default:
-		return 0.45
+		return 0.32
 	}
 }
 
 func segmentDiversityRatio(points [][]float64) float64 {
 	return evaluateAxisUsage(points).segmentDiversityRatio()
+}
+
+func distanceShortfallRatio(distanceKm float64, targetKm float64) float64 {
+	if targetKm <= 0 {
+		return 0
+	}
+	shortfall := targetKm - distanceKm
+	if shortfall <= 0 {
+		return 0
+	}
+	return shortfall / math.Max(targetKm, 1.0)
+}
+
+func distanceOvershootRatio(distanceKm float64, targetKm float64) float64 {
+	if targetKm <= 0 {
+		return 0
+	}
+	overshoot := distanceKm - targetKm
+	if overshoot <= 0 {
+		return 0
+	}
+	return overshoot / math.Max(targetKm, 1.0)
+}
+
+func outsideStartAxisReuseLimit(routeType string, strict bool) int {
+	if strict {
+		// Strict mode: outside the start/finish zone, an axis cannot be reused.
+		return 1
+	}
+	switch strings.ToUpper(strings.TrimSpace(routeType)) {
+	case "MTB", "TRAIL", "HIKE":
+		return 3
+	default:
+		return 2
+	}
+}
+
+func allowedOppositeOutsideStartRatio(routeType string, strict bool) float64 {
+	if strict {
+		// Strict mode forbids opposite-direction reuse outside start zone.
+		return 0.0
+	}
+	switch strings.ToUpper(strings.TrimSpace(routeType)) {
+	case "MTB", "TRAIL", "HIKE":
+		return 0.08
+	case "GRAVEL":
+		return 0.06
+	default:
+		return 0.04
+	}
+}
+
+func minimumOppositeReuseMetersForRequest(routeType string, strict bool, distanceTargetKm float64) float64 {
+	base := math.Max(minOppositeReuseMeters, distanceTargetKm*6.0)
+	if strict {
+		switch strings.ToUpper(strings.TrimSpace(routeType)) {
+		case "MTB", "TRAIL", "HIKE":
+			return math.Max(base, 320.0)
+		case "GRAVEL":
+			return math.Max(base, 280.0)
+		default:
+			return math.Max(base, 240.0)
+		}
+	}
+	switch strings.ToUpper(strings.TrimSpace(routeType)) {
+	case "MTB", "TRAIL", "HIKE":
+		return math.Max(base, 900.0)
+	case "GRAVEL":
+		return math.Max(base, 700.0)
+	default:
+		return math.Max(base, 550.0)
+	}
+}
+
+func requiredPathRatioForRequest(routeType string, strict bool) float64 {
+	normalized := strings.ToUpper(strings.TrimSpace(routeType))
+	_ = strict
+	if normalized != "GRAVEL" {
+		return 0.0
+	}
+	// Gravel contract: keep a 25% path target; fallback to Ride handles impossible cases.
+	return 0.25
+}
+
+func meetsMinimumDistance(distanceKm float64, targetKm float64) bool {
+	if targetKm <= 0.0 {
+		return true
+	}
+	// Keep a small tolerance for geometry simplification / snapping noise.
+	toleranceKm := math.Max(0.25, targetKm*0.02)
+	return distanceKm+toleranceKm >= targetKm
+}
+
+func fallbackRouteTypes(routeType string) []string {
+	switch strings.ToUpper(strings.TrimSpace(routeType)) {
+	case "MTB":
+		return []string{"GRAVEL", "RIDE"}
+	case "GRAVEL":
+		return []string{"RIDE"}
+	case "RIDE":
+		return nil
+	default:
+		// Conservative default for unsupported types.
+		return []string{"RIDE"}
+	}
 }
 
 type osrmScoringProfile struct {
@@ -2227,7 +3039,8 @@ func osrmMatchScore(
 	hasDirection := strings.TrimSpace(request.StartDirection) != ""
 	profile := buildOSRMScoringProfile(request.RouteType, hasElevationTarget, hasDirection)
 
-	distanceComponent := math.Abs(distanceKm-request.DistanceTargetKm) / math.Max(request.DistanceTargetKm, 1.0)
+	distanceComponent := distanceShortfallRatio(distanceKm, request.DistanceTargetKm) +
+		distanceOvershootRatio(distanceKm, request.DistanceTargetKm)*0.15
 	elevationComponent := 0.0
 	if hasElevationTarget {
 		elevationComponent = math.Abs(elevationGainM-*request.ElevationTargetM) / math.Max(*request.ElevationTargetM, 150.0)
@@ -2248,23 +3061,25 @@ func osrmMatchScore(
 
 func buildOSRMScoringProfile(routeType string, hasElevationTarget bool, hasDirection bool) osrmScoringProfile {
 	profile := osrmScoringProfile{
-		distanceWeight:  0.58,
-		elevationWeight: 0.30,
-		directionWeight: 0.08,
-		diversityWeight: 0.04,
+		distanceWeight:  0.70,
+		elevationWeight: 0.22,
+		directionWeight: 0.06,
+		diversityWeight: 0.02,
 	}
 
 	switch strings.ToUpper(strings.TrimSpace(routeType)) {
 	case "MTB":
-		profile = osrmScoringProfile{distanceWeight: 0.48, elevationWeight: 0.38, directionWeight: 0.09, diversityWeight: 0.05}
+		profile = osrmScoringProfile{distanceWeight: 0.36, elevationWeight: 0.29, directionWeight: 0.07, diversityWeight: 0.28}
 	case "GRAVEL":
-		profile = osrmScoringProfile{distanceWeight: 0.54, elevationWeight: 0.33, directionWeight: 0.08, diversityWeight: 0.05}
+		profile = osrmScoringProfile{distanceWeight: 0.44, elevationWeight: 0.26, directionWeight: 0.06, diversityWeight: 0.24}
 	case "RUN":
-		profile = osrmScoringProfile{distanceWeight: 0.55, elevationWeight: 0.20, directionWeight: 0.15, diversityWeight: 0.10}
+		profile = osrmScoringProfile{distanceWeight: 0.56, elevationWeight: 0.17, directionWeight: 0.13, diversityWeight: 0.14}
 	case "TRAIL":
-		profile = osrmScoringProfile{distanceWeight: 0.42, elevationWeight: 0.33, directionWeight: 0.15, diversityWeight: 0.10}
+		profile = osrmScoringProfile{distanceWeight: 0.34, elevationWeight: 0.28, directionWeight: 0.10, diversityWeight: 0.28}
 	case "HIKE":
-		profile = osrmScoringProfile{distanceWeight: 0.34, elevationWeight: 0.41, directionWeight: 0.15, diversityWeight: 0.10}
+		profile = osrmScoringProfile{distanceWeight: 0.30, elevationWeight: 0.35, directionWeight: 0.09, diversityWeight: 0.26}
+	case "WALK":
+		profile = osrmScoringProfile{distanceWeight: 0.33, elevationWeight: 0.28, directionWeight: 0.10, diversityWeight: 0.29}
 	}
 
 	if !hasElevationTarget {
@@ -2423,4 +3238,123 @@ func readIntEnv(key string, fallback int) int {
 		return fallback
 	}
 	return value
+}
+
+func (adapter *OSMRoutingAdapter) detectExtractProfile() string {
+	if normalized := normalizeOSRMProfile(strings.TrimSpace(adapter.extractProfileEnv)); normalized != "" {
+		return normalized
+	}
+	for _, candidatePath := range adapter.profileMarkerCandidatePaths() {
+		if normalized := normalizeOSRMProfile(readFirstLine(candidatePath)); normalized != "" {
+			return normalized
+		}
+	}
+	if normalized := normalizeOSRMProfile(strings.TrimSpace(adapter.profileOverride)); normalized != "" {
+		return normalized
+	}
+	return "unknown"
+}
+
+func (adapter *OSMRoutingAdapter) profileMarkerCandidatePaths() []string {
+	rawCandidates := []string{
+		strings.TrimSpace(adapter.extractProfileCfgFile),
+		defaultOSRMProfileFilePath,
+		fallbackOSRMProfilePath,
+	}
+	seen := map[string]struct{}{}
+	candidates := make([]string, 0, len(rawCandidates))
+	for _, rawPath := range rawCandidates {
+		cleanPath := strings.TrimSpace(rawPath)
+		if cleanPath == "" {
+			continue
+		}
+		if _, alreadyExists := seen[cleanPath]; alreadyExists {
+			continue
+		}
+		seen[cleanPath] = struct{}{}
+		candidates = append(candidates, cleanPath)
+	}
+	return candidates
+}
+
+func (adapter *OSMRoutingAdapter) effectiveRoutingProfile(extractProfile string) string {
+	if normalized := normalizeOSRMProfile(strings.TrimSpace(adapter.profileOverride)); normalized != "" && normalized != "unknown" {
+		switch normalized {
+		case "/opt/bicycle.lua":
+			return "cycling"
+		case "/opt/foot.lua":
+			return "walking"
+		case "/opt/car.lua":
+			return "driving"
+		}
+	}
+	switch extractProfile {
+	case "/opt/bicycle.lua":
+		return "cycling"
+	case "/opt/foot.lua":
+		return "walking"
+	case "/opt/car.lua":
+		return "driving"
+	default:
+		// Conservative default for this product: cycling is the primary OSRM mode.
+		return "cycling"
+	}
+}
+
+func supportedRouteTypesByProfile(extractProfile string, effectiveProfile string) []string {
+	switch strings.TrimSpace(strings.ToLower(effectiveProfile)) {
+	case "cycling":
+		return []string{"RIDE", "MTB", "GRAVEL"}
+	case "walking":
+		return []string{"RUN", "TRAIL", "HIKE"}
+	case "driving":
+		return []string{"RIDE"}
+	default:
+		return supportedRouteTypesByExtractProfile(extractProfile)
+	}
+}
+
+func normalizeOSRMProfile(raw string) string {
+	normalized := strings.TrimSpace(strings.ToLower(raw))
+	switch {
+	case normalized == "":
+		return ""
+	case strings.Contains(normalized, "bicycle.lua"), normalized == "cycling":
+		return "/opt/bicycle.lua"
+	case strings.Contains(normalized, "foot.lua"), normalized == "walking":
+		return "/opt/foot.lua"
+	case strings.Contains(normalized, "car.lua"), normalized == "driving":
+		return "/opt/car.lua"
+	default:
+		return "unknown"
+	}
+}
+
+func supportedRouteTypesByExtractProfile(extractProfile string) []string {
+	switch extractProfile {
+	case "/opt/bicycle.lua":
+		return []string{"RIDE", "MTB", "GRAVEL"}
+	case "/opt/foot.lua":
+		return []string{"RUN", "TRAIL", "HIKE"}
+	case "/opt/car.lua":
+		return []string{"RIDE"}
+	default:
+		return []string{"RIDE", "MTB", "GRAVEL", "RUN", "TRAIL", "HIKE"}
+	}
+}
+
+func readFirstLine(path string) string {
+	cleanPath := strings.TrimSpace(path)
+	if cleanPath == "" {
+		return ""
+	}
+	data, err := os.ReadFile(cleanPath)
+	if err != nil {
+		return ""
+	}
+	lines := strings.Split(string(data), "\n")
+	if len(lines) == 0 {
+		return ""
+	}
+	return strings.TrimSpace(lines[0])
 }

@@ -9,13 +9,17 @@ import {
   type RouteGenerationDiagnostic,
   type ShapeInputType,
   type StartDirection,
-  type BacktrackingProfile,
 } from "@/models/route-recommendation.model";
 
 const DEFAULT_VARIANT_COUNT = 4;
-const TARGET_GENERATION_POOL_SIZE = 2;
+const TARGET_GENERATION_POOL_SIZE = 4;
+const MAX_TARGET_VARIANT_COUNT = 24;
 
 type RoutingHealthStatus = "unknown" | "up" | "down" | "disabled" | "misconfigured";
+const ALL_ROUTE_TYPES: RouteType[] = ["RIDE", "MTB", "GRAVEL", "RUN", "TRAIL", "HIKE"];
+const CYCLING_ROUTE_TYPES: RouteType[] = ["RIDE", "MTB", "GRAVEL"];
+const FOOT_ROUTE_TYPES: RouteType[] = ["RUN", "TRAIL", "HIKE"];
+const CAR_ROUTE_TYPES: RouteType[] = ["RIDE"];
 
 interface RoutingHealthPayload {
   routing?: {
@@ -23,6 +27,10 @@ interface RoutingHealthPayload {
     reachable?: boolean;
     engine?: string;
     enabled?: boolean;
+    profile?: string;
+    extractProfile?: string;
+    effectiveProfile?: string;
+    supportedRouteTypes?: string[];
   };
 }
 
@@ -32,7 +40,6 @@ export const useRoutesStore = defineStore("routes", {
     targetGenerationMode: "AUTOMATIC" as TargetGenerationMode,
     routeType: "RIDE" as RouteType,
     startDirection: "UNDEFINED" as StartDirection,
-    backtrackingProfile: "STRICT" as BacktrackingProfile,
     distanceTargetKm: 40 as number,
     elevationTargetM: 800 as number,
     variantCount: DEFAULT_VARIANT_COUNT,
@@ -48,9 +55,13 @@ export const useRoutesStore = defineStore("routes", {
     isLoading: false,
     targetGenerationIndex: 0,
     lastGeneratedTargetRouteNumber: 0,
+    targetRequestSignature: "" as string,
     routingHealthStatus: "unknown" as RoutingHealthStatus,
     routingEngineName: "OSRM" as string,
     routingReachable: null as boolean | null,
+    routingExtractProfile: "unknown" as string,
+    routingEffectiveProfile: "unknown" as string,
+    routingSupportedRouteTypes: [...ALL_ROUTE_TYPES] as RouteType[],
   }),
   getters: {
     selectedRoute(state): GeneratedRoute | null {
@@ -76,6 +87,9 @@ export const useRoutesStore = defineStore("routes", {
     },
     isRoutingEngineOnline(state): boolean {
       return state.routingHealthStatus === "up" && state.routingReachable === true;
+    },
+    isRouteTypeSupported(state): (routeType: RouteType) => boolean {
+      return (routeType: RouteType) => state.routingSupportedRouteTypes.includes(routeType);
     },
   },
   actions: {
@@ -111,10 +125,57 @@ export const useRoutesStore = defineStore("routes", {
         }
         this.routingReachable = reachable;
         this.routingEngineName = engine.length > 0 ? engine.toUpperCase() : "OSRM";
+        this.routingExtractProfile = String(routing?.extractProfile ?? "unknown").trim() || "unknown";
+        this.routingEffectiveProfile = String(routing?.effectiveProfile ?? "unknown").trim() || "unknown";
+        this.routingSupportedRouteTypes = this.parseSupportedRouteTypes(
+          routing?.supportedRouteTypes,
+          [routing?.extractProfile, routing?.effectiveProfile, routing?.profile],
+        );
+        this.ensureRouteTypeIsSupported();
       } catch {
         this.routingHealthStatus = "down";
         this.routingReachable = false;
+        this.routingSupportedRouteTypes = [...ALL_ROUTE_TYPES];
       }
+    },
+    routeTypesFromProfileSignals(signals: Array<string | undefined>): RouteType[] | null {
+      const combined = signals
+        .map((value) => String(value ?? "").trim().toLowerCase())
+        .join(" ");
+      if (combined.includes("bicycle.lua") || combined.includes("cycling")) {
+        return [...CYCLING_ROUTE_TYPES];
+      }
+      if (combined.includes("foot.lua") || combined.includes("walking")) {
+        return [...FOOT_ROUTE_TYPES];
+      }
+      if (combined.includes("car.lua") || combined.includes("driving")) {
+        return [...CAR_ROUTE_TYPES];
+      }
+      return null;
+    },
+    parseSupportedRouteTypes(raw?: string[], profileSignals: Array<string | undefined> = []): RouteType[] {
+      const inferredFromProfile = this.routeTypesFromProfileSignals(profileSignals);
+      if (!Array.isArray(raw) || raw.length === 0) {
+        return inferredFromProfile ?? [...ALL_ROUTE_TYPES];
+      }
+      const normalized = raw
+        .map((value) => String(value).trim().toUpperCase())
+        .filter((value): value is RouteType => ALL_ROUTE_TYPES.includes(value as RouteType));
+      if (normalized.length === 0) {
+        return inferredFromProfile ?? [...ALL_ROUTE_TYPES];
+      }
+      // If backend returns the generic "all route types" set, but profile signals indicate
+      // a concrete OSRM profile, prefer the profile-restricted route types for the UI.
+      if (inferredFromProfile && normalized.length === ALL_ROUTE_TYPES.length) {
+        return inferredFromProfile;
+      }
+      return [...new Set(normalized)];
+    },
+    ensureRouteTypeIsSupported() {
+      if (this.routingSupportedRouteTypes.includes(this.routeType)) {
+        return;
+      }
+      this.routeType = this.routingSupportedRouteTypes[0] ?? "RIDE";
     },
     setStartPoint(lat: number, lng: number) {
       this.startPoint = { lat, lng };
@@ -158,6 +219,7 @@ export const useRoutesStore = defineStore("routes", {
       this.selectedRouteId = "";
       this.targetGenerationIndex = 0;
       this.lastGeneratedTargetRouteNumber = 0;
+      this.targetRequestSignature = "";
     },
     buildGenerationUrl(path: string): string {
       // Route generation is now decoupled from header activity/year filters.
@@ -169,6 +231,36 @@ export const useRoutesStore = defineStore("routes", {
         return null;
       }
       return raw;
+    },
+    buildTargetRequestSignature(payload: {
+      startLat: number;
+      startLng: number;
+      routeType: RouteType;
+      targetGenerationMode: TargetGenerationMode;
+      startDirection: StartDirection | undefined;
+      distanceTargetKm: number;
+      elevationTargetM: number | null;
+      customWaypoints: Array<{ lat: number; lng: number }>;
+    }): string {
+      return JSON.stringify({
+        startLat: Number(payload.startLat.toFixed(6)),
+        startLng: Number(payload.startLng.toFixed(6)),
+        routeType: payload.routeType,
+        targetGenerationMode: payload.targetGenerationMode,
+        startDirection: payload.startDirection ?? "UNDEFINED",
+        distanceTargetKm: Number(payload.distanceTargetKm.toFixed(3)),
+        elevationTargetM: payload.elevationTargetM === null ? null : Number(payload.elevationTargetM.toFixed(1)),
+        customWaypoints: payload.customWaypoints.map((point) => ({
+          lat: Number(point.lat.toFixed(6)),
+          lng: Number(point.lng.toFixed(6)),
+        })),
+      });
+    },
+    computeTargetVariantCount(existingCount: number): number {
+      return Math.max(
+        TARGET_GENERATION_POOL_SIZE,
+        Math.min(MAX_TARGET_VARIANT_COUNT, existingCount + TARGET_GENERATION_POOL_SIZE),
+      );
     },
     async generateRoutes() {
       this.isLoading = true;
@@ -202,19 +294,39 @@ export const useRoutesStore = defineStore("routes", {
         throw new Error("start point and distance target are required");
       }
       const elevationTarget = this.parseOptionalNumber(this.elevationTargetM);
+      const customWaypoints = this.targetGenerationMode === "CUSTOM"
+        ? this.customWaypoints.map((point) => ({ lat: point[0], lng: point[1] }))
+        : [];
+      const targetRequestSignature = this.buildTargetRequestSignature({
+        startLat: this.startPoint.lat,
+        startLng: this.startPoint.lng,
+        routeType: this.routeType,
+        targetGenerationMode: this.targetGenerationMode,
+        startDirection: this.targetGenerationMode === "AUTOMATIC" ? this.startDirection : undefined,
+        distanceTargetKm: distanceTarget,
+        elevationTargetM: elevationTarget,
+        customWaypoints,
+      });
+
+      if (this.targetRequestSignature !== targetRequestSignature) {
+        this.routes = [];
+        this.selectedRouteId = "";
+        this.lastGeneratedTargetRouteNumber = 0;
+        this.targetGenerationIndex = 0;
+        this.targetRequestSignature = targetRequestSignature;
+      }
+
+      const knownRouteIds = new Set(this.routes.map((route) => route.routeId));
+      const variantCount = this.computeTargetVariantCount(this.routes.length);
       const payload = {
         startPoint: this.startPoint,
         routeType: this.routeType,
         generationMode: this.targetGenerationMode,
         startDirection: this.targetGenerationMode === "AUTOMATIC" ? this.startDirection : undefined,
-        backtrackingProfile: this.backtrackingProfile,
-        strictBacktracking: this.backtrackingProfile !== "BALANCED",
         distanceTargetKm: distanceTarget,
         elevationTargetM: elevationTarget,
-        customWaypoints: this.targetGenerationMode === "CUSTOM"
-          ? this.customWaypoints.map((point) => ({ lat: point[0], lng: point[1] }))
-          : undefined,
-        variantCount: TARGET_GENERATION_POOL_SIZE,
+        customWaypoints: this.targetGenerationMode === "CUSTOM" ? customWaypoints : undefined,
+        variantCount,
       };
       const data = await requestJson<GenerateRoutesResponse>(
         this.buildGenerationUrl("/api/routes/generate/target"),
@@ -227,16 +339,30 @@ export const useRoutesStore = defineStore("routes", {
           body: JSON.stringify(payload),
         },
       );
-      this.routes = data.routes ?? [];
       this.generationDiagnostics = data.diagnostics ?? [];
-      if (this.routes.length === 0) {
-        this.selectedRouteId = "";
-        this.lastGeneratedTargetRouteNumber = 0;
+      const generatedRoutes = data.routes ?? [];
+      if (generatedRoutes.length === 0) {
+        if (this.routes.length === 0) {
+          this.selectedRouteId = "";
+          this.lastGeneratedTargetRouteNumber = 0;
+        }
         return;
       }
-      const index = this.targetGenerationIndex % this.routes.length;
-      this.lastGeneratedTargetRouteNumber = index + 1;
-      this.selectedRouteId = this.routes[index]?.routeId ?? this.routes[0]?.routeId ?? "";
+
+      const newUniqueRoute = generatedRoutes.find((route) => !knownRouteIds.has(route.routeId));
+      if (!newUniqueRoute) {
+        this.generationDiagnostics = this.generationDiagnostics.length > 0
+          ? this.generationDiagnostics
+          : [{
+            code: "NO_UNIQUE_ROUTE",
+            message: "No additional unique route found with current constraints.",
+          }];
+        return;
+      }
+
+      this.routes = [...this.routes, newUniqueRoute];
+      this.selectedRouteId = newUniqueRoute.routeId;
+      this.lastGeneratedTargetRouteNumber = this.routes.length;
       this.targetGenerationIndex += 1;
     },
     async generateShapeRoutes() {

@@ -9,6 +9,7 @@ services:
     command: >
       sh -lc "
       test -f /data/region.osm.pbf &&
+      echo ${OSRM_EXTRACT_PROFILE:-/opt/bicycle.lua} > /data/region.osrm.profile &&
       osrm-extract -p ${OSRM_EXTRACT_PROFILE:-/opt/bicycle.lua} --threads ${OSRM_THREADS:-2} /data/region.osm.pbf &&
       osrm-partition --threads ${OSRM_THREADS:-2} /data/region.osrm &&
       osrm-customize --threads ${OSRM_THREADS:-2} /data/region.osrm

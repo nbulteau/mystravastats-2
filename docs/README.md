@@ -107,6 +107,7 @@ Implementation details and setup instructions are documented here:
 
 - [OSM Routing Setup](./osm-routing-setup.md)
 - [Route Generation Engine (Type Matrix)](./route-generation-engine.md)
+- [Route Generation v3 (Constraint-First Spec)](./route-generation-v3-spec.md)
 
 ## Screenshots
 
