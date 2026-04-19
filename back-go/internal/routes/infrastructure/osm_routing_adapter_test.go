@@ -236,8 +236,8 @@ func TestSyntheticLoopWaypoints_WithNorthDirection_StayInForwardHemisphere(t *te
 
 func TestBuildRouteRelaxationLevels_WhenDirectionStrict_ThenUsesStricterDirectionThresholds(t *testing.T) {
 	// GIVEN
-	regular := buildRouteRelaxationLevels("RIDE", true, false, backtrackingProfileBalanced)
-	strict := buildRouteRelaxationLevels("RIDE", true, true, backtrackingProfileBalanced)
+	regular := buildRouteRelaxationLevels("RIDE", true, false, 40.0)
+	strict := buildRouteRelaxationLevels("RIDE", true, true, 40.0)
 
 	// WHEN
 	regularStrictMax := regular[0].maxDirectionPenalty
@@ -254,41 +254,34 @@ func TestBuildRouteRelaxationLevels_WhenDirectionStrict_ThenUsesStricterDirectio
 	}
 }
 
-func TestBuildRouteRelaxationLevels_WhenStrictBacktracking_ThenTightensEdgeReuseThresholds(t *testing.T) {
+func TestBuildRouteRelaxationLevels_UsesNativeUltraThresholds(t *testing.T) {
 	// GIVEN
-	balanced := buildRouteRelaxationLevels("RIDE", false, false, backtrackingProfileBalanced)
-	strictBacktracking := buildRouteRelaxationLevels("RIDE", false, false, backtrackingProfileStrict)
+	levels := buildRouteRelaxationLevels("RIDE", false, false, 40.0)
 
 	// WHEN
-	balancedFallbackEdgeReuse := balanced[len(balanced)-1].maxEdgeReuseRatio
-	strictFallbackEdgeReuse := strictBacktracking[len(strictBacktracking)-1].maxEdgeReuseRatio
+	fallback := levels[len(levels)-1]
 
 	// THEN
-	if strictFallbackEdgeReuse >= balancedFallbackEdgeReuse {
-		t.Fatalf(
-			"expected strict anti-backtracking mode to tighten edge reuse threshold, strict=%f balanced=%f",
-			strictFallbackEdgeReuse,
-			balancedFallbackEdgeReuse,
-		)
+	if fallback.maxEdgeReuseRatio > 0.10 {
+		t.Fatalf("expected native ultra fallback edge-reuse threshold to stay <= 0.10, got %f", fallback.maxEdgeReuseRatio)
+	}
+	if fallback.maxBacktrackingRatio > 0.03 {
+		t.Fatalf("expected native ultra fallback backtracking threshold to stay <= 0.03, got %f", fallback.maxBacktrackingRatio)
 	}
 }
 
-func TestBuildRouteRelaxationLevels_WhenUltraProfile_ThenTightensBacktrackingBeyondStrict(t *testing.T) {
+func TestBuildRouteRelaxationLevels_WhenLongDistance_ThenAxisReuseCapsAreHigher(t *testing.T) {
 	// GIVEN
-	strictProfile := buildRouteRelaxationLevels("RIDE", false, false, backtrackingProfileStrict)
-	ultraProfile := buildRouteRelaxationLevels("RIDE", false, false, backtrackingProfileUltra)
+	shortDistanceLevels := buildRouteRelaxationLevels("RIDE", true, false, 30.0)
+	longDistanceLevels := buildRouteRelaxationLevels("RIDE", true, false, 130.0)
 
 	// WHEN
-	strictFallbackBacktracking := strictProfile[len(strictProfile)-1].maxBacktrackingRatio
-	ultraFallbackBacktracking := ultraProfile[len(ultraProfile)-1].maxBacktrackingRatio
+	shortFallbackAxisCap := shortDistanceLevels[len(shortDistanceLevels)-1].maxAxisReuseCount
+	longFallbackAxisCap := longDistanceLevels[len(longDistanceLevels)-1].maxAxisReuseCount
 
 	// THEN
-	if ultraFallbackBacktracking >= strictFallbackBacktracking {
-		t.Fatalf(
-			"expected ultra profile to tighten fallback backtracking ratio, ultra=%f strict=%f",
-			ultraFallbackBacktracking,
-			strictFallbackBacktracking,
-		)
+	if longFallbackAxisCap <= shortFallbackAxisCap {
+		t.Fatalf("expected long-distance fallback axis cap to be higher, long=%d short=%d", longFallbackAxisCap, shortFallbackAxisCap)
 	}
 }
 
@@ -363,9 +356,9 @@ func TestSelectCandidatesWithRelaxation_WhenAllLevelsReject_ThenBestEffortStillR
 	candidates := []osrmRouteCandidate{
 		{
 			recommendation:      routesDomain.RouteRecommendation{RouteID: "needs-best-effort", MatchScore: 78.0},
-			directionPenalty:    0.80, // reject all configured levels with direction
-			backtrackingRatio:   0.12, // reject fallback (0.07), accept best-effort-soft (0.32)
-			corridorOverlap:     0.08, // reject fallback (0.035), accept best-effort-soft (0.40)
+			directionPenalty:    0.45, // reject configured levels, accepted by directional safety net (<= 0.52)
+			backtrackingRatio:   0.12, // reject fallback (0.015), accepted by directional best-effort (<= 0.18)
+			corridorOverlap:     0.08, // reject fallback (0.018), accepted by directional best-effort (<= 0.14)
 			segmentDiversity:    0.02, // reject all configured levels
 			distanceDeltaRatio:  1.50, // reject strict/balanced/relaxed, fallback would pass distance only
 			effectiveMatchScore: 75.0,
@@ -385,6 +378,42 @@ func TestSelectCandidatesWithRelaxation_WhenAllLevelsReject_ThenBestEffortStillR
 	}
 	if len(recommendations[0].Reasons) == 0 {
 		t.Fatalf("expected selection reason to include best-effort profile")
+	}
+}
+
+func TestSelectCandidatesWithRelaxation_WhenDirectionalStrictProfileRejectsAll_ThenDirectionalBestEffortCanReturnRoute(t *testing.T) {
+	// GIVEN
+	request := application.RoutingEngineRequest{
+		StartPoint:         routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000},
+		DistanceTargetKm:   40.0,
+		StartDirection:     "N",
+		RouteType:          "RIDE",
+		StrictBacktracking: true,
+		Limit:              1,
+	}
+	candidates := []osrmRouteCandidate{
+		{
+			recommendation:      routesDomain.RouteRecommendation{RouteID: "directional-safety-net", MatchScore: 73.0},
+			directionPenalty:    0.34,
+			backtrackingRatio:   0.17,
+			corridorOverlap:     0.13,
+			edgeReuseRatio:      0.12,
+			segmentDiversity:    0.18,
+			distanceDeltaRatio:  0.70,
+			effectiveMatchScore: 68.0,
+		},
+	}
+	rejectCounts := map[string]int{}
+
+	// WHEN
+	recommendations := selectCandidatesWithRelaxation(request, candidates, rejectCounts)
+
+	// THEN
+	if len(recommendations) != 1 {
+		t.Fatalf("expected 1 recommendation from directional best-effort, got %d", len(recommendations))
+	}
+	if recommendations[0].RouteID != "directional-safety-net" {
+		t.Fatalf("expected directional-safety-net route to be selected, got %s", recommendations[0].RouteID)
 	}
 }
 

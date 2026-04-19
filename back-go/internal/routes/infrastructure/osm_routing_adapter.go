@@ -18,14 +18,12 @@ import (
 )
 
 const (
-	defaultOSMRoutingBaseURL    = "http://localhost:5000"
-	defaultOSMRoutingTimeoutMs  = 3000
-	maxOSRMRoutingCalls         = 16
-	startSnapToleranceMeters    = 900.0
-	directionToleranceMeters    = 120.0
-	backtrackingProfileBalanced = "BALANCED"
-	backtrackingProfileStrict   = "STRICT"
-	backtrackingProfileUltra    = "ULTRA"
+	defaultOSMRoutingBaseURL   = "http://localhost:5000"
+	defaultOSMRoutingTimeoutMs = 3000
+	defaultOSMRoutingV3Enabled = true
+	maxOSRMRoutingCalls        = 24
+	startSnapToleranceMeters   = 900.0
+	directionToleranceMeters   = 120.0
 )
 
 type osrmRouteCandidate struct {
@@ -34,6 +32,8 @@ type osrmRouteCandidate struct {
 	backtrackingRatio   float64
 	corridorOverlap     float64
 	edgeReuseRatio      float64
+	maxAxisReuseCount   int
+	maxAxisReuseRatio   float64
 	segmentDiversity    float64
 	distanceDeltaRatio  float64
 	effectiveMatchScore float64
@@ -45,6 +45,7 @@ type routeRelaxationLevel struct {
 	maxBacktrackingRatio  float64
 	maxCorridorOverlap    float64
 	maxEdgeReuseRatio     float64
+	maxAxisReuseCount     int
 	minSegmentDiversity   float64
 	maxDistanceDeltaRatio float64
 }
@@ -69,6 +70,7 @@ type osrmGeometry struct {
 // OSMRoutingAdapter integrates a local OSRM endpoint as a routing engine.
 type OSMRoutingAdapter struct {
 	enabled         bool
+	v3Enabled       bool
 	debug           bool
 	baseURL         string
 	timeout         time.Duration
@@ -87,6 +89,7 @@ func NewOSMRoutingAdapter() *OSMRoutingAdapter {
 
 	return &OSMRoutingAdapter{
 		enabled:         enabled,
+		v3Enabled:       readBoolEnv("OSM_ROUTING_V3_ENABLED", defaultOSMRoutingV3Enabled),
 		debug:           readBoolEnv("OSM_ROUTING_DEBUG", false),
 		baseURL:         baseURL,
 		timeout:         time.Duration(timeoutMs) * time.Millisecond,
@@ -97,10 +100,11 @@ func NewOSMRoutingAdapter() *OSMRoutingAdapter {
 
 func (adapter *OSMRoutingAdapter) HealthDetails() map[string]any {
 	details := map[string]any{
-		"engine":  "osrm",
-		"enabled": adapter.enabled,
-		"debug":   adapter.debug,
-		"baseUrl": adapter.baseURL,
+		"engine":    "osrm",
+		"enabled":   adapter.enabled,
+		"v3Enabled": adapter.v3Enabled,
+		"debug":     adapter.debug,
+		"baseUrl":   adapter.baseURL,
 	}
 	if !adapter.enabled {
 		details["status"] = "disabled"
@@ -154,8 +158,18 @@ func (adapter *OSMRoutingAdapter) GenerateTargetLoops(
 	}
 
 	profile := adapter.profileForRouteType(request.RouteType)
+	usedLegacyFallback := false
 	if isCustomTargetMode(request) {
 		return adapter.generateCustomWaypointLoops(request, profile), nil
+	}
+	if adapter.v3Enabled {
+		if disjointRecommendations, ok := adapter.generateTargetLoopsDisjoint(request, profile); ok {
+			return disjointRecommendations, nil
+		}
+		usedLegacyFallback = true
+		if adapter.debug {
+			log.Printf("OSRM target generation v3 produced no valid route, falling back to legacy generator")
+		}
 	}
 
 	baseBearing := startDirectionToBearing(request.StartDirection)
@@ -237,6 +251,14 @@ func (adapter *OSMRoutingAdapter) GenerateTargetLoops(
 	recommendations := selectCandidatesWithRelaxation(request, candidates, rejectCounts)
 	if len(recommendations) > request.Limit {
 		recommendations = recommendations[:request.Limit]
+	}
+	if usedLegacyFallback {
+		for index := range recommendations {
+			recommendations[index].Reasons = append(
+				recommendations[index].Reasons,
+				"Generation engine fallback: legacy synthetic waypoints",
+			)
+		}
 	}
 	if adapter.debug || len(recommendations) == 0 {
 		targetElevation := "n/a"
@@ -333,7 +355,8 @@ func (adapter *OSMRoutingAdapter) GenerateShapeLoops(
 			recommendation.MatchScore*0.35 + shapeScore*100.0*0.65 -
 				candidate.backtrackingRatio*28.0 -
 				candidate.corridorOverlap*35.0 -
-				candidate.edgeReuseRatio*40.0,
+				candidate.edgeReuseRatio*40.0 -
+				candidate.maxAxisReuseRatio*48.0,
 		)
 		recommendation.Reasons = append(
 			recommendation.Reasons,
@@ -346,7 +369,8 @@ func (adapter *OSMRoutingAdapter) GenerateShapeLoops(
 			recommendation.MatchScore -
 				candidate.backtrackingRatio*95.0 -
 				candidate.corridorOverlap*125.0 -
-				candidate.edgeReuseRatio*140.0,
+				candidate.edgeReuseRatio*140.0 -
+				candidate.maxAxisReuseRatio*170.0,
 		)
 		candidates = append(candidates, candidate)
 		seenSignatures[signature] = struct{}{}
@@ -440,6 +464,269 @@ func (adapter *OSMRoutingAdapter) generateCustomWaypointLoops(
 	return recommendations
 }
 
+func (adapter *OSMRoutingAdapter) generateTargetLoopsDisjoint(
+	request application.RoutingEngineRequest,
+	profile string,
+) ([]routesDomain.RouteRecommendation, bool) {
+	anchors := adapter.sampleTargetAnchors(request)
+	if len(anchors) == 0 {
+		return []routesDomain.RouteRecommendation{}, false
+	}
+	hardAxisReuseCap := disjointHardAxisReuseCap(request)
+
+	rejectCounts := make(map[string]int)
+	candidates := make([]osrmRouteCandidate, 0, request.Limit*6)
+	seenSignatures := make(map[string]struct{}, request.Limit*8)
+	maxCandidates := int(math.Max(24.0, float64(request.Limit*12)))
+	candidateIndex := 0
+	fetchedRouteCount := 0
+	fetchErrors := 0
+
+outerAnchors:
+	for anchorIndex, anchor := range anchors {
+		outboundRoutes, err := adapter.fetchOSRMRoutes(profile, []routesDomain.Coordinates{request.StartPoint, anchor})
+		if err != nil {
+			fetchErrors++
+			incrementRejectCount(rejectCounts, "OSRM_CALL_FAILED")
+			continue
+		}
+		fetchedRouteCount += len(outboundRoutes)
+		if len(outboundRoutes) == 0 {
+			incrementRejectCount(rejectCounts, "NO_OUTBOUND_ROUTE")
+			continue
+		}
+
+		maxOutbound := int(math.Min(3.0, float64(len(outboundRoutes))))
+		for outboundIndex := 0; outboundIndex < maxOutbound; outboundIndex++ {
+			outboundRoute := outboundRoutes[outboundIndex]
+			outboundPreview, ok := osrmRouteToPreviewPoints(outboundRoute)
+			if !ok {
+				incrementRejectCount(rejectCounts, "INVALID_OUTBOUND_GEOMETRY")
+				continue
+			}
+
+			returnVariants := adapter.buildReturnWaypointVariants(anchor, request.StartPoint, request.StartDirection, anchorIndex+outboundIndex)
+			maxVariants := int(math.Min(4.0, float64(len(returnVariants))))
+			for variantIndex := 0; variantIndex < maxVariants; variantIndex++ {
+				inboundRoutes, err := adapter.fetchOSRMRoutes(profile, returnVariants[variantIndex])
+				if err != nil {
+					fetchErrors++
+					incrementRejectCount(rejectCounts, "OSRM_CALL_FAILED")
+					continue
+				}
+				fetchedRouteCount += len(inboundRoutes)
+				if len(inboundRoutes) == 0 {
+					incrementRejectCount(rejectCounts, "NO_INBOUND_ROUTE")
+					continue
+				}
+
+				maxInbound := int(math.Min(2.0, float64(len(inboundRoutes))))
+				for inboundIndex := 0; inboundIndex < maxInbound; inboundIndex++ {
+					inboundRoute := inboundRoutes[inboundIndex]
+					inboundPreview, ok := osrmRouteToPreviewPoints(inboundRoute)
+					if !ok {
+						incrementRejectCount(rejectCounts, "INVALID_INBOUND_GEOMETRY")
+						continue
+					}
+					combinedPreview := mergeRoutePreviews(outboundPreview, inboundPreview)
+					if len(combinedPreview) < 2 {
+						incrementRejectCount(rejectCounts, "INVALID_COMBINED_GEOMETRY")
+						continue
+					}
+
+					axisStats := evaluateAxisUsage(combinedPreview)
+					// Construction-phase hard rules for v3:
+					// 1) never accept opposite traversal on same axis
+					// 2) cap repeated traversal of a single axis
+					if axisStats.conflictingAxisCount > 0 {
+						incrementRejectCount(rejectCounts, "NO_DISJOINT_LOOP")
+						continue
+					}
+					if axisStats.maxAxisReuseCount > hardAxisReuseCap {
+						incrementRejectCount(rejectCounts, "AXIS_REUSE_HARD_REJECT")
+						continue
+					}
+
+					totalDistanceKm := (outboundRoute.Distance + inboundRoute.Distance) / 1000.0
+					totalDurationSec := int(math.Round(outboundRoute.Duration + inboundRoute.Duration))
+					candidate, ok := adapter.toRouteCandidateFromPreview(
+						request,
+						combinedPreview,
+						totalDistanceKm,
+						totalDurationSec,
+						candidateIndex,
+						rejectCounts,
+					)
+					candidateIndex++
+					if !ok {
+						continue
+					}
+					signature := routeGeometrySignature(candidate.recommendation.PreviewLatLng)
+					if signature == "" {
+						incrementRejectCount(rejectCounts, "EMPTY_GEOMETRY_SIGNATURE")
+						continue
+					}
+					if _, exists := seenSignatures[signature]; exists {
+						incrementRejectCount(rejectCounts, "DUPLICATE_GEOMETRY")
+						continue
+					}
+					seenSignatures[signature] = struct{}{}
+					candidate.recommendation.Reasons = append(
+						candidate.recommendation.Reasons,
+						"Generation engine: disjoint anchors (v3)",
+					)
+					candidates = append(candidates, candidate)
+					if len(candidates) >= maxCandidates {
+						break outerAnchors
+					}
+				}
+			}
+		}
+	}
+
+	recommendations := selectCandidatesWithRelaxation(request, candidates, rejectCounts)
+	if len(recommendations) > request.Limit {
+		recommendations = recommendations[:request.Limit]
+	}
+
+	if adapter.debug || len(recommendations) == 0 {
+		targetElevation := "n/a"
+		if request.ElevationTargetM != nil {
+			targetElevation = fmt.Sprintf("%.0fm", *request.ElevationTargetM)
+		}
+		log.Printf(
+			"OSRM target generation v3 summary: routeType=%s direction=%s target=%.1fkm/%s anchors=%d fetched=%d accepted=%d fetchErrors=%d rejects=%s",
+			strings.ToUpper(strings.TrimSpace(request.RouteType)),
+			strings.ToUpper(strings.TrimSpace(request.StartDirection)),
+			request.DistanceTargetKm,
+			targetElevation,
+			len(anchors),
+			fetchedRouteCount,
+			len(recommendations),
+			fetchErrors,
+			formatRejectCounts(rejectCounts),
+		)
+	}
+
+	if len(recommendations) == 0 {
+		return []routesDomain.RouteRecommendation{}, false
+	}
+	return recommendations, true
+}
+
+func (adapter *OSMRoutingAdapter) sampleTargetAnchors(
+	request application.RoutingEngineRequest,
+) []routesDomain.Coordinates {
+	baseBearing := startDirectionToBearing(request.StartDirection)
+	hasDirection := strings.TrimSpace(request.StartDirection) != ""
+	directionStrict := hasDirection && request.DirectionStrict
+	radiusBaseKm := math.Max(1.0, request.DistanceTargetKm/(2.0*math.Pi))
+	radiusMultipliers := []float64{1.00, 0.92, 1.08, 0.84, 1.16, 1.24, 0.76, 1.32, 0.68, 1.40, 1.48, 0.60}
+	rotations := []float64{0, 22, -22, 45, -45, 68, -68, 95, -95, 125, -125, 155, -155}
+	if hasDirection {
+		rotations = []float64{0, 8, -8, 15, -15, 24, -24, 32, -32}
+		if directionStrict {
+			rotations = []float64{0, 5, -5, 10, -10, 16, -16}
+		}
+	}
+
+	anchors := make([]routesDomain.Coordinates, 0, maxOSRMRoutingCalls)
+	seen := make(map[string]struct{}, maxOSRMRoutingCalls)
+	for callIndex := 0; callIndex < maxOSRMRoutingCalls; callIndex++ {
+		radiusKm := radiusBaseKm * radiusMultipliers[callIndex%len(radiusMultipliers)]
+		rotation := rotations[callIndex%len(rotations)]
+		anchor := destinationFromBearing(
+			request.StartPoint,
+			radiusKm,
+			normalizeBearing(baseBearing+rotation),
+		)
+		key := quantizedPointKey(anchor.Lat, anchor.Lng)
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+		anchors = append(anchors, anchor)
+	}
+	return anchors
+}
+
+func (adapter *OSMRoutingAdapter) buildReturnWaypointVariants(
+	anchor routesDomain.Coordinates,
+	start routesDomain.Coordinates,
+	startDirection string,
+	seed int,
+) [][]routesDomain.Coordinates {
+	distanceKm := math.Max(1.0, haversineDistanceMeters(anchor.Lat, anchor.Lng, start.Lat, start.Lng)/1000.0)
+	directBearing := osrmBearingDegrees(anchor.Lat, anchor.Lng, start.Lat, start.Lng)
+	offsets := []float64{58, -58, 92, -92, 125, -125, 155, -155}
+	scales := []float64{0.48, 0.48, 0.56, 0.56, 0.68, 0.68, 0.80, 0.80}
+	variants := make([][]routesDomain.Coordinates, 0, len(offsets)+1)
+	// Keep direct route as first fallback.
+	variants = append(variants, []routesDomain.Coordinates{anchor, start})
+
+	shift := 0
+	if len(offsets) > 0 {
+		shift = seed % len(offsets)
+	}
+	for i := 0; i < len(offsets); i++ {
+		idx := (shift + i) % len(offsets)
+		offset := offsets[idx]
+		scale := scales[idx]
+		pivotBearing := normalizeBearing(directBearing + offset)
+		// With global direction set, nudge the pivot so the return remains globally
+		// aligned with requested direction while still avoiding the outbound corridor.
+		if strings.TrimSpace(startDirection) != "" {
+			dirBearing := startDirectionToBearing(startDirection)
+			pivotBearing = normalizeBearing(pivotBearing*0.72 + dirBearing*0.28)
+		}
+		pivot := destinationFromBearing(anchor, distanceKm*scale, pivotBearing)
+		variants = append(variants, []routesDomain.Coordinates{anchor, pivot, start})
+	}
+	return variants
+}
+
+func osrmRouteToPreviewPoints(route osrmRoute) ([][]float64, bool) {
+	if len(route.Geometry.Coordinates) == 0 {
+		return [][]float64{}, false
+	}
+	points := make([][]float64, 0, len(route.Geometry.Coordinates))
+	for _, coordinate := range route.Geometry.Coordinates {
+		if len(coordinate) < 2 {
+			continue
+		}
+		lng := coordinate[0]
+		lat := coordinate[1]
+		if lat < -90 || lat > 90 || lng < -180 || lng > 180 {
+			continue
+		}
+		points = append(points, []float64{lat, lng})
+	}
+	return points, len(points) >= 2
+}
+
+func mergeRoutePreviews(outbound [][]float64, inbound [][]float64) [][]float64 {
+	if len(outbound) == 0 {
+		return inbound
+	}
+	if len(inbound) == 0 {
+		return outbound
+	}
+	merged := make([][]float64, 0, len(outbound)+len(inbound))
+	merged = append(merged, outbound...)
+	inboundStart := inbound[0]
+	outboundEnd := outbound[len(outbound)-1]
+	startIndex := 0
+	if len(inboundStart) >= 2 &&
+		len(outboundEnd) >= 2 &&
+		haversineDistanceMeters(inboundStart[0], inboundStart[1], outboundEnd[0], outboundEnd[1]) <= 20.0 {
+		startIndex = 1
+	}
+	for i := startIndex; i < len(inbound); i++ {
+		merged = append(merged, inbound[i])
+	}
+	return merged
+}
+
 func (adapter *OSMRoutingAdapter) profileForRouteType(routeType string) string {
 	override := strings.TrimSpace(strings.ToLower(adapter.profileOverride))
 	if override != "" {
@@ -459,18 +746,6 @@ func isCustomTargetMode(request application.RoutingEngineRequest) bool {
 		return true
 	}
 	return len(request.Waypoints) > 0
-}
-
-func normalizeBacktrackingProfile(profile string, strictBacktracking bool) string {
-	normalized := strings.ToUpper(strings.TrimSpace(profile))
-	switch normalized {
-	case backtrackingProfileBalanced, backtrackingProfileStrict, backtrackingProfileUltra:
-		return normalized
-	}
-	if strictBacktracking {
-		return backtrackingProfileStrict
-	}
-	return backtrackingProfileBalanced
 }
 
 func buildCustomLoopWaypoints(
@@ -526,19 +801,19 @@ func (adapter *OSMRoutingAdapter) syntheticLoopWaypoints(
 		radiusScales   []float64
 	}{
 		{
-			bearingOffsets: []float64{0, 28, -28, 56, -56},
+			bearingOffsets: []float64{0, 28, 56, -28, -56},
 			radiusScales:   []float64{1.18, 1.06, 1.06, 0.90, 0.90},
 		},
 		{
-			bearingOffsets: []float64{12, -12, 40, -40, 70, -70},
+			bearingOffsets: []float64{12, 40, 70, -12, -40, -70},
 			radiusScales:   []float64{1.20, 1.20, 1.00, 1.00, 0.82, 0.82},
 		},
 		{
-			bearingOffsets: []float64{0, 22, -22, 48, -48, 78, -78},
+			bearingOffsets: []float64{0, 22, 48, 78, -22, -48, -78},
 			radiusScales:   []float64{1.14, 1.12, 1.12, 0.98, 0.98, 0.78, 0.78},
 		},
 		{
-			bearingOffsets: []float64{6, -6, 34, -34, 62, -62},
+			bearingOffsets: []float64{6, 34, 62, -6, -34, -62},
 			radiusScales:   []float64{1.24, 1.24, 1.05, 1.05, 0.86, 0.86},
 		},
 	}
@@ -619,19 +894,27 @@ func (adapter *OSMRoutingAdapter) toRouteCandidate(
 		incrementRejectCount(rejectCounts, "INVALID_ROUTE_GEOMETRY")
 		return osrmRouteCandidate{}, false
 	}
-
-	points := make([][]float64, 0, len(route.Geometry.Coordinates))
-	for _, coordinate := range route.Geometry.Coordinates {
-		if len(coordinate) < 2 {
-			continue
-		}
-		lng := coordinate[0]
-		lat := coordinate[1]
-		if lat < -90 || lat > 90 || lng < -180 || lng > 180 {
-			continue
-		}
-		points = append(points, []float64{lat, lng})
+	points, ok := osrmRouteToPreviewPoints(route)
+	if !ok {
+		incrementRejectCount(rejectCounts, "INVALID_COORDINATES")
+		return osrmRouteCandidate{}, false
 	}
+	distanceKm := route.Distance / 1000.0
+	durationSec := int(math.Round(route.Duration))
+	if durationSec <= 0 {
+		durationSec = int(math.Round(distanceKm * 180.0))
+	}
+	return adapter.toRouteCandidateFromPreview(request, points, distanceKm, durationSec, index, rejectCounts)
+}
+
+func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreview(
+	request application.RoutingEngineRequest,
+	points [][]float64,
+	distanceKm float64,
+	durationSec int,
+	index int,
+	rejectCounts map[string]int,
+) (osrmRouteCandidate, bool) {
 	if len(points) < 2 {
 		incrementRejectCount(rejectCounts, "INVALID_COORDINATES")
 		return osrmRouteCandidate{}, false
@@ -640,22 +923,24 @@ func (adapter *OSMRoutingAdapter) toRouteCandidate(
 		incrementRejectCount(rejectCounts, "START_TOO_FAR")
 		return osrmRouteCandidate{}, false
 	}
-
 	start := &routesDomain.Coordinates{Lat: points[0][0], Lng: points[0][1]}
 	end := &routesDomain.Coordinates{Lat: points[len(points)-1][0], Lng: points[len(points)-1][1]}
-
-	distanceKm := route.Distance / 1000.0
-	durationSec := int(math.Round(route.Duration))
 	if durationSec <= 0 {
 		durationSec = int(math.Round(distanceKm * 180.0))
 	}
-
 	directionPenalty := combinedDirectionPenalty(points, request.StartPoint, request.StartDirection, directionToleranceMeters)
-	backtrackingRatio := oppositeEdgeTraversalRatio(points)
+	axisStats := evaluateAxisUsage(points)
+	backtrackingRatio := axisStats.oppositeTraversalRatio()
 	corridorOverlap := corridorOverlapRatio(points)
-	edgeReuse := edgeReuseRatio(points)
-	diversityRatio := segmentDiversityRatio(points)
+	edgeReuse := axisStats.reuseRatio()
+	maxAxisReuseCount := axisStats.maxAxisReuseCount
+	maxAxisReuseRatio := axisStats.maxAxisReuseRatio()
+	diversityRatio := axisStats.segmentDiversityRatio()
 	distanceDeltaRatio := math.Abs(distanceKm-request.DistanceTargetKm) / math.Max(1.0, request.DistanceTargetKm)
+	if backtrackingRatio > 0.32 || corridorOverlap > 0.30 || edgeReuse > 0.28 || maxAxisReuseCount > 8 {
+		incrementRejectCount(rejectCounts, "EXCESSIVE_RETRACE")
+		return osrmRouteCandidate{}, false
+	}
 
 	var elevationGainM float64
 	if request.ElevationTargetM != nil && *request.ElevationTargetM > 0 {
@@ -681,6 +966,7 @@ func (adapter *OSMRoutingAdapter) toRouteCandidate(
 		fmt.Sprintf("Backtracking: %.0f%%", backtrackingRatio*100.0),
 		fmt.Sprintf("Corridor overlap: %.0f%%", corridorOverlap*100.0),
 		fmt.Sprintf("Axis retrace: %.0f%%", edgeReuse*100.0),
+		fmt.Sprintf("Max axis reuse: %dx", maxAxisReuseCount),
 	}
 	if request.ElevationTargetM != nil {
 		reasons = append(reasons, fmt.Sprintf("Elevation estimate: %s", formatElevationDelta(elevationGainM-*request.ElevationTargetM)))
@@ -688,13 +974,7 @@ func (adapter *OSMRoutingAdapter) toRouteCandidate(
 	if request.StartDirection != "" {
 		reasons = append(reasons, fmt.Sprintf("Direction: %s", startDirectionLabel(request.StartDirection)))
 	}
-	backtrackingProfile := normalizeBacktrackingProfile(request.BacktrackingProfile, request.StrictBacktracking)
-	if backtrackingProfile == backtrackingProfileStrict {
-		reasons = append(reasons, "Anti-backtracking: strict")
-	}
-	if backtrackingProfile == backtrackingProfileUltra {
-		reasons = append(reasons, "Anti-backtracking: ultra")
-	}
+	reasons = append(reasons, "Anti-backtracking: native ultra")
 
 	recommendation := routesDomain.RouteRecommendation{
 		RouteID: routeID,
@@ -722,9 +1002,10 @@ func (adapter *OSMRoutingAdapter) toRouteCandidate(
 	}
 	effectiveScore := clampOSMScore(matchScore -
 		directionPenalty*22.0 -
-		backtrackingRatio*70.0 -
-		corridorOverlap*110.0 -
-		edgeReuse*120.0 -
+		backtrackingRatio*90.0 -
+		corridorOverlap*140.0 -
+		edgeReuse*150.0 -
+		maxAxisReuseRatio*180.0 -
 		math.Max(0.0, minSegmentDiversityRatio(request.RouteType)-diversityRatio)*35.0 -
 		math.Max(0.0, distanceDeltaRatio-0.15)*45.0)
 	// effectiveScore is an internal ranking score (not API score):
@@ -737,6 +1018,8 @@ func (adapter *OSMRoutingAdapter) toRouteCandidate(
 		backtrackingRatio:   backtrackingRatio,
 		corridorOverlap:     corridorOverlap,
 		edgeReuseRatio:      edgeReuse,
+		maxAxisReuseCount:   maxAxisReuseCount,
+		maxAxisReuseRatio:   maxAxisReuseRatio,
 		segmentDiversity:    diversityRatio,
 		distanceDeltaRatio:  distanceDeltaRatio,
 		effectiveMatchScore: effectiveScore,
@@ -770,6 +1053,9 @@ func selectCandidatesWithRelaxation(
 		if left.edgeReuseRatio != right.edgeReuseRatio {
 			return left.edgeReuseRatio < right.edgeReuseRatio
 		}
+		if left.maxAxisReuseCount != right.maxAxisReuseCount {
+			return left.maxAxisReuseCount < right.maxAxisReuseCount
+		}
 		if left.effectiveMatchScore != right.effectiveMatchScore {
 			return left.effectiveMatchScore > right.effectiveMatchScore
 		}
@@ -788,12 +1074,12 @@ func selectCandidatesWithRelaxation(
 	// Levels are evaluated in order: strict -> balanced -> relaxed -> fallback.
 	// We fill results incrementally: if strict cannot fill the target limit,
 	// next levels progressively loosen constraints while keeping quality.
-	backtrackingProfile := normalizeBacktrackingProfile(request.BacktrackingProfile, request.StrictBacktracking)
+	hasDirection := strings.TrimSpace(request.StartDirection) != ""
 	levels := buildRouteRelaxationLevels(
 		request.RouteType,
-		strings.TrimSpace(request.StartDirection) != "",
+		hasDirection,
 		request.DirectionStrict,
-		backtrackingProfile,
+		request.DistanceTargetKm,
 	)
 	selected := make([]routesDomain.RouteRecommendation, 0, limit)
 	selectedIDs := make(map[string]struct{}, limit)
@@ -826,6 +1112,10 @@ func selectCandidatesWithRelaxation(
 				incrementRejectCount(rejectCounts, "EDGE_REUSE")
 				continue
 			}
+			if candidate.maxAxisReuseCount > level.maxAxisReuseCount {
+				incrementRejectCount(rejectCounts, "MAX_AXIS_REUSE")
+				continue
+			}
 			if candidate.segmentDiversity < level.minSegmentDiversity {
 				incrementRejectCount(rejectCounts, "LOW_SEGMENT_DIVERSITY")
 				continue
@@ -844,41 +1134,47 @@ func selectCandidatesWithRelaxation(
 
 	// Safety net: if all configured levels reject candidates, return the best
 	// ranked loops with softer anti-overlap limits instead of returning zero.
+	softAxisCap, directionalAxisCap := bestEffortAxisReuseCaps(request.DistanceTargetKm, hasDirection, request.DirectionStrict)
 	if len(selected) < limit {
-		softMaxBacktracking := 0.32
-		softMaxCorridor := 0.40
-		softMaxEdgeReuse := 0.24
-		if backtrackingProfile == backtrackingProfileStrict {
-			softMaxBacktracking = 0.20
-			softMaxCorridor = 0.12
-			softMaxEdgeReuse = 0.12
-		}
-		if backtrackingProfile == backtrackingProfileUltra {
-			softMaxBacktracking = 0.12
-			softMaxCorridor = 0.08
-			softMaxEdgeReuse = 0.08
+		softMaxBacktracking := 0.10
+		softMaxCorridor := 0.08
+		softMaxEdgeReuse := 0.08
+		softMaxDirection := 1.0
+		// Directional generation naturally creates more corridor pressure.
+		// We relax slightly, but stay far from permissive settings.
+		if hasDirection {
+			softMaxBacktracking = 0.14
+			softMaxCorridor = 0.11
+			softMaxEdgeReuse = 0.10
+			softMaxDirection = 0.40
 		}
 		selected = appendBestEffortCandidates(
 			sortedCandidates,
 			selected,
 			selectedIDs,
 			limit,
+			softMaxDirection,
 			softMaxBacktracking,
 			softMaxCorridor,
 			softMaxEdgeReuse,
+			softAxisCap,
 			"best-effort-soft",
 		)
 	}
-	if len(selected) < limit && backtrackingProfile == backtrackingProfileBalanced {
+	if len(selected) < limit && hasDirection {
+		// Last safety net in directional mode: keep anti-retrace filters, but relax them
+		// just enough to avoid returning zero route too often.
 		selected = appendBestEffortCandidates(
 			sortedCandidates,
 			selected,
 			selectedIDs,
 			limit,
-			1.0,
-			1.0,
-			1.0,
-			"best-effort-hard",
+			0.52,
+			0.18,
+			0.14,
+			0.13,
+			directionalAxisCap,
+			"directional-best-effort",
 		)
 	}
 
@@ -890,9 +1186,11 @@ func appendBestEffortCandidates(
 	selected []routesDomain.RouteRecommendation,
 	selectedIDs map[string]struct{},
 	limit int,
+	maxDirectionPenalty float64,
 	maxBacktrackingRatio float64,
 	maxCorridorOverlap float64,
 	maxEdgeReuseRatio float64,
+	maxAxisReuseCount int,
 	profileName string,
 ) []routesDomain.RouteRecommendation {
 	for _, candidate := range sortedCandidates {
@@ -901,6 +1199,9 @@ func appendBestEffortCandidates(
 		}
 		routeID := candidate.recommendation.RouteID
 		if _, exists := selectedIDs[routeID]; exists {
+			continue
+		}
+		if candidate.directionPenalty > maxDirectionPenalty {
 			continue
 		}
 		if candidate.backtrackingRatio > maxBacktrackingRatio {
@@ -912,6 +1213,9 @@ func appendBestEffortCandidates(
 		if candidate.edgeReuseRatio > maxEdgeReuseRatio {
 			continue
 		}
+		if candidate.maxAxisReuseCount > maxAxisReuseCount {
+			continue
+		}
 		recommendation := candidate.recommendation
 		recommendation.Reasons = append(recommendation.Reasons, fmt.Sprintf("Selection profile: %s", profileName))
 		selected = append(selected, recommendation)
@@ -920,7 +1224,7 @@ func appendBestEffortCandidates(
 	return selected
 }
 
-func buildRouteRelaxationLevels(routeType string, hasDirection bool, directionStrict bool, backtrackingProfile string) []routeRelaxationLevel {
+func buildRouteRelaxationLevels(routeType string, hasDirection bool, directionStrict bool, distanceTargetKm float64) []routeRelaxationLevel {
 	baseMinDiversity := minSegmentDiversityRatio(routeType)
 	strictDirection := 1.0
 	balancedDirection := 1.0
@@ -938,49 +1242,21 @@ func buildRouteRelaxationLevels(routeType string, hasDirection bool, directionSt
 			fallbackDirection = 0.30
 		}
 	}
-	profile := normalizeBacktrackingProfile(backtrackingProfile, false)
-	strictBacktrackingRatio := 0.0025
-	balancedBacktrackingRatio := 0.010
-	relaxedBacktrackingRatio := 0.022
-	fallbackBacktrackingRatio := 0.055
-	strictCorridorOverlap := 0.007
-	balancedCorridorOverlap := 0.014
-	relaxedCorridorOverlap := 0.022
-	fallbackCorridorOverlap := 0.030
-	strictEdgeReuseRatio := 0.018
-	balancedEdgeReuseRatio := 0.060
-	relaxedEdgeReuseRatio := 0.120
-	fallbackEdgeReuseRatio := 0.180
-	if profile == backtrackingProfileStrict {
-		baseMinDiversity = math.Min(0.92, baseMinDiversity+0.08)
-		strictBacktrackingRatio = 0.0015
-		balancedBacktrackingRatio = 0.006
-		relaxedBacktrackingRatio = 0.015
-		fallbackBacktrackingRatio = 0.035
-		strictCorridorOverlap = 0.006
-		balancedCorridorOverlap = 0.012
-		relaxedCorridorOverlap = 0.020
-		fallbackCorridorOverlap = 0.028
-		strictEdgeReuseRatio = 0.015
-		balancedEdgeReuseRatio = 0.040
-		relaxedEdgeReuseRatio = 0.080
-		fallbackEdgeReuseRatio = 0.120
-	}
-	if profile == backtrackingProfileUltra {
-		baseMinDiversity = math.Min(0.95, baseMinDiversity+0.12)
-		strictBacktrackingRatio = 0.0012
-		balancedBacktrackingRatio = 0.0045
-		relaxedBacktrackingRatio = 0.010
-		fallbackBacktrackingRatio = 0.024
-		strictCorridorOverlap = 0.005
-		balancedCorridorOverlap = 0.010
-		relaxedCorridorOverlap = 0.017
-		fallbackCorridorOverlap = 0.024
-		strictEdgeReuseRatio = 0.012
-		balancedEdgeReuseRatio = 0.030
-		relaxedEdgeReuseRatio = 0.060
-		fallbackEdgeReuseRatio = 0.090
-	}
+	// Native ultra anti-backtracking policy (always-on).
+	baseMinDiversity = math.Min(0.95, baseMinDiversity+0.12)
+	strictBacktrackingRatio := 0.0010
+	balancedBacktrackingRatio := 0.0030
+	relaxedBacktrackingRatio := 0.0070
+	fallbackBacktrackingRatio := 0.015
+	strictCorridorOverlap := 0.003
+	balancedCorridorOverlap := 0.007
+	relaxedCorridorOverlap := 0.012
+	fallbackCorridorOverlap := 0.018
+	strictEdgeReuseRatio := 0.008
+	balancedEdgeReuseRatio := 0.020
+	relaxedEdgeReuseRatio := 0.040
+	fallbackEdgeReuseRatio := 0.065
+	strictAxisCap, balancedAxisCap, relaxedAxisCap, fallbackAxisCap := adaptiveAxisReuseThresholds(distanceTargetKm, hasDirection, directionStrict)
 
 	return []routeRelaxationLevel{
 		{
@@ -989,6 +1265,7 @@ func buildRouteRelaxationLevels(routeType string, hasDirection bool, directionSt
 			maxBacktrackingRatio:  strictBacktrackingRatio,
 			maxCorridorOverlap:    strictCorridorOverlap,
 			maxEdgeReuseRatio:     strictEdgeReuseRatio,
+			maxAxisReuseCount:     strictAxisCap,
 			minSegmentDiversity:   baseMinDiversity,
 			maxDistanceDeltaRatio: 0.35,
 		},
@@ -998,6 +1275,7 @@ func buildRouteRelaxationLevels(routeType string, hasDirection bool, directionSt
 			maxBacktrackingRatio:  balancedBacktrackingRatio,
 			maxCorridorOverlap:    balancedCorridorOverlap,
 			maxEdgeReuseRatio:     balancedEdgeReuseRatio,
+			maxAxisReuseCount:     balancedAxisCap,
 			minSegmentDiversity:   math.Max(0.22, baseMinDiversity-0.08),
 			maxDistanceDeltaRatio: 0.60,
 		},
@@ -1007,6 +1285,7 @@ func buildRouteRelaxationLevels(routeType string, hasDirection bool, directionSt
 			maxBacktrackingRatio:  relaxedBacktrackingRatio,
 			maxCorridorOverlap:    relaxedCorridorOverlap,
 			maxEdgeReuseRatio:     relaxedEdgeReuseRatio,
+			maxAxisReuseCount:     relaxedAxisCap,
 			minSegmentDiversity:   math.Max(0.12, baseMinDiversity-0.18),
 			maxDistanceDeltaRatio: 1.00,
 		},
@@ -1016,10 +1295,69 @@ func buildRouteRelaxationLevels(routeType string, hasDirection bool, directionSt
 			maxBacktrackingRatio:  fallbackBacktrackingRatio,
 			maxCorridorOverlap:    fallbackCorridorOverlap,
 			maxEdgeReuseRatio:     fallbackEdgeReuseRatio,
+			maxAxisReuseCount:     fallbackAxisCap,
 			minSegmentDiversity:   0.08,
 			maxDistanceDeltaRatio: 2.20,
 		},
 	}
+}
+
+func adaptiveAxisReuseThresholds(distanceTargetKm float64, hasDirection bool, directionStrict bool) (int, int, int, int) {
+	strictCap := 2
+	balancedCap := 3
+	relaxedCap := 4
+	fallbackCap := 5
+
+	switch {
+	case distanceTargetKm >= 130:
+		strictCap, balancedCap, relaxedCap, fallbackCap = 4, 5, 6, 8
+	case distanceTargetKm >= 90:
+		strictCap, balancedCap, relaxedCap, fallbackCap = 3, 4, 6, 7
+	case distanceTargetKm >= 60:
+		strictCap, balancedCap, relaxedCap, fallbackCap = 3, 4, 5, 6
+	case distanceTargetKm >= 30:
+		strictCap, balancedCap, relaxedCap, fallbackCap = 2, 3, 5, 6
+	}
+
+	if hasDirection {
+		strictCap++
+		balancedCap++
+		relaxedCap++
+		fallbackCap++
+	}
+	if directionStrict {
+		strictCap++
+		balancedCap++
+	}
+
+	return clampInt(strictCap, 2, 6), clampInt(balancedCap, 3, 7), clampInt(relaxedCap, 4, 8), clampInt(fallbackCap, 5, 9)
+}
+
+func bestEffortAxisReuseCaps(distanceTargetKm float64, hasDirection bool, directionStrict bool) (int, int) {
+	_, _, _, fallbackCap := adaptiveAxisReuseThresholds(distanceTargetKm, hasDirection, directionStrict)
+	softCap := clampInt(fallbackCap+1, 6, 10)
+	directionalCap := clampInt(fallbackCap+2, 7, 11)
+	return softCap, directionalCap
+}
+
+func disjointHardAxisReuseCap(request application.RoutingEngineRequest) int {
+	_, _, relaxedCap, fallbackCap := adaptiveAxisReuseThresholds(
+		request.DistanceTargetKm,
+		strings.TrimSpace(request.StartDirection) != "",
+		request.DirectionStrict,
+	)
+	// Construction phase should stay tighter than post-selection fallback.
+	return clampInt(maxInt(relaxedCap, fallbackCap-1), 4, 8)
+}
+
+func clampInt(value int, minValue int, maxValue int) int {
+	if value < minValue {
+		return minValue
+	}
+	if value > maxValue {
+		return maxValue
+	}
+	return value
 }
 
 func incrementRejectCount(rejectCounts map[string]int, reason string) {
@@ -1717,125 +2055,138 @@ func segmentsLikelySameCorridor(left pathSegment, right pathSegment) bool {
 	return true
 }
 
+type axisTraversal struct {
+	axisID    string
+	isForward bool
+}
+
+type axisUsageSummary struct {
+	totalTraversals      int
+	uniqueAxisCount      int
+	conflictingAxisCount int
+	reusedTraversals     int
+	maxAxisReuseCount    int
+}
+
+func evaluateAxisUsage(points [][]float64) axisUsageSummary {
+	traversals := extractAxisTraversals(points)
+	if len(traversals) == 0 {
+		return axisUsageSummary{}
+	}
+
+	axisCounts := make(map[string]int, len(traversals))
+	axisDirections := make(map[string]uint8, len(traversals))
+	maxReuse := 0
+
+	for _, traversal := range traversals {
+		axisCounts[traversal.axisID]++
+		if axisCounts[traversal.axisID] > maxReuse {
+			maxReuse = axisCounts[traversal.axisID]
+		}
+		mask := axisDirections[traversal.axisID]
+		if traversal.isForward {
+			mask |= 0b01
+		} else {
+			mask |= 0b10
+		}
+		axisDirections[traversal.axisID] = mask
+	}
+
+	conflicting := 0
+	reused := 0
+	for axisID, count := range axisCounts {
+		if axisDirections[axisID] == 0b11 {
+			conflicting++
+		}
+		if count > 1 {
+			reused += count - 1
+		}
+	}
+
+	return axisUsageSummary{
+		totalTraversals:      len(traversals),
+		uniqueAxisCount:      len(axisCounts),
+		conflictingAxisCount: conflicting,
+		reusedTraversals:     reused,
+		maxAxisReuseCount:    maxReuse,
+	}
+}
+
+func extractAxisTraversals(points [][]float64) []axisTraversal {
+	if len(points) < 3 {
+		return []axisTraversal{}
+	}
+
+	traversals := make([]axisTraversal, 0, len(points)-1)
+	for index := 0; index < len(points)-1; index++ {
+		left := points[index]
+		right := points[index+1]
+		if len(left) < 2 || len(right) < 2 {
+			continue
+		}
+		fromID := quantizedPointKey(left[0], left[1])
+		toID := quantizedPointKey(right[0], right[1])
+		if fromID == "" || toID == "" || fromID == toID {
+			continue
+		}
+		traversals = append(traversals, axisTraversal{
+			axisID:    canonicalEdgeKey(fromID, toID),
+			isForward: fromID < toID,
+		})
+	}
+	return traversals
+}
+
+func (summary axisUsageSummary) oppositeTraversalRatio() float64 {
+	if summary.totalTraversals == 0 {
+		return 0.0
+	}
+	return float64(summary.conflictingAxisCount) / float64(summary.totalTraversals)
+}
+
+func (summary axisUsageSummary) reuseRatio() float64 {
+	if summary.totalTraversals == 0 {
+		return 0.0
+	}
+	return float64(summary.reusedTraversals) / float64(summary.totalTraversals)
+}
+
+func (summary axisUsageSummary) segmentDiversityRatio() float64 {
+	if summary.totalTraversals == 0 {
+		return 0.0
+	}
+	return float64(summary.uniqueAxisCount) / float64(summary.totalTraversals)
+}
+
+func (summary axisUsageSummary) maxAxisReuseRatio() float64 {
+	if summary.totalTraversals == 0 {
+		return 0.0
+	}
+	return float64(summary.maxAxisReuseCount) / float64(summary.totalTraversals)
+}
+
 func hasOppositeEdgeTraversal(points [][]float64) bool {
-	return oppositeEdgeTraversalRatio(points) > 0.0
+	return evaluateAxisUsage(points).conflictingAxisCount > 0
 }
 
 func oppositeEdgeTraversalRatio(points [][]float64) float64 {
-	if len(points) < 3 {
-		return 0.0
-	}
-
-	type edgeDirection struct {
-		hasForward bool
-		hasReverse bool
-	}
-	seen := make(map[string]edgeDirection, len(points))
-	totalEdges := 0
-
-	for index := 0; index < len(points)-1; index++ {
-		left := points[index]
-		right := points[index+1]
-		if len(left) < 2 || len(right) < 2 {
-			continue
-		}
-		fromID := quantizedPointKey(left[0], left[1])
-		toID := quantizedPointKey(right[0], right[1])
-		if fromID == "" || toID == "" || fromID == toID {
-			continue
-		}
-		totalEdges++
-		edgeKey := canonicalEdgeKey(fromID, toID)
-		entry := seen[edgeKey]
-		if fromID < toID {
-			entry.hasForward = true
-		} else {
-			entry.hasReverse = true
-		}
-		seen[edgeKey] = entry
-	}
-	if totalEdges == 0 {
-		return 0.0
-	}
-	conflictingEdges := 0
-	for _, entry := range seen {
-		if entry.hasForward && entry.hasReverse {
-			conflictingEdges++
-		}
-	}
-
-	return float64(conflictingEdges) / float64(totalEdges)
+	return evaluateAxisUsage(points).oppositeTraversalRatio()
 }
 
 func edgeReuseRatio(points [][]float64) float64 {
-	if len(points) < 3 {
-		return 0.0
-	}
-	usage := make(map[string]int, len(points))
-	totalEdges := 0
-	for index := 0; index < len(points)-1; index++ {
-		left := points[index]
-		right := points[index+1]
-		if len(left) < 2 || len(right) < 2 {
-			continue
-		}
-		fromID := quantizedPointKey(left[0], left[1])
-		toID := quantizedPointKey(right[0], right[1])
-		if fromID == "" || toID == "" || fromID == toID {
-			continue
-		}
-		totalEdges++
-		usage[canonicalEdgeKey(fromID, toID)]++
-	}
-	if totalEdges == 0 {
-		return 0.0
-	}
-	reusedEdges := 0
-	for _, count := range usage {
-		if count > 1 {
-			reusedEdges += count - 1
-		}
-	}
-	return float64(reusedEdges) / float64(totalEdges)
+	return evaluateAxisUsage(points).reuseRatio()
 }
 
 func hasMinimumSegmentDiversity(points [][]float64, routeType string) bool {
-	if len(points) < 3 {
+	axisStats := evaluateAxisUsage(points)
+	if axisStats.totalTraversals == 0 {
 		return false
 	}
-
-	maxEdgeReuse := 3
-	segmentUsage := make(map[string]int, len(points))
-	totalEdges := 0
-	uniqueEdges := 0
-
-	for index := 0; index < len(points)-1; index++ {
-		left := points[index]
-		right := points[index+1]
-		if len(left) < 2 || len(right) < 2 {
-			continue
-		}
-		fromID := quantizedPointKey(left[0], left[1])
-		toID := quantizedPointKey(right[0], right[1])
-		if fromID == "" || toID == "" || fromID == toID {
-			continue
-		}
-
-		totalEdges++
-		segmentKey := canonicalEdgeKey(fromID, toID)
-		segmentUsage[segmentKey]++
-		if segmentUsage[segmentKey] == 1 {
-			uniqueEdges++
-		}
-		if segmentUsage[segmentKey] > maxEdgeReuse {
-			return false
-		}
-	}
-
-	if totalEdges == 0 {
+	// Allow local loops, but reject routes that hammer the exact same axis too often.
+	if axisStats.maxAxisReuseCount > 3 {
 		return false
 	}
-	return float64(uniqueEdges)/float64(totalEdges) >= minSegmentDiversityRatio(routeType)
+	return axisStats.segmentDiversityRatio() >= minSegmentDiversityRatio(routeType)
 }
 
 func minSegmentDiversityRatio(routeType string) float64 {
@@ -1856,29 +2207,7 @@ func minSegmentDiversityRatio(routeType string) float64 {
 }
 
 func segmentDiversityRatio(points [][]float64) float64 {
-	if len(points) < 2 {
-		return 0
-	}
-	totalEdges := 0
-	uniqueEdges := make(map[string]struct{}, len(points))
-	for index := 0; index < len(points)-1; index++ {
-		left := points[index]
-		right := points[index+1]
-		if len(left) < 2 || len(right) < 2 {
-			continue
-		}
-		fromID := quantizedPointKey(left[0], left[1])
-		toID := quantizedPointKey(right[0], right[1])
-		if fromID == "" || toID == "" || fromID == toID {
-			continue
-		}
-		totalEdges++
-		uniqueEdges[canonicalEdgeKey(fromID, toID)] = struct{}{}
-	}
-	if totalEdges == 0 {
-		return 0
-	}
-	return float64(len(uniqueEdges)) / float64(totalEdges)
+	return evaluateAxisUsage(points).segmentDiversityRatio()
 }
 
 type osrmScoringProfile struct {
