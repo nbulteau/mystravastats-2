@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import VGrid, { VGridVueTemplate } from "@revolist/vue3-datagrid";
 import type { PersonalRecordTimeline } from "@/models/personal-record-timeline.model";
 import ActivityCellRenderer from "./cell-renderers/ActivityCellRenderer.vue";
@@ -123,19 +123,72 @@ const summary = computed(() => {
   };
 });
 
-const columns = [
-  { prop: "activityDate", name: "Date", size: 140 },
-  { prop: "metricLabel", name: "Metric", size: 230, cellTemplate: VGridVueTemplate(MetricLabelCellRenderer) },
-  { prop: "value", name: "PR", size: 220 },
-  { prop: "previousValue", name: "Previous PR", size: 220 },
-  { prop: "improvement", name: "Improvement", size: 220 },
-  {
-    prop: "activity",
-    name: "Activity",
-    size: 430,
-    cellTemplate: VGridVueTemplate(ActivityCellRenderer),
-  },
-];
+const viewportWidth = ref(
+  typeof window === "undefined" ? 1600 : window.innerWidth
+);
+
+function updateViewportWidth(): void {
+  if (typeof window !== "undefined") {
+    viewportWidth.value = window.innerWidth;
+  }
+}
+
+onMounted(() => {
+  updateViewportWidth();
+  if (typeof window !== "undefined") {
+    window.addEventListener("resize", updateViewportWidth);
+  }
+});
+
+onBeforeUnmount(() => {
+  if (typeof window !== "undefined") {
+    window.removeEventListener("resize", updateViewportWidth);
+  }
+});
+
+const isCompactGrid = computed(() => viewportWidth.value <= 1450);
+
+const columns = computed(() => {
+  if (isCompactGrid.value) {
+    return [
+      { prop: "activityDate", name: "Date", size: 98 },
+      {
+        prop: "metricLabel",
+        name: "Metric",
+        size: 150,
+        cellTemplate: VGridVueTemplate(MetricLabelCellRenderer),
+      },
+      { prop: "value", name: "PR", size: 160 },
+      { prop: "previousValue", name: "Previous PR", size: 160 },
+      { prop: "improvement", name: "Improvement", size: 150 },
+      {
+        prop: "activity",
+        name: "Activity",
+        size: 250,
+        cellTemplate: VGridVueTemplate(ActivityCellRenderer),
+      },
+    ];
+  }
+
+  return [
+    { prop: "activityDate", name: "Date", size: 125 },
+    {
+      prop: "metricLabel",
+      name: "Metric",
+      size: 185,
+      cellTemplate: VGridVueTemplate(MetricLabelCellRenderer),
+    },
+    { prop: "value", name: "PR", size: 200 },
+    { prop: "previousValue", name: "Previous PR", size: 200 },
+    { prop: "improvement", name: "Improvement", size: 180 },
+    {
+      prop: "activity",
+      name: "Activity",
+      size: 320,
+      cellTemplate: VGridVueTemplate(ActivityCellRenderer),
+    },
+  ];
+});
 </script>
 
 <template>
@@ -199,6 +252,7 @@ const columns = [
   background: var(--ms-surface-strong);
   box-shadow: var(--ms-shadow-soft);
   padding: 10px;
+  min-width: 0;
 }
 
 .timeline-toolbar {
@@ -257,6 +311,10 @@ const columns = [
   font-size: 0.95rem;
   padding: 16px;
   background: #fafbfd;
+}
+
+.grid-shell {
+  min-width: 0;
 }
 
 @media (max-width: 992px) {
