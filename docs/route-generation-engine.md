@@ -1,197 +1,50 @@
-# Route Generation Engine (Type Matrix)
+# Route Generation Engine (Unified Spec)
 
-This document explains how `routeType` is used by the route generation engine in both backends (Go and Kotlin).
+This document is the single source of truth for route generation behavior in both backends (Go and Kotlin).
 
-It focuses on the **Target loop generator** behavior (`/api/routes/generate/target`) and the scoring/fallback logic.
+It merges the former engine matrix and the former v3 constraint-first spec.
 
-Current default engine:
+## Scope
 
-- **v3 disjoint-anchor generator** (`OSM_ROUTING_V3_ENABLED=true` by default)
-- automatic fallback to legacy synthetic-waypoint generator if v3 returns no valid candidate.
+Covered endpoints:
 
-## Accepted route types
+- `POST /api/routes/generate/target`
+- `POST /api/routes/generate/shape`
 
-Valid values:
+Current runtime behavior:
 
-- `RIDE`
-- `MTB`
-- `GRAVEL`
-- `RUN`
-- `TRAIL`
-- `HIKE`
+- v3 disjoint-anchor generation is enabled by default for target mode
+- automatic fallback to legacy synthetic-waypoint generation when needed
+- parity objective between Go and Kotlin remains mandatory
 
-Invalid or missing values are normalized to `RIDE`.
+## Inputs And Normalization
 
-## Where `routeType` is used
+Target input is normalized as follows:
 
-`routeType` is used in 5 places:
+- `routeType`: `RIDE|MTB|GRAVEL|RUN|TRAIL|HIKE` (fallback `RIDE`)
+- `startDirection`: `N|S|E|W|UNDEFINED` (`UNDEFINED` means no global direction constraint)
+- `generationMode`: `AUTOMATIC|CUSTOM`
+- `distanceTargetKm`: required and `> 0`
+- `elevationTargetM`: optional and `>= 0`
+- `variantCount`: clamped to safe max
 
-1. **OSRM profile selection**
-2. **OSRM candidate scoring weights**
-3. **Anti-overlap diversity thresholds**
-4. **In-cache fallback scoring weights**
-5. **Returned sport tag in API response**
+Shape input is normalized as follows:
 
-## Algorithm description (Target loop generator)
+- `shapeInputType`: `draw|polyline|gpx|svg`
+- `shapeData`: required non-empty payload
+- shape inference accepts JSON coordinates and encoded polyline strings
 
-This is the high-level algorithm used by `/api/routes/generate/target`.
+## Route Type Matrix
 
-### 1. Normalize and validate input
+`routeType` drives five decisions:
 
-- Normalize `routeType` (`RIDE|MTB|GRAVEL|RUN|TRAIL|HIKE`, fallback `RIDE`).
-- Normalize `startDirection` (`N|S|E|W` or empty).
-- Validate start point and target distance.
-- Normalize variant count / limit.
+1. OSRM profile selection
+2. candidate scoring weights
+3. anti-overlap/diversity thresholds
+4. cache fallback scoring profile
+5. returned activity tag
 
-### 2. Select routing profile
-
-- `RUN/TRAIL/HIKE` -> OSRM `walking` profile.
-- `RIDE/MTB/GRAVEL` -> OSRM `cycling` profile.
-
-### 3. Generate candidate loops (v3 disjoint anchors, then legacy fallback)
-
-#### 3.a v3 disjoint-anchor generation (default)
-
-For each sampled anchor around the start point:
-
-- compute outbound route `start -> anchor`
-- compute inbound candidates `anchor -> start` with pivot variants to avoid corridor reuse
-- merge outbound + inbound as one loop candidate
-- apply construction hard rules:
-  - reject opposite traversal on same axis
-  - reject excessive max axis reuse
-- convert surviving loops into scored candidates
-
-If v3 yields no accepted candidate:
-
-- fallback to legacy synthetic-waypoint mode.
-
-#### 3.b Legacy synthetic-waypoint generation (fallback)
-
-For each call iteration:
-
-- Compute a loop radius from target distance.
-- Apply rotation and radius multipliers to diversify geometry.
-- Build synthetic waypoints around the start point (multiple shapes).
-- Call OSRM route API with:
-  - `alternatives=true`
-  - `overview=full`
-  - `geometries=geojson`
-  - `continue_straight=true` (to reduce local U-turns at waypoints)
-- Convert each OSRM route into an internal candidate.
-
-### 4. Compute quality metrics per candidate
-
-For each candidate route:
-
-- **distanceDeltaRatio**: relative error to distance target.
-- **directionPenalty**: heading + half-plane constraint from start direction.
-- **backtrackingRatio**: opposite traversal of same edge.
-- **corridorOverlap**: reuse of same road corridor (same axis, near-parallel/opposite).
-- **segmentDiversity**: share of unique edges.
-- **elevationEstimate**: estimated D+ from target constraints.
-- **matchScore**: weighted score from distance/elevation/direction/diversity.
-- **effectiveMatchScore**: internal score with stronger penalties for overlap/backtracking.
-
-### 5. Deduplicate candidates
-
-- Build a geometry signature from sampled polyline points.
-- Keep only one candidate per signature.
-
-### 6. Progressive relaxation selection
-
-Candidates are sorted primarily by:
-
-1. lowest corridor overlap
-2. lowest backtracking ratio
-3. highest effective score
-
-Then selected through relaxation levels:
-
-- `strict`
-- `balanced`
-- `relaxed`
-- `fallback`
-
-Each level applies limits on:
-
-- max direction penalty
-- max backtracking ratio
-- max corridor overlap
-- max axis reuse count
-- min segment diversity
-- max distance delta ratio
-
-If strict cannot fill requested routes, next levels progressively loosen constraints.
-
-### 7. Return generated routes
-
-- Return selected routes with reasons and score.
-- Tag each route with the corresponding sport for the selected `routeType`.
-- If no acceptable OSRM route is found, return empty generated set.
-
-### 8. In-cache fallback (historical recommender)
-
-In parallel to road-graph generation, the system keeps cache-based route recommendation logic.
-Its scoring profile is also adjusted by `routeType` (distance/elevation/duration emphasis).
-
-## OSRM accessible vs not accessible
-
-### Health states
-
-Routing health is exposed via `/api/health` (field `routing`), with:
-
-- `status = up` and `reachable = true`: OSRM is available.
-- `status = down`: OSRM endpoint is configured but unreachable/error.
-- `status = misconfigured`: routing is enabled but base URL is missing/invalid.
-- `status = disabled`: routing engine is disabled by configuration.
-
-### Runtime behavior
-
-- If OSRM is **up**:
-  - road-graph candidates are generated and filtered by quality constraints.
-- If OSRM is **down/misconfigured/disabled**:
-  - road-graph generation returns no generated loop,
-  - the app still returns cache-based recommendations (historical fallback),
-  - startup and core statistics remain functional.
-
-### Partial failures during generation
-
-If some OSRM calls fail during one generation:
-
-- failures are counted (`OSRM_CALL_FAILED`) and logged,
-- other calls continue,
-- if at least one valid candidate survives filtering, a route is returned,
-- otherwise the generated route set is empty and fallback recommendations remain available.
-
-## Pseudo-code (simplified)
-
-```text
-normalize(input)
-profile = profileFromRouteType(routeType)
-candidates = []
-
-for call in routingBudget:
-  waypoints = syntheticLoopWaypoints(start, targetDistance, direction, call)
-  osrmRoutes = osrmRoute(profile, waypoints)
-  for route in osrmRoutes:
-    candidate = computeMetricsAndScores(route, routeType, constraints)
-    if valid(candidate) and not duplicate(candidate):
-      candidates.add(candidate)
-
-sort candidates by (corridorOverlap, backtrackingRatio, -effectiveScore, ...)
-
-selected = []
-for level in [strict, balanced, relaxed, fallback]:
-  selected += candidates that pass level thresholds
-  stop when selected.size == limit
-
-return selected
-```
-
-## Mini matrix by type
-
-| Route type | OSRM profile | OSRM scoring weights (Distance / Elevation / Direction / Diversity) | Min segment diversity threshold | In-cache fallback scoring weights (Distance / Elevation / Duration) | Returned activity tag |
+| Route type | OSRM profile | OSRM scoring weights (Distance / Elevation / Direction / Diversity) | Min segment diversity | In-cache scoring (Distance / Elevation / Duration) | Returned tag |
 |---|---|---:|---:|---:|---|
 | `RIDE` | `cycling` | `0.58 / 0.30 / 0.08 / 0.04` | `0.45` | `0.52 / 0.30 / 0.18` | `Ride` |
 | `MTB` | `cycling` | `0.48 / 0.38 / 0.09 / 0.05` | `0.40` | `0.44 / 0.39 / 0.17` | `MountainBikeRide` |
@@ -200,24 +53,174 @@ return selected
 | `TRAIL` | `walking` | `0.42 / 0.33 / 0.15 / 0.10` | `0.30` | `0.36 / 0.40 / 0.24` | `TrailRun` |
 | `HIKE` | `walking` | `0.34 / 0.41 / 0.15 / 0.10` | `0.28` | `0.30 / 0.45 / 0.25` | `Hike` |
 
-## Notes on dynamic weighting
+Dynamic redistribution:
 
-Two dynamic adjustments are applied:
+- without elevation target, elevation weight is redistributed mostly to distance then diversity
+- without direction target, direction weight is redistributed mostly to distance then diversity
 
-- If no elevation target is provided, elevation weight is redistributed mostly to distance and partly to diversity.
-- If no departure direction is provided, direction weight is redistributed mostly to distance and partly to diversity.
+## Target Generator Algorithm
 
-So, the matrix above reflects the **base profile** before dynamic redistribution.
+### 1. Validate request
 
-## Practical interpretation
+- validate start point and numeric targets
+- normalize route type, direction, generation mode, limits
 
-- `RIDE`/`GRAVEL`: prioritize distance fit and smooth road-like loops.
-- `MTB`: give more importance to elevation and terrain variation.
-- `RUN`: prioritize distance + duration regularity, with stronger directional sensitivity.
-- `TRAIL`/`HIKE`: prioritize elevation and direction coherence over pure distance matching.
+### 2. Select routing profile
 
-## Related docs
+- `RUN/TRAIL/HIKE` -> walking profile
+- `RIDE/MTB/GRAVEL` -> cycling profile
+
+### 3. Generate loop candidates (v3 first)
+
+#### 3.1 v3 disjoint-anchor generation
+
+For each sampled anchor around the start point:
+
+- compute outbound path `start -> anchor`
+- compute inbound path `anchor -> start` with axis reuse penalties/constraints
+- merge both into a loop candidate
+
+Hard anti-backtracking rules during construction:
+
+- reject opposite traversal on the same axis
+- reject candidate when axis reuse exceeds hard cap
+- keep closure-to-start behavior only for final return logic
+
+State tracked per candidate includes:
+
+- used axis counters
+- opposite-axis usage flags
+- distance/elevation aggregates
+- direction dominance signals
+
+#### 3.2 Legacy fallback generation
+
+If v3 yields no accepted candidate:
+
+- generate synthetic waypoints around start
+- call OSRM with alternatives/full geometry
+- convert routes to internal candidates
+
+### 4. Score each candidate
+
+Main metrics:
+
+- distance delta ratio
+- elevation delta ratio
+- direction penalty (global orientation)
+- backtracking ratio
+- corridor overlap
+- segment diversity
+
+Scores:
+
+- `matchScore` for user-facing ranking
+- `effectiveMatchScore` for stronger anti-overlap penalties during selection
+
+### 5. Deduplicate by geometry
+
+- build normalized geometry signatures from sampled points
+- collapse reverse-equivalent geometry
+- keep one candidate per signature
+
+### 6. Progressive relaxation
+
+Candidates are sorted by:
+
+1. corridor overlap ascending
+2. backtracking ratio ascending
+3. effective score descending
+
+Selection levels:
+
+- `strict`
+- `balanced`
+- `relaxed`
+- `fallback`
+
+Relaxed dimensions:
+
+- direction tolerance
+- distance tolerance
+- elevation tolerance
+
+Never relaxed:
+
+- opposite-axis traversal ban
+- hard axis reuse cap
+
+### 7. Return routes and diagnostics
+
+- return generated routes with scores and reasons
+- surface fallback/relaxation diagnostics when relevant, including on success
+
+Examples of success diagnostics:
+
+- `DIRECTION_RELAXED`
+- `DIRECTION_BEST_EFFORT`
+- `BACKTRACKING_RELAXED`
+- `ROUTE_TYPE_FALLBACK`
+- `START_POINT_SNAPPED`
+- `ENGINE_FALLBACK_LEGACY`
+- `SELECTION_RELAXED`
+- `EMERGENCY_FALLBACK`
+
+## Shape Generator Notes
+
+For `POST /api/routes/generate/shape`:
+
+- accepts `draw|polyline|gpx|svg`
+- keeps raw shape payload for shape projection/routing
+- infers shape family (`LOOP`, `OUT_AND_BACK`, `POINT_TO_POINT`) when coordinates are available
+- coordinate parsing supports:
+  - JSON array of `[lat, lng]`
+  - wrapped JSON fields (`points`, `coordinates`, `latLng`)
+  - encoded polyline string
+
+## Routing Health And Degraded Modes
+
+Routing health is exposed by `/api/health/details`:
+
+- `up`: OSRM available
+- `down`: configured but unreachable
+- `misconfigured`: enabled but invalid/missing base URL
+- `disabled`: routing intentionally disabled
+
+Behavior:
+
+- when routing is up: road-graph generation executes
+- when routing is degraded: no road-graph result, historical fallback stays available
+- partial per-call failures remain non-fatal when at least one valid candidate survives
+
+## Simplified Pseudocode
+
+```text
+normalize(request)
+profile = profileFromRouteType(routeType)
+
+candidates = v3DisjointAnchorGenerate(start, target, profile, constraints)
+if candidates is empty:
+  candidates = legacySyntheticGenerate(start, target, profile)
+
+for candidate in candidates:
+  computeMetrics(candidate)
+  computeScores(candidate)
+
+candidates = dedupeByGeometry(candidates)
+candidates = sortBySelectionPriority(candidates)
+
+selected = selectWithRelaxationLevels(candidates, limit)
+return selected + diagnostics
+```
+
+## Acceptance Targets
+
+- target generation returns a practicable loop in most dense-area local tests
+- anti-backtracking remains strongly constrained outside start/finish tolerance zone
+- route-type behavior remains meaningfully distinct (`Ride` vs `Gravel` vs `MTB`)
+- parity checks remain mandatory across Go/Kotlin
+
+## Related Docs
 
 - [OSM Routing Setup](./osm-routing-setup.md)
-- [Route Generation v3 (Constraint-First Spec)](./route-generation-v3-spec.md)
 - [Main project doc](./README.md)

@@ -749,9 +749,64 @@ class RoutesController(
                 val points = wrapped["points"] ?: wrapped["coordinates"] ?: wrapped["latLng"] ?: return null
                 sanitizeShapeCoordinates(points)
             } catch (_: Exception) {
-                null
+                val encodedPolyline = try {
+                    shapeMapper.readValue<String>(trimmed).trim()
+                } catch (_: Exception) {
+                    trimmed
+                }
+                decodeEncodedPolylineCoordinates(encodedPolyline)?.let { points ->
+                    sanitizeShapeCoordinates(points)
+                }
             }
         }
+    }
+
+    private fun decodeEncodedPolylineCoordinates(encodedPolyline: String): List<List<Double>>? {
+        val encoded = encodedPolyline.trim()
+        if (encoded.isEmpty()) {
+            return null
+        }
+        val points = mutableListOf<List<Double>>()
+        var index = 0
+        var lat = 0
+        var lng = 0
+        while (index < encoded.length) {
+            val latDelta = decodePolylineDelta(encoded, index) ?: return null
+            index = latDelta.second
+            val lngDelta = decodePolylineDelta(encoded, index) ?: return null
+            index = lngDelta.second
+            lat += latDelta.first
+            lng += lngDelta.first
+            points += listOf(lat / 1e5, lng / 1e5)
+        }
+        if (points.isEmpty()) {
+            return null
+        }
+        return points
+    }
+
+    private fun decodePolylineDelta(encoded: String, startIndex: Int): Pair<Int, Int>? {
+        var result = 0
+        var shift = 0
+        var index = startIndex
+        while (index < encoded.length) {
+            val chunk = encoded[index].code - 63
+            if (chunk < 0) {
+                return null
+            }
+            result = result or ((chunk and 0x1f) shl shift)
+            shift += 5
+            index += 1
+            if (chunk < 0x20) {
+                val delta = if ((result and 1) == 1) {
+                    (result shr 1).inv()
+                } else {
+                    result shr 1
+                }
+                return delta to index
+            }
+        }
+        return null
     }
 
     private fun sanitizeShapeCoordinates(points: List<List<Double>>): List<List<Double>> {

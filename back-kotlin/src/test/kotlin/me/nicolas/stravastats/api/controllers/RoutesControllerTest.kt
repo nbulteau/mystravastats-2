@@ -246,6 +246,50 @@ class RoutesControllerTest {
     }
 
     @Test
+    fun `generate shape routes infers shape from encoded polyline`() {
+        // GIVEN
+        val encodedPolyline = "_p~iF~ps|U_ulLnnqC_mqNvxq`@"
+        every {
+            routeExplorerService.getRouteExplorer(any(), any(), any())
+        } returns RouteExplorerResult(
+            closestLoops = emptyList(),
+            variants = emptyList(),
+            seasonal = emptyList(),
+            roadGraphLoops = emptyList(),
+            shapeMatches = emptyList(),
+            shapeRemixes = emptyList(),
+        )
+
+        // WHEN
+        mockMvc.perform(
+            post("/api/routes/generate/shape")
+                .param("activityType", "Ride")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "shapeInputType": "polyline",
+                      "shapeData": "_p~iF~ps|U_ulLnnqC_mqNvxq`@",
+                      "routeType": "RIDE"
+                    }
+                    """.trimIndent()
+                )
+        )
+            // THEN
+            .andExpect(status().isOk)
+
+        verify {
+            routeExplorerService.getRouteExplorer(
+                any(),
+                any(),
+                match { request: RouteExplorerRequest ->
+                    request.shape == "POINT_TO_POINT" && request.shapePolyline == encodedPolyline
+                }
+            )
+        }
+    }
+
+    @Test
     fun `generate target routes rejects custom mode without waypoints`() {
         // GIVEN
         // WHEN

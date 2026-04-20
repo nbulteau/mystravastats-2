@@ -597,7 +597,16 @@ func parseShapePolylineCoordinates(raw string) ([][]float64, error) {
 		LatLng      [][]float64 `json:"latLng"`
 	}
 	if err := json.Unmarshal([]byte(trimmed), &wrapped); err != nil {
-		return nil, errors.New("shapeData must be a JSON array of [lat,lng] coordinates")
+		encoded := trimmed
+		var quotedEncoded string
+		if decodeErr := json.Unmarshal([]byte(trimmed), &quotedEncoded); decodeErr == nil {
+			encoded = strings.TrimSpace(quotedEncoded)
+		}
+		decodedPoints, decodeErr := decodeEncodedPolylineCoordinates(encoded)
+		if decodeErr != nil {
+			return nil, errors.New("shapeData must be a JSON array of [lat,lng] coordinates or an encoded polyline string")
+		}
+		return sanitizePolylineCoordinates(decodedPoints), nil
 	}
 	switch {
 	case len(wrapped.Points) > 0:
@@ -609,6 +618,63 @@ func parseShapePolylineCoordinates(raw string) ([][]float64, error) {
 	default:
 		return nil, errors.New("shapeData does not contain coordinates")
 	}
+}
+
+func decodeEncodedPolylineCoordinates(encoded string) ([][]float64, error) {
+	value := strings.TrimSpace(encoded)
+	if value == "" {
+		return nil, errors.New("encoded polyline is empty")
+	}
+
+	points := make([][]float64, 0, 32)
+	index := 0
+	lat := 0
+	lng := 0
+	for index < len(value) {
+		latDelta, nextIndex, err := decodePolylineDelta(value, index)
+		if err != nil {
+			return nil, err
+		}
+		index = nextIndex
+
+		lngDelta, nextIndex, err := decodePolylineDelta(value, index)
+		if err != nil {
+			return nil, err
+		}
+		index = nextIndex
+
+		lat += latDelta
+		lng += lngDelta
+		points = append(points, []float64{float64(lat) / 1e5, float64(lng) / 1e5})
+	}
+
+	if len(points) == 0 {
+		return nil, errors.New("encoded polyline contains no coordinates")
+	}
+	return points, nil
+}
+
+func decodePolylineDelta(encoded string, startIndex int) (int, int, error) {
+	result := 0
+	shift := 0
+	index := startIndex
+	for index < len(encoded) {
+		chunk := int(encoded[index]) - 63
+		if chunk < 0 {
+			return 0, index, errors.New("encoded polyline contains invalid characters")
+		}
+		result |= (chunk & 0x1F) << shift
+		shift += 5
+		index += 1
+		if chunk < 0x20 {
+			delta := result >> 1
+			if result&1 == 1 {
+				delta = ^delta
+			}
+			return delta, index, nil
+		}
+	}
+	return 0, index, errors.New("encoded polyline is truncated")
 }
 
 func sanitizePolylineCoordinates(points [][]float64) [][]float64 {

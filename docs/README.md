@@ -106,8 +106,7 @@ The Routes target generator can use an external road graph engine (OSRM) in both
 Implementation details and setup instructions are documented here:
 
 - [OSM Routing Setup](./osm-routing-setup.md)
-- [Route Generation Engine (Type Matrix)](./route-generation-engine.md)
-- [Route Generation v3 (Constraint-First Spec)](./route-generation-v3-spec.md)
+- [Route Generation Engine (Unified Spec)](./route-generation-engine.md)
 
 ## Screenshots
 

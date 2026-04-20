@@ -133,10 +133,12 @@ func (stub *contractSegmentsReaderStub) FindSegmentSummaryByYearMetricRangeAndTy
 }
 
 type contractRoutesReaderStub struct {
-	result routesDomain.RouteExplorerResult
+	result          routesDomain.RouteExplorerResult
+	capturedRequest routesDomain.RouteExplorerRequest
 }
 
-func (stub *contractRoutesReaderStub) FindRouteExplorerByYearAndTypes(_ *int, _ routesDomain.RouteExplorerRequest, _ ...business.ActivityType) routesDomain.RouteExplorerResult {
+func (stub *contractRoutesReaderStub) FindRouteExplorerByYearAndTypes(_ *int, request routesDomain.RouteExplorerRequest, _ ...business.ActivityType) routesDomain.RouteExplorerResult {
+	stub.capturedRequest = request
 	return stub.result
 }
 
@@ -901,6 +903,45 @@ func TestGenerateShapeRoutesByActivityType_InvalidShapeInputType_Returns400(t *t
 	}
 	if response.Message != "Invalid request body" {
 		t.Fatalf("expected message 'Invalid request body', got %q", response.Message)
+	}
+}
+
+func TestGenerateShapeRoutesByActivityType_PolylineEncoded_InfersShapeFilter(t *testing.T) {
+	// GIVEN
+	const encodedPolyline = "_p~iF~ps|U_ulLnnqC_mqNvxq`@"
+	routesReader := &contractRoutesReaderStub{
+		result: routesDomain.RouteExplorerResult{},
+	}
+	setTestContainer(t, &container{
+		getRouteExplorerUseCase: routesApp.NewGetRouteExplorerUseCase(routesReader),
+	})
+
+	// WHEN
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/api/routes/generate/shape?activityType=Ride",
+		strings.NewReader("{\"shapeInputType\":\"polyline\",\"shapeData\":\"_p~iF~ps|U_ulLnnqC_mqNvxq`@\",\"routeType\":\"RIDE\"}"),
+	)
+	request.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	generateShapeRoutesByActivityType(recorder, request)
+
+	// THEN
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d (%s)", recorder.Code, recorder.Body.String())
+	}
+	if routesReader.capturedRequest.Shape == nil {
+		t.Fatalf("expected inferred shape filter, got nil")
+	}
+	if got := *routesReader.capturedRequest.Shape; got != "POINT_TO_POINT" {
+		t.Fatalf("expected inferred shape filter POINT_TO_POINT, got %q", got)
+	}
+	if routesReader.capturedRequest.ShapePolyline == nil {
+		t.Fatalf("expected shapePolyline to be propagated")
+	}
+	if got := *routesReader.capturedRequest.ShapePolyline; got != encodedPolyline {
+		t.Fatalf("expected shapePolyline %q, got %q", encodedPolyline, got)
 	}
 }
 

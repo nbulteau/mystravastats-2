@@ -107,7 +107,7 @@ Expérience plus orientée usage terrain, meilleure réutilisation des données 
 
 ---
 
-#### Routes (OSRM) - backlog restant uniquement
+#### Routes (OSRM) - backlog restant (mise à jour 2026-04-20)
 
 Objectif produit conservé:
 - générer des boucles praticables depuis un point de départ,
@@ -120,7 +120,14 @@ Ce qui est déjà fait (retiré du backlog):
 - carte unique et UX principale (`Use my location`, `Generate route`, export GPX),
 - intégration OSRM + endpoint health routing,
 - base de scoring distance/D+/direction,
-- fallback de route type (`MTB -> GRAVEL -> RIDE`).
+- fallback de route type (`MTB -> GRAVEL -> RIDE`),
+- statut moteur OSRM + profil actif exploités côté UI (et types incompatibles désactivés),
+- génération incrémentale côté UI (`1 clic = 1 route unique`) avec déduplication géométrique stricte,
+- diagnostics de fallback exposés aussi quand une route est renvoyée (Go + Kotlin + UI),
+- avertissement non bloquant côté UI pour les diagnostics de fallback,
+- script de validation manuelle API/UI (`scripts/manual-route-fallback-check.sh` + `docs/route-fallback-manual-check.md`),
+- support du format polyline encodée pour l'inférence de shape côté backend Go/Kotlin,
+- documentation de génération unifiée dans un seul fichier (`docs/route-generation-engine.md`).
 
 ### Priorités restantes
 
@@ -144,12 +151,12 @@ Ce qui est déjà fait (retiré du backlog):
   - baisse nette des aller/retour sur les GPX générés,
   - tests dédiés sur la métrique de réutilisation d'axes.
 
-- [ ] `ROUTE-P0-03` (`P0`, `M`) - Direction "globale" non bloquante.
+- [ ] `ROUTE-P0-03` (`P0`, `M`) - Direction "globale": améliorer la qualité d'orientation (suite).
   Owners: `Back-Go`, `Back-Kotlin`.
   Scope:
   - `Direction` influence l'orientation moyenne de la boucle,
-  - ne doit plus bloquer la génération,
-  - fallback automatique vers direction relâchée avec raison explicite.
+  - renforcer la stabilité du respect de quadrant demandé quand plusieurs candidats existent,
+  - homogénéiser le scoring de direction entre Go/Kotlin sur les cas limites.
   Acceptance:
   - génération réussie avec et sans direction,
   - la boucle respecte majoritairement le quadrant demandé quand possible.
@@ -166,30 +173,10 @@ Ce qui est déjà fait (retiré du backlog):
   - différence visible de parcours entre `Ride`, `Gravel`, `MTB`,
   - tests de classement par type de surface.
 
-- [ ] `ROUTE-P1-02` (`P1`, `M`) - Statut moteur OSRM + profil réellement exploité dans l'UI.
-  Owners: `Front`, `Back-Go`, `Back-Kotlin`.
-  Scope:
-  - afficher état `online/offline/misconfigured`,
-  - afficher profil actif (`bicycle.lua`, `foot.lua`, `car.lua`) et route types effectivement autorisés,
-  - désactiver côté UI les types incompatibles avec le profil.
-  Acceptance:
-  - cohérence entre health backend et options UI,
-  - plus d'option sélectionnable invalide.
-
-- [ ] `ROUTE-P1-03` (`P1`, `M`) - Génération incrémentale côté UI (1 clic = 1 nouvelle route unique).
-  Owners: `Front`, `Back-Go`, `Back-Kotlin`.
-  Scope:
-  - à chaque clic `Generate route`, ajouter une route nouvelle,
-  - déduplication géométrique stricte,
-  - conserver l'historique de session et sélection active.
-  Acceptance:
-  - plus de doublons dans `Generated routes`,
-  - UX claire "last generated".
-
 - [ ] `ROUTE-P1-04` (`P1`, `L`) - Shape mode v1 utilisable terrain.
   Owners: `Front`, `Back-Go`, `Back-Kotlin`.
   Scope:
-  - import polyline/GPX stable,
+  - finaliser l'import GPX stable côté UI (polyline encodée déjà supportée côté backend),
   - projection shape -> réseau routier,
   - au moins 2 variantes scorées (shape-first / road-first),
   - export GPX par variante.
