@@ -14,6 +14,8 @@ import {
 const DEFAULT_VARIANT_COUNT = 4;
 const TARGET_GENERATION_POOL_SIZE = 4;
 const MAX_TARGET_VARIANT_COUNT = 24;
+const GEOMETRY_SIGNATURE_PRECISION = 5;
+const GEOMETRY_SIGNATURE_MAX_POINTS = 80;
 
 type RoutingHealthStatus = "unknown" | "up" | "down" | "disabled" | "misconfigured";
 const ALL_ROUTE_TYPES: RouteType[] = ["RIDE", "MTB", "GRAVEL", "RUN", "TRAIL", "HIKE"];
@@ -256,6 +258,67 @@ export const useRoutesStore = defineStore("routes", {
         })),
       });
     },
+    sanitizePreviewPoints(previewLatLng: number[][]): number[][] {
+      return previewLatLng.filter((point) =>
+        point.length >= 2 && Number.isFinite(point[0]) && Number.isFinite(point[1])
+      );
+    },
+    sampleGeometryPoints(points: number[][]): number[][] {
+      if (points.length <= GEOMETRY_SIGNATURE_MAX_POINTS) {
+        return points;
+      }
+      const step = Math.max(1, Math.floor(points.length / GEOMETRY_SIGNATURE_MAX_POINTS));
+      const sampled: number[][] = [];
+      for (let index = 0; index < points.length; index += step) {
+        sampled.push(points[index]);
+      }
+      const lastPoint = points[points.length - 1];
+      const sampledLastPoint = sampled[sampled.length - 1];
+      if (
+        !sampledLastPoint
+        || sampledLastPoint[0] !== lastPoint[0]
+        || sampledLastPoint[1] !== lastPoint[1]
+      ) {
+        sampled.push(lastPoint);
+      }
+      return sampled;
+    },
+    encodeGeometryPoints(points: number[][]): string {
+      return points
+        .map((point) => `${point[0].toFixed(GEOMETRY_SIGNATURE_PRECISION)},${point[1].toFixed(GEOMETRY_SIGNATURE_PRECISION)}`)
+        .join("|");
+    },
+    routeGeometrySignature(route: GeneratedRoute): string {
+      const sanitizedPoints = this.sanitizePreviewPoints(route.previewLatLng);
+      if (sanitizedPoints.length === 0) {
+        return `route-id:${route.routeId}`;
+      }
+      const sampledPoints = this.sampleGeometryPoints(sanitizedPoints);
+      const forwardGeometry = this.encodeGeometryPoints(sampledPoints);
+      const reverseGeometry = this.encodeGeometryPoints([...sampledPoints].reverse());
+      const normalizedGeometry = forwardGeometry < reverseGeometry ? forwardGeometry : reverseGeometry;
+      return [
+        normalizedGeometry,
+        `distance:${route.distanceKm.toFixed(2)}`,
+        `elevation:${route.elevationGainM.toFixed(1)}`,
+      ].join("||");
+    },
+    dedupeRoutesByGeometry(routes: GeneratedRoute[]): GeneratedRoute[] {
+      if (routes.length <= 1) {
+        return routes;
+      }
+      const uniqueRoutes: GeneratedRoute[] = [];
+      const seenGeometrySignatures = new Set<string>();
+      for (const route of routes) {
+        const signature = this.routeGeometrySignature(route);
+        if (seenGeometrySignatures.has(signature)) {
+          continue;
+        }
+        seenGeometrySignatures.add(signature);
+        uniqueRoutes.push(route);
+      }
+      return uniqueRoutes;
+    },
     computeTargetVariantCount(existingCount: number): number {
       return Math.max(
         TARGET_GENERATION_POOL_SIZE,
@@ -317,6 +380,7 @@ export const useRoutesStore = defineStore("routes", {
       }
 
       const knownRouteIds = new Set(this.routes.map((route) => route.routeId));
+      const knownGeometrySignatures = new Set(this.routes.map((route) => this.routeGeometrySignature(route)));
       const variantCount = this.computeTargetVariantCount(this.routes.length);
       const payload = {
         startPoint: this.startPoint,
@@ -340,7 +404,7 @@ export const useRoutesStore = defineStore("routes", {
         },
       );
       this.generationDiagnostics = data.diagnostics ?? [];
-      const generatedRoutes = data.routes ?? [];
+      const generatedRoutes = this.dedupeRoutesByGeometry(data.routes ?? []);
       if (generatedRoutes.length === 0) {
         if (this.routes.length === 0) {
           this.selectedRouteId = "";
@@ -349,13 +413,21 @@ export const useRoutesStore = defineStore("routes", {
         return;
       }
 
-      const newUniqueRoute = generatedRoutes.find((route) => !knownRouteIds.has(route.routeId));
+      let newUniqueRoute: GeneratedRoute | null = null;
+      for (const route of generatedRoutes) {
+        const geometrySignature = this.routeGeometrySignature(route);
+        if (knownRouteIds.has(route.routeId) || knownGeometrySignatures.has(geometrySignature)) {
+          continue;
+        }
+        newUniqueRoute = route;
+        break;
+      }
       if (!newUniqueRoute) {
         this.generationDiagnostics = this.generationDiagnostics.length > 0
           ? this.generationDiagnostics
           : [{
             code: "NO_UNIQUE_ROUTE",
-            message: "No additional unique route found with current constraints.",
+            message: "No additional unique route found after geometry deduplication.",
           }];
         return;
       }
@@ -396,7 +468,7 @@ export const useRoutesStore = defineStore("routes", {
           body: JSON.stringify(payload),
         },
       );
-      this.routes = data.routes ?? [];
+      this.routes = this.dedupeRoutesByGeometry(data.routes ?? []);
       this.generationDiagnostics = data.diagnostics ?? [];
       this.selectedRouteId = this.routes[0]?.routeId ?? "";
       this.lastGeneratedTargetRouteNumber = 0;

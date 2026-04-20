@@ -273,7 +273,7 @@ func buildTargetGenerationDiagnostics(
 	routes []dto.GeneratedRouteDto,
 ) []dto.RouteGenerationDiagnosticDto {
 	if len(routes) > 0 {
-		return []dto.RouteGenerationDiagnosticDto{}
+		return buildSuccessfulTargetDiagnostics(routes)
 	}
 
 	diagnostics := []dto.RouteGenerationDiagnosticDto{
@@ -321,6 +321,47 @@ func buildTargetGenerationDiagnostics(
 		Code:    "BACKTRACKING_FILTERED",
 		Message: "Candidates that return over the same segment in reverse are rejected.",
 	})
+
+	return diagnostics
+}
+
+func buildSuccessfulTargetDiagnostics(routes []dto.GeneratedRouteDto) []dto.RouteGenerationDiagnosticDto {
+	diagnostics := []dto.RouteGenerationDiagnosticDto{}
+	seenCodes := map[string]struct{}{}
+	appendOnce := func(code string, message string) {
+		if _, exists := seenCodes[code]; exists {
+			return
+		}
+		seenCodes[code] = struct{}{}
+		diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
+			Code:    code,
+			Message: message,
+		})
+	}
+
+	for _, route := range routes {
+		for _, reason := range route.Reasons {
+			normalized := strings.TrimSpace(reason)
+			switch {
+			case strings.HasPrefix(normalized, "Direction relaxed:"):
+				appendOnce("DIRECTION_RELAXED", "Direction constraint was relaxed to return a valid route.")
+			case strings.HasPrefix(normalized, "Anti-backtracking relaxed:"):
+				appendOnce("BACKTRACKING_RELAXED", "Anti-backtracking constraints were relaxed to return a valid route.")
+			case strings.HasPrefix(normalized, "Route type fallback:"):
+				appendOnce("ROUTE_TYPE_FALLBACK", normalized)
+			case strings.HasPrefix(normalized, "Start snapped to nearest routable point"):
+				appendOnce("START_POINT_SNAPPED", normalized)
+			case normalized == "Generation engine fallback: legacy synthetic waypoints":
+				appendOnce("ENGINE_FALLBACK_LEGACY", "Legacy waypoint generator was used as fallback.")
+			case strings.HasPrefix(normalized, "Selection profile: best-effort-soft"):
+				appendOnce("SELECTION_RELAXED", "Selection constraints were softened to preserve route availability.")
+			case strings.HasPrefix(normalized, "Selection profile: directional-best-effort"):
+				appendOnce("DIRECTION_BEST_EFFORT", "Directional constraints were softened to preserve route availability.")
+			case strings.Contains(normalized, "Selection profile: emergency-fallback"):
+				appendOnce("EMERGENCY_FALLBACK", "Emergency fallback selected the best available generated route.")
+			}
+		}
+	}
 
 	return diagnostics
 }

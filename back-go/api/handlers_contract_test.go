@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -803,6 +804,76 @@ func TestGenerateTargetRoutesByActivityType_ReturnsGeneratedRoutesAndCachesForGP
 	}
 	if !strings.Contains(gpxRecorder.Body.String(), "<gpx") {
 		t.Fatalf("expected GPX payload, got %s", gpxRecorder.Body.String())
+	}
+}
+
+func TestGenerateTargetRoutesByActivityType_ReturnsFallbackDiagnosticsWhenRouteIsRelaxed(t *testing.T) {
+	// GIVEN
+	setTestContainer(t, &container{
+		getRouteExplorerUseCase: routesApp.NewGetRouteExplorerUseCase(&contractRoutesReaderStub{
+			result: routesDomain.RouteExplorerResult{
+				RoadGraphLoops: []routesDomain.RouteRecommendation{
+					{
+						RouteID:        "generated-loop-relaxed-direction",
+						Activity:       business.ActivityShort{Id: 999, Name: "Generated relaxed loop", Type: business.Ride},
+						DistanceKm:     39.8,
+						ElevationGainM: 780,
+						DurationSec:    6900,
+						VariantType:    routesDomain.RouteVariantRoadGraph,
+						MatchScore:     88.5,
+						Reasons: []string{
+							"Direction relaxed: no route found with requested heading",
+							"Selection profile: directional-best-effort",
+						},
+						PreviewLatLng: [][]float64{{45.0, 6.0}, {45.04, 6.03}, {45.0, 6.0}},
+					},
+				},
+			},
+		}),
+	})
+
+	request := httptest.NewRequest(http.MethodPost, "/api/routes/generate/target?activityType=Ride", strings.NewReader(`{
+	  "startPoint": {"lat": 45.1, "lng": 6.1},
+	  "routeType": "RIDE",
+	  "startDirection": "N",
+	  "distanceTargetKm": 40
+	}`))
+	request.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	// WHEN
+	generateTargetRoutesByActivityType(recorder, request)
+
+	// THEN
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d (%s)", recorder.Code, recorder.Body.String())
+	}
+
+	var response map[string]any
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode JSON response: %v", err)
+	}
+
+	diagnostics, ok := response["diagnostics"].([]any)
+	if !ok || len(diagnostics) == 0 {
+		t.Fatalf("expected non-empty diagnostics, got %+v", response["diagnostics"])
+	}
+
+	var diagnosticCodes []string
+	for _, entry := range diagnostics {
+		item, ok := entry.(map[string]any)
+		if !ok {
+			t.Fatalf("expected diagnostics entry object, got %+v", entry)
+		}
+		code, _ := item["code"].(string)
+		diagnosticCodes = append(diagnosticCodes, code)
+	}
+
+	if !slices.Contains(diagnosticCodes, "DIRECTION_RELAXED") {
+		t.Fatalf("expected DIRECTION_RELAXED diagnostic, got %v", diagnosticCodes)
+	}
+	if !slices.Contains(diagnosticCodes, "DIRECTION_BEST_EFFORT") {
+		t.Fatalf("expected DIRECTION_BEST_EFFORT diagnostic, got %v", diagnosticCodes)
 	}
 }
 

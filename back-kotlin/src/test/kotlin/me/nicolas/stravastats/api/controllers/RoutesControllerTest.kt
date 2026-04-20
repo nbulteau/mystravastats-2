@@ -384,6 +384,67 @@ class RoutesControllerTest {
     }
 
     @Test
+    fun `generate target routes returns fallback diagnostics when route is relaxed`() {
+        // GIVEN
+        every {
+            routeExplorerService.getRouteExplorer(any(), any(), any())
+        } returns RouteExplorerResult(
+            closestLoops = emptyList(),
+            variants = emptyList(),
+            seasonal = emptyList(),
+            roadGraphLoops = listOf(
+                RouteRecommendation(
+                    routeId = "generated-relaxed-kt",
+                    activity = ActivityShort(101L, "Generated relaxed loop", ActivityType.Ride),
+                    activityDate = "2025-01-01",
+                    distanceKm = 39.9,
+                    elevationGainM = 770.0,
+                    durationSec = 6900,
+                    isLoop = true,
+                    start = null,
+                    end = null,
+                    startArea = "Grenoble",
+                    season = "SPRING",
+                    variantType = RouteVariantType.ROAD_GRAPH,
+                    matchScore = 88.2,
+                    reasons = listOf(
+                        "Direction relaxed: no route found with requested heading",
+                        "Selection profile: directional-best-effort",
+                    ),
+                    previewLatLng = listOf(listOf(45.18, 5.72), listOf(45.22, 5.76), listOf(45.18, 5.72)),
+                    shape = "LOOP",
+                    shapeScore = 0.85,
+                    experimental = true,
+                )
+            ),
+            shapeMatches = emptyList(),
+            shapeRemixes = emptyList(),
+        )
+
+        // WHEN
+        mockMvc.perform(
+            post("/api/routes/generate/target")
+                .param("activityType", "Ride")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "startPoint": {"lat": 45.19, "lng": 5.73},
+                      "routeType": "RIDE",
+                      "startDirection": "N",
+                      "distanceTargetKm": 40.0
+                    }
+                    """.trimIndent()
+                )
+        )
+            // THEN
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.routes.length()").value(1))
+            .andExpect(jsonPath("$.diagnostics[0].code").value("DIRECTION_RELAXED"))
+            .andExpect(jsonPath("$.diagnostics[1].code").value("DIRECTION_BEST_EFFORT"))
+    }
+
+    @Test
     fun `generate target routes defaults include walk when activityType is missing`() {
         // GIVEN
         every {
