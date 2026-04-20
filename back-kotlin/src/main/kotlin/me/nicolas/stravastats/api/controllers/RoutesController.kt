@@ -439,7 +439,7 @@ class RoutesController(
         routes: List<GeneratedRouteDto>,
     ): List<RouteGenerationDiagnosticDto> {
         if (routes.isNotEmpty()) {
-            return emptyList()
+            return buildSuccessfulTargetDiagnostics(routes)
         }
 
         val diagnostics = mutableListOf(
@@ -490,6 +490,62 @@ class RoutesController(
             code = "BACKTRACKING_FILTERED",
             message = "Candidates that return over the same segment in reverse are rejected.",
         )
+
+        return diagnostics
+    }
+
+    private fun buildSuccessfulTargetDiagnostics(routes: List<GeneratedRouteDto>): List<RouteGenerationDiagnosticDto> {
+        val diagnostics = mutableListOf<RouteGenerationDiagnosticDto>()
+        val seenCodes = mutableSetOf<String>()
+        fun appendOnce(code: String, message: String) {
+            if (!seenCodes.add(code)) {
+                return
+            }
+            diagnostics += RouteGenerationDiagnosticDto(
+                code = code,
+                message = message,
+            )
+        }
+
+        routes.forEach { route ->
+            route.reasons.forEach { reason ->
+                val normalized = reason.trim()
+                when {
+                    normalized.startsWith("Direction relaxed:") -> appendOnce(
+                        code = "DIRECTION_RELAXED",
+                        message = "Direction constraint was relaxed to return a valid route.",
+                    )
+                    normalized.startsWith("Anti-backtracking relaxed:") -> appendOnce(
+                        code = "BACKTRACKING_RELAXED",
+                        message = "Anti-backtracking constraints were relaxed to return a valid route.",
+                    )
+                    normalized.startsWith("Route type fallback:") -> appendOnce(
+                        code = "ROUTE_TYPE_FALLBACK",
+                        message = normalized,
+                    )
+                    normalized.startsWith("Start snapped to nearest routable point") -> appendOnce(
+                        code = "START_POINT_SNAPPED",
+                        message = normalized,
+                    )
+                    normalized == "Generation engine fallback: legacy synthetic waypoints" -> appendOnce(
+                        code = "ENGINE_FALLBACK_LEGACY",
+                        message = "Legacy waypoint generator was used as fallback.",
+                    )
+                    normalized.startsWith("Selection profile: best-effort-soft") -> appendOnce(
+                        code = "SELECTION_RELAXED",
+                        message = "Selection constraints were softened to preserve route availability.",
+                    )
+                    normalized.startsWith("Selection profile: directional-best-effort") -> appendOnce(
+                        code = "DIRECTION_BEST_EFFORT",
+                        message = "Directional constraints were softened to preserve route availability.",
+                    )
+                    normalized.contains("Selection profile: emergency-fallback") -> appendOnce(
+                        code = "EMERGENCY_FALLBACK",
+                        message = "Emergency fallback selected the best available generated route.",
+                    )
+                }
+            }
+        }
 
         return diagnostics
     }

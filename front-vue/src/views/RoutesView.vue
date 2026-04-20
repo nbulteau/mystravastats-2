@@ -114,6 +114,16 @@ const directionOptions = [
   { value: "E", label: "Est" },
   { value: "W", label: "Ouest" },
 ];
+const nonBlockingGenerationDiagnosticCodes = new Set([
+  "DIRECTION_RELAXED",
+  "DIRECTION_BEST_EFFORT",
+  "BACKTRACKING_RELAXED",
+  "ROUTE_TYPE_FALLBACK",
+  "START_POINT_SNAPPED",
+  "ENGINE_FALLBACK_LEGACY",
+  "SELECTION_RELAXED",
+  "EMERGENCY_FALLBACK",
+]);
 
 function formatDistance(value: number): string {
   return `${value.toFixed(1)} km`;
@@ -448,6 +458,14 @@ async function generateRoutes() {
     if (routesStore.mode === "TARGET" && routesStore.lastGeneratedTargetRouteNumber > 0) {
       showToast(`Route #${routesStore.lastGeneratedTargetRouteNumber} generated and shown on the map.`, ToastTypeEnum.NORMAL, 2600);
     }
+    if (routesStore.hasRoutes) {
+      const nonBlockingDiagnostic = routesStore.generationDiagnostics.find((diagnostic) =>
+        nonBlockingGenerationDiagnosticCodes.has(diagnostic.code)
+      );
+      if (nonBlockingDiagnostic) {
+        showToast(nonBlockingDiagnostic.message, ToastTypeEnum.WARN, 4200);
+      }
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to generate routes";
     showToast(message, ToastTypeEnum.ERROR, 4200);
@@ -771,6 +789,17 @@ onBeforeUnmount(() => {
           </p>
         </article>
       </div>
+      <ul
+        v-if="routesStore.hasRoutes && generationDiagnostics.length > 0"
+        class="routes-diagnostics routes-diagnostics--notes"
+      >
+        <li
+          v-for="diagnostic in generationDiagnostics"
+          :key="diagnostic.code"
+        >
+          <strong>{{ diagnostic.code }}</strong>: {{ diagnostic.message }}
+        </li>
+      </ul>
     </section>
   </section>
 </template>
@@ -946,6 +975,13 @@ onBeforeUnmount(() => {
 
 .routes-hint {
   color: #6f7687;
+}
+
+.routes-diagnostics--notes {
+  margin-top: 10px;
+  border: 1px solid #f0d9a6;
+  border-radius: 10px;
+  background: #fff8ea;
 }
 
 .routes-generate-btn {
