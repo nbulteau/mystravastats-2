@@ -13,7 +13,9 @@
 package main
 
 import (
+	"context"
 	"embed"
+	"errors"
 	"flag"
 	"fmt"
 	"io/fs"
@@ -22,8 +24,10 @@ import (
 	"mystravastats/internal/platform/activityprovider"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	_ "mystravastats/docs" // Import for generated Swagger documentation
@@ -54,9 +58,20 @@ func main() {
 	// behavior unchanged from a user perspective at startup.
 	activityprovider.Init(*port)
 
+	// Start the generated-route cache eviction loop; it stops when the
+	// application exits via context cancellation.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api.StartCacheEviction(ctx)
+
+	// Build the list of allowed CORS origins from the environment variable
+	// CORS_ALLOWED_ORIGINS (comma-separated). Defaults to localhost origins
+	// suitable for local development when the variable is not set.
+	corsOrigins := buildCORSOrigins()
+
 	// Create a new CORS handler
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost", "http://localhost:5173"}, // Allow any port on localhost and localhost:5173
+		AllowedOrigins:   corsOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
@@ -127,5 +142,45 @@ func main() {
 		WriteTimeout: 60 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
-	log.Fatal(srv.ListenAndServe())
+
+	// Graceful shutdown
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("could not listen on %s: %v\n", addr, err)
+		}
+	}()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+	<-stop
+
+	log.Println("Shutting down server...")
+
+	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelShutdown()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Fatalf("Server Shutdown Failed:%+v", err)
+	}
+
+	log.Println("Server gracefully stopped")
+}
+
+// buildCORSOrigins returns allowed CORS origins from the CORS_ALLOWED_ORIGINS
+// environment variable (comma-separated). Falls back to localhost defaults for
+// local development when the variable is absent.
+func buildCORSOrigins() []string {
+	if raw := strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS")); raw != "" {
+		parts := strings.Split(raw, ",")
+		origins := make([]string, 0, len(parts))
+		for _, p := range parts {
+			if o := strings.TrimSpace(p); o != "" {
+				origins = append(origins, o)
+			}
+		}
+		if len(origins) > 0 {
+			return origins
+		}
+	}
+	return []string{"http://localhost", "http://localhost:5173"}
 }
