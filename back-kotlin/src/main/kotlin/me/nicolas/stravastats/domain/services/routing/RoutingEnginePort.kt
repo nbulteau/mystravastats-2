@@ -16,6 +16,18 @@ data class RoutingEngineRequest(
     val shapePolyline: String? = null,
     val routeType: String?,
     val limit: Int,
+    val historyBiasEnabled: Boolean = false,
+    val historyProfile: RoutingHistoryProfile? = null,
+)
+
+data class RoutingHistoryProfile(
+    val routeType: String,
+    val halfLifeDays: Int,
+    val activityCount: Int,
+    val segmentCount: Int,
+    val axisScores: Map<String, Double>,
+    val zoneScores: Map<String, Double>,
+    val latestActivityEpochMs: Long,
 )
 
 interface RoutingEnginePort {

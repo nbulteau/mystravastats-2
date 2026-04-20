@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"strings"
+	"time"
 
 	"mystravastats/internal/platform/activityprovider"
 	routeApp "mystravastats/internal/routes/application"
@@ -81,6 +82,15 @@ func (adapter *RouteServiceAdapter) FindRouteExplorerByYearAndTypes(
 		ShapePolyline:       shapePolyline,
 		RouteType:           routeType,
 		Limit:               limit,
+		HistoryBiasEnabled:  routingHistoryBiasEnabled(),
+	}
+	if engineRequest.HistoryBiasEnabled {
+		engineRequest.HistoryProfile = buildRoutingHistoryProfileFromActivities(
+			activities,
+			routeType,
+			time.Now().UTC(),
+			routingHistoryHalfLifeDays(),
+		)
 	}
 
 	if shapePolyline != "" {

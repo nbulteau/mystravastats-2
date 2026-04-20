@@ -29,6 +29,18 @@ type RoutingEngineRequest struct {
 	ShapePolyline       string
 	RouteType           string
 	Limit               int
+	HistoryBiasEnabled  bool
+	HistoryProfile      *RoutingHistoryProfile
+}
+
+type RoutingHistoryProfile struct {
+	RouteType             string
+	HalfLifeDays          int
+	ActivityCount         int
+	SegmentCount          int
+	AxisScores            map[string]float64
+	ZoneScores            map[string]float64
+	LatestActivityEpochMs int64
 }
 
 // RoutingEnginePort is an outbound port for external routing engines

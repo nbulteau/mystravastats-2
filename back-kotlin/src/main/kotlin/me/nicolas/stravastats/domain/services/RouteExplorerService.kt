@@ -11,7 +11,9 @@ import me.nicolas.stravastats.domain.business.ShapeRemixRecommendation
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import me.nicolas.stravastats.domain.services.routing.RoutingEnginePort
+import me.nicolas.stravastats.domain.services.routing.RoutingHistoryProfile
 import me.nicolas.stravastats.domain.services.routing.RoutingEngineRequest
+import me.nicolas.stravastats.domain.services.routing.buildRoutingHistoryProfile
 import org.springframework.stereotype.Service
 import java.time.Instant
 import java.time.LocalDate
@@ -46,6 +48,7 @@ class RouteExplorerService(
         private const val DEFAULT_ROUTE_LIMIT = 5
         private const val MAX_ROUTE_LIMIT = 24
         private const val PREVIEW_POINT_MAX_SIZE = 120
+        private const val DEFAULT_HISTORY_HALF_LIFE_DAYS = 75
     }
 
     override fun getRouteExplorer(
@@ -62,6 +65,8 @@ class RouteExplorerService(
             elevationTarget = request.elevationTargetM ?: 0.0,
             limit = limit,
             fallback = emptyList(),
+            historyBiasEnabled = false,
+            historyProfile = null,
         )
 
         if (candidates.isEmpty()) {
@@ -84,6 +89,17 @@ class RouteExplorerService(
         val routeType = normalizeRouteType(request.routeType)
         val startDirection = normalizeStartDirection(request.startDirection)
         val preferredStart = normalizePreferredStartPoint(request.startPoint)
+        val historyBiasEnabled = isHistoryBiasEnabled()
+        val historyProfile = if (historyBiasEnabled) {
+            buildRoutingHistoryProfile(
+                activities = activities,
+                routeType = routeType,
+                now = Instant.now(),
+                halfLifeDays = historyHalfLifeDays().toDouble(),
+            )
+        } else {
+            null
+        }
         val scoringProfile = buildRouteScoringProfile(routeType, startDirection, preferredStart != null)
 
         val seasonFilter = normalizeSeason(request.season)
@@ -126,6 +142,8 @@ class RouteExplorerService(
             elevationTarget = elevationTarget,
             limit = limit,
             fallback = roadGraphFromCache,
+            historyBiasEnabled = historyBiasEnabled,
+            historyProfile = historyProfile,
         )
         val shapeMatchesFromCache = buildShapeMatchRecommendations(baseCandidates, shapeFilter, distanceTarget, elevationTarget, durationTargetSec, limit)
         val shapeMatchesFromEngine = buildShapeMatchRecommendationsFromEngine(
@@ -133,6 +151,8 @@ class RouteExplorerService(
             distanceTarget = distanceTarget,
             elevationTarget = elevationTarget,
             limit = limit,
+            historyBiasEnabled = historyBiasEnabled,
+            historyProfile = historyProfile,
         )
         val shapeMatches = mergeRouteRecommendations(
             primary = shapeMatchesFromEngine,
@@ -161,6 +181,8 @@ class RouteExplorerService(
         elevationTarget: Double,
         limit: Int,
         fallback: List<RouteRecommendation>,
+        historyBiasEnabled: Boolean,
+        historyProfile: RoutingHistoryProfile?,
     ): List<RouteRecommendation> {
         val start = request.startPoint
         if (start == null || distanceTarget <= 0.0 || limit <= 0) {
@@ -182,6 +204,8 @@ class RouteExplorerService(
                     shapePolyline = request.shapePolyline,
                     routeType = request.routeType,
                     limit = limit,
+                    historyBiasEnabled = historyBiasEnabled,
+                    historyProfile = historyProfile,
                 )
             )
         }.getOrElse {
@@ -196,6 +220,8 @@ class RouteExplorerService(
         distanceTarget: Double,
         elevationTarget: Double,
         limit: Int,
+        historyBiasEnabled: Boolean,
+        historyProfile: RoutingHistoryProfile?,
     ): List<RouteRecommendation> {
         val start = request.startPoint
         val shapePolyline = request.shapePolyline?.trim()
@@ -217,9 +243,45 @@ class RouteExplorerService(
                     shapePolyline = shapePolyline,
                     routeType = request.routeType,
                     limit = limit,
+                    historyBiasEnabled = historyBiasEnabled,
+                    historyProfile = historyProfile,
                 )
             )
         }.getOrElse { emptyList() }
+    }
+
+    private fun isHistoryBiasEnabled(): Boolean {
+        return readBooleanConfig("OSM_ROUTING_HISTORY_BIAS_ENABLED", false)
+    }
+
+    private fun historyHalfLifeDays(): Int {
+        val configured = readIntConfig("OSM_ROUTING_HISTORY_HALF_LIFE_DAYS", DEFAULT_HISTORY_HALF_LIFE_DAYS)
+        return configured.coerceAtLeast(1)
+    }
+
+    private fun readBooleanConfig(key: String, fallback: Boolean): Boolean {
+        val normalized = readStringConfig(key)?.trim()?.lowercase() ?: return fallback
+        return when (normalized) {
+            "1", "true", "yes", "y", "on" -> true
+            "0", "false", "no", "n", "off" -> false
+            else -> fallback
+        }
+    }
+
+    private fun readIntConfig(key: String, fallback: Int): Int {
+        return readStringConfig(key)?.trim()?.toIntOrNull() ?: fallback
+    }
+
+    private fun readStringConfig(key: String): String? {
+        val property = System.getProperty(key)?.trim()
+        if (!property.isNullOrEmpty()) {
+            return property
+        }
+        val environment = System.getenv(key)?.trim()
+        if (!environment.isNullOrEmpty()) {
+            return environment
+        }
+        return null
     }
 
     private fun mergeRouteRecommendations(

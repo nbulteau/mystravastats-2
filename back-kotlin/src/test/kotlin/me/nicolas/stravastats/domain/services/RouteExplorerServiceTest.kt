@@ -20,7 +20,9 @@ import me.nicolas.stravastats.domain.services.routing.RoutingEngineRequest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlin.test.fail
 
 class RouteExplorerServiceTest {
 
@@ -492,6 +494,72 @@ class RouteExplorerServiceTest {
         assertTrue(result.closestLoops.isEmpty(), "closest loops should be empty when cache has no activities")
         assertTrue(result.roadGraphLoops.isNotEmpty(), "road graph loops should still come from routing engine")
         assertEquals("generated-osm-empty-cache", result.roadGraphLoops.first().routeId)
+    }
+
+    @Test
+    fun `route explorer forwards history profile when history bias flag is enabled`() {
+        // GIVEN
+        val activityTypes = setOf(ActivityType.Ride)
+        val activities = listOf(
+            buildActivity(
+                id = 201L,
+                name = "History Source",
+                startDateLocal = "2026-04-10T08:00:00Z",
+                distanceKm = 35.0,
+                elevationM = 450.0,
+                durationSec = 6200,
+                start = listOf(45.0, 6.0),
+                track = listOf(
+                    listOf(45.0, 6.0),
+                    listOf(45.01, 6.02),
+                    listOf(45.02, 6.03),
+                ),
+            ),
+        )
+        every { activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, null) } returns activities
+
+        var capturedRequest: RoutingEngineRequest? = null
+        val engine = object : RoutingEnginePort {
+            override fun generateTargetLoops(request: RoutingEngineRequest): List<RouteRecommendation> {
+                capturedRequest = request
+                return emptyList()
+            }
+
+            override fun generateShapeLoops(request: RoutingEngineRequest): List<RouteRecommendation> = emptyList()
+
+            override fun healthDetails(): Map<String, Any?> = mapOf("status" to "up")
+        }
+        val serviceWithEngine = RouteExplorerService(activityProvider, engine)
+        val request = RouteExplorerRequest(
+            distanceTargetKm = 40.0,
+            elevationTargetM = 500.0,
+            durationTargetMin = 120,
+            startPoint = Coordinates(lat = 45.0, lng = 6.0),
+            routeType = "RIDE",
+            season = null,
+            limit = 4,
+            shape = null,
+            includeRemix = false,
+        )
+
+        System.setProperty("OSM_ROUTING_HISTORY_BIAS_ENABLED", "true")
+        System.setProperty("OSM_ROUTING_HISTORY_HALF_LIFE_DAYS", "90")
+
+        try {
+            // WHEN
+            serviceWithEngine.getRouteExplorer(activityTypes, null, request)
+        } finally {
+            System.clearProperty("OSM_ROUTING_HISTORY_BIAS_ENABLED")
+            System.clearProperty("OSM_ROUTING_HISTORY_HALF_LIFE_DAYS")
+        }
+
+        // THEN
+        val sentRequest = capturedRequest ?: fail("expected routing engine to receive request")
+        assertTrue(sentRequest.historyBiasEnabled, "history bias should be enabled in routing request")
+        val profile = assertNotNull(sentRequest.historyProfile, "history profile should be forwarded")
+        assertEquals("RIDE", profile.routeType)
+        assertTrue(profile.activityCount >= 1, "history profile should contain at least one activity")
+        assertTrue(profile.axisScores.isNotEmpty(), "history profile should contain axis scores")
     }
 
     private fun buildActivity(

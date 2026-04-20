@@ -16,6 +16,12 @@ Current runtime behavior:
 - v3 disjoint-anchor generation is enabled by default for target mode
 - automatic fallback to legacy synthetic-waypoint generation when needed
 - parity objective between Go and Kotlin remains mandatory
+- history-profile indexing (step 1) is available behind feature flags and propagated to the routing engine request
+
+History-profile feature flags:
+
+- `OSM_ROUTING_HISTORY_BIAS_ENABLED` (default `false`)
+- `OSM_ROUTING_HISTORY_HALF_LIFE_DAYS` (default `75`)
 
 ## Inputs And Normalization
 
@@ -176,6 +182,27 @@ For `POST /api/routes/generate/shape`:
   - JSON array of `[lat, lng]`
   - wrapped JSON fields (`points`, `coordinates`, `latLng`)
   - encoded polyline string
+
+## History Profile (Step 1)
+
+When enabled, both backends build a local history profile from cached activities before calling the routing engine.
+
+Profile content:
+
+- route type normalized to `RIDE|MTB|GRAVEL|RUN|TRAIL|HIKE`
+- weighted axis scores (undirected segment key)
+- weighted zone scores (coarse geographic buckets)
+- activity count, segment count, latest activity timestamp
+
+Weighting model:
+
+- contribution is proportional to segment length
+- recency decay uses an exponential half-life (`OSM_ROUTING_HISTORY_HALF_LIFE_DAYS`)
+
+Current usage status:
+
+- profile is computed and propagated to the engine request in Go and Kotlin
+- anchor/edge scoring bias integration is intentionally left to step 2
 
 ## Routing Health And Degraded Modes
 

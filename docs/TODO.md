@@ -127,7 +127,8 @@ Ce qui est déjà fait (retiré du backlog):
 - avertissement non bloquant côté UI pour les diagnostics de fallback,
 - script de validation manuelle API/UI (`scripts/manual-route-fallback-check.sh` + `docs/route-fallback-manual-check.md`),
 - support du format polyline encodée pour l'inférence de shape côté backend Go/Kotlin,
-- documentation de génération unifiée dans un seul fichier (`docs/route-generation-engine.md`).
+- documentation de génération unifiée dans un seul fichier (`docs/route-generation-engine.md`),
+- MVP étape 1 \"history bias\" : index historique local par `routeType` (axes/zones + décroissance temporelle) propagé au moteur Go/Kotlin via feature flag.
 
 ### Priorités restantes
 
