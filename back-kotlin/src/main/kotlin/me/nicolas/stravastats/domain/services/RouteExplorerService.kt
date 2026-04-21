@@ -136,12 +136,17 @@ class RouteExplorerService(
             preferredStart = preferredStart,
             limit = limit,
         )
+        val roadGraphFallback = if (roadGraphFromCache.isNotEmpty()) {
+            roadGraphFromCache
+        } else {
+            closest.take(limit)
+        }
         val roadGraphLoops = buildRoadGraphRecommendationsFromEngine(
             request = request,
             distanceTarget = distanceTarget,
             elevationTarget = elevationTarget,
             limit = limit,
-            fallback = roadGraphFromCache,
+            fallback = roadGraphFallback,
             historyBiasEnabled = historyBiasEnabled,
             historyProfile = historyProfile,
         )
@@ -212,7 +217,7 @@ class RouteExplorerService(
             emptyList()
         }
 
-        return if (generated.isNotEmpty()) generated else emptyList()
+        return if (generated.isNotEmpty()) generated else fallback
     }
 
     private fun buildShapeMatchRecommendationsFromEngine(

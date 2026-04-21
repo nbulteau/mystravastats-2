@@ -103,6 +103,7 @@ private data class OsrmRouteCandidate(
     val segmentDiversity: Double,
     val distanceDeltaRatio: Double,
     val pathRatio: Double,
+    val historyReuseScore: Double = 0.0,
     val effectiveMatchScore: Double,
 )
 
@@ -585,7 +586,8 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         request: RoutingEngineRequest,
         profile: String,
     ): List<RouteRecommendation> {
-        val anchors = sampleTargetAnchors(request)
+        val historyBiasContext = buildRoutingHistoryBiasContext(request)
+        val anchors = sortAnchorsByHistoryReuse(sampleTargetAnchors(request), request.startPoint, historyBiasContext)
         if (anchors.isEmpty()) {
             return emptyList()
         }
@@ -707,7 +709,9 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                             durationSec = totalDurationSec,
                             index = candidateIndex++,
                             rejectCounts = rejectCounts,
-                        ) ?: continue
+                        )?.let { rawCandidate ->
+                            applyHistoryBiasToCandidate(rawCandidate, request.startPoint, historyBiasContext)
+                        } ?: continue
                         val geometryKey = geometrySignature(candidate.recommendation.previewLatLng)
                         if (geometryKey.isBlank()) {
                             incrementRejectCount(rejectCounts, "EMPTY_GEOMETRY_SIGNATURE")
@@ -751,6 +755,35 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         }
 
         return recommendations
+    }
+
+    private fun applyHistoryBiasToCandidate(
+        candidate: OsrmRouteCandidate,
+        start: Coordinates,
+        context: RoutingHistoryBiasContext,
+    ): OsrmRouteCandidate {
+        if (!context.enabled) {
+            return candidate
+        }
+        val corridorReuseScore = computeHistoryReuseScore(candidate.recommendation.previewLatLng, context)
+        val startZoneReuseScore = computeHistoryStartZoneReuseScore(candidate.recommendation.previewLatLng, start, context)
+        val reuseScore = (corridorReuseScore * 0.55 + startZoneReuseScore * 0.45).coerceIn(0.0, 1.0)
+        val adjustedEffectiveScore = clampScore(
+            candidate.effectiveMatchScore +
+                corridorReuseScore * HISTORY_REUSE_BONUS_WEIGHT +
+                startZoneReuseScore * HISTORY_START_ZONE_BONUS_WEIGHT,
+        )
+        return candidate.copy(
+            historyReuseScore = reuseScore,
+            effectiveMatchScore = adjustedEffectiveScore,
+            recommendation = candidate.recommendation.copy(
+                reasons = candidate.recommendation.reasons + (
+                    "History guidance (${context.normalizedRouteType}): " +
+                        "${(corridorReuseScore * 100.0).roundToInt()}% corridor reuse / " +
+                        "${(startZoneReuseScore * 100.0).roundToInt()}% start-return reuse"
+                    ),
+            ),
+        )
     }
 
     private fun sampleTargetAnchors(request: RoutingEngineRequest): List<Coordinates> {
@@ -1420,6 +1453,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 .thenBy { it.backtrackingRatio }
                 .thenBy { it.edgeReuseRatio }
                 .thenBy { it.maxAxisReuseCount }
+                .thenByDescending { it.historyReuseScore }
                 .let { comparator ->
                     if (normalizedRouteType == "MTB" || normalizedRouteType == "GRAVEL") {
                         comparator.thenByDescending { it.pathRatio }

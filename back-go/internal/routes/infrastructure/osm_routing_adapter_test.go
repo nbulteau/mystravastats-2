@@ -593,3 +593,121 @@ func TestEdgeReuseRatio_WhenLoopReusesSameAxis_ThenPenaltyIsPositive(t *testing.
 		t.Fatalf("expected edge reuse ratio to be positive, got %.3f", reuse)
 	}
 }
+
+func TestSortAnchorsByHistoryReuse_PrioritizesMostUsedZones(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 45.10, Lng: 6.10}
+	highReuseAnchor := routesDomain.Coordinates{Lat: 45.30, Lng: 6.30}
+	lowReuseAnchor := routesDomain.Coordinates{Lat: 45.32, Lng: 6.32}
+	highReuseZone := historyZoneKey(highReuseAnchor.Lat, highReuseAnchor.Lng)
+	lowReuseZone := historyZoneKey(lowReuseAnchor.Lat, lowReuseAnchor.Lng)
+	context := routingHistoryBiasContext{
+		enabled:      true,
+		zoneScores:   map[string]float64{highReuseZone: 10_000.0, lowReuseZone: 200.0},
+		maxZoneScore: 10_000.0,
+	}
+
+	// WHEN
+	sorted := sortAnchorsByHistoryReuse(
+		[]routesDomain.Coordinates{highReuseAnchor, lowReuseAnchor},
+		start,
+		context,
+	)
+
+	// THEN
+	if len(sorted) != 2 {
+		t.Fatalf("expected 2 anchors, got %d", len(sorted))
+	}
+	if sorted[0] != highReuseAnchor {
+		t.Fatalf("expected high reuse anchor first, got %+v", sorted[0])
+	}
+}
+
+func TestApplyHistoryBiasToCandidate_RewardsKnownHistoryReuse(t *testing.T) {
+	// GIVEN
+	points := [][]float64{
+		{45.0000, 6.0000},
+		{45.0200, 6.0000},
+		{45.0000, 6.0000},
+	}
+	axisA := historyAxisKey(points[0][0], points[0][1], points[1][0], points[1][1])
+	axisB := historyAxisKey(points[1][0], points[1][1], points[2][0], points[2][1])
+	zoneA := historyZoneKey((points[0][0]+points[1][0])/2.0, (points[0][1]+points[1][1])/2.0)
+	zoneB := historyZoneKey((points[1][0]+points[2][0])/2.0, (points[1][1]+points[2][1])/2.0)
+	request := application.RoutingEngineRequest{
+		RouteType:          "RIDE",
+		HistoryBiasEnabled: true,
+		HistoryProfile: &application.RoutingHistoryProfile{
+			RouteType:  "RIDE",
+			AxisScores: map[string]float64{axisA: 8_000.0, axisB: 8_000.0},
+			ZoneScores: map[string]float64{zoneA: 6_000.0, zoneB: 6_000.0},
+		},
+	}
+	context := buildRoutingHistoryBiasContext(request)
+	candidate := osrmRouteCandidate{
+		recommendation:      routesDomain.RouteRecommendation{PreviewLatLng: points},
+		effectiveMatchScore: 80.0,
+	}
+
+	// WHEN
+	biased := applyHistoryBiasToCandidate(candidate, routesDomain.Coordinates{Lat: 45.0000, Lng: 6.0000}, context)
+
+	// THEN
+	if biased.historyReuseScore <= 0.0 {
+		t.Fatalf("expected positive history reuse score, got %.3f", biased.historyReuseScore)
+	}
+	if biased.effectiveMatchScore <= candidate.effectiveMatchScore {
+		t.Fatalf("expected effective score bonus, before=%.2f after=%.2f", candidate.effectiveMatchScore, biased.effectiveMatchScore)
+	}
+	if len(biased.recommendation.Reasons) == 0 {
+		t.Fatalf("expected history bias reason to be appended")
+	}
+}
+
+func TestSelectCandidatesWithRelaxation_PrioritizesHigherHistoryReuseWhenMetricsTie(t *testing.T) {
+	// GIVEN
+	request := application.RoutingEngineRequest{
+		StartPoint:       routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000},
+		DistanceTargetKm: 40.0,
+		RouteType:        "RIDE",
+		Limit:            1,
+	}
+	candidates := []osrmRouteCandidate{
+		{
+			recommendation:      routesDomain.RouteRecommendation{RouteID: "high-history", MatchScore: 90.0},
+			directionPenalty:    0.0,
+			backtrackingRatio:   0.0,
+			corridorOverlap:     0.0,
+			edgeReuseRatio:      0.0,
+			maxAxisReuseCount:   1,
+			segmentDiversity:    0.90,
+			distanceDeltaRatio:  0.02,
+			historyReuseScore:   0.85,
+			effectiveMatchScore: 88.0,
+		},
+		{
+			recommendation:      routesDomain.RouteRecommendation{RouteID: "low-history", MatchScore: 90.0},
+			directionPenalty:    0.0,
+			backtrackingRatio:   0.0,
+			corridorOverlap:     0.0,
+			edgeReuseRatio:      0.0,
+			maxAxisReuseCount:   1,
+			segmentDiversity:    0.90,
+			distanceDeltaRatio:  0.02,
+			historyReuseScore:   0.10,
+			effectiveMatchScore: 88.0,
+		},
+	}
+	rejectCounts := map[string]int{}
+
+	// WHEN
+	recommendations := selectCandidatesWithRelaxation(request, candidates, rejectCounts)
+
+	// THEN
+	if len(recommendations) != 1 {
+		t.Fatalf("expected 1 recommendation, got %d", len(recommendations))
+	}
+	if recommendations[0].RouteID != "high-history" {
+		t.Fatalf("expected high-history route first, got %s", recommendations[0].RouteID)
+	}
+}

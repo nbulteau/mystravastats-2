@@ -393,7 +393,7 @@ class RouteExplorerServiceTest {
     }
 
     @Test
-    fun `route explorer does not fallback to cache road graph when routing engine returns empty`() {
+    fun `route explorer falls back to cache road graph when routing engine returns empty`() {
         // GIVEN
         val activityTypes = setOf(ActivityType.Ride)
         val activities = listOf(
@@ -436,7 +436,7 @@ class RouteExplorerServiceTest {
         val result = serviceWithEmptyEngine.getRouteExplorer(activityTypes, null, request)
 
         // THEN
-        assertTrue(result.roadGraphLoops.isEmpty(), "road graph loops should be empty when OSRM returns no route")
+        assertTrue(result.roadGraphLoops.isNotEmpty(), "road graph loops should fallback to cache when OSRM returns no route")
     }
 
     @Test
