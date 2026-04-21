@@ -879,6 +879,63 @@ func TestGenerateTargetRoutesByActivityType_ReturnsFallbackDiagnosticsWhenRouteI
 	}
 }
 
+func TestGenerateTargetRoutesByActivityType_ReturnsFailureSummaryAndRequestIDHeader(t *testing.T) {
+	// GIVEN
+	setTestContainer(t, &container{
+		getRouteExplorerUseCase: routesApp.NewGetRouteExplorerUseCase(&contractRoutesReaderStub{
+			result: routesDomain.RouteExplorerResult{},
+		}),
+	})
+
+	request := httptest.NewRequest(http.MethodPost, "/api/routes/generate/target?activityType=Ride", strings.NewReader(`{
+	  "startPoint": {"lat": 45.1, "lng": 6.1},
+	  "routeType": "RIDE",
+	  "startDirection": "N",
+	  "distanceTargetKm": 42,
+	  "elevationTargetM": 900
+	}`))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Request-Id", "req-target-123")
+	recorder := httptest.NewRecorder()
+
+	// WHEN
+	generateTargetRoutesByActivityType(recorder, request)
+
+	// THEN
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d (%s)", recorder.Code, recorder.Body.String())
+	}
+	if got := recorder.Header().Get("X-Request-Id"); got != "req-target-123" {
+		t.Fatalf("expected X-Request-Id=req-target-123, got %q", got)
+	}
+
+	var response map[string]any
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode JSON response: %v", err)
+	}
+	diagnostics, ok := response["diagnostics"].([]any)
+	if !ok || len(diagnostics) == 0 {
+		t.Fatalf("expected diagnostics array, got %+v", response["diagnostics"])
+	}
+
+	var hasSummary bool
+	for _, entry := range diagnostics {
+		item, ok := entry.(map[string]any)
+		if !ok {
+			continue
+		}
+		code, _ := item["code"].(string)
+		message, _ := item["message"].(string)
+		if code == "FAILURE_SUMMARY" {
+			hasSummary = strings.Contains(message, "requestId=req-target-123")
+			break
+		}
+	}
+	if !hasSummary {
+		t.Fatalf("expected FAILURE_SUMMARY containing request id, got %+v", diagnostics)
+	}
+}
+
 func TestGenerateShapeRoutesByActivityType_InvalidShapeInputType_Returns400(t *testing.T) {
 	// GIVEN
 	// WHEN
@@ -903,6 +960,62 @@ func TestGenerateShapeRoutesByActivityType_InvalidShapeInputType_Returns400(t *t
 	}
 	if response.Message != "Invalid request body" {
 		t.Fatalf("expected message 'Invalid request body', got %q", response.Message)
+	}
+}
+
+func TestGenerateShapeRoutesByActivityType_ReturnsFailureSummaryAndRequestIDHeader(t *testing.T) {
+	// GIVEN
+	setTestContainer(t, &container{
+		getRouteExplorerUseCase: routesApp.NewGetRouteExplorerUseCase(&contractRoutesReaderStub{
+			result: routesDomain.RouteExplorerResult{},
+		}),
+	})
+
+	request := httptest.NewRequest(http.MethodPost, "/api/routes/generate/shape?activityType=Ride", strings.NewReader(`{
+	  "shapeInputType": "draw",
+	  "shapeData": "[[45.0,6.0],[45.1,6.1]]",
+	  "routeType": "RIDE",
+	  "distanceTargetKm": 30
+	}`))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Request-Id", "req-shape-456")
+	recorder := httptest.NewRecorder()
+
+	// WHEN
+	generateShapeRoutesByActivityType(recorder, request)
+
+	// THEN
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d (%s)", recorder.Code, recorder.Body.String())
+	}
+	if got := recorder.Header().Get("X-Request-Id"); got != "req-shape-456" {
+		t.Fatalf("expected X-Request-Id=req-shape-456, got %q", got)
+	}
+
+	var response map[string]any
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode JSON response: %v", err)
+	}
+	diagnostics, ok := response["diagnostics"].([]any)
+	if !ok || len(diagnostics) == 0 {
+		t.Fatalf("expected diagnostics array, got %+v", response["diagnostics"])
+	}
+
+	var hasSummary bool
+	for _, entry := range diagnostics {
+		item, ok := entry.(map[string]any)
+		if !ok {
+			continue
+		}
+		code, _ := item["code"].(string)
+		message, _ := item["message"].(string)
+		if code == "FAILURE_SUMMARY" {
+			hasSummary = strings.Contains(message, "requestId=req-shape-456")
+			break
+		}
+	}
+	if !hasSummary {
+		t.Fatalf("expected FAILURE_SUMMARY containing request id, got %+v", diagnostics)
 	}
 }
 

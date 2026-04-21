@@ -8,7 +8,9 @@ import (
 	routesDomain "mystravastats/internal/routes/domain"
 	"mystravastats/internal/shared/domain/business"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -68,6 +70,10 @@ func getRouteRecommendationGPXByActivityType(writer http.ResponseWriter, request
 }
 
 func generateTargetRoutesByActivityType(writer http.ResponseWriter, request *http.Request) {
+	requestID := resolveRouteGenerationRequestID(request)
+	writer.Header().Set("X-Request-Id", requestID)
+	startedAt := time.Now()
+
 	year, activityTypes, err := parseRouteGenerationFilters(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
@@ -124,9 +130,22 @@ func generateTargetRoutesByActivityType(writer http.ResponseWriter, request *htt
 		directionStrict,
 		strictBacktracking,
 		targetMode,
+		requestID,
 		variantCount,
 	)
 	cacheGeneratedRoutes(response.Routes)
+	logRouteGenerationSummary(
+		"target",
+		requestID,
+		routeType,
+		payload.DistanceTarget,
+		payload.ElevationTarget,
+		startDirection,
+		payload.GenerationMode,
+		variantCount,
+		response,
+		time.Since(startedAt),
+	)
 
 	if err := writeJSON(writer, http.StatusOK, response); err != nil {
 		log.Printf("failed to write generated target routes response: %v", err)
@@ -135,6 +154,10 @@ func generateTargetRoutesByActivityType(writer http.ResponseWriter, request *htt
 }
 
 func generateShapeRoutesByActivityType(writer http.ResponseWriter, request *http.Request) {
+	requestID := resolveRouteGenerationRequestID(request)
+	writer.Header().Set("X-Request-Id", requestID)
+	startedAt := time.Now()
+
 	year, activityTypes, err := parseRouteGenerationFilters(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
@@ -178,9 +201,24 @@ func generateShapeRoutesByActivityType(writer http.ResponseWriter, request *http
 		payload.DistanceTarget,
 		payload.ElevationTarget,
 		routeType,
+		payload.ShapeInputType,
+		shapeFilter,
+		requestID,
 		variantCount,
 	)
 	cacheGeneratedRoutes(response.Routes)
+	logRouteGenerationSummary(
+		"shape",
+		requestID,
+		routeType,
+		derefRouteGenerationOptionalFloat(payload.DistanceTarget),
+		payload.ElevationTarget,
+		"",
+		payload.ShapeInputType,
+		variantCount,
+		response,
+		time.Since(startedAt),
+	)
 
 	if err := writeJSON(writer, http.StatusOK, response); err != nil {
 		log.Printf("failed to write generated shape routes response: %v", err)
@@ -255,4 +293,114 @@ func parseRouteGenerationFilters(request *http.Request) (*int, []business.Activi
 		return nil, nil, err
 	}
 	return year, activityTypes, nil
+}
+
+func resolveRouteGenerationRequestID(request *http.Request) string {
+	header := strings.TrimSpace(request.Header.Get("X-Request-Id"))
+	if header != "" {
+		return header
+	}
+	return fmt.Sprintf("route-%d", time.Now().UnixNano())
+}
+
+func logRouteGenerationSummary(
+	mode string,
+	requestID string,
+	routeType string,
+	distanceTarget float64,
+	elevationTarget *float64,
+	startDirection string,
+	requestMode string,
+	variantCount int,
+	response dto.GenerateRoutesResponseDto,
+	elapsed time.Duration,
+) {
+	log.Printf(
+		"category=routes requestId=%s mode=%s requestMode=%s routeType=%s distanceKm=%.1f elevationM=%s startDirection=%s variantCount=%d generatedRoutes=%d diagnostics=%s routeReasons=%s durationMs=%d",
+		requestID,
+		mode,
+		routeGenerationLogValue(strings.ToUpper(strings.TrimSpace(requestMode))),
+		routeGenerationLogValue(routeType),
+		distanceTarget,
+		formatRouteGenerationElevation(elevationTarget),
+		routeGenerationLogValue(startDirection),
+		variantCount,
+		len(response.Routes),
+		diagnosticsCodeSummary(response.Diagnostics),
+		routeReasonSummary(response.Routes),
+		elapsed.Milliseconds(),
+	)
+}
+
+func formatRouteGenerationElevation(value *float64) string {
+	if value == nil {
+		return "none"
+	}
+	return strconv.FormatFloat(*value, 'f', 0, 64)
+}
+
+func routeGenerationLogValue(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return "none"
+	}
+	return trimmed
+}
+
+func diagnosticsCodeSummary(diagnostics []dto.RouteGenerationDiagnosticDto) string {
+	if len(diagnostics) == 0 {
+		return "none"
+	}
+	seen := map[string]struct{}{}
+	codes := make([]string, 0, len(diagnostics))
+	for _, diagnostic := range diagnostics {
+		code := strings.TrimSpace(diagnostic.Code)
+		if code == "" {
+			continue
+		}
+		if _, exists := seen[code]; exists {
+			continue
+		}
+		seen[code] = struct{}{}
+		codes = append(codes, code)
+	}
+	if len(codes) == 0 {
+		return "none"
+	}
+	return strings.Join(codes, "|")
+}
+
+func routeReasonSummary(routes []dto.GeneratedRouteDto) string {
+	if len(routes) == 0 {
+		return "none"
+	}
+	seen := map[string]struct{}{}
+	reasons := make([]string, 0, 6)
+	for _, route := range routes {
+		for _, reason := range route.Reasons {
+			normalized := strings.TrimSpace(reason)
+			if normalized == "" {
+				continue
+			}
+			if _, exists := seen[normalized]; exists {
+				continue
+			}
+			seen[normalized] = struct{}{}
+			reasons = append(reasons, normalized)
+			if len(reasons) >= 6 {
+				return strings.Join(reasons, "|")
+			}
+		}
+	}
+	if len(reasons) == 0 {
+		return "none"
+	}
+	return strings.Join(reasons, "|")
+}
+
+func derefRouteGenerationOptionalFloat(value *float64) float64 {
+	if value == nil {
+		return 0
+	}
+	return *value
 }

@@ -26,6 +26,12 @@ const isLocating = ref(false);
 
 const selectedRoute = computed(() => routesStore.selectedRoute);
 const generationDiagnostics = computed(() => routesStore.generationDiagnostics);
+const failureSummaryDiagnostic = computed(() =>
+  generationDiagnostics.value.find((diagnostic) => diagnostic.code === "FAILURE_SUMMARY") ?? null,
+);
+const detailedGenerationDiagnostics = computed(() =>
+  generationDiagnostics.value.filter((diagnostic) => diagnostic.code !== "FAILURE_SUMMARY"),
+);
 const canGenerate = computed(() =>
   routesStore.mode === "TARGET" ? routesStore.canGenerateTarget : routesStore.canGenerateShape,
 );
@@ -443,11 +449,11 @@ async function generateRoutes() {
     await routesStore.generateRoutes();
     redrawMapLayers();
     if (!routesStore.hasRoutes) {
-      const firstDiagnostic = routesStore.generationDiagnostics[0]?.message;
-      const message = firstDiagnostic
-        ? `No route generated. ${firstDiagnostic}`
+      const message = failureSummaryDiagnostic.value?.message ?? routesStore.generationDiagnostics[0]?.message;
+      const displayMessage = message
+        ? `No route generated. ${message}`
         : "No route generated with current constraints. Try widening your targets.";
-      showToast(message, ToastTypeEnum.ERROR, 5000);
+      showToast(displayMessage, ToastTypeEnum.ERROR, 5000);
       return;
     }
     if (routesStore.mode === "TARGET" && routesStore.routes.length === previousCount) {
@@ -750,12 +756,18 @@ onBeforeUnmount(() => {
           ? "No route matched all constraints for this request."
           : "Generate a route to see proposals here." }}
       </p>
+      <p
+        v-if="!routesStore.hasRoutes && failureSummaryDiagnostic"
+        class="routes-failure-summary"
+      >
+        {{ failureSummaryDiagnostic.message }}
+      </p>
       <ul
-        v-if="!routesStore.hasRoutes && generationDiagnostics.length > 0"
+        v-if="!routesStore.hasRoutes && detailedGenerationDiagnostics.length > 0"
         class="routes-diagnostics"
       >
         <li
-          v-for="diagnostic in generationDiagnostics"
+          v-for="diagnostic in detailedGenerationDiagnostics"
           :key="diagnostic.code"
         >
           <strong>{{ diagnostic.code }}</strong>: {{ diagnostic.message }}
@@ -790,11 +802,11 @@ onBeforeUnmount(() => {
         </article>
       </div>
       <ul
-        v-if="routesStore.hasRoutes && generationDiagnostics.length > 0"
+        v-if="routesStore.hasRoutes && detailedGenerationDiagnostics.length > 0"
         class="routes-diagnostics routes-diagnostics--notes"
       >
         <li
-          v-for="diagnostic in generationDiagnostics"
+          v-for="diagnostic in detailedGenerationDiagnostics"
           :key="diagnostic.code"
         >
           <strong>{{ diagnostic.code }}</strong>: {{ diagnostic.message }}
@@ -1072,6 +1084,16 @@ onBeforeUnmount(() => {
 .routes-empty {
   margin: 0;
   color: #6a7183;
+}
+
+.routes-failure-summary {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border: 1px solid #efbe84;
+  border-radius: 10px;
+  background: #fff3e4;
+  color: #7a4d1f;
+  font-size: 0.9rem;
 }
 
 .routes-diagnostics {

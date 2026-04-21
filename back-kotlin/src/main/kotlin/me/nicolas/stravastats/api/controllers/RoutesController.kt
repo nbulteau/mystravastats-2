@@ -1,5 +1,6 @@
 package me.nicolas.stravastats.api.controllers
 
+import jakarta.servlet.http.HttpServletResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
@@ -23,6 +24,7 @@ import me.nicolas.stravastats.domain.business.RouteRecommendation
 import me.nicolas.stravastats.domain.business.RouteVariantType
 import me.nicolas.stravastats.domain.business.ShapeRemixRecommendation
 import me.nicolas.stravastats.domain.services.IRouteExplorerService
+import org.slf4j.LoggerFactory
 import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -32,6 +34,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -40,6 +43,7 @@ import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.KotlinModule
 import tools.jackson.module.kotlin.readValue
 import java.time.Instant
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -62,7 +66,10 @@ class RoutesController(
         private const val MAX_VARIANT_COUNT = 24
         private const val GENERATED_ROUTE_CACHE_TTL_SECONDS = 6 * 3600L
         private const val NATIVE_BACKTRACKING_PROFILE = "ULTRA"
+        private const val REQUEST_ID_HEADER = "X-Request-Id"
     }
+
+    private val logger = LoggerFactory.getLogger(RoutesController::class.java)
 
     private data class CachedGeneratedRoute(
         val name: String,
@@ -137,7 +144,12 @@ class RoutesController(
         @RequestParam(required = false) activityType: String?,
         @RequestParam(required = false) year: Int?,
         @RequestBody payload: GenerateTargetRoutesRequestDto,
+        @RequestHeader(name = REQUEST_ID_HEADER, required = false) requestIdHeader: String?,
+        response: HttpServletResponse,
     ): GenerateRoutesResponseDto {
+        val requestId = resolveRouteRequestId(requestIdHeader)
+        response.setHeader(REQUEST_ID_HEADER, requestId)
+        val startedAtNs = System.nanoTime()
         validateTargetPayload(payload)
         val activityTypes = parseActivityTypesOrDefault(activityType)
         val routeType = normalizeRouteType(payload.routeType)
@@ -186,9 +198,24 @@ class RoutesController(
             directionStrict = strictDirection,
             strictBacktracking = strictBacktracking,
             targetMode = targetMode,
+            routeType = routeType,
+            requestId = requestId,
             routes = routes,
         )
         cacheGeneratedRoutes(routes)
+        logRouteGenerationSummary(
+            mode = "target",
+            requestId = requestId,
+            routeType = routeType,
+            distanceTarget = distanceTarget,
+            elevationTarget = payload.elevationTargetM,
+            startDirection = startDirection,
+            requestMode = payload.generationMode,
+            variantCount = variantCount,
+            routes = routes,
+            diagnostics = diagnostics,
+            elapsedMs = (System.nanoTime() - startedAtNs) / 1_000_000,
+        )
         return GenerateRoutesResponseDto(
             routes = routes,
             diagnostics = diagnostics,
@@ -200,7 +227,12 @@ class RoutesController(
         @RequestParam(required = false) activityType: String?,
         @RequestParam(required = false) year: Int?,
         @RequestBody payload: GenerateShapeRoutesRequestDto,
+        @RequestHeader(name = REQUEST_ID_HEADER, required = false) requestIdHeader: String?,
+        response: HttpServletResponse,
     ): GenerateRoutesResponseDto {
+        val requestId = resolveRouteRequestId(requestIdHeader)
+        response.setHeader(REQUEST_ID_HEADER, requestId)
+        val startedAtNs = System.nanoTime()
         validateShapePayload(payload)
         val activityTypes = parseActivityTypesOrDefault(activityType)
         val routeType = normalizeRouteType(payload.routeType)
@@ -227,10 +259,32 @@ class RoutesController(
             routeType = routeType,
             limit = variantCount,
         )
+        val diagnostics = buildShapeGenerationDiagnostics(
+            routes = routes,
+            distanceTarget = payload.distanceTargetKm,
+            elevationTarget = payload.elevationTargetM,
+            routeType = routeType,
+            shapeInputType = payload.shapeInputType,
+            shapeFilter = shapeFilter,
+            requestId = requestId,
+        )
         cacheGeneratedRoutes(routes)
+        logRouteGenerationSummary(
+            mode = "shape",
+            requestId = requestId,
+            routeType = routeType,
+            distanceTarget = payload.distanceTargetKm ?: 0.0,
+            elevationTarget = payload.elevationTargetM,
+            startDirection = null,
+            requestMode = payload.shapeInputType,
+            variantCount = variantCount,
+            routes = routes,
+            diagnostics = diagnostics,
+            elapsedMs = (System.nanoTime() - startedAtNs) / 1_000_000,
+        )
         return GenerateRoutesResponseDto(
             routes = routes,
-            diagnostics = emptyList(),
+            diagnostics = diagnostics,
         )
     }
 
@@ -450,6 +504,8 @@ class RoutesController(
         directionStrict: Boolean,
         strictBacktracking: Boolean,
         targetMode: String?,
+        routeType: String?,
+        requestId: String,
         routes: List<GeneratedRouteDto>,
     ): List<RouteGenerationDiagnosticDto> {
         if (routes.isNotEmpty()) {
@@ -504,8 +560,39 @@ class RoutesController(
             code = "BACKTRACKING_FILTERED",
             message = "Candidates that return over the same segment in reverse are rejected.",
         )
+        diagnostics += buildTargetFailureSummaryDiagnostic(
+            distanceTarget = distanceTarget,
+            elevationTarget = elevationTarget,
+            routeType = routeType,
+            targetMode = targetMode,
+            startDirection = startDirection,
+            requestId = requestId,
+        )
 
         return diagnostics
+    }
+
+    private fun buildTargetFailureSummaryDiagnostic(
+        distanceTarget: Double,
+        elevationTarget: Double?,
+        routeType: String?,
+        targetMode: String?,
+        startDirection: String?,
+        requestId: String,
+    ): RouteGenerationDiagnosticDto {
+        val parts = mutableListOf("${normalizeRouteType(routeType)} ${"%.1f".format(distanceTarget)}km")
+        elevationTarget?.let { value ->
+            parts += "${"%.0f".format(value)}m+"
+        }
+        if (targetMode.equals("CUSTOM", ignoreCase = true)) {
+            parts += "custom waypoints"
+        } else if (!startDirection.isNullOrBlank()) {
+            parts += "direction=${startDirection.trim()}"
+        }
+        return RouteGenerationDiagnosticDto(
+            code = "FAILURE_SUMMARY",
+            message = "No route generated (${parts.joinToString(", ")}). Try lowering distance/elevation or relaxing direction constraints. requestId=$requestId",
+        )
     }
 
     private fun buildSuccessfulTargetDiagnostics(routes: List<GeneratedRouteDto>): List<RouteGenerationDiagnosticDto> {
@@ -613,6 +700,47 @@ class RoutesController(
             routes += remix.toGeneratedRouteDto(score, routeType)
         }
         return routes
+    }
+
+    private fun buildShapeGenerationDiagnostics(
+        routes: List<GeneratedRouteDto>,
+        distanceTarget: Double?,
+        elevationTarget: Double?,
+        routeType: String?,
+        shapeInputType: String?,
+        shapeFilter: String?,
+        requestId: String,
+    ): List<RouteGenerationDiagnosticDto> {
+        if (routes.isNotEmpty()) {
+            return emptyList()
+        }
+
+        val diagnostics = mutableListOf(
+            RouteGenerationDiagnosticDto(
+                code = "NO_CANDIDATE",
+                message = "No route candidate matched the provided shape and constraints.",
+            )
+        )
+
+        val parts = mutableListOf(
+            "${normalizeRouteType(routeType)} shape=${shapeFilter?.takeIf { value -> value.isNotBlank() } ?: "UNKNOWN"}",
+        )
+        distanceTarget?.let { value ->
+            parts += "${"%.1f".format(value)}km"
+        }
+        elevationTarget?.let { value ->
+            parts += "${"%.0f".format(value)}m+"
+        }
+        shapeInputType?.trim()?.takeIf { value -> value.isNotBlank() }?.let { value ->
+            parts += "input=${value.lowercase()}"
+        }
+
+        diagnostics += RouteGenerationDiagnosticDto(
+            code = "FAILURE_SUMMARY",
+            message = "No route generated (${parts.joinToString(", ")}). Try simplifying the shape or widening constraints. requestId=$requestId",
+        )
+
+        return diagnostics
     }
 
     private fun buildGeneratedRouteScore(
@@ -726,6 +854,83 @@ class RoutesController(
             return DEFAULT_VARIANT_COUNT
         }
         return value.coerceIn(1, MAX_VARIANT_COUNT)
+    }
+
+    private fun resolveRouteRequestId(requestIdHeader: String?): String {
+        val candidate = requestIdHeader?.trim().orEmpty()
+        if (candidate.isNotEmpty()) {
+            return candidate
+        }
+        return "route-${UUID.randomUUID()}"
+    }
+
+    private fun logRouteGenerationSummary(
+        mode: String,
+        requestId: String,
+        routeType: String?,
+        distanceTarget: Double,
+        elevationTarget: Double?,
+        startDirection: String?,
+        requestMode: String?,
+        variantCount: Int,
+        routes: List<GeneratedRouteDto>,
+        diagnostics: List<RouteGenerationDiagnosticDto>,
+        elapsedMs: Long,
+    ) {
+        logger.info(
+            "category=routes requestId={} mode={} requestMode={} routeType={} distanceKm={} elevationM={} startDirection={} variantCount={} generatedRoutes={} diagnostics={} routeReasons={} durationMs={}",
+            requestId,
+            mode,
+            logValue(requestMode),
+            logValue(routeType),
+            "%.1f".format(distanceTarget),
+            formatElevationForLog(elevationTarget),
+            logValue(startDirection),
+            variantCount,
+            routes.size,
+            diagnosticsCodeSummary(diagnostics),
+            routeReasonSummary(routes),
+            elapsedMs,
+        )
+    }
+
+    private fun diagnosticsCodeSummary(diagnostics: List<RouteGenerationDiagnosticDto>): String {
+        if (diagnostics.isEmpty()) {
+            return "none"
+        }
+        val codes = diagnostics
+            .mapNotNull { diagnostic -> diagnostic.code.trim().takeIf { code -> code.isNotEmpty() } }
+            .distinct()
+        if (codes.isEmpty()) {
+            return "none"
+        }
+        return codes.joinToString("|")
+    }
+
+    private fun routeReasonSummary(routes: List<GeneratedRouteDto>): String {
+        if (routes.isEmpty()) {
+            return "none"
+        }
+        val reasons = routes
+            .asSequence()
+            .flatMap { route -> route.reasons.asSequence() }
+            .map { reason -> reason.trim() }
+            .filter { reason -> reason.isNotEmpty() }
+            .distinct()
+            .take(6)
+            .toList()
+        if (reasons.isEmpty()) {
+            return "none"
+        }
+        return reasons.joinToString("|")
+    }
+
+    private fun formatElevationForLog(value: Double?): String {
+        return value?.let { elevation -> "%.0f".format(elevation) } ?: "none"
+    }
+
+    private fun logValue(value: String?): String {
+        return value?.trim()?.takeIf { candidate -> candidate.isNotEmpty() } ?: "none"
     }
 
     private fun parseOptionalStartPoint(startLat: Double?, startLng: Double?): Coordinates? {
