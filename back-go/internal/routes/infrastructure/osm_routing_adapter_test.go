@@ -493,6 +493,71 @@ func TestHalfPlaneViolationRatio_WhenPointsCrossForbiddenHalfPlane_ThenPenaltyIs
 	}
 }
 
+func TestFarOppositeViolationRatio_WhenRouteExcursionsGoFarOpposite_ThenPenaltyIsPositive(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}
+	mostlyNorthWithLocalOscillation := [][]float64{
+		{48.13000, -1.63000},
+		{48.13220, -1.62950},
+		{48.12995, -1.62980}, // local oscillation around start, below guard band
+		{48.13500, -1.62850},
+		{48.13800, -1.62700},
+		{48.13000, -1.63000},
+	}
+	farSouthExcursion := [][]float64{
+		{48.13000, -1.63000},
+		{48.13300, -1.62950},
+		{48.13600, -1.62800},
+		{48.12100, -1.62720}, // far opposite
+		{48.11850, -1.62680}, // far opposite
+		{48.13450, -1.62830},
+		{48.13000, -1.63000},
+	}
+
+	// WHEN
+	cleanPenalty := farOppositeViolationRatio(mostlyNorthWithLocalOscillation, start, "N", 120.0)
+	oppositePenalty := farOppositeViolationRatio(farSouthExcursion, start, "N", 120.0)
+
+	// THEN
+	if cleanPenalty != 0.0 {
+		t.Fatalf("expected local oscillation to be ignored by far-opposite metric, got %.3f", cleanPenalty)
+	}
+	if oppositePenalty <= 0.0 {
+		t.Fatalf("expected far opposite excursion penalty to be positive, got %.3f", oppositePenalty)
+	}
+}
+
+func TestCombinedDirectionPenalty_WhenFarOppositeExcursion_ThenPenaltyIncreases(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}
+	northDominant := [][]float64{
+		{48.13000, -1.63000},
+		{48.13220, -1.62950},
+		{48.13450, -1.62840},
+		{48.13680, -1.62710},
+		{48.13300, -1.62830},
+		{48.13000, -1.63000},
+	}
+	northWithFarSouthExcursion := [][]float64{
+		{48.13000, -1.63000},
+		{48.13220, -1.62950},
+		{48.13600, -1.62800},
+		{48.12100, -1.62720}, // far opposite
+		{48.11850, -1.62680}, // far opposite
+		{48.13500, -1.62820},
+		{48.13000, -1.63000},
+	}
+
+	// WHEN
+	cleanPenalty := combinedDirectionPenalty(northDominant, start, "N", 120.0)
+	excursionPenalty := combinedDirectionPenalty(northWithFarSouthExcursion, start, "N", 120.0)
+
+	// THEN
+	if excursionPenalty <= cleanPenalty {
+		t.Fatalf("expected far opposite excursion to increase combined direction penalty, clean=%.3f excursion=%.3f", cleanPenalty, excursionPenalty)
+	}
+}
+
 func TestSelectCandidatesWithRelaxation_PrioritizesLowerBacktracking(t *testing.T) {
 	// GIVEN
 	request := application.RoutingEngineRequest{

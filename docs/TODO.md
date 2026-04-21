@@ -210,6 +210,8 @@ Ce qui est déjà fait (retiré du backlog):
   Progression 2026-04-21:
   - tri de sélection priorise plus tôt la pénalité de direction quand une direction est demandée,
   - seuils directionnels resserrés sur les profils `strict/balanced/relaxed/fallback` en Go/Kotlin,
+  - nouvelle pénalité Go/Kotlin pour excursions lointaines dans la direction opposée (dense urban grid) + dominance lobe resserrée,
+  - tests dédiés Go/Kotlin ajoutés sur la calibration directionnelle (local oscillation vs excursion opposée),
   - calibration terrain restante sur zones urbaines denses.
 
 - [x] `ROUTE-P0-04` (`P0`, `M`) - Guidage historique par type pour départ/retour (step 2).

@@ -2453,7 +2453,11 @@ func combinedDirectionPenalty(
 	bearingPenalty := directionPenaltyFromPreview(points, direction)
 	halfPlanePenalty := halfPlaneViolationRatio(points, start, direction, toleranceMeters)
 	lobePenalty := directionalLobePenalty(points, start, direction)
-	return math.Max(math.Max(bearingPenalty*0.65, halfPlanePenalty), lobePenalty)
+	farOppositePenalty := farOppositeViolationRatio(points, start, direction, toleranceMeters)
+	return math.Max(
+		math.Max(bearingPenalty*0.65, halfPlanePenalty),
+		math.Max(lobePenalty, farOppositePenalty),
+	)
 }
 
 func halfPlaneViolationRatio(
@@ -2544,7 +2548,8 @@ func directionalLobePenalty(
 	totalExtent := desiredExtent + oppositeExtent
 	if totalExtent > 1.0 {
 		dominanceRatio := desiredExtent / totalExtent
-		dominancePenalty = clampUnit((0.63 - dominanceRatio) / 0.63)
+		// Keep a clearer direction dominance in dense grids.
+		dominancePenalty = clampUnit((0.68 - dominanceRatio) / 0.68)
 	}
 
 	// Average projection guard: route center of mass should not drift opposite.
@@ -2555,6 +2560,44 @@ func directionalLobePenalty(
 	}
 
 	return math.Max(dominancePenalty, avgPenalty)
+}
+
+func farOppositeViolationRatio(
+	points [][]float64,
+	start routesDomain.Coordinates,
+	direction string,
+	toleranceMeters float64,
+) float64 {
+	normalized := strings.ToUpper(strings.TrimSpace(direction))
+	if normalized == "" || len(points) == 0 {
+		return 0.0
+	}
+
+	guardBand := math.Max(toleranceMeters*1.8, 220.0)
+	total := 0
+	violations := 0
+
+	for _, point := range points {
+		if len(point) < 2 {
+			continue
+		}
+		projection, ok := directionProjectionMeters(point[0], point[1], start, normalized)
+		if !ok {
+			continue
+		}
+		if math.Abs(projection) < guardBand {
+			// Ignore local oscillations around start/return hub.
+			continue
+		}
+		total++
+		if projection < -guardBand {
+			violations++
+		}
+	}
+	if total == 0 {
+		return 0.0
+	}
+	return float64(violations) / float64(total)
 }
 
 func directionProjectionMeters(

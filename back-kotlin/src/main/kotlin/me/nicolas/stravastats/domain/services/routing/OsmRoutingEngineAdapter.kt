@@ -2151,7 +2151,11 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         val bearingPenalty = directionPenaltyFromPreview(points, direction)
         val halfPlanePenalty = halfPlaneViolationRatio(points, start, direction, toleranceMeters)
         val lobePenalty = directionalLobePenalty(points, start, direction)
-        return max(max(bearingPenalty * 0.65, halfPlanePenalty), lobePenalty)
+        val farOppositePenalty = farOppositeViolationRatio(points, start, direction, toleranceMeters)
+        return max(
+            max(bearingPenalty * 0.65, halfPlanePenalty),
+            max(lobePenalty, farOppositePenalty),
+        )
     }
 
     private fun halfPlaneViolationRatio(
@@ -2216,7 +2220,8 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         val totalExtent = desiredExtent + oppositeExtent
         if (totalExtent > 1.0) {
             val dominanceRatio = desiredExtent / totalExtent
-            dominancePenalty = clampUnit((0.63 - dominanceRatio) / 0.63)
+            // Keep a clearer direction dominance in dense grids.
+            dominancePenalty = clampUnit((0.68 - dominanceRatio) / 0.68)
         }
 
         // Average projection guard: route center of mass should not drift opposite.
@@ -2227,6 +2232,35 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         }
 
         return max(dominancePenalty, avgPenalty)
+    }
+
+    private fun farOppositeViolationRatio(
+        points: List<List<Double>>,
+        start: Coordinates,
+        direction: String?,
+        toleranceMeters: Double,
+    ): Double {
+        val normalized = direction.orEmpty().trim().uppercase(Locale.getDefault())
+        if (normalized.isBlank() || points.isEmpty()) return 0.0
+
+        val guardBand = max(toleranceMeters * 1.8, 220.0)
+        var total = 0
+        var violations = 0
+
+        for (point in points) {
+            if (point.size < 2) continue
+            val projection = directionProjectionMeters(point[0], point[1], start, normalized) ?: continue
+            if (abs(projection) < guardBand) {
+                // Ignore local oscillations around start/return hub.
+                continue
+            }
+            total++
+            if (projection < -guardBand) {
+                violations++
+            }
+        }
+        if (total == 0) return 0.0
+        return violations.toDouble() / total.toDouble()
     }
 
     private fun directionProjectionMeters(
