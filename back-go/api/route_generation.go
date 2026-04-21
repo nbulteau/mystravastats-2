@@ -193,9 +193,7 @@ func buildTargetGeneratedRoutesResponse(
 	targetMode string,
 	limit int,
 ) dto.GenerateRoutesResponseDto {
-	// Target mode must return newly generated loops only.
-	recommendations := make([]routesDomain.RouteRecommendation, 0, len(result.RoadGraphLoops))
-	recommendations = append(recommendations, result.RoadGraphLoops...)
+	recommendations := targetGenerationRecommendations(result)
 
 	routes := toGeneratedRoutesFromRecommendations(recommendations, &distanceTarget, elevationTarget, routeType, startDirection, limit)
 	diagnostics := buildTargetGenerationDiagnostics(distanceTarget, elevationTarget, startDirection, directionStrict, strictBacktracking, targetMode, routes)
@@ -203,6 +201,32 @@ func buildTargetGeneratedRoutesResponse(
 		Routes:      routes,
 		Diagnostics: diagnostics,
 	}
+}
+
+func targetGenerationRecommendations(
+	result routesDomain.RouteExplorerResult,
+) []routesDomain.RouteRecommendation {
+	if len(result.RoadGraphLoops) > 0 {
+		recommendations := make([]routesDomain.RouteRecommendation, 0, len(result.RoadGraphLoops))
+		recommendations = append(recommendations, result.RoadGraphLoops...)
+		return recommendations
+	}
+
+	fallbackPool := make([]routesDomain.RouteRecommendation, 0, len(result.ClosestLoops)+len(result.Variants)+len(result.Seasonal))
+	fallbackPool = append(fallbackPool, result.ClosestLoops...)
+	fallbackPool = append(fallbackPool, result.Variants...)
+	fallbackPool = append(fallbackPool, result.Seasonal...)
+	if len(fallbackPool) == 0 {
+		return []routesDomain.RouteRecommendation{}
+	}
+
+	recommendations := make([]routesDomain.RouteRecommendation, 0, len(fallbackPool))
+	for _, recommendation := range fallbackPool {
+		cloned := recommendation
+		cloned.Reasons = append(cloned.Reasons, "Generation fallback: historical route cache")
+		recommendations = append(recommendations, cloned)
+	}
+	return recommendations
 }
 
 func buildShapeGeneratedRoutesResponse(
@@ -359,6 +383,8 @@ func buildSuccessfulTargetDiagnostics(routes []dto.GeneratedRouteDto) []dto.Rout
 				appendOnce("DIRECTION_BEST_EFFORT", "Directional constraints were softened to preserve route availability.")
 			case strings.Contains(normalized, "Selection profile: emergency-fallback"):
 				appendOnce("EMERGENCY_FALLBACK", "Emergency fallback selected the best available generated route.")
+			case normalized == "Generation fallback: historical route cache":
+				appendOnce("ENGINE_CACHE_FALLBACK", "Road-graph generation was unavailable, historical cache routes were returned.")
 			}
 		}
 	}

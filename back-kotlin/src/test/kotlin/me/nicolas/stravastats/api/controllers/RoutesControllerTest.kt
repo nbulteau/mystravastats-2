@@ -371,7 +371,7 @@ class RoutesControllerTest {
     }
 
     @Test
-    fun `generate target routes does not fallback to historical routes`() {
+    fun `generate target routes falls back to historical routes when road graph is unavailable`() {
         // GIVEN
         every {
             routeExplorerService.getRouteExplorer(any(), any(), any())
@@ -423,8 +423,9 @@ class RoutesControllerTest {
         )
             // THEN
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.routes.length()").value(0))
-            .andExpect(jsonPath("$.diagnostics[0].code").value("NO_CANDIDATE"))
+            .andExpect(jsonPath("$.routes.length()").value(1))
+            .andExpect(jsonPath("$.routes[0].routeId").value("legacy-route-kt"))
+            .andExpect(jsonPath("$.diagnostics[0].code").value("ENGINE_CACHE_FALLBACK"))
     }
 
     @Test

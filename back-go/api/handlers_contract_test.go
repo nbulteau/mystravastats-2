@@ -973,7 +973,7 @@ func TestGenerateTargetRoutesByActivityType_CustomModeWithoutWaypoints_Returns40
 	}
 }
 
-func TestGenerateTargetRoutesByActivityType_DoesNotFallbackToHistoricalRoutes(t *testing.T) {
+func TestGenerateTargetRoutesByActivityType_FallsBackToHistoricalRoutesWhenRoadGraphUnavailable(t *testing.T) {
 	// GIVEN
 	// WHEN
 	// THEN
@@ -1020,8 +1020,15 @@ func TestGenerateTargetRoutesByActivityType_DoesNotFallbackToHistoricalRoutes(t 
 	if !ok {
 		t.Fatalf("expected routes array, got %+v", response)
 	}
-	if len(routes) != 0 {
-		t.Fatalf("expected no generated routes when road-graph generation is unavailable, got %d", len(routes))
+	if len(routes) != 1 {
+		t.Fatalf("expected one fallback route when road-graph generation is unavailable, got %d", len(routes))
+	}
+	firstRoute, ok := routes[0].(map[string]any)
+	if !ok {
+		t.Fatalf("expected routes[0] object, got %+v", routes[0])
+	}
+	if got := firstRoute["routeId"]; got != "route-legacy-1" {
+		t.Fatalf("expected fallback routeId route-legacy-1, got %v", got)
 	}
 	diagnostics, ok := response["diagnostics"].([]any)
 	if !ok || len(diagnostics) == 0 {
@@ -1031,7 +1038,7 @@ func TestGenerateTargetRoutesByActivityType_DoesNotFallbackToHistoricalRoutes(t 
 	if !ok {
 		t.Fatalf("expected diagnostics[0] object, got %+v", diagnostics[0])
 	}
-	if got := firstDiagnostic["code"]; got != "NO_CANDIDATE" {
-		t.Fatalf("expected first diagnostic code NO_CANDIDATE, got %v", got)
+	if got := firstDiagnostic["code"]; got != "ENGINE_CACHE_FALLBACK" {
+		t.Fatalf("expected first diagnostic code ENGINE_CACHE_FALLBACK, got %v", got)
 	}
 }

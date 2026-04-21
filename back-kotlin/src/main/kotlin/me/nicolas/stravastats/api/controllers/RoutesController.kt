@@ -409,8 +409,7 @@ class RoutesController(
     ): List<GeneratedRouteDto> {
         val routes = mutableListOf<GeneratedRouteDto>()
         val seen = mutableSetOf<String>()
-        // Target mode must return newly generated loops only.
-        val ordered = result.roadGraphLoops
+        val ordered = targetGenerationRecommendations(result)
         for (recommendation in ordered) {
             if (routes.size >= limit) {
                 break
@@ -427,6 +426,21 @@ class RoutesController(
             routes += recommendation.toGeneratedRouteDto(score, routeType, startDirection)
         }
         return routes
+    }
+
+    private fun targetGenerationRecommendations(result: RouteExplorerResult): List<RouteRecommendation> {
+        if (result.roadGraphLoops.isNotEmpty()) {
+            return result.roadGraphLoops
+        }
+        val fallback = result.closestLoops + result.variants + result.seasonal
+        if (fallback.isEmpty()) {
+            return emptyList()
+        }
+        return fallback.map { recommendation ->
+            recommendation.copy(
+                reasons = recommendation.reasons + "Generation fallback: historical route cache",
+            )
+        }
     }
 
     private fun buildTargetGenerationDiagnostics(
@@ -542,6 +556,10 @@ class RoutesController(
                     normalized.contains("Selection profile: emergency-fallback") -> appendOnce(
                         code = "EMERGENCY_FALLBACK",
                         message = "Emergency fallback selected the best available generated route.",
+                    )
+                    normalized == "Generation fallback: historical route cache" -> appendOnce(
+                        code = "ENGINE_CACHE_FALLBACK",
+                        message = "Road-graph generation was unavailable, historical cache routes were returned.",
                     )
                 }
             }

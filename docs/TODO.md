@@ -1,4 +1,17 @@
 
+### État des lieux (2026-04-21)
+
+- Monorepo actif avec 3 briques: `front-vue`, `back-kotlin`, `back-go`.
+- Backend Kotlin toujours le plus complet fonctionnellement (services métier + endpoints API).
+- Génération de routes OSRM fortement renforcée récemment (target/shape unifiés, diagnostics, dedupe géométrique, anti-backtracking adaptatif, mode custom waypoint).
+- Santé des tests (audit local):
+  - `back-kotlin`: `./gradlew test` vert.
+  - `back-go`: suites routes/api (`go test ./internal/routes/... ./api/...`) vertes.
+  - `back-go` full suite: un test `stravaapi` dépend de l'ouverture d'un port local (`httptest`) et peut échouer en environnement sandbox.
+- Documentation routes centralisée dans `docs/route-generation-engine.md` et setup OSRM documenté dans `docs/osm-routing-setup.md`.
+
+---
+
 ### Améliorations techniques
 
 #### Modularisation du backend Kotlin par fonctionnalité
@@ -51,6 +64,29 @@ Ajouter un socle d'observabilité minimal :
 
 **Valeur attendue :**
 Réduction du temps de support, débogage plus rapide en local/Docker, et meilleure confiance utilisateur lors des phases de première synchronisation.
+
+---
+
+### Dette technique ciblée (court terme)
+
+- [ ] `BADGES-P1-01` (`P1`, `S`) - Gérer correctement les cas multi-activity-types pour badges.
+  Owners: `Back-Go`, `Back-Kotlin`.
+  Scope:
+  - supprimer les TODO code existants liés à "multiple activity types" (DTO + service badges),
+  - aligner le comportement Go/Kotlin sur la sélection multi-types,
+  - ajouter des tests de non-régression sur les agrégations multi-sports.
+  Acceptance:
+  - plus de TODO bloquants dans la logique badges,
+  - résultats cohérents quand plusieurs sports sont sélectionnés.
+
+- [ ] `QA-P1-01` (`P1`, `S`) - Stabiliser les tests réseau dépendants d'un bind local.
+  Owners: `Back-Go`, `QA`.
+  Scope:
+  - isoler les tests `httptest` qui nécessitent une socket locale,
+  - permettre une exécution CI/sandbox fiable (skip conditionnel ou abstraction transport),
+  - documenter la stratégie dans les tests concernés.
+  Acceptance:
+  - `go test ./...` exécutable de manière déterministe en CI.
 
 ---
 
@@ -107,7 +143,7 @@ Expérience plus orientée usage terrain, meilleure réutilisation des données 
 
 ---
 
-#### Routes (OSRM) - backlog restant (mise à jour 2026-04-20)
+#### Routes (OSRM) - backlog restant (mise à jour 2026-04-21)
 
 Objectif produit conservé:
 - générer des boucles praticables depuis un point de départ,
@@ -129,10 +165,11 @@ Ce qui est déjà fait (retiré du backlog):
 - support du format polyline encodée pour l'inférence de shape côté backend Go/Kotlin,
 - documentation de génération unifiée dans un seul fichier (`docs/route-generation-engine.md`),
 - MVP étape 1 \"history bias\" : index historique local par `routeType` (axes/zones + décroissance temporelle) propagé au moteur Go/Kotlin via feature flag.
+- fallback target vers cache historique quand OSRM ne renvoie aucune boucle + diagnostic `ENGINE_CACHE_FALLBACK` (Go/Kotlin).
 
 ### Priorités restantes
 
-- [ ] `ROUTE-P0-01` (`P0`, `L`) - Stabiliser la génération target pour ne plus revenir à `0 route`.
+- [x] `ROUTE-P0-01` (`P0`, `L`) - Stabiliser la génération target pour ne plus revenir à `0 route`.
   Owners: `Back-Go`, `Back-Kotlin`.
   Scope:
   - pipeline d'assouplissement déterministe (strict -> relax -> best-effort) identique sur Go/Kotlin,
@@ -141,6 +178,10 @@ Ce qui est déjà fait (retiré du backlog):
   Acceptance:
   - tests de non-régression verts,
   - cas réel: `40km / 800m` génère une route sur zone urbaine dense.
+  Statut 2026-04-21:
+  - fallback target Go/Kotlin sur `closestLoops + variants + seasonal` quand `roadGraphLoops` est vide,
+  - diagnostic normalisé `ENGINE_CACHE_FALLBACK`,
+  - tests API Go/Kotlin mis à jour.
 
 - [ ] `ROUTE-P0-02` (`P0`, `L`) - Anti-retours robuste hors zone départ/arrivée (2 km).
   Owners: `Back-Go`, `Back-Kotlin`.
@@ -151,6 +192,10 @@ Ce qui est déjà fait (retiré du backlog):
   Acceptance:
   - baisse nette des aller/retour sur les GPX générés,
   - tests dédiés sur la métrique de réutilisation d'axes.
+  Progression 2026-04-21:
+  - politique harmonisée Go/Kotlin: `outsideStartAxisReuseLimit = 1` et overlap opposé interdit hors zone départ/retour,
+  - seuil de détection opposée abaissé pour éviter les faux négatifs sur retrace réelle,
+  - validation terrain GPX restante.
 
 - [ ] `ROUTE-P0-03` (`P0`, `M`) - Direction "globale": améliorer la qualité d'orientation (suite).
   Owners: `Back-Go`, `Back-Kotlin`.
@@ -161,6 +206,20 @@ Ce qui est déjà fait (retiré du backlog):
   Acceptance:
   - génération réussie avec et sans direction,
   - la boucle respecte majoritairement le quadrant demandé quand possible.
+  Progression 2026-04-21:
+  - tri de sélection priorise plus tôt la pénalité de direction quand une direction est demandée,
+  - seuils directionnels resserrés sur les profils `strict/balanced/relaxed/fallback` en Go/Kotlin,
+  - calibration terrain restante sur zones urbaines denses.
+
+- [x] `ROUTE-P0-04` (`P0`, `M`) - Guidage historique par type pour départ/retour (step 2).
+  Owners: `Back-Go`, `Back-Kotlin`.
+  Scope:
+  - exploiter `historyProfile` (déjà propagé) comme signal positif de ranking pour privilégier les corridors déjà praticables par type (`Ride`, `Gravel`, `MTB`),
+  - favoriser les segments connus autour du départ/retour (zone ~2km) sans casser les contraintes anti-retours,
+  - conserver un fallback cache quand le graphe OSRM ne couvre pas certains chemins utilisés historiquement.
+  Acceptance:
+  - amélioration visible des routes proposées sur les zones familières de l'utilisateur,
+  - pas de régression sur l'anti-backtracking hors zone départ/arrivée.
 
 - [ ] `ROUTE-P1-01` (`P1`, `L`) - Vrai scoring surface (OSM tags `surface` / `tracktype`).
   Owners: `Back-Go`, `Back-Kotlin`, `Infra`.
@@ -206,4 +265,5 @@ Ce qui est déjà fait (retiré du backlog):
 - Hors zone 2 km autour du départ/arrivée, pas de réutilisation d'axe (même sens ou inverse).
 - `Gravel` et `MTB` diffèrent réellement de `Ride` sur la part de chemins.
 - Plus de "0 route" tant qu'une solution `Ride` valide existe.
+- Quand le profil historique est activé, le départ/retour réutilise préférentiellement des axes déjà pratiqués par type de sport.
 - Parité Go/Kotlin validée en CI sur fixtures partagées.

@@ -112,6 +112,21 @@ func TestEvaluateAxisReuseOutsideStartZone_DetectsOppositeTraversalAwayFromStart
 	}
 }
 
+func TestOutsideStartAxisReusePolicy_IsAlwaysStrict(t *testing.T) {
+	if got := outsideStartAxisReuseLimit("RIDE", false); got != 1 {
+		t.Fatalf("expected RIDE limit to stay hard at 1, got %d", got)
+	}
+	if got := outsideStartAxisReuseLimit("MTB", false); got != 1 {
+		t.Fatalf("expected MTB limit to stay hard at 1, got %d", got)
+	}
+	if got := outsideStartAxisReuseLimit("GRAVEL", true); got != 1 {
+		t.Fatalf("expected strict GRAVEL limit to stay hard at 1, got %d", got)
+	}
+	if got := allowedOppositeOutsideStartRatio("RIDE", false); got != 0.0 {
+		t.Fatalf("expected opposite overlap ratio to be forbidden, got %.3f", got)
+	}
+}
+
 func TestComputeSurfaceBreakdown_ClassifiesPavedGravelTrailAndUnknown(t *testing.T) {
 	// GIVEN
 	route := osrmRoute{
@@ -479,6 +494,53 @@ func TestSelectCandidatesWithRelaxation_PrioritizesLowerBacktracking(t *testing.
 	}
 	if recommendations[0].RouteID != "low-backtracking" {
 		t.Fatalf("expected low-backtracking route to be selected first, got %s", recommendations[0].RouteID)
+	}
+}
+
+func TestSelectCandidatesWithRelaxation_WhenDirectionRequested_PrioritizesDirectionBeforeScore(t *testing.T) {
+	// GIVEN
+	request := application.RoutingEngineRequest{
+		StartPoint:       routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000},
+		DistanceTargetKm: 40.0,
+		StartDirection:   "N",
+		RouteType:        "RIDE",
+		Limit:            1,
+	}
+	candidates := []osrmRouteCandidate{
+		{
+			recommendation:      routesDomain.RouteRecommendation{RouteID: "better-score", MatchScore: 96.0},
+			directionPenalty:    0.12,
+			backtrackingRatio:   0.0005,
+			corridorOverlap:     0.0010,
+			edgeReuseRatio:      0.005,
+			maxAxisReuseCount:   2,
+			segmentDiversity:    0.70,
+			distanceDeltaRatio:  0.02,
+			effectiveMatchScore: 95.0,
+		},
+		{
+			recommendation:      routesDomain.RouteRecommendation{RouteID: "better-direction", MatchScore: 84.0},
+			directionPenalty:    0.10,
+			backtrackingRatio:   0.0005,
+			corridorOverlap:     0.0010,
+			edgeReuseRatio:      0.005,
+			maxAxisReuseCount:   2,
+			segmentDiversity:    0.70,
+			distanceDeltaRatio:  0.02,
+			effectiveMatchScore: 72.0,
+		},
+	}
+	rejectCounts := map[string]int{}
+
+	// WHEN
+	recommendations := selectCandidatesWithRelaxation(request, candidates, rejectCounts)
+
+	// THEN
+	if len(recommendations) != 1 {
+		t.Fatalf("expected 1 recommendation, got %d", len(recommendations))
+	}
+	if recommendations[0].RouteID != "better-direction" {
+		t.Fatalf("expected direction-aligned route first, got %s", recommendations[0].RouteID)
 	}
 }
 

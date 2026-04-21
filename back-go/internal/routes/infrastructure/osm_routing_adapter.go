@@ -1318,16 +1318,12 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreview(
 		request.RouteType,
 		request.StrictBacktracking,
 	)
-	oppositeOutsideStartLimit := allowedOppositeOutsideStartRatio(
-		request.RouteType,
-		request.StrictBacktracking,
-	)
-	if request.StrictBacktracking && hasOppositeOutsideStart {
-		incrementRejectCount(rejectCounts, "STRICT_BACKTRACKING_OUTSIDE_START")
-		return osrmRouteCandidate{}, false
-	}
-	if !request.StrictBacktracking && oppositeOutsideStartRatio > oppositeOutsideStartLimit {
-		incrementRejectCount(rejectCounts, "BACKTRACKING_FILTERED")
+	if hasOppositeOutsideStart {
+		if request.StrictBacktracking {
+			incrementRejectCount(rejectCounts, "STRICT_BACKTRACKING_OUTSIDE_START")
+		} else {
+			incrementRejectCount(rejectCounts, "BACKTRACKING_FILTERED")
+		}
 		return osrmRouteCandidate{}, false
 	}
 	if maxAxisReuseOutsideStart > maxAxisReuseOutsideStartLimit {
@@ -1451,10 +1447,10 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreview(
 		Experimental:   false,
 	}
 	effectiveScore := clampOSMScore(matchScore -
-		directionPenalty*22.0 -
+		directionPenalty*34.0 -
 		backtrackingRatio*90.0 -
-		corridorOverlap*140.0 -
-		edgeReuse*150.0 -
+		corridorOverlap*170.0 -
+		edgeReuse*180.0 -
 		maxAxisReuseRatio*180.0 -
 		math.Max(0.0, minSegmentDiversityRatio(request.RouteType)-diversityRatio)*35.0 -
 		math.Max(0.0, distanceDeltaRatio-0.15)*45.0 +
@@ -1493,6 +1489,7 @@ func selectCandidatesWithRelaxation(
 	if limit <= 0 {
 		limit = 1
 	}
+	hasDirection := strings.TrimSpace(request.StartDirection) != ""
 
 	sortedCandidates := make([]osrmRouteCandidate, len(candidates))
 	copy(sortedCandidates, candidates)
@@ -1511,6 +1508,9 @@ func selectCandidatesWithRelaxation(
 		if left.maxAxisReuseCount != right.maxAxisReuseCount {
 			return left.maxAxisReuseCount < right.maxAxisReuseCount
 		}
+		if hasDirection && left.directionPenalty != right.directionPenalty {
+			return left.directionPenalty < right.directionPenalty
+		}
 		if left.historyReuseScore != right.historyReuseScore {
 			return left.historyReuseScore > right.historyReuseScore
 		}
@@ -1521,7 +1521,7 @@ func selectCandidatesWithRelaxation(
 		if left.effectiveMatchScore != right.effectiveMatchScore {
 			return left.effectiveMatchScore > right.effectiveMatchScore
 		}
-		if left.directionPenalty != right.directionPenalty {
+		if !hasDirection && left.directionPenalty != right.directionPenalty {
 			return left.directionPenalty < right.directionPenalty
 		}
 		if left.recommendation.MatchScore != right.recommendation.MatchScore {
@@ -1536,7 +1536,6 @@ func selectCandidatesWithRelaxation(
 	// Levels are evaluated in order: strict -> balanced -> relaxed -> fallback.
 	// We fill results incrementally: if strict cannot fill the target limit,
 	// next levels progressively loosen constraints while keeping quality.
-	hasDirection := strings.TrimSpace(request.StartDirection) != ""
 	levels := buildRouteRelaxationLevels(
 		request.RouteType,
 		hasDirection,
@@ -1632,7 +1631,7 @@ func selectCandidatesWithRelaxation(
 			selected,
 			selectedIDs,
 			limit,
-			0.52,
+			0.46,
 			0.18,
 			0.14,
 			0.13,
@@ -1714,15 +1713,16 @@ func buildRouteRelaxationLevels(routeType string, hasDirection bool, directionSt
 	relaxedDirection := 1.0
 	fallbackDirection := 1.0
 	if hasDirection {
-		strictDirection = 0.18
-		balancedDirection = 0.28
-		relaxedDirection = 0.40
-		fallbackDirection = 0.52
+		// Keep global direction more stable across selection levels.
+		strictDirection = 0.14
+		balancedDirection = 0.22
+		relaxedDirection = 0.32
+		fallbackDirection = 0.42
 		if directionStrict {
-			strictDirection = 0.10
-			balancedDirection = 0.16
-			relaxedDirection = 0.22
-			fallbackDirection = 0.30
+			strictDirection = 0.08
+			balancedDirection = 0.12
+			relaxedDirection = 0.18
+			fallbackDirection = 0.24
 		}
 	}
 	// Native ultra anti-backtracking policy (always-on).
@@ -2964,52 +2964,29 @@ func distanceOvershootRatio(distanceKm float64, targetKm float64) float64 {
 }
 
 func outsideStartAxisReuseLimit(routeType string, strict bool) int {
-	if strict {
-		// Strict mode: outside the start/finish zone, an axis cannot be reused.
-		return 1
-	}
-	switch strings.ToUpper(strings.TrimSpace(routeType)) {
-	case "MTB", "TRAIL", "HIKE":
-		return 3
-	default:
-		return 2
-	}
+	_ = strict
+	_ = routeType
+	// P0-02 policy: outside start/finish zone, an axis cannot be reused.
+	return 1
 }
 
 func allowedOppositeOutsideStartRatio(routeType string, strict bool) float64 {
-	if strict {
-		// Strict mode forbids opposite-direction reuse outside start zone.
-		return 0.0
-	}
-	switch strings.ToUpper(strings.TrimSpace(routeType)) {
-	case "MTB", "TRAIL", "HIKE":
-		return 0.08
-	case "GRAVEL":
-		return 0.06
-	default:
-		return 0.04
-	}
+	_ = strict
+	_ = routeType
+	// P0-02 policy: opposite-direction overlap is forbidden outside start zone.
+	return 0.0
 }
 
 func minimumOppositeReuseMetersForRequest(routeType string, strict bool, distanceTargetKm float64) float64 {
+	_ = strict
 	base := math.Max(minOppositeReuseMeters, distanceTargetKm*6.0)
-	if strict {
-		switch strings.ToUpper(strings.TrimSpace(routeType)) {
-		case "MTB", "TRAIL", "HIKE":
-			return math.Max(base, 320.0)
-		case "GRAVEL":
-			return math.Max(base, 280.0)
-		default:
-			return math.Max(base, 240.0)
-		}
-	}
 	switch strings.ToUpper(strings.TrimSpace(routeType)) {
 	case "MTB", "TRAIL", "HIKE":
-		return math.Max(base, 900.0)
+		return math.Max(base, 320.0)
 	case "GRAVEL":
-		return math.Max(base, 700.0)
+		return math.Max(base, 280.0)
 	default:
-		return math.Max(base, 550.0)
+		return math.Max(base, 240.0)
 	}
 }
 

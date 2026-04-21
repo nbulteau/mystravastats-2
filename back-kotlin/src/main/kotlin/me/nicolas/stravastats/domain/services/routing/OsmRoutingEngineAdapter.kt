@@ -1288,16 +1288,12 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             routeType = request.routeType,
             strict = request.strictBacktracking,
         )
-        val oppositeOutsideStartLimit = allowedOppositeOutsideStartRatio(
-            routeType = request.routeType,
-            strict = request.strictBacktracking,
-        )
-        if (request.strictBacktracking && hasOppositeOutsideStart) {
-            incrementRejectCount(rejectCounts, "STRICT_BACKTRACKING_OUTSIDE_START")
-            return null
-        }
-        if (!request.strictBacktracking && oppositeOutsideStartRatio > oppositeOutsideStartLimit) {
-            incrementRejectCount(rejectCounts, "BACKTRACKING_FILTERED")
+        if (hasOppositeOutsideStart) {
+            if (request.strictBacktracking) {
+                incrementRejectCount(rejectCounts, "STRICT_BACKTRACKING_OUTSIDE_START")
+            } else {
+                incrementRejectCount(rejectCounts, "BACKTRACKING_FILTERED")
+            }
             return null
         }
         if (maxAxisReuseOutsideStart > maxAxisReuseOutsideStartLimit) {
@@ -1408,10 +1404,10 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         )
         val effectiveScore = clampScore(
             matchScore -
-                directionPenalty * 22.0 -
+                directionPenalty * 34.0 -
                 backtrackingRatio * 90.0 -
-                corridorOverlap * 140.0 -
-                edgeReuse * 150.0 -
+                corridorOverlap * 170.0 -
+                edgeReuse * 180.0 -
                 maxAxisReuseRatio * 180.0 -
                 max(0.0, minSegmentDiversityRatio(request.routeType) - diversityRatio) * 35.0 -
                 max(0.0, distanceDeltaRatio - 0.15) * 45.0 +
@@ -1448,11 +1444,19 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         }
         val limit = request.limit.coerceAtLeast(1)
         val normalizedRouteType = request.routeType.orEmpty().trim().uppercase(Locale.getDefault())
+        val hasDirection = !request.startDirection.isNullOrBlank()
         val sortedCandidates = candidates.sortedWith(
             compareBy<OsrmRouteCandidate> { it.corridorOverlap }
                 .thenBy { it.backtrackingRatio }
                 .thenBy { it.edgeReuseRatio }
                 .thenBy { it.maxAxisReuseCount }
+                .let { comparator ->
+                    if (hasDirection) {
+                        comparator.thenBy { it.directionPenalty }
+                    } else {
+                        comparator
+                    }
+                }
                 .thenByDescending { it.historyReuseScore }
                 .let { comparator ->
                     if (normalizedRouteType == "MTB" || normalizedRouteType == "GRAVEL") {
@@ -1462,7 +1466,13 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                     }
                 }
                 .thenByDescending { it.effectiveMatchScore }
-                .thenBy { it.directionPenalty }
+                .let { comparator ->
+                    if (hasDirection) {
+                        comparator
+                    } else {
+                        comparator.thenBy { it.directionPenalty }
+                    }
+                }
                 .thenByDescending { it.recommendation.matchScore }
                 .thenBy { it.distanceDeltaRatio }
                 .thenBy { it.recommendation.routeId },
@@ -1470,7 +1480,6 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         // Levels are evaluated in order: strict -> balanced -> relaxed -> fallback.
         // We fill results incrementally: if strict cannot fill the target limit,
         // next levels progressively loosen constraints while keeping quality.
-        val hasDirection = !request.startDirection.isNullOrBlank()
         val levels = buildRouteRelaxationLevels(
             routeType = request.routeType,
             hasDirection = hasDirection,
@@ -1562,7 +1571,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 selected = selected,
                 selectedIds = selectedIds,
                 limit = limit,
-                maxDirectionPenalty = 0.52,
+                maxDirectionPenalty = 0.46,
                 maxBacktrackingRatio = 0.18,
                 maxCorridorOverlap = 0.14,
                 maxEdgeReuseRatio = 0.13,
@@ -1620,14 +1629,14 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         distanceTargetKm: Double,
     ): List<RouteRelaxationLevel> {
         var baseMinDiversity = minSegmentDiversityRatio(routeType)
-        val strictDirection = if (hasDirection) 0.18 else 1.0
-        val balancedDirection = if (hasDirection) 0.28 else 1.0
-        val relaxedDirection = if (hasDirection) 0.40 else 1.0
-        val fallbackDirection = if (hasDirection) 0.52 else 1.0
-        val strictLevelDirection = if (hasDirection && directionStrict) 0.10 else strictDirection
-        val balancedLevelDirection = if (hasDirection && directionStrict) 0.16 else balancedDirection
-        val relaxedLevelDirection = if (hasDirection && directionStrict) 0.22 else relaxedDirection
-        val fallbackLevelDirection = if (hasDirection && directionStrict) 0.30 else fallbackDirection
+        val strictDirection = if (hasDirection) 0.14 else 1.0
+        val balancedDirection = if (hasDirection) 0.22 else 1.0
+        val relaxedDirection = if (hasDirection) 0.32 else 1.0
+        val fallbackDirection = if (hasDirection) 0.42 else 1.0
+        val strictLevelDirection = if (hasDirection && directionStrict) 0.08 else strictDirection
+        val balancedLevelDirection = if (hasDirection && directionStrict) 0.12 else balancedDirection
+        val relaxedLevelDirection = if (hasDirection && directionStrict) 0.18 else relaxedDirection
+        val fallbackLevelDirection = if (hasDirection && directionStrict) 0.24 else fallbackDirection
 
         // Native ultra anti-backtracking policy (always-on).
         baseMinDiversity = (baseMinDiversity + 0.06).coerceAtMost(0.95)
@@ -2735,26 +2744,13 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
     }
 
     private fun outsideStartAxisReuseLimit(routeType: String?, strict: Boolean): Int {
-        if (strict) {
-            // Strict mode: outside the start/finish zone, an axis cannot be reused.
-            return 1
-        }
-        return when (routeType.orEmpty().trim().uppercase(Locale.getDefault())) {
-            "MTB", "TRAIL", "HIKE" -> 3
-            else -> 2
-        }
+        // P0-02 policy: outside start/finish zone, an axis cannot be reused.
+        return 1
     }
 
     private fun allowedOppositeOutsideStartRatio(routeType: String?, strict: Boolean): Double {
-        if (strict) {
-            // Strict mode forbids opposite-direction reuse outside start zone.
-            return 0.0
-        }
-        return when (routeType.orEmpty().trim().uppercase(Locale.getDefault())) {
-            "MTB", "TRAIL", "HIKE" -> 0.08
-            "GRAVEL" -> 0.06
-            else -> 0.04
-        }
+        // P0-02 policy: opposite-direction overlap is forbidden outside start zone.
+        return 0.0
     }
 
     private fun minimumOppositeReuseMetersForRequest(
@@ -2763,17 +2759,10 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         distanceTargetKm: Double,
     ): Double {
         val base = max(MIN_OPPOSITE_REUSE_METERS, distanceTargetKm * 6.0)
-        if (strict) {
-            return when (routeType.orEmpty().trim().uppercase(Locale.getDefault())) {
-                "MTB", "TRAIL", "HIKE" -> max(base, 320.0)
-                "GRAVEL" -> max(base, 280.0)
-                else -> max(base, 240.0)
-            }
-        }
         return when (routeType.orEmpty().trim().uppercase(Locale.getDefault())) {
-            "MTB", "TRAIL", "HIKE" -> max(base, 900.0)
-            "GRAVEL" -> max(base, 700.0)
-            else -> max(base, 550.0)
+            "MTB", "TRAIL", "HIKE" -> max(base, 320.0)
+            "GRAVEL" -> max(base, 280.0)
+            else -> max(base, 240.0)
         }
     }
 
