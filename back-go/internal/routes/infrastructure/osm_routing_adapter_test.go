@@ -112,6 +112,43 @@ func TestEvaluateAxisReuseOutsideStartZone_DetectsOppositeTraversalAwayFromStart
 	}
 }
 
+func TestEvaluateAxisReuseOutsideStartZone_DetectsSameDirectionReuseAwayFromStart(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}
+	points := [][]float64{
+		{48.13000, -1.63000}, // start
+		{48.15600, -1.63000}, // far north
+		{48.15600, -1.61800}, // far east
+		{48.16000, -1.61200}, // farther east
+		{48.16400, -1.62000}, // turn south-west
+		{48.15600, -1.61800}, // back near prior axis
+		{48.16000, -1.61200}, // same axis as above, same direction
+		{48.13000, -1.63000}, // return start
+	}
+
+	// WHEN
+	hasOpposite, maxReuse, oppositeRatio := evaluateAxisReuseOutsideStartZone(
+		points,
+		start,
+		backtrackingStartZoneM,
+		minOppositeReuseMeters,
+	)
+
+	// THEN
+	if hasOpposite {
+		t.Fatalf("expected no opposite traversal for same-direction reuse case")
+	}
+	if maxReuse < 2 {
+		t.Fatalf("expected max axis reuse outside start zone >= 2, got %d", maxReuse)
+	}
+	if oppositeRatio != 0.0 {
+		t.Fatalf("expected opposite ratio to stay 0, got %.3f", oppositeRatio)
+	}
+	if limit := outsideStartAxisReuseLimit("RIDE", false); maxReuse <= limit {
+		t.Fatalf("expected reuse %d to exceed hard outside-start limit %d", maxReuse, limit)
+	}
+}
+
 func TestOutsideStartAxisReusePolicy_IsAlwaysStrict(t *testing.T) {
 	if got := outsideStartAxisReuseLimit("RIDE", false); got != 1 {
 		t.Fatalf("expected RIDE limit to stay hard at 1, got %d", got)
