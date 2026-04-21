@@ -1,0 +1,285 @@
+{
+  "cases": [
+    {
+      "name": "direction_north_priority",
+      "request": {
+        "distanceTargetKm": 45.0,
+        "elevationTargetM": 650.0,
+        "durationTargetMin": 140,
+        "startDirection": "N",
+        "routeType": "RIDE",
+        "limit": 6
+      },
+      "activities": [
+        {
+          "id": 31,
+          "name": "North Aligned",
+          "startDate": "2025-08-01T08:00:00Z",
+          "distanceKm": 46.0,
+          "elevationM": 670.0,
+          "durationSec": 8500,
+          "start": [
+            45.0,
+            6.0
+          ],
+          "track": [
+            [
+              45.0,
+              6.0
+            ],
+            [
+              45.03,
+              6.0
+            ],
+            [
+              45.04,
+              6.03
+            ],
+            [
+              45.0,
+              6.0
+            ]
+          ]
+        },
+        {
+          "id": 32,
+          "name": "South Aligned",
+          "startDate": "2025-08-02T08:00:00Z",
+          "distanceKm": 45.0,
+          "elevationM": 650.0,
+          "durationSec": 8400,
+          "start": [
+            45.0,
+            6.0
+          ],
+          "track": [
+            [
+              45.0,
+              6.0
+            ],
+            [
+              44.97,
+              6.0
+            ],
+            [
+              44.96,
+              5.97
+            ],
+            [
+              45.0,
+              6.0
+            ]
+          ]
+        }
+      ],
+      "expect": {
+        "topClosestLoopName": "North Aligned"
+      }
+    },
+    {
+      "name": "route_type_ride_prefers_distance",
+      "request": {
+        "distanceTargetKm": 45.0,
+        "elevationTargetM": 650.0,
+        "durationTargetMin": 140,
+        "routeType": "RIDE",
+        "limit": 6
+      },
+      "activities": [
+        {
+          "id": 41,
+          "name": "Distance Focused",
+          "startDate": "2025-09-01T08:00:00Z",
+          "distanceKm": 45.0,
+          "elevationM": 520.0,
+          "durationSec": 8400,
+          "start": [
+            45.1,
+            6.1
+          ],
+          "track": [
+            [
+              45.1,
+              6.1
+            ],
+            [
+              45.13,
+              6.12
+            ],
+            [
+              45.1,
+              6.1
+            ]
+          ]
+        },
+        {
+          "id": 42,
+          "name": "Climb Focused",
+          "startDate": "2025-09-02T08:00:00Z",
+          "distanceKm": 56.0,
+          "elevationM": 650.0,
+          "durationSec": 8400,
+          "start": [
+            45.1,
+            6.1
+          ],
+          "track": [
+            [
+              45.1,
+              6.1
+            ],
+            [
+              45.14,
+              6.15
+            ],
+            [
+              45.1,
+              6.1
+            ]
+          ]
+        }
+      ],
+      "expect": {
+        "topClosestLoopName": "Distance Focused"
+      }
+    },
+    {
+      "name": "route_type_hike_prefers_elevation",
+      "request": {
+        "distanceTargetKm": 45.0,
+        "elevationTargetM": 650.0,
+        "durationTargetMin": 140,
+        "routeType": "HIKE",
+        "limit": 6
+      },
+      "activities": [
+        {
+          "id": 41,
+          "name": "Distance Focused",
+          "startDate": "2025-09-01T08:00:00Z",
+          "distanceKm": 45.0,
+          "elevationM": 520.0,
+          "durationSec": 8400,
+          "start": [
+            45.1,
+            6.1
+          ],
+          "track": [
+            [
+              45.1,
+              6.1
+            ],
+            [
+              45.13,
+              6.12
+            ],
+            [
+              45.1,
+              6.1
+            ]
+          ]
+        },
+        {
+          "id": 42,
+          "name": "Climb Focused",
+          "startDate": "2025-09-02T08:00:00Z",
+          "distanceKm": 56.0,
+          "elevationM": 650.0,
+          "durationSec": 8400,
+          "start": [
+            45.1,
+            6.1
+          ],
+          "track": [
+            [
+              45.1,
+              6.1
+            ],
+            [
+              45.14,
+              6.15
+            ],
+            [
+              45.1,
+              6.1
+            ]
+          ]
+        }
+      ],
+      "expect": {
+        "topClosestLoopName": "Climb Focused"
+      }
+    },
+    {
+      "name": "start_point_preference",
+      "request": {
+        "distanceTargetKm": 40.0,
+        "elevationTargetM": 700.0,
+        "durationTargetMin": 130,
+        "startPoint": {
+          "lat": 45.2,
+          "lng": 6.1
+        },
+        "routeType": "RIDE",
+        "limit": 6
+      },
+      "activities": [
+        {
+          "id": 51,
+          "name": "Near Start",
+          "startDate": "2025-10-01T08:00:00Z",
+          "distanceKm": 38.5,
+          "elevationM": 680.0,
+          "durationSec": 7800,
+          "start": [
+            45.201,
+            6.101
+          ],
+          "track": [
+            [
+              45.201,
+              6.101
+            ],
+            [
+              45.22,
+              6.14
+            ],
+            [
+              45.201,
+              6.101
+            ]
+          ]
+        },
+        {
+          "id": 52,
+          "name": "Far Start",
+          "startDate": "2025-10-02T08:00:00Z",
+          "distanceKm": 40.2,
+          "elevationM": 705.0,
+          "durationSec": 7900,
+          "start": [
+            45.48,
+            6.46
+          ],
+          "track": [
+            [
+              45.48,
+              6.46
+            ],
+            [
+              45.5,
+              6.5
+            ],
+            [
+              45.48,
+              6.46
+            ]
+          ]
+        }
+      ],
+      "expect": {
+        "topClosestLoopName": "Near Start"
+      }
+    }
+  ]
+}

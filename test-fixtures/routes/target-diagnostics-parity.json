@@ -1,0 +1,36 @@
+{
+  "cases": [
+    {
+      "name": "selection_and_cache_fallback",
+      "reasons": [
+        "Selection profile: best-effort-soft",
+        "Generation fallback: historical route cache"
+      ],
+      "expectedCodes": [
+        "SELECTION_RELAXED",
+        "ENGINE_CACHE_FALLBACK"
+      ]
+    },
+    {
+      "name": "directional_best_effort_deduplicated",
+      "reasons": [
+        "Selection profile: directional-best-effort",
+        "Selection profile: best-effort-soft",
+        "Selection profile: directional-best-effort"
+      ],
+      "expectedCodes": [
+        "DIRECTION_BEST_EFFORT",
+        "SELECTION_RELAXED"
+      ]
+    },
+    {
+      "name": "emergency_fallback",
+      "reasons": [
+        "Selection profile: emergency-fallback (constraints fully relaxed)"
+      ],
+      "expectedCodes": [
+        "EMERGENCY_FALLBACK"
+      ]
+    }
+  ]
+}

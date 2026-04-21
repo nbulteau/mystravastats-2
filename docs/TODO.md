@@ -254,13 +254,17 @@ Ce qui est déjà fait (retiré du backlog):
   Acceptance:
   - diagnostic actionnable en moins d'1 minute sans lire tout le log brut.
 
-- [ ] `ROUTE-P2-02` (`P2`, `M`) - Parité automatique Go/Kotlin.
+- [x] `ROUTE-P2-02` (`P2`, `M`) - Parité automatique Go/Kotlin.
   Owners: `QA`, `Back-Go`, `Back-Kotlin`.
   Scope:
   - fixtures communes + assertions de contrat sur le top résultat,
   - comparaison des diagnostics de rejet.
   Acceptance:
   - CI rouge si divergence de comportement critique.
+  Statut 2026-04-21:
+  - fixture partagée `test-fixtures/routes/route-explorer-parity.json` consommée par tests Go + Kotlin (contrat top résultat),
+  - fixture partagée `test-fixtures/routes/target-diagnostics-parity.json` consommée par tests Go + Kotlin (mapping diagnostics),
+  - exécuté dans les pipelines tests existants (`go test ./...` et `./gradlew test`) => divergence critique fait échouer la CI.
 
 ### Definition of Done (mise à jour)
 
