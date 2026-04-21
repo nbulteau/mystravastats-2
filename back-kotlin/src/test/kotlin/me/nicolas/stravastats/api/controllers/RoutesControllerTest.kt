@@ -213,6 +213,45 @@ class RoutesControllerTest {
     }
 
     @Test
+    fun `generate target routes returns failure summary and propagates request id header`() {
+        // GIVEN
+        every {
+            routeExplorerService.getRouteExplorer(any(), any(), any())
+        } returns RouteExplorerResult(
+            closestLoops = emptyList(),
+            variants = emptyList(),
+            seasonal = emptyList(),
+            roadGraphLoops = emptyList(),
+            shapeMatches = emptyList(),
+            shapeRemixes = emptyList(),
+        )
+
+        // WHEN
+        mockMvc.perform(
+            post("/api/routes/generate/target")
+                .param("activityType", "Ride")
+                .header("X-Request-Id", "req-target-kt-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "startPoint": {"lat": 45.19, "lng": 5.73},
+                      "routeType": "RIDE",
+                      "startDirection": "N",
+                      "distanceTargetKm": 42.0,
+                      "elevationTargetM": 900.0
+                    }
+                    """.trimIndent()
+                )
+        )
+            // THEN
+            .andExpect(status().isOk)
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("FAILURE_SUMMARY")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("requestId=req-target-kt-1")))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("X-Request-Id", "req-target-kt-1"))
+    }
+
+    @Test
     fun `generate shape routes rejects invalid shapeInputType`() {
         // GIVEN
         every {
@@ -243,6 +282,44 @@ class RoutesControllerTest {
         )
             // THEN
             .andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `generate shape routes returns failure summary and propagates request id header`() {
+        // GIVEN
+        every {
+            routeExplorerService.getRouteExplorer(any(), any(), any())
+        } returns RouteExplorerResult(
+            closestLoops = emptyList(),
+            variants = emptyList(),
+            seasonal = emptyList(),
+            roadGraphLoops = emptyList(),
+            shapeMatches = emptyList(),
+            shapeRemixes = emptyList(),
+        )
+
+        // WHEN
+        mockMvc.perform(
+            post("/api/routes/generate/shape")
+                .param("activityType", "Ride")
+                .header("X-Request-Id", "req-shape-kt-2")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "shapeInputType": "draw",
+                      "shapeData": "[[45.0,6.0],[45.1,6.1]]",
+                      "routeType": "RIDE",
+                      "distanceTargetKm": 30.0
+                    }
+                    """.trimIndent()
+                )
+        )
+            // THEN
+            .andExpect(status().isOk)
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("FAILURE_SUMMARY")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("requestId=req-shape-kt-2")))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("X-Request-Id", "req-shape-kt-2"))
     }
 
     @Test

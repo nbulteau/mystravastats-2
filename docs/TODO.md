@@ -246,13 +246,18 @@ Ce qui est déjà fait (retiré du backlog):
   Acceptance:
   - une forme simple produit au moins une route praticable.
 
-- [ ] `ROUTE-P2-01` (`P2`, `M`) - Observabilité routes.
+- [x] `ROUTE-P2-01` (`P2`, `M`) - Observabilité routes.
   Owners: `Back-Go`, `Back-Kotlin`, `Front`.
   Scope:
   - logs structurés (`requestId`, mode, routeType, target km/D+, temps de génération, raisons rejet),
   - résumé compact affichable côté UI en cas d'échec.
   Acceptance:
   - diagnostic actionnable en moins d'1 minute sans lire tout le log brut.
+  Statut 2026-04-21:
+  - propagation `X-Request-Id` Go/Kotlin (header entrant conservé ou généré serveur),
+  - logs structurés `category=routes` avec `requestId`, mode, type de route, cibles, diagnostics, raisons et `durationMs`,
+  - diagnostic compact `FAILURE_SUMMARY` renvoyé côté API en cas d'échec (target + shape),
+  - UI routes mise à jour pour afficher un encart de synthèse en haut des diagnostics d'échec.
 
 - [x] `ROUTE-P2-02` (`P2`, `M`) - Parité automatique Go/Kotlin.
   Owners: `QA`, `Back-Go`, `Back-Kotlin`.

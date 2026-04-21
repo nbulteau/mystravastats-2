@@ -191,12 +191,13 @@ func buildTargetGeneratedRoutesResponse(
 	directionStrict bool,
 	strictBacktracking bool,
 	targetMode string,
+	requestID string,
 	limit int,
 ) dto.GenerateRoutesResponseDto {
 	recommendations := targetGenerationRecommendations(result)
 
 	routes := toGeneratedRoutesFromRecommendations(recommendations, &distanceTarget, elevationTarget, routeType, startDirection, limit)
-	diagnostics := buildTargetGenerationDiagnostics(distanceTarget, elevationTarget, startDirection, directionStrict, strictBacktracking, targetMode, routes)
+	diagnostics := buildTargetGenerationDiagnostics(distanceTarget, elevationTarget, startDirection, directionStrict, strictBacktracking, targetMode, routeType, requestID, routes)
 	return dto.GenerateRoutesResponseDto{
 		Routes:      routes,
 		Diagnostics: diagnostics,
@@ -234,6 +235,9 @@ func buildShapeGeneratedRoutesResponse(
 	distanceTarget *float64,
 	elevationTarget *float64,
 	routeType string,
+	shapeInputType string,
+	shapeFilter string,
+	requestID string,
 	limit int,
 ) dto.GenerateRoutesResponseDto {
 	routes := make([]dto.GeneratedRouteDto, 0, limit)
@@ -281,9 +285,10 @@ func buildShapeGeneratedRoutesResponse(
 		seen[remix.ID] = struct{}{}
 	}
 
+	diagnostics := buildShapeGenerationDiagnostics(routes, distanceTarget, elevationTarget, routeType, shapeInputType, shapeFilter, requestID)
 	return dto.GenerateRoutesResponseDto{
 		Routes:      routes,
-		Diagnostics: []dto.RouteGenerationDiagnosticDto{},
+		Diagnostics: diagnostics,
 	}
 }
 
@@ -294,6 +299,8 @@ func buildTargetGenerationDiagnostics(
 	directionStrict bool,
 	strictBacktracking bool,
 	targetMode string,
+	routeType string,
+	requestID string,
 	routes []dto.GeneratedRouteDto,
 ) []dto.RouteGenerationDiagnosticDto {
 	if len(routes) > 0 {
@@ -344,6 +351,85 @@ func buildTargetGenerationDiagnostics(
 	diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
 		Code:    "BACKTRACKING_FILTERED",
 		Message: "Candidates that return over the same segment in reverse are rejected.",
+	})
+	diagnostics = append(diagnostics, buildTargetFailureSummaryDiagnostic(distanceTarget, elevationTarget, routeType, targetMode, startDirection, requestID))
+
+	return diagnostics
+}
+
+func buildTargetFailureSummaryDiagnostic(
+	distanceTarget float64,
+	elevationTarget *float64,
+	routeType string,
+	targetMode string,
+	startDirection string,
+	requestID string,
+) dto.RouteGenerationDiagnosticDto {
+	targetParts := []string{
+		fmt.Sprintf("%s %.1fkm", normalizeGenerateRouteType(routeType), distanceTarget),
+	}
+	if elevationTarget != nil {
+		targetParts = append(targetParts, fmt.Sprintf("%.0fm+", *elevationTarget))
+	}
+	if strings.EqualFold(strings.TrimSpace(targetMode), "CUSTOM") {
+		targetParts = append(targetParts, "custom waypoints")
+	} else if direction := strings.TrimSpace(startDirection); direction != "" {
+		targetParts = append(targetParts, fmt.Sprintf("direction=%s", direction))
+	}
+
+	return dto.RouteGenerationDiagnosticDto{
+		Code: "FAILURE_SUMMARY",
+		Message: fmt.Sprintf(
+			"No route generated (%s). Try lowering distance/elevation or relaxing direction constraints. requestId=%s",
+			strings.Join(targetParts, ", "),
+			requestID,
+		),
+	}
+}
+
+func buildShapeGenerationDiagnostics(
+	routes []dto.GeneratedRouteDto,
+	distanceTarget *float64,
+	elevationTarget *float64,
+	routeType string,
+	shapeInputType string,
+	shapeFilter string,
+	requestID string,
+) []dto.RouteGenerationDiagnosticDto {
+	if len(routes) > 0 {
+		return []dto.RouteGenerationDiagnosticDto{}
+	}
+
+	diagnostics := []dto.RouteGenerationDiagnosticDto{
+		{
+			Code:    "NO_CANDIDATE",
+			Message: "No route candidate matched the provided shape and constraints.",
+		},
+	}
+
+	shapeLabel := strings.TrimSpace(shapeFilter)
+	if shapeLabel == "" {
+		shapeLabel = "UNKNOWN"
+	}
+	targetParts := []string{
+		fmt.Sprintf("%s shape=%s", normalizeGenerateRouteType(routeType), shapeLabel),
+	}
+	if distanceTarget != nil {
+		targetParts = append(targetParts, fmt.Sprintf("%.1fkm", *distanceTarget))
+	}
+	if elevationTarget != nil {
+		targetParts = append(targetParts, fmt.Sprintf("%.0fm+", *elevationTarget))
+	}
+	if input := strings.TrimSpace(shapeInputType); input != "" {
+		targetParts = append(targetParts, fmt.Sprintf("input=%s", strings.ToLower(input)))
+	}
+	diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
+		Code: "FAILURE_SUMMARY",
+		Message: fmt.Sprintf(
+			"No route generated (%s). Try simplifying the shape or widening constraints. requestId=%s",
+			strings.Join(targetParts, ", "),
+			requestID,
+		),
 	})
 
 	return diagnostics
