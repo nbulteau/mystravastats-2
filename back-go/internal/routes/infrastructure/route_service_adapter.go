@@ -106,11 +106,17 @@ func (adapter *RouteServiceAdapter) FindRouteExplorerByYearAndTypes(
 	}
 	generatedLoops, err := adapter.routingEngine.GenerateTargetLoops(engineRequest)
 	if err != nil {
-		result.RoadGraphLoops = []routesDomain.RouteRecommendation{}
+		// Keep cache-derived road-graph fallbacks when OSRM is unavailable.
+		if len(result.RoadGraphLoops) == 0 && len(result.ClosestLoops) > 0 {
+			result.RoadGraphLoops = append([]routesDomain.RouteRecommendation{}, result.ClosestLoops...)
+		}
 		return result
 	}
 	if len(generatedLoops) == 0 {
-		result.RoadGraphLoops = []routesDomain.RouteRecommendation{}
+		// Keep cache-derived road-graph fallbacks when OSRM returns no route.
+		if len(result.RoadGraphLoops) == 0 && len(result.ClosestLoops) > 0 {
+			result.RoadGraphLoops = append([]routesDomain.RouteRecommendation{}, result.ClosestLoops...)
+		}
 		return result
 	}
 	result.RoadGraphLoops = generatedLoops
