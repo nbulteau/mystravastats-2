@@ -72,6 +72,60 @@ class OsmRoutingEngineAdapterAntiRetraceTest {
         assertTrue(maxReuse > sameDirectionLimit)
     }
 
+    @Test
+    fun `evaluate axis reuse outside start zone counts long segment crossing hub boundary`() {
+        // GIVEN
+        val adapter = OsmRoutingEngineAdapter()
+        val start = Coordinates(lat = 48.13000, lng = -1.63000)
+        val points = listOf(
+            listOf(48.13000, -1.63000), // start
+            listOf(48.17000, -1.63000), // far north (~4.4km)
+            listOf(48.13000, -1.63000), // retrace same axis back to start
+        )
+
+        // WHEN
+        val (hasOpposite, maxReuse, oppositeRatio) = invokeEvaluateAxisReuseOutsideStartZone(
+            adapter = adapter,
+            points = points,
+            start = start,
+            startZoneMeters = 2000.0,
+            minOppositeMeters = 120.0,
+        )
+
+        // THEN
+        assertTrue(hasOpposite)
+        assertTrue(maxReuse >= 2)
+        assertTrue(oppositeRatio > 0.0)
+    }
+
+    @Test
+    fun `evaluate axis reuse outside start zone keeps local hub reuse allowed`() {
+        // GIVEN
+        val adapter = OsmRoutingEngineAdapter()
+        val start = Coordinates(lat = 48.13000, lng = -1.63000)
+        val points = listOf(
+            listOf(48.13000, -1.63000), // start
+            listOf(48.13600, -1.63000), // ~660m north (inside 2km hub)
+            listOf(48.13000, -1.63000), // back
+            listOf(48.13600, -1.63000), // same local axis again
+            listOf(48.13000, -1.63000), // back
+        )
+
+        // WHEN
+        val (hasOpposite, maxReuse, oppositeRatio) = invokeEvaluateAxisReuseOutsideStartZone(
+            adapter = adapter,
+            points = points,
+            start = start,
+            startZoneMeters = 2000.0,
+            minOppositeMeters = 120.0,
+        )
+
+        // THEN
+        assertFalse(hasOpposite)
+        assertEquals(0, maxReuse)
+        assertEquals(0.0, oppositeRatio, 1e-9)
+    }
+
     @Suppress("UNCHECKED_CAST")
     private fun invokeEvaluateAxisReuseOutsideStartZone(
         adapter: OsmRoutingEngineAdapter,

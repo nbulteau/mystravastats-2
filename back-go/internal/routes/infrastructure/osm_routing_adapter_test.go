@@ -149,6 +149,66 @@ func TestEvaluateAxisReuseOutsideStartZone_DetectsSameDirectionReuseAwayFromStar
 	}
 }
 
+func TestEvaluateAxisReuseOutsideStartZone_LongSegmentCrossingHubBoundaryIsCounted(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}
+	points := [][]float64{
+		{48.13000, -1.63000}, // start
+		{48.17000, -1.63000}, // far north (~4.4km)
+		{48.13000, -1.63000}, // retrace same axis back to start
+	}
+
+	// WHEN
+	hasOpposite, maxReuse, oppositeRatio := evaluateAxisReuseOutsideStartZone(
+		points,
+		start,
+		backtrackingStartZoneM,
+		minOppositeReuseMeters,
+	)
+
+	// THEN
+	if !hasOpposite {
+		t.Fatalf("expected opposite traversal to be detected for long segment crossing start-zone boundary")
+	}
+	if maxReuse < 2 {
+		t.Fatalf("expected max axis reuse outside start zone >= 2, got %d", maxReuse)
+	}
+	if oppositeRatio <= 0 {
+		t.Fatalf("expected opposite ratio > 0, got %.3f", oppositeRatio)
+	}
+}
+
+func TestEvaluateAxisReuseOutsideStartZone_KeepsLocalHubReuseAllowed(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}
+	points := [][]float64{
+		{48.13000, -1.63000}, // start
+		{48.13600, -1.63000}, // ~660m north (inside 2km hub)
+		{48.13000, -1.63000}, // back
+		{48.13600, -1.63000}, // same local axis again
+		{48.13000, -1.63000}, // back
+	}
+
+	// WHEN
+	hasOpposite, maxReuse, oppositeRatio := evaluateAxisReuseOutsideStartZone(
+		points,
+		start,
+		backtrackingStartZoneM,
+		minOppositeReuseMeters,
+	)
+
+	// THEN
+	if hasOpposite {
+		t.Fatalf("expected no opposite traversal outside hub for local reuse")
+	}
+	if maxReuse != 0 {
+		t.Fatalf("expected no counted outside-start reuse for local hub traversal, got %d", maxReuse)
+	}
+	if oppositeRatio != 0.0 {
+		t.Fatalf("expected opposite ratio 0 for local hub traversal, got %.3f", oppositeRatio)
+	}
+}
+
 func TestOutsideStartAxisReusePolicy_IsAlwaysStrict(t *testing.T) {
 	if got := outsideStartAxisReuseLimit("RIDE", false); got != 1 {
 		t.Fatalf("expected RIDE limit to stay hard at 1, got %d", got)
