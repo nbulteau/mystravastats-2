@@ -558,6 +558,69 @@ func TestCombinedDirectionPenalty_WhenFarOppositeExcursion_ThenPenaltyIncreases(
 	}
 }
 
+func TestDirectionalQuadrantPenalty_PenalizesOppositeQuadrantMajority(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}
+	northMajority := [][]float64{
+		{48.13000, -1.63000},
+		{48.13700, -1.62980},
+		{48.14100, -1.62830},
+		{48.13800, -1.62740},
+		{48.13300, -1.62860},
+		{48.13000, -1.63000},
+	}
+	southMajority := [][]float64{
+		{48.13000, -1.63000},
+		{48.12700, -1.62970},
+		{48.12100, -1.62820},
+		{48.11800, -1.62740},
+		{48.12400, -1.62850},
+		{48.13000, -1.63000},
+	}
+
+	// WHEN
+	northPenalty := directionalQuadrantPenalty(northMajority, start, "N", 120.0)
+	southPenalty := directionalQuadrantPenalty(southMajority, start, "N", 120.0)
+
+	// THEN
+	if northPenalty >= southPenalty {
+		t.Fatalf("expected north-majority route to have lower quadrant penalty, north=%.3f south=%.3f", northPenalty, southPenalty)
+	}
+	if southPenalty <= 0.0 {
+		t.Fatalf("expected opposite-quadrant majority to trigger positive penalty, got %.3f", southPenalty)
+	}
+}
+
+func TestCombinedDirectionPenalty_WhenQuadrantMajorityIsOpposite_ThenPenaltyIncreases(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}
+	northMajority := [][]float64{
+		{48.13000, -1.63000},
+		{48.13700, -1.62980},
+		{48.14100, -1.62830},
+		{48.13800, -1.62740},
+		{48.13300, -1.62860},
+		{48.13000, -1.63000},
+	}
+	southMajority := [][]float64{
+		{48.13000, -1.63000},
+		{48.12700, -1.62970},
+		{48.12100, -1.62820},
+		{48.11800, -1.62740},
+		{48.12400, -1.62850},
+		{48.13000, -1.63000},
+	}
+
+	// WHEN
+	northPenalty := combinedDirectionPenalty(northMajority, start, "N", 120.0)
+	southPenalty := combinedDirectionPenalty(southMajority, start, "N", 120.0)
+
+	// THEN
+	if southPenalty <= northPenalty {
+		t.Fatalf("expected opposite-quadrant majority to increase combined penalty, north=%.3f south=%.3f", northPenalty, southPenalty)
+	}
+}
+
 func TestSelectCandidatesWithRelaxation_PrioritizesLowerBacktracking(t *testing.T) {
 	// GIVEN
 	request := application.RoutingEngineRequest{

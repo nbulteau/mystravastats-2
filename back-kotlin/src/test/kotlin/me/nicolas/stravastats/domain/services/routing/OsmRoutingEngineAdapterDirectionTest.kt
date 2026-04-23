@@ -94,6 +94,91 @@ class OsmRoutingEngineAdapterDirectionTest {
         assertTrue(excursionPenalty > cleanPenalty)
     }
 
+    @Test
+    fun `directional quadrant penalty penalizes opposite-quadrant majority`() {
+        // GIVEN
+        val adapter = OsmRoutingEngineAdapter()
+        val start = Coordinates(lat = 48.13000, lng = -1.63000)
+        val northMajority = listOf(
+            listOf(48.13000, -1.63000),
+            listOf(48.13700, -1.62980),
+            listOf(48.14100, -1.62830),
+            listOf(48.13800, -1.62740),
+            listOf(48.13300, -1.62860),
+            listOf(48.13000, -1.63000),
+        )
+        val southMajority = listOf(
+            listOf(48.13000, -1.63000),
+            listOf(48.12700, -1.62970),
+            listOf(48.12100, -1.62820),
+            listOf(48.11800, -1.62740),
+            listOf(48.12400, -1.62850),
+            listOf(48.13000, -1.63000),
+        )
+
+        // WHEN
+        val northPenalty = invokeDirectionalQuadrantPenalty(
+            adapter = adapter,
+            points = northMajority,
+            start = start,
+            direction = "N",
+            toleranceMeters = 120.0,
+        )
+        val southPenalty = invokeDirectionalQuadrantPenalty(
+            adapter = adapter,
+            points = southMajority,
+            start = start,
+            direction = "N",
+            toleranceMeters = 120.0,
+        )
+
+        // THEN
+        assertTrue(northPenalty < southPenalty)
+        assertTrue(southPenalty > 0.0)
+    }
+
+    @Test
+    fun `combined direction penalty increases when quadrant majority is opposite`() {
+        // GIVEN
+        val adapter = OsmRoutingEngineAdapter()
+        val start = Coordinates(lat = 48.13000, lng = -1.63000)
+        val northMajority = listOf(
+            listOf(48.13000, -1.63000),
+            listOf(48.13700, -1.62980),
+            listOf(48.14100, -1.62830),
+            listOf(48.13800, -1.62740),
+            listOf(48.13300, -1.62860),
+            listOf(48.13000, -1.63000),
+        )
+        val southMajority = listOf(
+            listOf(48.13000, -1.63000),
+            listOf(48.12700, -1.62970),
+            listOf(48.12100, -1.62820),
+            listOf(48.11800, -1.62740),
+            listOf(48.12400, -1.62850),
+            listOf(48.13000, -1.63000),
+        )
+
+        // WHEN
+        val northPenalty = invokeCombinedDirectionPenalty(
+            adapter = adapter,
+            points = northMajority,
+            start = start,
+            direction = "N",
+            toleranceMeters = 120.0,
+        )
+        val southPenalty = invokeCombinedDirectionPenalty(
+            adapter = adapter,
+            points = southMajority,
+            start = start,
+            direction = "N",
+            toleranceMeters = 120.0,
+        )
+
+        // THEN
+        assertTrue(southPenalty > northPenalty)
+    }
+
     private fun invokeFarOppositeViolationRatio(
         adapter: OsmRoutingEngineAdapter,
         points: List<List<Double>>,
@@ -121,6 +206,24 @@ class OsmRoutingEngineAdapterDirectionTest {
     ): Double {
         val method = adapter.javaClass.getDeclaredMethod(
             "combinedDirectionPenalty",
+            List::class.java,
+            Coordinates::class.java,
+            String::class.java,
+            Double::class.javaPrimitiveType,
+        )
+        method.isAccessible = true
+        return method.invoke(adapter, points, start, direction, toleranceMeters) as Double
+    }
+
+    private fun invokeDirectionalQuadrantPenalty(
+        adapter: OsmRoutingEngineAdapter,
+        points: List<List<Double>>,
+        start: Coordinates,
+        direction: String,
+        toleranceMeters: Double,
+    ): Double {
+        val method = adapter.javaClass.getDeclaredMethod(
+            "directionalQuadrantPenalty",
             List::class.java,
             Coordinates::class.java,
             String::class.java,

@@ -211,6 +211,7 @@ Ce qui est déjà fait (retiré du backlog):
   - tri de sélection priorise plus tôt la pénalité de direction quand une direction est demandée,
   - seuils directionnels resserrés sur les profils `strict/balanced/relaxed/fallback` en Go/Kotlin,
   - nouvelle pénalité Go/Kotlin pour excursions lointaines dans la direction opposée (dense urban grid) + dominance lobe resserrée,
+  - nouvelle pénalité Go/Kotlin "majorité de quadrant" (pondérée par longueur de segments) pour mieux stabiliser l'orientation globale demandée en grille urbaine,
   - tests dédiés Go/Kotlin ajoutés sur la calibration directionnelle (local oscillation vs excursion opposée),
   - calibration terrain restante sur zones urbaines denses.
 
