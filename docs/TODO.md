@@ -236,6 +236,12 @@ Ce qui est déjà fait (retiré du backlog):
   Acceptance:
   - différence visible de parcours entre `Ride`, `Gravel`, `MTB`,
   - tests de classement par type de surface.
+  Progression 2026-04-23:
+  - parsing Go/Kotlin enrichi pour exploiter `surface` et `tracktype` quand disponibles (tags dédiés et formats `surface=...`, `surface:...`, `tracktype=...` dans `classes`),
+  - calibration cohérente `tracktype` (`grade1 -> paved`, `grade2/3 -> gravel`, `grade4/5 -> trail`) + fallback heuristiques conservé,
+  - diagnostics surface précisent maintenant la source `classes + mode + surface/tracktype tags`,
+  - tests dédiés Go/Kotlin ajoutés sur la classification et le ranking par type (`RIDE/GRAVEL/MTB`),
+  - calibration terrain restante sur extraits OSM réels (zones mixtes urbain/chemins).
 
 - [ ] `ROUTE-P1-04` (`P1`, `L`) - Shape mode v1 utilisable terrain.
   Owners: `Front`, `Back-Go`, `Back-Kotlin`.
