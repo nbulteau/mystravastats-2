@@ -2509,10 +2509,13 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             val to = points[index + 1]
             if (from.size < 2 || to.size < 2) continue
 
-            val fromDistance = haversineDistanceMeters(from[0], from[1], start.lat, start.lng)
-            val toDistance = haversineDistanceMeters(to[0], to[1], start.lat, start.lng)
-            if (min(fromDistance, toDistance) <= startZoneMeters) {
+            val midLat = (from[0] + to[0]) / 2.0
+            val midLng = (from[1] + to[1]) / 2.0
+            val midDistance = haversineDistanceMeters(midLat, midLng, start.lat, start.lng)
+            if (midDistance <= startZoneMeters) {
                 // Reuse around start/finish hub is allowed.
+                // Midpoint classification avoids exempting long segments that
+                // cross the hub boundary and then retrace outside it.
                 continue
             }
 

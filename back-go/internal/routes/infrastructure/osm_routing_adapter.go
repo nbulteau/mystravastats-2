@@ -2860,10 +2860,13 @@ func evaluateAxisReuseOutsideStartZone(
 			continue
 		}
 
-		distFrom := haversineDistanceMeters(left[0], left[1], start.Lat, start.Lng)
-		distTo := haversineDistanceMeters(right[0], right[1], start.Lat, start.Lng)
-		if math.Min(distFrom, distTo) <= startZoneMeters {
+		midLat := (left[0] + right[0]) / 2.0
+		midLng := (left[1] + right[1]) / 2.0
+		midDistance := haversineDistanceMeters(midLat, midLng, start.Lat, start.Lng)
+		if midDistance <= startZoneMeters {
 			// Reuse around start/finish hub is allowed.
+			// Midpoint classification avoids exempting long segments that
+			// cross the hub boundary and then retrace outside it.
 			continue
 		}
 

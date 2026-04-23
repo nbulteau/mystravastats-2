@@ -196,6 +196,7 @@ Ce qui est déjà fait (retiré du backlog):
   - politique harmonisée Go/Kotlin: `outsideStartAxisReuseLimit = 1` et overlap opposé interdit hors zone départ/retour,
   - seuil de détection opposée abaissé pour éviter les faux négatifs sur retrace réelle,
   - tests dédiés Go/Kotlin ajoutés sur la métrique de réutilisation d'axe hors zone 2 km (même sens + sens inverse),
+  - classification "hors zone 2 km" durcie: segment évalué par son midpoint (plus par un seul endpoint), pour éviter les faux négatifs sur longs segments qui traversent la frontière de zone,
   - validation terrain GPX restante.
 
 - [ ] `ROUTE-P0-03` (`P0`, `M`) - Direction "globale": améliorer la qualité d'orientation (suite).
