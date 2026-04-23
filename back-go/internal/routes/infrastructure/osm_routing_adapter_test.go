@@ -355,6 +355,73 @@ func TestBuildShapeRoadFirstWaypoints_ReturnsAnchoredLoopWithFarAnchors(t *testi
 	}
 }
 
+func TestShapeModeMatchScore_RoadFirstPenalizesLowShapeSimilarity(t *testing.T) {
+	// GIVEN
+	baseMatch := 78.0
+
+	// WHEN
+	highScore, highDriftPenalty := shapeModeMatchScore(
+		baseMatch,
+		0.72,
+		0.0,
+		0.0,
+		0.0,
+		0.0,
+		shapeModeStrategyRoadFirst,
+	)
+	lowScore, lowDriftPenalty := shapeModeMatchScore(
+		baseMatch,
+		0.38,
+		0.0,
+		0.0,
+		0.0,
+		0.0,
+		shapeModeStrategyRoadFirst,
+	)
+
+	// THEN
+	if lowDriftPenalty <= highDriftPenalty {
+		t.Fatalf("expected low similarity to trigger stronger road-first drift penalty, high=%.2f low=%.2f", highDriftPenalty, lowDriftPenalty)
+	}
+	if lowScore >= highScore {
+		t.Fatalf("expected low similarity to reduce road-first score, high=%.2f low=%.2f", highScore, lowScore)
+	}
+}
+
+func TestShapeModeMatchScore_LowSimilarityPrefersShapeFirstOverRoadFirst(t *testing.T) {
+	// GIVEN
+	baseMatch := 82.0
+	shapeScore := 0.40
+
+	// WHEN
+	shapeFirstScore, shapeFirstPenalty := shapeModeMatchScore(
+		baseMatch,
+		shapeScore,
+		0.0,
+		0.0,
+		0.0,
+		0.0,
+		shapeModeStrategyShapeFirst,
+	)
+	roadFirstScore, roadFirstPenalty := shapeModeMatchScore(
+		baseMatch,
+		shapeScore,
+		0.0,
+		0.0,
+		0.0,
+		0.0,
+		shapeModeStrategyRoadFirst,
+	)
+
+	// THEN
+	if roadFirstPenalty <= shapeFirstPenalty {
+		t.Fatalf("expected road-first to carry higher drift penalty on low-similarity routes, shape-first=%.2f road-first=%.2f", shapeFirstPenalty, roadFirstPenalty)
+	}
+	if roadFirstScore >= shapeFirstScore {
+		t.Fatalf("expected shape-first score to stay above road-first on low-similarity route, shape-first=%.2f road-first=%.2f", shapeFirstScore, roadFirstScore)
+	}
+}
+
 func TestComputeSurfaceBreakdown_UsesSurfaceAndTracktypeTagsWhenAvailable(t *testing.T) {
 	// GIVEN
 	route := osrmRoute{

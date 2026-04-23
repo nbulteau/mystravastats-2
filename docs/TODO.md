@@ -259,7 +259,8 @@ Ce qui est déjà fait (retiré du backlog):
   - endpoints shape Go/Kotlin infèrent désormais le filtre de forme aussi pour les payloads GPX,
   - UI Vue: import GPX (fichier `.gpx`) ajouté, conversion en tracé exploitable et prévisualisation carte,
   - UI Vue: import GPX multi-fichiers en mode `replace`/`append` + édition rapide du tracé (`undo last point`) pour composer des formes multi-segments,
-  - validation terrain restante: calibration des poids `shape-first/road-first` sur trajets réels.
+  - calibration Go/Kotlin du scoring `shape-first/road-first`: pénalité de dérive de forme adaptative (plus stricte en `road-first`) + tests dédiés de non-régression,
+  - validation terrain finale restante: vérifier le tuning sur trajets réels (zones denses vs zones rurales).
 
 - [x] `ROUTE-P2-01` (`P2`, `M`) - Observabilité routes.
   Owners: `Back-Go`, `Back-Kotlin`, `Front`.

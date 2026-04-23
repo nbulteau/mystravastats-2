@@ -43,6 +43,8 @@ private const val DIRECTION_TOLERANCE_METERS = 120.0
 private const val BACKTRACKING_START_ZONE_METERS = 2000.0
 private const val MIN_AXIS_SEGMENT_LENGTH_METERS = 25.0
 private const val MIN_OPPOSITE_REUSE_METERS = 120.0
+private const val SHAPE_MODE_STRATEGY_SHAPE_FIRST = "shape-first"
+private const val SHAPE_MODE_STRATEGY_ROAD_FIRST = "road-first"
 private const val DEFAULT_EXTRACT_PROFILE_FILE = "./osm/region.osrm.profile"
 private const val FALLBACK_EXTRACT_PROFILE_FILE = "../osm/region.osrm.profile"
 
@@ -161,6 +163,13 @@ private data class PathSegment(
 private data class NormalizedShapePoint(
     var x: Double,
     var y: Double,
+)
+
+private data class ShapeModeScoringConfig(
+    val baseMatchWeight: Double,
+    val shapeWeight: Double,
+    val lowSimilarityThreshold: Double,
+    val lowSimilarityPenaltyRate: Double,
 )
 
 @Component
@@ -442,23 +451,17 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             val code: String,
             val label: String,
             val waypoints: List<Coordinates>,
-            val baseMatchWeight: Double,
-            val shapeWeight: Double,
         )
         val strategies = listOf(
             ShapeRoutingStrategy(
-                code = "shape-first",
+                code = SHAPE_MODE_STRATEGY_SHAPE_FIRST,
                 label = "projected waypoints",
                 waypoints = buildShapeLoopWaypoints(request.startPoint, projectedShape),
-                baseMatchWeight = 0.35,
-                shapeWeight = 0.65,
             ),
             ShapeRoutingStrategy(
-                code = "road-first",
+                code = SHAPE_MODE_STRATEGY_ROAD_FIRST,
                 label = "road-first anchors",
                 waypoints = buildShapeRoadFirstWaypoints(request.startPoint, projectedShape),
-                baseMatchWeight = 0.55,
-                shapeWeight = 0.45,
             ),
         )
 
@@ -510,22 +513,27 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 }
 
                 val shapeScore = shapeSimilarityScore(candidate.recommendation.previewLatLng, shapePreview)
+                val (matchScore, shapeDriftPenalty) = shapeModeMatchScore(
+                    baseMatchScore = candidate.recommendation.matchScore,
+                    shapeScore = shapeScore,
+                    backtrackingRatio = candidate.backtrackingRatio,
+                    corridorOverlap = candidate.corridorOverlap,
+                    edgeReuseRatio = candidate.edgeReuseRatio,
+                    maxAxisReuseRatio = candidate.maxAxisReuseRatio,
+                    strategyCode = strategy.code,
+                )
                 val recommendation = candidate.recommendation.copy(
                     variantType = RouteVariantType.SHAPE_MATCH,
                     shape = "CUSTOM_SHAPE",
                     shapeScore = shapeScore,
-                    matchScore = clampScore(
-                        candidate.recommendation.matchScore * strategy.baseMatchWeight +
-                            shapeScore * 100.0 * strategy.shapeWeight -
-                            candidate.backtrackingRatio * 28.0 -
-                            candidate.corridorOverlap * 35.0 -
-                            candidate.edgeReuseRatio * 40.0 -
-                            candidate.maxAxisReuseRatio * 48.0,
-                    ),
-                    reasons = candidate.recommendation.reasons + listOf(
-                        "Shape similarity: ${(shapeScore * 100.0).roundToInt()}%",
-                        "Shape mode: ${strategy.label}",
-                    ),
+                    matchScore = matchScore,
+                    reasons = candidate.recommendation.reasons + buildList {
+                        add("Shape similarity: ${(shapeScore * 100.0).roundToInt()}%")
+                        add("Shape mode: ${strategy.label}")
+                        if (shapeDriftPenalty > 0.05) {
+                            add("Shape drift penalty: -${"%.1f".format(Locale.US, shapeDriftPenalty)}")
+                        }
+                    },
                 )
                 candidates += candidate.copy(
                     recommendation = recommendation,
@@ -2119,6 +2127,55 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
 
     private fun coordinatesToLatLng(points: List<Coordinates>): List<List<Double>> {
         return points.map { point -> listOf(point.lat, point.lng) }
+    }
+
+    private fun shapeModeScoringConfigFor(strategyCode: String): ShapeModeScoringConfig {
+        return when (strategyCode.trim().lowercase(Locale.getDefault())) {
+            SHAPE_MODE_STRATEGY_ROAD_FIRST -> ShapeModeScoringConfig(
+                baseMatchWeight = 0.55,
+                shapeWeight = 0.45,
+                lowSimilarityThreshold = 0.58,
+                lowSimilarityPenaltyRate = 0.70,
+            )
+
+            else -> ShapeModeScoringConfig(
+                baseMatchWeight = 0.35,
+                shapeWeight = 0.65,
+                lowSimilarityThreshold = 0.50,
+                lowSimilarityPenaltyRate = 0.28,
+            )
+        }
+    }
+
+    private fun shapeModeLowSimilarityPenalty(strategyCode: String, shapeScore: Double): Double {
+        val config = shapeModeScoringConfigFor(strategyCode)
+        val normalizedShapeScore = clampUnit(shapeScore)
+        if (normalizedShapeScore >= config.lowSimilarityThreshold) {
+            return 0.0
+        }
+        return (config.lowSimilarityThreshold - normalizedShapeScore) * 100.0 * config.lowSimilarityPenaltyRate
+    }
+
+    private fun shapeModeMatchScore(
+        baseMatchScore: Double,
+        shapeScore: Double,
+        backtrackingRatio: Double,
+        corridorOverlap: Double,
+        edgeReuseRatio: Double,
+        maxAxisReuseRatio: Double,
+        strategyCode: String,
+    ): Pair<Double, Double> {
+        val config = shapeModeScoringConfigFor(strategyCode)
+        val normalizedShapeScore = clampUnit(shapeScore)
+        val shapeDriftPenalty = shapeModeLowSimilarityPenalty(strategyCode, normalizedShapeScore)
+        val score = baseMatchScore * config.baseMatchWeight +
+            normalizedShapeScore * 100.0 * config.shapeWeight -
+            backtrackingRatio * 28.0 -
+            corridorOverlap * 35.0 -
+            edgeReuseRatio * 40.0 -
+            maxAxisReuseRatio * 48.0 -
+            shapeDriftPenalty
+        return clampScore(score) to shapeDriftPenalty
     }
 
     private fun shapeSimilarityScore(routePoints: List<List<Double>>, shapePoints: List<List<Double>>): Double {

@@ -201,6 +201,7 @@ For `POST /api/routes/generate/shape`:
 - routing strategy parity (Go/Kotlin):
   - `shape-first`: projected shape waypoints (high geometry fidelity)
   - `road-first`: compact road anchors from the projected shape (better routability in sparse/complex areas)
+- strategy scoring includes an adaptive low-similarity drift penalty (`road-first` stricter than `shape-first`) so highly off-shape routes are naturally deprioritized
 - both strategies are scored, deduplicated by geometry, then merged through the same relaxation pipeline as target mode
 
 ## History Profile (Step 1)

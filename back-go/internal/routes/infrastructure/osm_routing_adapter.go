@@ -33,6 +33,8 @@ const (
 	historyStartZoneBonusWeight = 14.0
 	historyAxisBiasWeight       = 0.75
 	historyZoneBiasWeight       = 0.25
+	shapeModeStrategyShapeFirst = "shape-first"
+	shapeModeStrategyRoadFirst  = "road-first"
 	defaultOSRMProfileFilePath  = "./osm/region.osrm.profile"
 	fallbackOSRMProfilePath     = "../osm/region.osrm.profile"
 )
@@ -470,26 +472,20 @@ func (adapter *OSMRoutingAdapter) GenerateShapeLoops(
 
 	profile := adapter.profileForRouteType(request.RouteType)
 	type shapeRoutingStrategy struct {
-		code            string
-		label           string
-		waypoints       []routesDomain.Coordinates
-		baseMatchWeight float64
-		shapeWeight     float64
+		code      string
+		label     string
+		waypoints []routesDomain.Coordinates
 	}
 	strategies := []shapeRoutingStrategy{
 		{
-			code:            "shape-first",
-			label:           "projected waypoints",
-			waypoints:       buildShapeLoopWaypoints(request.StartPoint, projectedShape),
-			baseMatchWeight: 0.35,
-			shapeWeight:     0.65,
+			code:      shapeModeStrategyShapeFirst,
+			label:     "projected waypoints",
+			waypoints: buildShapeLoopWaypoints(request.StartPoint, projectedShape),
 		},
 		{
-			code:            "road-first",
-			label:           "road-first anchors",
-			waypoints:       buildShapeRoadFirstWaypoints(request.StartPoint, projectedShape),
-			baseMatchWeight: 0.55,
-			shapeWeight:     0.45,
+			code:      shapeModeStrategyRoadFirst,
+			label:     "road-first anchors",
+			waypoints: buildShapeRoadFirstWaypoints(request.StartPoint, projectedShape),
 		},
 	}
 
@@ -546,19 +542,27 @@ func (adapter *OSMRoutingAdapter) GenerateShapeLoops(
 			recommendation.VariantType = routesDomain.RouteVariantShape
 			recommendation.Shape = &shapeName
 			recommendation.ShapeScore = &shapeScore
-			recommendation.MatchScore = clampOSMScore(
-				recommendation.MatchScore*strategy.baseMatchWeight +
-					shapeScore*100.0*strategy.shapeWeight -
-					candidate.backtrackingRatio*28.0 -
-					candidate.corridorOverlap*35.0 -
-					candidate.edgeReuseRatio*40.0 -
-					candidate.maxAxisReuseRatio*48.0,
+			matchScore, shapeDriftPenalty := shapeModeMatchScore(
+				recommendation.MatchScore,
+				shapeScore,
+				candidate.backtrackingRatio,
+				candidate.corridorOverlap,
+				candidate.edgeReuseRatio,
+				candidate.maxAxisReuseRatio,
+				strategy.code,
 			)
+			recommendation.MatchScore = matchScore
 			recommendation.Reasons = append(
 				recommendation.Reasons,
 				fmt.Sprintf("Shape similarity: %.0f%%", shapeScore*100.0),
 				fmt.Sprintf("Shape mode: %s", strategy.label),
 			)
+			if shapeDriftPenalty > 0.05 {
+				recommendation.Reasons = append(
+					recommendation.Reasons,
+					fmt.Sprintf("Shape drift penalty: -%.1f", shapeDriftPenalty),
+				)
+			}
 
 			candidate.recommendation = recommendation
 			candidate.effectiveMatchScore = clampOSMScore(
@@ -2626,6 +2630,63 @@ func coordinatesToLatLngPoints(points []routesDomain.Coordinates) [][]float64 {
 type normalizedShapePoint struct {
 	x float64
 	y float64
+}
+
+type shapeModeScoringConfig struct {
+	baseMatchWeight          float64
+	shapeWeight              float64
+	lowSimilarityThreshold   float64
+	lowSimilarityPenaltyRate float64
+}
+
+func shapeModeScoringConfigFor(strategyCode string) shapeModeScoringConfig {
+	switch strings.ToLower(strings.TrimSpace(strategyCode)) {
+	case shapeModeStrategyRoadFirst:
+		return shapeModeScoringConfig{
+			baseMatchWeight:          0.55,
+			shapeWeight:              0.45,
+			lowSimilarityThreshold:   0.58,
+			lowSimilarityPenaltyRate: 0.70,
+		}
+	default:
+		return shapeModeScoringConfig{
+			baseMatchWeight:          0.35,
+			shapeWeight:              0.65,
+			lowSimilarityThreshold:   0.50,
+			lowSimilarityPenaltyRate: 0.28,
+		}
+	}
+}
+
+func shapeModeLowSimilarityPenalty(strategyCode string, shapeScore float64) float64 {
+	config := shapeModeScoringConfigFor(strategyCode)
+	normalizedShapeScore := clampUnit(shapeScore)
+	if normalizedShapeScore >= config.lowSimilarityThreshold {
+		return 0.0
+	}
+	return (config.lowSimilarityThreshold - normalizedShapeScore) * 100.0 * config.lowSimilarityPenaltyRate
+}
+
+func shapeModeMatchScore(
+	baseMatchScore float64,
+	shapeScore float64,
+	backtrackingRatio float64,
+	corridorOverlap float64,
+	edgeReuseRatio float64,
+	maxAxisReuseRatio float64,
+	strategyCode string,
+) (float64, float64) {
+	config := shapeModeScoringConfigFor(strategyCode)
+	normalizedShapeScore := clampUnit(shapeScore)
+	shapeDriftPenalty := shapeModeLowSimilarityPenalty(strategyCode, normalizedShapeScore)
+	score := baseMatchScore*config.baseMatchWeight +
+		normalizedShapeScore*100.0*config.shapeWeight -
+		backtrackingRatio*28.0 -
+		corridorOverlap*35.0 -
+		edgeReuseRatio*40.0 -
+		maxAxisReuseRatio*48.0 -
+		shapeDriftPenalty
+	return clampOSMScore(score), shapeDriftPenalty
 }
 
 func shapeSimilarityScore(routePoints [][]float64, shapePoints [][]float64) float64 {

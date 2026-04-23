@@ -67,6 +67,71 @@ class OsmRoutingEngineAdapterShapeTest {
         assertTrue(waypoints.size <= shapeFirstWaypoints.size + 1)
     }
 
+    @Test
+    fun `shape mode match score penalizes low similarity for road first`() {
+        // GIVEN
+        val adapter = OsmRoutingEngineAdapter()
+
+        // WHEN
+        val (highScore, highPenalty) = invokeShapeModeMatchScore(
+            adapter = adapter,
+            baseMatchScore = 78.0,
+            shapeScore = 0.72,
+            backtrackingRatio = 0.0,
+            corridorOverlap = 0.0,
+            edgeReuseRatio = 0.0,
+            maxAxisReuseRatio = 0.0,
+            strategyCode = "road-first",
+        )
+        val (lowScore, lowPenalty) = invokeShapeModeMatchScore(
+            adapter = adapter,
+            baseMatchScore = 78.0,
+            shapeScore = 0.38,
+            backtrackingRatio = 0.0,
+            corridorOverlap = 0.0,
+            edgeReuseRatio = 0.0,
+            maxAxisReuseRatio = 0.0,
+            strategyCode = "road-first",
+        )
+
+        // THEN
+        assertTrue(lowPenalty > highPenalty)
+        assertTrue(lowScore < highScore)
+    }
+
+    @Test
+    fun `shape mode low similarity keeps shape first above road first`() {
+        // GIVEN
+        val adapter = OsmRoutingEngineAdapter()
+        val shapeScore = 0.40
+
+        // WHEN
+        val (shapeFirstScore, shapeFirstPenalty) = invokeShapeModeMatchScore(
+            adapter = adapter,
+            baseMatchScore = 82.0,
+            shapeScore = shapeScore,
+            backtrackingRatio = 0.0,
+            corridorOverlap = 0.0,
+            edgeReuseRatio = 0.0,
+            maxAxisReuseRatio = 0.0,
+            strategyCode = "shape-first",
+        )
+        val (roadFirstScore, roadFirstPenalty) = invokeShapeModeMatchScore(
+            adapter = adapter,
+            baseMatchScore = 82.0,
+            shapeScore = shapeScore,
+            backtrackingRatio = 0.0,
+            corridorOverlap = 0.0,
+            edgeReuseRatio = 0.0,
+            maxAxisReuseRatio = 0.0,
+            strategyCode = "road-first",
+        )
+
+        // THEN
+        assertTrue(roadFirstPenalty > shapeFirstPenalty)
+        assertTrue(roadFirstScore < shapeFirstScore)
+    }
+
     @Suppress("UNCHECKED_CAST")
     private fun invokeParseShapePolylineCoordinates(
         adapter: OsmRoutingEngineAdapter,
@@ -105,5 +170,39 @@ class OsmRoutingEngineAdapterShapeTest {
         )
         method.isAccessible = true
         return method.invoke(adapter, start, shape) as List<Coordinates>
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun invokeShapeModeMatchScore(
+        adapter: OsmRoutingEngineAdapter,
+        baseMatchScore: Double,
+        shapeScore: Double,
+        backtrackingRatio: Double,
+        corridorOverlap: Double,
+        edgeReuseRatio: Double,
+        maxAxisReuseRatio: Double,
+        strategyCode: String,
+    ): Pair<Double, Double> {
+        val method = adapter.javaClass.getDeclaredMethod(
+            "shapeModeMatchScore",
+            java.lang.Double.TYPE,
+            java.lang.Double.TYPE,
+            java.lang.Double.TYPE,
+            java.lang.Double.TYPE,
+            java.lang.Double.TYPE,
+            java.lang.Double.TYPE,
+            String::class.java,
+        )
+        method.isAccessible = true
+        return method.invoke(
+            adapter,
+            baseMatchScore,
+            shapeScore,
+            backtrackingRatio,
+            corridorOverlap,
+            edgeReuseRatio,
+            maxAxisReuseRatio,
+            strategyCode,
+        ) as Pair<Double, Double>
     }
 }
