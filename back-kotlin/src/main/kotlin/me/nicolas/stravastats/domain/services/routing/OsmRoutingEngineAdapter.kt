@@ -83,6 +83,8 @@ private data class OsrmStep(
     val distance: Double = 0.0,
     val mode: String? = null,
     val classes: List<String> = emptyList(),
+    val surface: String? = null,
+    val tracktype: String? = null,
 )
 
 private data class OsmScoringProfile(
@@ -1370,7 +1372,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             add("Surface mix: ${formatSurfaceBreakdown(surfaceBreakdown)}")
             add("Path ratio: ${(pathRatio * 100.0).roundToInt()}%")
             add("Surface fitness: ${surfaceScore.roundToInt()}%")
-            add("Surface source: OSRM step classes and mode")
+            add("Surface source: OSRM step classes, mode, and surface/tracktype tags when available")
             if (request.strictBacktracking) {
                 add("Anti-backtracking: native ultra")
             } else {
@@ -2672,14 +2674,53 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         }
         val classes = step.classes
             .asSequence()
-            .map { it.trim().lowercase(Locale.getDefault()) }
+            .map { normalizeClassToken(it) }
             .filter { it.isNotBlank() }
             .toSet()
 
         if (classes.contains("ferry")) {
             return "unknown"
         }
+        val surfaceValue = normalizeTagValue(step.surface, "surface")
+            .ifBlank { extractTagValueFromClasses(step.classes, "surface") }
+        surfaceBucketFromSurfaceTag(surfaceValue)?.let { return it }
+
+        val trackTypeValue = normalizeTagValue(step.tracktype, "tracktype")
+            .ifBlank { extractTagValueFromClasses(step.classes, "tracktype") }
+        surfaceBucketFromTrackType(trackTypeValue)?.let { return it }
+
         if (hasAnyClass(classes, "path", "track", "steps", "bridleway", "cycleway_unpaved")) {
+            return "trail"
+        }
+        if (
+            hasAnyClass(
+                classes,
+                "tracktype_grade1", "tracktype=grade1", "tracktype:grade1",
+                "grade1",
+                "asphalt", "paved", "concrete", "concrete:lanes", "concrete:plates",
+                "paving_stones", "sett", "cobblestone", "metal", "wood",
+            )
+        ) {
+            return "paved"
+        }
+        if (
+            hasAnyClass(
+                classes,
+                "tracktype_grade2", "tracktype=grade2", "tracktype:grade2",
+                "tracktype_grade3", "tracktype=grade3", "tracktype:grade3",
+                "grade2", "grade3",
+            )
+        ) {
+            return "gravel"
+        }
+        if (
+            hasAnyClass(
+                classes,
+                "tracktype_grade4", "tracktype=grade4", "tracktype:grade4",
+                "tracktype_grade5", "tracktype=grade5", "tracktype:grade5",
+                "grade4", "grade5",
+            )
+        ) {
             return "trail"
         }
         if (hasAnyClass(classes, "unpaved", "gravel", "dirt", "ground", "earth", "compacted", "fine_gravel", "sand", "mud")) {
@@ -2692,7 +2733,80 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
     }
 
     private fun hasAnyClass(classes: Set<String>, vararg keys: String): Boolean {
-        return keys.any { key -> classes.contains(key) }
+        return keys.any { key -> classes.contains(normalizeClassToken(key)) }
+    }
+
+    private fun normalizeClassToken(raw: String?): String {
+        return raw.orEmpty().trim().lowercase(Locale.getDefault()).replace(" ", "_")
+    }
+
+    private fun normalizeTagValue(raw: String?, key: String): String {
+        val normalized = normalizeClassToken(raw)
+        if (normalized.isBlank()) {
+            return ""
+        }
+        val keyNormalized = normalizeClassToken(key)
+        if (keyNormalized.isBlank()) {
+            return normalized
+        }
+        val prefixes = listOf(
+            "$keyNormalized=",
+            "$keyNormalized:",
+            "${keyNormalized}_",
+            "$keyNormalized-",
+        )
+        for (prefix in prefixes) {
+            if (normalized.startsWith(prefix) && normalized.length > prefix.length) {
+                return normalized.substring(prefix.length).trim('_', '-', ':')
+            }
+        }
+        return normalized
+    }
+
+    private fun extractTagValueFromClasses(rawClasses: List<String>, key: String): String {
+        val keyNormalized = normalizeClassToken(key)
+        if (keyNormalized.isBlank()) {
+            return ""
+        }
+        val prefixes = listOf(
+            "$keyNormalized=",
+            "$keyNormalized:",
+            "${keyNormalized}_",
+            "$keyNormalized-",
+        )
+        for (rawClass in rawClasses) {
+            val normalized = normalizeClassToken(rawClass)
+            if (normalized.isBlank()) continue
+            for (prefix in prefixes) {
+                if (normalized.startsWith(prefix) && normalized.length > prefix.length) {
+                    return normalized.substring(prefix.length).trim('_', '-', ':')
+                }
+            }
+        }
+        return ""
+    }
+
+    private fun surfaceBucketFromSurfaceTag(surface: String): String? {
+        return when (normalizeTagValue(surface, "surface")) {
+            "" -> null
+            "asphalt", "paved", "concrete", "concrete_lanes", "concrete_plates",
+            "concrete:lanes", "concrete:plates", "paving_stones", "sett",
+            "cobblestone", "metal", "wood", "chipseal" -> "paved"
+            "unpaved", "gravel", "fine_gravel", "compacted", "dirt",
+            "ground", "earth", "pebblestone", "sand", "mud", "clay" -> "gravel"
+            "path", "trail", "steps", "grass", "woodchips" -> "trail"
+            else -> null
+        }
+    }
+
+    private fun surfaceBucketFromTrackType(trackType: String): String? {
+        return when (normalizeTagValue(trackType, "tracktype")) {
+            "" -> null
+            "grade1" -> "paved"
+            "grade2", "grade3" -> "gravel"
+            "grade4", "grade5" -> "trail"
+            else -> null
+        }
     }
 
     private fun formatSurfaceBreakdown(breakdown: RouteSurfaceBreakdown): String {

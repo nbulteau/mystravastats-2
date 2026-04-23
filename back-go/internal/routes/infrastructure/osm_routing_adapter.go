@@ -112,9 +112,11 @@ type osrmLeg struct {
 }
 
 type osrmStep struct {
-	Distance float64  `json:"distance"`
-	Mode     string   `json:"mode"`
-	Classes  []string `json:"classes"`
+	Distance  float64  `json:"distance"`
+	Mode      string   `json:"mode"`
+	Classes   []string `json:"classes"`
+	Surface   string   `json:"surface"`
+	TrackType string   `json:"tracktype"`
 }
 
 // OSMRoutingAdapter integrates a local OSRM endpoint as a routing engine.
@@ -1414,7 +1416,7 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreview(
 		fmt.Sprintf("Surface mix: %s", formatSurfaceBreakdown(surfaceBreakdown)),
 		fmt.Sprintf("Path ratio: %.0f%%", pathRatio*100.0),
 		fmt.Sprintf("Surface fitness: %.0f%%", surfaceScore),
-		"Surface source: OSRM step classes and mode",
+		"Surface source: OSRM step classes, mode, and surface/tracktype tags when available",
 	)
 	if request.StrictBacktracking {
 		reasons = append(reasons, "Anti-backtracking: native ultra")
@@ -1923,7 +1925,7 @@ func classifySurfaceBucket(step osrmStep) string {
 	}
 	classes := make(map[string]struct{}, len(step.Classes))
 	for _, rawClass := range step.Classes {
-		normalized := strings.ToLower(strings.TrimSpace(rawClass))
+		normalized := normalizeClassToken(rawClass)
 		if normalized == "" {
 			continue
 		}
@@ -1932,7 +1934,48 @@ func classifySurfaceBucket(step osrmStep) string {
 	if _, hasFerry := classes["ferry"]; hasFerry {
 		return "unknown"
 	}
+	surfaceValue := normalizeTagValue(step.Surface, "surface")
+	if surfaceValue == "" {
+		surfaceValue = extractTagValueFromClasses(step.Classes, "surface")
+	}
+	if bucket, ok := surfaceBucketFromSurfaceTag(surfaceValue); ok {
+		return bucket
+	}
+
+	trackTypeValue := normalizeTagValue(step.TrackType, "tracktype")
+	if trackTypeValue == "" {
+		trackTypeValue = extractTagValueFromClasses(step.Classes, "tracktype")
+	}
+	if bucket, ok := surfaceBucketFromTrackType(trackTypeValue); ok {
+		return bucket
+	}
+
 	if hasAnyClass(classes, "path", "track", "steps", "bridleway", "cycleway_unpaved") {
+		return "trail"
+	}
+	if hasAnyClass(
+		classes,
+		"tracktype_grade1", "tracktype=grade1", "tracktype:grade1",
+		"grade1",
+		"asphalt", "paved", "concrete", "concrete:lanes", "concrete:plates",
+		"paving_stones", "sett", "cobblestone", "metal", "wood",
+	) {
+		return "paved"
+	}
+	if hasAnyClass(
+		classes,
+		"tracktype_grade2", "tracktype=grade2", "tracktype:grade2",
+		"tracktype_grade3", "tracktype=grade3", "tracktype:grade3",
+		"grade2", "grade3",
+	) {
+		return "gravel"
+	}
+	if hasAnyClass(
+		classes,
+		"tracktype_grade4", "tracktype=grade4", "tracktype:grade4",
+		"tracktype_grade5", "tracktype=grade5", "tracktype:grade5",
+		"grade4", "grade5",
+	) {
 		return "trail"
 	}
 	if hasAnyClass(classes, "unpaved", "gravel", "dirt", "ground", "earth", "compacted", "fine_gravel", "sand", "mud") {
@@ -1946,11 +1989,100 @@ func classifySurfaceBucket(step osrmStep) string {
 
 func hasAnyClass(classes map[string]struct{}, keys ...string) bool {
 	for _, key := range keys {
-		if _, exists := classes[key]; exists {
+		if _, exists := classes[normalizeClassToken(key)]; exists {
 			return true
 		}
 	}
 	return false
+}
+
+func normalizeClassToken(raw string) string {
+	normalized := strings.ToLower(strings.TrimSpace(raw))
+	normalized = strings.ReplaceAll(normalized, " ", "_")
+	return normalized
+}
+
+func normalizeTagValue(raw string, key string) string {
+	normalized := normalizeClassToken(raw)
+	if normalized == "" {
+		return ""
+	}
+	keyNormalized := normalizeClassToken(key)
+	if keyNormalized == "" {
+		return normalized
+	}
+	prefixes := []string{
+		keyNormalized + "=",
+		keyNormalized + ":",
+		keyNormalized + "_",
+		keyNormalized + "-",
+	}
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(normalized, prefix) && len(normalized) > len(prefix) {
+			return strings.Trim(normalized[len(prefix):], "_-:")
+		}
+	}
+	return normalized
+}
+
+func extractTagValueFromClasses(rawClasses []string, key string) string {
+	keyNormalized := normalizeClassToken(key)
+	if keyNormalized == "" {
+		return ""
+	}
+	prefixes := []string{
+		keyNormalized + "=",
+		keyNormalized + ":",
+		keyNormalized + "_",
+		keyNormalized + "-",
+	}
+	for _, rawClass := range rawClasses {
+		normalized := normalizeClassToken(rawClass)
+		if normalized == "" {
+			continue
+		}
+		for _, prefix := range prefixes {
+			if strings.HasPrefix(normalized, prefix) && len(normalized) > len(prefix) {
+				return strings.Trim(normalized[len(prefix):], "_-:")
+			}
+		}
+	}
+	return ""
+}
+
+func surfaceBucketFromSurfaceTag(surface string) (string, bool) {
+	normalized := normalizeTagValue(surface, "surface")
+	switch normalized {
+	case "":
+		return "", false
+	case "asphalt", "paved", "concrete", "concrete_lanes", "concrete_plates",
+		"concrete:lanes", "concrete:plates", "paving_stones", "sett",
+		"cobblestone", "metal", "wood", "chipseal":
+		return "paved", true
+	case "unpaved", "gravel", "fine_gravel", "compacted", "dirt",
+		"ground", "earth", "pebblestone", "sand", "mud", "clay":
+		return "gravel", true
+	case "path", "trail", "steps", "grass", "woodchips":
+		return "trail", true
+	default:
+		return "", false
+	}
+}
+
+func surfaceBucketFromTrackType(trackType string) (string, bool) {
+	normalized := normalizeTagValue(trackType, "tracktype")
+	switch normalized {
+	case "":
+		return "", false
+	case "grade1":
+		return "paved", true
+	case "grade2", "grade3":
+		return "gravel", true
+	case "grade4", "grade5":
+		return "trail", true
+	default:
+		return "", false
+	}
 }
 
 func (breakdown routeSurfaceBreakdown) totalDistanceM() float64 {

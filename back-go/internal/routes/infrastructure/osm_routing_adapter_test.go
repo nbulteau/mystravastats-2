@@ -287,6 +287,42 @@ func TestSurfaceMatchScore_AdaptsToRequestedRouteType(t *testing.T) {
 	}
 }
 
+func TestComputeSurfaceBreakdown_UsesSurfaceAndTracktypeTagsWhenAvailable(t *testing.T) {
+	// GIVEN
+	route := osrmRoute{
+		Distance: 5000.0,
+		Legs: []osrmLeg{
+			{
+				Steps: []osrmStep{
+					{Distance: 1000.0, Mode: "cycling", Classes: []string{"surface=asphalt"}},
+					{Distance: 1000.0, Mode: "cycling", Classes: []string{"surface:fine_gravel"}},
+					{Distance: 1000.0, Mode: "cycling", Classes: []string{"tracktype=grade4"}},
+					{Distance: 1000.0, Mode: "cycling", Surface: "surface=concrete:lanes"},
+					{Distance: 1000.0, Mode: "cycling", TrackType: "tracktype=grade3"},
+				},
+			},
+		},
+	}
+
+	// WHEN
+	breakdown := computeSurfaceBreakdown(route)
+	pavedRatio, gravelRatio, trailRatio, unknownRatio := breakdown.normalizedRatios()
+
+	// THEN
+	if pavedRatio < 0.39 || pavedRatio > 0.41 {
+		t.Fatalf("expected paved ratio around 0.40, got %.3f", pavedRatio)
+	}
+	if gravelRatio < 0.39 || gravelRatio > 0.41 {
+		t.Fatalf("expected gravel ratio around 0.40, got %.3f", gravelRatio)
+	}
+	if trailRatio < 0.19 || trailRatio > 0.21 {
+		t.Fatalf("expected trail ratio around 0.20, got %.3f", trailRatio)
+	}
+	if unknownRatio != 0.0 {
+		t.Fatalf("expected unknown ratio to be 0.0, got %.3f", unknownRatio)
+	}
+}
+
 func TestRespectsHalfPlaneDirection_NorthRejectsPointsSouthOfStart(t *testing.T) {
 	// GIVEN
 	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}
