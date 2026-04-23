@@ -36,6 +36,10 @@ interface RoutingHealthPayload {
   };
 }
 
+interface ImportShapeFromGpxOptions {
+  append?: boolean;
+}
+
 export const useRoutesStore = defineStore("routes", {
   state: () => ({
     mode: "TARGET" as RouteMode,
@@ -217,7 +221,31 @@ export const useRoutesStore = defineStore("routes", {
       this.shapePoints.push([lat, lng]);
       this.shapeDataText = JSON.stringify(this.shapePoints);
     },
-    importShapeFromGpx(gpxText: string): number {
+    undoLastShapePoint() {
+      if (this.shapePoints.length === 0) {
+        return;
+      }
+      this.shapePoints = this.shapePoints.slice(0, -1);
+      this.shapeInputType = "draw";
+      this.shapeDataText = this.shapePoints.length >= 2 ? JSON.stringify(this.shapePoints) : "";
+    },
+    mergeShapePoints(basePoints: number[][], importedPoints: number[][]): number[][] {
+      if (basePoints.length === 0) {
+        return importedPoints.map((point) => [point[0], point[1]]);
+      }
+      const merged = basePoints.map((point) => [point[0], point[1]]);
+      importedPoints.forEach((point) => {
+        const candidate = [point[0], point[1]];
+        const previous = merged[merged.length - 1];
+        if (previous && previous[0] === candidate[0] && previous[1] === candidate[1]) {
+          return;
+        }
+        merged.push(candidate);
+      });
+      return merged;
+    },
+    importShapeFromGpx(gpxText: string, options: ImportShapeFromGpxOptions = {}): number {
+      const append = options.append === true;
       const pointTagPattern = /<(?:trkpt|rtept|wpt)\b([^>]*)>/gi;
       const latAttrPattern = /\blat\s*=\s*["']([^"']+)["']/i;
       const lonAttrPattern = /\blon\s*=\s*["']([^"']+)["']/i;
@@ -240,8 +268,18 @@ export const useRoutesStore = defineStore("routes", {
         }
         points.push([lat, lng]);
       }
-      this.shapePoints = points;
-      this.shapeDataText = points.length >= 2 ? JSON.stringify(points) : "";
+      if (points.length < 2) {
+        if (!append) {
+          this.shapePoints = [];
+          this.shapeDataText = "";
+        }
+        this.shapeInputType = "gpx";
+        this.isDrawingShape = false;
+        return 0;
+      }
+
+      this.shapePoints = append ? this.mergeShapePoints(this.shapePoints, points) : points;
+      this.shapeDataText = this.shapePoints.length >= 2 ? JSON.stringify(this.shapePoints) : "";
       this.shapeInputType = "gpx";
       this.isDrawingShape = false;
       return points.length;

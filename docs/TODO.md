@@ -258,7 +258,8 @@ Ce qui est déjà fait (retiré du backlog):
   - parsing shape Go/Kotlin rendu robuste pour `JSON points`, `polyline encodée` et `GPX trkpt/rtept/wpt`,
   - endpoints shape Go/Kotlin infèrent désormais le filtre de forme aussi pour les payloads GPX,
   - UI Vue: import GPX (fichier `.gpx`) ajouté, conversion en tracé exploitable et prévisualisation carte,
-  - validation terrain restante: calibration des poids `shape-first/road-first` sur trajets réels + UX avancée (édition/import multi-segments).
+  - UI Vue: import GPX multi-fichiers en mode `replace`/`append` + édition rapide du tracé (`undo last point`) pour composer des formes multi-segments,
+  - validation terrain restante: calibration des poids `shape-first/road-first` sur trajets réels.
 
 - [x] `ROUTE-P2-01` (`P2`, `M`) - Observabilité routes.
   Owners: `Back-Go`, `Back-Kotlin`, `Front`.
