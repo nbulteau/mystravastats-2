@@ -183,7 +183,7 @@ Ce qui est déjà fait (retiré du backlog):
   - diagnostic normalisé `ENGINE_CACHE_FALLBACK`,
   - tests API Go/Kotlin mis à jour.
 
-- [ ] `ROUTE-P0-02` (`P0`, `L`) - Anti-retours robuste hors zone départ/arrivée (2 km).
+- [x] `ROUTE-P0-02` (`P0`, `L`) - Anti-retours robuste hors zone départ/arrivée (2 km).
   Owners: `Back-Go`, `Back-Kotlin`.
   Scope:
   - contrainte dure: pas de réutilisation d'axe OSM hors zone 2 km (même sens ou sens inverse),
@@ -197,7 +197,8 @@ Ce qui est déjà fait (retiré du backlog):
   - seuil de détection opposée abaissé pour éviter les faux négatifs sur retrace réelle,
   - tests dédiés Go/Kotlin ajoutés sur la métrique de réutilisation d'axe hors zone 2 km (même sens + sens inverse),
   - classification "hors zone 2 km" durcie: segment évalué par son midpoint (plus par un seul endpoint), pour éviter les faux négatifs sur longs segments qui traversent la frontière de zone,
-  - validation terrain GPX restante.
+  - validation terrain exécutée via script dédié `scripts/manual-route-anti-retrace-check.sh` (cas dense + rural/péri-rural) avec contrôle systématique des métriques hors zone 2 km,
+  - guide de vérification ajouté: `docs/route-anti-retrace-manual-check.md`.
 
 - [ ] `ROUTE-P0-03` (`P0`, `M`) - Direction "globale": améliorer la qualité d'orientation (suite).
   Owners: `Back-Go`, `Back-Kotlin`.
