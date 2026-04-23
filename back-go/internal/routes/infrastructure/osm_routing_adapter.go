@@ -2454,9 +2454,13 @@ func combinedDirectionPenalty(
 	halfPlanePenalty := halfPlaneViolationRatio(points, start, direction, toleranceMeters)
 	lobePenalty := directionalLobePenalty(points, start, direction)
 	farOppositePenalty := farOppositeViolationRatio(points, start, direction, toleranceMeters)
+	quadrantPenalty := directionalQuadrantPenalty(points, start, direction, toleranceMeters)
 	return math.Max(
-		math.Max(bearingPenalty*0.65, halfPlanePenalty),
-		math.Max(lobePenalty, farOppositePenalty),
+		math.Max(
+			math.Max(bearingPenalty*0.65, halfPlanePenalty),
+			math.Max(lobePenalty, farOppositePenalty),
+		),
+		quadrantPenalty,
 	)
 }
 
@@ -2598,6 +2602,57 @@ func farOppositeViolationRatio(
 		return 0.0
 	}
 	return float64(violations) / float64(total)
+}
+
+func directionalQuadrantPenalty(
+	points [][]float64,
+	start routesDomain.Coordinates,
+	direction string,
+	toleranceMeters float64,
+) float64 {
+	normalized := strings.ToUpper(strings.TrimSpace(direction))
+	if normalized == "" || len(points) < 2 {
+		return 0.0
+	}
+
+	// Ignore local oscillations around start and focus on dominant travel zones.
+	guardBand := math.Max(toleranceMeters*1.2, 160.0)
+	desiredMeters := 0.0
+	oppositeMeters := 0.0
+
+	for index := 0; index < len(points)-1; index++ {
+		from := points[index]
+		to := points[index+1]
+		if len(from) < 2 || len(to) < 2 {
+			continue
+		}
+		segmentMeters := haversineDistanceMeters(from[0], from[1], to[0], to[1])
+		if segmentMeters < 12.0 {
+			continue
+		}
+		midLat := (from[0] + to[0]) / 2.0
+		midLng := (from[1] + to[1]) / 2.0
+		projection, ok := directionProjectionMeters(midLat, midLng, start, normalized)
+		if !ok {
+			continue
+		}
+		if math.Abs(projection) < guardBand {
+			continue
+		}
+		if projection >= 0 {
+			desiredMeters += segmentMeters
+		} else {
+			oppositeMeters += segmentMeters
+		}
+	}
+
+	totalMeters := desiredMeters + oppositeMeters
+	if totalMeters <= 0 {
+		return 0.0
+	}
+	desiredRatio := desiredMeters / totalMeters
+	// Keep at least ~62% of routed distance in requested quadrant.
+	return clampUnit((0.62 - desiredRatio) / 0.62)
 }
 
 func directionProjectionMeters(

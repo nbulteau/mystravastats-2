@@ -2152,9 +2152,13 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         val halfPlanePenalty = halfPlaneViolationRatio(points, start, direction, toleranceMeters)
         val lobePenalty = directionalLobePenalty(points, start, direction)
         val farOppositePenalty = farOppositeViolationRatio(points, start, direction, toleranceMeters)
+        val quadrantPenalty = directionalQuadrantPenalty(points, start, direction, toleranceMeters)
         return max(
-            max(bearingPenalty * 0.65, halfPlanePenalty),
-            max(lobePenalty, farOppositePenalty),
+            max(
+                max(bearingPenalty * 0.65, halfPlanePenalty),
+                max(lobePenalty, farOppositePenalty),
+            ),
+            quadrantPenalty,
         )
     }
 
@@ -2261,6 +2265,46 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         }
         if (total == 0) return 0.0
         return violations.toDouble() / total.toDouble()
+    }
+
+    private fun directionalQuadrantPenalty(
+        points: List<List<Double>>,
+        start: Coordinates,
+        direction: String?,
+        toleranceMeters: Double,
+    ): Double {
+        val normalized = direction.orEmpty().trim().uppercase(Locale.getDefault())
+        if (normalized.isBlank() || points.size < 2) return 0.0
+
+        // Ignore local oscillations around start and focus on dominant travel zones.
+        val guardBand = max(toleranceMeters * 1.2, 160.0)
+        var desiredMeters = 0.0
+        var oppositeMeters = 0.0
+
+        for (index in 0 until points.size - 1) {
+            val from = points[index]
+            val to = points[index + 1]
+            if (from.size < 2 || to.size < 2) continue
+            val segmentMeters = haversineDistanceMeters(from[0], from[1], to[0], to[1])
+            if (segmentMeters < 12.0) continue
+
+            val midLat = (from[0] + to[0]) / 2.0
+            val midLng = (from[1] + to[1]) / 2.0
+            val projection = directionProjectionMeters(midLat, midLng, start, normalized) ?: continue
+            if (abs(projection) < guardBand) continue
+
+            if (projection >= 0.0) {
+                desiredMeters += segmentMeters
+            } else {
+                oppositeMeters += segmentMeters
+            }
+        }
+
+        val totalMeters = desiredMeters + oppositeMeters
+        if (totalMeters <= 0.0) return 0.0
+        val desiredRatio = desiredMeters / totalMeters
+        // Keep at least ~62% of routed distance in requested quadrant.
+        return clampUnit((0.62 - desiredRatio) / 0.62)
     }
 
     private fun directionProjectionMeters(
