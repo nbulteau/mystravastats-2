@@ -200,7 +200,7 @@ Ce qui est déjà fait (retiré du backlog):
   - validation terrain exécutée via script dédié `scripts/manual-route-anti-retrace-check.sh` (cas dense + rural/péri-rural) avec contrôle systématique des métriques hors zone 2 km,
   - guide de vérification ajouté: `docs/route-anti-retrace-manual-check.md`.
 
-- [ ] `ROUTE-P0-03` (`P0`, `M`) - Direction "globale": améliorer la qualité d'orientation (suite).
+- [x] `ROUTE-P0-03` (`P0`, `M`) - Direction "globale": améliorer la qualité d'orientation (suite).
   Owners: `Back-Go`, `Back-Kotlin`.
   Scope:
   - `Direction` influence l'orientation moyenne de la boucle,
@@ -209,13 +209,15 @@ Ce qui est déjà fait (retiré du backlog):
   Acceptance:
   - génération réussie avec et sans direction,
   - la boucle respecte majoritairement le quadrant demandé quand possible.
-  Progression 2026-04-21:
+  Progression 2026-04-23:
   - tri de sélection priorise plus tôt la pénalité de direction quand une direction est demandée,
   - seuils directionnels resserrés sur les profils `strict/balanced/relaxed/fallback` en Go/Kotlin,
   - nouvelle pénalité Go/Kotlin pour excursions lointaines dans la direction opposée (dense urban grid) + dominance lobe resserrée,
   - nouvelle pénalité Go/Kotlin "majorité de quadrant" (pondérée par longueur de segments) pour mieux stabiliser l'orientation globale demandée en grille urbaine,
   - tests dédiés Go/Kotlin ajoutés sur la calibration directionnelle (local oscillation vs excursion opposée),
-  - calibration terrain restante sur zones urbaines denses.
+  - validation terrain finale exécutée via script dédié `scripts/manual-route-direction-check.sh` (matrice `NONE/N/E/S/W` sur cas dense + rural/péri-rural),
+  - guide de vérification ajouté: `docs/route-direction-manual-check.md`,
+  - en terrain réel, les directions tenables restent explicitement alignées (`Directional alignment` observé >= `88%`) et les cas non tenables sont explicitement relâchés (`DIRECTION_RELAXED`/`DIRECTION_BEST_EFFORT`).
 
 - [x] `ROUTE-P0-04` (`P0`, `M`) - Guidage historique par type pour départ/retour (step 2).
   Owners: `Back-Go`, `Back-Kotlin`.
