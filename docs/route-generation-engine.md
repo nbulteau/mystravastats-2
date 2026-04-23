@@ -117,6 +117,21 @@ Main metrics:
 - backtracking ratio
 - corridor overlap
 - segment diversity
+- surface mix fitness (`paved/gravel/trail/unknown`)
+
+Surface scoring signals (Go + Kotlin parity):
+
+- primary source: `steps[].classes` + travel `mode`
+- tag-aware enrichment when available: `surface` / `tracktype` (direct fields or class tokens such as `surface=asphalt`, `surface:fine_gravel`, `tracktype=grade3`)
+- `tracktype` mapping:
+  - `grade1` -> paved
+  - `grade2/grade3` -> gravel
+  - `grade4/grade5` -> trail
+- route-type intent:
+  - `Ride`: prioritize paved
+  - `Gravel`: require at least 25% path ratio (`gravel + trail`), then prefer higher path share
+  - `MTB`: strongly reward path-heavy candidates
+  - fallback route type policy remains `MTB -> GRAVEL -> RIDE` and `GRAVEL -> RIDE` when constraints cannot be satisfied
 
 Scores:
 

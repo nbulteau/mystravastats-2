@@ -113,9 +113,11 @@ type osrmLeg struct {
 }
 
 type osrmStep struct {
-	Distance float64  `json:"distance"`
-	Mode     string   `json:"mode"`
-	Classes  []string `json:"classes"`
+	Distance  float64  `json:"distance"`
+	Mode      string   `json:"mode"`
+	Classes   []string `json:"classes"`
+	Surface   string   `json:"surface"`
+	TrackType string   `json:"tracktype"`
 }
 
 // OSMRoutingAdapter integrates a local OSRM endpoint as a routing engine.
@@ -1459,7 +1461,7 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreview(
 		fmt.Sprintf("Surface mix: %s", formatSurfaceBreakdown(surfaceBreakdown)),
 		fmt.Sprintf("Path ratio: %.0f%%", pathRatio*100.0),
 		fmt.Sprintf("Surface fitness: %.0f%%", surfaceScore),
-		"Surface source: OSRM step classes and mode",
+		"Surface source: OSRM step classes, mode, and surface/tracktype tags when available",
 	)
 	if request.StrictBacktracking {
 		reasons = append(reasons, "Anti-backtracking: native ultra")
@@ -1968,7 +1970,7 @@ func classifySurfaceBucket(step osrmStep) string {
 	}
 	classes := make(map[string]struct{}, len(step.Classes))
 	for _, rawClass := range step.Classes {
-		normalized := strings.ToLower(strings.TrimSpace(rawClass))
+		normalized := normalizeClassToken(rawClass)
 		if normalized == "" {
 			continue
 		}
@@ -1977,7 +1979,48 @@ func classifySurfaceBucket(step osrmStep) string {
 	if _, hasFerry := classes["ferry"]; hasFerry {
 		return "unknown"
 	}
+	surfaceValue := normalizeTagValue(step.Surface, "surface")
+	if surfaceValue == "" {
+		surfaceValue = extractTagValueFromClasses(step.Classes, "surface")
+	}
+	if bucket, ok := surfaceBucketFromSurfaceTag(surfaceValue); ok {
+		return bucket
+	}
+
+	trackTypeValue := normalizeTagValue(step.TrackType, "tracktype")
+	if trackTypeValue == "" {
+		trackTypeValue = extractTagValueFromClasses(step.Classes, "tracktype")
+	}
+	if bucket, ok := surfaceBucketFromTrackType(trackTypeValue); ok {
+		return bucket
+	}
+
 	if hasAnyClass(classes, "path", "track", "steps", "bridleway", "cycleway_unpaved") {
+		return "trail"
+	}
+	if hasAnyClass(
+		classes,
+		"tracktype_grade1", "tracktype=grade1", "tracktype:grade1",
+		"grade1",
+		"asphalt", "paved", "concrete", "concrete:lanes", "concrete:plates",
+		"paving_stones", "sett", "cobblestone", "metal", "wood",
+	) {
+		return "paved"
+	}
+	if hasAnyClass(
+		classes,
+		"tracktype_grade2", "tracktype=grade2", "tracktype:grade2",
+		"tracktype_grade3", "tracktype=grade3", "tracktype:grade3",
+		"grade2", "grade3",
+	) {
+		return "gravel"
+	}
+	if hasAnyClass(
+		classes,
+		"tracktype_grade4", "tracktype=grade4", "tracktype:grade4",
+		"tracktype_grade5", "tracktype=grade5", "tracktype:grade5",
+		"grade4", "grade5",
+	) {
 		return "trail"
 	}
 	if hasAnyClass(classes, "unpaved", "gravel", "dirt", "ground", "earth", "compacted", "fine_gravel", "sand", "mud") {
@@ -1991,11 +2034,100 @@ func classifySurfaceBucket(step osrmStep) string {
 
 func hasAnyClass(classes map[string]struct{}, keys ...string) bool {
 	for _, key := range keys {
-		if _, exists := classes[key]; exists {
+		if _, exists := classes[normalizeClassToken(key)]; exists {
 			return true
 		}
 	}
 	return false
+}
+
+func normalizeClassToken(raw string) string {
+	normalized := strings.ToLower(strings.TrimSpace(raw))
+	normalized = strings.ReplaceAll(normalized, " ", "_")
+	return normalized
+}
+
+func normalizeTagValue(raw string, key string) string {
+	normalized := normalizeClassToken(raw)
+	if normalized == "" {
+		return ""
+	}
+	keyNormalized := normalizeClassToken(key)
+	if keyNormalized == "" {
+		return normalized
+	}
+	prefixes := []string{
+		keyNormalized + "=",
+		keyNormalized + ":",
+		keyNormalized + "_",
+		keyNormalized + "-",
+	}
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(normalized, prefix) && len(normalized) > len(prefix) {
+			return strings.Trim(normalized[len(prefix):], "_-:")
+		}
+	}
+	return normalized
+}
+
+func extractTagValueFromClasses(rawClasses []string, key string) string {
+	keyNormalized := normalizeClassToken(key)
+	if keyNormalized == "" {
+		return ""
+	}
+	prefixes := []string{
+		keyNormalized + "=",
+		keyNormalized + ":",
+		keyNormalized + "_",
+		keyNormalized + "-",
+	}
+	for _, rawClass := range rawClasses {
+		normalized := normalizeClassToken(rawClass)
+		if normalized == "" {
+			continue
+		}
+		for _, prefix := range prefixes {
+			if strings.HasPrefix(normalized, prefix) && len(normalized) > len(prefix) {
+				return strings.Trim(normalized[len(prefix):], "_-:")
+			}
+		}
+	}
+	return ""
+}
+
+func surfaceBucketFromSurfaceTag(surface string) (string, bool) {
+	normalized := normalizeTagValue(surface, "surface")
+	switch normalized {
+	case "":
+		return "", false
+	case "asphalt", "paved", "concrete", "concrete_lanes", "concrete_plates",
+		"concrete:lanes", "concrete:plates", "paving_stones", "sett",
+		"cobblestone", "metal", "wood", "chipseal":
+		return "paved", true
+	case "unpaved", "gravel", "fine_gravel", "compacted", "dirt",
+		"ground", "earth", "pebblestone", "sand", "mud", "clay":
+		return "gravel", true
+	case "path", "trail", "steps", "grass", "woodchips":
+		return "trail", true
+	default:
+		return "", false
+	}
+}
+
+func surfaceBucketFromTrackType(trackType string) (string, bool) {
+	normalized := normalizeTagValue(trackType, "tracktype")
+	switch normalized {
+	case "":
+		return "", false
+	case "grade1":
+		return "paved", true
+	case "grade2", "grade3":
+		return "gravel", true
+	case "grade4", "grade5":
+		return "trail", true
+	default:
+		return "", false
+	}
 }
 
 func (breakdown routeSurfaceBreakdown) totalDistanceM() float64 {
@@ -2692,9 +2824,13 @@ func combinedDirectionPenalty(
 	halfPlanePenalty := halfPlaneViolationRatio(points, start, direction, toleranceMeters)
 	lobePenalty := directionalLobePenalty(points, start, direction)
 	farOppositePenalty := farOppositeViolationRatio(points, start, direction, toleranceMeters)
+	quadrantPenalty := directionalQuadrantPenalty(points, start, direction, toleranceMeters)
 	return math.Max(
-		math.Max(bearingPenalty*0.65, halfPlanePenalty),
-		math.Max(lobePenalty, farOppositePenalty),
+		math.Max(
+			math.Max(bearingPenalty*0.65, halfPlanePenalty),
+			math.Max(lobePenalty, farOppositePenalty),
+		),
+		quadrantPenalty,
 	)
 }
 
@@ -2836,6 +2972,57 @@ func farOppositeViolationRatio(
 		return 0.0
 	}
 	return float64(violations) / float64(total)
+}
+
+func directionalQuadrantPenalty(
+	points [][]float64,
+	start routesDomain.Coordinates,
+	direction string,
+	toleranceMeters float64,
+) float64 {
+	normalized := strings.ToUpper(strings.TrimSpace(direction))
+	if normalized == "" || len(points) < 2 {
+		return 0.0
+	}
+
+	// Ignore local oscillations around start and focus on dominant travel zones.
+	guardBand := math.Max(toleranceMeters*1.2, 160.0)
+	desiredMeters := 0.0
+	oppositeMeters := 0.0
+
+	for index := 0; index < len(points)-1; index++ {
+		from := points[index]
+		to := points[index+1]
+		if len(from) < 2 || len(to) < 2 {
+			continue
+		}
+		segmentMeters := haversineDistanceMeters(from[0], from[1], to[0], to[1])
+		if segmentMeters < 12.0 {
+			continue
+		}
+		midLat := (from[0] + to[0]) / 2.0
+		midLng := (from[1] + to[1]) / 2.0
+		projection, ok := directionProjectionMeters(midLat, midLng, start, normalized)
+		if !ok {
+			continue
+		}
+		if math.Abs(projection) < guardBand {
+			continue
+		}
+		if projection >= 0 {
+			desiredMeters += segmentMeters
+		} else {
+			oppositeMeters += segmentMeters
+		}
+	}
+
+	totalMeters := desiredMeters + oppositeMeters
+	if totalMeters <= 0 {
+		return 0.0
+	}
+	desiredRatio := desiredMeters / totalMeters
+	// Keep at least ~62% of routed distance in requested quadrant.
+	return clampUnit((0.62 - desiredRatio) / 0.62)
 }
 
 func directionProjectionMeters(
@@ -3098,10 +3285,13 @@ func evaluateAxisReuseOutsideStartZone(
 			continue
 		}
 
-		distFrom := haversineDistanceMeters(left[0], left[1], start.Lat, start.Lng)
-		distTo := haversineDistanceMeters(right[0], right[1], start.Lat, start.Lng)
-		if math.Min(distFrom, distTo) <= startZoneMeters {
+		midLat := (left[0] + right[0]) / 2.0
+		midLng := (left[1] + right[1]) / 2.0
+		midDistance := haversineDistanceMeters(midLat, midLng, start.Lat, start.Lng)
+		if midDistance <= startZoneMeters {
 			// Reuse around start/finish hub is allowed.
+			// Midpoint classification avoids exempting long segments that
+			// cross the hub boundary and then retrace outside it.
 			continue
 		}
 

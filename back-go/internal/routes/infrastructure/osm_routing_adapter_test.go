@@ -149,6 +149,66 @@ func TestEvaluateAxisReuseOutsideStartZone_DetectsSameDirectionReuseAwayFromStar
 	}
 }
 
+func TestEvaluateAxisReuseOutsideStartZone_LongSegmentCrossingHubBoundaryIsCounted(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}
+	points := [][]float64{
+		{48.13000, -1.63000}, // start
+		{48.17000, -1.63000}, // far north (~4.4km)
+		{48.13000, -1.63000}, // retrace same axis back to start
+	}
+
+	// WHEN
+	hasOpposite, maxReuse, oppositeRatio := evaluateAxisReuseOutsideStartZone(
+		points,
+		start,
+		backtrackingStartZoneM,
+		minOppositeReuseMeters,
+	)
+
+	// THEN
+	if !hasOpposite {
+		t.Fatalf("expected opposite traversal to be detected for long segment crossing start-zone boundary")
+	}
+	if maxReuse < 2 {
+		t.Fatalf("expected max axis reuse outside start zone >= 2, got %d", maxReuse)
+	}
+	if oppositeRatio <= 0 {
+		t.Fatalf("expected opposite ratio > 0, got %.3f", oppositeRatio)
+	}
+}
+
+func TestEvaluateAxisReuseOutsideStartZone_KeepsLocalHubReuseAllowed(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}
+	points := [][]float64{
+		{48.13000, -1.63000}, // start
+		{48.13600, -1.63000}, // ~660m north (inside 2km hub)
+		{48.13000, -1.63000}, // back
+		{48.13600, -1.63000}, // same local axis again
+		{48.13000, -1.63000}, // back
+	}
+
+	// WHEN
+	hasOpposite, maxReuse, oppositeRatio := evaluateAxisReuseOutsideStartZone(
+		points,
+		start,
+		backtrackingStartZoneM,
+		minOppositeReuseMeters,
+	)
+
+	// THEN
+	if hasOpposite {
+		t.Fatalf("expected no opposite traversal outside hub for local reuse")
+	}
+	if maxReuse != 0 {
+		t.Fatalf("expected no counted outside-start reuse for local hub traversal, got %d", maxReuse)
+	}
+	if oppositeRatio != 0.0 {
+		t.Fatalf("expected opposite ratio 0 for local hub traversal, got %.3f", oppositeRatio)
+	}
+}
+
 func TestOutsideStartAxisReusePolicy_IsAlwaysStrict(t *testing.T) {
 	if got := outsideStartAxisReuseLimit("RIDE", false); got != 1 {
 		t.Fatalf("expected RIDE limit to stay hard at 1, got %d", got)
@@ -292,6 +352,42 @@ func TestBuildShapeRoadFirstWaypoints_ReturnsAnchoredLoopWithFarAnchors(t *testi
 	}
 	if len(roadFirstWaypoints) > len(shapeFirstWaypoints)+1 {
 		t.Fatalf("expected road-first waypoints to stay compact, road-first=%d shape-first=%d", len(roadFirstWaypoints), len(shapeFirstWaypoints))
+	}
+}
+
+func TestComputeSurfaceBreakdown_UsesSurfaceAndTracktypeTagsWhenAvailable(t *testing.T) {
+	// GIVEN
+	route := osrmRoute{
+		Distance: 5000.0,
+		Legs: []osrmLeg{
+			{
+				Steps: []osrmStep{
+					{Distance: 1000.0, Mode: "cycling", Classes: []string{"surface=asphalt"}},
+					{Distance: 1000.0, Mode: "cycling", Classes: []string{"surface:fine_gravel"}},
+					{Distance: 1000.0, Mode: "cycling", Classes: []string{"tracktype=grade4"}},
+					{Distance: 1000.0, Mode: "cycling", Surface: "surface=concrete:lanes"},
+					{Distance: 1000.0, Mode: "cycling", TrackType: "tracktype=grade3"},
+				},
+			},
+		},
+	}
+
+	// WHEN
+	breakdown := computeSurfaceBreakdown(route)
+	pavedRatio, gravelRatio, trailRatio, unknownRatio := breakdown.normalizedRatios()
+
+	// THEN
+	if pavedRatio < 0.39 || pavedRatio > 0.41 {
+		t.Fatalf("expected paved ratio around 0.40, got %.3f", pavedRatio)
+	}
+	if gravelRatio < 0.39 || gravelRatio > 0.41 {
+		t.Fatalf("expected gravel ratio around 0.40, got %.3f", gravelRatio)
+	}
+	if trailRatio < 0.19 || trailRatio > 0.21 {
+		t.Fatalf("expected trail ratio around 0.20, got %.3f", trailRatio)
+	}
+	if unknownRatio != 0.0 {
+		t.Fatalf("expected unknown ratio to be 0.0, got %.3f", unknownRatio)
 	}
 }
 
@@ -623,6 +719,69 @@ func TestCombinedDirectionPenalty_WhenFarOppositeExcursion_ThenPenaltyIncreases(
 	// THEN
 	if excursionPenalty <= cleanPenalty {
 		t.Fatalf("expected far opposite excursion to increase combined direction penalty, clean=%.3f excursion=%.3f", cleanPenalty, excursionPenalty)
+	}
+}
+
+func TestDirectionalQuadrantPenalty_PenalizesOppositeQuadrantMajority(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}
+	northMajority := [][]float64{
+		{48.13000, -1.63000},
+		{48.13700, -1.62980},
+		{48.14100, -1.62830},
+		{48.13800, -1.62740},
+		{48.13300, -1.62860},
+		{48.13000, -1.63000},
+	}
+	southMajority := [][]float64{
+		{48.13000, -1.63000},
+		{48.12700, -1.62970},
+		{48.12100, -1.62820},
+		{48.11800, -1.62740},
+		{48.12400, -1.62850},
+		{48.13000, -1.63000},
+	}
+
+	// WHEN
+	northPenalty := directionalQuadrantPenalty(northMajority, start, "N", 120.0)
+	southPenalty := directionalQuadrantPenalty(southMajority, start, "N", 120.0)
+
+	// THEN
+	if northPenalty >= southPenalty {
+		t.Fatalf("expected north-majority route to have lower quadrant penalty, north=%.3f south=%.3f", northPenalty, southPenalty)
+	}
+	if southPenalty <= 0.0 {
+		t.Fatalf("expected opposite-quadrant majority to trigger positive penalty, got %.3f", southPenalty)
+	}
+}
+
+func TestCombinedDirectionPenalty_WhenQuadrantMajorityIsOpposite_ThenPenaltyIncreases(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}
+	northMajority := [][]float64{
+		{48.13000, -1.63000},
+		{48.13700, -1.62980},
+		{48.14100, -1.62830},
+		{48.13800, -1.62740},
+		{48.13300, -1.62860},
+		{48.13000, -1.63000},
+	}
+	southMajority := [][]float64{
+		{48.13000, -1.63000},
+		{48.12700, -1.62970},
+		{48.12100, -1.62820},
+		{48.11800, -1.62740},
+		{48.12400, -1.62850},
+		{48.13000, -1.63000},
+	}
+
+	// WHEN
+	northPenalty := combinedDirectionPenalty(northMajority, start, "N", 120.0)
+	southPenalty := combinedDirectionPenalty(southMajority, start, "N", 120.0)
+
+	// THEN
+	if southPenalty <= northPenalty {
+		t.Fatalf("expected opposite-quadrant majority to increase combined penalty, north=%.3f south=%.3f", northPenalty, southPenalty)
 	}
 }
 

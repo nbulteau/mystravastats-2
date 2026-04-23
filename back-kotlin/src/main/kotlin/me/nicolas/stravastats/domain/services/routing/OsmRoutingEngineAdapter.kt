@@ -83,6 +83,8 @@ private data class OsrmStep(
     val distance: Double = 0.0,
     val mode: String? = null,
     val classes: List<String> = emptyList(),
+    val surface: String? = null,
+    val tracktype: String? = null,
 )
 
 private data class OsmScoringProfile(
@@ -1407,7 +1409,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             add("Surface mix: ${formatSurfaceBreakdown(surfaceBreakdown)}")
             add("Path ratio: ${(pathRatio * 100.0).roundToInt()}%")
             add("Surface fitness: ${surfaceScore.roundToInt()}%")
-            add("Surface source: OSRM step classes and mode")
+            add("Surface source: OSRM step classes, mode, and surface/tracktype tags when available")
             if (request.strictBacktracking) {
                 add("Anti-backtracking: native ultra")
             } else {
@@ -2337,9 +2339,13 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         val halfPlanePenalty = halfPlaneViolationRatio(points, start, direction, toleranceMeters)
         val lobePenalty = directionalLobePenalty(points, start, direction)
         val farOppositePenalty = farOppositeViolationRatio(points, start, direction, toleranceMeters)
+        val quadrantPenalty = directionalQuadrantPenalty(points, start, direction, toleranceMeters)
         return max(
-            max(bearingPenalty * 0.65, halfPlanePenalty),
-            max(lobePenalty, farOppositePenalty),
+            max(
+                max(bearingPenalty * 0.65, halfPlanePenalty),
+                max(lobePenalty, farOppositePenalty),
+            ),
+            quadrantPenalty,
         )
     }
 
@@ -2446,6 +2452,46 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         }
         if (total == 0) return 0.0
         return violations.toDouble() / total.toDouble()
+    }
+
+    private fun directionalQuadrantPenalty(
+        points: List<List<Double>>,
+        start: Coordinates,
+        direction: String?,
+        toleranceMeters: Double,
+    ): Double {
+        val normalized = direction.orEmpty().trim().uppercase(Locale.getDefault())
+        if (normalized.isBlank() || points.size < 2) return 0.0
+
+        // Ignore local oscillations around start and focus on dominant travel zones.
+        val guardBand = max(toleranceMeters * 1.2, 160.0)
+        var desiredMeters = 0.0
+        var oppositeMeters = 0.0
+
+        for (index in 0 until points.size - 1) {
+            val from = points[index]
+            val to = points[index + 1]
+            if (from.size < 2 || to.size < 2) continue
+            val segmentMeters = haversineDistanceMeters(from[0], from[1], to[0], to[1])
+            if (segmentMeters < 12.0) continue
+
+            val midLat = (from[0] + to[0]) / 2.0
+            val midLng = (from[1] + to[1]) / 2.0
+            val projection = directionProjectionMeters(midLat, midLng, start, normalized) ?: continue
+            if (abs(projection) < guardBand) continue
+
+            if (projection >= 0.0) {
+                desiredMeters += segmentMeters
+            } else {
+                oppositeMeters += segmentMeters
+            }
+        }
+
+        val totalMeters = desiredMeters + oppositeMeters
+        if (totalMeters <= 0.0) return 0.0
+        val desiredRatio = desiredMeters / totalMeters
+        // Keep at least ~62% of routed distance in requested quadrant.
+        return clampUnit((0.62 - desiredRatio) / 0.62)
     }
 
     private fun directionProjectionMeters(
@@ -2694,10 +2740,13 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             val to = points[index + 1]
             if (from.size < 2 || to.size < 2) continue
 
-            val fromDistance = haversineDistanceMeters(from[0], from[1], start.lat, start.lng)
-            val toDistance = haversineDistanceMeters(to[0], to[1], start.lat, start.lng)
-            if (min(fromDistance, toDistance) <= startZoneMeters) {
+            val midLat = (from[0] + to[0]) / 2.0
+            val midLng = (from[1] + to[1]) / 2.0
+            val midDistance = haversineDistanceMeters(midLat, midLng, start.lat, start.lng)
+            if (midDistance <= startZoneMeters) {
                 // Reuse around start/finish hub is allowed.
+                // Midpoint classification avoids exempting long segments that
+                // cross the hub boundary and then retrace outside it.
                 continue
             }
 
@@ -2810,14 +2859,53 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         }
         val classes = step.classes
             .asSequence()
-            .map { it.trim().lowercase(Locale.getDefault()) }
+            .map { normalizeClassToken(it) }
             .filter { it.isNotBlank() }
             .toSet()
 
         if (classes.contains("ferry")) {
             return "unknown"
         }
+        val surfaceValue = normalizeTagValue(step.surface, "surface")
+            .ifBlank { extractTagValueFromClasses(step.classes, "surface") }
+        surfaceBucketFromSurfaceTag(surfaceValue)?.let { return it }
+
+        val trackTypeValue = normalizeTagValue(step.tracktype, "tracktype")
+            .ifBlank { extractTagValueFromClasses(step.classes, "tracktype") }
+        surfaceBucketFromTrackType(trackTypeValue)?.let { return it }
+
         if (hasAnyClass(classes, "path", "track", "steps", "bridleway", "cycleway_unpaved")) {
+            return "trail"
+        }
+        if (
+            hasAnyClass(
+                classes,
+                "tracktype_grade1", "tracktype=grade1", "tracktype:grade1",
+                "grade1",
+                "asphalt", "paved", "concrete", "concrete:lanes", "concrete:plates",
+                "paving_stones", "sett", "cobblestone", "metal", "wood",
+            )
+        ) {
+            return "paved"
+        }
+        if (
+            hasAnyClass(
+                classes,
+                "tracktype_grade2", "tracktype=grade2", "tracktype:grade2",
+                "tracktype_grade3", "tracktype=grade3", "tracktype:grade3",
+                "grade2", "grade3",
+            )
+        ) {
+            return "gravel"
+        }
+        if (
+            hasAnyClass(
+                classes,
+                "tracktype_grade4", "tracktype=grade4", "tracktype:grade4",
+                "tracktype_grade5", "tracktype=grade5", "tracktype:grade5",
+                "grade4", "grade5",
+            )
+        ) {
             return "trail"
         }
         if (hasAnyClass(classes, "unpaved", "gravel", "dirt", "ground", "earth", "compacted", "fine_gravel", "sand", "mud")) {
@@ -2830,7 +2918,80 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
     }
 
     private fun hasAnyClass(classes: Set<String>, vararg keys: String): Boolean {
-        return keys.any { key -> classes.contains(key) }
+        return keys.any { key -> classes.contains(normalizeClassToken(key)) }
+    }
+
+    private fun normalizeClassToken(raw: String?): String {
+        return raw.orEmpty().trim().lowercase(Locale.getDefault()).replace(" ", "_")
+    }
+
+    private fun normalizeTagValue(raw: String?, key: String): String {
+        val normalized = normalizeClassToken(raw)
+        if (normalized.isBlank()) {
+            return ""
+        }
+        val keyNormalized = normalizeClassToken(key)
+        if (keyNormalized.isBlank()) {
+            return normalized
+        }
+        val prefixes = listOf(
+            "$keyNormalized=",
+            "$keyNormalized:",
+            "${keyNormalized}_",
+            "$keyNormalized-",
+        )
+        for (prefix in prefixes) {
+            if (normalized.startsWith(prefix) && normalized.length > prefix.length) {
+                return normalized.substring(prefix.length).trim('_', '-', ':')
+            }
+        }
+        return normalized
+    }
+
+    private fun extractTagValueFromClasses(rawClasses: List<String>, key: String): String {
+        val keyNormalized = normalizeClassToken(key)
+        if (keyNormalized.isBlank()) {
+            return ""
+        }
+        val prefixes = listOf(
+            "$keyNormalized=",
+            "$keyNormalized:",
+            "${keyNormalized}_",
+            "$keyNormalized-",
+        )
+        for (rawClass in rawClasses) {
+            val normalized = normalizeClassToken(rawClass)
+            if (normalized.isBlank()) continue
+            for (prefix in prefixes) {
+                if (normalized.startsWith(prefix) && normalized.length > prefix.length) {
+                    return normalized.substring(prefix.length).trim('_', '-', ':')
+                }
+            }
+        }
+        return ""
+    }
+
+    private fun surfaceBucketFromSurfaceTag(surface: String): String? {
+        return when (normalizeTagValue(surface, "surface")) {
+            "" -> null
+            "asphalt", "paved", "concrete", "concrete_lanes", "concrete_plates",
+            "concrete:lanes", "concrete:plates", "paving_stones", "sett",
+            "cobblestone", "metal", "wood", "chipseal" -> "paved"
+            "unpaved", "gravel", "fine_gravel", "compacted", "dirt",
+            "ground", "earth", "pebblestone", "sand", "mud", "clay" -> "gravel"
+            "path", "trail", "steps", "grass", "woodchips" -> "trail"
+            else -> null
+        }
+    }
+
+    private fun surfaceBucketFromTrackType(trackType: String): String? {
+        return when (normalizeTagValue(trackType, "tracktype")) {
+            "" -> null
+            "grade1" -> "paved"
+            "grade2", "grade3" -> "gravel"
+            "grade4", "grade5" -> "trail"
+            else -> null
+        }
     }
 
     private fun formatSurfaceBreakdown(breakdown: RouteSurfaceBreakdown): String {

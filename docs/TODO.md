@@ -196,6 +196,7 @@ Ce qui est déjà fait (retiré du backlog):
   - politique harmonisée Go/Kotlin: `outsideStartAxisReuseLimit = 1` et overlap opposé interdit hors zone départ/retour,
   - seuil de détection opposée abaissé pour éviter les faux négatifs sur retrace réelle,
   - tests dédiés Go/Kotlin ajoutés sur la métrique de réutilisation d'axe hors zone 2 km (même sens + sens inverse),
+  - classification "hors zone 2 km" durcie: segment évalué par son midpoint (plus par un seul endpoint), pour éviter les faux négatifs sur longs segments qui traversent la frontière de zone,
   - validation terrain GPX restante.
 
 - [ ] `ROUTE-P0-03` (`P0`, `M`) - Direction "globale": améliorer la qualité d'orientation (suite).
@@ -211,6 +212,7 @@ Ce qui est déjà fait (retiré du backlog):
   - tri de sélection priorise plus tôt la pénalité de direction quand une direction est demandée,
   - seuils directionnels resserrés sur les profils `strict/balanced/relaxed/fallback` en Go/Kotlin,
   - nouvelle pénalité Go/Kotlin pour excursions lointaines dans la direction opposée (dense urban grid) + dominance lobe resserrée,
+  - nouvelle pénalité Go/Kotlin "majorité de quadrant" (pondérée par longueur de segments) pour mieux stabiliser l'orientation globale demandée en grille urbaine,
   - tests dédiés Go/Kotlin ajoutés sur la calibration directionnelle (local oscillation vs excursion opposée),
   - calibration terrain restante sur zones urbaines denses.
 
@@ -235,6 +237,12 @@ Ce qui est déjà fait (retiré du backlog):
   Acceptance:
   - différence visible de parcours entre `Ride`, `Gravel`, `MTB`,
   - tests de classement par type de surface.
+  Progression 2026-04-23:
+  - parsing Go/Kotlin enrichi pour exploiter `surface` et `tracktype` quand disponibles (tags dédiés et formats `surface=...`, `surface:...`, `tracktype=...` dans `classes`),
+  - calibration cohérente `tracktype` (`grade1 -> paved`, `grade2/3 -> gravel`, `grade4/5 -> trail`) + fallback heuristiques conservé,
+  - diagnostics surface précisent maintenant la source `classes + mode + surface/tracktype tags`,
+  - tests dédiés Go/Kotlin ajoutés sur la classification et le ranking par type (`RIDE/GRAVEL/MTB`),
+  - calibration terrain restante sur extraits OSM réels (zones mixtes urbain/chemins).
 
 - [ ] `ROUTE-P1-04` (`P1`, `L`) - Shape mode v1 utilisable terrain.
   Owners: `Front`, `Back-Go`, `Back-Kotlin`.
