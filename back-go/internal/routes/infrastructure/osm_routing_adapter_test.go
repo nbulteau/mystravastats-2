@@ -227,6 +227,74 @@ func TestSurfaceMatchScore_AdaptsToRequestedRouteType(t *testing.T) {
 	}
 }
 
+func TestParseShapePolylineCoordinates_DecodesEncodedPolyline(t *testing.T) {
+	// GIVEN
+	encoded := "_p~iF~ps|U_ulLnnqC_mqNvxq`@"
+
+	// WHEN
+	points := parseShapePolylineCoordinates(encoded)
+
+	// THEN
+	if len(points) != 3 {
+		t.Fatalf("expected 3 decoded points, got %d", len(points))
+	}
+	if points[0].Lat < 38.49 || points[0].Lat > 38.51 {
+		t.Fatalf("unexpected first decoded latitude %.5f", points[0].Lat)
+	}
+}
+
+func TestParseShapePolylineCoordinates_ExtractsTrackPointsFromGPX(t *testing.T) {
+	// GIVEN
+	gpx := `
+<gpx version="1.1" creator="test">
+  <trk><trkseg>
+    <trkpt lat="48.1000" lon="-1.6000"></trkpt>
+    <trkpt lat="48.1200" lon="-1.6200"></trkpt>
+    <trkpt lat="48.1300" lon="-1.6300"></trkpt>
+  </trkseg></trk>
+</gpx>`
+
+	// WHEN
+	points := parseShapePolylineCoordinates(gpx)
+
+	// THEN
+	if len(points) != 3 {
+		t.Fatalf("expected 3 GPX points, got %d", len(points))
+	}
+	if points[2].Lat < 48.129 || points[2].Lat > 48.131 {
+		t.Fatalf("unexpected GPX last latitude %.5f", points[2].Lat)
+	}
+}
+
+func TestBuildShapeRoadFirstWaypoints_ReturnsAnchoredLoopWithFarAnchors(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}
+	shape := []routesDomain.Coordinates{
+		{Lat: 48.13000, Lng: -1.63000},
+		{Lat: 48.14200, Lng: -1.62000},
+		{Lat: 48.14800, Lng: -1.60000},
+		{Lat: 48.13700, Lng: -1.59000},
+		{Lat: 48.13000, Lng: -1.63000},
+	}
+
+	// WHEN
+	roadFirstWaypoints := buildShapeRoadFirstWaypoints(start, shape)
+	shapeFirstWaypoints := buildShapeLoopWaypoints(start, shape)
+
+	// THEN
+	if len(roadFirstWaypoints) < 3 {
+		t.Fatalf("expected at least 3 road-first waypoints, got %d", len(roadFirstWaypoints))
+	}
+	first := roadFirstWaypoints[0]
+	last := roadFirstWaypoints[len(roadFirstWaypoints)-1]
+	if first.Lat != start.Lat || first.Lng != start.Lng || last.Lat != start.Lat || last.Lng != start.Lng {
+		t.Fatalf("expected loop anchored to start, first=%+v last=%+v start=%+v", first, last, start)
+	}
+	if len(roadFirstWaypoints) > len(shapeFirstWaypoints)+1 {
+		t.Fatalf("expected road-first waypoints to stay compact, road-first=%d shape-first=%d", len(roadFirstWaypoints), len(shapeFirstWaypoints))
+	}
+}
+
 func TestRespectsHalfPlaneDirection_NorthRejectsPointsSouthOfStart(t *testing.T) {
 	// GIVEN
 	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}

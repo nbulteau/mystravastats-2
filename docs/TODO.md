@@ -245,6 +245,12 @@ Ce qui est déjà fait (retiré du backlog):
   - export GPX par variante.
   Acceptance:
   - une forme simple produit au moins une route praticable.
+  Progression 2026-04-23:
+  - moteur shape Go/Kotlin enrichi avec deux stratégies scorées: `shape-first` (projection fidèle) et `road-first` (ancres routières compactes),
+  - parsing shape Go/Kotlin rendu robuste pour `JSON points`, `polyline encodée` et `GPX trkpt/rtept/wpt`,
+  - endpoints shape Go/Kotlin infèrent désormais le filtre de forme aussi pour les payloads GPX,
+  - UI Vue: import GPX (fichier `.gpx`) ajouté, conversion en tracé exploitable et prévisualisation carte,
+  - validation terrain restante: calibration des poids `shape-first/road-first` sur trajets réels + UX avancée (édition/import multi-segments).
 
 - [x] `ROUTE-P2-01` (`P2`, `M`) - Observabilité routes.
   Owners: `Back-Go`, `Back-Kotlin`, `Front`.

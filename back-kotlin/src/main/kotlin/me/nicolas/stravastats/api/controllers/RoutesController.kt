@@ -948,7 +948,7 @@ class RoutesController(
 
     private fun inferShapeFilter(shapeInputType: String, shapeData: String): String? {
         val normalizedInputType = shapeInputType.trim().lowercase()
-        if (normalizedInputType != "draw" && normalizedInputType != "polyline") {
+        if (normalizedInputType != "draw" && normalizedInputType != "polyline" && normalizedInputType != "gpx") {
             return null
         }
         val points = parseShapeCoordinates(shapeData) ?: return null
@@ -972,6 +972,9 @@ class RoutesController(
                 val points = wrapped["points"] ?: wrapped["coordinates"] ?: wrapped["latLng"] ?: return null
                 sanitizeShapeCoordinates(points)
             } catch (_: Exception) {
+                parseShapeCoordinatesFromGpx(trimmed)?.let { points ->
+                    return sanitizeShapeCoordinates(points)
+                }
                 val encodedPolyline = try {
                     shapeMapper.readValue<String>(trimmed).trim()
                 } catch (_: Exception) {
@@ -982,6 +985,27 @@ class RoutesController(
                 }
             }
         }
+    }
+
+    private fun parseShapeCoordinatesFromGpx(raw: String): List<List<Double>>? {
+        val pointRegex = Regex("""<(?:trkpt|rtept|wpt)\b([^>]*)>""", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+        val latRegex = Regex("""\blat\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE)
+        val lonRegex = Regex("""\blon\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE)
+        val points = mutableListOf<List<Double>>()
+        pointRegex.findAll(raw).forEach { match ->
+            val attributes = match.groupValues.getOrNull(1).orEmpty()
+            val latText = latRegex.find(attributes)?.groupValues?.getOrNull(1)?.trim() ?: return@forEach
+            val lonText = lonRegex.find(attributes)?.groupValues?.getOrNull(1)?.trim() ?: return@forEach
+            val lat = latText.toDoubleOrNull() ?: return@forEach
+            val lon = lonText.toDoubleOrNull() ?: return@forEach
+            if (isValidLatLng(lat, lon)) {
+                points += listOf(lat, lon)
+            }
+        }
+        if (points.isEmpty()) {
+            return null
+        }
+        return points
     }
 
     private fun decodeEncodedPolylineCoordinates(encodedPolyline: String): List<List<Double>>? {

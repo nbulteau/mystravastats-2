@@ -203,14 +203,48 @@ export const useRoutesStore = defineStore("routes", {
     clearShape() {
       this.shapePoints = [];
       this.shapeDataText = "";
+      this.shapeInputType = "draw";
       this.isDrawingShape = false;
     },
     toggleShapeDrawing() {
       this.isDrawingShape = !this.isDrawingShape;
+      if (this.isDrawingShape) {
+        this.shapeInputType = "draw";
+      }
     },
     addShapePoint(lat: number, lng: number) {
+      this.shapeInputType = "draw";
       this.shapePoints.push([lat, lng]);
       this.shapeDataText = JSON.stringify(this.shapePoints);
+    },
+    importShapeFromGpx(gpxText: string): number {
+      const pointTagPattern = /<(?:trkpt|rtept|wpt)\b([^>]*)>/gi;
+      const latAttrPattern = /\blat\s*=\s*["']([^"']+)["']/i;
+      const lonAttrPattern = /\blon\s*=\s*["']([^"']+)["']/i;
+      const points: number[][] = [];
+      let match: RegExpExecArray | null;
+      while ((match = pointTagPattern.exec(gpxText)) !== null) {
+        const attributes = match[1] ?? "";
+        const latMatch = attributes.match(latAttrPattern);
+        const lonMatch = attributes.match(lonAttrPattern);
+        if (!latMatch || !lonMatch) {
+          continue;
+        }
+        const lat = Number.parseFloat(latMatch[1]);
+        const lng = Number.parseFloat(lonMatch[1]);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+          continue;
+        }
+        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+          continue;
+        }
+        points.push([lat, lng]);
+      }
+      this.shapePoints = points;
+      this.shapeDataText = points.length >= 2 ? JSON.stringify(points) : "";
+      this.shapeInputType = "gpx";
+      this.isDrawingShape = false;
+      return points.length;
     },
     setSelectedRoute(routeId: string) {
       this.selectedRouteId = routeId;

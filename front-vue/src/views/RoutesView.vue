@@ -21,6 +21,7 @@ const shapePolylineLayer = ref<L.Polyline>();
 const customWaypointDraftLayer = ref<L.Polyline>();
 const customWaypointMarkers = ref<L.CircleMarker[]>([]);
 const selectedRouteLayer = ref<L.Polyline>();
+const gpxFileInput = ref<HTMLInputElement | null>(null);
 const isExporting = ref(false);
 const isLocating = ref(false);
 
@@ -145,6 +146,32 @@ function modeButtonClass(mode: "TARGET" | "SHAPE"): string {
 
 function targetModeButtonClass(mode: "AUTOMATIC" | "CUSTOM"): string {
   return routesStore.targetGenerationMode === mode ? "btn btn-primary btn-sm" : "btn btn-outline-secondary btn-sm";
+}
+
+function openGpxFilePicker() {
+  gpxFileInput.value?.click();
+}
+
+async function onGpxFileSelected(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) {
+    return;
+  }
+  try {
+    const content = await file.text();
+    const importedPoints = routesStore.importShapeFromGpx(content);
+    if (importedPoints < 2) {
+      showToast("GPX invalide: aucun tracé exploitable trouvé.", ToastTypeEnum.WARN);
+      return;
+    }
+    redrawMapLayers({ fitBounds: true });
+    showToast(`GPX importé (${importedPoints} points).`);
+  } catch {
+    showToast("Import GPX impossible.", ToastTypeEnum.ERROR);
+  } finally {
+    input.value = "";
+  }
 }
 
 function showToast(message: string, type: ToastTypeEnum = ToastTypeEnum.NORMAL, timeout = 2800) {
@@ -703,6 +730,20 @@ onBeforeUnmount(() => {
           </button>
           <button
             type="button"
+            class="btn btn-outline-secondary"
+            @click="openGpxFilePicker"
+          >
+            Import GPX
+          </button>
+          <input
+            ref="gpxFileInput"
+            type="file"
+            class="routes-gpx-input"
+            accept=".gpx,application/gpx+xml,application/xml,text/xml"
+            @change="onGpxFileSelected"
+          >
+          <button
+            type="button"
             class="btn btn-outline-danger"
             :disabled="routesStore.shapePoints.length === 0"
             @click="routesStore.clearShape"
@@ -830,6 +871,10 @@ onBeforeUnmount(() => {
   border-radius: 16px;
   padding: 14px;
   box-shadow: 0 6px 20px rgba(12, 21, 38, 0.05);
+}
+
+.routes-gpx-input {
+  display: none;
 }
 
 .routes-head {

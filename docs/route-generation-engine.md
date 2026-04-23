@@ -182,6 +182,11 @@ For `POST /api/routes/generate/shape`:
   - JSON array of `[lat, lng]`
   - wrapped JSON fields (`points`, `coordinates`, `latLng`)
   - encoded polyline string
+  - GPX points (`trkpt`, `rtept`, `wpt`) when payload is GPX XML
+- routing strategy parity (Go/Kotlin):
+  - `shape-first`: projected shape waypoints (high geometry fidelity)
+  - `road-first`: compact road anchors from the projected shape (better routability in sparse/complex areas)
+- both strategies are scored, deduplicated by geometry, then merged through the same relaxation pipeline as target mode
 
 ## History Profile (Step 1)
 

@@ -18,7 +18,8 @@ export type StartDirection =
 
 export type ShapeInputType =
   | "draw"
-  | "polyline";
+  | "polyline"
+  | "gpx";
 
 export interface RouteCoordinate {
   lat: number;
