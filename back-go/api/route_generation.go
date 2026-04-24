@@ -10,6 +10,7 @@ import (
 	"mystravastats/api/dto"
 	routesDomain "mystravastats/internal/routes/domain"
 	"mystravastats/internal/shared/domain/business"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -681,7 +682,7 @@ func sanitizeRouteFileName(input string) string {
 
 func inferShapeFilter(shapeInputType string, shapeData string) string {
 	switch strings.ToLower(strings.TrimSpace(shapeInputType)) {
-	case "draw", "polyline":
+	case "draw", "polyline", "gpx":
 		points, err := parseShapePolylineCoordinates(shapeData)
 		if err != nil || len(points) < 2 {
 			return ""
@@ -696,6 +697,9 @@ func parseShapePolylineCoordinates(raw string) ([][]float64, error) {
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" {
 		return nil, errors.New("shape data is empty")
+	}
+	if gpxPoints := parseShapeCoordinatesFromGPX(trimmed); len(gpxPoints) > 0 {
+		return sanitizePolylineCoordinates(gpxPoints), nil
 	}
 
 	var points [][]float64
@@ -730,6 +734,40 @@ func parseShapePolylineCoordinates(raw string) ([][]float64, error) {
 	default:
 		return nil, errors.New("shapeData does not contain coordinates")
 	}
+}
+
+func parseShapeCoordinatesFromGPX(raw string) [][]float64 {
+	pointTagPattern := regexp.MustCompile(`(?is)<(?:trkpt|rtept|wpt)\b([^>]*)>`)
+	latAttrPattern := regexp.MustCompile(`(?i)\blat\s*=\s*["']([^"']+)["']`)
+	lngAttrPattern := regexp.MustCompile(`(?i)\blon\s*=\s*["']([^"']+)["']`)
+
+	matches := pointTagPattern.FindAllStringSubmatch(raw, -1)
+	if len(matches) == 0 {
+		return nil
+	}
+
+	points := make([][]float64, 0, len(matches))
+	for _, match := range matches {
+		if len(match) < 2 {
+			continue
+		}
+		attributes := match[1]
+		latMatch := latAttrPattern.FindStringSubmatch(attributes)
+		lngMatch := lngAttrPattern.FindStringSubmatch(attributes)
+		if len(latMatch) < 2 || len(lngMatch) < 2 {
+			continue
+		}
+		lat, latErr := strconv.ParseFloat(strings.TrimSpace(latMatch[1]), 64)
+		lng, lngErr := strconv.ParseFloat(strings.TrimSpace(lngMatch[1]), 64)
+		if latErr != nil || lngErr != nil {
+			continue
+		}
+		if !isValidLatLng(lat, lng) {
+			continue
+		}
+		points = append(points, []float64{lat, lng})
+	}
+	return points
 }
 
 func decodeEncodedPolylineCoordinates(encoded string) ([][]float64, error) {

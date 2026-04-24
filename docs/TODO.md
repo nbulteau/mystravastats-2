@@ -183,7 +183,7 @@ Ce qui est déjà fait (retiré du backlog):
   - diagnostic normalisé `ENGINE_CACHE_FALLBACK`,
   - tests API Go/Kotlin mis à jour.
 
-- [ ] `ROUTE-P0-02` (`P0`, `L`) - Anti-retours robuste hors zone départ/arrivée (2 km).
+- [x] `ROUTE-P0-02` (`P0`, `L`) - Anti-retours robuste hors zone départ/arrivée (2 km).
   Owners: `Back-Go`, `Back-Kotlin`.
   Scope:
   - contrainte dure: pas de réutilisation d'axe OSM hors zone 2 km (même sens ou sens inverse),
@@ -197,9 +197,10 @@ Ce qui est déjà fait (retiré du backlog):
   - seuil de détection opposée abaissé pour éviter les faux négatifs sur retrace réelle,
   - tests dédiés Go/Kotlin ajoutés sur la métrique de réutilisation d'axe hors zone 2 km (même sens + sens inverse),
   - classification "hors zone 2 km" durcie: segment évalué par son midpoint (plus par un seul endpoint), pour éviter les faux négatifs sur longs segments qui traversent la frontière de zone,
-  - validation terrain GPX restante.
+  - validation terrain exécutée via script dédié `scripts/manual-route-anti-retrace-check.sh` (cas dense + rural/péri-rural) avec contrôle systématique des métriques hors zone 2 km,
+  - guide de vérification ajouté: `docs/route-anti-retrace-manual-check.md`.
 
-- [ ] `ROUTE-P0-03` (`P0`, `M`) - Direction "globale": améliorer la qualité d'orientation (suite).
+- [x] `ROUTE-P0-03` (`P0`, `M`) - Direction "globale": améliorer la qualité d'orientation (suite).
   Owners: `Back-Go`, `Back-Kotlin`.
   Scope:
   - `Direction` influence l'orientation moyenne de la boucle,
@@ -208,13 +209,15 @@ Ce qui est déjà fait (retiré du backlog):
   Acceptance:
   - génération réussie avec et sans direction,
   - la boucle respecte majoritairement le quadrant demandé quand possible.
-  Progression 2026-04-21:
+  Progression 2026-04-23:
   - tri de sélection priorise plus tôt la pénalité de direction quand une direction est demandée,
   - seuils directionnels resserrés sur les profils `strict/balanced/relaxed/fallback` en Go/Kotlin,
   - nouvelle pénalité Go/Kotlin pour excursions lointaines dans la direction opposée (dense urban grid) + dominance lobe resserrée,
   - nouvelle pénalité Go/Kotlin "majorité de quadrant" (pondérée par longueur de segments) pour mieux stabiliser l'orientation globale demandée en grille urbaine,
   - tests dédiés Go/Kotlin ajoutés sur la calibration directionnelle (local oscillation vs excursion opposée),
-  - calibration terrain restante sur zones urbaines denses.
+  - validation terrain finale exécutée via script dédié `scripts/manual-route-direction-check.sh` (matrice `NONE/N/E/S/W` sur cas dense + rural/péri-rural),
+  - guide de vérification ajouté: `docs/route-direction-manual-check.md`,
+  - en terrain réel, les directions tenables restent explicitement alignées (`Directional alignment` observé >= `88%`) et les cas non tenables sont explicitement relâchés (`DIRECTION_RELAXED`/`DIRECTION_BEST_EFFORT`).
 
 - [x] `ROUTE-P0-04` (`P0`, `M`) - Guidage historique par type pour départ/retour (step 2).
   Owners: `Back-Go`, `Back-Kotlin`.
@@ -226,7 +229,7 @@ Ce qui est déjà fait (retiré du backlog):
   - amélioration visible des routes proposées sur les zones familières de l'utilisateur,
   - pas de régression sur l'anti-backtracking hors zone départ/arrivée.
 
-- [ ] `ROUTE-P1-01` (`P1`, `L`) - Vrai scoring surface (OSM tags `surface` / `tracktype`).
+- [x] `ROUTE-P1-01` (`P1`, `L`) - Vrai scoring surface (OSM tags `surface` / `tracktype`).
   Owners: `Back-Go`, `Back-Kotlin`, `Infra`.
   Scope:
   - enrichir les segments routés pour récupérer la typologie de revêtement,
@@ -242,9 +245,11 @@ Ce qui est déjà fait (retiré du backlog):
   - calibration cohérente `tracktype` (`grade1 -> paved`, `grade2/3 -> gravel`, `grade4/5 -> trail`) + fallback heuristiques conservé,
   - diagnostics surface précisent maintenant la source `classes + mode + surface/tracktype tags`,
   - tests dédiés Go/Kotlin ajoutés sur la classification et le ranking par type (`RIDE/GRAVEL/MTB`),
-  - calibration terrain restante sur extraits OSM réels (zones mixtes urbain/chemins).
+  - validation terrain finale exécutée via script dédié `scripts/manual-route-surface-check.sh` (scénarios `dense-urban` et `mixed-urban-paths`),
+  - guide de vérification ajouté: `docs/route-surface-manual-check.md`,
+  - calibration terrain confirmée sur extraits OSM réels: raisons surface systématiquement présentes (`Surface mix`, `Path ratio`, `Surface fitness`, `Surface source`) et comportement distinct par type (`RIDE` sans fallback, `GRAVEL` fallback quand ratio chemins insuffisant, `MTB` conservé avec fitness surface fortement pénalisée sur profil majoritairement paved).
 
-- [ ] `ROUTE-P1-04` (`P1`, `L`) - Shape mode v1 utilisable terrain.
+- [x] `ROUTE-P1-04` (`P1`, `L`) - Shape mode v1 utilisable terrain.
   Owners: `Front`, `Back-Go`, `Back-Kotlin`.
   Scope:
   - finaliser l'import GPX stable côté UI (polyline encodée déjà supportée côté backend),
@@ -253,6 +258,14 @@ Ce qui est déjà fait (retiré du backlog):
   - export GPX par variante.
   Acceptance:
   - une forme simple produit au moins une route praticable.
+  Progression 2026-04-23:
+  - moteur shape Go/Kotlin enrichi avec deux stratégies scorées: `shape-first` (projection fidèle) et `road-first` (ancres routières compactes),
+  - parsing shape Go/Kotlin rendu robuste pour `JSON points`, `polyline encodée` et `GPX trkpt/rtept/wpt`,
+  - endpoints shape Go/Kotlin infèrent désormais le filtre de forme aussi pour les payloads GPX,
+  - UI Vue: import GPX (fichier `.gpx`) ajouté, conversion en tracé exploitable et prévisualisation carte,
+  - UI Vue: import GPX multi-fichiers en mode `replace`/`append` + édition rapide du tracé (`undo last point`) pour composer des formes multi-segments,
+  - calibration Go/Kotlin du scoring `shape-first/road-first`: pénalité de dérive de forme adaptative (plus stricte en `road-first`) + tests dédiés de non-régression,
+  - validation terrain finale exécutée sur backend Go + OSRM (dense urbain + péri-rural) avec script dédié `scripts/manual-route-shape-tuning-check.sh` et guide `docs/route-shape-tuning-manual-check.md`.
 
 - [x] `ROUTE-P2-01` (`P2`, `M`) - Observabilité routes.
   Owners: `Back-Go`, `Back-Kotlin`, `Front`.

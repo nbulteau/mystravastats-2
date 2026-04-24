@@ -1058,6 +1058,45 @@ func TestGenerateShapeRoutesByActivityType_PolylineEncoded_InfersShapeFilter(t *
 	}
 }
 
+func TestGenerateShapeRoutesByActivityType_GPX_InfersShapeFilter(t *testing.T) {
+	// GIVEN
+	const gpxData = "<gpx><trk><trkseg><trkpt lat=\"48.1000\" lon=\"-1.6000\"/><trkpt lat=\"48.1200\" lon=\"-1.6200\"/><trkpt lat=\"48.1300\" lon=\"-1.6300\"/></trkseg></trk></gpx>"
+	routesReader := &contractRoutesReaderStub{
+		result: routesDomain.RouteExplorerResult{},
+	}
+	setTestContainer(t, &container{
+		getRouteExplorerUseCase: routesApp.NewGetRouteExplorerUseCase(routesReader),
+	})
+
+	// WHEN
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/api/routes/generate/shape?activityType=Ride",
+		strings.NewReader("{\"shapeInputType\":\"gpx\",\"shapeData\":\"<gpx><trk><trkseg><trkpt lat=\\\"48.1000\\\" lon=\\\"-1.6000\\\"/><trkpt lat=\\\"48.1200\\\" lon=\\\"-1.6200\\\"/><trkpt lat=\\\"48.1300\\\" lon=\\\"-1.6300\\\"/></trkseg></trk></gpx>\",\"routeType\":\"RIDE\"}"),
+	)
+	request.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	generateShapeRoutesByActivityType(recorder, request)
+
+	// THEN
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d (%s)", recorder.Code, recorder.Body.String())
+	}
+	if routesReader.capturedRequest.Shape == nil {
+		t.Fatalf("expected inferred shape filter, got nil")
+	}
+	if got := *routesReader.capturedRequest.Shape; got != "POINT_TO_POINT" {
+		t.Fatalf("expected inferred shape filter POINT_TO_POINT, got %q", got)
+	}
+	if routesReader.capturedRequest.ShapePolyline == nil {
+		t.Fatalf("expected shapePolyline to be propagated")
+	}
+	if got := *routesReader.capturedRequest.ShapePolyline; got != gpxData {
+		t.Fatalf("expected shapePolyline %q, got %q", gpxData, got)
+	}
+}
+
 func TestGenerateTargetRoutesByActivityType_CustomModeWithoutWaypoints_Returns400(t *testing.T) {
 	// GIVEN
 	// WHEN

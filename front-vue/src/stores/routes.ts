@@ -36,6 +36,10 @@ interface RoutingHealthPayload {
   };
 }
 
+interface ImportShapeFromGpxOptions {
+  append?: boolean;
+}
+
 export const useRoutesStore = defineStore("routes", {
   state: () => ({
     mode: "TARGET" as RouteMode,
@@ -203,14 +207,82 @@ export const useRoutesStore = defineStore("routes", {
     clearShape() {
       this.shapePoints = [];
       this.shapeDataText = "";
+      this.shapeInputType = "draw";
       this.isDrawingShape = false;
     },
     toggleShapeDrawing() {
       this.isDrawingShape = !this.isDrawingShape;
+      if (this.isDrawingShape) {
+        this.shapeInputType = "draw";
+      }
     },
     addShapePoint(lat: number, lng: number) {
+      this.shapeInputType = "draw";
       this.shapePoints.push([lat, lng]);
       this.shapeDataText = JSON.stringify(this.shapePoints);
+    },
+    undoLastShapePoint() {
+      if (this.shapePoints.length === 0) {
+        return;
+      }
+      this.shapePoints = this.shapePoints.slice(0, -1);
+      this.shapeInputType = "draw";
+      this.shapeDataText = this.shapePoints.length >= 2 ? JSON.stringify(this.shapePoints) : "";
+    },
+    mergeShapePoints(basePoints: number[][], importedPoints: number[][]): number[][] {
+      if (basePoints.length === 0) {
+        return importedPoints.map((point) => [point[0], point[1]]);
+      }
+      const merged = basePoints.map((point) => [point[0], point[1]]);
+      importedPoints.forEach((point) => {
+        const candidate = [point[0], point[1]];
+        const previous = merged[merged.length - 1];
+        if (previous && previous[0] === candidate[0] && previous[1] === candidate[1]) {
+          return;
+        }
+        merged.push(candidate);
+      });
+      return merged;
+    },
+    importShapeFromGpx(gpxText: string, options: ImportShapeFromGpxOptions = {}): number {
+      const append = options.append === true;
+      const pointTagPattern = /<(?:trkpt|rtept|wpt)\b([^>]*)>/gi;
+      const latAttrPattern = /\blat\s*=\s*["']([^"']+)["']/i;
+      const lonAttrPattern = /\blon\s*=\s*["']([^"']+)["']/i;
+      const points: number[][] = [];
+      let match: RegExpExecArray | null;
+      while ((match = pointTagPattern.exec(gpxText)) !== null) {
+        const attributes = match[1] ?? "";
+        const latMatch = attributes.match(latAttrPattern);
+        const lonMatch = attributes.match(lonAttrPattern);
+        if (!latMatch || !lonMatch) {
+          continue;
+        }
+        const lat = Number.parseFloat(latMatch[1]);
+        const lng = Number.parseFloat(lonMatch[1]);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+          continue;
+        }
+        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+          continue;
+        }
+        points.push([lat, lng]);
+      }
+      if (points.length < 2) {
+        if (!append) {
+          this.shapePoints = [];
+          this.shapeDataText = "";
+        }
+        this.shapeInputType = "gpx";
+        this.isDrawingShape = false;
+        return 0;
+      }
+
+      this.shapePoints = append ? this.mergeShapePoints(this.shapePoints, points) : points;
+      this.shapeDataText = this.shapePoints.length >= 2 ? JSON.stringify(this.shapePoints) : "";
+      this.shapeInputType = "gpx";
+      this.isDrawingShape = false;
+      return points.length;
     },
     setSelectedRoute(routeId: string) {
       this.selectedRouteId = routeId;

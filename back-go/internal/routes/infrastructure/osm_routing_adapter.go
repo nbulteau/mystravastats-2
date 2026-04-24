@@ -11,6 +11,7 @@ import (
 	"mystravastats/internal/shared/domain/business"
 	"net/http"
 	"os"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -32,6 +33,8 @@ const (
 	historyStartZoneBonusWeight = 14.0
 	historyAxisBiasWeight       = 0.75
 	historyZoneBiasWeight       = 0.25
+	shapeModeStrategyShapeFirst = "shape-first"
+	shapeModeStrategyRoadFirst  = "road-first"
 	defaultOSRMProfileFilePath  = "./osm/region.osrm.profile"
 	fallbackOSRMProfilePath     = "../osm/region.osrm.profile"
 )
@@ -462,70 +465,116 @@ func (adapter *OSMRoutingAdapter) GenerateShapeLoops(
 	}
 
 	projectedShape := projectShapePolylineToStart(rawShape, request.StartPoint, targetDistanceKm)
-	waypoints := buildShapeLoopWaypoints(request.StartPoint, projectedShape)
-	if len(waypoints) < 3 {
+	shapePreview := coordinatesToLatLngPoints(projectedShape)
+	if len(shapePreview) < 2 {
 		return []routesDomain.RouteRecommendation{}, nil
 	}
 
 	profile := adapter.profileForRouteType(request.RouteType)
-	routes, err := adapter.fetchOSRMRoutes(profile, waypoints)
-	if err != nil {
-		return []routesDomain.RouteRecommendation{}, err
+	type shapeRoutingStrategy struct {
+		code      string
+		label     string
+		waypoints []routesDomain.Coordinates
+	}
+	strategies := []shapeRoutingStrategy{
+		{
+			code:      shapeModeStrategyShapeFirst,
+			label:     "projected waypoints",
+			waypoints: buildShapeLoopWaypoints(request.StartPoint, projectedShape),
+		},
+		{
+			code:      shapeModeStrategyRoadFirst,
+			label:     "road-first anchors",
+			waypoints: buildShapeRoadFirstWaypoints(request.StartPoint, projectedShape),
+		},
 	}
 
 	shapeRequest := request
 	shapeRequest.DistanceTargetKm = targetDistanceKm
 	shapeRequest.StartDirection = ""
 	shapeRequest.DirectionStrict = false
-	shapePreview := coordinatesToLatLngPoints(projectedShape)
 	rejectCounts := make(map[string]int)
-	candidates := make([]osrmRouteCandidate, 0, len(routes))
-	seenSignatures := make(map[string]struct{}, len(routes))
+	candidates := make([]osrmRouteCandidate, 0, request.Limit*8)
+	seenSignatures := make(map[string]struct{}, request.Limit*10)
+	fetchedRouteCount := 0
+	usedStrategies := 0
 
-	for routeIndex, osrmRoute := range routes {
-		candidate, ok := adapter.toRouteCandidate(shapeRequest, osrmRoute, routeIndex, rejectCounts)
-		if !ok {
+	for _, strategy := range strategies {
+		if len(strategy.waypoints) < 3 {
+			incrementRejectCount(rejectCounts, "SHAPE_WAYPOINTS_TOO_FEW")
 			continue
 		}
-		signature := routeGeometrySignature(candidate.recommendation.PreviewLatLng)
-		if signature == "" {
-			incrementRejectCount(rejectCounts, "EMPTY_GEOMETRY_SIGNATURE")
+		routes, err := adapter.fetchOSRMRoutes(profile, strategy.waypoints)
+		if err != nil {
+			incrementRejectCount(rejectCounts, "OSRM_CALL_FAILED")
+			if adapter.debug {
+				log.Printf(
+					"OSRM shape generation call failed: mode=%s profile=%s waypoints=%d err=%v",
+					strategy.code,
+					profile,
+					len(strategy.waypoints),
+					err,
+				)
+			}
 			continue
 		}
-		if _, exists := seenSignatures[signature]; exists {
-			incrementRejectCount(rejectCounts, "DUPLICATE_GEOMETRY")
-			continue
+		usedStrategies++
+		fetchedRouteCount += len(routes)
+
+		for routeIndex, osrmRoute := range routes {
+			candidate, ok := adapter.toRouteCandidate(shapeRequest, osrmRoute, routeIndex, rejectCounts)
+			if !ok {
+				continue
+			}
+			signature := routeGeometrySignature(candidate.recommendation.PreviewLatLng)
+			if signature == "" {
+				incrementRejectCount(rejectCounts, "EMPTY_GEOMETRY_SIGNATURE")
+				continue
+			}
+			if _, exists := seenSignatures[signature]; exists {
+				incrementRejectCount(rejectCounts, "DUPLICATE_GEOMETRY")
+				continue
+			}
+
+			shapeScore := shapeSimilarityScore(candidate.recommendation.PreviewLatLng, shapePreview)
+			shapeName := "CUSTOM_SHAPE"
+			recommendation := candidate.recommendation
+			recommendation.VariantType = routesDomain.RouteVariantShape
+			recommendation.Shape = &shapeName
+			recommendation.ShapeScore = &shapeScore
+			matchScore, shapeDriftPenalty := shapeModeMatchScore(
+				recommendation.MatchScore,
+				shapeScore,
+				candidate.backtrackingRatio,
+				candidate.corridorOverlap,
+				candidate.edgeReuseRatio,
+				candidate.maxAxisReuseRatio,
+				strategy.code,
+			)
+			recommendation.MatchScore = matchScore
+			recommendation.Reasons = append(
+				recommendation.Reasons,
+				fmt.Sprintf("Shape similarity: %.0f%%", shapeScore*100.0),
+				fmt.Sprintf("Shape mode: %s", strategy.label),
+			)
+			if shapeDriftPenalty > 0.05 {
+				recommendation.Reasons = append(
+					recommendation.Reasons,
+					fmt.Sprintf("Shape drift penalty: -%.1f", shapeDriftPenalty),
+				)
+			}
+
+			candidate.recommendation = recommendation
+			candidate.effectiveMatchScore = clampOSMScore(
+				recommendation.MatchScore -
+					candidate.backtrackingRatio*95.0 -
+					candidate.corridorOverlap*125.0 -
+					candidate.edgeReuseRatio*140.0 -
+					candidate.maxAxisReuseRatio*170.0,
+			)
+			candidates = append(candidates, candidate)
+			seenSignatures[signature] = struct{}{}
 		}
-
-		shapeScore := shapeSimilarityScore(candidate.recommendation.PreviewLatLng, shapePreview)
-		shapeName := "CUSTOM_SHAPE"
-		recommendation := candidate.recommendation
-		recommendation.VariantType = routesDomain.RouteVariantShape
-		recommendation.Shape = &shapeName
-		recommendation.ShapeScore = &shapeScore
-		recommendation.MatchScore = clampOSMScore(
-			recommendation.MatchScore*0.35 + shapeScore*100.0*0.65 -
-				candidate.backtrackingRatio*28.0 -
-				candidate.corridorOverlap*35.0 -
-				candidate.edgeReuseRatio*40.0 -
-				candidate.maxAxisReuseRatio*48.0,
-		)
-		recommendation.Reasons = append(
-			recommendation.Reasons,
-			fmt.Sprintf("Shape similarity: %.0f%%", shapeScore*100.0),
-			"Shape mode: projected waypoints",
-		)
-
-		candidate.recommendation = recommendation
-		candidate.effectiveMatchScore = clampOSMScore(
-			recommendation.MatchScore -
-				candidate.backtrackingRatio*95.0 -
-				candidate.corridorOverlap*125.0 -
-				candidate.edgeReuseRatio*140.0 -
-				candidate.maxAxisReuseRatio*170.0,
-		)
-		candidates = append(candidates, candidate)
-		seenSignatures[signature] = struct{}{}
 	}
 
 	recommendations := selectCandidatesWithRelaxation(shapeRequest, candidates, rejectCounts)
@@ -535,11 +584,11 @@ func (adapter *OSMRoutingAdapter) GenerateShapeLoops(
 
 	if adapter.debug || len(recommendations) == 0 {
 		log.Printf(
-			"OSRM shape generation summary: routeType=%s shapePoints=%d waypoints=%d fetched=%d accepted=%d rejects=%s",
+			"OSRM shape generation summary: routeType=%s shapePoints=%d strategies=%d fetched=%d accepted=%d rejects=%s",
 			strings.ToUpper(strings.TrimSpace(request.RouteType)),
 			len(rawShape),
-			len(waypoints),
-			len(routes),
+			usedStrategies,
+			fetchedRouteCount,
 			len(recommendations),
 			formatRejectCounts(rejectCounts),
 		)
@@ -2259,13 +2308,45 @@ func generatedOSMRouteID(points [][]float64, start routesDomain.Coordinates, ind
 
 func parseShapePolylineCoordinates(raw string) []routesDomain.Coordinates {
 	trimmed := strings.TrimSpace(raw)
-	if !strings.HasPrefix(trimmed, "[") {
+	if trimmed == "" {
 		return []routesDomain.Coordinates{}
 	}
+
 	var points [][]float64
 	if err := json.Unmarshal([]byte(trimmed), &points); err != nil {
-		return []routesDomain.Coordinates{}
+		var wrapped struct {
+			Points      [][]float64 `json:"points"`
+			Coordinates [][]float64 `json:"coordinates"`
+			LatLng      [][]float64 `json:"latLng"`
+		}
+		if wrappedErr := json.Unmarshal([]byte(trimmed), &wrapped); wrappedErr == nil {
+			switch {
+			case len(wrapped.Points) > 0:
+				points = wrapped.Points
+			case len(wrapped.Coordinates) > 0:
+				points = wrapped.Coordinates
+			case len(wrapped.LatLng) > 0:
+				points = wrapped.LatLng
+			}
+		}
 	}
+
+	if len(points) == 0 {
+		if gpxPoints := parseShapeCoordinatesFromGPX(trimmed); len(gpxPoints) > 0 {
+			return gpxPoints
+		}
+		encoded := trimmed
+		var quoted string
+		if err := json.Unmarshal([]byte(trimmed), &quoted); err == nil {
+			encoded = strings.TrimSpace(quoted)
+		}
+		decoded := decodeEncodedPolylineCoordinates(encoded)
+		if len(decoded) == 0 {
+			return []routesDomain.Coordinates{}
+		}
+		return decoded
+	}
+
 	result := make([]routesDomain.Coordinates, 0, len(points))
 	for _, point := range points {
 		if len(point) < 2 {
@@ -2279,6 +2360,101 @@ func parseShapePolylineCoordinates(raw string) []routesDomain.Coordinates {
 		result = append(result, routesDomain.Coordinates{Lat: lat, Lng: lng})
 	}
 	return result
+}
+
+func parseShapeCoordinatesFromGPX(raw string) []routesDomain.Coordinates {
+	pointTagPattern := regexp.MustCompile(`(?is)<(?:trkpt|rtept|wpt)\b([^>]*)>`)
+	latAttrPattern := regexp.MustCompile(`(?i)\blat\s*=\s*["']([^"']+)["']`)
+	lngAttrPattern := regexp.MustCompile(`(?i)\blon\s*=\s*["']([^"']+)["']`)
+
+	matches := pointTagPattern.FindAllStringSubmatch(raw, -1)
+	if len(matches) == 0 {
+		return []routesDomain.Coordinates{}
+	}
+
+	points := make([]routesDomain.Coordinates, 0, len(matches))
+	for _, match := range matches {
+		if len(match) < 2 {
+			continue
+		}
+		attributes := match[1]
+		latMatch := latAttrPattern.FindStringSubmatch(attributes)
+		lngMatch := lngAttrPattern.FindStringSubmatch(attributes)
+		if len(latMatch) < 2 || len(lngMatch) < 2 {
+			continue
+		}
+		lat, latErr := strconv.ParseFloat(strings.TrimSpace(latMatch[1]), 64)
+		lng, lngErr := strconv.ParseFloat(strings.TrimSpace(lngMatch[1]), 64)
+		if latErr != nil || lngErr != nil {
+			continue
+		}
+		if lat < -90 || lat > 90 || lng < -180 || lng > 180 {
+			continue
+		}
+		points = append(points, routesDomain.Coordinates{Lat: lat, Lng: lng})
+	}
+	return points
+}
+
+func decodeEncodedPolylineCoordinates(encoded string) []routesDomain.Coordinates {
+	value := strings.TrimSpace(encoded)
+	if value == "" {
+		return []routesDomain.Coordinates{}
+	}
+
+	points := make([]routesDomain.Coordinates, 0, 64)
+	index := 0
+	lat := 0
+	lng := 0
+	for index < len(value) {
+		latDelta, nextIndex, ok := decodePolylineDelta(value, index)
+		if !ok {
+			return []routesDomain.Coordinates{}
+		}
+		index = nextIndex
+
+		lngDelta, nextIndex, ok := decodePolylineDelta(value, index)
+		if !ok {
+			return []routesDomain.Coordinates{}
+		}
+		index = nextIndex
+
+		lat += latDelta
+		lng += lngDelta
+		point := routesDomain.Coordinates{
+			Lat: float64(lat) / 1e5,
+			Lng: float64(lng) / 1e5,
+		}
+		if point.Lat < -90 || point.Lat > 90 || point.Lng < -180 || point.Lng > 180 {
+			continue
+		}
+		points = append(points, point)
+	}
+
+	return points
+}
+
+func decodePolylineDelta(encoded string, startIndex int) (int, int, bool) {
+	result := 0
+	shift := 0
+	index := startIndex
+	for index < len(encoded) {
+		chunk := int(encoded[index]) - 63
+		if chunk < 0 {
+			return 0, index, false
+		}
+		result |= (chunk & 0x1F) << shift
+		shift += 5
+		index += 1
+		if chunk < 0x20 {
+			delta := result >> 1
+			if result&1 == 1 {
+				delta = ^delta
+			}
+			return delta, index, true
+		}
+	}
+	return 0, index, false
 }
 
 func polylineDistanceKmFromCoordinates(points []routesDomain.Coordinates) float64 {
@@ -2377,6 +2553,72 @@ func buildShapeLoopWaypoints(
 	return waypoints
 }
 
+func buildShapeRoadFirstWaypoints(
+	start routesDomain.Coordinates,
+	shape []routesDomain.Coordinates,
+) []routesDomain.Coordinates {
+	if len(shape) < 2 {
+		return []routesDomain.Coordinates{}
+	}
+
+	sampled := sampleCoordinates(shape, 16)
+	if len(sampled) < 2 {
+		return []routesDomain.Coordinates{}
+	}
+
+	type indexedPoint struct {
+		index    int
+		point    routesDomain.Coordinates
+		distance float64
+	}
+	scored := make([]indexedPoint, 0, len(sampled))
+	for index := 1; index < len(sampled); index++ {
+		point := sampled[index]
+		distance := haversineDistanceMeters(start.Lat, start.Lng, point.Lat, point.Lng)
+		if distance < 280.0 {
+			continue
+		}
+		scored = append(scored, indexedPoint{
+			index:    index,
+			point:    point,
+			distance: distance,
+		})
+	}
+	if len(scored) == 0 {
+		return buildShapeLoopWaypoints(start, shape)
+	}
+
+	sort.Slice(scored, func(i, j int) bool {
+		if scored[i].distance == scored[j].distance {
+			return scored[i].index < scored[j].index
+		}
+		return scored[i].distance > scored[j].distance
+	})
+	if len(scored) > 6 {
+		scored = scored[:6]
+	}
+	sort.Slice(scored, func(i, j int) bool {
+		return scored[i].index < scored[j].index
+	})
+
+	waypoints := make([]routesDomain.Coordinates, 0, len(scored)+2)
+	waypoints = append(waypoints, start)
+	previous := start
+	for _, entry := range scored {
+		point := entry.point
+		if haversineDistanceMeters(previous.Lat, previous.Lng, point.Lat, point.Lng) < 180.0 {
+			continue
+		}
+		waypoints = append(waypoints, point)
+		previous = point
+	}
+	if len(waypoints) < 3 {
+		return buildShapeLoopWaypoints(start, shape)
+	}
+	waypoints = append(waypoints, start)
+	return waypoints
+}
+
 func coordinatesToLatLngPoints(points []routesDomain.Coordinates) [][]float64 {
 	result := make([][]float64, 0, len(points))
 	for _, point := range points {
@@ -2388,6 +2630,63 @@ func coordinatesToLatLngPoints(points []routesDomain.Coordinates) [][]float64 {
 type normalizedShapePoint struct {
 	x float64
 	y float64
+}
+
+type shapeModeScoringConfig struct {
+	baseMatchWeight          float64
+	shapeWeight              float64
+	lowSimilarityThreshold   float64
+	lowSimilarityPenaltyRate float64
+}
+
+func shapeModeScoringConfigFor(strategyCode string) shapeModeScoringConfig {
+	switch strings.ToLower(strings.TrimSpace(strategyCode)) {
+	case shapeModeStrategyRoadFirst:
+		return shapeModeScoringConfig{
+			baseMatchWeight:          0.55,
+			shapeWeight:              0.45,
+			lowSimilarityThreshold:   0.58,
+			lowSimilarityPenaltyRate: 0.70,
+		}
+	default:
+		return shapeModeScoringConfig{
+			baseMatchWeight:          0.35,
+			shapeWeight:              0.65,
+			lowSimilarityThreshold:   0.50,
+			lowSimilarityPenaltyRate: 0.28,
+		}
+	}
+}
+
+func shapeModeLowSimilarityPenalty(strategyCode string, shapeScore float64) float64 {
+	config := shapeModeScoringConfigFor(strategyCode)
+	normalizedShapeScore := clampUnit(shapeScore)
+	if normalizedShapeScore >= config.lowSimilarityThreshold {
+		return 0.0
+	}
+	return (config.lowSimilarityThreshold - normalizedShapeScore) * 100.0 * config.lowSimilarityPenaltyRate
+}
+
+func shapeModeMatchScore(
+	baseMatchScore float64,
+	shapeScore float64,
+	backtrackingRatio float64,
+	corridorOverlap float64,
+	edgeReuseRatio float64,
+	maxAxisReuseRatio float64,
+	strategyCode string,
+) (float64, float64) {
+	config := shapeModeScoringConfigFor(strategyCode)
+	normalizedShapeScore := clampUnit(shapeScore)
+	shapeDriftPenalty := shapeModeLowSimilarityPenalty(strategyCode, normalizedShapeScore)
+	score := baseMatchScore*config.baseMatchWeight +
+		normalizedShapeScore*100.0*config.shapeWeight -
+		backtrackingRatio*28.0 -
+		corridorOverlap*35.0 -
+		edgeReuseRatio*40.0 -
+		maxAxisReuseRatio*48.0 -
+		shapeDriftPenalty
+	return clampOSMScore(score), shapeDriftPenalty
 }
 
 func shapeSimilarityScore(routePoints [][]float64, shapePoints [][]float64) float64 {

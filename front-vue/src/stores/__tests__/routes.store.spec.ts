@@ -52,6 +52,60 @@ describe("routes store", () => {
     vi.clearAllMocks();
   });
 
+  it("imports GPX points into shape mode", () => {
+    const store = useRoutesStore();
+    const gpx = `
+      <gpx version="1.1" creator="test">
+        <trk><trkseg>
+          <trkpt lat="48.1000" lon="-1.6000"></trkpt>
+          <trkpt lat="48.1100" lon="-1.6100"></trkpt>
+          <trkpt lat="48.1200" lon="-1.6200"></trkpt>
+        </trkseg></trk>
+      </gpx>
+    `;
+
+    const importedPoints = store.importShapeFromGpx(gpx);
+
+    expect(importedPoints).toBe(3);
+    expect(store.shapeInputType).toBe("gpx");
+    expect(store.shapePoints).toEqual([
+      [48.1, -1.6],
+      [48.11, -1.61],
+      [48.12, -1.62],
+    ]);
+    expect(store.shapeDataText).toBe(JSON.stringify(store.shapePoints));
+  });
+
+  it("appends GPX points without duplicating seam point", () => {
+    const store = useRoutesStore();
+    store.shapePoints = [
+      [48.1, -1.6],
+      [48.11, -1.61],
+    ];
+    store.shapeDataText = JSON.stringify(store.shapePoints);
+
+    const gpx = `
+      <gpx version="1.1" creator="test">
+        <trk><trkseg>
+          <trkpt lat="48.1100" lon="-1.6100"></trkpt>
+          <trkpt lat="48.1200" lon="-1.6200"></trkpt>
+          <trkpt lat="48.1300" lon="-1.6300"></trkpt>
+        </trkseg></trk>
+      </gpx>
+    `;
+
+    const importedPoints = store.importShapeFromGpx(gpx, { append: true });
+
+    expect(importedPoints).toBe(3);
+    expect(store.shapePoints).toEqual([
+      [48.1, -1.6],
+      [48.11, -1.61],
+      [48.12, -1.62],
+      [48.13, -1.63],
+    ]);
+    expect(store.shapeDataText).toBe(JSON.stringify(store.shapePoints));
+  });
+
   it("keeps only one new geometry for each target generation click", async () => {
     const store = useRoutesStore();
     store.mode = "TARGET";

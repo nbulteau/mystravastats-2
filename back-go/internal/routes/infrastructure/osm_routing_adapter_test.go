@@ -287,6 +287,141 @@ func TestSurfaceMatchScore_AdaptsToRequestedRouteType(t *testing.T) {
 	}
 }
 
+func TestParseShapePolylineCoordinates_DecodesEncodedPolyline(t *testing.T) {
+	// GIVEN
+	encoded := "_p~iF~ps|U_ulLnnqC_mqNvxq`@"
+
+	// WHEN
+	points := parseShapePolylineCoordinates(encoded)
+
+	// THEN
+	if len(points) != 3 {
+		t.Fatalf("expected 3 decoded points, got %d", len(points))
+	}
+	if points[0].Lat < 38.49 || points[0].Lat > 38.51 {
+		t.Fatalf("unexpected first decoded latitude %.5f", points[0].Lat)
+	}
+}
+
+func TestParseShapePolylineCoordinates_ExtractsTrackPointsFromGPX(t *testing.T) {
+	// GIVEN
+	gpx := `
+<gpx version="1.1" creator="test">
+  <trk><trkseg>
+    <trkpt lat="48.1000" lon="-1.6000"></trkpt>
+    <trkpt lat="48.1200" lon="-1.6200"></trkpt>
+    <trkpt lat="48.1300" lon="-1.6300"></trkpt>
+  </trkseg></trk>
+</gpx>`
+
+	// WHEN
+	points := parseShapePolylineCoordinates(gpx)
+
+	// THEN
+	if len(points) != 3 {
+		t.Fatalf("expected 3 GPX points, got %d", len(points))
+	}
+	if points[2].Lat < 48.129 || points[2].Lat > 48.131 {
+		t.Fatalf("unexpected GPX last latitude %.5f", points[2].Lat)
+	}
+}
+
+func TestBuildShapeRoadFirstWaypoints_ReturnsAnchoredLoopWithFarAnchors(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}
+	shape := []routesDomain.Coordinates{
+		{Lat: 48.13000, Lng: -1.63000},
+		{Lat: 48.14200, Lng: -1.62000},
+		{Lat: 48.14800, Lng: -1.60000},
+		{Lat: 48.13700, Lng: -1.59000},
+		{Lat: 48.13000, Lng: -1.63000},
+	}
+
+	// WHEN
+	roadFirstWaypoints := buildShapeRoadFirstWaypoints(start, shape)
+	shapeFirstWaypoints := buildShapeLoopWaypoints(start, shape)
+
+	// THEN
+	if len(roadFirstWaypoints) < 3 {
+		t.Fatalf("expected at least 3 road-first waypoints, got %d", len(roadFirstWaypoints))
+	}
+	first := roadFirstWaypoints[0]
+	last := roadFirstWaypoints[len(roadFirstWaypoints)-1]
+	if first.Lat != start.Lat || first.Lng != start.Lng || last.Lat != start.Lat || last.Lng != start.Lng {
+		t.Fatalf("expected loop anchored to start, first=%+v last=%+v start=%+v", first, last, start)
+	}
+	if len(roadFirstWaypoints) > len(shapeFirstWaypoints)+1 {
+		t.Fatalf("expected road-first waypoints to stay compact, road-first=%d shape-first=%d", len(roadFirstWaypoints), len(shapeFirstWaypoints))
+	}
+}
+
+func TestShapeModeMatchScore_RoadFirstPenalizesLowShapeSimilarity(t *testing.T) {
+	// GIVEN
+	baseMatch := 78.0
+
+	// WHEN
+	highScore, highDriftPenalty := shapeModeMatchScore(
+		baseMatch,
+		0.72,
+		0.0,
+		0.0,
+		0.0,
+		0.0,
+		shapeModeStrategyRoadFirst,
+	)
+	lowScore, lowDriftPenalty := shapeModeMatchScore(
+		baseMatch,
+		0.38,
+		0.0,
+		0.0,
+		0.0,
+		0.0,
+		shapeModeStrategyRoadFirst,
+	)
+
+	// THEN
+	if lowDriftPenalty <= highDriftPenalty {
+		t.Fatalf("expected low similarity to trigger stronger road-first drift penalty, high=%.2f low=%.2f", highDriftPenalty, lowDriftPenalty)
+	}
+	if lowScore >= highScore {
+		t.Fatalf("expected low similarity to reduce road-first score, high=%.2f low=%.2f", highScore, lowScore)
+	}
+}
+
+func TestShapeModeMatchScore_LowSimilarityPrefersShapeFirstOverRoadFirst(t *testing.T) {
+	// GIVEN
+	baseMatch := 82.0
+	shapeScore := 0.40
+
+	// WHEN
+	shapeFirstScore, shapeFirstPenalty := shapeModeMatchScore(
+		baseMatch,
+		shapeScore,
+		0.0,
+		0.0,
+		0.0,
+		0.0,
+		shapeModeStrategyShapeFirst,
+	)
+	roadFirstScore, roadFirstPenalty := shapeModeMatchScore(
+		baseMatch,
+		shapeScore,
+		0.0,
+		0.0,
+		0.0,
+		0.0,
+		shapeModeStrategyRoadFirst,
+	)
+
+	// THEN
+	if roadFirstPenalty <= shapeFirstPenalty {
+		t.Fatalf("expected road-first to carry higher drift penalty on low-similarity routes, shape-first=%.2f road-first=%.2f", shapeFirstPenalty, roadFirstPenalty)
+	}
+	if roadFirstScore >= shapeFirstScore {
+		t.Fatalf("expected shape-first score to stay above road-first on low-similarity route, shape-first=%.2f road-first=%.2f", shapeFirstScore, roadFirstScore)
+	}
+}
+
 func TestComputeSurfaceBreakdown_UsesSurfaceAndTracktypeTagsWhenAvailable(t *testing.T) {
 	// GIVEN
 	route := osrmRoute{

@@ -43,6 +43,8 @@ private const val DIRECTION_TOLERANCE_METERS = 120.0
 private const val BACKTRACKING_START_ZONE_METERS = 2000.0
 private const val MIN_AXIS_SEGMENT_LENGTH_METERS = 25.0
 private const val MIN_OPPOSITE_REUSE_METERS = 120.0
+private const val SHAPE_MODE_STRATEGY_SHAPE_FIRST = "shape-first"
+private const val SHAPE_MODE_STRATEGY_ROAD_FIRST = "road-first"
 private const val DEFAULT_EXTRACT_PROFILE_FILE = "./osm/region.osrm.profile"
 private const val FALLBACK_EXTRACT_PROFILE_FILE = "../osm/region.osrm.profile"
 
@@ -161,6 +163,13 @@ private data class PathSegment(
 private data class NormalizedShapePoint(
     var x: Double,
     var y: Double,
+)
+
+private data class ShapeModeScoringConfig(
+    val baseMatchWeight: Double,
+    val shapeWeight: Double,
+    val lowSimilarityThreshold: Double,
+    val lowSimilarityPenaltyRate: Double,
 )
 
 @Component
@@ -432,75 +441,111 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             start = request.startPoint,
             targetDistanceKm = distanceTargetKm,
         )
-        val waypoints = buildShapeLoopWaypoints(request.startPoint, projectedShape)
-        if (waypoints.size < 3) {
+        val shapePreview = coordinatesToLatLng(projectedShape)
+        if (shapePreview.size < 2) {
             return emptyList()
         }
 
         val profile = profileForRouteType(request.routeType)
-        val routes = runCatching { fetchRoutes(profile, waypoints) }
-            .onFailure { error ->
-                if (debug) {
-                    logger.info(
-                        "OSRM shape generation call failed: profile={} waypoints={} err={}",
-                        profile, waypoints.size, error.message
-                    )
-                } else {
-                    logger.debug("OSRM shape generation failed: {}", error.message)
-                }
-            }
-            .getOrElse { emptyList() }
+        data class ShapeRoutingStrategy(
+            val code: String,
+            val label: String,
+            val waypoints: List<Coordinates>,
+        )
+        val strategies = listOf(
+            ShapeRoutingStrategy(
+                code = SHAPE_MODE_STRATEGY_SHAPE_FIRST,
+                label = "projected waypoints",
+                waypoints = buildShapeLoopWaypoints(request.startPoint, projectedShape),
+            ),
+            ShapeRoutingStrategy(
+                code = SHAPE_MODE_STRATEGY_ROAD_FIRST,
+                label = "road-first anchors",
+                waypoints = buildShapeRoadFirstWaypoints(request.startPoint, projectedShape),
+            ),
+        )
 
         val shapeRequest = request.copy(
             distanceTargetKm = distanceTargetKm,
             startDirection = null,
             directionStrict = false,
         )
-        val shapePreview = coordinatesToLatLng(projectedShape)
         val rejectCounts = mutableMapOf<String, Int>()
         val candidates = mutableListOf<OsrmRouteCandidate>()
         val seenGeometry = mutableSetOf<String>()
+        var fetchedRouteCount = 0
+        var usedStrategies = 0
 
-        routes.forEachIndexed { index, route ->
-            val candidate = toRouteCandidate(shapeRequest, route, index, rejectCounts) ?: return@forEachIndexed
-            val geometryKey = geometrySignature(candidate.recommendation.previewLatLng)
-            if (geometryKey.isBlank()) {
-                incrementRejectCount(rejectCounts, "EMPTY_GEOMETRY_SIGNATURE")
-                return@forEachIndexed
+        strategies.forEach { strategy ->
+            if (strategy.waypoints.size < 3) {
+                incrementRejectCount(rejectCounts, "SHAPE_WAYPOINTS_TOO_FEW")
+                return@forEach
             }
-            if (!seenGeometry.add(geometryKey)) {
-                incrementRejectCount(rejectCounts, "DUPLICATE_GEOMETRY")
-                return@forEachIndexed
+            val routes = runCatching { fetchRoutes(profile, strategy.waypoints) }
+                .onFailure { error ->
+                    incrementRejectCount(rejectCounts, "OSRM_CALL_FAILED")
+                    if (debug) {
+                        logger.info(
+                            "OSRM shape generation call failed: mode={} profile={} waypoints={} err={}",
+                            strategy.code, profile, strategy.waypoints.size, error.message
+                        )
+                    } else {
+                        logger.debug("OSRM shape generation failed: {}", error.message)
+                    }
+                }
+                .getOrElse { emptyList() }
+            if (routes.isEmpty()) {
+                return@forEach
             }
+            usedStrategies += 1
+            fetchedRouteCount += routes.size
 
-            val shapeScore = shapeSimilarityScore(candidate.recommendation.previewLatLng, shapePreview)
-            val recommendation = candidate.recommendation.copy(
-                variantType = RouteVariantType.SHAPE_MATCH,
-                shape = "CUSTOM_SHAPE",
-                shapeScore = shapeScore,
-                matchScore = clampScore(
-                    candidate.recommendation.matchScore * 0.35 +
-                        shapeScore * 100.0 * 0.65 -
-                        candidate.backtrackingRatio * 28.0 -
-                        candidate.corridorOverlap * 35.0 -
-                        candidate.edgeReuseRatio * 40.0 -
-                        candidate.maxAxisReuseRatio * 48.0,
-                ),
-                reasons = candidate.recommendation.reasons + listOf(
-                    "Shape similarity: ${(shapeScore * 100.0).roundToInt()}%",
-                    "Shape mode: projected waypoints",
-                ),
-            )
-            candidates += candidate.copy(
-                recommendation = recommendation,
-                effectiveMatchScore = clampScore(
-                    recommendation.matchScore -
-                        candidate.backtrackingRatio * 95.0 -
-                        candidate.corridorOverlap * 125.0 -
-                        candidate.edgeReuseRatio * 140.0 -
-                        candidate.maxAxisReuseRatio * 170.0,
-                ),
-            )
+            routes.forEachIndexed { index, route ->
+                val candidate = toRouteCandidate(shapeRequest, route, index, rejectCounts) ?: return@forEachIndexed
+                val geometryKey = geometrySignature(candidate.recommendation.previewLatLng)
+                if (geometryKey.isBlank()) {
+                    incrementRejectCount(rejectCounts, "EMPTY_GEOMETRY_SIGNATURE")
+                    return@forEachIndexed
+                }
+                if (!seenGeometry.add(geometryKey)) {
+                    incrementRejectCount(rejectCounts, "DUPLICATE_GEOMETRY")
+                    return@forEachIndexed
+                }
+
+                val shapeScore = shapeSimilarityScore(candidate.recommendation.previewLatLng, shapePreview)
+                val (matchScore, shapeDriftPenalty) = shapeModeMatchScore(
+                    baseMatchScore = candidate.recommendation.matchScore,
+                    shapeScore = shapeScore,
+                    backtrackingRatio = candidate.backtrackingRatio,
+                    corridorOverlap = candidate.corridorOverlap,
+                    edgeReuseRatio = candidate.edgeReuseRatio,
+                    maxAxisReuseRatio = candidate.maxAxisReuseRatio,
+                    strategyCode = strategy.code,
+                )
+                val recommendation = candidate.recommendation.copy(
+                    variantType = RouteVariantType.SHAPE_MATCH,
+                    shape = "CUSTOM_SHAPE",
+                    shapeScore = shapeScore,
+                    matchScore = matchScore,
+                    reasons = candidate.recommendation.reasons + buildList {
+                        add("Shape similarity: ${(shapeScore * 100.0).roundToInt()}%")
+                        add("Shape mode: ${strategy.label}")
+                        if (shapeDriftPenalty > 0.05) {
+                            add("Shape drift penalty: -${"%.1f".format(Locale.US, shapeDriftPenalty)}")
+                        }
+                    },
+                )
+                candidates += candidate.copy(
+                    recommendation = recommendation,
+                    effectiveMatchScore = clampScore(
+                        recommendation.matchScore -
+                            candidate.backtrackingRatio * 95.0 -
+                            candidate.corridorOverlap * 125.0 -
+                            candidate.edgeReuseRatio * 140.0 -
+                            candidate.maxAxisReuseRatio * 170.0,
+                    ),
+                )
+            }
         }
 
         val recommendations = selectCandidatesWithRelaxation(shapeRequest, candidates, rejectCounts)
@@ -508,11 +553,11 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
 
         if (debug || recommendations.isEmpty()) {
             logger.info(
-                "OSRM shape generation summary: routeType={} shapePoints={} waypoints={} fetched={} accepted={} rejects={}",
+                "OSRM shape generation summary: routeType={} shapePoints={} strategies={} fetched={} accepted={} rejects={}",
                 request.routeType?.trim()?.uppercase(Locale.getDefault()).orEmpty(),
                 rawShape.size,
-                waypoints.size,
-                routes.size,
+                usedStrategies,
+                fetchedRouteCount,
                 recommendations.size,
                 formatRejectCounts(rejectCounts),
             )
@@ -1838,8 +1883,32 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
 
     private fun parseShapePolylineCoordinates(raw: String): List<Coordinates> {
         val trimmed = raw.trim()
-        if (!trimmed.startsWith("[")) return emptyList()
-        val points = runCatching { mapper.readValue<List<List<Double>>>(trimmed) }.getOrElse { emptyList() }
+        if (trimmed.isEmpty()) return emptyList()
+
+        var points = runCatching { mapper.readValue<List<List<Double>>>(trimmed) }.getOrElse { emptyList() }
+        if (points.isEmpty()) {
+            val wrapped = runCatching {
+                mapper.readValue<Map<String, List<List<Double>>>>(trimmed)
+            }.getOrNull()
+            points = wrapped?.get("points")
+                ?: wrapped?.get("coordinates")
+                ?: wrapped?.get("latLng")
+                ?: emptyList()
+        }
+
+        if (points.isEmpty()) {
+            val fromGpx = parseShapeCoordinatesFromGpx(trimmed)
+            if (fromGpx.isNotEmpty()) {
+                return fromGpx
+            }
+            val encodedPolyline = runCatching { mapper.readValue<String>(trimmed).trim() }
+                .getOrElse { trimmed }
+            val decoded = decodeEncodedPolylineCoordinatesToCoordinates(encodedPolyline)
+            if (decoded.isNotEmpty()) {
+                return decoded
+            }
+        }
+
         return points.mapNotNull { point ->
             if (point.size < 2) return@mapNotNull null
             val lat = point[0]
@@ -1847,6 +1916,84 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             if (lat !in -90.0..90.0 || lng !in -180.0..180.0) return@mapNotNull null
             Coordinates(lat = lat, lng = lng)
         }
+    }
+
+    private fun parseShapeCoordinatesFromGpx(raw: String): List<Coordinates> {
+        val pointRegex = Regex("""<(?:trkpt|rtept|wpt)\b([^>]*)>""", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+        val latRegex = Regex("""\blat\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE)
+        val lonRegex = Regex("""\blon\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE)
+
+        val points = mutableListOf<Coordinates>()
+        pointRegex.findAll(raw).forEach { match ->
+            val attributes = match.groupValues.getOrNull(1).orEmpty()
+            val latText = latRegex.find(attributes)?.groupValues?.getOrNull(1)?.trim() ?: return@forEach
+            val lonText = lonRegex.find(attributes)?.groupValues?.getOrNull(1)?.trim() ?: return@forEach
+            val lat = latText.toDoubleOrNull() ?: return@forEach
+            val lon = lonText.toDoubleOrNull() ?: return@forEach
+            if (lat in -90.0..90.0 && lon in -180.0..180.0) {
+                points += Coordinates(lat = lat, lng = lon)
+            }
+        }
+        return points
+    }
+
+    private fun decodeEncodedPolylineCoordinatesToCoordinates(encodedPolyline: String): List<Coordinates> {
+        val points = decodeEncodedPolylineCoordinates(encodedPolyline) ?: return emptyList()
+        return points.mapNotNull { point ->
+            if (point.size < 2) return@mapNotNull null
+            val lat = point[0]
+            val lng = point[1]
+            if (lat !in -90.0..90.0 || lng !in -180.0..180.0) return@mapNotNull null
+            Coordinates(lat = lat, lng = lng)
+        }
+    }
+
+    private fun decodeEncodedPolylineCoordinates(encodedPolyline: String): List<List<Double>>? {
+        val encoded = encodedPolyline.trim()
+        if (encoded.isEmpty()) {
+            return null
+        }
+        val points = mutableListOf<List<Double>>()
+        var index = 0
+        var lat = 0
+        var lng = 0
+        while (index < encoded.length) {
+            val latDelta = decodePolylineDelta(encoded, index) ?: return null
+            index = latDelta.second
+            val lngDelta = decodePolylineDelta(encoded, index) ?: return null
+            index = lngDelta.second
+            lat += latDelta.first
+            lng += lngDelta.first
+            points += listOf(lat / 1e5, lng / 1e5)
+        }
+        if (points.isEmpty()) {
+            return null
+        }
+        return points
+    }
+
+    private fun decodePolylineDelta(encoded: String, startIndex: Int): Pair<Int, Int>? {
+        var result = 0
+        var shift = 0
+        var index = startIndex
+        while (index < encoded.length) {
+            val chunk = encoded[index].code - 63
+            if (chunk < 0) {
+                return null
+            }
+            result = result or ((chunk and 0x1f) shl shift)
+            shift += 5
+            index += 1
+            if (chunk < 0x20) {
+                val delta = if ((result and 1) == 1) {
+                    (result shr 1).inv()
+                } else {
+                    result shr 1
+                }
+                return delta to index
+            }
+        }
+        return null
     }
 
     private fun polylineDistanceKmFromCoordinates(points: List<Coordinates>): Double {
@@ -1932,8 +2079,103 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         return waypoints
     }
 
+    private fun buildShapeRoadFirstWaypoints(start: Coordinates, shape: List<Coordinates>): List<Coordinates> {
+        if (shape.size < 2) return emptyList()
+        val sampled = sampleCoordinates(shape, 16)
+        if (sampled.size < 2) return emptyList()
+
+        data class IndexedPoint(
+            val index: Int,
+            val point: Coordinates,
+            val distance: Double,
+        )
+
+        val scored = sampled
+            .drop(1)
+            .mapIndexedNotNull { index, point ->
+                val distance = haversineDistanceMeters(start.lat, start.lng, point.lat, point.lng)
+                if (distance < 280.0) return@mapIndexedNotNull null
+                IndexedPoint(index = index + 1, point = point, distance = distance)
+            }
+            .sortedWith(
+                compareByDescending<IndexedPoint> { it.distance }
+                    .thenBy { it.index }
+            )
+            .take(6)
+            .sortedBy { it.index }
+
+        if (scored.isEmpty()) {
+            return buildShapeLoopWaypoints(start, shape)
+        }
+
+        val waypoints = mutableListOf(start)
+        var previous = start
+        scored.forEach { entry ->
+            if (haversineDistanceMeters(previous.lat, previous.lng, entry.point.lat, entry.point.lng) < 180.0) {
+                return@forEach
+            }
+            waypoints += entry.point
+            previous = entry.point
+        }
+
+        if (waypoints.size < 3) {
+            return buildShapeLoopWaypoints(start, shape)
+        }
+        waypoints += start
+        return waypoints
+    }
+
     private fun coordinatesToLatLng(points: List<Coordinates>): List<List<Double>> {
         return points.map { point -> listOf(point.lat, point.lng) }
+    }
+
+    private fun shapeModeScoringConfigFor(strategyCode: String): ShapeModeScoringConfig {
+        return when (strategyCode.trim().lowercase(Locale.getDefault())) {
+            SHAPE_MODE_STRATEGY_ROAD_FIRST -> ShapeModeScoringConfig(
+                baseMatchWeight = 0.55,
+                shapeWeight = 0.45,
+                lowSimilarityThreshold = 0.58,
+                lowSimilarityPenaltyRate = 0.70,
+            )
+
+            else -> ShapeModeScoringConfig(
+                baseMatchWeight = 0.35,
+                shapeWeight = 0.65,
+                lowSimilarityThreshold = 0.50,
+                lowSimilarityPenaltyRate = 0.28,
+            )
+        }
+    }
+
+    private fun shapeModeLowSimilarityPenalty(strategyCode: String, shapeScore: Double): Double {
+        val config = shapeModeScoringConfigFor(strategyCode)
+        val normalizedShapeScore = clampUnit(shapeScore)
+        if (normalizedShapeScore >= config.lowSimilarityThreshold) {
+            return 0.0
+        }
+        return (config.lowSimilarityThreshold - normalizedShapeScore) * 100.0 * config.lowSimilarityPenaltyRate
+    }
+
+    private fun shapeModeMatchScore(
+        baseMatchScore: Double,
+        shapeScore: Double,
+        backtrackingRatio: Double,
+        corridorOverlap: Double,
+        edgeReuseRatio: Double,
+        maxAxisReuseRatio: Double,
+        strategyCode: String,
+    ): Pair<Double, Double> {
+        val config = shapeModeScoringConfigFor(strategyCode)
+        val normalizedShapeScore = clampUnit(shapeScore)
+        val shapeDriftPenalty = shapeModeLowSimilarityPenalty(strategyCode, normalizedShapeScore)
+        val score = baseMatchScore * config.baseMatchWeight +
+            normalizedShapeScore * 100.0 * config.shapeWeight -
+            backtrackingRatio * 28.0 -
+            corridorOverlap * 35.0 -
+            edgeReuseRatio * 40.0 -
+            maxAxisReuseRatio * 48.0 -
+            shapeDriftPenalty
+        return clampScore(score) to shapeDriftPenalty
     }
 
     private fun shapeSimilarityScore(routePoints: List<List<Double>>, shapePoints: List<List<Double>>): Double {

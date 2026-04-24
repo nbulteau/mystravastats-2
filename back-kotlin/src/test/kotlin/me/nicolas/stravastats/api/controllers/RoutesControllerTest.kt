@@ -367,6 +367,50 @@ class RoutesControllerTest {
     }
 
     @Test
+    fun `generate shape routes infers shape from gpx payload`() {
+        // GIVEN
+        val gpxData = "<gpx><trk><trkseg><trkpt lat=\"48.1000\" lon=\"-1.6000\"/><trkpt lat=\"48.1200\" lon=\"-1.6200\"/><trkpt lat=\"48.1300\" lon=\"-1.6300\"/></trkseg></trk></gpx>"
+        every {
+            routeExplorerService.getRouteExplorer(any(), any(), any())
+        } returns RouteExplorerResult(
+            closestLoops = emptyList(),
+            variants = emptyList(),
+            seasonal = emptyList(),
+            roadGraphLoops = emptyList(),
+            shapeMatches = emptyList(),
+            shapeRemixes = emptyList(),
+        )
+
+        // WHEN
+        mockMvc.perform(
+            post("/api/routes/generate/shape")
+                .param("activityType", "Ride")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "shapeInputType": "gpx",
+                      "shapeData": "<gpx><trk><trkseg><trkpt lat=\"48.1000\" lon=\"-1.6000\"/><trkpt lat=\"48.1200\" lon=\"-1.6200\"/><trkpt lat=\"48.1300\" lon=\"-1.6300\"/></trkseg></trk></gpx>",
+                      "routeType": "RIDE"
+                    }
+                    """.trimIndent()
+                )
+        )
+            // THEN
+            .andExpect(status().isOk)
+
+        verify {
+            routeExplorerService.getRouteExplorer(
+                any(),
+                any(),
+                match { request: RouteExplorerRequest ->
+                    request.shape == "POINT_TO_POINT" && request.shapePolyline == gpxData
+                }
+            )
+        }
+    }
+
+    @Test
     fun `generate target routes rejects custom mode without waypoints`() {
         // GIVEN
         // WHEN

@@ -21,6 +21,8 @@ const shapePolylineLayer = ref<L.Polyline>();
 const customWaypointDraftLayer = ref<L.Polyline>();
 const customWaypointMarkers = ref<L.CircleMarker[]>([]);
 const selectedRouteLayer = ref<L.Polyline>();
+const gpxFileInput = ref<HTMLInputElement | null>(null);
+const gpxImportMode = ref<"replace" | "append">("replace");
 const isExporting = ref(false);
 const isLocating = ref(false);
 
@@ -145,6 +147,56 @@ function modeButtonClass(mode: "TARGET" | "SHAPE"): string {
 
 function targetModeButtonClass(mode: "AUTOMATIC" | "CUSTOM"): string {
   return routesStore.targetGenerationMode === mode ? "btn btn-primary btn-sm" : "btn btn-outline-secondary btn-sm";
+}
+
+function openGpxFilePicker(mode: "replace" | "append" = "replace") {
+  gpxImportMode.value = mode;
+  gpxFileInput.value?.click();
+}
+
+async function onGpxFileSelected(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const files = Array.from(input.files ?? []);
+  if (files.length === 0) {
+    return;
+  }
+  let totalImportedPoints = 0;
+  let importedFileCount = 0;
+  let invalidFileCount = 0;
+  let shouldAppend = gpxImportMode.value === "append";
+
+  try {
+    for (const file of files) {
+      try {
+        const content = await file.text();
+        const importedPoints = routesStore.importShapeFromGpx(content, { append: shouldAppend });
+        if (importedPoints < 2) {
+          invalidFileCount += 1;
+          continue;
+        }
+        totalImportedPoints += importedPoints;
+        importedFileCount += 1;
+        shouldAppend = true;
+      } catch {
+        invalidFileCount += 1;
+      }
+    }
+
+    if (totalImportedPoints < 2) {
+      showToast("GPX invalide: aucun tracé exploitable trouvé.", ToastTypeEnum.WARN);
+      return;
+    }
+    redrawMapLayers({ fitBounds: true });
+    const modeLabel = gpxImportMode.value === "append" ? "ajoutés" : "importés";
+    const fileLabel = importedFileCount > 1 ? "fichiers" : "fichier";
+    showToast(`GPX ${modeLabel} (${importedFileCount} ${fileLabel}, ${totalImportedPoints} points).`);
+    if (invalidFileCount > 0) {
+      showToast(`${invalidFileCount} fichier(s) ignoré(s): format GPX invalide.`, ToastTypeEnum.WARN, 4200);
+    }
+  } finally {
+    input.value = "";
+    gpxImportMode.value = "replace";
+  }
 }
 
 function showToast(message: string, type: ToastTypeEnum = ToastTypeEnum.NORMAL, timeout = 2800) {
@@ -436,6 +488,11 @@ function undoCustomWaypoint() {
   redrawMapLayers({ fitBounds: false });
 }
 
+function undoShapePoint() {
+  routesStore.undoLastShapePoint();
+  redrawMapLayers({ fitBounds: false });
+}
+
 function resetStartPoint() {
   routesStore.clearStartPoint();
   routesStore.clearCustomWaypoints();
@@ -703,6 +760,36 @@ onBeforeUnmount(() => {
           </button>
           <button
             type="button"
+            class="btn btn-outline-secondary"
+            @click="openGpxFilePicker('replace')"
+          >
+            Import GPX (replace)
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            @click="openGpxFilePicker('append')"
+          >
+            Import GPX (append)
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            :disabled="routesStore.shapePoints.length === 0"
+            @click="undoShapePoint"
+          >
+            Undo last point
+          </button>
+          <input
+            ref="gpxFileInput"
+            type="file"
+            class="routes-gpx-input"
+            accept=".gpx,application/gpx+xml,application/xml,text/xml"
+            multiple
+            @change="onGpxFileSelected"
+          >
+          <button
+            type="button"
             class="btn btn-outline-danger"
             :disabled="routesStore.shapePoints.length === 0"
             @click="routesStore.clearShape"
@@ -830,6 +917,10 @@ onBeforeUnmount(() => {
   border-radius: 16px;
   padding: 14px;
   box-shadow: 0 6px 20px rgba(12, 21, 38, 0.05);
+}
+
+.routes-gpx-input {
+  display: none;
 }
 
 .routes-head {
