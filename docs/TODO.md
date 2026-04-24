@@ -229,7 +229,7 @@ Ce qui est déjà fait (retiré du backlog):
   - amélioration visible des routes proposées sur les zones familières de l'utilisateur,
   - pas de régression sur l'anti-backtracking hors zone départ/arrivée.
 
-- [ ] `ROUTE-P1-01` (`P1`, `L`) - Vrai scoring surface (OSM tags `surface` / `tracktype`).
+- [x] `ROUTE-P1-01` (`P1`, `L`) - Vrai scoring surface (OSM tags `surface` / `tracktype`).
   Owners: `Back-Go`, `Back-Kotlin`, `Infra`.
   Scope:
   - enrichir les segments routés pour récupérer la typologie de revêtement,
@@ -245,7 +245,9 @@ Ce qui est déjà fait (retiré du backlog):
   - calibration cohérente `tracktype` (`grade1 -> paved`, `grade2/3 -> gravel`, `grade4/5 -> trail`) + fallback heuristiques conservé,
   - diagnostics surface précisent maintenant la source `classes + mode + surface/tracktype tags`,
   - tests dédiés Go/Kotlin ajoutés sur la classification et le ranking par type (`RIDE/GRAVEL/MTB`),
-  - calibration terrain restante sur extraits OSM réels (zones mixtes urbain/chemins).
+  - validation terrain finale exécutée via script dédié `scripts/manual-route-surface-check.sh` (scénarios `dense-urban` et `mixed-urban-paths`),
+  - guide de vérification ajouté: `docs/route-surface-manual-check.md`,
+  - calibration terrain confirmée sur extraits OSM réels: raisons surface systématiquement présentes (`Surface mix`, `Path ratio`, `Surface fitness`, `Surface source`) et comportement distinct par type (`RIDE` sans fallback, `GRAVEL` fallback quand ratio chemins insuffisant, `MTB` conservé avec fitness surface fortement pénalisée sur profil majoritairement paved).
 
 - [x] `ROUTE-P1-04` (`P1`, `L`) - Shape mode v1 utilisable terrain.
   Owners: `Front`, `Back-Go`, `Back-Kotlin`.
