@@ -5,8 +5,9 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
-import me.nicolas.stravastats.domain.services.routing.RoutingEnginePort
+import me.nicolas.stravastats.domain.RuntimeConfig
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
+import me.nicolas.stravastats.domain.services.routing.RoutingEnginePort
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -42,6 +43,7 @@ class HealthController(
     fun getHealthDetails(): Map<String, Any?> {
         val details = activityProvider.getCacheDiagnostics().toMutableMap()
         details["routing"] = routingEngine.healthDetails()
+        details["runtimeConfig"] = RuntimeConfig.details()
         return details
     }
 }

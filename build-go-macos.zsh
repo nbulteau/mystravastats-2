@@ -17,10 +17,10 @@ echo "🚀 Starting build process..."
 # Build the UI project silently or verbosely
 echo "⌛ Building front-vue project..."
 if [[ $VERBOSE -eq 1 ]]; then
-  docker run --rm -v "$PWD:/app" -w /app/front-vue node:latest \
+  docker run --rm -v "$PWD:/app" -w /app/front-vue node:25.9.0 \
     sh -c "npm install -g npm@latest && npm ci && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build"
 else
-  docker run --rm -v "$PWD:/app" -w /app/front-vue node:latest \
+  docker run --rm -v "$PWD:/app" -w /app/front-vue node:25.9.0 \
     sh -c "npm install -g npm@latest >/dev/null 2>&1 && npm ci >/dev/null 2>&1 && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build >/dev/null 2>&1"
 fi
 

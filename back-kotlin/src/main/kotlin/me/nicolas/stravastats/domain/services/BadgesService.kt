@@ -1,8 +1,10 @@
 package me.nicolas.stravastats.domain.services
 
 
+import me.nicolas.stravastats.domain.RuntimeConfig
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.badges.*
+import me.nicolas.stravastats.domain.business.representativeBadgeActivityType
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -38,9 +40,9 @@ internal class BadgesService(
         logger.info("Checking general badges for $activityTypes in ${year ?: "all years"}")
 
         val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
+        val representativeActivityType = activityTypes.representativeBadgeActivityType()
 
-        // TODO: handle case multiple activity types
-        return when (activityTypes.firstOrNull()) {
+        return when (representativeActivityType) {
             ActivityType.Ride -> {
                 DistanceBadge.rideBadgeSet.check(activities) +
                         ElevationBadge.rideBadgeSet.check(activities) +
@@ -67,9 +69,9 @@ internal class BadgesService(
         logger.info("Checking famous badges for $activityTypes in ${year ?: "all years"}")
 
         val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
+        val representativeActivityType = activityTypes.representativeBadgeActivityType()
 
-        // TODO: handle case multiple activity types
-        return when (activityTypes.firstOrNull()) {
+        return when (representativeActivityType) {
             ActivityType.Ride -> {
                 alpes.check(activities) + pyrenees.check(activities)
             }
@@ -129,7 +131,7 @@ internal class BadgesService(
             Path.of("back-kotlin").resolve(climbsJsonFilePath),
         )
 
-        val stravaCachePath = System.getenv("STRAVA_CACHE_PATH")
+        val stravaCachePath = RuntimeConfig.readConfigValue("STRAVA_CACHE_PATH")
         if (!stravaCachePath.isNullOrBlank()) {
             candidates.add(Path.of(stravaCachePath).resolve(climbsJsonFilePath))
         }

@@ -1,5 +1,6 @@
 package me.nicolas.stravastats.domain.services
 
+import me.nicolas.stravastats.domain.RuntimeConfig
 import me.nicolas.stravastats.domain.business.ActivityShort
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.Coordinates
@@ -278,15 +279,7 @@ class RouteExplorerService(
     }
 
     private fun readStringConfig(key: String): String? {
-        val property = System.getProperty(key)?.trim()
-        if (!property.isNullOrEmpty()) {
-            return property
-        }
-        val environment = System.getenv(key)?.trim()
-        if (!environment.isNullOrEmpty()) {
-            return environment
-        }
-        return null
+        return RuntimeConfig.readConfigValue(key)
     }
 
     private fun mergeRouteRecommendations(

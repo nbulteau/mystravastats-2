@@ -1,5 +1,6 @@
 package me.nicolas.stravastats.domain.services.routing
 
+import me.nicolas.stravastats.domain.RuntimeConfig
 import me.nicolas.stravastats.domain.business.ActivityShort
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.Coordinates
@@ -2287,30 +2288,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
     }
 
     private fun readConfigValue(key: String): String? {
-        val fromEnv = System.getenv(key)?.trim()
-        if (!fromEnv.isNullOrEmpty()) {
-            return fromEnv
-        }
-
-        val dotEnv = File(".env")
-        if (!dotEnv.exists() || !dotEnv.isFile) {
-            return null
-        }
-
-        return dotEnv.useLines { lines ->
-            lines
-                .map { it.trim() }
-                .filter { it.isNotEmpty() && !it.startsWith("#") && it.contains("=") }
-                .map { line ->
-                    val separator = line.indexOf('=')
-                    val envKey = line.substring(0, separator).trim()
-                    val envValue = line.substring(separator + 1).trim().trim('"', '\'')
-                    envKey to envValue
-                }
-                .firstOrNull { (envKey, _) -> envKey == key }
-                ?.second
-                ?.takeIf { it.isNotEmpty() }
-        }
+        return RuntimeConfig.readConfigValue(key)
     }
 
     private fun readFirstLine(path: String): String? {
@@ -2332,7 +2310,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
     }
 
     private fun readBoolConfig(key: String, fallback: Boolean): Boolean {
-        val normalized = readConfigValue(key)?.lowercase(Locale.getDefault()) ?: return fallback
+        val normalized = readConfigValue(key)?.lowercase(Locale.ROOT) ?: return fallback
         return when (normalized) {
             "1", "true", "yes", "y", "on" -> true
             "0", "false", "no", "n", "off" -> false

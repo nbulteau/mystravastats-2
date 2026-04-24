@@ -329,6 +329,40 @@ func ToPersonalRecordTimelineDto(entry business.PersonalRecordTimelineEntry) Per
 	}
 }
 
+func ToWhatIsNextDto(result business.WhatIsNext) WhatIsNextDto {
+	records := make([]RecordNextActionDto, len(result.Records))
+	for i, record := range result.Records {
+		records[i] = RecordNextActionDto{
+			MetricKey:    record.MetricKey,
+			MetricLabel:  record.MetricLabel,
+			CurrentValue: record.CurrentValue,
+			TargetValue:  record.TargetValue,
+			GapToRecord:  record.GapToRecord,
+			Closeness:    record.Closeness,
+			Action:       record.Action,
+			ActivityDate: record.ActivityDate,
+			Activity: ActivityShortDto{
+				ID:   record.Activity.Id,
+				Name: record.Activity.Name,
+				Type: record.Activity.Type.String(),
+			},
+		}
+	}
+
+	return WhatIsNextDto{
+		Records: records,
+		Eddington: EddingtonNextActionDto{
+			CurrentNumber:     result.Eddington.CurrentNumber,
+			NextNumber:        result.Eddington.NextNumber,
+			TargetDistanceKm:  result.Eddington.TargetDistanceKm,
+			DaysAtTarget:      result.Eddington.DaysAtTarget,
+			MissingDays:       result.Eddington.MissingDays,
+			TypicalDistanceKm: result.Eddington.TypicalDistanceKm,
+			Action:            result.Eddington.Action,
+		},
+	}
+}
+
 func ToSegmentClimbProgressionDto(progression business.SegmentClimbProgression) SegmentClimbProgressionDto {
 	targets := make([]SegmentClimbTargetSummaryDto, len(progression.Targets))
 	for i, target := range progression.Targets {
@@ -994,8 +1028,10 @@ func ToBadgeDto(badge business.Badge, activityTypes ...business.ActivityType) Ba
 		return BadgeDto{}
 	}
 
-	// TODO: handle case with multiple activity types
-	activityType := activityTypes[0]
+	activityType, ok := business.RepresentativeBadgeActivityType(activityTypes...)
+	if !ok {
+		return BadgeDto{}
+	}
 
 	switch b := badge.(type) {
 	case badges.DistanceBadge:

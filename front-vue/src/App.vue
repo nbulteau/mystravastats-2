@@ -167,6 +167,22 @@ const isCurrent = (name: string) => route.name === name;
             <span class="tab-beta">beta</span>
           </RouterLink>
         </li>
+        <li
+          class="nav-item"
+          role="presentation"
+        >
+          <RouterLink
+            id="diagnostics-tab"
+            class="nav-link"
+            :class="{ active: isCurrent('diagnostics') }"
+            role="tab"
+            aria-controls="diagnostics-tab-pane"
+            :aria-selected="isCurrent('diagnostics')"
+            to="/diagnostics"
+          >
+            Status
+          </RouterLink>
+        </li>
       </ul>
     </nav>
     </div>

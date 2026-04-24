@@ -1,28 +1,50 @@
 services:
   back:
-    build: 
+    build:
       context: ./back-go
-      target:  runtime
+      target: runtime
     image: nbulteau/mystravastats-back-go:latest
     container_name: mystravastats-backend-go
+    environment:
+      SERVER_HOST: 0.0.0.0
+      PORT: 8080
+      OPEN_BROWSER: "false"
+      STRAVA_CACHE_PATH: /app/strava-cache
+      OSM_ROUTING_BASE_URL: ${OSM_ROUTING_BASE_URL:-http://osrm:5000}
     ports:
       - "8080:8080"
       - "8090:8090"
     volumes:
-      - ${STRAVA_CACHE_PATH}:/app/strava-cache
+      - ${STRAVA_CACHE_PATH:-./strava-cache}:/app/strava-cache
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/api/health/details >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - front-back
 
   front:
     build: ./front-vue
     image: nbulteau/mystravastats-front-vue:latest
     container_name: mystravastats-front-vue
+    environment:
+      API_BACKEND_URL: http://back:8080
     ports:
       - "80:80"
     depends_on:
-      - back
-    networks: 
-      - front-back     
-  
-networks: 
+      back:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost/healthz >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 10s
+    networks:
+      - front-back
+
+networks:
   front-back:
     driver: bridge
-

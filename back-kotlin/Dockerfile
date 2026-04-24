@@ -1,5 +1,5 @@
-# Use an official Gradle image to build the application
-FROM gradle:9.2.0-jdk23 AS build
+# Use the same Java major version declared in build.gradle.kts.
+FROM gradle:9.4.1-jdk25 AS build
 
 # Set the working directory
 WORKDIR /app
@@ -17,11 +17,17 @@ COPY src/ src/
 # Build the application
 RUN gradle build --no-daemon -x test
 
-# Use an official OpenJDK runtime as a parent image
-FROM openjdk:23-jdk-slim AS runtime
+# Use the same Java major version at runtime.
+FROM eclipse-temurin:25-jre AS runtime
 
-# Install xdg-utils
-RUN apt-get update && apt-get install -y xdg-utils
+# Install curl for healthchecks and xdg-utils for optional browser handoff.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl xdg-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV SERVER_ADDRESS=0.0.0.0
+ENV SERVER_PORT=8080
+ENV OPEN_BROWSER=false
 
 # Set the working directory
 WORKDIR /app

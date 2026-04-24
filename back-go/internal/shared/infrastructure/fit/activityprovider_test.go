@@ -1,6 +1,7 @@
 package fit
 
 import (
+	"math"
 	"testing"
 
 	"mystravastats/internal/shared/domain/business"
@@ -87,5 +88,78 @@ func TestNormalizeCoordinates_FillsMissingValues(t *testing.T) {
 	}
 	if normalized[5][0] == 0 && normalized[5][1] == 0 {
 		t.Fatal("expected trailing invalid coordinates to be fixed")
+	}
+}
+
+func TestComputeFITPowerMetrics_UsesPowerStreamWhenSessionPowerIsMissing(t *testing.T) {
+	// GIVEN
+	stream := &strava.Stream{
+		Watts: &strava.PowerStream{
+			Data: []float64{0, 100, 200, 300},
+		},
+	}
+
+	// WHEN
+	metrics := computeFITPowerMetrics(0, stream, 100)
+
+	// THEN
+	assertFloatEquals(t, 150, metrics.averageWatts)
+	if metrics.weightedAverageWatts != 150 {
+		t.Fatalf("expected weighted watts fallback=150, got %d", metrics.weightedAverageWatts)
+	}
+	assertFloatEquals(t, 12.906, metrics.kilojoules)
+	if !metrics.hasDeviceWatts {
+		t.Fatal("expected device watts to be true when FIT records contain power")
+	}
+}
+
+func TestComputeFITPowerMetrics_KeepsSessionAveragePowerWhenPresent(t *testing.T) {
+	// GIVEN
+	stream := &strava.Stream{
+		Watts: &strava.PowerStream{
+			Data: []float64{0, 100, 200},
+		},
+	}
+
+	// WHEN
+	metrics := computeFITPowerMetrics(250, stream, 120)
+
+	// THEN
+	assertFloatEquals(t, 250, metrics.averageWatts)
+	if metrics.weightedAverageWatts != 250 {
+		t.Fatalf("expected session average to be reused as weighted watts, got %d", metrics.weightedAverageWatts)
+	}
+	assertFloatEquals(t, 25.812, metrics.kilojoules)
+	if !metrics.hasDeviceWatts {
+		t.Fatal("expected device watts to stay true when session power is present")
+	}
+}
+
+func TestComputeFITPowerMetrics_IgnoresEmptyPowerStream(t *testing.T) {
+	// GIVEN
+	stream := &strava.Stream{
+		Watts: &strava.PowerStream{
+			Data: []float64{0, 0, math.NaN(), -20},
+		},
+	}
+
+	// WHEN
+	metrics := computeFITPowerMetrics(0, stream, 100)
+
+	// THEN
+	assertFloatEquals(t, 0, metrics.averageWatts)
+	if metrics.weightedAverageWatts != 0 {
+		t.Fatalf("expected empty weighted watts, got %d", metrics.weightedAverageWatts)
+	}
+	assertFloatEquals(t, 0, metrics.kilojoules)
+	if metrics.hasDeviceWatts {
+		t.Fatal("expected device watts to be false without positive FIT power samples")
+	}
+}
+
+func assertFloatEquals(t *testing.T, expected float64, actual float64) {
+	t.Helper()
+	if math.Abs(expected-actual) > 0.0001 {
+		t.Fatalf("expected %.4f, got %.4f", expected, actual)
 	}
 }

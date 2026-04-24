@@ -1,10 +1,17 @@
 package me.nicolas.stravastats.domain.utils
 
+import me.nicolas.stravastats.domain.RuntimeConfig
 import java.awt.Desktop
 import java.net.URI
 
 object BrowserUtils {
     fun openBrowser(url: String) {
+        if (isBrowserAutoOpenDisabled()) {
+            println("Browser auto-open disabled; open this URL manually:")
+            println(url)
+            return
+        }
+
         if (isNativeImage()) {
             println("To grant MyStravaStats to read your Strava activities data: copy paste this URL in a browser")
         } else {
@@ -34,5 +41,12 @@ object BrowserUtils {
 
     private fun isNativeImage(): Boolean {
         return System.getProperty("org.graalvm.nativeimage.imagecode") != null
+    }
+
+    private fun isBrowserAutoOpenDisabled(): Boolean {
+        return when (RuntimeConfig.readConfigValue("OPEN_BROWSER")?.lowercase()) {
+            "0", "false", "no", "off" -> true
+            else -> false
+        }
     }
 }

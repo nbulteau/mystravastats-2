@@ -17,11 +17,12 @@ import (
 	"embed"
 	"errors"
 	"flag"
-	"fmt"
 	"io/fs"
 	"log"
 	"mystravastats/api"
 	"mystravastats/internal/platform/activityprovider"
+	"mystravastats/internal/platform/runtimeconfig"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -31,8 +32,6 @@ import (
 	"time"
 
 	_ "mystravastats/docs" // Import for generated Swagger documentation
-
-	"github.com/rs/cors"
 )
 
 //go:embed all:public
@@ -41,11 +40,15 @@ var public embed.FS
 func main() {
 	// Define a debug flag
 	debug := flag.Bool("debug", false, "run in debug mode")
+	host := flag.String("host", "localhost", "server host")
 	port := flag.String("port", "8080", "server port")
 	flag.Parse()
 
-	// Get port from environment variable if not provided as flag
-	if envPort := os.Getenv("PORT"); envPort != "" {
+	// Get host and port from environment variables when provided.
+	if envHost := runtimeconfig.FirstStringValue("", "SERVER_HOST", "HOST"); envHost != "" {
+		*host = envHost
+	}
+	if envPort := runtimeconfig.StringValue("PORT", ""); envPort != "" {
 		*port = envPort
 	}
 
@@ -63,19 +66,6 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api.StartCacheEviction(ctx)
-
-	// Build the list of allowed CORS origins from the environment variable
-	// CORS_ALLOWED_ORIGINS (comma-separated). Defaults to localhost origins
-	// suitable for local development when the variable is not set.
-	corsOrigins := buildCORSOrigins()
-
-	// Create a new CORS handler
-	c := cors.New(cors.Options{
-		AllowedOrigins:   corsOrigins,
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
-		AllowedHeaders:   []string{"Content-Type", "Authorization"},
-		AllowCredentials: true,
-	})
 
 	// Create a new router
 	router := api.NewRouter()
@@ -131,10 +121,10 @@ func main() {
 	}
 
 	// Apply the CORS middleware to the router
-	handler := c.Handler(router)
+	handler := newCORSHandler(router)
 
-	addr := fmt.Sprintf("localhost:%s", *port)
-	log.Printf("Starting server on http://%s", addr)
+	addr := net.JoinHostPort(*host, *port)
+	log.Printf("Starting server on http://%s", displayAddress(*host, *port))
 	srv := &http.Server{
 		Addr:         addr,
 		Handler:      handler,
@@ -166,21 +156,10 @@ func main() {
 	log.Println("Server gracefully stopped")
 }
 
-// buildCORSOrigins returns allowed CORS origins from the CORS_ALLOWED_ORIGINS
-// environment variable (comma-separated). Falls back to localhost defaults for
-// local development when the variable is absent.
-func buildCORSOrigins() []string {
-	if raw := strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS")); raw != "" {
-		parts := strings.Split(raw, ",")
-		origins := make([]string, 0, len(parts))
-		for _, p := range parts {
-			if o := strings.TrimSpace(p); o != "" {
-				origins = append(origins, o)
-			}
-		}
-		if len(origins) > 0 {
-			return origins
-		}
+func displayAddress(host, port string) string {
+	displayHost := host
+	if displayHost == "" || displayHost == "0.0.0.0" || displayHost == "::" {
+		displayHost = "localhost"
 	}
-	return []string{"http://localhost", "http://localhost:5173"}
+	return net.JoinHostPort(displayHost, port)
 }

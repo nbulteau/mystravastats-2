@@ -6,6 +6,7 @@ import (
 	"hash/fnv"
 	"log"
 	"math"
+	"mystravastats/internal/platform/runtimeconfig"
 	"mystravastats/internal/routes/application"
 	routesDomain "mystravastats/internal/routes/domain"
 	"mystravastats/internal/shared/domain/business"
@@ -136,20 +137,17 @@ type OSMRoutingAdapter struct {
 }
 
 func NewOSMRoutingAdapter() *OSMRoutingAdapter {
-	enabled := readBoolEnv("OSM_ROUTING_ENABLED", true)
-	baseURL := strings.TrimRight(strings.TrimSpace(readStringEnv("OSM_ROUTING_BASE_URL", defaultOSMRoutingBaseURL)), "/")
-	timeoutMs := readIntEnv("OSM_ROUTING_TIMEOUT_MS", defaultOSMRoutingTimeoutMs)
-	if timeoutMs < 200 {
-		timeoutMs = defaultOSMRoutingTimeoutMs
-	}
-	profileOverride := strings.TrimSpace(readStringEnv("OSM_ROUTING_PROFILE", ""))
-	extractProfileEnv := strings.TrimSpace(readStringEnv("OSM_ROUTING_EXTRACT_PROFILE", ""))
-	extractProfileCfgFile := strings.TrimSpace(readStringEnv("OSM_ROUTING_EXTRACT_PROFILE_FILE", defaultOSRMProfileFilePath))
+	enabled := runtimeconfig.BoolValue("OSM_ROUTING_ENABLED", true)
+	baseURL := strings.TrimRight(strings.TrimSpace(runtimeconfig.StringValue("OSM_ROUTING_BASE_URL", defaultOSMRoutingBaseURL)), "/")
+	timeoutMs := runtimeconfig.OSMRoutingTimeoutMs()
+	profileOverride := strings.TrimSpace(runtimeconfig.StringValue("OSM_ROUTING_PROFILE", ""))
+	extractProfileEnv := strings.TrimSpace(runtimeconfig.StringValue("OSM_ROUTING_EXTRACT_PROFILE", ""))
+	extractProfileCfgFile := strings.TrimSpace(runtimeconfig.StringValue("OSM_ROUTING_EXTRACT_PROFILE_FILE", defaultOSRMProfileFilePath))
 
 	return &OSMRoutingAdapter{
 		enabled:               enabled,
-		v3Enabled:             readBoolEnv("OSM_ROUTING_V3_ENABLED", defaultOSMRoutingV3Enabled),
-		debug:                 readBoolEnv("OSM_ROUTING_DEBUG", false),
+		v3Enabled:             runtimeconfig.BoolValue("OSM_ROUTING_V3_ENABLED", defaultOSMRoutingV3Enabled),
+		debug:                 runtimeconfig.BoolValue("OSM_ROUTING_DEBUG", false),
 		baseURL:               baseURL,
 		timeout:               time.Duration(timeoutMs) * time.Millisecond,
 		client:                &http.Client{Timeout: time.Duration(timeoutMs) * time.Millisecond},
@@ -3968,41 +3966,6 @@ func haversineDistanceMeters(lat1 float64, lng1 float64, lat2 float64, lng2 floa
 	a := sinLat*sinLat + math.Cos(degreesToRadians(lat1))*math.Cos(degreesToRadians(lat2))*sinLng*sinLng
 	c := 2.0 * math.Atan2(math.Sqrt(a), math.Sqrt(1.0-a))
 	return earthRadiusMeters * c
-}
-
-func readStringEnv(key string, fallback string) string {
-	raw := strings.TrimSpace(os.Getenv(key))
-	if raw == "" {
-		return fallback
-	}
-	return raw
-}
-
-func readBoolEnv(key string, fallback bool) bool {
-	raw := strings.TrimSpace(strings.ToLower(os.Getenv(key)))
-	if raw == "" {
-		return fallback
-	}
-	switch raw {
-	case "1", "true", "yes", "y", "on":
-		return true
-	case "0", "false", "no", "n", "off":
-		return false
-	default:
-		return fallback
-	}
-}
-
-func readIntEnv(key string, fallback int) int {
-	raw := strings.TrimSpace(os.Getenv(key))
-	if raw == "" {
-		return fallback
-	}
-	value, err := strconv.Atoi(raw)
-	if err != nil {
-		return fallback
-	}
-	return value
 }
 
 func (adapter *OSMRoutingAdapter) detectExtractProfile() string {

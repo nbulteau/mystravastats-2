@@ -92,7 +92,7 @@ Back-Go follows a **Clean Architecture** pattern with clear separation of concer
 - **Framework**: Gorilla Mux (HTTP routing)
 - **Documentation**: Swagger (Swag)
 - **CORS**: rs/cors
-- **Language**: Go 1.25.2
+- **Language**: Go 1.26.2
 
 ---
 

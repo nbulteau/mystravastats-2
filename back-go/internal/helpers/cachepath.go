@@ -2,7 +2,7 @@ package helpers
 
 import (
 	"log"
-	"os"
+	"mystravastats/internal/platform/runtimeconfig"
 
 	"github.com/joho/godotenv"
 )
@@ -19,10 +19,5 @@ func loadEnvironmentVariables() string {
 		log.Printf("Error loading environment variables: %v", err)
 	}
 
-	cachePath := os.Getenv("STRAVA_CACHE_PATH")
-	if cachePath == "" {
-		cachePath = "strava-cache" // default value if environment variable is not set
-	}
-
-	return cachePath
+	return runtimeconfig.StringValue("STRAVA_CACHE_PATH", "strava-cache")
 }

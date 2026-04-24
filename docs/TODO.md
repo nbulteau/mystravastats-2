@@ -1,302 +1,333 @@
+# TODO list
 
-### État des lieux (2026-04-21)
+## État des lieux au 2026-04-24
 
-- Monorepo actif avec 3 briques: `front-vue`, `back-kotlin`, `back-go`.
-- Backend Kotlin toujours le plus complet fonctionnellement (services métier + endpoints API).
-- Génération de routes OSRM fortement renforcée récemment (target/shape unifiés, diagnostics, dedupe géométrique, anti-backtracking adaptatif, mode custom waypoint).
-- Santé des tests (audit local):
-  - `back-kotlin`: `./gradlew test` vert.
-  - `back-go`: suites routes/api (`go test ./internal/routes/... ./api/...`) vertes.
-  - `back-go` full suite: un test `stravaapi` dépend de l'ouverture d'un port local (`httptest`) et peut échouer en environnement sandbox.
-- Documentation routes centralisée dans `docs/route-generation-engine.md` et setup OSRM documenté dans `docs/osm-routing-setup.md`.
+- Monorepo avec trois surfaces principales: `front-vue`, `back-go`, `back-kotlin`.
+- Le frontend Vue 3 couvre déjà dashboard, charts, heatmap, statistiques, badges, activités, carte, segments, détail activité et routes.
+- Le backend Go suit une architecture plus découpée par use cases et reste important pour les builds binaires.
+- Le backend Kotlin reste riche côté services métier, fournisseurs Strava/GPX/FIT, SRTM et Spring Boot.
+- Les deux backends exposent un contrat `/api/...` proche et partagent des fixtures de parité pour les routes.
+- Le moteur Routes est la zone la plus sensible: OSRM, target/shape generation, anti-retrace, diagnostics, export GPX, parité Go/Kotlin.
+- La documentation route est déjà solide (`docs/route-generation-engine.md`, guides de checks manuels OSRM).
+- Les tests backend sont nombreux. Le frontend a quelques tests Vitest ciblés, mais peu de couverture composant/parcours utilisateur.
+- Plusieurs fichiers de packaging et docs semblent désalignés avec les versions réellement déclarées dans les manifests.
 
----
+## Garde-fous permanents
 
-### Améliorations techniques
+- Garder Go et Kotlin alignés pour tout changement de génération de routes.
+- Ne jamais transformer l'historique en pénalité de nouveauté: il doit rester un signal positif de corridors connus.
+- Préserver les règles anti-retrace strictes hors zone départ/arrivée.
+- Garder le comportement de zone départ/arrivée 2 km explicite et testé.
+- Préserver `X-Request-Id` et les diagnostics exploitables sur les endpoints de génération.
+- Ne pas changer silencieusement les contrats API: ajouter migration, compatibilité ou tests de contrat.
 
-#### Modularisation du backend Kotlin par fonctionnalité
+## Améliorations techniques proposées
 
-**Contexte / problème :**
-Le backend Kotlin, bien que structuré en couches (contrôleurs, services, adaptateurs), reste un module monolithique. À mesure que de nouvelles fonctionnalités sont ajoutées (badges, analyse de la fréquence cardiaque, etc.), la complexité du module principal augmente, ce qui peut rendre la maintenance et les tests plus difficiles.
+### Priorité haute
 
-**Proposition concrète :**
-Diviser le projet `back-kotlin` en modules Gradle distincts, alignés sur les domaines fonctionnels :
-- `core` : Modèles de domaine partagés, interfaces de service.
-- `feature-statistics` : Implémentation des calculs de statistiques (best efforts, Eddington, etc.).
-- `feature-badges` : Logique de calcul et d'attribution des badges.
-- `feature-charts` : Préparation des données pour les graphiques.
-- `infra-strava-adapter` : Communication avec l'API Strava et gestion du cache.
-- `infra-storage` : Logique de persistance (que ce soit sur fichiers ou une base de données).
-- `app` : Module principal qui assemble les fonctionnalités via l'injection de dépendances.
+- [x] `TECH-P0-01` (`P0`, `M`) - Aligner les toolchains et les builds Docker.
+  Owners: `Infra`, `Back-Go`, `Back-Kotlin`, `Front`.
+  Constat initial:
+  - `back-go/go.mod` déclarait Go `1.26.2`, mais `back-go/Dockerfile` buildait avec `golang:1.24.3-alpine`.
+  - `back-kotlin/build.gradle.kts` demandait Java `25`, mais `back-kotlin/Dockerfile` utilisait JDK/OpenJDK `23`.
+  - `front-vue/package.json` demandait Node `>=25.9.0`, mais le Dockerfile utilisait `node:lts-alpine`.
+  - `back-kotlin/README.md` mentionnait encore JDK 21.
+  Scope:
+  - harmoniser Dockerfiles, CI, README et scripts locaux sur les mêmes versions,
+  - ajouter une section "versions supportées" dans `docs/README.md`,
+  - faire échouer la CI si un Docker build ne respecte pas les manifests.
+  Acceptance:
+  - `docker compose` build Go/Kotlin/Front sans contournement de version,
+  - les README ne donnent plus de consignes contradictoires.
+  Statut 2026-04-24:
+  - Dockerfiles alignés sur Go `1.26.2`, Java `25`, Gradle `9.4.1`, Node `25.9.0`,
+  - workflows CI/build manuel et scripts de build Go alignés sur les mêmes versions,
+  - section versions supportées ajoutée dans `docs/README.md`,
+  - check CI `scripts/check-toolchains.sh` ajouté pour détecter les dérives manifest/Docker/CI.
 
-**Valeur attendue :**
-- **Encapsulation :** Chaque fonctionnalité est isolée, ce qui facilite le raisonnement et les tests unitaires.
-- **Scalabilité de l'équipe :** Plusieurs développeurs peuvent travailler sur des modules différents avec moins de risques de conflits.
-- **Réutilisabilité :** Les modules de bas niveau (comme `core` ou `infra-storage`) pourraient être réutilisés plus facilement.
+- [x] `TECH-P0-02` (`P0`, `M`) - Rendre les modes Docker réellement exécutables de bout en bout.
+  Owners: `Infra`, `Front`, `Back-Go`, `Back-Kotlin`.
+  Constat:
+  - le Nginx frontend sert l'app statique mais ne proxy pas `/api`,
+  - les compose Go/Kotlin ne connectent pas clairement `front` et `back` sur le même chemin réseau applicatif,
+  - le serveur Go écoute sur `localhost:<port>`, ce qui est fragile en conteneur.
+  Scope:
+  - choisir un mode officiel: backend qui sert le frontend, ou frontend Nginx qui proxy `/api` vers `back:8080`,
+  - rendre l'adresse d'écoute backend configurable (`0.0.0.0` en conteneur),
+  - ajouter healthchecks backend/front/OSRM et un test smoke Docker.
+  Acceptance:
+  - après `docker compose up`, l'UI chargée depuis le conteneur appelle `/api/health/details` avec succès,
+  - le même scénario fonctionne pour Go et Kotlin.
+  Statut 2026-04-24:
+  - mode officiel retenu: frontend Nginx qui proxy `/api/...` vers le service backend `back:8080`,
+  - compose Go/Kotlin alignés: `front` et `back` partagent le même réseau applicatif, le cache Strava a un fallback local, les backends écoutent sur `0.0.0.0` en conteneur,
+  - healthchecks ajoutés pour backend, frontend et OSRM optionnel; les images backend embarquent `curl`,
+  - OSRM optionnel raccordé au réseau compose via [docker-compose-routing-osrm.yml](/Users/nicolas/Workspace/mystravastats-2/docker-compose-routing-osrm.yml),
+  - smoke script ajouté: `./scripts/smoke-docker-compose.sh go|kotlin`.
 
----
-
-#### Contrat API typé et génération de clients partagés
-
-**Contexte / problème :**
-Le frontend Vue et les backends exposent de nombreuses routes `/api/...` avec des DTO qui évoluent dans le temps. Sans contrat unifié, les régressions de schéma (champ renommé, nullable inattendu, enum modifiée) sont détectées tardivement côté UI.
-
-**Proposition concrète :**
-Définir un contrat OpenAPI comme source de vérité (priorité backend Kotlin), puis générer automatiquement :
-- les types TypeScript et un client API dans `front-vue`,
-- des tests de conformité de contrat côté backend (snapshot OpenAPI + validations de sérialisation).
-  Ajouter une vérification CI qui échoue si le code généré n'est pas à jour.
-
-**Valeur attendue :**
-Moins d'erreurs d'intégration frontend/backend, meilleure robustesse lors des refactorings de DTO, et onboarding simplifié grâce à une documentation API réellement exécutable.
-
----
-#### Observabilité applicative et diagnostics guidés
-
-**Contexte / problème :**
-Les problèmes OAuth, rate limits Strava et incohérences de cache sont documentés, mais le diagnostic dépend encore fortement de l'inspection manuelle des logs et des fichiers.
-
-**Proposition concrète :**
-Ajouter un socle d'observabilité minimal :
-- logs structurés avec `requestId` et catégories (`oauth`, `cache`, `strava`, `stats`),
-- endpoint de santé enrichi (`/api/health/details`) indiquant état du cache, dernière synchro, et statut de quota Strava connu,
-- page "Diagnostics" côté frontend exposant des checks lisibles pour l'utilisateur.
-
-**Valeur attendue :**
-Réduction du temps de support, débogage plus rapide en local/Docker, et meilleure confiance utilisateur lors des phases de première synchronisation.
-
----
-
-### Dette technique ciblée (court terme)
-
-- [ ] `BADGES-P1-01` (`P1`, `S`) - Gérer correctement les cas multi-activity-types pour badges.
+- [x] `TECH-P0-03` (`P0`, `S`) - Corriger les badges multi-activity-types.
   Owners: `Back-Go`, `Back-Kotlin`.
+  Constat:
+  - TODO existants dans `BadgesService.kt`, `BadgeCheckResultDto.kt` et `converters.go`,
+  - le type du badge dépend du premier sport sélectionné, ce qui peut devenir faux avec les sélections multi-sports du header.
   Scope:
-  - supprimer les TODO code existants liés à "multiple activity types" (DTO + service badges),
-  - aligner le comportement Go/Kotlin sur la sélection multi-types,
-  - ajouter des tests de non-régression sur les agrégations multi-sports.
+  - définir le contrat attendu pour `Ride+Gravel+MTB`, `Run+TrailRun`, `Hike+Walk`,
+  - produire des badges agrégés stables ou des badges par famille de sport,
+  - aligner DTO Go/Kotlin et tests.
   Acceptance:
-  - plus de TODO bloquants dans la logique badges,
-  - résultats cohérents quand plusieurs sports sont sélectionnés.
+  - plus de TODO multi-sports dans la logique badges,
+  - résultats déterministes quand plusieurs sports sont sélectionnés.
+  Statut 2026-04-24:
+  - contrat retenu: badges agrégés par famille sportive stable,
+  - `Ride`, `GravelRide`, `MountainBikeRide`, `VirtualRide` et `Commute` produisent des types DTO `Ride*Badge`,
+  - `Run` et `TrailRun` produisent des types DTO `Run*Badge`,
+  - `Hike` et `Walk` produisent des types DTO `Hike*Badge`,
+  - Go/Kotlin partagent la même résolution de famille et les tests couvrent les sélections multi-types.
 
-- [ ] `QA-P1-01` (`P1`, `S`) - Stabiliser les tests réseau dépendants d'un bind local.
-  Owners: `Back-Go`, `QA`.
+### Priorité moyenne
+
+- [ ] `TECH-P1-01` (`P1`, `L`) - Mettre le contrat API sous contrôle OpenAPI partagé.
+  Owners: `Back-Kotlin`, `Back-Go`, `Front`, `QA`.
+  Constat:
+  - Springdoc existe côté Kotlin, Swagger existe côté Go, mais le frontend maintient ses interfaces à la main.
   Scope:
-  - isoler les tests `httptest` qui nécessitent une socket locale,
-  - permettre une exécution CI/sandbox fiable (skip conditionnel ou abstraction transport),
-  - documenter la stratégie dans les tests concernés.
+  - choisir une source de vérité OpenAPI,
+  - générer les types TypeScript et éventuellement un client API typé,
+  - ajouter des tests de conformité Go/Kotlin sur les DTO sensibles (`routes`, `statistics`, `dashboard`, `activities`).
   Acceptance:
-  - `go test ./...` exécutable de manière déterministe en CI.
+  - une divergence de champ ou d'enum casse la CI avant d'arriver dans l'UI.
 
----
+- [ ] `TECH-P1-02` (`P1`, `M`) - Automatiser les checks routes aujourd'hui manuels.
+  Owners: `QA`, `Back-Go`, `Back-Kotlin`, `Front`.
+  Constat:
+  - les docs de validation OSRM sont précises, mais plusieurs validations restent manuelles.
+  Scope:
+  - transformer les scénarios anti-retrace, direction, surface, fallback et shape tuning en smoke tests automatisés,
+  - lancer ces checks uniquement derrière profil CI/local OSRM pour éviter de ralentir la CI standard,
+  - capturer les diagnostics clés en artifact.
+  Acceptance:
+  - un changement route peut être validé avec une commande unique,
+  - les cas terrain critiques restent reproductibles.
 
-### Améliorations fonctionnelles
+- [ ] `TECH-P1-03` (`P1`, `M`) - Étendre la couverture frontend.
+  Owners: `Front`, `QA`.
+  Constat:
+  - les tests Vitest couvrent surtout stores/routes/charts utils,
+  - les parcours UI riches (filtres, détail activité, route map, import GPX, erreurs API) sont peu protégés.
+  Scope:
+  - ajouter tests composants pour `HeaderBar`, `RoutesView`, `ActivityHeatmapChart`, `HeartRateZoneAnalysisPanel`,
+  - ajouter quelques tests e2e/smoke avec backend mocké ou fixtures,
+  - vérifier les états loading/erreur/cache.
+  Acceptance:
+  - les workflows utilisateurs principaux sont protégés sans dépendre de Strava.
 
-#### Analyse de la charge d'entraînement (Training Load)
-
-Actuellement, l'application calcule des métriques d'effort ponctuel (best efforts, records) mais ne propose pas de vision longitudinale de la charge d'entraînement cumulée.
-
-**Proposition :**
-Ajouter un indicateur de charge hebdomadaire et mensuelle inspiré du modèle CTL/ATL/TSB (Chronic Training Load / Acute Training Load / Training Stress Balance), calculable à partir des données disponibles : durée en mouvement, dénivelé, fréquence cardiaque (zones déjà calculées) et puissance (si disponible). Visualiser ces courbes dans l'onglet *Charts* pour permettre à l'athlète d'identifier des périodes de surcharge ou de sous-entraînement. Le backend dispose déjà des streams de fréquence cardiaque et des données de puissance, les ingrédients sont en place.
-
----
-
-#### Objectifs annuels et projections de fin d'année
-
-L'application affiche l'historique des performances mais ne permet pas à l'athlète de se fixer des objectifs et de visualiser sa progression vers ceux-ci.
-
-**Proposition :**
-Ajouter dans la vue *Dashboard* un bloc "Objectifs de l'année" où l'athlète définit des cibles (distance totale, dénivelé total, nombre d'Eddington cible, nombre de sorties). Pour chaque objectif, afficher :
-- la progression actuelle (barre de progression + pourcentage),
-- la date estimée d'atteinte basée sur la tendance des dernières semaines,
-- un indicateur visuel (en avance / dans les temps / en retard) par rapport au rythme nécessaire.
-
-Les objectifs seraient persistés dans le répertoire `strava-cache` (fichier JSON local par athlète), sans dépendance à Strava.
-
-#### Plan d'entraînement adaptatif basé sur l'historique réel
-
-**Contexte / problème :**
-Les statistiques actuelles décrivent bien le passé, mais proposent peu d'aide prescriptive pour la suite (quoi faire cette semaine pour progresser sans surcharger).
-
-**Proposition concrète :**
-Créer un module "Plan adaptatif" qui suggère des volumes hebdomadaires par sport selon la tendance récente (charge, récupération, fréquence des sorties) et les objectifs choisis. Le module génère des recommandations simples : semaine allégée, maintien, ou progression.
-
-**Valeur attendue :**
-Passage d'une app descriptive à une app d'aide à la décision, avec un usage plus régulier entre deux sorties.
-
----
-
-#### Explorateur d'itinéraires personnels et recommandations de sorties
-
-**Contexte / problème :**
-La carte affiche les activités, mais l'application n'exploite pas encore pleinement l'historique pour suggérer des parcours pertinents selon les préférences de l'athlète.
-
-**Proposition concrète :**
-Ajouter un explorateur "Sorties recommandées" qui propose :
-- des boucles déjà réalisées proches d'une distance/dénivelé cible,
-- des variantes "plus court / plus long / plus vallonné",
-- des recommandations contextuelles par saison (profil similaire à vos meilleures sorties du printemps, etc.).
-Basé uniquement sur les traces déjà présentes en cache (pas besoin d'API externe au départ).
-
-**Valeur attendue :**
-Expérience plus orientée usage terrain, meilleure réutilisation des données de carte, et différenciation fonctionnelle forte du produit.
-
----
-
-#### Routes (OSRM) - backlog restant (mise à jour 2026-04-21)
-
-Objectif produit conservé:
-- générer des boucles praticables depuis un point de départ,
-- 2 modes (`Target loop generator`, `Shape based generator`),
-- export GPX immédiat,
-- parité Go/Kotlin.
-
-Ce qui est déjà fait (retiré du backlog):
-- contrat API target/shape unifié,
-- carte unique et UX principale (`Use my location`, `Generate route`, export GPX),
-- intégration OSRM + endpoint health routing,
-- base de scoring distance/D+/direction,
-- fallback de route type (`MTB -> GRAVEL -> RIDE`),
-- statut moteur OSRM + profil actif exploités côté UI (et types incompatibles désactivés),
-- génération incrémentale côté UI (`1 clic = 1 route unique`) avec déduplication géométrique stricte,
-- diagnostics de fallback exposés aussi quand une route est renvoyée (Go + Kotlin + UI),
-- avertissement non bloquant côté UI pour les diagnostics de fallback,
-- script de validation manuelle API/UI (`scripts/manual-route-fallback-check.sh` + `docs/route-fallback-manual-check.md`),
-- support du format polyline encodée pour l'inférence de shape côté backend Go/Kotlin,
-- documentation de génération unifiée dans un seul fichier (`docs/route-generation-engine.md`),
-- MVP étape 1 \"history bias\" : index historique local par `routeType` (axes/zones + décroissance temporelle) propagé au moteur Go/Kotlin via feature flag.
-- fallback target vers cache historique quand OSRM ne renvoie aucune boucle + diagnostic `ENGINE_CACHE_FALLBACK` (Go/Kotlin).
-
-### Priorités restantes
-
-- [x] `ROUTE-P0-01` (`P0`, `L`) - Stabiliser la génération target pour ne plus revenir à `0 route`.
+- [x] `TECH-P1-04` (`P1`, `M`) - Aligner le support FIT Go/Kotlin.
   Owners: `Back-Go`, `Back-Kotlin`.
+  Constat:
+  - le Go reconstruit un stream power à partir des records FIT,
+  - le Kotlin lit `avgPower` mais garde un TODO "Calculate ?" quand la session ne le fournit pas.
   Scope:
-  - pipeline d'assouplissement déterministe (strict -> relax -> best-effort) identique sur Go/Kotlin,
-  - garantie: si une boucle `Ride` valide existe, ne jamais renvoyer "no candidate" en `Gravel`/`MTB`,
-  - diagnostics normalisés et non contradictoires (`NO_CANDIDATE`, `BACKTRACKING_FILTERED`, etc.).
+  - calculer `averageWatts`, `weightedAverageWatts` et kilojoules depuis le stream quand les champs session sont absents,
+  - partager des fixtures FIT minimales ou des tests de mapping,
+  - documenter les limites des champs FIT selon appareils.
   Acceptance:
-  - tests de non-régression verts,
-  - cas réel: `40km / 800m` génère une route sur zone urbaine dense.
-  Statut 2026-04-21:
-  - fallback target Go/Kotlin sur `closestLoops + variants + seasonal` quand `roadGraphLoops` est vide,
-  - diagnostic normalisé `ENGINE_CACHE_FALLBACK`,
-  - tests API Go/Kotlin mis à jour.
+  - les métriques de puissance FIT ne tombent plus silencieusement à zéro quand le stream permet de les calculer.
+  Statut 2026-04-24:
+  - Go et Kotlin appliquent la même règle: `avgPower` session reste prioritaire, sinon le stream `record.power` calcule `averageWatts`, `weightedAverageWatts` et kilojoules,
+  - la moyenne inclut les échantillons à zéro, ignore les valeurs invalides/négatives et ne s'active que si au moins un échantillon positif existe,
+  - `weightedAverageWatts` utilise une approximation de puissance normalisée par fenêtre glissante de 30 échantillons, avec fallback sur la moyenne pour les streams courts,
+  - les limites FIT sont documentées dans [docs/README.md](/Users/nicolas/Workspace/mystravastats-2/docs/README.md),
+  - des tests de mapping couvrent le fallback stream, la priorité session et les streams sans puissance exploitable côté Go/Kotlin.
 
-- [x] `ROUTE-P0-02` (`P0`, `L`) - Anti-retours robuste hors zone départ/arrivée (2 km).
-  Owners: `Back-Go`, `Back-Kotlin`.
+- [ ] `TECH-P1-05` (`P1`, `L`) - Réduire le risque de divergence Go/Kotlin hors routes.
+  Owners: `Back-Go`, `Back-Kotlin`, `QA`.
   Scope:
-  - contrainte dure: pas de réutilisation d'axe OSM hors zone 2 km (même sens ou sens inverse),
-  - autoriser uniquement les croisements géométriques et la zone de retour,
-  - pénalités fortes sur corridor overlap + edge reuse dans le ranking final.
+  - ajouter des fixtures partagées pour statistiques, badges, dashboard, heatmap et activités détaillées,
+  - comparer au minimum les champs agrégés et les cas limites de dates/streams manquants,
+  - documenter les divergences acceptées quand une fonctionnalité n'existe que dans un backend.
   Acceptance:
-  - baisse nette des aller/retour sur les GPX générés,
-  - tests dédiés sur la métrique de réutilisation d'axes.
-  Progression 2026-04-21:
-  - politique harmonisée Go/Kotlin: `outsideStartAxisReuseLimit = 1` et overlap opposé interdit hors zone départ/retour,
-  - seuil de détection opposée abaissé pour éviter les faux négatifs sur retrace réelle,
-  - tests dédiés Go/Kotlin ajoutés sur la métrique de réutilisation d'axe hors zone 2 km (même sens + sens inverse),
-  - classification "hors zone 2 km" durcie: segment évalué par son midpoint (plus par un seul endpoint), pour éviter les faux négatifs sur longs segments qui traversent la frontière de zone,
-  - validation terrain exécutée via script dédié `scripts/manual-route-anti-retrace-check.sh` (cas dense + rural/péri-rural) avec contrôle systématique des métriques hors zone 2 km,
-  - guide de vérification ajouté: `docs/route-anti-retrace-manual-check.md`.
+  - la parité critique n'est plus limitée au moteur routes.
 
-- [x] `ROUTE-P0-03` (`P0`, `M`) - Direction "globale": améliorer la qualité d'orientation (suite).
-  Owners: `Back-Go`, `Back-Kotlin`.
+### Priorité basse
+
+- [ ] `TECH-P2-01` (`P2`, `M`) - Nettoyer la stratégie d'assets frontend embarqués.
+  Owners: `Front`, `Back-Kotlin`, `Back-Go`, `Infra`.
+  Constat:
+  - Kotlin contient des assets compilés dans `src/main/resources/static`,
+  - Go embarque `public`,
+  - le frontend a son propre build Vite.
   Scope:
-  - `Direction` influence l'orientation moyenne de la boucle,
-  - renforcer la stabilité du respect de quadrant demandé quand plusieurs candidats existent,
-  - homogénéiser le scoring de direction entre Go/Kotlin sur les cas limites.
+  - définir si les assets compilés sont générés au build ou versionnés,
+  - éviter les assets obsolètes dans les backends,
+  - rendre les scripts de capture docs compatibles avec le mode retenu.
   Acceptance:
-  - génération réussie avec et sans direction,
-  - la boucle respecte majoritairement le quadrant demandé quand possible.
-  Progression 2026-04-23:
-  - tri de sélection priorise plus tôt la pénalité de direction quand une direction est demandée,
-  - seuils directionnels resserrés sur les profils `strict/balanced/relaxed/fallback` en Go/Kotlin,
-  - nouvelle pénalité Go/Kotlin pour excursions lointaines dans la direction opposée (dense urban grid) + dominance lobe resserrée,
-  - nouvelle pénalité Go/Kotlin "majorité de quadrant" (pondérée par longueur de segments) pour mieux stabiliser l'orientation globale demandée en grille urbaine,
-  - tests dédiés Go/Kotlin ajoutés sur la calibration directionnelle (local oscillation vs excursion opposée),
-  - validation terrain finale exécutée via script dédié `scripts/manual-route-direction-check.sh` (matrice `NONE/N/E/S/W` sur cas dense + rural/péri-rural),
-  - guide de vérification ajouté: `docs/route-direction-manual-check.md`,
-  - en terrain réel, les directions tenables restent explicitement alignées (`Directional alignment` observé >= `88%`) et les cas non tenables sont explicitement relâchés (`DIRECTION_RELAXED`/`DIRECTION_BEST_EFFORT`).
+  - un build release ne peut pas embarquer une ancienne UI par accident.
 
-- [x] `ROUTE-P0-04` (`P0`, `M`) - Guidage historique par type pour départ/retour (step 2).
-  Owners: `Back-Go`, `Back-Kotlin`.
+- [x] `TECH-P2-02` (`P2`, `S`) - Centraliser la configuration runtime.
+  Owners: `Back-Go`, `Back-Kotlin`, `Docs`.
   Scope:
-  - exploiter `historyProfile` (déjà propagé) comme signal positif de ranking pour privilégier les corridors déjà praticables par type (`Ride`, `Gravel`, `MTB`),
-  - favoriser les segments connus autour du départ/retour (zone ~2km) sans casser les contraintes anti-retours,
-  - conserver un fallback cache quand le graphe OSRM ne couvre pas certains chemins utilisés historiquement.
+  - lister les variables `STRAVA_CACHE_PATH`, `FIT_FILES_PATH`, `GPX_FILES_PATH`, `OSM_ROUTING_*`, `CORS_ALLOWED_ORIGINS`,
+  - exposer les valeurs effectives non sensibles dans `/api/health/details`,
+  - documenter les valeurs par défaut Go/Kotlin au même endroit.
   Acceptance:
-  - amélioration visible des routes proposées sur les zones familières de l'utilisateur,
-  - pas de régression sur l'anti-backtracking hors zone départ/arrivée.
+  - diagnostiquer une mauvaise config ne nécessite plus de lire plusieurs fichiers.
+  Statut 2026-04-24:
+  - configuration runtime centralisée côté Go/Kotlin avec exposition non sensible sous `runtimeConfig` dans `/api/health/details`,
+  - CORS Kotlin raccordé à `CORS_ALLOWED_ORIGINS` comme Go,
+  - page Diagnostics enrichie avec une section `Runtime Config`,
+  - table unique des variables/defaults Go/Kotlin ajoutée dans `docs/README.md`.
 
-- [x] `ROUTE-P1-01` (`P1`, `L`) - Vrai scoring surface (OSM tags `surface` / `tracktype`).
+- [x] `TECH-P2-03` (`P2`, `S`) - Durcir la gestion CORS et credentials.
   Owners: `Back-Go`, `Back-Kotlin`, `Infra`.
   Scope:
-  - enrichir les segments routés pour récupérer la typologie de revêtement,
-  - appliquer les règles métier:
-    - `Ride`: privilégier asphalt/paved,
-    - `Gravel`: minimum 25% chemins (fallback Ride si impossible),
-    - `MTB`: maximiser chemins/track.
+  - harmoniser la configuration CORS Go/Kotlin,
+  - rendre les origins configurables côté Kotlin comme côté Go,
+  - ajouter tests de préflight OPTIONS.
   Acceptance:
-  - différence visible de parcours entre `Ride`, `Gravel`, `MTB`,
-  - tests de classement par type de surface.
-  Progression 2026-04-23:
-  - parsing Go/Kotlin enrichi pour exploiter `surface` et `tracktype` quand disponibles (tags dédiés et formats `surface=...`, `surface:...`, `tracktype=...` dans `classes`),
-  - calibration cohérente `tracktype` (`grade1 -> paved`, `grade2/3 -> gravel`, `grade4/5 -> trail`) + fallback heuristiques conservé,
-  - diagnostics surface précisent maintenant la source `classes + mode + surface/tracktype tags`,
-  - tests dédiés Go/Kotlin ajoutés sur la classification et le ranking par type (`RIDE/GRAVEL/MTB`),
-  - validation terrain finale exécutée via script dédié `scripts/manual-route-surface-check.sh` (scénarios `dense-urban` et `mixed-urban-paths`),
-  - guide de vérification ajouté: `docs/route-surface-manual-check.md`,
-  - calibration terrain confirmée sur extraits OSM réels: raisons surface systématiquement présentes (`Surface mix`, `Path ratio`, `Surface fitness`, `Surface source`) et comportement distinct par type (`RIDE` sans fallback, `GRAVEL` fallback quand ratio chemins insuffisant, `MTB` conservé avec fitness surface fortement pénalisée sur profil majoritairement paved).
+  - comportement identique en dev, Docker et release locale.
+  Statut 2026-04-24:
+  - configuration CORS Go/Kotlin harmonisée: origins explicites via `CORS_ALLOWED_ORIGINS`, credentials activés, méthodes `GET/POST/PUT/DELETE/OPTIONS`,
+  - header `X-Request-Id` autorisé avec `Content-Type` et `Authorization` pour préserver les diagnostics côté routes,
+  - tests de préflight OPTIONS ajoutés côté Go et Kotlin avec rejet d'une origin non configurée,
+  - `/api/health/details.runtimeConfig.cors` expose désormais origins, méthodes, headers et credentials.
 
-- [x] `ROUTE-P1-04` (`P1`, `L`) - Shape mode v1 utilisable terrain.
-  Owners: `Front`, `Back-Go`, `Back-Kotlin`.
-  Scope:
-  - finaliser l'import GPX stable côté UI (polyline encodée déjà supportée côté backend),
-  - projection shape -> réseau routier,
-  - au moins 2 variantes scorées (shape-first / road-first),
-  - export GPX par variante.
+## Améliorations fonctionnelles proposées
+
+### Priorité haute
+
+- [ ] `FUNC-P0-01` (`P0`, `L`) - Objectifs annuels et projections.
+  Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
+  Proposition:
+  - permettre de définir des objectifs par sport: distance, dénivelé, temps, nombre de sorties, jours actifs, Eddington,
+  - afficher progression, rythme nécessaire, projection fin d'année et statut `en avance / juste / en retard`,
+  - stocker les objectifs localement dans le cache athlète.
+  Valeur:
+  - transforme le dashboard historique en tableau de bord d'aide à la décision.
   Acceptance:
-  - une forme simple produit au moins une route praticable.
-  Progression 2026-04-23:
-  - moteur shape Go/Kotlin enrichi avec deux stratégies scorées: `shape-first` (projection fidèle) et `road-first` (ancres routières compactes),
-  - parsing shape Go/Kotlin rendu robuste pour `JSON points`, `polyline encodée` et `GPX trkpt/rtept/wpt`,
-  - endpoints shape Go/Kotlin infèrent désormais le filtre de forme aussi pour les payloads GPX,
-  - UI Vue: import GPX (fichier `.gpx`) ajouté, conversion en tracé exploitable et prévisualisation carte,
-  - UI Vue: import GPX multi-fichiers en mode `replace`/`append` + édition rapide du tracé (`undo last point`) pour composer des formes multi-segments,
-  - calibration Go/Kotlin du scoring `shape-first/road-first`: pénalité de dérive de forme adaptative (plus stricte en `road-first`) + tests dédiés de non-régression,
-  - validation terrain finale exécutée sur backend Go + OSRM (dense urbain + péri-rural) avec script dédié `scripts/manual-route-shape-tuning-check.sh` et guide `docs/route-shape-tuning-manual-check.md`.
+  - objectifs persistés sans dépendance à Strava,
+  - affichage cohérent avec le filtre sport/année courant.
 
-- [x] `ROUTE-P2-01` (`P2`, `M`) - Observabilité routes.
-  Owners: `Back-Go`, `Back-Kotlin`, `Front`.
-  Scope:
-  - logs structurés (`requestId`, mode, routeType, target km/D+, temps de génération, raisons rejet),
-  - résumé compact affichable côté UI en cas d'échec.
+- [ ] `FUNC-P0-02` (`P0`, `M`) - Bibliothèque de routes générées.
+  Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
+  Constat:
+  - les routes générées sont exportables, mais le cache serveur est temporaire.
+  Proposition:
+  - sauvegarder une route générée avec nom, sport, distance, D+, score, surface mix et GPX,
+  - retrouver ses routes plus tard,
+  - marquer favorites, à tester, déjà faite, à éviter.
   Acceptance:
-  - diagnostic actionnable en moins d'1 minute sans lire tout le log brut.
-  Statut 2026-04-21:
-  - propagation `X-Request-Id` Go/Kotlin (header entrant conservé ou généré serveur),
-  - logs structurés `category=routes` avec `requestId`, mode, type de route, cibles, diagnostics, raisons et `durationMs`,
-  - diagnostic compact `FAILURE_SUMMARY` renvoyé côté API en cas d'échec (target + shape),
-  - UI routes mise à jour pour afficher un encart de synthèse en haut des diagnostics d'échec.
+  - une route générée reste disponible après redémarrage backend,
+  - export GPX possible depuis la bibliothèque.
 
-- [x] `ROUTE-P2-02` (`P2`, `M`) - Parité automatique Go/Kotlin.
-  Owners: `QA`, `Back-Go`, `Back-Kotlin`.
-  Scope:
-  - fixtures communes + assertions de contrat sur le top résultat,
-  - comparaison des diagnostics de rejet.
+- [x] `FUNC-P0-03` (`P0`, `M`) - Page Diagnostics utilisateur.
+  Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
+  Proposition:
+  - afficher cache, provider actif, années disponibles, état warmup, quota/rate-limit Strava connu, santé OSRM,
+  - ajouter actions guidées: relancer un warmup, vérifier OSRM, ouvrir le dossier cache, expliquer un mode dégradé.
+  Valeur:
+  - réduit fortement le temps passé à comprendre pourquoi une vue est vide ou lente.
   Acceptance:
-  - CI rouge si divergence de comportement critique.
-  Statut 2026-04-21:
-  - fixture partagée `test-fixtures/routes/route-explorer-parity.json` consommée par tests Go + Kotlin (contrat top résultat),
-  - fixture partagée `test-fixtures/routes/target-diagnostics-parity.json` consommée par tests Go + Kotlin (mapping diagnostics),
-  - exécuté dans les pipelines tests existants (`go test ./...` et `./gradlew test`) => divergence critique fait échouer la CI.
+  - `/api/health/details` alimente une vue lisible sans ouvrir les logs.
+  Statut 2026-04-24:
+  - page `/diagnostics` ajoutée avec synthèse provider/cache/années, warmup, rate-limit Strava, santé OSRM, fichiers cache et payload brut,
+  - actions UI ajoutées: refresh global, check OSRM via refresh santé et copie du chemin cache,
+  - mode dégradé traduit en raisons utilisateur: backend indisponible, rate-limit, OSRM down/misconfigured/disabled, warmup ou refresh en cours,
+  - `/api/health/details` enrichi côté Go/Kotlin avec provider actif, nombre d'activités, années disponibles et état des jobs background,
+  - les providers locaux Kotlin GPX/FIT exposent désormais aussi leurs diagnostics de base,
+  - onglet renommé visuellement en `Status`, avec section cache enrichie: source, activités, années, fichiers, taille, dates manifest et warmup.
 
-### Definition of Done (mise à jour)
+### Priorité moyenne
 
-- `Target` génère une boucle praticable dans >90% des cas de test locaux.
-- Hors zone 2 km autour du départ/arrivée, pas de réutilisation d'axe (même sens ou inverse).
-- `Gravel` et `MTB` diffèrent réellement de `Ride` sur la part de chemins.
-- Plus de "0 route" tant qu'une solution `Ride` valide existe.
-- Quand le profil historique est activé, le départ/retour réutilise préférentiellement des axes déjà pratiqués par type de sport.
-- Parité Go/Kotlin validée en CI sur fixtures partagées.
+- [ ] `FUNC-P1-01` (`P1`, `L`) - Recommandations "prochaine sortie".
+  Owners: `Product`, `Routes`, `Front`.
+  Proposition:
+  - proposer des sorties selon temps disponible, sport, fatigue approximative, météo non requise, historique récent,
+  - mélanger routes générées OSRM et boucles historiques,
+  - expliquer pourquoi la sortie est proposée: endurance, récupération, dénivelé, variété, familiarité.
+  Acceptance:
+  - au moins trois recommandations actionnables sans saisie complexe.
+
+- [x] `FUNC-P1-02` (`P1`, `M`) - "What is next?" pour records et Eddington.
+  Owners: `Product`, `Stats`, `Front`.
+  Proposition:
+  - montrer les records les plus proches à battre,
+  - calculer les sorties nécessaires pour progresser sur Eddington,
+  - suggérer des distances cibles réalistes selon l'historique.
+  Acceptance:
+  - une section du dashboard donne une action concrète pour progresser.
+  Statut 2026-04-24:
+  - endpoint Go/Kotlin `GET /api/statistics/what-is-next` ajouté,
+  - suggestions PR triées par proximité avec le meilleur challenger historique,
+  - action Eddington calculée avec jours manquants pour `E+1` et distance solide issue de l'historique,
+  - section dashboard `What is next?` ajoutée avec l'action Eddington et les trois cibles PR les plus proches.
+
+- [ ] `FUNC-P1-03` (`P1`, `M`) - Analyse matériel.
+  Owners: `Product`, `Stats`, `Front`.
+  Proposition:
+  - exploiter les données gear/bike/shoe déjà présentes dans les modèles Strava,
+  - afficher distance, temps, D+, vitesse moyenne, records et maintenance par équipement,
+  - gérer les équipements absents pour GPX/FIT.
+  Acceptance:
+  - vue filtrable par vélo/chaussures avec totaux fiables.
+
+- [ ] `FUNC-P1-04` (`P1`, `M`) - Comparaison d'activité à effort similaire.
+  Owners: `Product`, `Stats`, `Front`.
+  Proposition:
+  - dans le détail activité, comparer avec les sorties proches en distance/D+/sport/saison,
+  - afficher écarts de vitesse, fréquence cardiaque, puissance, cadence et segments communs,
+  - indiquer si la sortie est atypique.
+  Acceptance:
+  - une activité donne immédiatement du contexte par rapport aux sorties comparables.
+
+- [ ] `FUNC-P1-05` (`P1`, `M`) - Enrichir Routes avec difficulté et lisibilité terrain.
+  Owners: `Product`, `Routes`, `Front`.
+  Proposition:
+  - afficher difficulté estimée, surface mix, part inconnue, confiance du profil OSRM et raisons de fallback directement sur la carte,
+  - filtrer ou trier par `plus roulant`, `plus chemin`, `moins de demi-tours`, `plus familier`,
+  - conserver les diagnostics techniques mais les traduire en signaux produit.
+  Acceptance:
+  - un utilisateur peut choisir une route sans lire les raisons brutes du moteur.
+
+### Priorité basse
+
+- [ ] `FUNC-P2-01` (`P2`, `M`) - Import local guidé GPX/FIT.
+  Owners: `Product`, `Front`, `Back-Kotlin`, `Back-Go`.
+  Proposition:
+  - assistant de configuration pour sélectionner un dossier GPX/FIT,
+  - validation de l'arborescence par année,
+  - preview du nombre d'activités détectées et des champs manquants.
+  Acceptance:
+  - un usage sans Strava est compréhensible depuis l'UI.
+
+- [ ] `FUNC-P2-02` (`P2`, `M`) - Calendrier d'entraînement unifié.
+  Owners: `Product`, `Front`, `Stats`.
+  Proposition:
+  - vue calendrier combinant heatmap, charge hebdo, jours de repos, sorties longues et intensités,
+  - navigation semaine/mois/année,
+  - annotations manuelles locales.
+  Acceptance:
+  - lecture rapide de la régularité et des trous d'entraînement.
+
+- [ ] `FUNC-P2-03` (`P2`, `S`) - Export enrichi.
+  Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
+  Proposition:
+  - exports CSV par vue avec les filtres appliqués,
+  - export JSON des objectifs/routes sauvegardées,
+  - export GPX groupé depuis la bibliothèque de routes.
+  Acceptance:
+  - les données importantes restent portables hors application.
+
+## Dette visible à traiter en premier
+
+- contrat OpenAPI partagé entre backends et frontend (`TECH-P1-01`),
+- automatisation des checks routes encore manuels (`TECH-P1-02`),
+- couverture frontend des parcours principaux (`TECH-P1-03`),
+- fixtures de parité Go/Kotlin hors routes (`TECH-P1-05`).
+
+## Vérification conseillée selon le type de changement
+
+- Docs seulement: relecture Markdown.
+- Front: `cd front-vue && npm run type-check && npm run test:unit`.
+- Back Go: `cd back-go && go test ./...`.
+- Back Kotlin: `cd back-kotlin && ./gradlew test`.
+- Routes: lancer les tests ciblés Go/Kotlin + checks OSRM automatisés ou manuels documentés.

@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory
 import java.time.LocalDate
 import kotlin.system.measureTimeMillis
 
-class GpxActivityProvider(gpxCache: String, private val srtmProvider: SRTMProvider) : AbstractActivityProvider() {
+class GpxActivityProvider(private val gpxCache: String, private val srtmProvider: SRTMProvider) : AbstractActivityProvider() {
     private val logger = LoggerFactory.getLogger(GpxActivityProvider::class.java)
 
     private val localStorageProvider = GPXRepository(gpxCache)
@@ -25,6 +25,14 @@ class GpxActivityProvider(gpxCache: String, private val srtmProvider: SRTMProvid
 
     override fun getDetailedActivity(activityId: Long): StravaDetailedActivity? {
         return getActivity(activityId)?.toStravaDetailedActivity()
+    }
+
+    override fun getCacheDiagnostics(): Map<String, Any?> {
+        return basicCacheDiagnostics(
+            provider = "gpx",
+            sourcePathKey = "gpxDirectory",
+            sourcePath = gpxCache,
+        )
     }
 
     private fun loadFromLocalCache(): List<StravaActivity> {

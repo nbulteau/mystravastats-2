@@ -9,7 +9,6 @@ import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import java.io.File
 import jakarta.annotation.PreDestroy
 
 
@@ -19,38 +18,11 @@ class ActivityProviderConfig {
 
     private var createdProvider: AutoCloseable? = null
 
-    private fun readConfigValue(key: String): String? {
-        val fromEnv = System.getenv(key)?.trim()
-        if (!fromEnv.isNullOrEmpty()) {
-            return fromEnv
-        }
-
-        val dotEnv = File(".env")
-        if (!dotEnv.exists() || !dotEnv.isFile) {
-            return null
-        }
-
-        return dotEnv.useLines { lines ->
-            lines
-                .map { it.trim() }
-                .filter { it.isNotEmpty() && !it.startsWith("#") && it.contains("=") }
-                .map { line ->
-                    val separator = line.indexOf('=')
-                    val envKey = line.substring(0, separator).trim()
-                    val envValue = line.substring(separator + 1).trim().trim('"', '\'')
-                    envKey to envValue
-                }
-                .firstOrNull { (envKey, _) -> envKey == key }
-                ?.second
-                ?.takeIf { it.isNotEmpty() }
-        }
-    }
-
     @Bean
     fun activityProvider(): IActivityProvider {
-        val stravaCache: String? = readConfigValue("STRAVA_CACHE_PATH")
-        val fitCache: String? = readConfigValue("FIT_FILES_PATH")
-        val gpxCache: String? = readConfigValue("GPX_FILES_PATH")
+        val stravaCache: String? = RuntimeConfig.readConfigValue("STRAVA_CACHE_PATH")
+        val fitCache: String? = RuntimeConfig.readConfigValue("FIT_FILES_PATH")
+        val gpxCache: String? = RuntimeConfig.readConfigValue("GPX_FILES_PATH")
 
         logger.info("Resolved STRAVA_CACHE_PATH={}", stravaCache ?: "strava-cache (default)")
 

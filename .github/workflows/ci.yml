@@ -16,6 +16,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  toolchains:
+    name: Toolchain declarations
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check manifest/Docker/CI alignment
+        run: bash scripts/check-toolchains.sh
+
   back-go:
     name: Back Go (fmt + test)
     runs-on: ubuntu-latest
@@ -29,7 +39,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: current
+          node-version: "25.9.0"
           cache: npm
           cache-dependency-path: front-vue/package-lock.json
 
@@ -46,7 +56,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: stable
+          go-version: "1.26.2"
           cache-dependency-path: back-go/go.sum
 
       - name: Check gofmt
@@ -94,7 +104,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: current
+          node-version: "25.9.0"
           cache: npm
           cache-dependency-path: front-vue/package-lock.json
 

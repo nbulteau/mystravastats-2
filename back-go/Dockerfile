@@ -1,5 +1,5 @@
-# Use an official Golang image to build the application
-FROM golang:1.24.3-alpine AS build
+# Use the same Go version declared in go.mod.
+FROM golang:1.26.2-alpine AS build
 
 # Set the working directory
 WORKDIR /app
@@ -18,6 +18,13 @@ RUN go build -o mystravastats .
 
 # Use a minimal image for the runtime
 FROM alpine:latest AS runtime
+
+# Install CA certificates for Strava HTTPS calls and curl for container healthchecks.
+RUN apk add --no-cache ca-certificates curl
+
+ENV SERVER_HOST=0.0.0.0
+ENV PORT=8080
+ENV OPEN_BROWSER=false
 
 # Set the working directory
 WORKDIR /app

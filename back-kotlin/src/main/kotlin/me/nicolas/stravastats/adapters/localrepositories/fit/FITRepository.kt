@@ -60,14 +60,13 @@ class FITRepository(fitDirectory: String) {
         val averageHeartRate: Double = sessionMesg?.avgHeartRate?.toDouble() ?: 0.0
         // The maximum heart rate of the stravaAthlete during this effort
         val maxHeartRate: Int = sessionMesg?.maxHeartRate?.toInt() ?: 0
-        //The average wattage of this effort
-        val averageWatts: Int = sessionMesg?.avgPower ?: 0 // TODO : Calculate ?
         // Whether this stravaActivity is a commute
         val commute = false
         // The stravaActivity's distance, in meters
         val distance: Double = sessionMesg?.totalDistance?.toDouble() ?: 0.0
         // The stravaActivity's elapsed time, in seconds
         val elapsedTime: Int = sessionMesg?.totalElapsedTime?.toInt() ?: 0
+        val powerMetrics = computeFitPowerMetrics(sessionMesg?.avgPower, stream, elapsedTime)
         // The stravaActivity's highest elevation, in meters
         val extractedElevHigh: Double = extractElevHigh(sessionMesg)
         val elevHigh: Double = if (extractedElevHigh != 0.0) {
@@ -77,8 +76,6 @@ class FITRepository(fitDirectory: String) {
         } else {
             0.0
         }
-        // The total work done in kilojoules during this stravaActivity. Rides only
-        val kilojoules = 0.8604 * averageWatts * elapsedTime / 1000
         // The stravaActivity's max speed, in meters per second
         val maxSpeed: Float = sessionMesg?.maxSpeed ?: 0.0F
         // The stravaActivity's moving time, in seconds
@@ -110,13 +107,14 @@ class FITRepository(fitDirectory: String) {
             averageCadence = averageCadence,
             averageHeartrate = averageHeartRate,
             maxHeartrate = maxHeartRate,
-            averageWatts = averageWatts,
+            averageWatts = powerMetrics.averageWatts,
             commute = commute,
             distance = distance,
+            deviceWatts = powerMetrics.hasDeviceWatts,
             elapsedTime = elapsedTime,
             elevHigh = elevHigh,
             id = id,
-            kilojoules = kilojoules,
+            kilojoules = powerMetrics.kilojoules,
             maxSpeed = maxSpeed,
             movingTime = movingTime,
             name = name,
@@ -126,7 +124,7 @@ class FITRepository(fitDirectory: String) {
             totalElevationGain = totalElevationGain,
             type = type,
             uploadId = 0,
-            weightedAverageWatts = sessionMesg.avgPower ?: 0,
+            weightedAverageWatts = powerMetrics.weightedAverageWatts,
             stream = stream
         )
     }

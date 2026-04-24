@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
+import java.time.Instant
 import kotlin.math.roundToInt
 
 abstract class AbstractActivityProvider : IActivityProvider {
@@ -89,6 +90,38 @@ abstract class AbstractActivityProvider : IActivityProvider {
     override fun getActivity(activityId: Long): StravaActivity? {
         logger.info("Get stravaActivity for stravaActivity id $activityId")
         return activitiesIndex[activityId]
+    }
+
+    override fun getCacheDiagnostics(): Map<String, Any?> {
+        return basicCacheDiagnostics(
+            provider = this::class.simpleName?.removeSuffix("ActivityProvider")?.lowercase() ?: "local",
+        )
+    }
+
+    protected fun basicCacheDiagnostics(
+        provider: String,
+        sourcePathKey: String? = null,
+        sourcePath: String? = null,
+    ): Map<String, Any?> {
+        val activitiesSnapshot = activities
+        val details = mutableMapOf<String, Any?>(
+            "timestamp" to Instant.now().toString(),
+            "provider" to provider,
+            "athleteId" to if (::stravaAthlete.isInitialized) stravaAthlete.id else null,
+            "activities" to activitiesSnapshot.size,
+            "availableYearBins" to activitiesSnapshot
+                .mapNotNull { activity ->
+                    val year = activity.startDateLocal.extractYear()
+                        .ifEmpty { activity.startDate.extractYear() }
+                    year.takeIf { it.isNotEmpty() }
+                }
+                .distinct()
+                .sorted(),
+        )
+        if (sourcePathKey != null && sourcePath != null) {
+            details[sourcePathKey] = sourcePath
+        }
+        return details
     }
 
     override fun getActivitiesByActivityTypeGroupByActiveDays(activityTypes: Set<ActivityType>): Map<String, Int> {
@@ -181,5 +214,10 @@ abstract class AbstractActivityProvider : IActivityProvider {
         } else {
             this.filter { activity -> activity.startDateLocal.subSequence(0, 4).toString().toInt() == year }
         }
+    }
+
+    private fun String?.extractYear(): String {
+        val value = this?.trim().orEmpty()
+        return if (value.length >= 4) value.substring(0, 4) else ""
     }
 }

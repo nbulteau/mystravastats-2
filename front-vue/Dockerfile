@@ -1,4 +1,4 @@
-FROM node:lts-alpine AS build
+FROM node:25.9.0-alpine AS build
 
 # install simple http server for serving static content
 # RUN npm install -g http-server
@@ -9,8 +9,8 @@ WORKDIR /app
 # copy both 'package.json' and 'package-lock.json' (if available)
 COPY package*.json ./
 
-# install project dependencies
-RUN npm install
+# install project dependencies from the lockfile
+RUN npm ci
 
 # copy project files and folders to the current working directory (i.e. 'app' folder)
 COPY . .
@@ -19,6 +19,8 @@ COPY . .
 RUN npm run build
 
 FROM nginx:alpine-slim AS runtime
+
+ENV API_BACKEND_URL=http://back:8080
 
 RUN mkdir -p /app && chown nginx:nginx /app
 COPY conf/default.conf.template /etc/nginx/templates/

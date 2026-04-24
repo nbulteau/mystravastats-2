@@ -2,9 +2,11 @@ package stravaapi
 
 import (
 	"os"
+	"sort"
 	"time"
 
 	"mystravastats/domain/statistics"
+	"mystravastats/internal/shared/domain/strava"
 )
 
 func (provider *StravaActivityProvider) CacheDiagnostics() map[string]any {
@@ -15,10 +17,24 @@ func (provider *StravaActivityProvider) CacheDiagnostics() map[string]any {
 	bestEffortPath := bestEffortCachePath(provider.cacheRoot, provider.clientId, manifest)
 	warmupPath := warmupSummariesPath(provider.cacheRoot, provider.clientId, manifest)
 	manifestPath := cacheManifestPath(provider.cacheRoot, provider.clientId)
+	activities := provider.getActivitiesSnapshot()
+	rateLimitUntilUnix := provider.rateLimitUntilUnix.Load()
 
 	return map[string]any{
-		"timestamp": time.Now().UTC().Format(time.RFC3339),
-		"athleteId": provider.clientId,
+		"timestamp":         time.Now().UTC().Format(time.RFC3339),
+		"provider":          "strava",
+		"athleteId":         provider.clientId,
+		"cacheRoot":         provider.cacheRoot,
+		"activities":        len(activities),
+		"availableYearBins": availableYearBins(activities),
+		"refresh": map[string]any{
+			"backgroundInProgress": provider.backgroundRefresh.Load(),
+			"warmupInProgress":     provider.warmupInProgress.Load(),
+		},
+		"rateLimit": map[string]any{
+			"active":       provider.isStravaRateLimitedNow(),
+			"untilEpochMs": rateLimitUntilUnix * 1000,
+		},
 		"manifest": map[string]any{
 			"schemaVersion": manifest.SchemaVersion,
 			"updatedAt":     manifest.UpdatedAt,
@@ -45,6 +61,36 @@ func (provider *StravaActivityProvider) CacheDiagnostics() map[string]any {
 			"warmupSummaries": fileDetails(warmupPath),
 		},
 	}
+}
+
+func availableYearBins(activities []*strava.Activity) []string {
+	yearsSet := make(map[string]struct{})
+	for _, activity := range activities {
+		if activity == nil {
+			continue
+		}
+		year := extractActivityYear(activity.StartDateLocal)
+		if year == "" {
+			year = extractActivityYear(activity.StartDate)
+		}
+		if year != "" {
+			yearsSet[year] = struct{}{}
+		}
+	}
+
+	years := make([]string, 0, len(yearsSet))
+	for year := range yearsSet {
+		years = append(years, year)
+	}
+	sort.Strings(years)
+	return years
+}
+
+func extractActivityYear(value string) string {
+	if len(value) >= 4 {
+		return value[:4]
+	}
+	return ""
 }
 
 func fileDetails(path string) map[string]any {

@@ -23,3 +23,15 @@ services:
     command: osrm-routed --algorithm mld /data/region.osrm
     ports:
       - "5000:5000"
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /data/region.osrm"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - front-back
+
+networks:
+  front-back:
+    driver: bridge

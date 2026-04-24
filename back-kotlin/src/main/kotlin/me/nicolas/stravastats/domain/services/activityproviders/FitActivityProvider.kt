@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory
 import java.time.LocalDate
 import kotlin.system.measureTimeMillis
 
-class FitActivityProvider(fitCache: String, private val srtmProvider: SRTMProvider) : AbstractActivityProvider() {
+class FitActivityProvider(private val fitCache: String, private val srtmProvider: SRTMProvider) : AbstractActivityProvider() {
     private val logger = LoggerFactory.getLogger(FitActivityProvider::class.java)
 
     private val localStorageProvider = FITRepository(fitCache)
@@ -24,6 +24,14 @@ class FitActivityProvider(fitCache: String, private val srtmProvider: SRTMProvid
 
     override fun getDetailedActivity(activityId: Long): StravaDetailedActivity? {
         return getActivity(activityId)?.toStravaDetailedActivity()
+    }
+
+    override fun getCacheDiagnostics(): Map<String, Any?> {
+        return basicCacheDiagnostics(
+            provider = "fit",
+            sourcePathKey = "fitDirectory",
+            sourcePath = fitCache,
+        )
     }
 
     private fun loadFromLocalCache(): List<StravaActivity> {

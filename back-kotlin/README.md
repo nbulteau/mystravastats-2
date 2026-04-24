@@ -2,10 +2,11 @@
 
 ## Launch mystravastats backend
 
-JDK 21 is needed to run mystravastats.
+JDK 25 is needed to run mystravastats.
 
 ```shell
-sdk install java 21.0.4-tem
+sdk list java
+sdk install java <latest 25.x-tem identifier>
 
 git clone https://github.com/nbulteau/mystravastats.git
 cd mystravastats

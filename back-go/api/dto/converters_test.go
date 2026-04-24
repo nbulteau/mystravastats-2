@@ -121,6 +121,30 @@ func TestBuildActivityEfforts_DirectionAwareSegmentLabels(t *testing.T) {
 	}
 }
 
+func TestToBadgeDto_UsesRepresentativeBadgeActivityTypeForRideVariants(t *testing.T) {
+	dto := ToBadgeDto(badges.DistanceRideLevel1, business.GravelRide, business.MountainBikeRide, business.Ride)
+
+	if dto.Type != "RideDistanceBadge" {
+		t.Fatalf("expected RideDistanceBadge, got %q", dto.Type)
+	}
+}
+
+func TestToBadgeDto_UsesRepresentativeBadgeActivityTypeForTrailRun(t *testing.T) {
+	dto := ToBadgeDto(badges.DistanceRunLevel1, business.TrailRun)
+
+	if dto.Type != "RunDistanceBadge" {
+		t.Fatalf("expected RunDistanceBadge, got %q", dto.Type)
+	}
+}
+
+func TestToBadgeDto_UsesRepresentativeBadgeActivityTypeForWalk(t *testing.T) {
+	dto := ToBadgeDto(badges.DistanceHikeLevel1, business.Walk)
+
+	if dto.Type != "HikeDistanceBadge" {
+		t.Fatalf("expected HikeDistanceBadge, got %q", dto.Type)
+	}
+}
+
 func TestBuildActivityEfforts_NaNAltitudeFallsBackToSegmentDelta(t *testing.T) {
 	// GIVEN
 	detailedActivity := &strava.DetailedActivity{

@@ -777,10 +777,19 @@ class StravaActivityProvider(
         val manifestPath = CacheManifestStore.manifestPath(cacheRoot, clientId)
         val bestEffortPath = CacheManifestStore.bestEffortCachePath(cacheRoot, clientId, manifestSnapshot)
         val warmupPath = CacheManifestStore.warmupSummariesPath(cacheRoot, clientId, manifestSnapshot)
+        val basicDiagnostics = basicCacheDiagnostics(
+            provider = "strava",
+            sourcePathKey = "cacheRoot",
+            sourcePath = cacheRoot,
+        )
 
-        return mapOf(
+        return basicDiagnostics + mapOf(
             "timestamp" to Instant.now().toString(),
             "athleteId" to clientId,
+            "refresh" to mapOf(
+                "backgroundInProgress" to backgroundRefreshStarted.get(),
+                "warmupInProgress" to warmupInProgress.get(),
+            ),
             "rateLimit" to mapOf(
                 "active" to isRateLimitActive(),
                 "untilEpochMs" to rateLimitUntilMs.get(),

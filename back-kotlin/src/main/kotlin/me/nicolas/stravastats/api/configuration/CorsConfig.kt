@@ -1,5 +1,6 @@
 package me.nicolas.stravastats.api.configuration
 
+import me.nicolas.stravastats.domain.RuntimeConfig
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.cors.CorsConfiguration
@@ -12,9 +13,9 @@ class CorsConfig {
     @Bean
     fun corsFilter(): CorsFilter {
         val config = CorsConfiguration()
-        config.allowedOriginPatterns = listOf("http://localhost", "http://localhost:5173")
-        config.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
-        config.allowedHeaders = listOf("Content-Type", "Authorization")
+        config.allowedOrigins = RuntimeConfig.corsAllowedOrigins()
+        config.allowedMethods = RuntimeConfig.corsAllowedMethods()
+        config.allowedHeaders = RuntimeConfig.corsAllowedHeaders()
         config.allowCredentials = true
 
         val source = UrlBasedCorsConfigurationSource()

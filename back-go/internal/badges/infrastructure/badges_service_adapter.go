@@ -8,6 +8,7 @@ import (
 	"mystravastats/domain/badges"
 	"mystravastats/internal/platform/activityprovider"
 	"mystravastats/internal/shared/domain/business"
+	"mystravastats/internal/shared/domain/strava"
 	"os"
 	"path/filepath"
 	"strings"
@@ -34,9 +35,16 @@ func (adapter *BadgesServiceAdapter) FindGeneralBadges(year *int, activityTypes 
 	}
 
 	activities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
-	activityType := activityTypes[0]
+	return checkGeneralBadges(activities, activityTypes...)
+}
 
-	switch activityType {
+func checkGeneralBadges(activities []*strava.Activity, activityTypes ...business.ActivityType) []business.BadgeCheckResult {
+	representativeActivityType, ok := business.RepresentativeBadgeActivityType(activityTypes...)
+	if !ok {
+		return []business.BadgeCheckResult{}
+	}
+
+	switch representativeActivityType {
 	case business.Ride:
 		return append(append(badges.DistanceRideBadgeSet.Check(activities),
 			badges.ElevationRideBadgeSet.Check(activities)...),
@@ -66,8 +74,8 @@ func (adapter *BadgesServiceAdapter) FindFamousBadges(year *int, activityTypes .
 	})
 
 	activities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
-	activityType := activityTypes[0]
-	if activityType == business.Ride {
+	representativeActivityType, ok := business.RepresentativeBadgeActivityType(activityTypes...)
+	if ok && representativeActivityType == business.Ride {
 		return append(alpesBadgeSet.Check(activities), pyreneesBadgeSet.Check(activities)...)
 	}
 

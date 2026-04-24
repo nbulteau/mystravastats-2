@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import io.swagger.v3.oas.annotations.media.Schema
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.badges.*
+import me.nicolas.stravastats.domain.business.representativeBadgeActivityType
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 
 @Schema(description = "Badge check result", name = "BadgeCheckResult")
@@ -124,25 +125,27 @@ fun Badge.toDto(activityTypes: Set<ActivityType>): BadgeDto {
 }
 
 private fun ElevationBadge.toDto(activityTypes: Set<ActivityType>): BadgeDto {
-    return BadgeDto(this.label, this.totalElevationGain.toString(), activityTypes.first().name + this.javaClass.simpleName)
+    return BadgeDto(this.label, this.totalElevationGain.toString(), badgeType(activityTypes, this.javaClass.simpleName))
 }
 
 private fun DistanceBadge.toDto(activityTypes: Set<ActivityType>): BadgeDto {
-    // TODO: handle case multiple activity types
-    return BadgeDto(this.label, this.distance.toString(), activityTypes.first().name + this.javaClass.simpleName)
+    return BadgeDto(this.label, this.distance.toString(), badgeType(activityTypes, this.javaClass.simpleName))
 }
 
 private fun MovingTimeBadge.toDto(activityTypes: Set<ActivityType>): BadgeDto {
-    // TODO: handle case multiple activity types
-    return BadgeDto(this.label, this.movingTime.toString(), activityTypes.first().name + this.javaClass.simpleName)
+    return BadgeDto(this.label, this.movingTime.toString(), badgeType(activityTypes, this.javaClass.simpleName))
 }
 
 private fun FamousClimbBadge.toDto(activityTypes: Set<ActivityType>): BadgeDto {
-    // TODO: handle case multiple activity types
     return BadgeDto(
         label = this.label,
         description = this.name,
-        type = activityTypes.first().name + this.javaClass.simpleName,
+        type = badgeType(activityTypes, this.javaClass.simpleName),
         category = this.category,
     )
+}
+
+private fun badgeType(activityTypes: Set<ActivityType>, badgeClassName: String): String {
+    val representativeActivityType = activityTypes.representativeBadgeActivityType()
+    return "${representativeActivityType?.name.orEmpty()}$badgeClassName"
 }

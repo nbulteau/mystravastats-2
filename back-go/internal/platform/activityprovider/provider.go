@@ -1,15 +1,14 @@
 package activityprovider
 
 import (
-	"os"
-	"strings"
+	"sync"
 
 	"mystravastats/internal/helpers"
+	"mystravastats/internal/platform/runtimeconfig"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
 	fitprovider "mystravastats/internal/shared/infrastructure/fit"
 	"mystravastats/internal/shared/infrastructure/stravaapi"
-	"sync"
 )
 
 var (
@@ -41,8 +40,7 @@ func Init(port string) {
 // Get returns the singleton activity provider (FIT or Strava).
 func Get() ActivityProvider {
 	providerOnce.Do(func() {
-		fitFilesPath := strings.TrimSpace(os.Getenv("FIT_FILES_PATH"))
-		if fitFilesPath != "" {
+		if fitFilesPath, configured := runtimeconfig.OptionalValue("FIT_FILES_PATH"); configured {
 			provider = fitprovider.NewFITActivityProvider(fitFilesPath)
 			return
 		}

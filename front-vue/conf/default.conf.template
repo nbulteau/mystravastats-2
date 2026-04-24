@@ -11,6 +11,23 @@ server {
     gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml; 
     gzip_disable "MSIE [1-6]\.";    
 
+    location = /healthz {
+      access_log off;
+      default_type text/plain;
+      return 200 "ok\n";
+    }
+
+    location /api/ {
+      proxy_pass ${API_BACKEND_URL};
+      proxy_http_version 1.1;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_connect_timeout 5s;
+      proxy_read_timeout 60s;
+    }
+
     location / {
       alias /app/;
       try_files $uri $uri/ /index.html;

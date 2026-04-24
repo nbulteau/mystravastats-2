@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"mystravastats/internal/helpers"
+	"mystravastats/internal/platform/runtimeconfig"
 	"mystravastats/internal/routes/application"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
@@ -19,15 +20,11 @@ const (
 )
 
 func routingHistoryBiasEnabled() bool {
-	return readBoolEnv("OSM_ROUTING_HISTORY_BIAS_ENABLED", false)
+	return runtimeconfig.BoolValue("OSM_ROUTING_HISTORY_BIAS_ENABLED", false)
 }
 
 func routingHistoryHalfLifeDays() float64 {
-	days := readIntEnv("OSM_ROUTING_HISTORY_HALF_LIFE_DAYS", defaultRoutingHistoryHalfLifeDays)
-	if days < 1 {
-		days = defaultRoutingHistoryHalfLifeDays
-	}
-	return float64(days)
+	return float64(runtimeconfig.RoutingHistoryHalfLifeDays())
 }
 
 func buildRoutingHistoryProfileFromActivities(

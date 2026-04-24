@@ -87,6 +87,20 @@ It supports three data sources:
 The Go backend exposes a similar API and is still relevant for some build flows.
 It is simpler architecturally, but less flexible than the Kotlin backend.
 
+## FIT Power Metrics
+
+The Go and Kotlin FIT adapters now use the same power fallback:
+
+- if the FIT session provides `avgPower`, it remains the source for `averageWatts` and `weightedAverageWatts`
+- if `avgPower` is missing or zero, `record.power` samples drive `averageWatts`, `weightedAverageWatts`, and kilojoules
+- average power includes zero-power samples, so coasting is preserved, and ignores invalid or negative samples
+- weighted power uses a 30-sample rolling normalized-power approximation, with a plain average fallback for shorter streams
+- kilojoules keeps the existing app convention: `0.8604 * averageWatts * elapsedSeconds / 1000`
+
+Known limits:
+- devices that do not record power keep these metrics at zero
+- devices that record FIT power below or above 1 Hz can slightly shift the weighted-power approximation because the rolling window is record-count based
+
 ## Cache Refresh And Reliability
 
 Both backends now use the same reliability strategy for background refresh:
@@ -267,12 +281,31 @@ Then open:
 
 ## Running The Project As A Developer
 
+## Supported Toolchain Versions
+
+Use the same toolchain versions in local development, CI, Docker, and release scripts:
+
+| Area | Version source | Supported version |
+|---|---|---|
+| Go backend | `back-go/go.mod` | Go `1.26.2` |
+| Kotlin backend | `back-kotlin/build.gradle.kts` | Java `25` |
+| Kotlin build | `back-kotlin/gradle/wrapper/gradle-wrapper.properties` | Gradle `9.4.1` |
+| Frontend | `front-vue/package.json` | Node.js `>=25.9.0` |
+
+Dockerfiles, GitHub Actions, and the Go binary build scripts are expected to stay aligned with these manifests. The CI runs `scripts/check-toolchains.sh` to catch version drift.
+
 ## Option 1: Kotlin backend
 
 Run the frontend and Kotlin backend stack:
 
 - Docker Compose: [docker-compose-kotlin.yml](/Users/nicolas/Workspace/mystravastats-2/docker-compose-kotlin.yml)
 - Backend project: [back-kotlin](/Users/nicolas/Workspace/mystravastats-2/back-kotlin)
+
+Docker command from the repository root:
+
+```sh
+docker compose -f docker-compose-kotlin.yml up --build
+```
 
 Typical local command:
 
@@ -289,12 +322,51 @@ Run the frontend and Go backend stack:
 - Docker Compose: [docker-compose-go.yml](/Users/nicolas/Workspace/mystravastats-2/docker-compose-go.yml)
 - Backend project: [back-go](/Users/nicolas/Workspace/mystravastats-2/back-go)
 
+Docker command from the repository root:
+
+```sh
+docker compose -f docker-compose-go.yml up --build
+```
+
 Typical local command:
 
 ```sh
 cd back-go
 go test ./...
 go run .
+```
+
+## Docker Runtime Mode
+
+Both Docker stacks use the same runtime shape:
+- the frontend container serves the UI on [http://localhost/](http://localhost/)
+- Nginx proxies `/api/...` to the backend service at `http://back:8080`
+- the backend remains directly reachable on [http://localhost:8080/](http://localhost:8080/)
+- `STRAVA_CACHE_PATH` defaults to `./strava-cache` when it is not defined
+- browser auto-open is disabled inside containers; the authorization URL is printed in logs when needed
+
+Useful checks:
+
+```sh
+curl -fsS http://localhost/api/health/details
+docker compose -f docker-compose-go.yml ps
+docker compose -f docker-compose-kotlin.yml ps
+```
+
+After OSRM data has been prepared, route generation can use the optional OSRM compose file:
+
+```sh
+docker compose -f docker-compose-go.yml -f docker-compose-routing-osrm.yml up --build
+docker compose -f docker-compose-kotlin.yml -f docker-compose-routing-osrm.yml up --build
+```
+
+The backend containers default to `OSM_ROUTING_BASE_URL=http://osrm:5000`, and the OSRM service joins the same Docker network when the compose files are combined.
+
+Smoke checks are available for both stacks:
+
+```sh
+./scripts/smoke-docker-compose.sh go
+./scripts/smoke-docker-compose.sh kotlin
 ```
 
 ## Frontend Development
@@ -424,14 +496,33 @@ The cache directory may contain:
 
 This is why later launches are faster than the first one.
 
-## Environment Variables
+## Runtime Configuration
 
-Important environment variables used by the project:
+Runtime configuration is centralized in the backend diagnostics payload. `GET /api/health/details` exposes non-sensitive effective values under `runtimeConfig`, and the Diagnostics page renders the same information.
 
-- `STRAVA_CACHE_PATH`: overrides the default Strava cache directory
-- `FIT_FILES_PATH`: makes the Kotlin backend use FIT files as data source
-- `GPX_FILES_PATH`: makes the Kotlin backend use GPX files as data source
-- `https_proxy` / `HTTPS_PROXY`: proxy support for Strava API access in the Kotlin backend
+| Variable | Go backend | Kotlin backend | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `STRAVA_CACHE_PATH` | yes | yes | `strava-cache` | Strava cache directory. |
+| `FIT_FILES_PATH` | yes | yes | unset | Selects the FIT provider when set. |
+| `GPX_FILES_PATH` | reported only | yes | unset | Selects the GPX provider in Kotlin. Go reports the value but does not support GPX files yet. |
+| `CORS_ALLOWED_ORIGINS` | yes | yes | `http://localhost,http://localhost:5173` | Comma-separated list of explicit allowed browser origins. CORS credentials are enabled, and `Content-Type`, `Authorization`, and `X-Request-Id` are allowed headers. |
+| `OPEN_BROWSER` | yes | yes | `true` | Set to `false` in Docker or headless runs. |
+| `SERVER_HOST` / `HOST` | yes | no | `localhost` | Go listen host. `SERVER_HOST` wins over `HOST`. |
+| `PORT` | yes | reported fallback | `8080` | Go listen port. Kotlin reports it only as a fallback when `SERVER_PORT` is absent. |
+| `SERVER_ADDRESS` | no | yes | `0.0.0.0` | Kotlin listen address. |
+| `SERVER_PORT` | no | yes | `8080` | Kotlin listen port. |
+| `OSM_ROUTING_ENABLED` | yes | yes | `true` | Enables OSRM-backed routing checks and route generation. |
+| `OSM_ROUTING_BASE_URL` | yes | yes | `http://localhost:5000` | Docker compose overrides this to the OSRM service URL. |
+| `OSM_ROUTING_TIMEOUT_MS` | yes | yes | `3000` | Go rejects values below `200`; Kotlin clamps values below `300` to `300`. |
+| `OSM_ROUTING_PROFILE` | yes | yes | unset | Optional routing profile override. |
+| `OSM_ROUTING_EXTRACT_PROFILE` | yes | yes | unset | Optional extract profile name. |
+| `OSM_ROUTING_EXTRACT_PROFILE_FILE` | yes | yes | `./osm/region.osrm.profile` | OSRM extract profile path used for diagnostics. |
+| `OSM_ROUTING_V3_ENABLED` | yes | yes | `true` | Enables the v3 route-generation pipeline. |
+| `OSM_ROUTING_DEBUG` | yes | yes | `false` | Adds verbose routing diagnostics. |
+| `OSM_ROUTING_HISTORY_BIAS_ENABLED` | yes | yes | `false` | Treats historical routes as a positive signal when enabled. |
+| `OSM_ROUTING_HISTORY_HALF_LIFE_DAYS` | yes | yes | `75` | Decay window for historical route weighting. |
+| `API_BACKEND_URL` | frontend Docker | frontend Docker | `http://back:8080` | Backend upstream used by the Docker frontend Nginx proxy. |
+| `https_proxy` / `HTTPS_PROXY` | no | yes | unset | Proxy support for Strava API access in the Kotlin backend. |
 
 ## Cache Behavior
 
@@ -490,11 +581,13 @@ If the frontend loads but API calls fail, verify:
 - which backend is running
 - which Docker Compose file or build script you used
 - whether the backend is exposing `/api`
+- whether the Docker frontend can reach `/api/health/details` through Nginx
+- whether `docker compose ps` reports healthy backend and frontend containers
 
 ### Build succeeds in one environment but not another
 
 Check:
-- local Java / Node / Go versions
+- local Java / Node / Go versions match the supported toolchain table above
 - Gradle wrapper availability
 - network access for Gradle dependency downloads
 - local filesystem permissions for `~/.gradle` or cache directories
@@ -507,6 +600,7 @@ The application exposes several families of metrics:
 - best efforts by distance
 - best efforts by duration
 - chronological personal-records timeline events
+- next actions for personal records and Eddington
 - climbing and elevation metrics
 - yearly dashboard summaries
 - badges and famous climbs
@@ -551,6 +645,18 @@ You can filter the timeline by:
 
 Useful API endpoint:
 - `/api/statistics/personal-records-timeline?activityType=...&year=...`
+
+### What Is Next
+
+The dashboard includes a compact "What is next?" section.
+
+It combines:
+- the closest personal-record targets, ranked by how close the next-best historical effort is to the current PR
+- the current Eddington number and the missing days needed for the next level
+- a target distance for Eddington based on `E+1`, with the historical solid-day distance shown as context
+
+Useful API endpoint:
+- `/api/statistics/what-is-next?activityType=...`
 
 ### Heart Rate Zone Analysis
 

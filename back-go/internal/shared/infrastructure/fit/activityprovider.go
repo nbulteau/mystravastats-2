@@ -239,7 +239,12 @@ func decodeFITActivity(filePath string, athleteID int64) (*strava.Activity, erro
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			log.Printf("Unable to close FIT file %s: %v", filePath, err)
+		}
+	}(file)
 
 	decodedFile, err := fitparser.Decode(file)
 	if err != nil {
@@ -296,8 +301,7 @@ func decodeFITActivity(filePath string, athleteID int64) (*strava.Activity, erro
 	averageCadence := float64(asUint8(session.GetAvgCadence()))
 	averageHeartRate := float64(session.AvgHeartRate)
 	maxHeartRate := float64(session.MaxHeartRate)
-	averageWatts := float64(session.AvgPower)
-	weightedAverageWatts := int(session.AvgPower)
+	powerMetrics := computeFITPowerMetrics(float64(session.AvgPower), stream, elapsedTime)
 
 	totalElevationGain := float64(session.TotalAscent)
 	if totalElevationGain <= 0 && stream != nil && stream.Altitude != nil {
@@ -312,7 +316,6 @@ func decodeFITActivity(filePath string, athleteID int64) (*strava.Activity, erro
 		elevHigh = maxFloat64Slice(stream.Altitude.Data)
 	}
 
-	kilojoules := 0.8604 * averageWatts * float64(maxInt(elapsedTime, 0)) / 1000
 	startDateUTC := startDate.UTC()
 	startDateLocal := startDate.In(time.Local)
 	startLatlng := extractStartLatLng(session, stream)
@@ -326,14 +329,14 @@ func decodeFITActivity(filePath string, athleteID int64) (*strava.Activity, erro
 		AverageCadence:       averageCadence,
 		AverageHeartrate:     averageHeartRate,
 		MaxHeartrate:         maxHeartRate,
-		AverageWatts:         averageWatts,
+		AverageWatts:         powerMetrics.averageWatts,
 		Commute:              false,
 		Distance:             distance,
-		DeviceWatts:          averageWatts > 0,
+		DeviceWatts:          powerMetrics.hasDeviceWatts,
 		ElapsedTime:          elapsedTime,
 		ElevHigh:             elevHigh,
 		Id:                   activityID,
-		Kilojoules:           kilojoules,
+		Kilojoules:           powerMetrics.kilojoules,
 		MaxSpeed:             maxSpeed,
 		MovingTime:           movingTime,
 		Name:                 name,
@@ -344,9 +347,102 @@ func decodeFITActivity(filePath string, athleteID int64) (*strava.Activity, erro
 		TotalElevationGain:   totalElevationGain,
 		Type:                 sportType,
 		UploadId:             activityID,
-		WeightedAverageWatts: weightedAverageWatts,
+		WeightedAverageWatts: powerMetrics.weightedAverageWatts,
 		Stream:               stream,
 	}, nil
+}
+
+type fitPowerMetrics struct {
+	averageWatts         float64
+	weightedAverageWatts int
+	kilojoules           float64
+	hasDeviceWatts       bool
+}
+
+func computeFITPowerMetrics(sessionAveragePower float64, stream *strava.Stream, elapsedTime int) fitPowerMetrics {
+	samples := fitPowerSamples(stream)
+	streamAverageWatts := averageFITPower(samples)
+
+	averageWatts := 0.0
+	if sessionAveragePower > 0 {
+		averageWatts = sessionAveragePower
+	} else {
+		averageWatts = streamAverageWatts
+	}
+
+	weightedAverageWatts := 0
+	if sessionAveragePower > 0 {
+		weightedAverageWatts = int(math.Round(sessionAveragePower))
+	} else {
+		weightedAverageWatts = int(math.Round(normalizedFITPower(samples)))
+	}
+
+	return fitPowerMetrics{
+		averageWatts:         averageWatts,
+		weightedAverageWatts: weightedAverageWatts,
+		kilojoules:           0.8604 * averageWatts * float64(maxInt(elapsedTime, 0)) / 1000,
+		hasDeviceWatts:       sessionAveragePower > 0 || len(samples) > 0,
+	}
+}
+
+func fitPowerSamples(stream *strava.Stream) []float64 {
+	if stream == nil || stream.Watts == nil {
+		return nil
+	}
+
+	samples := make([]float64, 0, len(stream.Watts.Data))
+	hasPositivePower := false
+	for _, watts := range stream.Watts.Data {
+		if !isFinite(watts) || watts < 0 {
+			continue
+		}
+		if watts > 0 {
+			hasPositivePower = true
+		}
+		samples = append(samples, watts)
+	}
+	if !hasPositivePower {
+		return nil
+	}
+	return samples
+}
+
+func averageFITPower(samples []float64) float64 {
+	if len(samples) == 0 {
+		return 0
+	}
+
+	total := 0.0
+	for _, sample := range samples {
+		total += sample
+	}
+	return total / float64(len(samples))
+}
+
+func normalizedFITPower(samples []float64) float64 {
+	if len(samples) == 0 {
+		return 0
+	}
+
+	const rollingWindowSeconds = 30
+	if len(samples) < rollingWindowSeconds {
+		return averageFITPower(samples)
+	}
+
+	rollingTotal := 0.0
+	for _, sample := range samples[:rollingWindowSeconds] {
+		rollingTotal += sample
+	}
+
+	fourthPowerTotal := math.Pow(rollingTotal/rollingWindowSeconds, 4)
+	rollingCount := 1
+	for index := rollingWindowSeconds; index < len(samples); index++ {
+		rollingTotal += samples[index] - samples[index-rollingWindowSeconds]
+		fourthPowerTotal += math.Pow(rollingTotal/rollingWindowSeconds, 4)
+		rollingCount++
+	}
+
+	return math.Pow(fourthPowerTotal/float64(rollingCount), 0.25)
 }
 
 func buildStreamFromFITRecords(records []*fitparser.RecordMsg, startTime time.Time) *strava.Stream {
