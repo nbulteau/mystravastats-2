@@ -327,6 +327,71 @@ func (repo *StravaRepository) SaveHeartRateZoneSettings(clientId string, setting
 	}
 }
 
+type annualGoalsCacheFile struct {
+	Goals map[string]business.AnnualGoalTargets `json:"goals"`
+}
+
+func (repo *StravaRepository) LoadAnnualGoalTargets(clientId string, key string) business.AnnualGoalTargets {
+	payload := repo.loadAnnualGoalsCacheFile(clientId)
+	if payload.Goals == nil {
+		return business.AnnualGoalTargets{}
+	}
+	targets, ok := payload.Goals[key]
+	if !ok {
+		return business.AnnualGoalTargets{}
+	}
+	return targets
+}
+
+func (repo *StravaRepository) SaveAnnualGoalTargets(clientId string, key string, targets business.AnnualGoalTargets) {
+	payload := repo.loadAnnualGoalsCacheFile(clientId)
+	if payload.Goals == nil {
+		payload.Goals = make(map[string]business.AnnualGoalTargets)
+	}
+	payload.Goals[key] = targets
+
+	activitiesDirectory := filepath.Join(repo.cacheDirectory, fmt.Sprintf("strava-%s", clientId))
+	if err := os.MkdirAll(activitiesDirectory, secureDir); err != nil {
+		log.Printf("Failed to create secure annual goals directory '%s': %v", activitiesDirectory, err)
+		return
+	}
+
+	goalsFile := filepath.Join(activitiesDirectory, fmt.Sprintf("annual-goals-%s.json", clientId))
+	data, err := json.MarshalIndent(payload, "", "  ")
+	if err != nil {
+		log.Printf("Failed to marshal annual goals for clientId=%s: %v", clientId, err)
+		return
+	}
+
+	if err := os.WriteFile(goalsFile, data, secureFileMode); err != nil {
+		log.Printf("Failed to write annual goals file '%s': %v", goalsFile, err)
+	}
+}
+
+func (repo *StravaRepository) loadAnnualGoalsCacheFile(clientId string) annualGoalsCacheFile {
+	activitiesDirectory := filepath.Join(repo.cacheDirectory, fmt.Sprintf("strava-%s", clientId))
+	goalsFile := filepath.Join(activitiesDirectory, fmt.Sprintf("annual-goals-%s.json", clientId))
+	if _, err := os.Stat(goalsFile); os.IsNotExist(err) {
+		return annualGoalsCacheFile{Goals: map[string]business.AnnualGoalTargets{}}
+	}
+
+	data, err := os.ReadFile(goalsFile)
+	if err != nil {
+		log.Printf("Failed to read annual goals file '%s': %v", goalsFile, err)
+		return annualGoalsCacheFile{Goals: map[string]business.AnnualGoalTargets{}}
+	}
+
+	var payload annualGoalsCacheFile
+	if err := json.Unmarshal(data, &payload); err != nil {
+		log.Printf("Failed to unmarshal annual goals from '%s': %v", goalsFile, err)
+		return annualGoalsCacheFile{Goals: map[string]business.AnnualGoalTargets{}}
+	}
+	if payload.Goals == nil {
+		payload.Goals = map[string]business.AnnualGoalTargets{}
+	}
+	return payload
+}
+
 func fileExists(filename string) bool {
 	info, err := os.Stat(filename)
 	if os.IsNotExist(err) {

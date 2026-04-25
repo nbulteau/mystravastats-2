@@ -2,8 +2,10 @@
 import { useContextStore } from "@/stores/context.js";
 import { useDashboardStore } from "@/stores/dashboard";
 import { computed, onMounted } from "vue";
+import type { AnnualGoalTargets } from "@/models/annual-goals.model";
 import TooltipHint from "@/components/TooltipHint.vue";
 import { getMetricTooltip } from "@/utils/metric-tooltips";
+import AnnualGoalsPanel from "@/components/AnnualGoalsPanel.vue";
 import CumulativeDistancePerYearChart from "@/components/charts/CumulativeDataPerYearChart.vue";
 import EddingtonNumberChart from "@/components/charts/EddingtonNumberChart.vue";
 import SpeedPerYearChart from "@/components/charts/SpeedPerYearChart.vue";
@@ -22,8 +24,12 @@ const dashboardStore = useDashboardStore();
 onMounted(() => contextStore.updateCurrentView("dashboard"));
 
 const currentActivityType = computed(() => contextStore.currentActivityType);
+const currentYear = computed(() => contextStore.currentYear);
 const isLoading = computed(() => dashboardStore.isLoading);
 const error = computed(() => dashboardStore.error);
+const annualGoals = computed(() => dashboardStore.annualGoals);
+const annualGoalsError = computed(() => dashboardStore.annualGoalsError);
+const isSavingAnnualGoals = computed(() => dashboardStore.isSavingAnnualGoals);
 const cumulativeDistancePerYear = computed(() => dashboardStore.cumulativeDistancePerYear);
 const cumulativeElevationPerYear = computed(
   () => dashboardStore.cumulativeElevationPerYear
@@ -75,6 +81,10 @@ function sortDataByYear(
 function tooltip(label: string): string {
   return getMetricTooltip(label) ?? "";
 }
+
+async function saveAnnualGoals(targets: AnnualGoalTargets) {
+  await dashboardStore.saveAnnualGoals(targets);
+}
 </script>
 
 <template>
@@ -94,6 +104,14 @@ function tooltip(label: string): string {
     v-else
     class="chart-stack"
   >
+    <AnnualGoalsPanel
+      :annual-goals="annualGoals"
+      :selected-year="currentYear"
+      :activity-type="currentActivityType"
+      :saving="isSavingAnnualGoals"
+      :error="annualGoalsError"
+      @save="saveAnnualGoals"
+    />
     <section class="chart-panel">
       <div class="chart-panel__header">
         <h3 class="chart-panel__title">

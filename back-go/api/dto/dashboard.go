@@ -30,3 +30,33 @@ type CumulativeDataPerYearDto struct {
 	Distance  map[string]map[string]float64 `json:"distance"`
 	Elevation map[string]map[string]float64 `json:"elevation"`
 }
+
+type AnnualGoalTargetsDto struct {
+	DistanceKm        *float64 `json:"distanceKm"`
+	ElevationMeters   *int     `json:"elevationMeters"`
+	MovingTimeSeconds *int     `json:"movingTimeSeconds"`
+	Activities        *int     `json:"activities"`
+	ActiveDays        *int     `json:"activeDays"`
+	Eddington         *int     `json:"eddington"`
+}
+
+type AnnualGoalProgressDto struct {
+	Metric                  string  `json:"metric"`
+	Label                   string  `json:"label"`
+	Unit                    string  `json:"unit"`
+	Current                 float64 `json:"current"`
+	Target                  float64 `json:"target"`
+	ProgressPercent         float64 `json:"progressPercent"`
+	ExpectedProgressPercent float64 `json:"expectedProgressPercent"`
+	ProjectedEndOfYear      float64 `json:"projectedEndOfYear"`
+	RequiredPace            float64 `json:"requiredPace"`
+	RequiredPaceUnit        string  `json:"requiredPaceUnit"`
+	Status                  string  `json:"status"`
+}
+
+type AnnualGoalsDto struct {
+	Year            int                     `json:"year"`
+	ActivityTypeKey string                  `json:"activityTypeKey"`
+	Targets         AnnualGoalTargetsDto    `json:"targets"`
+	Progress        []AnnualGoalProgressDto `json:"progress"`
+}

@@ -135,6 +135,54 @@ func ToActivityDto(activity strava.Activity) ActivityDto {
 	}
 }
 
+func ToAnnualGoalsDto(goals business.AnnualGoals) AnnualGoalsDto {
+	progress := make([]AnnualGoalProgressDto, 0, len(goals.Progress))
+	for _, item := range goals.Progress {
+		progress = append(progress, AnnualGoalProgressDto{
+			Metric:                  string(item.Metric),
+			Label:                   item.Label,
+			Unit:                    item.Unit,
+			Current:                 item.Current,
+			Target:                  item.Target,
+			ProgressPercent:         item.ProgressPercent,
+			ExpectedProgressPercent: item.ExpectedProgressPercent,
+			ProjectedEndOfYear:      item.ProjectedEndOfYear,
+			RequiredPace:            item.RequiredPace,
+			RequiredPaceUnit:        item.RequiredPaceUnit,
+			Status:                  string(item.Status),
+		})
+	}
+
+	return AnnualGoalsDto{
+		Year:            goals.Year,
+		ActivityTypeKey: goals.ActivityTypeKey,
+		Targets:         ToAnnualGoalTargetsDto(goals.Targets),
+		Progress:        progress,
+	}
+}
+
+func ToAnnualGoalTargetsDto(targets business.AnnualGoalTargets) AnnualGoalTargetsDto {
+	return AnnualGoalTargetsDto{
+		DistanceKm:        targets.DistanceKm,
+		ElevationMeters:   targets.ElevationMeters,
+		MovingTimeSeconds: targets.MovingTimeSeconds,
+		Activities:        targets.Activities,
+		ActiveDays:        targets.ActiveDays,
+		Eddington:         targets.Eddington,
+	}
+}
+
+func ToAnnualGoalTargets(targets AnnualGoalTargetsDto) business.AnnualGoalTargets {
+	return business.AnnualGoalTargets{
+		DistanceKm:        targets.DistanceKm,
+		ElevationMeters:   targets.ElevationMeters,
+		MovingTimeSeconds: targets.MovingTimeSeconds,
+		Activities:        targets.Activities,
+		ActiveDays:        targets.ActiveDays,
+		Eddington:         targets.Eddington,
+	}
+}
+
 func ToDetailedActivityDto(detailedActivity *strava.DetailedActivity) DetailedActivityDto {
 
 	activityEfforts := BuildActivityEfforts(detailedActivity)
@@ -325,40 +373,6 @@ func ToPersonalRecordTimelineDto(entry business.PersonalRecordTimelineEntry) Per
 			ID:   entry.Activity.Id,
 			Name: entry.Activity.Name,
 			Type: entry.Activity.Type.String(),
-		},
-	}
-}
-
-func ToWhatIsNextDto(result business.WhatIsNext) WhatIsNextDto {
-	records := make([]RecordNextActionDto, len(result.Records))
-	for i, record := range result.Records {
-		records[i] = RecordNextActionDto{
-			MetricKey:    record.MetricKey,
-			MetricLabel:  record.MetricLabel,
-			CurrentValue: record.CurrentValue,
-			TargetValue:  record.TargetValue,
-			GapToRecord:  record.GapToRecord,
-			Closeness:    record.Closeness,
-			Action:       record.Action,
-			ActivityDate: record.ActivityDate,
-			Activity: ActivityShortDto{
-				ID:   record.Activity.Id,
-				Name: record.Activity.Name,
-				Type: record.Activity.Type.String(),
-			},
-		}
-	}
-
-	return WhatIsNextDto{
-		Records: records,
-		Eddington: EddingtonNextActionDto{
-			CurrentNumber:     result.Eddington.CurrentNumber,
-			NextNumber:        result.Eddington.NextNumber,
-			TargetDistanceKm:  result.Eddington.TargetDistanceKm,
-			DaysAtTarget:      result.Eddington.DaysAtTarget,
-			MissingDays:       result.Eddington.MissingDays,
-			TypicalDistanceKm: result.Eddington.TypicalDistanceKm,
-			Action:            result.Eddington.Action,
 		},
 	}
 }

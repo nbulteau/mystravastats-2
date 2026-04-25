@@ -195,7 +195,7 @@
 
 ### Priorité haute
 
-- [ ] `FUNC-P0-01` (`P0`, `L`) - Objectifs annuels et projections.
+- [x] `FUNC-P0-01` (`P0`, `L`) - Objectifs annuels et projections.
   Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
   Proposition:
   - permettre de définir des objectifs par sport: distance, dénivelé, temps, nombre de sorties, jours actifs, Eddington,
@@ -206,18 +206,10 @@
   Acceptance:
   - objectifs persistés sans dépendance à Strava,
   - affichage cohérent avec le filtre sport/année courant.
-
-- [ ] `FUNC-P0-02` (`P0`, `M`) - Bibliothèque de routes générées.
-  Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
-  Constat:
-  - les routes générées sont exportables, mais le cache serveur est temporaire.
-  Proposition:
-  - sauvegarder une route générée avec nom, sport, distance, D+, score, surface mix et GPX,
-  - retrouver ses routes plus tard,
-  - marquer favorites, à tester, déjà faite, à éviter.
-  Acceptance:
-  - une route générée reste disponible après redémarrage backend,
-  - export GPX possible depuis la bibliothèque.
+  Statut 2026-04-25:
+  - endpoint Go/Kotlin `GET/PUT /api/dashboard/annual-goals` ajouté,
+  - objectifs distance, dénivelé, temps, sorties, jours actifs et Eddington persistés dans le cache athlète,
+  - panneau dashboard ajouté avec progression, projection fin d'année, rythme requis et statut.
 
 - [x] `FUNC-P0-03` (`P0`, `M`) - Page Diagnostics utilisateur.
   Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
@@ -237,29 +229,6 @@
   - onglet renommé visuellement en `Status`, avec section cache enrichie: source, activités, années, fichiers, taille, dates manifest et warmup.
 
 ### Priorité moyenne
-
-- [ ] `FUNC-P1-01` (`P1`, `L`) - Recommandations "prochaine sortie".
-  Owners: `Product`, `Routes`, `Front`.
-  Proposition:
-  - proposer des sorties selon temps disponible, sport, fatigue approximative, météo non requise, historique récent,
-  - mélanger routes générées OSRM et boucles historiques,
-  - expliquer pourquoi la sortie est proposée: endurance, récupération, dénivelé, variété, familiarité.
-  Acceptance:
-  - au moins trois recommandations actionnables sans saisie complexe.
-
-- [x] `FUNC-P1-02` (`P1`, `M`) - "What is next?" pour records et Eddington.
-  Owners: `Product`, `Stats`, `Front`.
-  Proposition:
-  - montrer les records les plus proches à battre,
-  - calculer les sorties nécessaires pour progresser sur Eddington,
-  - suggérer des distances cibles réalistes selon l'historique.
-  Acceptance:
-  - une section du dashboard donne une action concrète pour progresser.
-  Statut 2026-04-24:
-  - endpoint Go/Kotlin `GET /api/statistics/what-is-next` ajouté,
-  - suggestions PR triées par proximité avec le meilleur challenger historique,
-  - action Eddington calculée avec jours manquants pour `E+1` et distance solide issue de l'historique,
-  - section dashboard `What is next?` ajoutée avec l'action Eddington et les trois cibles PR les plus proches.
 
 - [ ] `FUNC-P1-03` (`P1`, `M`) - Analyse matériel.
   Owners: `Product`, `Stats`, `Front`.

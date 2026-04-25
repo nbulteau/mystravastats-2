@@ -646,18 +646,6 @@ You can filter the timeline by:
 Useful API endpoint:
 - `/api/statistics/personal-records-timeline?activityType=...&year=...`
 
-### What Is Next
-
-The dashboard includes a compact "What is next?" section.
-
-It combines:
-- the closest personal-record targets, ranked by how close the next-best historical effort is to the current PR
-- the current Eddington number and the missing days needed for the next level
-- a target distance for Eddington based on `E+1`, with the historical solid-day distance shown as context
-
-Useful API endpoint:
-- `/api/statistics/what-is-next?activityType=...`
-
 ### Heart Rate Zone Analysis
 
 The statistics page now includes a dedicated heart-rate zone analysis block.

@@ -168,6 +168,7 @@ type contractDashboardReaderStub struct {
 	cumulativeElevation map[string]map[string]float64
 	heatmap             map[string]map[string]dashboardDomain.ActivityHeatmapDay
 	eddington           business.EddingtonNumber
+	annualGoals         business.AnnualGoals
 }
 
 func (stub *contractDashboardReaderStub) FindDashboardData(_ ...business.ActivityType) business.DashboardData {
@@ -188,6 +189,15 @@ func (stub *contractDashboardReaderStub) FindActivityHeatmap(_ ...business.Activ
 
 func (stub *contractDashboardReaderStub) FindEddingtonNumber(_ ...business.ActivityType) business.EddingtonNumber {
 	return stub.eddington
+}
+
+func (stub *contractDashboardReaderStub) FindAnnualGoals(_ int, _ ...business.ActivityType) business.AnnualGoals {
+	return stub.annualGoals
+}
+
+func (stub *contractDashboardReaderStub) SaveAnnualGoals(_ int, targets business.AnnualGoalTargets, _ ...business.ActivityType) business.AnnualGoals {
+	stub.annualGoals.Targets = targets
+	return stub.annualGoals
 }
 
 func setTestContainer(t *testing.T, testContainer *container) {
@@ -739,6 +749,98 @@ func TestGetDashboardEddingtonNumber_Returns200(t *testing.T) {
 	}
 	if got := int(response["eddingtonNumber"].(float64)); got != 55 {
 		t.Fatalf("expected eddingtonNumber=55, got %d", got)
+	}
+}
+
+func TestGetDashboardAnnualGoals_Returns200(t *testing.T) {
+	// GIVEN
+	target := 5000.0
+	setTestContainer(t, &container{
+		getAnnualGoalsUseCase: dashboardApp.NewGetAnnualGoalsUseCase(&contractDashboardReaderStub{
+			annualGoals: business.AnnualGoals{
+				Year:            2026,
+				ActivityTypeKey: "Ride",
+				Targets:         business.AnnualGoalTargets{DistanceKm: &target},
+				Progress: []business.AnnualGoalProgress{
+					{
+						Metric:          business.AnnualGoalMetricDistanceKm,
+						Label:           "Distance",
+						Unit:            "km",
+						Current:         1000,
+						Target:          5000,
+						ProgressPercent: 20,
+						Status:          business.AnnualGoalStatusBehind,
+					},
+				},
+			},
+		}),
+	})
+
+	request := httptest.NewRequest(http.MethodGet, "/api/dashboard/annual-goals?year=2026&activityType=Ride", nil)
+	recorder := httptest.NewRecorder()
+
+	// WHEN
+	getDashboardAnnualGoals(recorder, request)
+
+	// THEN
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", recorder.Code)
+	}
+
+	var response map[string]any
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode JSON response: %v", err)
+	}
+	if got := int(response["year"].(float64)); got != 2026 {
+		t.Fatalf("expected year=2026, got %d", got)
+	}
+}
+
+func TestPutDashboardAnnualGoals_ReturnsSavedTargets(t *testing.T) {
+	// GIVEN
+	reader := &contractDashboardReaderStub{
+		annualGoals: business.AnnualGoals{Year: 2026, ActivityTypeKey: "Ride"},
+	}
+	setTestContainer(t, &container{
+		updateAnnualGoalsUseCase: dashboardApp.NewUpdateAnnualGoalsUseCase(reader),
+	})
+
+	request := httptest.NewRequest(
+		http.MethodPut,
+		"/api/dashboard/annual-goals?year=2026&activityType=Ride",
+		strings.NewReader(`{"distanceKm":5000,"activities":120}`),
+	)
+	recorder := httptest.NewRecorder()
+
+	// WHEN
+	putDashboardAnnualGoals(recorder, request)
+
+	// THEN
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", recorder.Code)
+	}
+
+	var response map[string]any
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode JSON response: %v", err)
+	}
+	targets := response["targets"].(map[string]any)
+	if got := targets["distanceKm"].(float64); got != 5000 {
+		t.Fatalf("expected distance target 5000, got %v", got)
+	}
+}
+
+func TestGetDashboardAnnualGoals_MissingYear_Returns400(t *testing.T) {
+	// GIVEN
+	request := httptest.NewRequest(http.MethodGet, "/api/dashboard/annual-goals?activityType=Ride", nil)
+	recorder := httptest.NewRecorder()
+
+	// WHEN
+	getDashboardAnnualGoals(recorder, request)
+
+	// THEN
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", recorder.Code)
 	}
 }
 

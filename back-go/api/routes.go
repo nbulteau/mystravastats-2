@@ -40,5 +40,7 @@ var routes = Routes{
 	{Name: "GetDashboardCumulativeDataByYear", Method: "GET", Pattern: "/api/dashboard/cumulative-data-per-year", HandlerFunc: getDashboardCumulativeDataByYear},
 	{Name: "GetDashboardEddingtonNumber", Method: "GET", Pattern: "/api/dashboard/eddington-number", HandlerFunc: getDashboardEddingtonNumber},
 	{Name: "GetDashboardActivityHeatmap", Method: "GET", Pattern: "/api/dashboard/activity-heatmap", HandlerFunc: getDashboardActivityHeatmap},
+	{Name: "GetDashboardAnnualGoals", Method: "GET", Pattern: "/api/dashboard/annual-goals", HandlerFunc: getDashboardAnnualGoals},
+	{Name: "PutDashboardAnnualGoals", Method: "PUT", Pattern: "/api/dashboard/annual-goals", HandlerFunc: putDashboardAnnualGoals},
 	{Name: "GetBadges", Method: "GET", Pattern: "/api/badges", HandlerFunc: getBadges},
 }

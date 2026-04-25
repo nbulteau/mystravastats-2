@@ -9,6 +9,8 @@ import me.nicolas.stravastats.domain.services.ActivityHeatmapDay
 import me.nicolas.stravastats.domain.services.IDashboardService
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -119,5 +121,46 @@ class DashboardController(
     ): Map<String, Map<String, ActivityHeatmapDay>> {
         val activityTypes = activityType.convertToActivityTypeSet()
         return dashboardService.getActivityHeatmap(activityTypes)
+    }
+
+    @Operation(
+        description = "Get annual goals and projections for a specific year and activity type",
+        summary = "Get annual goals and projections",
+        responses = [ApiResponse(
+            responseCode = "200", description = "Annual goals found",
+            content = [Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = Schema(implementation = AnnualGoalsDto::class)
+            )]
+        )],
+    )
+    @GetMapping("/annual-goals")
+    fun getAnnualGoals(
+        @RequestParam(required = true) activityType: String,
+        @RequestParam(required = true) year: Int,
+    ): AnnualGoalsDto {
+        val activityTypes = activityType.convertToActivityTypeSet()
+        return dashboardService.getAnnualGoals(year, activityTypes).toDto()
+    }
+
+    @Operation(
+        description = "Save annual goals locally in the athlete cache",
+        summary = "Save annual goals",
+        responses = [ApiResponse(
+            responseCode = "200", description = "Annual goals saved",
+            content = [Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = Schema(implementation = AnnualGoalsDto::class)
+            )]
+        )],
+    )
+    @PutMapping("/annual-goals")
+    fun putAnnualGoals(
+        @RequestParam(required = true) activityType: String,
+        @RequestParam(required = true) year: Int,
+        @RequestBody targets: AnnualGoalTargetsDto,
+    ): AnnualGoalsDto {
+        val activityTypes = activityType.convertToActivityTypeSet()
+        return dashboardService.saveAnnualGoals(year, activityTypes, targets.toDomain()).toDto()
     }
 }

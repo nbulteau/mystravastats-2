@@ -2,6 +2,9 @@ package me.nicolas.stravastats.domain.services
 
 import io.mockk.every
 import io.mockk.mockk
+import me.nicolas.stravastats.domain.business.AnnualGoalMetric
+import me.nicolas.stravastats.domain.business.AnnualGoalStatus
+import me.nicolas.stravastats.domain.business.AnnualGoalTargets
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.strava.AthleteRef
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
@@ -9,11 +12,14 @@ import me.nicolas.stravastats.domain.business.strava.stream.AltitudeStream
 import me.nicolas.stravastats.domain.business.strava.stream.DistanceStream
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.business.strava.stream.TimeStream
+import me.nicolas.stravastats.domain.services.activityproviders.ActivityProviderCacheIdentity
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
+import java.nio.file.Path
 import java.time.LocalDate
 
 class DashboardServiceTest {
@@ -21,6 +27,9 @@ class DashboardServiceTest {
     private lateinit var dashboardService: IDashboardService
 
     private val activityProvider = mockk<IActivityProvider>()
+
+    @TempDir
+    private lateinit var tempDir: Path
 
     @BeforeEach
     fun setUp() {
@@ -155,6 +164,89 @@ class DashboardServiceTest {
         val expected = kotlin.math.round((1.0 / LocalDate.now().dayOfYear.toDouble()) * 1000.0) / 10.0
         assertEquals(expected.toFloat(), result.consistencyByYear[currentYear.toString()]!!, 0.001f)
         assertTrue(result.consistencyByYear[currentYear.toString()]!! > 0.0f)
+    }
+
+    @Test
+    fun `saveAnnualGoals persists targets locally and returns projections`() {
+        // GIVEN
+        val activityTypes = setOf(ActivityType.Ride)
+        val activities = listOf(
+            createActivity(
+                id = 20L,
+                startDateLocal = "2025-01-01T08:00:00Z",
+                distanceMeters = 20000.0,
+                elevationGainMeters = 200.0,
+                movingTimeSeconds = 3600,
+                elapsedTimeSeconds = 3600,
+            ),
+            createActivity(
+                id = 21L,
+                startDateLocal = "2025-01-02T08:00:00Z",
+                distanceMeters = 40000.0,
+                elevationGainMeters = 500.0,
+                movingTimeSeconds = 7200,
+                elapsedTimeSeconds = 7200,
+            ),
+        )
+        every { activityProvider.cacheIdentity() } returns ActivityProviderCacheIdentity(
+            cacheRoot = tempDir.toString(),
+            athleteId = "athlete-1",
+        )
+        every { activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, 2025) } returns activities
+
+        // WHEN
+        val saved = dashboardService.saveAnnualGoals(
+            year = 2025,
+            activityTypes = activityTypes,
+            targets = AnnualGoalTargets(distanceKm = 60.0, eddington = 2),
+        )
+        val loaded = dashboardService.getAnnualGoals(2025, activityTypes)
+
+        // THEN
+        assertEquals(60.0, saved.targets.distanceKm)
+        assertEquals(60.0, loaded.targets.distanceKm)
+        val distance = saved.progress.first { item -> item.metric == AnnualGoalMetric.DISTANCE_KM }
+        assertEquals(60.0, distance.current)
+        assertEquals(AnnualGoalStatus.ON_TRACK, distance.status)
+        assertTrue(tempDir.resolve("strava-athlete-1").resolve("annual-goals-athlete-1.json").toFile().exists())
+    }
+
+    @Test
+    fun `getAnnualGoals returns all goal rows and computes annual Eddington for selected year`() {
+        // GIVEN
+        val activityTypes = setOf(ActivityType.Ride)
+        val activities = listOf(
+            createActivity(
+                id = 30L,
+                startDateLocal = "2025-01-01T08:00:00Z",
+                distanceMeters = 3000.0,
+                elevationGainMeters = 0.0,
+                movingTimeSeconds = 900,
+                elapsedTimeSeconds = 900,
+            ),
+            createActivity(
+                id = 31L,
+                startDateLocal = "2025-01-02T08:00:00Z",
+                distanceMeters = 2000.0,
+                elevationGainMeters = 0.0,
+                movingTimeSeconds = 900,
+                elapsedTimeSeconds = 900,
+            ),
+        )
+        every { activityProvider.cacheIdentity() } returns ActivityProviderCacheIdentity(
+            cacheRoot = tempDir.toString(),
+            athleteId = "athlete-2",
+        )
+        every { activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, 2025) } returns activities
+
+        // WHEN
+        val result = dashboardService.getAnnualGoals(2025, activityTypes)
+
+        // THEN
+        assertEquals(6, result.progress.size)
+        val eddington = result.progress.first { item -> item.metric == AnnualGoalMetric.EDDINGTON }
+        assertEquals(2.0, eddington.current)
+        assertEquals(AnnualGoalStatus.NOT_SET, eddington.status)
     }
 
     private fun createActivity(

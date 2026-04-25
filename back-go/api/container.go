@@ -49,6 +49,8 @@ type container struct {
 	getCumulativeDataPerYearUseCase    *dashboardApp.GetCumulativeDataPerYearUseCase
 	getActivityHeatmapUseCase          *dashboardApp.GetActivityHeatmapUseCase
 	getEddingtonNumberUseCase          *dashboardApp.GetEddingtonNumberUseCase
+	getAnnualGoalsUseCase              *dashboardApp.GetAnnualGoalsUseCase
+	updateAnnualGoalsUseCase           *dashboardApp.UpdateAnnualGoalsUseCase
 	getBadgesUseCase                   *badgesApp.GetBadgesUseCase
 	getCacheHealthDetailsUseCase       *healthApp.GetCacheHealthDetailsUseCase
 }
@@ -95,6 +97,8 @@ func getContainer() *container {
 			getCumulativeDataPerYearUseCase:    dashboardApp.NewGetCumulativeDataPerYearUseCase(dashboardReader),
 			getActivityHeatmapUseCase:          dashboardApp.NewGetActivityHeatmapUseCase(dashboardReader),
 			getEddingtonNumberUseCase:          dashboardApp.NewGetEddingtonNumberUseCase(dashboardReader),
+			getAnnualGoalsUseCase:              dashboardApp.NewGetAnnualGoalsUseCase(dashboardReader),
+			updateAnnualGoalsUseCase:           dashboardApp.NewUpdateAnnualGoalsUseCase(dashboardReader),
 			getBadgesUseCase:                   badgesApp.NewGetBadgesUseCase(badgesReader),
 			getCacheHealthDetailsUseCase:       healthApp.NewGetCacheHealthDetailsUseCase(healthReader),
 		}

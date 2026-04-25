@@ -69,3 +69,27 @@ func NewGetEddingtonNumberUseCase(reader DashboardReader) *GetEddingtonNumberUse
 func (uc *GetEddingtonNumberUseCase) Execute(activityTypes []business.ActivityType) business.EddingtonNumber {
 	return uc.reader.FindEddingtonNumber(activityTypes...)
 }
+
+type GetAnnualGoalsUseCase struct {
+	reader DashboardReader
+}
+
+func NewGetAnnualGoalsUseCase(reader DashboardReader) *GetAnnualGoalsUseCase {
+	return &GetAnnualGoalsUseCase{reader: reader}
+}
+
+func (uc *GetAnnualGoalsUseCase) Execute(year int, activityTypes []business.ActivityType) business.AnnualGoals {
+	return uc.reader.FindAnnualGoals(year, activityTypes...)
+}
+
+type UpdateAnnualGoalsUseCase struct {
+	reader DashboardReader
+}
+
+func NewUpdateAnnualGoalsUseCase(reader DashboardReader) *UpdateAnnualGoalsUseCase {
+	return &UpdateAnnualGoalsUseCase{reader: reader}
+}
+
+func (uc *UpdateAnnualGoalsUseCase) Execute(year int, targets business.AnnualGoalTargets, activityTypes []business.ActivityType) business.AnnualGoals {
+	return uc.reader.SaveAnnualGoals(year, targets, activityTypes...)
+}

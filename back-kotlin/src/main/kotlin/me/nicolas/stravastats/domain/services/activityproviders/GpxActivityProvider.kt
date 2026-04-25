@@ -35,6 +35,13 @@ class GpxActivityProvider(private val gpxCache: String, private val srtmProvider
         )
     }
 
+    override fun cacheIdentity(): ActivityProviderCacheIdentity {
+        return ActivityProviderCacheIdentity(
+            cacheRoot = gpxCache,
+            athleteId = "gpx-${gpxCache.hashCode().toUInt()}",
+        )
+    }
+
     private fun loadFromLocalCache(): List<StravaActivity> {
         logger.info("Load GPX activities from local cache ...")
 

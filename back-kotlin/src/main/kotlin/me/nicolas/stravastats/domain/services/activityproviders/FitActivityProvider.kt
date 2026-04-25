@@ -34,6 +34,13 @@ class FitActivityProvider(private val fitCache: String, private val srtmProvider
         )
     }
 
+    override fun cacheIdentity(): ActivityProviderCacheIdentity {
+        return ActivityProviderCacheIdentity(
+            cacheRoot = fitCache,
+            athleteId = "fit-${fitCache.hashCode().toUInt()}",
+        )
+    }
+
     private fun loadFromLocalCache(): List<StravaActivity> {
         logger.info("Load FIT activities from local cache ...")
 
