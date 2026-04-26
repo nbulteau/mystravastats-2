@@ -87,6 +87,7 @@
   Owners: `Back-Go`, `Back-Kotlin`, `Front`.
   Proposition:
   - collecter par provider les champs ignores, valeurs invalides, fichiers partiellement lus et streams absents,
+  - journaliser les signaux bruts utiles aux corrections futures: sauts GPS, vitesses impossibles, trous de streams et valeurs non numeriques,
   - exposer un resume dans `/api/health/details` et la page Diagnostics,
   - relier les anomalies a des IDs d'activites quand c'est possible.
   Acceptance:
@@ -128,12 +129,16 @@
   Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
   Proposition:
   - ajouter une vue de controle des activites FIT/GPX importees,
-  - signaler fichiers invalides, activites sans GPS, streams absents, valeurs fallback et doublons probables,
+  - signaler fichiers invalides, activites sans GPS, streams absents, valeurs fallback, doublons probables, glitches GPS, vitesses incoherentes et donnees manquantes,
+  - tracer les anomalies par activite avec severite, source du probleme et champ concerne,
+  - proposer des corrections locales non destructives: ignorer points GPS aberrants, recalculer distance/D+, masquer une valeur invalide, exclure une activite des statistiques,
+  - conserver la donnee originale et un journal des corrections appliquees,
   - permettre de filtrer par annee, sport, niveau de confiance et type de probleme.
   Valeur:
   - rend les modes locaux fiables sans obliger a lire les logs.
   Acceptance:
-  - les activites locales problematiques sont visibles avant de casser ou polluer les statistiques.
+  - les activites locales problematiques sont visibles avant de casser ou polluer les statistiques,
+  - une correction locale peut etre appliquee, annulee et expliquee sans modifier le fichier source.
 
 ### Priorite moyenne
 
@@ -177,15 +182,6 @@
   Acceptance:
   - lecture rapide de la regularite et des trous d'entrainement.
 
-- [ ] `FUNC-P2-03` (`P2`, `S`) - Export enrichi.
-  Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
-  Proposition:
-  - exports CSV par vue avec les filtres appliques,
-  - export JSON des objectifs et configurations locales,
-  - export GPX des traces locales filtrees.
-  Acceptance:
-  - les donnees importantes restent portables hors application.
-
 - [ ] `FUNC-P2-04` (`P2`, `S`) - Notes locales d'activite.
   Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
   Proposition:
@@ -194,6 +190,15 @@
   - afficher les notes dans detail activite, recherche et exports.
   Acceptance:
   - l'application peut enrichir les activites locales ou Strava sans modifier la source d'origine.
+
+- [ ] `FUNC-P2-05` (`P2`, `S`) - Exports portables complementaires.
+  Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
+  Proposition:
+  - exporter en JSON les objectifs annuels et configurations locales,
+  - exporter en GPX les traces locales filtrees,
+  - documenter les schemas exportes pour pouvoir les reimporter plus tard.
+  Acceptance:
+  - les donnees de configuration et traces locales restent portables hors application.
 
 ## Dette visible a traiter en premier
 

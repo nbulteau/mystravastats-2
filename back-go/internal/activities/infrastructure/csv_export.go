@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"fmt"
 	"log"
+	"math"
 	"mystravastats/domain/statistics"
 	"mystravastats/internal/platform/activityprovider"
 	"mystravastats/internal/shared/domain/business"
@@ -161,7 +162,7 @@ func generateRideHeader() string {
 		"Max gradient for 10 km (%)",
 		"Max gradient for 20 km (%)",
 	}
-	return writeCSVLine(headers)
+	return writeCSVLine(withEnrichedExportHeaders(headers))
 }
 
 func generateRideActivity(activity *strava.Activity) string {
@@ -193,7 +194,7 @@ func generateRideActivity(activity *strava.Activity) string {
 		calculateBestElevationForDistance(activity, 10000.0),
 		calculateBestElevationForDistance(activity, 20000.0),
 	}
-	return writeCSVLine(data)
+	return writeCSVLine(withEnrichedExportValues(data, activity))
 }
 
 func generateRideFooter(activitiesCount int) string {
@@ -226,7 +227,7 @@ func generateRunHeader() string {
 		"Best 5 h (min/km)",
 		"Best vVO2max = 6 min (min/km)",
 	}
-	return writeCSVLine(headers)
+	return writeCSVLine(withEnrichedExportHeaders(headers))
 }
 
 func generateRunActivity(activity *strava.Activity) string {
@@ -252,7 +253,7 @@ func generateRunActivity(activity *strava.Activity) string {
 		calculateBestDistanceForTime(activity, 5*60*60),
 		calculateBestDistanceForTime(activity, 12*60),
 	}
-	return writeCSVLine(data)
+	return writeCSVLine(withEnrichedExportValues(data, activity))
 }
 
 func generateRunFooter(activitiesCount int) string {
@@ -279,7 +280,7 @@ func generateHikeHeader() string {
 		"Max gradient for 5 km (%)",
 		"Max gradient for 10 km (%)",
 	}
-	return writeCSVLine(headers)
+	return writeCSVLine(withEnrichedExportHeaders(headers))
 }
 
 func generateHikeActivity(activity *strava.Activity) string {
@@ -300,7 +301,7 @@ func generateHikeActivity(activity *strava.Activity) string {
 		calculateBestElevationForDistance(activity, 5000.0),
 		calculateBestElevationForDistance(activity, 10000.0),
 	}
-	return writeCSVLine(data)
+	return writeCSVLine(withEnrichedExportValues(data, activity))
 }
 
 func generateHikeFooter(activitiesCount int) string {
@@ -331,7 +332,7 @@ func generateInlineSkateHeader() string {
 		"Best 4 h (km/h)",
 		"Best 5 h (km/h)",
 	}
-	return writeCSVLine(headers)
+	return writeCSVLine(withEnrichedExportHeaders(headers))
 }
 
 func generateInlineSkateActivity(activity *strava.Activity) string {
@@ -355,7 +356,7 @@ func generateInlineSkateActivity(activity *strava.Activity) string {
 		calculateBestDistanceForTime(activity, 4*60*60),
 		calculateBestDistanceForTime(activity, 5*60*60),
 	}
-	return writeCSVLine(data)
+	return writeCSVLine(withEnrichedExportValues(data, activity))
 }
 
 func generateInlineSkateFooter(activitiesCount int) string {
@@ -394,7 +395,7 @@ func generateAlpineSkiHeader() string {
 		"Max gradient for 10 km (%)",
 		"Max gradient for 20 km (%)",
 	}
-	return writeCSVLine(headers)
+	return writeCSVLine(withEnrichedExportHeaders(headers))
 }
 
 func generateAlpineSkiActivity(activity *strava.Activity) string {
@@ -426,7 +427,7 @@ func generateAlpineSkiActivity(activity *strava.Activity) string {
 		calculateBestElevationForDistance(activity, 10000.0),
 		calculateBestElevationForDistance(activity, 20000.0),
 	}
-	return writeCSVLine(data)
+	return writeCSVLine(withEnrichedExportValues(data, activity))
 }
 
 func generateAlpineSkiFooter(activitiesCount int) string {
@@ -437,7 +438,154 @@ func generateAlpineSkiFooter(activitiesCount int) string {
 }
 
 func writeCSVLine(fields []string) string {
-	return strings.Join(fields, ",")
+	escapedFields := make([]string, 0, len(fields))
+	for _, field := range fields {
+		escapedFields = append(escapedFields, escapeCSVField(field))
+	}
+	return strings.Join(escapedFields, ",")
+}
+
+func escapeCSVField(field string) string {
+	if !strings.ContainsAny(field, "\",\n\r") {
+		return field
+	}
+	return "\"" + strings.ReplaceAll(field, "\"", "\"\"") + "\""
+}
+
+func withEnrichedExportHeaders(headers []string) []string {
+	return append(headers, enrichedExportHeaders()...)
+}
+
+func withEnrichedExportValues(values []string, activity *strava.Activity) []string {
+	return append(values, enrichedExportValues(activity)...)
+}
+
+func enrichedExportHeaders() []string {
+	return []string{
+		"Activity ID",
+		"Type",
+		"Sport type",
+		"Commute",
+		"Gear ID",
+		"Strava link",
+		"Start date local",
+		"Moving time",
+		"Moving time (seconds)",
+		"Elevation gain (m)",
+		"Average heart rate",
+		"Max heart rate",
+		"Average watts",
+		"Weighted average watts",
+		"Average cadence",
+		"Has GPS stream",
+		"Has altitude stream",
+		"Has heart rate stream",
+		"Has power stream",
+		"Data quality flags",
+	}
+}
+
+func enrichedExportValues(activity *strava.Activity) []string {
+	gearID := ""
+	if activity.GearId != nil {
+		gearID = strings.TrimSpace(*activity.GearId)
+	}
+
+	return []string{
+		fmt.Sprintf("%d", activity.Id),
+		activity.Type,
+		activity.SportType,
+		formatBool(activity.Commute),
+		gearID,
+		formatActivityLink(activity),
+		activity.StartDateLocal,
+		formatSeconds(activity.MovingTime),
+		fmt.Sprintf("%d", activity.MovingTime),
+		formatFloat(activity.TotalElevationGain, "%.0f"),
+		formatFloat(activity.AverageHeartrate, "%.0f"),
+		formatFloat(activity.MaxHeartrate, "%.0f"),
+		formatFloat(activity.AverageWatts, "%.0f"),
+		fmt.Sprintf("%d", activity.WeightedAverageWatts),
+		formatFloat(activity.AverageCadence, "%.1f"),
+		formatBool(hasGPSStream(activity)),
+		formatBool(hasAltitudeStream(activity)),
+		formatBool(hasHeartRateStream(activity)),
+		formatBool(hasPowerStream(activity)),
+		strings.Join(dataQualityFlags(activity), "|"),
+	}
+}
+
+func formatActivityLink(activity *strava.Activity) string {
+	if activity.Id == 0 || activity.UploadId == 0 {
+		return ""
+	}
+	return fmt.Sprintf("https://www.strava.com/activities/%d", activity.Id)
+}
+
+func formatBool(value bool) string {
+	if value {
+		return "yes"
+	}
+	return "no"
+}
+
+func formatFloat(value float64, format string) string {
+	if math.IsNaN(value) || math.IsInf(value, 0) {
+		return ""
+	}
+	return fmt.Sprintf(format, value)
+}
+
+func hasGPSStream(activity *strava.Activity) bool {
+	return activity.Stream != nil && activity.Stream.LatLng != nil && len(activity.Stream.LatLng.Data) > 0
+}
+
+func hasAltitudeStream(activity *strava.Activity) bool {
+	return activity.Stream != nil && activity.Stream.Altitude != nil && len(activity.Stream.Altitude.Data) > 0
+}
+
+func hasHeartRateStream(activity *strava.Activity) bool {
+	return activity.Stream != nil && activity.Stream.HeartRate != nil && len(activity.Stream.HeartRate.Data) > 0
+}
+
+func hasPowerStream(activity *strava.Activity) bool {
+	return activity.Stream != nil && activity.Stream.Watts != nil && len(activity.Stream.Watts.Data) > 0
+}
+
+func dataQualityFlags(activity *strava.Activity) []string {
+	flags := make([]string, 0)
+	if activity.Distance <= 0 {
+		flags = append(flags, "missing_distance")
+	}
+	if activity.ElapsedTime <= 0 {
+		flags = append(flags, "missing_elapsed_time")
+	}
+	if activity.MovingTime <= 0 {
+		flags = append(flags, "missing_moving_time")
+	}
+	if activity.MovingTime > activity.ElapsedTime && activity.ElapsedTime > 0 {
+		flags = append(flags, "moving_time_gt_elapsed_time")
+	}
+	if math.IsNaN(activity.AverageSpeed) || math.IsInf(activity.AverageSpeed, 0) {
+		flags = append(flags, "invalid_average_speed")
+	}
+	if activity.Stream == nil {
+		flags = append(flags, "missing_stream")
+		return flags
+	}
+	if !hasGPSStream(activity) {
+		flags = append(flags, "missing_gps_stream")
+	}
+	if !hasAltitudeStream(activity) {
+		flags = append(flags, "missing_altitude_stream")
+	}
+	if !hasHeartRateStream(activity) && activity.AverageHeartrate > 0 {
+		flags = append(flags, "missing_heart_rate_stream")
+	}
+	if !hasPowerStream(activity) && activity.AverageWatts > 0 {
+		flags = append(flags, "missing_power_stream")
+	}
+	return flags
 }
 
 // Helper functions - these would need to be implemented based on your activity model

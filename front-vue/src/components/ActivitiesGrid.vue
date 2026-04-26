@@ -11,9 +11,9 @@ import ActivityTypeCellRenderer from "@/components/cell-renderers/ActivityTypeCe
 import AverageSpeedCellRenderer from "@/components/cell-renderers/AverageSpeedCellRenderer.vue";
 import BestSpeedFor1000mCellRenderer from "@/components/cell-renderers/BestSpeedFor1000mCellRenderer.vue";
 import { computed, ref } from "vue";
-import { ErrorService } from "@/services/error.service";
 import { useUiStore } from "@/stores/ui";
 import { ToastTypeEnum } from "@/models/toast.model";
+import { formatSpeedWithUnit } from "@/utils/formatters";
 
 const props = defineProps<{
   activities: Activity[];
@@ -131,14 +131,17 @@ function resetFilters() {
 }
 
 async function csvExport() {
-  let url = `/api/activities/csv?activityType=${encodeURIComponent(props.currentActivity)}`;
-  if (props.currentYear !== "All years") {
-    url = `${url}&year=${encodeURIComponent(props.currentYear)}`;
-  }
-
-  let response: Response;
   try {
-    response = await fetch(url);
+    const csvContent = buildVisibleActivitiesCsv();
+    const blob = new Blob([`\ufeff${csvContent}`], { type: "text/csv;charset=utf-8" });
+    const objectUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.setAttribute("download", exportFileName());
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(objectUrl);
   } catch {
     uiStore.showToast({
       id: `csv-export-toast-${Date.now()}`,
@@ -146,37 +149,162 @@ async function csvExport() {
       message: "Unable to export CSV right now. Please retry.",
       timeout: 5000,
     });
-    return;
   }
+}
 
-  if (!response.ok) {
-    await ErrorService.catchError(response);
-    return;
-  }
+function exportFileName(): string {
+  const scope = [props.currentActivity, props.currentYear]
+    .join("-")
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9_-]/g, "");
+  return `activities-${scope}-visible.csv`;
+}
 
-  let objectUrl: string | null = null;
-  try {
-    const blob = await response.blob();
-    objectUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = objectUrl;
-    const fileName = `activities-${props.currentActivity}-${props.currentYear}.csv`;
-    link.setAttribute("download", fileName);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  } catch {
-    uiStore.showToast({
-      id: `csv-export-toast-${Date.now()}`,
-      type: ToastTypeEnum.ERROR,
-      message: "CSV export failed unexpectedly. Please retry.",
-      timeout: 5000,
-    });
-  } finally {
-    if (objectUrl) {
-      window.URL.revokeObjectURL(objectUrl);
-    }
+function buildVisibleActivitiesCsv(): string {
+  const header = [
+    "Activity ID",
+    "Name",
+    "Type",
+    "Date",
+    "Distance (km)",
+    "Elapsed time",
+    "Elapsed seconds",
+    "Moving time",
+    "Moving seconds",
+    "Elevation gain (m)",
+    "Total descent (m)",
+    "Average speed",
+    "Average heart rate",
+    "Average watts",
+    "Weighted average watts",
+    "Best 1000m speed",
+    "Best 500m gradient",
+    "Best 1000m gradient",
+    "Best 20min power",
+    "Best 60min power",
+    "FTP",
+    "Commute",
+    "Strava link",
+    "Badge effort seconds",
+    "Data quality flags",
+  ];
+
+  const rows = filteredActivities.value.map(activityToCsvRow);
+  const totalRow = footerData.value ? footerToCsvRow(footerData.value) : null;
+  return [header, ...rows, ...(totalRow ? [totalRow] : [])].map(toCsvLine).join("\n") + "\n";
+}
+
+function activityToCsvRow(activity: Activity): string[] {
+  return [
+    String(activity.id),
+    activity.name.trim(),
+    activity.type,
+    activity.date,
+    formatNumber((Number(activity.distance) || 0) / 1000, 2),
+    formatDuration(Number(activity.elapsedTime) || 0),
+    String(Number(activity.elapsedTime) || 0),
+    formatDuration(Number(activity.movingTime) || 0),
+    String(Number(activity.movingTime) || 0),
+    formatNumber(Number(activity.totalElevationGain) || 0, 0),
+    formatNumber(Number(activity.totalDescent) || 0, 0),
+    formatExportSpeed(toNumberOrZero(activity.averageSpeed), activity.type),
+    formatNumber(resolveAverageHeartRate(activity), 0),
+    formatNumber(toNumberOrZero(activity.averageWatts), 0),
+    formatNumber(toNumberOrZero(activity.weightedAverageWatts), 0),
+    formatExportSpeed(toNumberOrZero(activity.bestSpeedForDistanceFor1000m), activity.type),
+    formatNumber(toNumberOrZero(activity.bestElevationForDistanceFor500m), 2),
+    formatNumber(toNumberOrZero(activity.bestElevationForDistanceFor1000m), 2),
+    formatNumber(toNumberOrZero(activity.bestPowerFor20minutes), 0),
+    formatNumber(toNumberOrZero(activity.bestPowerFor60minutes), 0),
+    formatNumber(toNumberOrZero(activity.ftp), 0),
+    hasCommuteFlag(activity) ? "yes" : "no",
+    activity.link ?? "",
+    activity.badgeEffortSeconds !== undefined ? String(activity.badgeEffortSeconds) : "",
+    activityDataQualityFlags(activity).join("|"),
+  ];
+}
+
+function footerToCsvRow(total: Record<string, unknown>): string[] {
+  return [
+    "",
+    "Totals",
+    String(total.type ?? ""),
+    "",
+    formatNumber((Number(total.distance) || 0) / 1000, 2),
+    formatDuration(Number(total.elapsedTime) || 0),
+    String(Number(total.elapsedTime) || 0),
+    "",
+    "",
+    formatNumber(Number(total.totalElevationGain) || 0, 0),
+    "",
+    formatExportSpeed(Number(total.averageSpeed) || 0, String(total.type ?? props.currentActivity)),
+    "",
+    "",
+    "",
+    formatExportSpeed(Number(total.bestSpeedForDistanceFor1000m) || 0, String(total.type ?? props.currentActivity)),
+    formatNumber(Number(total.bestElevationForDistanceFor500m) || 0, 2),
+    formatNumber(Number(total.bestElevationForDistanceFor1000m) || 0, 2),
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+  ];
+}
+
+function toCsvLine(values: string[]): string {
+  return values.map(toCsvCell).join(";");
+}
+
+function toCsvCell(value: string): string {
+  if (!/[;"\n\r]/.test(value)) {
+    return value;
   }
+  return `"${value.replace(/"/g, "\"\"").replace(/\r?\n/g, " ")}"`;
+}
+
+function formatNumber(value: number, fractionDigits: number): string {
+  return Number.isFinite(value) ? value.toFixed(fractionDigits) : "";
+}
+
+function formatDuration(seconds: number): string {
+  const safeSeconds = Number.isFinite(seconds) ? Math.max(0, Math.round(seconds)) : 0;
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const secs = safeSeconds % 60;
+  return [hours, minutes, secs].map((part) => String(part).padStart(2, "0")).join(":");
+}
+
+function formatExportSpeed(speed: number, activityType: string): string {
+  return Number.isFinite(speed) && speed > 0 ? formatSpeedWithUnit(speed, activityType) : "";
+}
+
+function activityDataQualityFlags(activity: Activity): string[] {
+  const flags: string[] = [];
+  if ((Number(activity.distance) || 0) <= 0) {
+    flags.push("missing_distance");
+  }
+  if ((Number(activity.elapsedTime) || 0) <= 0) {
+    flags.push("missing_elapsed_time");
+  }
+  if ((Number(activity.movingTime) || 0) <= 0) {
+    flags.push("missing_moving_time");
+  }
+  if ((Number(activity.movingTime) || 0) > (Number(activity.elapsedTime) || 0) && (Number(activity.elapsedTime) || 0) > 0) {
+    flags.push("moving_time_gt_elapsed_time");
+  }
+  if (!Number.isFinite(Number(activity.averageSpeed))) {
+    flags.push("invalid_average_speed");
+  }
+  if (resolveAverageHeartRate(activity) <= 0) {
+    flags.push("missing_heart_rate");
+  }
+  if (resolvePower(activity) <= 0) {
+    flags.push("missing_power");
+  }
+  return flags;
 }
 
 const numericCompare = (prop: ColumnProp, a: { [x: string]: unknown }, b: { [x: string]: unknown }) => {

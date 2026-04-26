@@ -32,7 +32,7 @@ internal class InlineSkateCSVExporter(clientId: String, activities: List<StravaA
                 "Best 3 h (km/h)",
                 "Best 4 h (km/h)",
                 "Best 5 h (km/h)",
-            )
+            ) + enrichedHeader()
         )
     }
 
@@ -58,7 +58,7 @@ internal class InlineSkateCSVExporter(clientId: String, activities: List<StravaA
                     activity.calculateBestDistanceForTime(3 * 60 * 60)?.getFormatedSpeed() ?: "",
                     activity.calculateBestDistanceForTime(4 * 60 * 60)?.getFormatedSpeed() ?: "",
                     activity.calculateBestDistanceForTime(5 * 60 * 60)?.getFormatedSpeed() ?: "",
-                )
+                ) + activity.enrichedValues()
             )
         }
     }

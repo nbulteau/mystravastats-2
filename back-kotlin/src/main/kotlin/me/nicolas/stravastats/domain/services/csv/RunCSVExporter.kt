@@ -35,7 +35,7 @@ internal class RunCSVExporter(clientId: String, activities: List<StravaActivity>
                     activity.calculateBestDistanceForTime(4 * 60 * 60)?.getFormatedSpeed() ?: "",
                     activity.calculateBestDistanceForTime(5 * 60 * 60)?.getFormatedSpeed() ?: "",
                     activity.calculateBestDistanceForTime(12 * 60)?.getFormatedSpeed() ?: ""
-                )
+                ) + activity.enrichedValues()
             )
         }
     }
@@ -63,7 +63,7 @@ internal class RunCSVExporter(clientId: String, activities: List<StravaActivity>
                 "Best 4 h (min/km)",
                 "Best 5 h (min/km)",
                 "Best vVO2max = 6 min (min/km)",
-            )
+            ) + enrichedHeader()
         )
     }
 

@@ -30,7 +30,7 @@ internal class HikeCSVExporter(clientId: String, activities: List<StravaActivity
                 "Max gradient for 1000 m (%)",
                 "Max gradient for 5 km (%)",
                 "Max gradient for 10 km (%)",
-            )
+            ) + enrichedHeader()
         )
     }
 
@@ -53,7 +53,7 @@ internal class HikeCSVExporter(clientId: String, activities: List<StravaActivity
                     activity.calculateBestElevationForDistance(1000.0)?.getFormattedGradient() ?: "",
                     activity.calculateBestElevationForDistance(5000.0)?.getFormattedGradient() ?: "",
                     activity.calculateBestElevationForDistance(10000.0)?.getFormattedGradient() ?: "",
-                )
+                ) + activity.enrichedValues()
             )
         }
     }

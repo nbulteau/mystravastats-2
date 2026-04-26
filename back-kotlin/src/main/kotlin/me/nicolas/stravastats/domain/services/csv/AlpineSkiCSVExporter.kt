@@ -41,7 +41,7 @@ internal class AlpineSkiCSVExporter(clientId: String, activities: List<StravaAct
                 "Max gradient for 5 km (%)",
                 "Max gradient for 10 km (%)",
                 "Max gradient for 20 km (%)",
-            )
+            ) + enrichedHeader()
         )
     }
 
@@ -75,7 +75,7 @@ internal class AlpineSkiCSVExporter(clientId: String, activities: List<StravaAct
                     activity.calculateBestElevationForDistance(5000.0)?.getFormattedGradient() ?: "",
                     activity.calculateBestElevationForDistance(10000.0)?.getFormattedGradient() ?: "",
                     activity.calculateBestElevationForDistance(20000.0)?.getFormattedGradient() ?: "",
-                )
+                ) + activity.enrichedValues()
             )
         }
     }
