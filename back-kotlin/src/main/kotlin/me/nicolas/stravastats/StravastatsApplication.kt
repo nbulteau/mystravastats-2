@@ -11,6 +11,11 @@ import me.nicolas.stravastats.api.dto.AnnualGoalMonthDto
 import me.nicolas.stravastats.api.dto.AnnualGoalProgressDto
 import me.nicolas.stravastats.api.dto.AnnualGoalTargetsDto
 import me.nicolas.stravastats.api.dto.AnnualGoalsDto
+import me.nicolas.stravastats.api.dto.GearAnalysisCoverageDto
+import me.nicolas.stravastats.api.dto.GearAnalysisDto
+import me.nicolas.stravastats.api.dto.GearAnalysisItemDto
+import me.nicolas.stravastats.api.dto.GearAnalysisPeriodPointDto
+import me.nicolas.stravastats.api.dto.GearAnalysisSummaryDto
 import me.nicolas.stravastats.api.dto.HeartRateZoneActivitySummaryDto
 import me.nicolas.stravastats.api.dto.HeartRateZoneAnalysisDto
 import me.nicolas.stravastats.api.dto.HeartRateZoneDistributionDto
@@ -22,6 +27,11 @@ import me.nicolas.stravastats.domain.business.AnnualGoalMonth
 import me.nicolas.stravastats.domain.business.AnnualGoalProgress
 import me.nicolas.stravastats.domain.business.AnnualGoalTargets
 import me.nicolas.stravastats.domain.business.AnnualGoals
+import me.nicolas.stravastats.domain.business.GearAnalysis
+import me.nicolas.stravastats.domain.business.GearAnalysisCoverage
+import me.nicolas.stravastats.domain.business.GearAnalysisItem
+import me.nicolas.stravastats.domain.business.GearAnalysisPeriodPoint
+import me.nicolas.stravastats.domain.business.GearAnalysisSummary
 import me.nicolas.stravastats.domain.business.SourceModeEnvironmentVariable
 import me.nicolas.stravastats.domain.business.SourceModePreview
 import me.nicolas.stravastats.domain.business.SourceModePreviewError
@@ -116,6 +126,16 @@ import org.springframework.boot.runApplication
         AnnualGoalMonthDto::class,
         AnnualGoalProgressDto::class,
         AnnualGoalsDto::class,
+        GearAnalysis::class,
+        GearAnalysisItem::class,
+        GearAnalysisSummary::class,
+        GearAnalysisCoverage::class,
+        GearAnalysisPeriodPoint::class,
+        GearAnalysisDto::class,
+        GearAnalysisItemDto::class,
+        GearAnalysisSummaryDto::class,
+        GearAnalysisCoverageDto::class,
+        GearAnalysisPeriodPointDto::class,
         SourceModePreviewRequest::class,
         SourceModeEnvironmentVariable::class,
         SourceModeYearPreview::class,

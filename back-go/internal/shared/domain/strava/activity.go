@@ -16,6 +16,7 @@ type Activity struct {
 	DeviceWatts          bool       `json:"device_watts"`
 	ElapsedTime          int        `json:"elapsed_time"`
 	ElevHigh             float64    `json:"elev_high"`
+	GearId               *string    `json:"gear_id,omitempty"`
 	Id                   int64      `json:"id"`
 	Kilojoules           float64    `json:"kilojoules"`
 	MaxSpeed             float64    `json:"max_speed"`
@@ -58,7 +59,7 @@ func (activity *Activity) ToStravaDetailedActivity() *DetailedActivity {
 		Flagged:                  false,
 		FromAcceptedTag:          false,
 		Gear:                     nil,
-		GearId:                   nil,
+		GearId:                   activity.GearId,
 		HasHeartRate:             true,
 		HasKudoed:                false,
 		HideFromHome:             false,

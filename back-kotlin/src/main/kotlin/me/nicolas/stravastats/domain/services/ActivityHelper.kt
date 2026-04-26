@@ -193,7 +193,7 @@ fun StravaActivity.toStravaDetailedActivity(): StravaDetailedActivity {
             primary = false,
             retired = false
         ),
-        gearId = "",
+        gearId = this.gearId ?: "",
         hasHeartRate = true,
         hasKudoed = false,
         hideFromHome = false,

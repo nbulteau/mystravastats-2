@@ -4,6 +4,7 @@ import { useBadgesStore } from "@/stores/badges";
 import { useChartsStore } from "@/stores/charts";
 import { useDashboardStore } from "@/stores/dashboard";
 import { useDiagnosticsStore } from "@/stores/diagnostics";
+import { useGearAnalysisStore } from "@/stores/gear-analysis";
 import { useMapStore } from "@/stores/map";
 import { useRoutesStore } from "@/stores/routes";
 import { useSegmentsStore } from "@/stores/segments";
@@ -11,6 +12,7 @@ import { useStatisticsStore } from "@/stores/statistics";
 
 export type AppView =
   | "statistics"
+  | "gear"
   | "activities"
   | "activity"
   | "map"
@@ -36,6 +38,9 @@ export const useContextStore = defineStore("context", {
       switch (this.currentView) {
         case "statistics":
           await useStatisticsStore().ensureLoaded();
+          break;
+        case "gear":
+          await useGearAnalysisStore().ensureLoaded();
           break;
         case "activities":
           await useActivitiesStore().ensureLoaded();

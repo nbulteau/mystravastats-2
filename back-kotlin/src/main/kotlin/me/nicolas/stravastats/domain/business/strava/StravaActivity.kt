@@ -53,6 +53,8 @@ data class StravaActivity(
     val uploadId: Long,
     @param:JsonProperty("weighted_average_watts")
     val weightedAverageWatts: Int = 0,
+    @param:JsonProperty("gear_id")
+    val gearId: String? = null,
 
     var stream: Stream? = null
 ) {

@@ -91,6 +91,22 @@ const isCurrent = (name: string) => route.name === name;
           role="presentation"
         >
           <RouterLink
+            id="gear-tab"
+            class="nav-link"
+            :class="{ active: isCurrent('gear') }"
+            role="tab"
+            aria-controls="gear-tab-pane"
+            :aria-selected="isCurrent('gear')"
+            to="/gear"
+          >
+            Gear
+          </RouterLink>
+        </li>
+        <li
+          class="nav-item"
+          role="presentation"
+        >
+          <RouterLink
             id="badges-tab"
             class="nav-link"
             :class="{ active: isCurrent('badges') }"

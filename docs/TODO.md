@@ -137,15 +137,6 @@
 
 ### Priorite moyenne
 
-- [ ] `FUNC-P1-03` (`P1`, `M`) - Analyse materiel.
-  Owners: `Product`, `Stats`, `Front`.
-  Proposition:
-  - exploiter les donnees gear/bike/shoe deja presentes dans les modeles Strava,
-  - afficher distance, temps, D+, vitesse moyenne, records et maintenance par equipement,
-  - gerer les equipements absents pour GPX/FIT.
-  Acceptance:
-  - vue filtrable par velo/chaussures avec totaux fiables.
-
 - [ ] `FUNC-P1-04` (`P1`, `M`) - Comparaison d'activite a effort similaire.
   Owners: `Product`, `Stats`, `Front`.
   Proposition:

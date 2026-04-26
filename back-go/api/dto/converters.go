@@ -485,6 +485,67 @@ func ToPersonalRecordTimelineDto(entry business.PersonalRecordTimelineEntry) Per
 	}
 }
 
+func ToGearAnalysisDto(analysis business.GearAnalysis) GearAnalysisDto {
+	items := make([]GearAnalysisItemDto, len(analysis.Items))
+	for i, item := range analysis.Items {
+		monthly := make([]GearAnalysisPeriodPointDto, len(item.MonthlyDistance))
+		for j, point := range item.MonthlyDistance {
+			monthly[j] = GearAnalysisPeriodPointDto{
+				PeriodKey:     point.PeriodKey,
+				Value:         point.Value,
+				ActivityCount: point.ActivityCount,
+			}
+		}
+		items[i] = GearAnalysisItemDto{
+			ID:                       item.ID,
+			Name:                     item.Name,
+			Kind:                     string(item.Kind),
+			Retired:                  item.Retired,
+			Primary:                  item.Primary,
+			MaintenanceStatus:        item.MaintenanceStatus,
+			MaintenanceLabel:         item.MaintenanceLabel,
+			Distance:                 item.Distance,
+			MovingTime:               item.MovingTime,
+			ElevationGain:            item.ElevationGain,
+			Activities:               item.Activities,
+			AverageSpeed:             item.AverageSpeed,
+			FirstUsed:                item.FirstUsed,
+			LastUsed:                 item.LastUsed,
+			LongestActivity:          toGearActivityShortDto(item.LongestActivity),
+			BiggestElevationActivity: toGearActivityShortDto(item.BiggestElevationActivity),
+			FastestActivity:          toGearActivityShortDto(item.FastestActivity),
+			MonthlyDistance:          monthly,
+		}
+	}
+
+	return GearAnalysisDto{
+		Items: items,
+		Unassigned: GearAnalysisSummaryDto{
+			Distance:      analysis.Unassigned.Distance,
+			MovingTime:    analysis.Unassigned.MovingTime,
+			ElevationGain: analysis.Unassigned.ElevationGain,
+			Activities:    analysis.Unassigned.Activities,
+			AverageSpeed:  analysis.Unassigned.AverageSpeed,
+		},
+		Coverage: GearAnalysisCoverageDto{
+			TotalActivities:      analysis.Coverage.TotalActivities,
+			AssignedActivities:   analysis.Coverage.AssignedActivities,
+			UnassignedActivities: analysis.Coverage.UnassignedActivities,
+		},
+	}
+}
+
+func toGearActivityShortDto(activity *business.ActivityShort) *ActivityShortDto {
+	if activity == nil {
+		return nil
+	}
+	return &ActivityShortDto{
+		ID:   activity.Id,
+		Name: activity.Name,
+		Type: activity.Type.String(),
+	}
+}
+
 func ToSegmentClimbProgressionDto(progression business.SegmentClimbProgression) SegmentClimbProgressionDto {
 	targets := make([]SegmentClimbTargetSummaryDto, len(progression.Targets))
 	for i, target := range progression.Targets {

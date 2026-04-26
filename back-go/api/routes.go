@@ -24,6 +24,7 @@ var routes = Routes{
 	{Name: "GetPersonalRecordsTimelineByActivityType", Method: "GET", Pattern: "/api/statistics/personal-records-timeline", HandlerFunc: getPersonalRecordsTimelineByActivityType},
 	{Name: "GetHeartRateZoneAnalysisByActivityType", Method: "GET", Pattern: "/api/statistics/heart-rate-zones", HandlerFunc: getHeartRateZoneAnalysisByActivityType},
 	{Name: "GetSegmentClimbProgressionByActivityType", Method: "GET", Pattern: "/api/statistics/segment-climb-progression", HandlerFunc: getSegmentClimbProgressionByActivityType},
+	{Name: "GetGearAnalysisByActivityType", Method: "GET", Pattern: "/api/gear-analysis", HandlerFunc: getGearAnalysisByActivityType},
 	{Name: "GetSegmentsByActivityType", Method: "GET", Pattern: "/api/segments", HandlerFunc: getSegmentsByActivityType},
 	{Name: "GetSegmentEffortsByActivityType", Method: "GET", Pattern: "/api/segments/{segmentId}/efforts", HandlerFunc: getSegmentEffortsByActivityType},
 	{Name: "GetSegmentSummaryByActivityType", Method: "GET", Pattern: "/api/segments/{segmentId}/summary", HandlerFunc: getSegmentSummaryByActivityType},

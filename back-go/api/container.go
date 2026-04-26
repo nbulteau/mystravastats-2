@@ -13,6 +13,8 @@ import (
 	chartsInfra "mystravastats/internal/charts/infrastructure"
 	dashboardApp "mystravastats/internal/dashboard/application"
 	dashboardInfra "mystravastats/internal/dashboard/infrastructure"
+	gearAnalysisApp "mystravastats/internal/gearanalysis/application"
+	gearAnalysisInfra "mystravastats/internal/gearanalysis/infrastructure"
 	healthApp "mystravastats/internal/health/application"
 	healthInfra "mystravastats/internal/health/infrastructure"
 	heartrateApp "mystravastats/internal/heartrate/application"
@@ -53,6 +55,7 @@ type container struct {
 	getEddingtonNumberUseCase          *dashboardApp.GetEddingtonNumberUseCase
 	getAnnualGoalsUseCase              *dashboardApp.GetAnnualGoalsUseCase
 	updateAnnualGoalsUseCase           *dashboardApp.UpdateAnnualGoalsUseCase
+	getGearAnalysisUseCase             *gearAnalysisApp.GetGearAnalysisUseCase
 	getBadgesUseCase                   *badgesApp.GetBadgesUseCase
 	getCacheHealthDetailsUseCase       *healthApp.GetCacheHealthDetailsUseCase
 	previewSourceModeUseCase           *sourceModeApp.PreviewSourceModeUseCase
@@ -73,6 +76,7 @@ func getContainer() *container {
 		routingEngine := routesInfra.NewOSMRoutingAdapter()
 		routesReader := routesInfra.NewRouteServiceAdapter(routingEngine)
 		heartRateReader := heartrateInfra.NewHeartRateServiceAdapter()
+		gearAnalysisReader := gearAnalysisInfra.NewGearAnalysisServiceAdapter()
 		healthReader := healthInfra.NewHealthServiceAdapter(routingEngine)
 		chartsReader := chartsInfra.NewChartsServiceAdapter()
 		dashboardReader := dashboardInfra.NewDashboardServiceAdapter()
@@ -103,6 +107,7 @@ func getContainer() *container {
 			getEddingtonNumberUseCase:          dashboardApp.NewGetEddingtonNumberUseCase(dashboardReader),
 			getAnnualGoalsUseCase:              dashboardApp.NewGetAnnualGoalsUseCase(dashboardReader),
 			updateAnnualGoalsUseCase:           dashboardApp.NewUpdateAnnualGoalsUseCase(dashboardReader),
+			getGearAnalysisUseCase:             gearAnalysisApp.NewGetGearAnalysisUseCase(gearAnalysisReader),
 			getBadgesUseCase:                   badgesApp.NewGetBadgesUseCase(badgesReader),
 			getCacheHealthDetailsUseCase:       healthApp.NewGetCacheHealthDetailsUseCase(healthReader),
 			previewSourceModeUseCase:           sourceModeApp.NewPreviewSourceModeUseCase(sourceModeReader),
