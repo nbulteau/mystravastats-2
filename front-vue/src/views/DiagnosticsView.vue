@@ -1,15 +1,25 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useContextStore } from "@/stores/context";
 import { useDiagnosticsStore } from "@/stores/diagnostics";
 import { useUiStore } from "@/stores/ui";
 import { ToastTypeEnum } from "@/models/toast.model";
 import type { HealthRecord } from "@/models/health.model";
+import type { SourceMode } from "@/models/source-mode.model";
 
 const contextStore = useContextStore();
 const diagnosticsStore = useDiagnosticsStore();
 const uiStore = useUiStore();
 const showRawPayload = ref(false);
+const sourceModePathEdited = ref(false);
+const sourceModeInitialized = ref(false);
+const selectedSourceMode = ref<SourceMode>("STRAVA");
+const sourceModePath = ref("");
+const sourceModeOptions: Array<{ mode: SourceMode; label: string; icon: string }> = [
+  { mode: "STRAVA", label: "Strava", icon: "fa-brands fa-strava" },
+  { mode: "FIT", label: "FIT", icon: "fa-solid fa-file-lines" },
+  { mode: "GPX", label: "GPX", icon: "fa-solid fa-route" },
+];
 
 onMounted(() => contextStore.updateCurrentView("diagnostics"));
 
@@ -68,9 +78,9 @@ const healthStatusClass = computed(() => {
   return statusClass(routingStatus.value === "down" || routingStatus.value === "misconfigured" ? routingStatus.value : "up");
 });
 const warmupStatusItems = computed(() => [
-  { label: "Priority 1", value: textValue(warmup.value.priority1) || "n/a" },
-  { label: "Priority 2", value: textValue(warmup.value.priority2) || "n/a" },
-  { label: "Priority 3", value: textValue(warmup.value.priority3) || "n/a" },
+  { label: "Résumé annuel", value: textValue(warmup.value.priority1) || "n/a" },
+  { label: "Records principaux", value: textValue(warmup.value.priority2) || "n/a" },
+  { label: "Métriques avancées", value: textValue(warmup.value.priority3) || "n/a" },
 ]);
 const warmupInProgress = computed(() => booleanValue(refresh.value.warmupInProgress));
 const backgroundRefreshInProgress = computed(() => booleanValue(refresh.value.backgroundInProgress));
@@ -173,6 +183,60 @@ const runtimeConfigItems = computed<Array<{ label: string; value: string; monosp
   { label: "OSRM enabled", value: yesNo(runtimeRouting.value.enabled), monospace: false },
   { label: "History bias", value: yesNo(runtimeRouting.value.historyBiasEnabled), monospace: false },
 ]);
+const sourceModePreview = computed(() => diagnosticsStore.sourceModePreview);
+const activeSourceMode = computed(() => normalizeSourceMode(textValue(runtimeData.value.provider) || textValue(root.value.provider)));
+const sourceModeConfigKey = computed(() => configKeyForSourceMode(selectedSourceMode.value));
+const sourceModePathLabel = computed(() => {
+  if (selectedSourceMode.value === "STRAVA") return "Cache path";
+  return `${selectedSourceMode.value} directory`;
+});
+const sourceModeStatusLabel = computed(() => {
+  const preview = sourceModePreview.value;
+  if (diagnosticsStore.sourceModePreviewError) return "Unavailable";
+  if (!preview) return "Not checked";
+  if (preview.active) return "Active";
+  if (!preview.supported || preview.errors.length > 0 || !preview.readable || !preview.validStructure) return "Needs attention";
+  if (preview.restartNeeded) return "Ready after restart";
+  return "Ready";
+});
+const sourceModeStatusClass = computed(() => {
+  const preview = sourceModePreview.value;
+  if (diagnosticsStore.sourceModePreviewError) return "status-chip status-chip--down";
+  if (!preview) return "status-chip status-chip--neutral";
+  if (preview.active) return "status-chip status-chip--up";
+  if (!preview.supported || preview.errors.length > 0 || !preview.readable || !preview.validStructure) return "status-chip status-chip--warn";
+  if (preview.restartNeeded) return "status-chip status-chip--warn";
+  return "status-chip status-chip--up";
+});
+const sourceModePreviewStats = computed<Array<{ label: string; value: string; tone?: "warn" | "neutral" }>>(() => {
+  const preview = sourceModePreview.value;
+  if (!preview) return [];
+  return [
+    { label: "Activities", value: formatInteger(preview.activityCount) },
+    { label: "Files", value: `${formatInteger(preview.validFileCount)}/${formatInteger(preview.fileCount)}` },
+    { label: "Invalid", value: formatInteger(preview.invalidFileCount), tone: preview.invalidFileCount > 0 ? "warn" : "neutral" },
+    { label: "Years", value: formatInteger(preview.years.length) },
+    { label: "Config", value: preview.configured ? "Set" : "Unset", tone: preview.configured ? "neutral" : "warn" },
+    { label: "Restart", value: preview.restartNeeded ? "Required" : "No", tone: preview.restartNeeded ? "warn" : "neutral" },
+  ];
+});
+const sourceModeActivationCommand = computed(() => sourceModePreview.value?.activationCommand ?? "");
+const sourceModeActivationSummary = computed<Array<{ label: string; value: string; tone?: "warn" | "up" }>>(() => {
+  const preview = sourceModePreview.value;
+  const verification = preview?.active
+    ? "Active"
+    : preview?.restartNeeded
+      ? "Restart required"
+      : preview
+        ? "No restart"
+        : "Preview first";
+  return [
+    { label: "Current", value: formatProvider(activeSourceMode.value), tone: activeSourceMode.value === selectedSourceMode.value ? "up" : "warn" },
+    { label: "Target", value: selectedSourceMode.value },
+    { label: "Verification", value: verification, tone: preview?.active ? "up" : preview ? "warn" : undefined },
+  ];
+});
+const sourceModeEnvironment = computed(() => sourceModePreview.value?.environment ?? []);
 const degradedReasons = computed(() => {
   const reasons: Array<{ title: string; detail: string; tone: "warn" | "down" | "info" }> = [];
   if (diagnosticsStore.error) {
@@ -215,6 +279,23 @@ const degradedReasons = computed(() => {
   return reasons;
 });
 const rawPayload = computed(() => JSON.stringify(health.value ?? {}, null, 2));
+
+watch(
+  runtimeData,
+  () => {
+    if (!sourceModeInitialized.value) {
+      selectedSourceMode.value = normalizeSourceMode(textValue(runtimeData.value.provider));
+      sourceModePath.value = defaultSourceModePath(selectedSourceMode.value);
+      sourceModeInitialized.value = true;
+      return;
+    }
+
+    if (!sourceModePathEdited.value) {
+      sourceModePath.value = defaultSourceModePath(selectedSourceMode.value);
+    }
+  },
+  { immediate: true },
+);
 
 function asRecord(value: unknown): HealthRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -314,6 +395,57 @@ function fileStatusClass(exists: boolean): string {
   return exists ? "file-state file-state--ok" : "file-state file-state--missing";
 }
 
+function normalizeSourceMode(value: string): SourceMode {
+  const normalized = value.trim().toUpperCase();
+  if (normalized === "FIT" || normalized === "GPX") return normalized;
+  return "STRAVA";
+}
+
+function configKeyForSourceMode(mode: SourceMode): string {
+  if (mode === "FIT") return "FIT_FILES_PATH";
+  if (mode === "GPX") return "GPX_FILES_PATH";
+  return "STRAVA_CACHE_PATH";
+}
+
+function defaultSourceModePath(mode: SourceMode): string {
+  if (mode === "FIT") {
+    return textValue(root.value.fitDirectory) || textValue(runtimeData.value.fitFilesPath) || "";
+  }
+  if (mode === "GPX") {
+    return textValue(root.value.gpxDirectory) || textValue(runtimeData.value.gpxFilesPath) || "";
+  }
+  return textValue(root.value.cacheRoot) || textValue(runtimeData.value.stravaCachePath) || "strava-cache";
+}
+
+function selectSourceMode(mode: SourceMode) {
+  selectedSourceMode.value = mode;
+  sourceModePathEdited.value = false;
+  sourceModePath.value = defaultSourceModePath(mode);
+  clearSourceModePreview();
+}
+
+function markSourceModePathEdited() {
+  sourceModePathEdited.value = true;
+  clearSourceModePreview();
+}
+
+function clearSourceModePreview() {
+  diagnosticsStore.sourceModePreview = null;
+  diagnosticsStore.sourceModePreviewError = null;
+}
+
+function formatSourceField(value: string): string {
+  const labels: Record<string, string> = {
+    activities: "Activities",
+    trace: "GPS trace",
+    elevation: "Elevation",
+    heartRate: "Heart rate",
+    power: "Power",
+    cadence: "Cadence",
+  };
+  return labels[value] || value;
+}
+
 async function refreshDiagnostics() {
   await diagnosticsStore.refreshDiagnostics();
 }
@@ -340,6 +472,50 @@ async function copySourcePath() {
       type: ToastTypeEnum.WARN,
       message: "Unable to copy cache path.",
       timeout: 3200,
+    });
+  }
+}
+
+async function copySourceModeCommand() {
+  if (!sourceModeActivationCommand.value) {
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(sourceModeActivationCommand.value);
+    uiStore.showToast({
+      id: `source-mode-command-copy-${Date.now()}`,
+      type: ToastTypeEnum.NORMAL,
+      message: "Restart command copied.",
+      timeout: 2400,
+    });
+  } catch {
+    uiStore.showToast({
+      id: `source-mode-command-copy-failed-${Date.now()}`,
+      type: ToastTypeEnum.WARN,
+      message: "Unable to copy restart command.",
+      timeout: 3200,
+    });
+  }
+}
+
+async function previewSourceMode() {
+  try {
+    const preview = await diagnosticsStore.previewSourceMode({
+      mode: selectedSourceMode.value,
+      path: sourceModePath.value,
+    });
+    uiStore.showToast({
+      id: `source-mode-preview-${Date.now()}`,
+      type: preview.errors.length > 0 ? ToastTypeEnum.WARN : ToastTypeEnum.NORMAL,
+      message: preview.errors.length > 0 ? "Data source needs attention." : "Data source checked.",
+      timeout: 2800,
+    });
+  } catch {
+    uiStore.showToast({
+      id: `source-mode-preview-failed-${Date.now()}`,
+      type: ToastTypeEnum.WARN,
+      message: diagnosticsStore.sourceModePreviewError || "Unable to preview data source.",
+      timeout: 3600,
     });
   }
 }
@@ -425,6 +601,192 @@ async function copySourcePath() {
           >
             <span>{{ item.label }}</span>
             <strong :class="{ monospace: item.monospace }">{{ item.value }}</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="diagnostics-panel diagnostics-panel--wide">
+        <div class="panel-heading">
+          <h2>Data Source</h2>
+          <span :class="sourceModeStatusClass">{{ sourceModeStatusLabel }}</span>
+        </div>
+        <div class="source-mode-layout">
+          <div class="source-mode-form">
+            <div
+              class="source-mode-tabs"
+              role="tablist"
+              aria-label="Data source mode"
+            >
+              <button
+                v-for="option in sourceModeOptions"
+                :key="option.mode"
+                type="button"
+                :class="['source-mode-tab', { 'source-mode-tab--active': selectedSourceMode === option.mode }]"
+                :aria-selected="selectedSourceMode === option.mode"
+                role="tab"
+                @click="selectSourceMode(option.mode)"
+              >
+                <i :class="option.icon" aria-hidden="true" />
+                {{ option.label }}
+              </button>
+            </div>
+            <label class="source-path-field">
+              <span>{{ sourceModePathLabel }}</span>
+              <input
+                v-model="sourceModePath"
+                type="text"
+                class="form-control"
+                :placeholder="selectedSourceMode === 'STRAVA' ? 'strava-cache' : '/path/to/year-folders'"
+                @input="markSourceModePathEdited"
+              >
+            </label>
+            <div class="source-mode-actions">
+              <button
+                type="button"
+                class="btn btn-primary"
+                :disabled="diagnosticsStore.isPreviewingSourceMode"
+                @click="previewSourceMode"
+              >
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true" />
+                {{ diagnosticsStore.isPreviewingSourceMode ? "Checking" : "Preview" }}
+              </button>
+              <span class="source-config-key monospace">{{ sourceModeConfigKey }}</span>
+            </div>
+            <div class="source-activation">
+              <div class="source-activation-summary">
+                <div
+                  v-for="item in sourceModeActivationSummary"
+                  :key="item.label"
+                  :class="['source-activation-item', item.tone === 'warn' ? 'source-activation-item--warn' : '', item.tone === 'up' ? 'source-activation-item--up' : '']"
+                >
+                  <span>{{ item.label }}</span>
+                  <strong>{{ item.value }}</strong>
+                </div>
+              </div>
+              <div
+                v-if="sourceModeEnvironment.length > 0"
+                class="source-env-list"
+              >
+                <div
+                  v-for="variable in sourceModeEnvironment"
+                  :key="variable.key"
+                  class="source-env-row"
+                >
+                  <span class="monospace">{{ variable.key }}</span>
+                  <strong :class="{ monospace: variable.value }">{{ variable.value || "unset" }}</strong>
+                </div>
+              </div>
+              <div
+                v-if="sourceModeActivationCommand"
+                class="source-command"
+              >
+                <code>{{ sourceModeActivationCommand }}</code>
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  @click="copySourceModeCommand"
+                >
+                  <i class="fa-solid fa-copy" aria-hidden="true" />
+                  Copy
+                </button>
+              </div>
+              <button
+                type="button"
+                class="btn btn-outline-secondary btn-sm source-verify-button"
+                :disabled="diagnosticsStore.isLoading"
+                @click="refreshDiagnostics"
+              >
+                <i class="fa-solid fa-circle-check" aria-hidden="true" />
+                Verify active mode
+              </button>
+            </div>
+            <p
+              v-if="diagnosticsStore.sourceModePreviewError"
+              class="source-mode-error"
+            >
+              {{ diagnosticsStore.sourceModePreviewError }}
+            </p>
+          </div>
+
+          <div
+            v-if="sourceModePreview"
+            class="source-mode-preview"
+          >
+            <div class="source-preview-metrics">
+              <div
+                v-for="stat in sourceModePreviewStats"
+                :key="stat.label"
+                :class="['source-preview-metric', stat.tone === 'warn' ? 'source-preview-metric--warn' : '']"
+              >
+                <span>{{ stat.label }}</span>
+                <strong>{{ stat.value }}</strong>
+              </div>
+            </div>
+
+            <div
+              v-if="sourceModePreview.years.length > 0"
+              class="source-years-table"
+            >
+              <div class="source-years-row source-years-row--head">
+                <span>Year</span>
+                <span>Files</span>
+                <span>Valid</span>
+                <span>Activities</span>
+              </div>
+              <div
+                v-for="year in sourceModePreview.years"
+                :key="year.year"
+                class="source-years-row"
+              >
+                <span>{{ year.year }}</span>
+                <span>{{ year.fileCount }}</span>
+                <span>{{ year.validFileCount }}</span>
+                <span>{{ year.activityCount }}</span>
+              </div>
+            </div>
+
+            <div
+              v-if="sourceModePreview.missingFields.length > 0"
+              class="source-chip-group"
+            >
+              <span
+                v-for="field in sourceModePreview.missingFields"
+                :key="field"
+                class="source-chip source-chip--warn"
+              >
+                {{ formatSourceField(field) }}
+              </span>
+            </div>
+
+            <div
+              v-if="sourceModePreview.errors.length > 0"
+              class="source-message-list source-message-list--errors"
+            >
+              <div
+                v-for="error in sourceModePreview.errors"
+                :key="`${error.path}-${error.message}`"
+                class="source-message-item"
+              >
+                <strong>{{ error.message }}</strong>
+                <span
+                  v-if="error.path"
+                  class="monospace"
+                >{{ error.path }}</span>
+              </div>
+            </div>
+
+            <div
+              v-if="sourceModePreview.recommendations.length > 0"
+              class="source-message-list"
+            >
+              <div
+                v-for="recommendation in sourceModePreview.recommendations"
+                :key="recommendation"
+                class="source-message-item"
+              >
+                <span>{{ recommendation }}</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -890,6 +1252,276 @@ dd {
   overflow-wrap: anywhere;
 }
 
+.source-mode-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.15fr);
+  gap: 14px;
+}
+
+.source-mode-form,
+.source-mode-preview {
+  min-width: 0;
+}
+
+.source-mode-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.source-mode-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  border: 1px solid #c8d2e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ms-text);
+  font-weight: 800;
+}
+
+.source-mode-tab--active {
+  border-color: var(--ms-primary);
+  background: #fff2ea;
+  color: var(--ms-primary);
+}
+
+.source-path-field {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.source-path-field span {
+  color: var(--ms-text-muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.source-mode-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.source-mode-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.source-config-key {
+  border: 1px solid #e5e7ee;
+  border-radius: 8px;
+  background: #fafbfe;
+  padding: 7px 9px;
+}
+
+.source-activation {
+  display: grid;
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.source-activation-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.source-activation-item,
+.source-env-row {
+  min-width: 0;
+  border: 1px solid #e5e7ee;
+  border-radius: 8px;
+  background: #fafbfe;
+  padding: 8px 9px;
+}
+
+.source-activation-item--warn {
+  border-color: #f3d17e;
+  background: #fff8e3;
+}
+
+.source-activation-item--up {
+  border-color: #99d6b0;
+  background: #eaf8ef;
+}
+
+.source-activation-item span,
+.source-env-row span {
+  display: block;
+  color: var(--ms-text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.source-activation-item strong,
+.source-env-row strong {
+  display: block;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.source-env-list {
+  display: grid;
+  gap: 6px;
+}
+
+.source-env-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.8fr) minmax(0, 1.2fr);
+  gap: 8px;
+  align-items: start;
+}
+
+.source-env-row span,
+.source-env-row strong {
+  margin: 0;
+}
+
+.source-command {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+  border: 1px solid #c8d2e1;
+  border-radius: 8px;
+  background: #f3f6fa;
+  padding: 8px;
+}
+
+.source-command code {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #1f3146;
+  font-size: 0.82rem;
+}
+
+.source-command .btn,
+.source-verify-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.source-mode-error {
+  margin: 10px 0 0;
+  border-radius: 8px;
+  background: #fff0f0;
+  color: #9b1c1c;
+  padding: 9px 10px;
+  font-weight: 700;
+}
+
+.source-preview-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.source-preview-metric {
+  min-width: 0;
+  border: 1px solid #e5e7ee;
+  border-radius: 8px;
+  background: #fafbfe;
+  padding: 9px;
+}
+
+.source-preview-metric--warn {
+  border-color: #f3d17e;
+  background: #fff8e3;
+}
+
+.source-preview-metric span {
+  display: block;
+  color: var(--ms-text-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.source-preview-metric strong {
+  display: block;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.source-years-table {
+  display: grid;
+  gap: 1px;
+  margin-top: 10px;
+  overflow-x: auto;
+  border: 1px solid var(--ms-border);
+  border-radius: 8px;
+}
+
+.source-years-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(86px, 1fr));
+  gap: 8px;
+  min-width: 420px;
+  padding: 8px 10px;
+  background: #ffffff;
+}
+
+.source-years-row--head {
+  background: #f3f6fa;
+  color: var(--ms-text-muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.source-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.source-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.source-chip--warn {
+  border: 1px solid #f3d17e;
+  background: #fff8e3;
+  color: #805d05;
+}
+
+.source-message-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.source-message-item {
+  display: grid;
+  gap: 2px;
+  border: 1px solid #e5e7ee;
+  border-radius: 8px;
+  background: #fafbfe;
+  padding: 8px 10px;
+  overflow-wrap: anywhere;
+}
+
+.source-message-list--errors .source-message-item {
+  border-color: #efa4a4;
+  background: #fff0f0;
+  color: #9b1c1c;
+}
+
 .files-table {
   display: grid;
   gap: 1px;
@@ -958,7 +1590,12 @@ dd {
   .summary-list,
   .detail-list--columns,
   .warmup-steps,
-  .runtime-config-grid {
+  .runtime-config-grid,
+  .source-mode-layout,
+  .source-activation-summary,
+  .source-env-row,
+  .source-command,
+  .source-preview-metrics {
     grid-template-columns: 1fr;
   }
 

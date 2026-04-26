@@ -67,36 +67,47 @@ data class DetailedActivityDto(
 
 fun StravaDetailedActivity.toDto(): DetailedActivityDto {
 
-    val activityEfforts = this.buildActivityEfforts()
+    val activityForDto = this.copy(stream = this.stream?.sanitizedForDtoComputation())
+    val activityEfforts = activityForDto.buildActivityEfforts()
 
     return DetailedActivityDto(
-        averageSpeed = this.averageSpeed.toFloat(),
-        averageCadence = this.averageCadence.toInt(),
-        averageHeartrate = this.averageHeartrate.toInt(),
-        averageWatts = this.averageWatts.toInt(),
-        calories = this.calories,
-        commute = this.commute,
-        distance = this.distance.toDouble(),
-        deviceWatts = this.deviceWatts,
-        elapsedTime = this.elapsedTime,
-        elevHigh = this.elevHigh,
-        id = this.id,
-        kilojoules = this.kilojoules,
-        maxHeartrate = this.maxHeartrate,
-        maxSpeed = this.maxSpeed.toFloat(),
-        maxWatts = this.maxWatts,
-        movingTime = this.movingTime,
-        name = this.name,
+        averageSpeed = activityForDto.averageSpeed.finiteFloatOrZero(),
+        averageCadence = activityForDto.averageCadence.finiteIntOrZero(),
+        averageHeartrate = activityForDto.averageHeartrate.finiteIntOrZero(),
+        averageWatts = activityForDto.averageWatts.finiteIntOrZero(),
+        calories = activityForDto.calories.finiteOrZero(),
+        commute = activityForDto.commute,
+        distance = activityForDto.distance.toDouble().finiteOrZero(),
+        deviceWatts = activityForDto.deviceWatts,
+        elapsedTime = activityForDto.elapsedTime,
+        elevHigh = activityForDto.elevHigh.finiteOrZero(),
+        id = activityForDto.id,
+        kilojoules = activityForDto.kilojoules.finiteOrZero(),
+        maxHeartrate = activityForDto.maxHeartrate,
+        maxSpeed = activityForDto.maxSpeed.finiteFloatOrZero(),
+        maxWatts = activityForDto.maxWatts,
+        movingTime = activityForDto.movingTime,
+        name = activityForDto.name,
         activityEfforts = activityEfforts.map { activityEffort -> activityEffort.toDto() },
-        startDate = this.startDate,
-        startDateLocal = this.startDateLocal,
-        startLatlng = this.startLatLng,
-        sufferScore = this.sufferScore,
-        totalDescent = this.elevLow,
-        totalElevationGain = this.totalElevationGain,
-        type = this.type,
-        weightedAverageWatts = this.weightedAverageWatts,
-        stream = this.stream?.toDto(),
+        startDate = activityForDto.startDate,
+        startDateLocal = activityForDto.startDateLocal,
+        startLatlng = activityForDto.startLatLng.finiteValues(),
+        sufferScore = activityForDto.sufferScore.finiteOrNull(),
+        totalDescent = activityForDto.elevLow.finiteOrZero(),
+        totalElevationGain = activityForDto.totalElevationGain,
+        type = activityForDto.type,
+        weightedAverageWatts = activityForDto.weightedAverageWatts,
+        stream = activityForDto.stream?.toDto(),
+    )
+}
+
+private fun Stream.sanitizedForDtoComputation(): Stream {
+    return this.copy(
+        distance = this.distance.copy(data = this.distance.data.finiteValues()),
+        latlng = this.latlng?.copy(data = this.latlng.data.finiteCoordinateValues()),
+        altitude = this.altitude?.copy(data = this.altitude.data.finiteValues()),
+        velocitySmooth = this.velocitySmooth?.copy(data = this.velocitySmooth.data.map { it.finiteOrZero() }),
+        gradeSmooth = this.gradeSmooth?.copy(data = this.gradeSmooth.data.map { it.finiteOrZero() }),
     )
 }
 
@@ -114,7 +125,7 @@ data class StreamDto(
 fun Stream.toDto(): StreamDto {
     if (this.latlng == null) {
         return StreamDto(
-            distance = this.distance.data,
+            distance = this.distance.data.finiteValues(),
             time = this.time.data
         )
     }
@@ -123,28 +134,36 @@ fun Stream.toDto(): StreamDto {
         // Calculate velocitySmooth
         val velocitySmooth = mutableListOf<Double>()
         for (i in 0 until this.latlng.data.size - 1) {
-            val (lat1, lon1) = this.latlng.data[i]
-            val (lat2, lon2) = this.latlng.data[i + 1]
-            val distance = haversine(lat1, lon1, lat2, lon2)
+            val current = this.latlng.data[i]
+            val next = this.latlng.data[i + 1]
+            if (current.size < 2 || next.size < 2) {
+                velocitySmooth.add(0.0)
+                continue
+            }
+            val lat1 = current[0].finiteOrZero()
+            val lon1 = current[1].finiteOrZero()
+            val lat2 = next[0].finiteOrZero()
+            val lon2 = next[1].finiteOrZero()
+            val distance = haversine(lat1, lon1, lat2, lon2).finiteOrZero()
             val time = this.time.data[i + 1] - this.time.data[i]
             if (time == 0) {
                 velocitySmooth.add(0.0)
             } else {
-                velocitySmooth.add(distance / time)
+                velocitySmooth.add((distance / time).finiteOrZero())
             }
         }
-        velocitySmooth.smooth()
+        velocitySmooth.smooth().finiteValues()
     } else {
-        this.velocitySmooth.data.map { it.toDouble() }
+        this.velocitySmooth.data.map { it.finiteOrZero().toDouble() }
     }
 
     return StreamDto(
-        distance = this.distance.data,
+        distance = this.distance.data.finiteValues(),
         time = this.time.data,
-        latlng = this.latlng.data,
+        latlng = this.latlng.data.finiteCoordinateValues(),
         heartrate = this.heartrate?.data,
         moving = this.moving?.data,
-        altitude = this.altitude?.data,
+        altitude = this.altitude?.data?.finiteValues(),
         watts = this.watts?.data,
         velocitySmooth = velocity,
     )
@@ -179,9 +198,9 @@ fun ActivityEffort.toDto(): ActivityEffortDto {
     return ActivityEffortDto(
         id = "${this.label.hashCode()}-${this.idxStart}-${this.idxEnd}-${this.seconds}",
         label = this.label,
-        distance = this.distance,
+        distance = this.distance.finiteOrZero(),
         seconds = this.seconds,
-        deltaAltitude = this.deltaAltitude,
+        deltaAltitude = this.deltaAltitude.finiteOrZero(),
         idxStart = this.idxStart,
         idxEnd = this.idxEnd,
         averagePower = this.averagePower,

@@ -20,6 +20,11 @@ import me.nicolas.stravastats.domain.business.PersonalRecordTimelineEntry
 import me.nicolas.stravastats.domain.business.AnnualGoalProgress
 import me.nicolas.stravastats.domain.business.AnnualGoalTargets
 import me.nicolas.stravastats.domain.business.AnnualGoals
+import me.nicolas.stravastats.domain.business.SourceModeEnvironmentVariable
+import me.nicolas.stravastats.domain.business.SourceModePreview
+import me.nicolas.stravastats.domain.business.SourceModePreviewError
+import me.nicolas.stravastats.domain.business.SourceModePreviewRequest
+import me.nicolas.stravastats.domain.business.SourceModeYearPreview
 import me.nicolas.stravastats.domain.business.HeartRateZoneActivitySummary
 import me.nicolas.stravastats.domain.business.HeartRateZoneAnalysis
 import me.nicolas.stravastats.domain.business.HeartRateZoneDistribution
@@ -107,6 +112,11 @@ import org.springframework.boot.runApplication
         AnnualGoalTargetsDto::class,
         AnnualGoalProgressDto::class,
         AnnualGoalsDto::class,
+        SourceModePreviewRequest::class,
+        SourceModeEnvironmentVariable::class,
+        SourceModeYearPreview::class,
+        SourceModePreviewError::class,
+        SourceModePreview::class,
         HeartRateZoneSettings::class,
         ResolvedHeartRateZoneSettings::class,
         HeartRateZoneDistribution::class,

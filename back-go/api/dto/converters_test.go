@@ -145,6 +145,44 @@ func TestToBadgeDto_UsesRepresentativeBadgeActivityTypeForWalk(t *testing.T) {
 	}
 }
 
+func TestToActivityDto_SanitizesNonFiniteSummaryValues(t *testing.T) {
+	// GIVEN
+	activity := strava.Activity{
+		Id:                 51,
+		Name:               "Non-finite summary",
+		Type:               "Ride",
+		Distance:           math.NaN(),
+		TotalElevationGain: math.Inf(1),
+		AverageSpeed:       math.Inf(-1),
+		AverageHeartrate:   math.NaN(),
+		AverageWatts:       math.Inf(1),
+		Stream: &strava.Stream{
+			Distance: strava.DistanceStream{Data: []float64{0, 100}},
+			Time:     strava.TimeStream{Data: []int{0, 10}},
+			Altitude: &strava.AltitudeStream{Data: []float64{100, 110}},
+		},
+	}
+
+	// WHEN
+	dto := ToActivityDto(activity)
+
+	// THEN
+	if dto.Distance != 0 || dto.TotalElevationGain != 0 || dto.AverageSpeed != 0 || dto.AverageHeartrate != 0 || dto.AverageWatts != 0 {
+		t.Fatalf("expected non-finite summary values to be zeroed, got %#v", dto)
+	}
+}
+
+func TestFiniteEffortPower_SanitizesNonFiniteAveragePower(t *testing.T) {
+	// GIVEN
+	averagePower := math.NaN()
+	effort := &business.ActivityEffort{AveragePower: &averagePower}
+
+	// WHEN / THEN
+	if got := finiteEffortPower(effort); got != 0 {
+		t.Fatalf("expected non-finite average power to be zeroed, got %d", got)
+	}
+}
+
 func TestBuildActivityEfforts_NaNAltitudeFallsBackToSegmentDelta(t *testing.T) {
 	// GIVEN
 	detailedActivity := &strava.DetailedActivity{
@@ -195,6 +233,56 @@ func TestBuildActivityEfforts_NaNAltitudeFallsBackToSegmentDelta(t *testing.T) {
 	}
 
 	t.Fatalf("expected segment effort to be present")
+}
+
+func TestToDetailedActivityDto_SanitizesNonFiniteValues(t *testing.T) {
+	// GIVEN
+	sufferScore := math.NaN()
+	detailedActivity := &strava.DetailedActivity{
+		Id:                 53,
+		Name:               "Non-finite detail",
+		Type:               "Ride",
+		AverageCadence:     math.NaN(),
+		AverageHeartrate:   math.Inf(1),
+		AverageWatts:       math.Inf(-1),
+		AverageSpeed:       math.NaN(),
+		Calories:           math.Inf(1),
+		Distance:           math.NaN(),
+		ElevHigh:           math.NaN(),
+		Kilojoules:         math.Inf(1),
+		MaxHeartrate:       math.NaN(),
+		MaxSpeed:           math.Inf(1),
+		StartLatLng:        []float64{math.NaN(), math.Inf(1)},
+		SufferScore:        &sufferScore,
+		TotalElevationGain: math.NaN(),
+		Stream: &strava.Stream{
+			Distance:       strava.DistanceStream{Data: []float64{0, math.NaN()}},
+			Time:           strava.TimeStream{Data: []int{0, 1}},
+			Altitude:       &strava.AltitudeStream{Data: []float64{100, math.Inf(1)}},
+			Watts:          &strava.PowerStream{Data: []float64{200, math.NaN()}},
+			VelocitySmooth: &strava.SmoothVelocityStream{Data: []float64{5, math.Inf(-1)}},
+		},
+	}
+
+	// WHEN
+	dto := ToDetailedActivityDto(detailedActivity)
+
+	// THEN
+	if dto.AverageCadence != 0 || dto.AverageHeartrate != 0 || dto.AverageWatts != 0 {
+		t.Fatalf("expected non-finite integer metrics to be zeroed, got cadence=%d hr=%d watts=%d", dto.AverageCadence, dto.AverageHeartrate, dto.AverageWatts)
+	}
+	if dto.AverageSpeed != 0 || dto.Calories != 0 || dto.Distance != 0 || dto.ElevHigh != 0 || dto.Kilojoules != 0 {
+		t.Fatalf("expected non-finite float metrics to be zeroed, got %#v", dto)
+	}
+	if dto.SufferScore != nil {
+		t.Fatalf("expected non-finite optional suffer score to be removed")
+	}
+	if dto.StartLatlng[0] != 0 || dto.StartLatlng[1] != 0 {
+		t.Fatalf("expected start lat/lng to be sanitized, got %#v", dto.StartLatlng)
+	}
+	if dto.Stream == nil || dto.Stream.Distance[1] != 0 || dto.Stream.Altitude[1] != 0 || dto.Stream.Watts[1] != 0 || dto.Stream.VelocitySmooth[1] != 0 {
+		t.Fatalf("expected stream values to be sanitized, got %#v", dto.Stream)
+	}
 }
 
 func TestToStreamDto_MapsValues(t *testing.T) {

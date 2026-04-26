@@ -56,8 +56,8 @@ func TestDetails_ExposesConfiguredRuntimeValues(t *testing.T) {
 	if data["fitFilesPath"] != "/data/fit" || data["fitFilesConfigured"] != true {
 		t.Fatalf("expected configured FIT path, got %#v", data)
 	}
-	if data["gpxFilesSupported"] != false {
-		t.Fatalf("expected Go GPX support to be false, got %#v", data["gpxFilesSupported"])
+	if data["gpxFilesSupported"] != true {
+		t.Fatalf("expected Go GPX support to be true, got %#v", data["gpxFilesSupported"])
 	}
 	expectedOrigins := []string{"http://localhost:5173", "https://app.example"}
 	if !reflect.DeepEqual(cors["allowedOrigins"], expectedOrigins) {

@@ -28,6 +28,8 @@ func Details() map[string]any {
 	dataProvider := "strava"
 	if fitConfigured {
 		dataProvider = "fit"
+	} else if gpxConfigured {
+		dataProvider = "gpx"
 	}
 
 	corsOrigins, corsSource := corsAllowedOriginsWithSource()
@@ -42,8 +44,8 @@ func Details() map[string]any {
 			"fitFilesConfigured":     fitConfigured,
 			"gpxFilesPath":           gpxFilesPath,
 			"gpxFilesConfigured":     gpxConfigured,
-			"gpxFilesSupported":      false,
-			"providerSelectionOrder": []string{"FIT_FILES_PATH", "STRAVA_CACHE_PATH"},
+			"gpxFilesSupported":      true,
+			"providerSelectionOrder": []string{"FIT_FILES_PATH", "GPX_FILES_PATH", "STRAVA_CACHE_PATH"},
 		},
 		"server": map[string]any{
 			"host":              readFirstStringEnv(defaultServerHost, "SERVER_HOST", "HOST"),

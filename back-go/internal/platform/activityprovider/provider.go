@@ -8,6 +8,7 @@ import (
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
 	fitprovider "mystravastats/internal/shared/infrastructure/fit"
+	gpxprovider "mystravastats/internal/shared/infrastructure/gpx"
 	"mystravastats/internal/shared/infrastructure/stravaapi"
 )
 
@@ -37,11 +38,15 @@ func Init(port string) {
 	_ = Get()
 }
 
-// Get returns the singleton activity provider (FIT or Strava).
+// Get returns the singleton activity provider (FIT, GPX or Strava).
 func Get() ActivityProvider {
 	providerOnce.Do(func() {
 		if fitFilesPath, configured := runtimeconfig.OptionalValue("FIT_FILES_PATH"); configured {
 			provider = fitprovider.NewFITActivityProvider(fitFilesPath)
+			return
+		}
+		if gpxFilesPath, configured := runtimeconfig.OptionalValue("GPX_FILES_PATH"); configured {
+			provider = gpxprovider.NewGPXActivityProvider(gpxFilesPath)
 			return
 		}
 		provider = stravaapi.NewStravaActivityProvider(helpers.StravaCachePath, serverPort)

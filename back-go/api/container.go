@@ -21,6 +21,8 @@ import (
 	routesInfra "mystravastats/internal/routes/infrastructure"
 	segmentsApp "mystravastats/internal/segments/application"
 	segmentsInfra "mystravastats/internal/segments/infrastructure"
+	sourceModeApp "mystravastats/internal/sourcemode/application"
+	sourceModeInfra "mystravastats/internal/sourcemode/infrastructure"
 	statisticsApp "mystravastats/internal/statistics/application"
 	statisticsInfra "mystravastats/internal/statistics/infrastructure"
 )
@@ -53,6 +55,7 @@ type container struct {
 	updateAnnualGoalsUseCase           *dashboardApp.UpdateAnnualGoalsUseCase
 	getBadgesUseCase                   *badgesApp.GetBadgesUseCase
 	getCacheHealthDetailsUseCase       *healthApp.GetCacheHealthDetailsUseCase
+	previewSourceModeUseCase           *sourceModeApp.PreviewSourceModeUseCase
 }
 
 var (
@@ -73,6 +76,7 @@ func getContainer() *container {
 		healthReader := healthInfra.NewHealthServiceAdapter(routingEngine)
 		chartsReader := chartsInfra.NewChartsServiceAdapter()
 		dashboardReader := dashboardInfra.NewDashboardServiceAdapter()
+		sourceModeReader := sourceModeInfra.NewSourceModeServiceAdapter()
 		sharedContainer = &container{
 			getDetailedActivityUseCase:         activitiesApp.NewGetDetailedActivityUseCase(detailedActivityReader),
 			listActivitiesUseCase:              activitiesApp.NewListActivitiesUseCase(detailedActivityReader),
@@ -101,6 +105,7 @@ func getContainer() *container {
 			updateAnnualGoalsUseCase:           dashboardApp.NewUpdateAnnualGoalsUseCase(dashboardReader),
 			getBadgesUseCase:                   badgesApp.NewGetBadgesUseCase(badgesReader),
 			getCacheHealthDetailsUseCase:       healthApp.NewGetCacheHealthDetailsUseCase(healthReader),
+			previewSourceModeUseCase:           sourceModeApp.NewPreviewSourceModeUseCase(sourceModeReader),
 		}
 	})
 

@@ -74,9 +74,9 @@ func ToActivityDto(activity strava.Activity) ActivityDto {
 	// https://www.trainerroad.com/blog/what-is-functional-threshold-power/
 	// https://www.strava.com/support/athlete/activities/what-is-functional-threshold-power-ftp
 	if bestPowerFor60Minutes != nil {
-		ftp = int(*bestPowerFor60Minutes.AveragePower)
+		ftp = finiteEffortPower(bestPowerFor60Minutes)
 	} else if bestPowerFor20Minutes != nil {
-		ftp = int(float64(*bestPowerFor20Minutes.AveragePower) * 0.95)
+		ftp = finiteInt(finiteEffortPowerValue(bestPowerFor20Minutes) * 0.95)
 	}
 
 	link := ""
@@ -105,33 +105,21 @@ func ToActivityDto(activity strava.Activity) ActivityDto {
 		Type:                             activity.Type,
 		Commute:                          activity.Commute,
 		Link:                             link,
-		Distance:                         int(activity.Distance),
+		Distance:                         finiteInt(activity.Distance),
 		ElapsedTime:                      activity.ElapsedTime,
 		MovingTime:                       activity.MovingTime,
-		TotalElevationGain:               int(activity.TotalElevationGain),
-		AverageSpeed:                     activity.AverageSpeed, // in m/s
-		AverageHeartrate:                 int(activity.AverageHeartrate),
-		BestSpeedForDistanceFor1000m:     bestTimeForDistanceFor1000m, // in m/s
-		BestElevationForDistanceFor500m:  bestElevationForDistanceFor500m,
-		BestElevationForDistanceFor1000m: bestElevationForDistanceFor1000m,
+		TotalElevationGain:               finiteInt(activity.TotalElevationGain),
+		AverageSpeed:                     finiteFloat64(activity.AverageSpeed), // in m/s
+		AverageHeartrate:                 finiteInt(activity.AverageHeartrate),
+		BestSpeedForDistanceFor1000m:     finiteFloat64(bestTimeForDistanceFor1000m), // in m/s
+		BestElevationForDistanceFor500m:  finiteFloat64(bestElevationForDistanceFor500m),
+		BestElevationForDistanceFor1000m: finiteFloat64(bestElevationForDistanceFor1000m),
 		Date:                             activity.StartDateLocal,
-		AverageWatts:                     int(activity.AverageWatts),
+		AverageWatts:                     finiteInt(activity.AverageWatts),
 		WeightedAverageWatts:             activity.WeightedAverageWatts,
-		BestPowerFor20Minutes: func() int {
-			if bestPowerFor20Minutes != nil {
-				return bestPowerFor20Minutes.GetPower()
-			}
-
-			return 0
-		}(),
-		BestPowerFor60Minutes: func() int {
-			if bestPowerFor60Minutes != nil {
-				return bestPowerFor60Minutes.GetPower()
-			}
-
-			return 0
-		}(),
-		FTP: ftp,
+		BestPowerFor20Minutes:            finiteEffortPower(bestPowerFor20Minutes),
+		BestPowerFor60Minutes:            finiteEffortPower(bestPowerFor60Minutes),
+		FTP:                              ftp,
 	}
 }
 
@@ -185,37 +173,78 @@ func ToAnnualGoalTargets(targets AnnualGoalTargetsDto) business.AnnualGoalTarget
 
 func ToDetailedActivityDto(detailedActivity *strava.DetailedActivity) DetailedActivityDto {
 
+	activityForDto := *detailedActivity
+	activityForDto.Stream = sanitizeStreamForDto(detailedActivity.Stream)
+	detailedActivity = &activityForDto
+
 	activityEfforts := BuildActivityEfforts(detailedActivity)
 
 	return DetailedActivityDto{
-		AverageCadence:       int(detailedActivity.AverageCadence),
-		AverageHeartrate:     int(detailedActivity.AverageHeartrate),
-		AverageWatts:         int(detailedActivity.AverageWatts),
-		AverageSpeed:         float32(detailedActivity.AverageSpeed),
-		Calories:             detailedActivity.Calories,
+		AverageCadence:       finiteInt(detailedActivity.AverageCadence),
+		AverageHeartrate:     finiteInt(detailedActivity.AverageHeartrate),
+		AverageWatts:         finiteInt(detailedActivity.AverageWatts),
+		AverageSpeed:         finiteFloat32(detailedActivity.AverageSpeed),
+		Calories:             finiteFloat64(detailedActivity.Calories),
 		Commute:              detailedActivity.Commute,
 		DeviceWatts:          detailedActivity.DeviceWatts,
-		Distance:             detailedActivity.Distance,
+		Distance:             finiteFloat64(detailedActivity.Distance),
 		ElapsedTime:          detailedActivity.ElapsedTime,
-		ElevHigh:             detailedActivity.ElevHigh,
+		ElevHigh:             finiteFloat64(detailedActivity.ElevHigh),
 		ID:                   detailedActivity.Id,
-		Kilojoules:           detailedActivity.Kilojoules,
-		MaxHeartrate:         int(detailedActivity.MaxHeartrate),
-		MaxSpeed:             float32(detailedActivity.MaxSpeed),
+		Kilojoules:           finiteFloat64(detailedActivity.Kilojoules),
+		MaxHeartrate:         finiteInt(detailedActivity.MaxHeartrate),
+		MaxSpeed:             finiteFloat32(detailedActivity.MaxSpeed),
 		MaxWatts:             detailedActivity.MaxWatts,
 		MovingTime:           detailedActivity.MovingTime,
 		Name:                 detailedActivity.Name,
 		ActivityEfforts:      toActivityEffortsDto(activityEfforts),
 		StartDate:            parseTime(detailedActivity.StartDate),
 		StartDateLocal:       parseTime(detailedActivity.StartDateLocal),
-		StartLatlng:          detailedActivity.StartLatLng,
+		StartLatlng:          finiteFloat64Slice(detailedActivity.StartLatLng),
 		Stream:               toStreamDto(detailedActivity.Stream),
-		SufferScore:          detailedActivity.SufferScore,
-		TotalDescent:         calculateTotalDescent(detailedActivity.Stream),
-		TotalElevationGain:   int(detailedActivity.TotalElevationGain),
+		SufferScore:          finiteFloat64Ptr(detailedActivity.SufferScore),
+		TotalDescent:         finiteFloat64(calculateTotalDescent(detailedActivity.Stream)),
+		TotalElevationGain:   finiteInt(detailedActivity.TotalElevationGain),
 		Type:                 detailedActivity.Type,
 		WeightedAverageWatts: detailedActivity.WeightedAverageWatts,
 	}
+}
+
+func sanitizeStreamForDto(stream *strava.Stream) *strava.Stream {
+	if stream == nil {
+		return nil
+	}
+
+	sanitized := *stream
+	sanitized.Distance.Data = finiteFloat64Slice(stream.Distance.Data)
+
+	if stream.LatLng != nil {
+		latlng := *stream.LatLng
+		latlng.Data = finiteFloat64Grid(stream.LatLng.Data)
+		sanitized.LatLng = &latlng
+	}
+	if stream.Altitude != nil {
+		altitude := *stream.Altitude
+		altitude.Data = finiteFloat64Slice(stream.Altitude.Data)
+		sanitized.Altitude = &altitude
+	}
+	if stream.Watts != nil {
+		watts := *stream.Watts
+		watts.Data = finiteFloat64Slice(stream.Watts.Data)
+		sanitized.Watts = &watts
+	}
+	if stream.VelocitySmooth != nil {
+		velocitySmooth := *stream.VelocitySmooth
+		velocitySmooth.Data = finiteFloat64Slice(stream.VelocitySmooth.Data)
+		sanitized.VelocitySmooth = &velocitySmooth
+	}
+	if stream.GradeSmooth != nil {
+		gradeSmooth := *stream.GradeSmooth
+		gradeSmooth.Data = finiteFloat64Slice(stream.GradeSmooth.Data)
+		sanitized.GradeSmooth = &gradeSmooth
+	}
+
+	return &sanitized
 }
 
 func parseTimePtr(value *string) time.Time {
@@ -234,12 +263,12 @@ func toActivityEffortsDto(efforts []business.ActivityEffort) []ActivityEffortDto
 		effortsDto = append(effortsDto, ActivityEffortDto{
 			ID:            id,
 			Label:         effort.Label,
-			Distance:      effort.Distance,
+			Distance:      finiteFloat64(effort.Distance),
 			Seconds:       effort.Seconds,
-			DeltaAltitude: effort.DeltaAltitude,
+			DeltaAltitude: finiteFloat64(effort.DeltaAltitude),
 			IdxStart:      effort.IdxStart,
 			IdxEnd:        effort.IdxEnd,
-			AveragePower:  effort.AveragePower,
+			AveragePower:  finiteFloat64Ptr(effort.AveragePower),
 			Description:   effort.GetDescription(),
 		})
 	}
@@ -257,7 +286,7 @@ func toStreamDto(stream *strava.Stream) *StreamDto {
 		latlng = make([][]float64, len(stream.LatLng.Data))
 		for i, coords := range stream.LatLng.Data {
 			if len(coords) >= 2 {
-				latlng[i] = []float64{coords[0], coords[1]}
+				latlng[i] = []float64{finiteFloat64(coords[0]), finiteFloat64(coords[1])}
 			}
 		}
 	}
@@ -272,20 +301,17 @@ func toStreamDto(stream *strava.Stream) *StreamDto {
 	// Altitude, Watts, VelocitySmooth: []float64 — copy directly.
 	var altitude []float64
 	if stream.Altitude != nil && stream.Altitude.Data != nil {
-		altitude = make([]float64, len(stream.Altitude.Data))
-		copy(altitude, stream.Altitude.Data)
+		altitude = finiteFloat64Slice(stream.Altitude.Data)
 	}
 
 	var watts []float64
 	if stream.Watts != nil && stream.Watts.Data != nil {
-		watts = make([]float64, len(stream.Watts.Data))
-		copy(watts, stream.Watts.Data)
+		watts = finiteFloat64Slice(stream.Watts.Data)
 	}
 
 	var velocitySmooth []float64
 	if stream.VelocitySmooth != nil && stream.VelocitySmooth.Data != nil {
-		velocitySmooth = make([]float64, len(stream.VelocitySmooth.Data))
-		copy(velocitySmooth, stream.VelocitySmooth.Data)
+		velocitySmooth = finiteFloat64Slice(stream.VelocitySmooth.Data)
 	}
 
 	var heartrate []int
@@ -295,7 +321,7 @@ func toStreamDto(stream *strava.Stream) *StreamDto {
 	}
 
 	return &StreamDto{
-		Distance:       stream.Distance.Data,
+		Distance:       finiteFloat64Slice(stream.Distance.Data),
 		Time:           stream.Time.Data,
 		Latlng:         latlng,
 		Heartrate:      heartrate,
@@ -304,6 +330,73 @@ func toStreamDto(stream *strava.Stream) *StreamDto {
 		Watts:          watts,
 		VelocitySmooth: velocitySmooth,
 	}
+}
+
+func finiteFloat64(value float64) float64 {
+	if math.IsNaN(value) || math.IsInf(value, 0) {
+		return 0
+	}
+	return value
+}
+
+func finiteFloat32(value float64) float32 {
+	if math.IsNaN(value) || math.IsInf(value, 0) || value > math.MaxFloat32 || value < -math.MaxFloat32 {
+		return 0
+	}
+	return float32(value)
+}
+
+func finiteInt(value float64) int {
+	maxInt := int(^uint(0) >> 1)
+	minInt := -maxInt - 1
+	if math.IsNaN(value) || math.IsInf(value, 0) || value > float64(maxInt) || value < float64(minInt) {
+		return 0
+	}
+	return int(value)
+}
+
+func finiteFloat64Ptr(value *float64) *float64 {
+	if value == nil {
+		return nil
+	}
+	if math.IsNaN(*value) || math.IsInf(*value, 0) {
+		return nil
+	}
+	sanitized := *value
+	return &sanitized
+}
+
+func finiteEffortPower(effort *business.ActivityEffort) int {
+	return finiteInt(finiteEffortPowerValue(effort))
+}
+
+func finiteEffortPowerValue(effort *business.ActivityEffort) float64 {
+	if effort == nil || effort.AveragePower == nil {
+		return 0
+	}
+	return finiteFloat64(*effort.AveragePower)
+}
+
+func finiteFloat64Slice(values []float64) []float64 {
+	if values == nil {
+		return nil
+	}
+	sanitized := make([]float64, len(values))
+	for index, value := range values {
+		sanitized[index] = finiteFloat64(value)
+	}
+	return sanitized
+}
+
+func finiteFloat64Grid(values [][]float64) [][]float64 {
+	if values == nil {
+		return nil
+	}
+	sanitized := make([][]float64, len(values))
+	for index, row := range values {
+		sanitized[index] = finiteFloat64Slice(row)
+	}
+	return sanitized
 }
 
 func parseTime(value string) time.Time {

@@ -58,10 +58,10 @@ fun StravaActivity.toDto(): ActivityDto {
     val bestPowerFor20Minutes = calculateBestPowerForTime(20 * 60)
     val bestPowerFor60Minutes = calculateBestPowerForTime(60 * 60)
 
-    val ftp = if (bestPowerFor60Minutes != null) {
+    val ftp = if (bestPowerFor60Minutes?.averagePower != null) {
         bestPowerFor60Minutes.averagePower
     } else if (bestPowerFor20Minutes != null) {
-        (bestPowerFor20Minutes.averagePower?.times(0.95))?.toInt()
+        bestPowerFor20Minutes.averagePower?.times(0.95)?.finiteIntOrZero()
     } else {
         null
     }
@@ -75,15 +75,15 @@ fun StravaActivity.toDto(): ActivityDto {
         type = this.type,
         commute = this.commute,
         link = link,
-        distance = this.distance.toInt(),
+        distance = this.distance.finiteIntOrZero(),
         elapsedTime = this.elapsedTime,
         movingTime = this.movingTime,
-        totalElevationGain = this.totalElevationGain.toInt(),
-        averageSpeed = this.averageSpeed,
-        averageHeartrate = this.averageHeartrate.toInt(),
-        bestSpeedForDistanceFor1000m = calculateBestTimeForDistance(1000.0)?.getMSSpeed() ?: 0.0,
-        bestElevationForDistanceFor500m = calculateBestElevationForDistance(500.0)?.getGradient() ?: 0.0,
-        bestElevationForDistanceFor1000m = calculateBestElevationForDistance(1000.0)?.getGradient() ?: 0.0,
+        totalElevationGain = this.totalElevationGain.finiteIntOrZero(),
+        averageSpeed = this.averageSpeed.finiteOrZero(),
+        averageHeartrate = this.averageHeartrate.finiteIntOrZero(),
+        bestSpeedForDistanceFor1000m = calculateBestTimeForDistance(1000.0)?.getMSSpeed()?.finiteOrZero() ?: 0.0,
+        bestElevationForDistanceFor500m = calculateBestElevationForDistance(500.0)?.getGradient()?.finiteOrZero() ?: 0.0,
+        bestElevationForDistanceFor1000m = calculateBestElevationForDistance(1000.0)?.getGradient()?.finiteOrZero() ?: 0.0,
         date = this.startDateLocal,
         averageWatts = this.averageWatts,
         weightedAverageWatts = this.weightedAverageWatts,

@@ -22,7 +22,11 @@ import (
 	fitparser "github.com/tormoder/fit"
 )
 
-const firstSupportedYear = 2010
+const (
+	firstSupportedYear = 2010
+	fitInvalidUint8    = uint8(0xFF)
+	fitInvalidUint16   = uint16(0xFFFF)
+)
 
 type FITActivityProvider struct {
 	fitDirectory          string
@@ -206,7 +210,7 @@ func (provider *FITActivityProvider) loadActivitiesFromFITDirectory() []*strava.
 			}
 
 			filePath := filepath.Join(yearDirectory, entry.Name())
-			activity, decodeErr := decodeFITActivity(filePath, provider.stravaAthlete.Id)
+			activity, decodeErr := DecodeFITActivity(filePath, provider.stravaAthlete.Id)
 			if decodeErr != nil {
 				log.Printf("Unable to decode FIT activity %s: %v", filePath, decodeErr)
 				continue
@@ -234,7 +238,7 @@ func (provider *FITActivityProvider) loadActivitiesFromFITDirectory() []*strava.
 	return loadedActivities
 }
 
-func decodeFITActivity(filePath string, athleteID int64) (*strava.Activity, error) {
+func DecodeFITActivity(filePath string, athleteID int64) (*strava.Activity, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
@@ -267,51 +271,41 @@ func decodeFITActivity(filePath string, athleteID int64) (*strava.Activity, erro
 	sportType := mapFITSportToActivityType(session.Sport, session.SubSport)
 	startDate := resolveActivityStartDate(session.StartTime, activityFile.Records)
 
-	averageSpeed := session.GetEnhancedAvgSpeedScaled()
-	if averageSpeed <= 0 {
-		averageSpeed = session.GetAvgSpeedScaled()
-	}
+	averageSpeed := firstPositiveFinite(session.GetEnhancedAvgSpeedScaled(), session.GetAvgSpeedScaled())
+	maxSpeed := firstPositiveFinite(session.GetEnhancedMaxSpeedScaled(), session.GetMaxSpeedScaled())
 
-	maxSpeed := session.GetEnhancedMaxSpeedScaled()
-	if maxSpeed <= 0 {
-		maxSpeed = session.GetMaxSpeedScaled()
-	}
-
-	distance := session.GetTotalDistanceScaled()
+	distance := nonNegativeFinite(session.GetTotalDistanceScaled())
 	if distance <= 0 && stream != nil && len(stream.Distance.Data) > 0 {
 		distance = stream.Distance.Data[len(stream.Distance.Data)-1]
 	}
 
-	elapsedTime := int(math.Round(session.GetTotalElapsedTimeScaled()))
+	elapsedTime := roundedNonNegative(session.GetTotalElapsedTimeScaled())
 	if elapsedTime <= 0 {
-		elapsedTime = int(math.Round(session.GetTotalTimerTimeScaled()))
+		elapsedTime = roundedNonNegative(session.GetTotalTimerTimeScaled())
 	}
 	if elapsedTime <= 0 && stream != nil && len(stream.Time.Data) > 0 {
 		elapsedTime = stream.Time.Data[len(stream.Time.Data)-1]
 	}
 
-	movingTime := int(math.Round(session.GetTotalMovingTimeScaled()))
+	movingTime := roundedNonNegative(session.GetTotalMovingTimeScaled())
 	if movingTime <= 0 {
-		movingTime = int(math.Round(session.GetTotalTimerTimeScaled()))
+		movingTime = roundedNonNegative(session.GetTotalTimerTimeScaled())
 	}
 	if movingTime <= 0 {
 		movingTime = elapsedTime
 	}
 
 	averageCadence := float64(asUint8(session.GetAvgCadence()))
-	averageHeartRate := float64(session.AvgHeartRate)
-	maxHeartRate := float64(session.MaxHeartRate)
-	powerMetrics := computeFITPowerMetrics(float64(session.AvgPower), stream, elapsedTime)
+	averageHeartRate := float64(validFITUint8(session.AvgHeartRate))
+	maxHeartRate := float64(validFITUint8(session.MaxHeartRate))
+	powerMetrics := computeFITPowerMetrics(validFITUint16Float(session.AvgPower), stream, elapsedTime)
 
-	totalElevationGain := float64(session.TotalAscent)
+	totalElevationGain := validFITUint16Float(session.TotalAscent)
 	if totalElevationGain <= 0 && stream != nil && stream.Altitude != nil {
 		totalElevationGain = computeTotalAscent(stream.Altitude.Data)
 	}
 
-	elevHigh := session.GetEnhancedMaxAltitudeScaled()
-	if elevHigh <= 0 {
-		elevHigh = session.GetMaxAltitudeScaled()
-	}
+	elevHigh := firstPositiveFinite(session.GetEnhancedMaxAltitudeScaled(), session.GetMaxAltitudeScaled())
 	if elevHigh <= 0 && stream != nil && stream.Altitude != nil {
 		elevHigh = maxFloat64Slice(stream.Altitude.Data)
 	}
@@ -393,7 +387,7 @@ func fitPowerSamples(stream *strava.Stream) []float64 {
 	samples := make([]float64, 0, len(stream.Watts.Data))
 	hasPositivePower := false
 	for _, watts := range stream.Watts.Data {
-		if !isFinite(watts) || watts < 0 {
+		if !isFinite(watts) || watts < 0 || watts >= float64(fitInvalidUint16) {
 			continue
 		}
 		if watts > 0 {
@@ -531,23 +525,26 @@ func buildStreamFromFITRecords(records []*fitparser.RecordMsg, startTime time.Ti
 		}
 		gradeData = append(gradeData, grade)
 
-		cadence := int(record.Cadence)
-		fractionalCadence := int(math.Round(record.GetCadence256Scaled()))
-		if fractionalCadence > cadence {
-			cadence = fractionalCadence
+		cadence := int(validFITUint8(record.Cadence))
+		fractionalCadence := record.GetCadence256Scaled()
+		if isFinite(fractionalCadence) {
+			roundedFractionalCadence := int(math.Round(fractionalCadence))
+			if roundedFractionalCadence > cadence {
+				cadence = roundedFractionalCadence
+			}
 		}
 		if cadence < 0 {
 			cadence = 0
 		}
 		cadenceData = append(cadenceData, cadence)
 
-		heartRate := int(record.HeartRate)
+		heartRate := int(validFITUint8(record.HeartRate))
 		if heartRate < 0 {
 			heartRate = 0
 		}
 		heartRateData = append(heartRateData, heartRate)
 
-		power := float64(record.Power)
+		power := validFITUint16Float(record.Power)
 		if !isFinite(power) || power < 0 {
 			power = 0
 		}
@@ -809,7 +806,10 @@ func hashStringToInt(value string) int {
 
 func extractStartLatLng(session *fitparser.SessionMsg, stream *strava.Stream) []float64 {
 	if session != nil && !session.StartPositionLat.Invalid() && !session.StartPositionLong.Invalid() {
-		return []float64{session.StartPositionLat.Degrees(), session.StartPositionLong.Degrees()}
+		coordinate := []float64{session.StartPositionLat.Degrees(), session.StartPositionLong.Degrees()}
+		if isCoordinateValid(coordinate) {
+			return coordinate
+		}
 	}
 	if stream != nil && stream.LatLng != nil && len(stream.LatLng.Data) > 0 {
 		first := stream.LatLng.Data[0]
@@ -1033,28 +1033,48 @@ func hasAnyInt(values []int) bool {
 func asUint8(value interface{}) uint8 {
 	switch typed := value.(type) {
 	case uint8:
+		if typed == fitInvalidUint8 {
+			return 0
+		}
 		return typed
 	case uint16:
+		if typed == fitInvalidUint16 || typed >= uint16(fitInvalidUint8) {
+			return 0
+		}
 		return uint8(typed)
 	case int:
 		if typed < 0 {
 			return 0
 		}
-		if typed > 255 {
-			return 255
+		if typed >= int(fitInvalidUint8) {
+			return 0
 		}
 		return uint8(typed)
 	case float64:
-		if typed < 0 {
+		if !isFinite(typed) || typed < 0 {
 			return 0
 		}
-		if typed > 255 {
-			return 255
+		if typed >= float64(fitInvalidUint8) {
+			return 0
 		}
 		return uint8(math.Round(typed))
 	default:
 		return 0
 	}
+}
+
+func validFITUint8(value uint8) uint8 {
+	if value == fitInvalidUint8 {
+		return 0
+	}
+	return value
+}
+
+func validFITUint16Float(value uint16) float64 {
+	if value == fitInvalidUint16 {
+		return 0
+	}
+	return float64(value)
 }
 
 func computeTotalAscent(altitudes []float64) float64 {
@@ -1069,12 +1089,9 @@ func computeTotalAscent(altitudes []float64) float64 {
 }
 
 func maxFloat64Slice(values []float64) float64 {
-	if len(values) == 0 {
-		return 0
-	}
-	maximum := values[0]
-	for _, value := range values[1:] {
-		if value > maximum {
+	maximum := 0.0
+	for _, value := range values {
+		if isFinite(value) && value > maximum {
 			maximum = value
 		}
 	}
@@ -1083,6 +1100,29 @@ func maxFloat64Slice(values []float64) float64 {
 
 func isFinite(value float64) bool {
 	return !math.IsNaN(value) && !math.IsInf(value, 0)
+}
+
+func firstPositiveFinite(values ...float64) float64 {
+	for _, value := range values {
+		if isFinite(value) && value > 0 {
+			return value
+		}
+	}
+	return 0
+}
+
+func nonNegativeFinite(value float64) float64 {
+	if !isFinite(value) || value < 0 {
+		return 0
+	}
+	return value
+}
+
+func roundedNonNegative(value float64) int {
+	if !isFinite(value) || value <= 0 {
+		return 0
+	}
+	return int(math.Round(value))
 }
 
 func maxInt(left, right int) int {

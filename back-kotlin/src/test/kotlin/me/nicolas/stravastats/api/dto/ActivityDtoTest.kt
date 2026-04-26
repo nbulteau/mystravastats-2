@@ -26,5 +26,24 @@ class ActivityDtoTest {
         assertEquals(213, dto.averageWatts)
         assertEquals(3210, dto.movingTime)
     }
-}
 
+    @Test
+    fun `toDto sanitizes non finite summary values`() {
+        // GIVEN
+        val activity = TestHelper.stravaActivity.copy(
+            distance = Double.NaN,
+            totalElevationGain = Double.POSITIVE_INFINITY,
+            averageSpeed = Double.NEGATIVE_INFINITY,
+            averageHeartrate = Double.NaN,
+        )
+
+        // WHEN
+        val dto = activity.toDto()
+
+        // THEN
+        assertEquals(0, dto.distance)
+        assertEquals(0, dto.totalElevationGain)
+        assertEquals(0.0, dto.averageSpeed)
+        assertEquals(0, dto.averageHeartrate)
+    }
+}

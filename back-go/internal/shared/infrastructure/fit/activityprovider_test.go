@@ -139,7 +139,7 @@ func TestComputeFITPowerMetrics_IgnoresEmptyPowerStream(t *testing.T) {
 	// GIVEN
 	stream := &strava.Stream{
 		Watts: &strava.PowerStream{
-			Data: []float64{0, 0, math.NaN(), -20},
+			Data: []float64{0, 0, math.NaN(), -20, float64(fitInvalidUint16)},
 		},
 	}
 
@@ -154,6 +154,49 @@ func TestComputeFITPowerMetrics_IgnoresEmptyPowerStream(t *testing.T) {
 	assertFloatEquals(t, 0, metrics.kilojoules)
 	if metrics.hasDeviceWatts {
 		t.Fatal("expected device watts to be false without positive FIT power samples")
+	}
+}
+
+func TestComputeFITPowerMetrics_IgnoresInvalidSessionPower(t *testing.T) {
+	// GIVEN
+	stream := &strava.Stream{
+		Watts: &strava.PowerStream{
+			Data: []float64{0, float64(fitInvalidUint16)},
+		},
+	}
+
+	// WHEN
+	metrics := computeFITPowerMetrics(validFITUint16Float(fitInvalidUint16), stream, 100)
+
+	// THEN
+	assertFloatEquals(t, 0, metrics.averageWatts)
+	if metrics.weightedAverageWatts != 0 {
+		t.Fatalf("expected invalid weighted watts to be zero, got %d", metrics.weightedAverageWatts)
+	}
+	assertFloatEquals(t, 0, metrics.kilojoules)
+	if metrics.hasDeviceWatts {
+		t.Fatal("expected device watts to be false for invalid FIT power sentinels")
+	}
+}
+
+func TestFITNumericHelpers_IgnoreNonFiniteValues(t *testing.T) {
+	if firstPositiveFinite(math.NaN(), math.Inf(1), -1, 12.5) != 12.5 {
+		t.Fatal("expected firstPositiveFinite to skip NaN, Inf and negative values")
+	}
+	if nonNegativeFinite(math.NaN()) != 0 || nonNegativeFinite(math.Inf(1)) != 0 || nonNegativeFinite(-1) != 0 {
+		t.Fatal("expected nonNegativeFinite to coerce invalid values to zero")
+	}
+	if roundedNonNegative(math.NaN()) != 0 || roundedNonNegative(math.Inf(1)) != 0 || roundedNonNegative(-1) != 0 {
+		t.Fatal("expected roundedNonNegative to coerce invalid values to zero")
+	}
+	if maxFloat64Slice([]float64{math.NaN(), 0, 12.5, math.Inf(1)}) != 12.5 {
+		t.Fatal("expected maxFloat64Slice to ignore non-finite values")
+	}
+	if asUint8(fitInvalidUint8) != 0 || asUint8(uint16(fitInvalidUint8)) != 0 || asUint8(float64(fitInvalidUint8)) != 0 {
+		t.Fatal("expected asUint8 to coerce FIT invalid sentinels to zero")
+	}
+	if validFITUint8(fitInvalidUint8) != 0 || validFITUint16Float(fitInvalidUint16) != 0 {
+		t.Fatal("expected FIT sentinel helpers to coerce invalid values to zero")
 	}
 }
 

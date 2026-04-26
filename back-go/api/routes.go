@@ -13,6 +13,7 @@ type Routes []Route
 
 var routes = Routes{
 	{Name: "GetHealthDetails", Method: "GET", Pattern: "/api/health/details", HandlerFunc: getHealthDetails},
+	{Name: "PostSourceModePreview", Method: "POST", Pattern: "/api/source-modes/preview", HandlerFunc: postSourceModePreview},
 	{Name: "GetAthlete", Method: "GET", Pattern: "/api/athletes/me", HandlerFunc: getAthlete},
 	{Name: "GetAthleteHeartRateZones", Method: "GET", Pattern: "/api/athletes/me/heart-rate-zones", HandlerFunc: getAthleteHeartRateZones},
 	{Name: "PutAthleteHeartRateZones", Method: "PUT", Pattern: "/api/athletes/me/heart-rate-zones", HandlerFunc: putAthleteHeartRateZones},
