@@ -36,7 +36,20 @@ data class AnnualGoalProgress(
     val projectedEndOfYear: Double,
     val requiredPace: Double,
     val requiredPaceUnit: String,
+    val requiredWeeklyPace: Double,
+    val last30Days: Double,
+    val last30DaysWeeklyPace: Double,
+    val weeklyPaceGap: Double,
+    val suggestedTarget: Double?,
+    val monthly: List<AnnualGoalMonth>,
     val status: AnnualGoalStatus,
+)
+
+data class AnnualGoalMonth(
+    val month: Int,
+    val value: Double,
+    val cumulative: Double,
+    val expectedCumulative: Double,
 )
 
 data class AnnualGoals(

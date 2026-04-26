@@ -164,15 +164,6 @@
   Acceptance:
   - un utilisateur peut choisir une route sans lire les raisons brutes du moteur.
 
-- [ ] `FUNC-P1-06` (`P1`, `M`) - Objectifs annuels v2: bilan et ajustement.
-  Owners: `Product`, `Stats`, `Front`.
-  Proposition:
-  - ajouter un bilan mensuel des objectifs, tendance 30 jours et ecart au rythme cible,
-  - proposer un ajustement manuel de l'objectif quand le rythme devient irrealiste,
-  - afficher ce qui manque concretement par semaine pour revenir dans les clous.
-  Acceptance:
-  - les objectifs ne sont pas seulement un compteur annuel, ils aident a corriger le cap.
-
 - [ ] `FUNC-P1-07` (`P1`, `M`) - Afficher le type de chemin sur la carte du detail activite.
   Owners: `Product`, `Routes`, `Front`, `Back-Go`, `Back-Kotlin`.
   Proposition:

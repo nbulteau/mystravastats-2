@@ -1,6 +1,7 @@
 package me.nicolas.stravastats.domain.services
 
 import me.nicolas.stravastats.domain.business.ActivityType
+import me.nicolas.stravastats.domain.business.AnnualGoalMonth
 import me.nicolas.stravastats.domain.business.AnnualGoalMetric
 import me.nicolas.stravastats.domain.business.AnnualGoalProgress
 import me.nicolas.stravastats.domain.business.AnnualGoalStatus
@@ -21,6 +22,7 @@ import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.KotlinModule
 import java.io.File
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import kotlin.math.round
 
 interface IDashboardService {
@@ -96,6 +98,8 @@ class DashboardService(
         val requiredPaceUnit: String,
         val current: Double,
         val target: Double?,
+        val monthlyValues: List<Double>,
+        val last30DaysValue: Double,
     )
 
     private data class AnnualGoalCurrentValues(
@@ -412,8 +416,17 @@ class DashboardService(
 
     private fun sumMovingTimeSeconds(activities: List<StravaActivity>): Int {
         return activities.sumOf { activity ->
-            if (activity.movingTime > 0) activity.movingTime else activity.elapsedTime
+            activityMovingTimeSeconds(activity)
         }
+    }
+
+    private fun activityMovingTimeSeconds(activity: StravaActivity): Int {
+        return if (activity.movingTime > 0) activity.movingTime else activity.elapsedTime
+    }
+
+    private fun StravaActivity.annualGoalDate(): LocalDate? {
+        val value = startDateLocal.takeIf { it.length >= 10 } ?: startDate.takeIf { it.length >= 10 } ?: return null
+        return runCatching { LocalDate.parse(value.substring(0, 10)) }.getOrNull()
     }
 
     private fun computeConsistencyByYear(year: String, activeDays: Int): Float {
@@ -440,6 +453,8 @@ class DashboardService(
         today: LocalDate,
     ): AnnualGoals {
         val current = annualGoalCurrentValues(activities)
+        val monthlyValues = annualGoalMonthlyValues(activities)
+        val (last30DaysValues, last30DaysWindowDays) = annualGoalLast30DaysValues(year, activities, today)
         val definitions = listOf(
             AnnualGoalMetricDefinition(
                 metric = AnnualGoalMetric.DISTANCE_KM,
@@ -448,6 +463,8 @@ class DashboardService(
                 requiredPaceUnit = "km/day",
                 current = current.distanceKm,
                 target = targets.distanceKm,
+                monthlyValues = monthlyValues.getValue(AnnualGoalMetric.DISTANCE_KM),
+                last30DaysValue = last30DaysValues.distanceKm,
             ),
             AnnualGoalMetricDefinition(
                 metric = AnnualGoalMetric.ELEVATION_METERS,
@@ -456,6 +473,8 @@ class DashboardService(
                 requiredPaceUnit = "m/day",
                 current = current.elevationMeters,
                 target = targets.elevationMeters?.toDouble(),
+                monthlyValues = monthlyValues.getValue(AnnualGoalMetric.ELEVATION_METERS),
+                last30DaysValue = last30DaysValues.elevationMeters,
             ),
             AnnualGoalMetricDefinition(
                 metric = AnnualGoalMetric.MOVING_TIME_SECONDS,
@@ -464,6 +483,8 @@ class DashboardService(
                 requiredPaceUnit = "s/day",
                 current = current.movingTimeSeconds,
                 target = targets.movingTimeSeconds?.toDouble(),
+                monthlyValues = monthlyValues.getValue(AnnualGoalMetric.MOVING_TIME_SECONDS),
+                last30DaysValue = last30DaysValues.movingTimeSeconds,
             ),
             AnnualGoalMetricDefinition(
                 metric = AnnualGoalMetric.ACTIVITIES,
@@ -472,6 +493,8 @@ class DashboardService(
                 requiredPaceUnit = "activities/day",
                 current = current.activities,
                 target = targets.activities?.toDouble(),
+                monthlyValues = monthlyValues.getValue(AnnualGoalMetric.ACTIVITIES),
+                last30DaysValue = last30DaysValues.activities,
             ),
             AnnualGoalMetricDefinition(
                 metric = AnnualGoalMetric.ACTIVE_DAYS,
@@ -480,6 +503,8 @@ class DashboardService(
                 requiredPaceUnit = "days/day",
                 current = current.activeDays,
                 target = targets.activeDays?.toDouble(),
+                monthlyValues = monthlyValues.getValue(AnnualGoalMetric.ACTIVE_DAYS),
+                last30DaysValue = last30DaysValues.activeDays,
             ),
             AnnualGoalMetricDefinition(
                 metric = AnnualGoalMetric.EDDINGTON,
@@ -488,6 +513,8 @@ class DashboardService(
                 requiredPaceUnit = "level/day",
                 current = current.eddington,
                 target = targets.eddington?.toDouble(),
+                monthlyValues = monthlyValues.getValue(AnnualGoalMetric.EDDINGTON),
+                last30DaysValue = last30DaysValues.eddington,
             ),
         )
 
@@ -495,7 +522,9 @@ class DashboardService(
             year = year,
             activityTypeKey = activityTypeKey,
             targets = targets,
-            progress = definitions.map { definition -> buildAnnualGoalProgress(year, today, definition) },
+            progress = definitions.map { definition ->
+                buildAnnualGoalProgress(year, today, definition, last30DaysWindowDays)
+            },
         )
     }
 
@@ -519,10 +548,77 @@ class DashboardService(
         )
     }
 
+    private fun annualGoalMonthlyValues(activities: List<StravaActivity>): Map<AnnualGoalMetric, List<Double>> {
+        val values = AnnualGoalMetric.entries.associateWith { MutableList(12) { 0.0 } }
+        val activeDaysByMonth = List(12) { mutableSetOf<String>() }
+        val dailyDistanceByMonth = List(12) { mutableMapOf<String, Int>() }
+
+        activities.forEach { activity ->
+            val activityDate = activity.annualGoalDate() ?: return@forEach
+            val monthIndex = activityDate.monthValue - 1
+            val day = activityDate.toString()
+            values.getValue(AnnualGoalMetric.DISTANCE_KM)[monthIndex] += activity.distance / 1000.0
+            values.getValue(AnnualGoalMetric.ELEVATION_METERS)[monthIndex] += activity.totalElevationGain
+            values.getValue(AnnualGoalMetric.MOVING_TIME_SECONDS)[monthIndex] += activityMovingTimeSeconds(activity).toDouble()
+            values.getValue(AnnualGoalMetric.ACTIVITIES)[monthIndex] += 1.0
+            activeDaysByMonth[monthIndex].add(day)
+            dailyDistanceByMonth[monthIndex][day] =
+                (dailyDistanceByMonth[monthIndex][day] ?: 0) + (activity.distance / 1000.0).toInt()
+        }
+
+        for (monthIndex in 0 until 12) {
+            values.getValue(AnnualGoalMetric.ACTIVE_DAYS)[monthIndex] = activeDaysByMonth[monthIndex].size.toDouble()
+            val eddingtonList = computeEddingtonListFromDailyTotals(dailyDistanceByMonth[monthIndex].values)
+            val eddington = (eddingtonList.size downTo 1)
+                .firstOrNull { day -> eddingtonList[day - 1] >= day }
+                ?: 0
+            values.getValue(AnnualGoalMetric.EDDINGTON)[monthIndex] = eddington.toDouble()
+        }
+
+        return values
+    }
+
+    private data class AnnualGoalTrendWindow(
+        val start: LocalDate,
+        val end: LocalDate,
+        val days: Int,
+    )
+
+    private fun annualGoalLast30DaysValues(
+        year: Int,
+        activities: List<StravaActivity>,
+        today: LocalDate,
+    ): Pair<AnnualGoalCurrentValues, Int> {
+        val window = annualGoalLast30DaysWindow(year, today) ?: return AnnualGoalCurrentValues(
+            distanceKm = 0.0,
+            elevationMeters = 0.0,
+            movingTimeSeconds = 0.0,
+            activities = 0.0,
+            activeDays = 0.0,
+            eddington = 0.0,
+        ) to 0
+
+        val filtered = activities.filter { activity ->
+            val activityDate = activity.annualGoalDate() ?: return@filter false
+            !activityDate.isBefore(window.start) && !activityDate.isAfter(window.end)
+        }
+        return annualGoalCurrentValues(filtered) to window.days
+    }
+
+    private fun annualGoalLast30DaysWindow(year: Int, today: LocalDate): AnnualGoalTrendWindow? {
+        if (year > today.year) return null
+        val yearStart = LocalDate.of(year, 1, 1)
+        val windowEnd = if (year == today.year) today else LocalDate.of(year, 12, 31)
+        val windowStart = maxOf(yearStart, windowEnd.minusDays(29))
+        val windowDays = ChronoUnit.DAYS.between(windowStart, windowEnd).toInt() + 1
+        return AnnualGoalTrendWindow(windowStart, windowEnd, windowDays)
+    }
+
     private fun buildAnnualGoalProgress(
         year: Int,
         today: LocalDate,
         definition: AnnualGoalMetricDefinition,
+        last30DaysWindowDays: Int,
     ): AnnualGoalProgress {
         val elapsedDays = elapsedDaysForAnnualGoal(year, today)
         val remainingDays = remainingDaysForAnnualGoal(year, today)
@@ -531,6 +627,11 @@ class DashboardService(
             definition.current / elapsedDays.toDouble() * daysInYear(year).toDouble()
         } else {
             definition.current
+        }
+        val last30DaysWeeklyPace = if (last30DaysWindowDays > 0) {
+            definition.last30DaysValue / last30DaysWindowDays.toDouble() * 7.0
+        } else {
+            0.0
         }
 
         val target = definition.target ?: 0.0
@@ -546,6 +647,12 @@ class DashboardService(
                 projectedEndOfYear = roundAnnualGoalValue(projectedEndOfYear),
                 requiredPace = 0.0,
                 requiredPaceUnit = definition.requiredPaceUnit,
+                requiredWeeklyPace = 0.0,
+                last30Days = roundAnnualGoalValue(definition.last30DaysValue),
+                last30DaysWeeklyPace = roundAnnualGoalValue(last30DaysWeeklyPace),
+                weeklyPaceGap = 0.0,
+                suggestedTarget = null,
+                monthly = buildAnnualGoalMonthlyProgress(year, definition.monthlyValues, 0.0),
                 status = AnnualGoalStatus.NOT_SET,
             )
         }
@@ -556,6 +663,16 @@ class DashboardService(
         } else {
             0.0
         }
+        val requiredWeeklyPace = requiredPace * 7.0
+        val weeklyPaceGap = maxOf(requiredWeeklyPace - last30DaysWeeklyPace, 0.0)
+        val suggestedTarget = suggestedAnnualGoalTarget(
+            year = year,
+            today = today,
+            target = target,
+            projectedEndOfYear = projectedEndOfYear,
+            progressPercent = progressPercent,
+            expectedProgressPercent = expectedProgressPercent,
+        )
 
         return AnnualGoalProgress(
             metric = definition.metric,
@@ -568,8 +685,53 @@ class DashboardService(
             projectedEndOfYear = roundAnnualGoalValue(projectedEndOfYear),
             requiredPace = roundAnnualGoalValue(requiredPace),
             requiredPaceUnit = definition.requiredPaceUnit,
+            requiredWeeklyPace = roundAnnualGoalValue(requiredWeeklyPace),
+            last30Days = roundAnnualGoalValue(definition.last30DaysValue),
+            last30DaysWeeklyPace = roundAnnualGoalValue(last30DaysWeeklyPace),
+            weeklyPaceGap = roundAnnualGoalValue(weeklyPaceGap),
+            suggestedTarget = suggestedTarget,
+            monthly = buildAnnualGoalMonthlyProgress(year, definition.monthlyValues, target),
             status = annualGoalStatus(progressPercent, expectedProgressPercent),
         )
+    }
+
+    private fun suggestedAnnualGoalTarget(
+        year: Int,
+        today: LocalDate,
+        target: Double,
+        projectedEndOfYear: Double,
+        progressPercent: Double,
+        expectedProgressPercent: Double,
+    ): Double? {
+        if (year != today.year || target <= 0.0 || projectedEndOfYear <= 0.0) return null
+        if (progressPercent >= expectedProgressPercent - 5.0) return null
+        if (projectedEndOfYear >= target * 0.9) return null
+        return roundAnnualGoalValue(projectedEndOfYear)
+    }
+
+    private fun buildAnnualGoalMonthlyProgress(
+        year: Int,
+        monthlyValues: List<Double>,
+        target: Double,
+    ): List<AnnualGoalMonth> {
+        var cumulative = 0.0
+        return (1..12).map { month ->
+            val value = monthlyValues.getOrElse(month - 1) { 0.0 }
+            cumulative += value
+            val expectedCumulative = if (target > 0.0) {
+                target * LocalDate.of(year, month, 1).withDayOfMonth(
+                    LocalDate.of(year, month, 1).lengthOfMonth()
+                ).dayOfYear.toDouble() / daysInYear(year).toDouble()
+            } else {
+                0.0
+            }
+            AnnualGoalMonth(
+                month = month,
+                value = roundAnnualGoalValue(value),
+                cumulative = roundAnnualGoalValue(cumulative),
+                expectedCumulative = roundAnnualGoalValue(expectedCumulative),
+            )
+        }
     }
 
     private fun annualGoalStatus(progressPercent: Double, expectedProgressPercent: Double): AnnualGoalStatus {

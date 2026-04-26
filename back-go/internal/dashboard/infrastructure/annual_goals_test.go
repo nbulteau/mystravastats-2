@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	"math"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
 	"testing"
@@ -84,6 +85,49 @@ func TestBuildAnnualGoals_ComputesAnnualEddingtonForSelectedYear(t *testing.T) {
 	}
 	if eddington.Status != business.AnnualGoalStatusOnTrack {
 		t.Fatalf("expected Eddington ON_TRACK, got %s", eddington.Status)
+	}
+}
+
+func TestBuildAnnualGoals_AddsMonthlyTrendAndAdjustmentSuggestion(t *testing.T) {
+	// GIVEN
+	targetDistance := 500.0
+	now := time.Date(2026, time.April, 10, 12, 0, 0, 0, time.UTC)
+	activities := []*strava.Activity{
+		annualGoalActivity(1, "2026-01-01T08:00:00Z", 10000, 100, 3600),
+		annualGoalActivity(2, "2026-03-20T08:00:00Z", 20000, 200, 7200),
+		annualGoalActivity(3, "2026-04-05T08:00:00Z", 5000, 50, 1800),
+	}
+
+	// WHEN
+	result := buildAnnualGoals(2026, "Ride", business.AnnualGoalTargets{
+		DistanceKm: &targetDistance,
+	}, activities, now)
+
+	// THEN
+	distance := annualGoalProgressByMetric(result, business.AnnualGoalMetricDistanceKm)
+	if distance.Last30Days != 25 {
+		t.Fatalf("expected 25km over last 30 days, got %.1f", distance.Last30Days)
+	}
+	if distance.Last30DaysWeeklyPace != 5.8 {
+		t.Fatalf("expected recent weekly pace 5.8km/week, got %.1f", distance.Last30DaysWeeklyPace)
+	}
+	if distance.RequiredWeeklyPace != 12.3 {
+		t.Fatalf("expected required weekly pace 12.3km/week, got %.1f", distance.RequiredWeeklyPace)
+	}
+	if distance.WeeklyPaceGap != 6.4 {
+		t.Fatalf("expected weekly pace gap 6.4km/week, got %.1f", distance.WeeklyPaceGap)
+	}
+	if distance.SuggestedTarget == nil {
+		t.Fatalf("expected suggested target 127.7km, got nil")
+	}
+	if math.Abs(*distance.SuggestedTarget-127.7) > 0.001 {
+		t.Fatalf("expected suggested target 127.7km, got %.3f", *distance.SuggestedTarget)
+	}
+	if len(distance.Monthly) != 12 {
+		t.Fatalf("expected 12 monthly entries, got %d", len(distance.Monthly))
+	}
+	if distance.Monthly[0].Value != 10 || distance.Monthly[2].Value != 20 || distance.Monthly[3].Cumulative != 35 {
+		t.Fatalf("unexpected monthly distance breakdown: %#v", distance.Monthly[:4])
 	}
 }
 

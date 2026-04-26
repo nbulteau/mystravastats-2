@@ -30,17 +30,30 @@ type AnnualGoalTargets struct {
 }
 
 type AnnualGoalProgress struct {
-	Metric                  AnnualGoalMetric `json:"metric"`
-	Label                   string           `json:"label"`
-	Unit                    string           `json:"unit"`
-	Current                 float64          `json:"current"`
-	Target                  float64          `json:"target"`
-	ProgressPercent         float64          `json:"progressPercent"`
-	ExpectedProgressPercent float64          `json:"expectedProgressPercent"`
-	ProjectedEndOfYear      float64          `json:"projectedEndOfYear"`
-	RequiredPace            float64          `json:"requiredPace"`
-	RequiredPaceUnit        string           `json:"requiredPaceUnit"`
-	Status                  AnnualGoalStatus `json:"status"`
+	Metric                  AnnualGoalMetric  `json:"metric"`
+	Label                   string            `json:"label"`
+	Unit                    string            `json:"unit"`
+	Current                 float64           `json:"current"`
+	Target                  float64           `json:"target"`
+	ProgressPercent         float64           `json:"progressPercent"`
+	ExpectedProgressPercent float64           `json:"expectedProgressPercent"`
+	ProjectedEndOfYear      float64           `json:"projectedEndOfYear"`
+	RequiredPace            float64           `json:"requiredPace"`
+	RequiredPaceUnit        string            `json:"requiredPaceUnit"`
+	RequiredWeeklyPace      float64           `json:"requiredWeeklyPace"`
+	Last30Days              float64           `json:"last30Days"`
+	Last30DaysWeeklyPace    float64           `json:"last30DaysWeeklyPace"`
+	WeeklyPaceGap           float64           `json:"weeklyPaceGap"`
+	SuggestedTarget         *float64          `json:"suggestedTarget,omitempty"`
+	Monthly                 []AnnualGoalMonth `json:"monthly"`
+	Status                  AnnualGoalStatus  `json:"status"`
+}
+
+type AnnualGoalMonth struct {
+	Month              int     `json:"month"`
+	Value              float64 `json:"value"`
+	Cumulative         float64 `json:"cumulative"`
+	ExpectedCumulative float64 `json:"expectedCumulative"`
 }
 
 type AnnualGoals struct {

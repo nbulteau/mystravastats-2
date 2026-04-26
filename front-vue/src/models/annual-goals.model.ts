@@ -28,7 +28,20 @@ export type AnnualGoalProgress = {
   projectedEndOfYear: number;
   requiredPace: number;
   requiredPaceUnit: string;
+  requiredWeeklyPace: number;
+  last30Days: number;
+  last30DaysWeeklyPace: number;
+  weeklyPaceGap: number;
+  suggestedTarget: number | null;
+  monthly: AnnualGoalMonth[];
   status: AnnualGoalStatus;
+};
+
+export type AnnualGoalMonth = {
+  month: number;
+  value: number;
+  cumulative: number;
+  expectedCumulative: number;
 };
 
 export type AnnualGoals = {

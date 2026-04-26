@@ -26,7 +26,21 @@ data class AnnualGoalProgressDto(
     val projectedEndOfYear: Double,
     val requiredPace: Double,
     val requiredPaceUnit: String,
+    val requiredWeeklyPace: Double,
+    val last30Days: Double,
+    val last30DaysWeeklyPace: Double,
+    val weeklyPaceGap: Double,
+    val suggestedTarget: Double?,
+    val monthly: List<AnnualGoalMonthDto>,
     val status: String,
+)
+
+@Schema(description = "Monthly annual goal progress", name = "AnnualGoalMonth")
+data class AnnualGoalMonthDto(
+    val month: Int,
+    val value: Double,
+    val cumulative: Double,
+    val expectedCumulative: Double,
 )
 
 @Schema(description = "Annual goals and projections", name = "AnnualGoals")
@@ -54,6 +68,19 @@ fun AnnualGoals.toDto(): AnnualGoalsDto {
                 projectedEndOfYear = item.projectedEndOfYear,
                 requiredPace = item.requiredPace,
                 requiredPaceUnit = item.requiredPaceUnit,
+                requiredWeeklyPace = item.requiredWeeklyPace,
+                last30Days = item.last30Days,
+                last30DaysWeeklyPace = item.last30DaysWeeklyPace,
+                weeklyPaceGap = item.weeklyPaceGap,
+                suggestedTarget = item.suggestedTarget,
+                monthly = item.monthly.map { month ->
+                    AnnualGoalMonthDto(
+                        month = month.month,
+                        value = month.value,
+                        cumulative = month.cumulative,
+                        expectedCumulative = month.expectedCumulative,
+                    )
+                },
                 status = item.status.name,
             )
         },

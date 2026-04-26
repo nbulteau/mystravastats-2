@@ -249,6 +249,61 @@ class DashboardServiceTest {
         assertEquals(AnnualGoalStatus.NOT_SET, eddington.status)
     }
 
+    @Test
+    fun `getAnnualGoals returns monthly trend and adjustment suggestion`() {
+        // GIVEN
+        val activityTypes = setOf(ActivityType.Ride)
+        val today = LocalDate.now()
+        val currentYear = today.year
+        val activities = listOf(
+            createActivity(
+                id = 40L,
+                startDateLocal = "${LocalDate.of(currentYear, 1, 1)}T08:00:00Z",
+                distanceMeters = 10000.0,
+                elevationGainMeters = 100.0,
+                movingTimeSeconds = 1800,
+                elapsedTimeSeconds = 1800,
+            ),
+            createActivity(
+                id = 41L,
+                startDateLocal = "${today.minusDays(15)}T08:00:00Z",
+                distanceMeters = 20000.0,
+                elevationGainMeters = 200.0,
+                movingTimeSeconds = 3600,
+                elapsedTimeSeconds = 3600,
+            ),
+            createActivity(
+                id = 42L,
+                startDateLocal = "${today.minusDays(5)}T08:00:00Z",
+                distanceMeters = 10000.0,
+                elevationGainMeters = 100.0,
+                movingTimeSeconds = 1800,
+                elapsedTimeSeconds = 1800,
+            ),
+        )
+        every { activityProvider.cacheIdentity() } returns ActivityProviderCacheIdentity(
+            cacheRoot = tempDir.toString(),
+            athleteId = "athlete-3",
+        )
+        every { activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, currentYear) } returns activities
+
+        // WHEN
+        val result = dashboardService.saveAnnualGoals(
+            year = currentYear,
+            activityTypes = activityTypes,
+            targets = AnnualGoalTargets(distanceKm = 500.0),
+        )
+
+        // THEN
+        val distance = result.progress.first { item -> item.metric == AnnualGoalMetric.DISTANCE_KM }
+        assertEquals(30.0, distance.last30Days)
+        assertTrue(distance.requiredWeeklyPace > distance.last30DaysWeeklyPace)
+        assertTrue(distance.weeklyPaceGap > 0.0)
+        assertTrue(distance.suggestedTarget != null)
+        assertEquals(12, distance.monthly.size)
+        assertTrue(distance.monthly[today.monthValue - 1].value >= 30.0)
+    }
+
     private fun createActivity(
         id: Long,
         startDateLocal: String,

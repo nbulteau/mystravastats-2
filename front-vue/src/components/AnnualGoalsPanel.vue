@@ -46,6 +46,8 @@ const statusLabels: Record<AnnualGoalStatus, string> = {
   BEHIND: "En retard",
 };
 
+const monthLabels = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"];
+
 const targetInputs = reactive<Record<AnnualGoalMetric, string>>({
   DISTANCE_KM: "",
   ELEVATION_METERS: "",
@@ -58,7 +60,7 @@ const targetInputs = reactive<Record<AnnualGoalMetric, string>>({
 const isYearSelected = computed(() => props.selectedYear !== "All years");
 
 const rows = computed(() => metricOrder.map((metric) => {
-  return props.annualGoals.progress.find((item) => item.metric === metric) ?? fallbackProgress(metric);
+  return normalizeProgress(props.annualGoals.progress.find((item) => item.metric === metric) ?? fallbackProgress(metric));
 }));
 
 watch(
@@ -88,7 +90,25 @@ function fallbackProgress(metric: AnnualGoalMetric): AnnualGoalProgress {
     projectedEndOfYear: 0,
     requiredPace: 0,
     requiredPaceUnit: "",
+    requiredWeeklyPace: 0,
+    last30Days: 0,
+    last30DaysWeeklyPace: 0,
+    weeklyPaceGap: 0,
+    suggestedTarget: null,
+    monthly: [],
     status: "NOT_SET",
+  };
+}
+
+function normalizeProgress(row: AnnualGoalProgress): AnnualGoalProgress {
+  return {
+    ...row,
+    requiredWeeklyPace: row.requiredWeeklyPace ?? 0,
+    last30Days: row.last30Days ?? 0,
+    last30DaysWeeklyPace: row.last30DaysWeeklyPace ?? 0,
+    weeklyPaceGap: row.weeklyPaceGap ?? 0,
+    suggestedTarget: row.suggestedTarget ?? null,
+    monthly: row.monthly ?? [],
   };
 }
 
@@ -172,6 +192,61 @@ function formatPace(row: AnnualGoalProgress): string {
   }
   const value = row.metric === "DISTANCE_KM" ? row.requiredPace.toFixed(1) : Math.ceil(row.requiredPace).toString();
   return `${value} ${inputUnit(row.metric) || row.unit}/j`;
+}
+
+function formatWeeklyPace(row: AnnualGoalProgress, value: number): string {
+  if (row.target <= 0 || value <= 0) {
+    return "-";
+  }
+  if (row.metric === "MOVING_TIME_SECONDS") {
+    return `${formatDuration(value)}/sem`;
+  }
+  const formatted = row.metric === "DISTANCE_KM" ? value.toFixed(1) : Math.ceil(value).toString();
+  return `${formatted} ${inputUnit(row.metric) || row.unit}/sem`;
+}
+
+function formatCompactValue(metric: AnnualGoalMetric, value: number): string {
+  if (!Number.isFinite(value) || value <= 0) {
+    return "-";
+  }
+  if (metric === "MOVING_TIME_SECONDS") {
+    return formatDuration(value);
+  }
+  if (metric === "DISTANCE_KM") {
+    return value >= 10 ? `${Math.round(value)} km` : `${value.toFixed(1)} km`;
+  }
+  if (metric === "ELEVATION_METERS") {
+    return value >= 1000 ? `${(value / 1000).toFixed(1)}k m` : `${Math.round(value)} m`;
+  }
+  return Math.round(value).toString();
+}
+
+function formatGap(row: AnnualGoalProgress): string {
+  if (row.target <= 0) {
+    return "-";
+  }
+  if (row.weeklyPaceGap <= 0) {
+    return "OK";
+  }
+  return formatWeeklyPace(row, row.weeklyPaceGap);
+}
+
+function suggestedInputValue(row: AnnualGoalProgress): string {
+  if (row.suggestedTarget === null || row.suggestedTarget <= 0) {
+    return "";
+  }
+  if (row.metric === "MOVING_TIME_SECONDS") {
+    return inputValue(row.suggestedTarget / 3600);
+  }
+  return inputValue(row.suggestedTarget);
+}
+
+function applySuggestedTarget(row: AnnualGoalProgress) {
+  const value = suggestedInputValue(row);
+  if (value === "") {
+    return;
+  }
+  targetInputs[row.metric] = value;
 }
 
 function formatProgress(row: AnnualGoalProgress): string {
@@ -271,6 +346,46 @@ function formatDuration(totalSeconds: number): string {
             <span :style="{ width: progressWidth(row) }" />
           </div>
           <small class="annual-goals__progress-label">{{ formatProgress(row) }}</small>
+          <div
+            v-if="row.target > 0"
+            class="annual-goals__review"
+          >
+            <span>
+              <strong>30 jours</strong>
+              {{ formatWeeklyPace(row, row.last30DaysWeeklyPace) }}
+            </span>
+            <span>
+              <strong>À tenir</strong>
+              {{ formatWeeklyPace(row, row.requiredWeeklyPace) }}
+            </span>
+            <span :class="{ 'annual-goals__review-gap--ok': row.weeklyPaceGap <= 0 }">
+              <strong>Manque</strong>
+              {{ formatGap(row) }}
+            </span>
+            <button
+              v-if="row.suggestedTarget !== null"
+              type="button"
+              class="btn btn-outline-secondary btn-sm annual-goals__adjust"
+              @click="applySuggestedTarget(row)"
+            >
+              <i class="fa-solid fa-sliders" aria-hidden="true" />
+              Ajuster à {{ formatValue(row.metric, row.suggestedTarget) }}
+            </button>
+          </div>
+          <div
+            v-if="row.monthly.length > 0"
+            class="annual-goals__monthly"
+          >
+            <span
+              v-for="month in row.monthly"
+              :key="`${row.metric}-${month.month}`"
+              class="annual-goals__month"
+              :class="{ 'annual-goals__month--active': month.value > 0 }"
+            >
+              <strong>{{ monthLabels[month.month - 1] }}</strong>
+              <small>{{ formatCompactValue(row.metric, month.value) }}</small>
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -400,6 +515,78 @@ function formatDuration(totalSeconds: number): string {
   font-weight: 700;
 }
 
+.annual-goals__review {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--ms-text-muted);
+  font-size: 0.78rem;
+}
+
+.annual-goals__review span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.annual-goals__review strong {
+  color: var(--ms-text);
+  font-weight: 800;
+}
+
+.annual-goals__review-gap--ok {
+  color: #176947;
+}
+
+.annual-goals__adjust {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 3px 8px;
+  font-size: 0.76rem;
+}
+
+.annual-goals__monthly {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(42px, 1fr));
+  gap: 4px;
+}
+
+.annual-goals__month {
+  display: grid;
+  gap: 2px;
+  border: 1px solid var(--ms-border);
+  border-radius: 6px;
+  padding: 4px 3px;
+  color: var(--ms-text-muted);
+  background: #fafbfe;
+  text-align: center;
+  min-width: 0;
+}
+
+.annual-goals__month strong {
+  font-size: 0.66rem;
+  line-height: 1;
+}
+
+.annual-goals__month small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.66rem;
+  line-height: 1.1;
+}
+
+.annual-goals__month--active {
+  border-color: #b9d8f5;
+  color: #1f4f7a;
+  background: #eef6ff;
+}
+
 @media (max-width: 980px) {
   .annual-goals__row {
     grid-template-columns: minmax(110px, 1fr) minmax(104px, 1fr) minmax(120px, 1fr);
@@ -415,6 +602,10 @@ function formatDuration(totalSeconds: number): string {
 
   .annual-goals__progress {
     grid-column: 1 / -2;
+  }
+
+  .annual-goals__monthly {
+    grid-template-columns: repeat(6, minmax(48px, 1fr));
   }
 }
 
@@ -443,6 +634,20 @@ function formatDuration(totalSeconds: number): string {
 
   .annual-goals__progress-label {
     justify-self: start;
+  }
+
+  .annual-goals__review {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .annual-goals__adjust {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .annual-goals__monthly {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 </style>

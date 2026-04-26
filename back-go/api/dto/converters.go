@@ -126,6 +126,15 @@ func ToActivityDto(activity strava.Activity) ActivityDto {
 func ToAnnualGoalsDto(goals business.AnnualGoals) AnnualGoalsDto {
 	progress := make([]AnnualGoalProgressDto, 0, len(goals.Progress))
 	for _, item := range goals.Progress {
+		monthly := make([]AnnualGoalMonthDto, 0, len(item.Monthly))
+		for _, month := range item.Monthly {
+			monthly = append(monthly, AnnualGoalMonthDto{
+				Month:              month.Month,
+				Value:              month.Value,
+				Cumulative:         month.Cumulative,
+				ExpectedCumulative: month.ExpectedCumulative,
+			})
+		}
 		progress = append(progress, AnnualGoalProgressDto{
 			Metric:                  string(item.Metric),
 			Label:                   item.Label,
@@ -137,6 +146,12 @@ func ToAnnualGoalsDto(goals business.AnnualGoals) AnnualGoalsDto {
 			ProjectedEndOfYear:      item.ProjectedEndOfYear,
 			RequiredPace:            item.RequiredPace,
 			RequiredPaceUnit:        item.RequiredPaceUnit,
+			RequiredWeeklyPace:      item.RequiredWeeklyPace,
+			Last30Days:              item.Last30Days,
+			Last30DaysWeeklyPace:    item.Last30DaysWeeklyPace,
+			WeeklyPaceGap:           item.WeeklyPaceGap,
+			SuggestedTarget:         item.SuggestedTarget,
+			Monthly:                 monthly,
 			Status:                  string(item.Status),
 		})
 	}

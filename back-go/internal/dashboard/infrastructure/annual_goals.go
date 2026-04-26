@@ -20,6 +20,8 @@ type annualGoalMetricDefinition struct {
 	requiredPaceUnit string
 	current          float64
 	target           *float64
+	monthlyValues    []float64
+	last30DaysValue  float64
 }
 
 func computeAnnualGoals(year int, targets business.AnnualGoalTargets, activityTypes ...business.ActivityType) business.AnnualGoals {
@@ -61,6 +63,8 @@ func buildAnnualGoals(
 	current := annualGoalCurrentValues(activities)
 	eddington := computeEddingtonFromDailyTotals(annualGoalDailyDistanceTotals(activities))
 	current.eddington = float64(eddington.Number)
+	monthlyValues := annualGoalMonthlyValues(activities)
+	last30DaysValues, last30DaysWindowDays := annualGoalLast30DaysValues(year, activities, now)
 
 	definitions := []annualGoalMetricDefinition{
 		{
@@ -70,6 +74,8 @@ func buildAnnualGoals(
 			requiredPaceUnit: "km/day",
 			current:          current.distanceKm,
 			target:           floatTarget(targets.DistanceKm),
+			monthlyValues:    monthlyValues[business.AnnualGoalMetricDistanceKm],
+			last30DaysValue:  last30DaysValues.distanceKm,
 		},
 		{
 			metric:           business.AnnualGoalMetricElevationMeters,
@@ -78,6 +84,8 @@ func buildAnnualGoals(
 			requiredPaceUnit: "m/day",
 			current:          current.elevationMeters,
 			target:           intTarget(targets.ElevationMeters),
+			monthlyValues:    monthlyValues[business.AnnualGoalMetricElevationMeters],
+			last30DaysValue:  last30DaysValues.elevationMeters,
 		},
 		{
 			metric:           business.AnnualGoalMetricMovingTimeSeconds,
@@ -86,6 +94,8 @@ func buildAnnualGoals(
 			requiredPaceUnit: "s/day",
 			current:          current.movingTimeSeconds,
 			target:           intTarget(targets.MovingTimeSeconds),
+			monthlyValues:    monthlyValues[business.AnnualGoalMetricMovingTimeSeconds],
+			last30DaysValue:  last30DaysValues.movingTimeSeconds,
 		},
 		{
 			metric:           business.AnnualGoalMetricActivities,
@@ -94,6 +104,8 @@ func buildAnnualGoals(
 			requiredPaceUnit: "activities/day",
 			current:          current.activities,
 			target:           intTarget(targets.Activities),
+			monthlyValues:    monthlyValues[business.AnnualGoalMetricActivities],
+			last30DaysValue:  last30DaysValues.activities,
 		},
 		{
 			metric:           business.AnnualGoalMetricActiveDays,
@@ -102,6 +114,8 @@ func buildAnnualGoals(
 			requiredPaceUnit: "days/day",
 			current:          current.activeDays,
 			target:           intTarget(targets.ActiveDays),
+			monthlyValues:    monthlyValues[business.AnnualGoalMetricActiveDays],
+			last30DaysValue:  last30DaysValues.activeDays,
 		},
 		{
 			metric:           business.AnnualGoalMetricEddington,
@@ -110,12 +124,14 @@ func buildAnnualGoals(
 			requiredPaceUnit: "level/day",
 			current:          current.eddington,
 			target:           intTarget(targets.Eddington),
+			monthlyValues:    monthlyValues[business.AnnualGoalMetricEddington],
+			last30DaysValue:  last30DaysValues.eddington,
 		},
 	}
 
 	progress := make([]business.AnnualGoalProgress, 0, len(definitions))
 	for _, definition := range definitions {
-		progress = append(progress, buildAnnualGoalProgress(year, now, definition))
+		progress = append(progress, buildAnnualGoalProgress(year, now, definition, last30DaysWindowDays))
 	}
 
 	return business.AnnualGoals{
@@ -157,13 +173,119 @@ func annualGoalDailyDistanceTotals(activities []*strava.Activity) map[string]int
 	return result
 }
 
-func buildAnnualGoalProgress(year int, now time.Time, definition annualGoalMetricDefinition) business.AnnualGoalProgress {
+func annualGoalMonthlyValues(activities []*strava.Activity) map[business.AnnualGoalMetric][]float64 {
+	values := map[business.AnnualGoalMetric][]float64{
+		business.AnnualGoalMetricDistanceKm:        make([]float64, 12),
+		business.AnnualGoalMetricElevationMeters:   make([]float64, 12),
+		business.AnnualGoalMetricMovingTimeSeconds: make([]float64, 12),
+		business.AnnualGoalMetricActivities:        make([]float64, 12),
+		business.AnnualGoalMetricActiveDays:        make([]float64, 12),
+		business.AnnualGoalMetricEddington:         make([]float64, 12),
+	}
+	activeDaysByMonth := make([]map[string]struct{}, 12)
+	dailyDistanceByMonth := make([]map[string]int, 12)
+	for month := 0; month < 12; month++ {
+		activeDaysByMonth[month] = map[string]struct{}{}
+		dailyDistanceByMonth[month] = map[string]int{}
+	}
+
+	for _, activity := range activities {
+		activityDate, ok := annualGoalActivityDate(activity)
+		if !ok {
+			continue
+		}
+		monthIndex := int(activityDate.Month()) - 1
+		day := activityDate.Format("2006-01-02")
+		values[business.AnnualGoalMetricDistanceKm][monthIndex] += activity.Distance / 1000
+		values[business.AnnualGoalMetricElevationMeters][monthIndex] += activity.TotalElevationGain
+		values[business.AnnualGoalMetricMovingTimeSeconds][monthIndex] += float64(activityMovingTimeSeconds(activity))
+		values[business.AnnualGoalMetricActivities][monthIndex]++
+		activeDaysByMonth[monthIndex][day] = struct{}{}
+		dailyDistanceByMonth[monthIndex][day] += int(activity.Distance / 1000)
+	}
+
+	for month := 0; month < 12; month++ {
+		values[business.AnnualGoalMetricActiveDays][month] = float64(len(activeDaysByMonth[month]))
+		values[business.AnnualGoalMetricEddington][month] = float64(computeEddingtonFromDailyTotals(dailyDistanceByMonth[month]).Number)
+	}
+	return values
+}
+
+func annualGoalLast30DaysValues(year int, activities []*strava.Activity, now time.Time) (annualGoalValues, int) {
+	windowStart, windowEnd, windowDays := annualGoalLast30DaysWindow(year, now)
+	if windowDays <= 0 {
+		return annualGoalValues{}, 0
+	}
+
+	filtered := make([]*strava.Activity, 0)
+	for _, activity := range activities {
+		activityDate, ok := annualGoalActivityDate(activity)
+		if !ok || activityDate.Before(windowStart) || activityDate.After(windowEnd) {
+			continue
+		}
+		filtered = append(filtered, activity)
+	}
+	values := annualGoalCurrentValues(filtered)
+	eddington := computeEddingtonFromDailyTotals(annualGoalDailyDistanceTotals(filtered))
+	values.eddington = float64(eddington.Number)
+	return values, windowDays
+}
+
+func annualGoalLast30DaysWindow(year int, now time.Time) (time.Time, time.Time, int) {
+	if year > now.Year() {
+		return time.Time{}, time.Time{}, 0
+	}
+
+	yearStart := time.Date(year, time.January, 1, 0, 0, 0, 0, time.UTC)
+	windowEnd := time.Date(year, time.December, 31, 0, 0, 0, 0, time.UTC)
+	if year == now.Year() {
+		windowEnd = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	}
+	windowStart := windowEnd.AddDate(0, 0, -29)
+	if windowStart.Before(yearStart) {
+		windowStart = yearStart
+	}
+
+	windowDays := int(windowEnd.Sub(windowStart).Hours()/24) + 1
+	return windowStart, windowEnd, windowDays
+}
+
+func annualGoalActivityDate(activity *strava.Activity) (time.Time, bool) {
+	if activity == nil {
+		return time.Time{}, false
+	}
+	date := activity.StartDateLocal
+	if len(date) < 10 {
+		date = activity.StartDate
+	}
+	if len(date) < 10 {
+		return time.Time{}, false
+	}
+	parsed, err := time.Parse("2006-01-02", date[:10])
+	if err != nil {
+		return time.Time{}, false
+	}
+	return parsed, true
+}
+
+func activityMovingTimeSeconds(activity *strava.Activity) int {
+	if activity.MovingTime > 0 {
+		return activity.MovingTime
+	}
+	return activity.ElapsedTime
+}
+
+func buildAnnualGoalProgress(year int, now time.Time, definition annualGoalMetricDefinition, last30DaysWindowDays int) business.AnnualGoalProgress {
 	elapsedDays := elapsedDaysForAnnualGoal(year, now)
 	remainingDays := remainingDaysForAnnualGoal(year, now)
 	expectedProgress := annualExpectedProgressPercent(year, now)
 	projected := definition.current
 	if year == now.Year() && elapsedDays > 0 {
 		projected = definition.current / float64(elapsedDays) * float64(daysInYear(year))
+	}
+	last30DaysWeeklyPace := 0.0
+	if last30DaysWindowDays > 0 {
+		last30DaysWeeklyPace = definition.last30DaysValue / float64(last30DaysWindowDays) * 7
 	}
 
 	target := 0.0
@@ -182,6 +304,12 @@ func buildAnnualGoalProgress(year int, now time.Time, definition annualGoalMetri
 			ProjectedEndOfYear:      roundAnnualGoalValue(projected),
 			RequiredPace:            0,
 			RequiredPaceUnit:        definition.requiredPaceUnit,
+			RequiredWeeklyPace:      0,
+			Last30Days:              roundAnnualGoalValue(definition.last30DaysValue),
+			Last30DaysWeeklyPace:    roundAnnualGoalValue(last30DaysWeeklyPace),
+			WeeklyPaceGap:           0,
+			SuggestedTarget:         nil,
+			Monthly:                 buildAnnualGoalMonthlyProgress(year, definition.monthlyValues, 0),
 			Status:                  business.AnnualGoalStatusNotSet,
 		}
 	}
@@ -191,6 +319,9 @@ func buildAnnualGoalProgress(year int, now time.Time, definition annualGoalMetri
 	if remainingDays > 0 {
 		requiredPace = math.Max(target-definition.current, 0) / float64(remainingDays)
 	}
+	requiredWeeklyPace := requiredPace * 7
+	weeklyPaceGap := math.Max(requiredWeeklyPace-last30DaysWeeklyPace, 0)
+	suggestedTarget := suggestedAnnualGoalTarget(year, now, target, projected, progressPercent, expectedProgress)
 
 	return business.AnnualGoalProgress{
 		Metric:                  definition.metric,
@@ -203,8 +334,48 @@ func buildAnnualGoalProgress(year int, now time.Time, definition annualGoalMetri
 		ProjectedEndOfYear:      roundAnnualGoalValue(projected),
 		RequiredPace:            roundAnnualGoalValue(requiredPace),
 		RequiredPaceUnit:        definition.requiredPaceUnit,
+		RequiredWeeklyPace:      roundAnnualGoalValue(requiredWeeklyPace),
+		Last30Days:              roundAnnualGoalValue(definition.last30DaysValue),
+		Last30DaysWeeklyPace:    roundAnnualGoalValue(last30DaysWeeklyPace),
+		WeeklyPaceGap:           roundAnnualGoalValue(weeklyPaceGap),
+		SuggestedTarget:         suggestedTarget,
+		Monthly:                 buildAnnualGoalMonthlyProgress(year, definition.monthlyValues, target),
 		Status:                  annualGoalStatus(progressPercent, expectedProgress),
 	}
+}
+
+func suggestedAnnualGoalTarget(year int, now time.Time, target float64, projected float64, progressPercent float64, expectedProgressPercent float64) *float64 {
+	if year != now.Year() || target <= 0 || projected <= 0 || progressPercent >= expectedProgressPercent-5 {
+		return nil
+	}
+	if projected >= target*0.9 {
+		return nil
+	}
+	suggested := roundAnnualGoalValue(math.Max(projected, 0))
+	return &suggested
+}
+
+func buildAnnualGoalMonthlyProgress(year int, monthlyValues []float64, target float64) []business.AnnualGoalMonth {
+	months := make([]business.AnnualGoalMonth, 0, 12)
+	cumulative := 0.0
+	for month := 1; month <= 12; month++ {
+		value := 0.0
+		if len(monthlyValues) >= month {
+			value = monthlyValues[month-1]
+		}
+		cumulative += value
+		expectedCumulative := 0.0
+		if target > 0 {
+			expectedCumulative = target * float64(dayOfYearAtMonthEnd(year, time.Month(month))) / float64(daysInYear(year))
+		}
+		months = append(months, business.AnnualGoalMonth{
+			Month:              month,
+			Value:              roundAnnualGoalValue(value),
+			Cumulative:         roundAnnualGoalValue(cumulative),
+			ExpectedCumulative: roundAnnualGoalValue(expectedCumulative),
+		})
+	}
+	return months
 }
 
 func elapsedDaysForAnnualGoal(year int, now time.Time) int {
@@ -235,6 +406,10 @@ func annualExpectedProgressPercent(year int, now time.Time) float64 {
 		return 0
 	}
 	return float64(elapsedDays) / float64(daysInYear(year)) * 100.0
+}
+
+func dayOfYearAtMonthEnd(year int, month time.Month) int {
+	return time.Date(year, month+1, 0, 0, 0, 0, 0, time.UTC).YearDay()
 }
 
 func annualGoalStatus(progressPercent float64, expectedProgressPercent float64) business.AnnualGoalStatus {
