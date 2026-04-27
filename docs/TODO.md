@@ -135,17 +135,6 @@
   Acceptance:
   - un utilisateur peut choisir une route sans lire les raisons brutes du moteur.
 
-- [ ] `FUNC-P1-07` (`P1`, `M`) - Afficher le type de chemin sur la carte du detail activite.
-  Owners: `Product`, `Routes`, `Front`, `Back-Go`, `Back-Kotlin`.
-  Proposition:
-  - enrichir la trace d'une activite avec les types de voie empruntes: route, chemin, single, piste, voie verte, inconnu,
-  - afficher ces segments directement sur la carte du detail activite avec une legende lisible,
-  - calculer un resume par activite: distance et pourcentage par type de chemin,
-  - reutiliser les donnees OSM/OSRM quand disponibles et prevoir un fallback explicite si la classification est absente.
-  Acceptance:
-  - un utilisateur peut voir rapidement la repartition route/chemin/single d'une sortie depuis le detail activite,
-  - les segments non classifies restent visibles comme `inconnu` plutot que d'etre caches.
-
 - [ ] `FUNC-P1-08` (`P1`, `M`) - Corrections locales non destructives des activites.
   Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
   Proposition:
