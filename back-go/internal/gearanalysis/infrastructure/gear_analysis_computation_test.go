@@ -26,7 +26,7 @@ func TestBuildGearAnalysis_AggregatesGearAndUnassignedActivities(t *testing.T) {
 	}
 
 	// WHEN
-	result := buildGearAnalysis(activities, athlete)
+	result := buildGearAnalysis(activities, athlete, nil)
 
 	// THEN
 	if result.Coverage.TotalActivities != 4 || result.Coverage.AssignedActivities != 3 || result.Coverage.UnassignedActivities != 1 {
@@ -64,6 +64,51 @@ func TestBuildGearAnalysis_AggregatesGearAndUnassignedActivities(t *testing.T) {
 	}
 }
 
+func TestBuildGearAnalysis_AddsBikeMaintenanceTasksAndHistory(t *testing.T) {
+	// GIVEN
+	activities := []*strava.Activity{
+		gearAnalysisActivity(1, "Morning ride", "Ride", "2026-01-03T08:00:00Z", "b123", 2000000, 1800, 100),
+	}
+	athlete := strava.Athlete{
+		Bikes: []strava.Bike{
+			{Id: "b123", Name: "Road Bike", Primary: true},
+		},
+	}
+	records := []business.GearMaintenanceRecord{
+		{
+			ID:             "gm-1",
+			GearID:         "b123",
+			GearName:       "Road Bike",
+			Component:      "CHAIN",
+			ComponentLabel: "Chain",
+			Operation:      "Chain changed",
+			Date:           "2026-01-01",
+			Distance:       100000,
+			CreatedAt:      "2026-01-01T00:00:00Z",
+			UpdatedAt:      "2026-01-01T00:00:00Z",
+		},
+	}
+
+	// WHEN
+	result := buildGearAnalysis(activities, athlete, records)
+
+	// THEN
+	bike := result.Items[0]
+	if len(bike.MaintenanceHistory) != 1 {
+		t.Fatalf("expected maintenance history, got %#v", bike.MaintenanceHistory)
+	}
+	chain := gearMaintenanceTaskByComponent(bike.MaintenanceTasks, "CHAIN")
+	if chain == nil {
+		t.Fatalf("expected chain maintenance task, got %#v", bike.MaintenanceTasks)
+	}
+	if chain.Status != "OVERDUE" {
+		t.Fatalf("expected overdue chain task, got %#v", chain)
+	}
+	if chain.DistanceSince != 1900000 {
+		t.Fatalf("expected 1900km since service, got %.1f", chain.DistanceSince)
+	}
+}
+
 func gearAnalysisActivity(id int64, name string, activityType string, date string, gearID string, distance float64, movingTime int, elevationGain float64) *strava.Activity {
 	var gearIDPtr *string
 	if gearID != "" {
@@ -81,4 +126,13 @@ func gearAnalysisActivity(id int64, name string, activityType string, date strin
 		TotalElevationGain: elevationGain,
 		GearId:             gearIDPtr,
 	}
+}
+
+func gearMaintenanceTaskByComponent(tasks []business.GearMaintenanceTask, component string) *business.GearMaintenanceTask {
+	for index := range tasks {
+		if tasks[index].Component == component {
+			return &tasks[index]
+		}
+	}
+	return nil
 }

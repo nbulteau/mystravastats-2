@@ -1,21 +1,50 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { RouterLink } from "vue-router";
 import type {
   GearAnalysisItem,
   GearAnalysisPeriodPoint,
   GearKind,
+  GearMaintenanceRecord,
+  GearMaintenanceRecordRequest,
+  GearMaintenanceTask,
 } from "@/models/gear-analysis.model";
 import { useContextStore } from "@/stores/context";
 import { useGearAnalysisStore } from "@/stores/gear-analysis";
+import { useUiStore } from "@/stores/ui";
+import { ToastTypeEnum } from "@/models/toast.model";
 
 type KindFilter = "ALL" | GearKind | "RETIRED";
 type SortMode = "distance" | "lastUsed" | "elevationGain" | "activities";
 
 const contextStore = useContextStore();
 const gearAnalysisStore = useGearAnalysisStore();
+const uiStore = useUiStore();
 const kindFilter = ref<KindFilter>("ALL");
 const sortMode = ref<SortMode>("distance");
+const maintenanceFormGearId = ref<string | null>(null);
+const savingMaintenanceGearId = ref<string | null>(null);
+const deletingMaintenanceRecordId = ref<string | null>(null);
+const maintenanceForm = reactive({
+  component: "CHAIN",
+  operation: "",
+  date: todayInputValue(),
+  distanceKm: "",
+  note: "",
+});
+const maintenanceComponents = [
+  { value: "CHAIN", label: "Chain" },
+  { value: "CASSETTE", label: "Cassette" },
+  { value: "BRAKE_PADS_FRONT", label: "Front brake pads" },
+  { value: "BRAKE_PADS_REAR", label: "Rear brake pads" },
+  { value: "BRAKE_BLEED", label: "Brake bleed" },
+  { value: "TIRES", label: "Tires" },
+  { value: "TUBELESS_FRONT", label: "Front tubeless sealant" },
+  { value: "TUBELESS_REAR", label: "Rear tubeless sealant" },
+  { value: "BOTTOM_BRACKET", label: "Bottom bracket" },
+  { value: "BEARINGS", label: "Bearings" },
+  { value: "DRIVETRAIN", label: "Drivetrain" },
+];
 
 onMounted(() => contextStore.updateCurrentView("gear"));
 
@@ -23,6 +52,9 @@ const analysis = computed(() => gearAnalysisStore.analysis);
 const currentYear = computed(() => contextStore.currentYear);
 const isLoading = computed(() => gearAnalysisStore.isLoading);
 const error = computed(() => gearAnalysisStore.error);
+const maintenanceDueCount = computed(() =>
+  analysis.value.items.reduce((sum, item) => sum + item.maintenanceTasks.filter((task) => task.status === "DUE" || task.status === "OVERDUE").length, 0),
+);
 const coveragePercent = computed(() => {
   const total = analysis.value.coverage.totalActivities;
   if (total <= 0) return 0;
@@ -92,6 +124,143 @@ function maintenanceClass(item: GearAnalysisItem): string {
   return `gear-pill gear-pill--maintenance gear-pill--maintenance-${item.maintenanceStatus.toLowerCase()}`;
 }
 
+function maintenanceTaskClass(task: GearMaintenanceTask): string {
+  return `maintenance-status maintenance-status--${task.status.toLowerCase()}`;
+}
+
+function maintenanceComponentLabel(component: string): string {
+  return maintenanceComponents.find((item) => item.value === component)?.label ?? component;
+}
+
+function maintenanceIntervalLabel(task: GearMaintenanceTask): string {
+  const parts = [];
+  if (task.intervalDistance > 0) {
+    parts.push(`${formatDistance(task.intervalDistance)}`);
+  }
+  if (task.intervalMonths > 0) {
+    parts.push(`${task.intervalMonths} mo`);
+  }
+  return parts.length > 0 ? parts.join(" / ") : "-";
+}
+
+function maintenanceProgressLabel(task: GearMaintenanceTask): string {
+  if (!task.lastMaintenance) return "No local record yet";
+  if (task.intervalDistance > 0) {
+    return `${formatDistance(task.distanceSince)} since service`;
+  }
+  if (task.intervalMonths > 0) {
+    return `${task.monthsSince} months since service`;
+  }
+  return `Last done ${formatDate(task.lastMaintenance.date)}`;
+}
+
+function maintenanceHistoryLabel(record: GearMaintenanceRecord): string {
+  return `${formatDate(record.date)} · ${formatDistance(record.distance)}`;
+}
+
+function todayInputValue(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function openMaintenanceForm(item: GearAnalysisItem, task?: GearMaintenanceTask) {
+  maintenanceFormGearId.value = item.id;
+  maintenanceForm.component = task?.component ?? "CHAIN";
+  maintenanceForm.operation = task ? `${task.componentLabel} serviced` : "";
+  maintenanceForm.date = todayInputValue();
+  maintenanceForm.distanceKm = (item.distance / 1000).toFixed(0);
+  maintenanceForm.note = "";
+}
+
+function closeMaintenanceForm() {
+  maintenanceFormGearId.value = null;
+}
+
+function buildMaintenanceRequest(item: GearAnalysisItem): GearMaintenanceRecordRequest {
+  const distanceKm = Number.parseFloat(maintenanceForm.distanceKm);
+  return {
+    gearId: item.id,
+    component: maintenanceForm.component,
+    operation: maintenanceForm.operation.trim() || `${maintenanceComponentLabel(maintenanceForm.component)} serviced`,
+    date: maintenanceForm.date,
+    distance: Number.isFinite(distanceKm) ? distanceKm * 1000 : item.distance,
+    note: maintenanceForm.note.trim() || null,
+  };
+}
+
+async function saveMaintenanceRecord(item: GearAnalysisItem) {
+  savingMaintenanceGearId.value = item.id;
+  try {
+    await gearAnalysisStore.saveMaintenanceRecord(buildMaintenanceRequest(item));
+    uiStore.showToast({
+      id: `gear-maintenance-save-${Date.now()}`,
+      type: ToastTypeEnum.NORMAL,
+      message: "Maintenance saved.",
+      timeout: 2600,
+    });
+    closeMaintenanceForm();
+  } catch (error) {
+    uiStore.showToast({
+      id: `gear-maintenance-save-failed-${Date.now()}`,
+      type: ToastTypeEnum.WARN,
+      message: error instanceof Error ? error.message : "Unable to save maintenance.",
+      timeout: 3600,
+    });
+  } finally {
+    savingMaintenanceGearId.value = null;
+  }
+}
+
+async function markMaintenanceDone(item: GearAnalysisItem, task: GearMaintenanceTask) {
+  savingMaintenanceGearId.value = item.id;
+  try {
+    await gearAnalysisStore.saveMaintenanceRecord({
+      gearId: item.id,
+      component: task.component,
+      operation: `${task.componentLabel} serviced`,
+      date: todayInputValue(),
+      distance: item.distance,
+      note: null,
+    });
+    uiStore.showToast({
+      id: `gear-maintenance-done-${Date.now()}`,
+      type: ToastTypeEnum.NORMAL,
+      message: "Maintenance marked as done.",
+      timeout: 2600,
+    });
+  } catch (error) {
+    uiStore.showToast({
+      id: `gear-maintenance-done-failed-${Date.now()}`,
+      type: ToastTypeEnum.WARN,
+      message: error instanceof Error ? error.message : "Unable to update maintenance.",
+      timeout: 3600,
+    });
+  } finally {
+    savingMaintenanceGearId.value = null;
+  }
+}
+
+async function deleteMaintenanceRecord(record: GearMaintenanceRecord) {
+  deletingMaintenanceRecordId.value = record.id;
+  try {
+    await gearAnalysisStore.deleteMaintenanceRecord(record.id);
+    uiStore.showToast({
+      id: `gear-maintenance-delete-${Date.now()}`,
+      type: ToastTypeEnum.NORMAL,
+      message: "Maintenance removed.",
+      timeout: 2600,
+    });
+  } catch (error) {
+    uiStore.showToast({
+      id: `gear-maintenance-delete-failed-${Date.now()}`,
+      type: ToastTypeEnum.WARN,
+      message: error instanceof Error ? error.message : "Unable to remove maintenance.",
+      timeout: 3600,
+    });
+  } finally {
+    deletingMaintenanceRecordId.value = null;
+  }
+}
+
 function monthlyWidth(point: GearAnalysisPeriodPoint, points: GearAnalysisPeriodPoint[]): string {
   const max = Math.max(...points.map((entry) => entry.value), 1);
   return `${Math.max(4, Math.round((point.value / max) * 100))}%`;
@@ -154,6 +323,11 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
         <span class="summary-label">Moving time</span>
         <strong>{{ formatMovingTime(analysis.items.reduce((sum, item) => sum + item.movingTime, 0)) }}</strong>
         <span class="summary-detail">{{ formatElevation(analysis.items.reduce((sum, item) => sum + item.elevationGain, 0)) }}</span>
+      </div>
+      <div class="summary-tile">
+        <span class="summary-label">Maintenance</span>
+        <strong>{{ maintenanceDueCount }}</strong>
+        <span class="summary-detail">due items</span>
       </div>
     </section>
 
@@ -253,6 +427,141 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
             </RouterLink>
           </div>
 
+          <div v-if="item.kind === 'BIKE'" class="maintenance-panel">
+            <div class="maintenance-heading">
+              <div>
+                <span>Maintenance</span>
+                <strong>{{ item.maintenanceHistory.length }} local records</strong>
+              </div>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary"
+                @click="openMaintenanceForm(item)"
+              >
+                <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true" />
+                Add maintenance
+              </button>
+            </div>
+
+            <div v-if="item.maintenanceTasks.length" class="maintenance-task-list">
+              <div
+                v-for="task in item.maintenanceTasks"
+                :key="`${item.id}-${task.component}`"
+                class="maintenance-task"
+              >
+                <span :class="maintenanceTaskClass(task)">{{ task.status }}</span>
+                <div>
+                  <strong>{{ task.componentLabel }}</strong>
+                  <small>{{ maintenanceProgressLabel(task) }} · interval {{ maintenanceIntervalLabel(task) }}</small>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-primary"
+                  :disabled="savingMaintenanceGearId === item.id"
+                  @click="markMaintenanceDone(item, task)"
+                >
+                  <i class="fa-solid fa-check" aria-hidden="true" />
+                  Mark as done
+                </button>
+              </div>
+            </div>
+
+            <form
+              v-if="maintenanceFormGearId === item.id"
+              class="maintenance-form"
+              @submit.prevent="saveMaintenanceRecord(item)"
+            >
+              <label>
+                <span>Component</span>
+                <select v-model="maintenanceForm.component" class="form-select form-select-sm">
+                  <option
+                    v-for="component in maintenanceComponents"
+                    :key="component.value"
+                    :value="component.value"
+                  >
+                    {{ component.label }}
+                  </option>
+                </select>
+              </label>
+              <label>
+                <span>Operation</span>
+                <input
+                  v-model="maintenanceForm.operation"
+                  class="form-control form-control-sm"
+                  type="text"
+                  placeholder="Chain changed"
+                >
+              </label>
+              <label>
+                <span>Date</span>
+                <input
+                  v-model="maintenanceForm.date"
+                  class="form-control form-control-sm"
+                  type="date"
+                  required
+                >
+              </label>
+              <label>
+                <span>Odometer (km)</span>
+                <input
+                  v-model="maintenanceForm.distanceKm"
+                  class="form-control form-control-sm"
+                  type="number"
+                  min="0"
+                  step="1"
+                  required
+                >
+              </label>
+              <label class="maintenance-form__note">
+                <span>Note</span>
+                <input
+                  v-model="maintenanceForm.note"
+                  class="form-control form-control-sm"
+                  type="text"
+                  placeholder="Optional"
+                >
+              </label>
+              <div class="maintenance-form__actions">
+                <button
+                  type="submit"
+                  class="btn btn-sm btn-primary"
+                  :disabled="savingMaintenanceGearId === item.id"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  @click="closeMaintenanceForm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+
+            <div v-if="item.maintenanceHistory.length" class="maintenance-history">
+              <div
+                v-for="record in item.maintenanceHistory.slice(0, 5)"
+                :key="record.id"
+                class="maintenance-history-row"
+              >
+                <div>
+                  <strong>{{ record.operation }}</strong>
+                  <small>{{ record.componentLabel }} · {{ maintenanceHistoryLabel(record) }}</small>
+                  <small v-if="record.note">{{ record.note }}</small>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  :disabled="deletingMaintenanceRecordId === record.id"
+                  @click="deleteMaintenanceRecord(record)"
+                >
+                  <i class="fa-solid fa-trash" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div v-if="item.monthlyDistance.length" class="monthly-panel">
             <div class="monthly-heading">
               <span>Monthly distance</span>
@@ -304,7 +613,7 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
 
 .gear-summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -425,12 +734,13 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
   color: #64748b;
 }
 
-.gear-pill--maintenance-watch {
+.gear-pill--maintenance-soon {
   border-color: #f2cf8b;
   color: #8a5b1d;
 }
 
-.gear-pill--maintenance-review {
+.gear-pill--maintenance-due,
+.gear-pill--maintenance-overdue {
   border-color: #e2aca8;
   color: #9f2d2d;
 }
@@ -478,6 +788,128 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
 
 .gear-best a:hover {
   text-decoration: underline;
+}
+
+.maintenance-panel {
+  border-top: 1px solid #edf0f4;
+  display: grid;
+  gap: 10px;
+  grid-column: 1 / -1;
+  min-width: 0;
+  padding-top: 10px;
+}
+
+.maintenance-heading,
+.maintenance-task,
+.maintenance-history-row,
+.maintenance-form__actions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.maintenance-heading {
+  justify-content: space-between;
+}
+
+.maintenance-heading span,
+.maintenance-form label span {
+  color: var(--ms-text-muted);
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.maintenance-heading strong {
+  color: var(--ms-text);
+  display: block;
+  font-size: 0.9rem;
+}
+
+.maintenance-heading .btn,
+.maintenance-task .btn,
+.maintenance-history-row .btn {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+  min-height: 30px;
+  white-space: nowrap;
+}
+
+.maintenance-task-list,
+.maintenance-history {
+  display: grid;
+  gap: 1px;
+}
+
+.maintenance-task,
+.maintenance-history-row {
+  background: #fafbfe;
+  border: 1px solid #edf0f4;
+  border-radius: 6px;
+  justify-content: space-between;
+  padding: 8px;
+}
+
+.maintenance-task > div,
+.maintenance-history-row > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.maintenance-task strong,
+.maintenance-history-row strong {
+  color: var(--ms-text);
+  display: block;
+  font-size: 0.86rem;
+}
+
+.maintenance-task small,
+.maintenance-history-row small {
+  color: var(--ms-text-muted);
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.maintenance-status {
+  border: 1px solid #d7dee8;
+  border-radius: 999px;
+  color: #5c6675;
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  font-weight: 900;
+  padding: 4px 7px;
+}
+
+.maintenance-status--soon {
+  border-color: #f2cf8b;
+  color: #8a5b1d;
+}
+
+.maintenance-status--due,
+.maintenance-status--overdue {
+  border-color: #e2aca8;
+  color: #9f2d2d;
+}
+
+.maintenance-form {
+  align-items: end;
+  background: #f7f9fc;
+  border: 1px solid #dfe6ef;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(150px, 1fr) minmax(180px, 1.2fr) minmax(130px, 0.8fr) minmax(110px, 0.7fr) minmax(160px, 1fr) auto;
+  padding: 10px;
+}
+
+.maintenance-form label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
 }
 
 .monthly-panel {
@@ -591,14 +1023,30 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
     grid-template-columns: 1fr;
   }
 
-  .monthly-panel {
+  .monthly-panel,
+  .maintenance-panel {
     grid-column: 1;
+  }
+
+  .maintenance-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 720px) {
   .gear-summary,
   .gear-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .maintenance-heading,
+  .maintenance-task,
+  .maintenance-history-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .maintenance-form {
     grid-template-columns: 1fr;
   }
 

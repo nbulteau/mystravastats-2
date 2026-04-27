@@ -152,11 +152,42 @@
   - partir de l'audit qualite existant dans `Status`,
   - proposer des corrections locales non destructives: ignorer points GPS aberrants, recalculer distance/D+, masquer une valeur invalide,
   - conserver la donnee originale et un journal des corrections appliquees,
+  - permettre dans la vue detail activite de basculer entre version brute et version corrigee,
+  - afficher clairement les valeurs et traces modifiees quand la version corrigee est activee,
   - conserver la distinction deja posee entre stream complet absent, champ de stream structurel manquant et simple couverture capteur optionnelle,
   - permettre d'annuler une correction et d'expliquer son impact sur les statistiques.
   Acceptance:
   - une anomalie peut etre corrigee localement sans modifier la source STRAVA/FIT/GPX,
-  - l'utilisateur voit clairement quelle valeur originale est remplacee ou ignoree.
+  - l'utilisateur voit clairement quelle valeur originale est remplacee ou ignoree,
+  - la vue detail activite permet de comparer rapidement la sortie brute et la sortie corrigee.
+
+- [ ] `FUNC-P1-09` (`P1`, `M`) - Carte de densite des passages.
+  Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`, `Maps`.
+  Proposition:
+  - ajouter un mode dans l'onglet `Map` pour colorer les traces selon le nombre de passages,
+  - agreger les portions de trace proches afin d'estimer les corridors frequentes sans exiger des segments Strava,
+  - proposer une legende lisible: peu emprunte, regulier, tres frequente,
+  - permettre de filtrer par annee, type d'activite et source de donnees comme la carte actuelle,
+  - garder un fallback explicite si les traces GPS sont absentes ou trop partielles.
+  Acceptance:
+  - l'utilisateur identifie rapidement ses routes habituelles et les zones peu explorees,
+  - les couleurs restent stables et comparables quand les filtres changent,
+  - les activites exclues des stats n'alimentent pas la densite des passages.
+
+- [x] `FUNC-P1-10` (`P1`, `M`) - Suivi d'entretien des velos.
+  Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`, `Gear`.
+  Proposition:
+  - ajouter dans l'onglet `Gear` un carnet d'entretien local par velo,
+  - suivre les elements sensibles: chaine, cassette, plaquettes, purge freins, pneus, liquide tubeless, boitier pedalier, roulements, transmission,
+  - enregistrer une operation avec modele, composant, action, date, kilometrage du velo et note optionnelle,
+  - calculer automatiquement la distance et/ou le temps depuis la derniere operation a partir du kilometrage actuel du velo,
+  - afficher des statuts `OK`, `Soon`, `Due`, `Overdue` selon des seuils par defaut par composant,
+  - proposer une action rapide `Mark as done` qui pre-remplit le kilometrage courant du velo,
+  - conserver ces donnees localement sans ecriture Strava.
+  Acceptance:
+  - l'utilisateur voit immediatement les entretiens a faire pour chaque velo,
+  - chaque composant sensible expose son historique et sa prochaine echeance,
+  - les seuils d'entretien par defaut sont appliques sans modifier les activites source.
 
 ### Priorite basse
 

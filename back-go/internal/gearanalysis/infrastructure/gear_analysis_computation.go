@@ -8,6 +8,7 @@ import (
 	"mystravastats/internal/shared/domain/strava"
 	"sort"
 	"strings"
+	"time"
 )
 
 type gearMetadata struct {
@@ -25,7 +26,28 @@ type gearAccumulator struct {
 	fastestSpeed         float64
 }
 
-func buildGearAnalysis(activities []*strava.Activity, athlete strava.Athlete) business.GearAnalysis {
+type gearMaintenanceRule struct {
+	component        string
+	label            string
+	intervalDistance float64
+	intervalMonths   int
+}
+
+var bikeMaintenanceRules = []gearMaintenanceRule{
+	{component: "CHAIN", label: "Chain", intervalDistance: 1500 * 1000},
+	{component: "CASSETTE", label: "Cassette", intervalDistance: 5000 * 1000},
+	{component: "BRAKE_PADS_FRONT", label: "Front brake pads", intervalDistance: 1800 * 1000},
+	{component: "BRAKE_PADS_REAR", label: "Rear brake pads", intervalDistance: 1800 * 1000},
+	{component: "BRAKE_BLEED", label: "Brake bleed", intervalMonths: 12},
+	{component: "TIRES", label: "Tires", intervalDistance: 3500 * 1000},
+	{component: "TUBELESS_FRONT", label: "Front tubeless sealant", intervalMonths: 4},
+	{component: "TUBELESS_REAR", label: "Rear tubeless sealant", intervalMonths: 4},
+	{component: "BOTTOM_BRACKET", label: "Bottom bracket", intervalDistance: 8000 * 1000},
+	{component: "BEARINGS", label: "Bearings", intervalDistance: 6000 * 1000},
+	{component: "DRIVETRAIN", label: "Drivetrain", intervalDistance: 5000 * 1000},
+}
+
+func buildGearAnalysis(activities []*strava.Activity, athlete strava.Athlete, maintenanceRecords []business.GearMaintenanceRecord) business.GearAnalysis {
 	metadata := buildGearMetadata(athlete)
 	itemsByID := make(map[string]*gearAccumulator)
 	unassigned := business.GearAnalysisSummary{}
@@ -70,6 +92,7 @@ func buildGearAnalysis(activities []*strava.Activity, athlete strava.Athlete) bu
 		finalizeGearItem(accumulator)
 		items = append(items, accumulator.item)
 	}
+	applyGearMaintenance(items, maintenanceRecords)
 
 	sort.Slice(items, func(i, j int) bool {
 		if items[i].Distance == items[j].Distance {
@@ -171,6 +194,152 @@ func finalizeGearItem(accumulator *gearAccumulator) {
 	accumulator.item.MonthlyDistance = monthly
 }
 
+func applyGearMaintenance(items []business.GearAnalysisItem, records []business.GearMaintenanceRecord) {
+	recordsByGear := gearMaintenanceRecordsByGear(records)
+	now := time.Now().UTC()
+	for index := range items {
+		history := recordsByGear[items[index].ID]
+		items[index].MaintenanceHistory = history
+		if items[index].Kind != business.GearKindBike {
+			continue
+		}
+		items[index].MaintenanceTasks = buildGearMaintenanceTasks(items[index], history, now)
+		items[index].MaintenanceStatus, items[index].MaintenanceLabel = summarizeGearMaintenance(items[index].MaintenanceTasks)
+	}
+}
+
+func buildGearMaintenanceTasks(item business.GearAnalysisItem, records []business.GearMaintenanceRecord, now time.Time) []business.GearMaintenanceTask {
+	recordsByComponent := make(map[string][]business.GearMaintenanceRecord)
+	for _, record := range records {
+		recordsByComponent[record.Component] = append(recordsByComponent[record.Component], record)
+	}
+
+	tasks := make([]business.GearMaintenanceTask, 0, len(bikeMaintenanceRules))
+	for _, rule := range bikeMaintenanceRules {
+		componentRecords := recordsByComponent[rule.component]
+		var last *business.GearMaintenanceRecord
+		if len(componentRecords) > 0 {
+			last = &componentRecords[0]
+		}
+
+		task := business.GearMaintenanceTask{
+			Component:        rule.component,
+			ComponentLabel:   rule.label,
+			IntervalDistance: rule.intervalDistance,
+			IntervalMonths:   rule.intervalMonths,
+			Status:           "OK",
+			StatusLabel:      "OK",
+		}
+		if last == nil {
+			task.Status = "DUE"
+			task.StatusLabel = "No service logged"
+			tasks = append(tasks, task)
+			continue
+		}
+
+		task.LastMaintenance = last
+		if rule.intervalDistance > 0 {
+			task.DistanceSince = roundGearValue(math.Max(0, item.Distance-last.Distance))
+			task.NextDueDistance = roundGearValue(last.Distance + rule.intervalDistance)
+			task.DistanceRemaining = roundGearValue(math.Max(0, task.NextDueDistance-item.Distance))
+			ratio := task.DistanceSince / rule.intervalDistance
+			if ratio >= 1 {
+				task.Status = "OVERDUE"
+				task.StatusLabel = fmt.Sprintf("%.0f km overdue", math.Ceil((task.DistanceSince-rule.intervalDistance)/1000))
+			} else if ratio >= 0.85 {
+				task.Status = "SOON"
+				task.StatusLabel = fmt.Sprintf("%.0f km left", math.Ceil(task.DistanceRemaining/1000))
+			}
+		}
+
+		if rule.intervalMonths > 0 {
+			monthsSince, ok := monthsSinceMaintenance(last.Date, now)
+			if ok {
+				task.MonthsSince = monthsSince
+				task.MonthsRemaining = maxInt(0, rule.intervalMonths-monthsSince)
+				timeStatus := "OK"
+				timeLabel := "OK"
+				if monthsSince >= rule.intervalMonths {
+					timeStatus = "OVERDUE"
+					timeLabel = fmt.Sprintf("%d months overdue", monthsSince-rule.intervalMonths)
+				} else if float64(monthsSince)/float64(rule.intervalMonths) >= 0.80 {
+					timeStatus = "SOON"
+					timeLabel = fmt.Sprintf("%d months left", task.MonthsRemaining)
+				}
+				if maintenanceStatusRank(timeStatus) > maintenanceStatusRank(task.Status) {
+					task.Status = timeStatus
+					task.StatusLabel = timeLabel
+				}
+			}
+		}
+
+		tasks = append(tasks, task)
+	}
+	return tasks
+}
+
+func summarizeGearMaintenance(tasks []business.GearMaintenanceTask) (string, string) {
+	if len(tasks) == 0 {
+		return "OK", "OK"
+	}
+	counts := map[string]int{}
+	worst := "OK"
+	for _, task := range tasks {
+		counts[task.Status]++
+		if maintenanceStatusRank(task.Status) > maintenanceStatusRank(worst) {
+			worst = task.Status
+		}
+	}
+	switch worst {
+	case "OVERDUE":
+		return worst, fmt.Sprintf("%d overdue", counts[worst])
+	case "DUE":
+		return worst, fmt.Sprintf("%d due", counts[worst])
+	case "SOON":
+		return worst, fmt.Sprintf("%d soon", counts[worst])
+	default:
+		return "OK", "OK"
+	}
+}
+
+func gearMaintenanceRecordsByGear(records []business.GearMaintenanceRecord) map[string][]business.GearMaintenanceRecord {
+	result := make(map[string][]business.GearMaintenanceRecord)
+	for _, record := range records {
+		gearID := strings.TrimSpace(record.GearID)
+		if gearID == "" {
+			continue
+		}
+		result[gearID] = append(result[gearID], record)
+	}
+	for gearID := range result {
+		sort.Slice(result[gearID], func(i, j int) bool {
+			left := result[gearID][i]
+			right := result[gearID][j]
+			if left.Date == right.Date {
+				return left.CreatedAt > right.CreatedAt
+			}
+			return left.Date > right.Date
+		})
+	}
+	return result
+}
+
+func monthsSinceMaintenance(value string, now time.Time) (int, bool) {
+	trimmed := strings.TrimSpace(value)
+	if len(trimmed) >= 10 {
+		trimmed = trimmed[:10]
+	}
+	date, err := time.Parse("2006-01-02", trimmed)
+	if err != nil {
+		return 0, false
+	}
+	months := (now.Year()-date.Year())*12 + int(now.Month()-date.Month())
+	if now.Day() < date.Day() {
+		months--
+	}
+	return maxInt(0, months), true
+}
+
 func addToSummary(summary *business.GearAnalysisSummary, activity *strava.Activity) {
 	summary.Distance += finiteGearFloat(activity.Distance)
 	summary.MovingTime += activity.MovingTime
@@ -267,20 +436,40 @@ func gearMaintenance(kind business.GearKind, distanceMeters float64) (string, st
 	switch kind {
 	case business.GearKindShoe:
 		if distanceKm >= 800 {
-			return "REVIEW", "800+ km"
+			return "OVERDUE", "800+ km"
 		}
 		if distanceKm >= 600 {
-			return "WATCH", "600+ km"
+			return "SOON", "600+ km"
 		}
 	case business.GearKindBike:
 		if distanceKm >= 5000 {
-			return "REVIEW", "5000+ km"
+			return "OVERDUE", "5000+ km"
 		}
 		if distanceKm >= 3000 {
-			return "WATCH", "3000+ km"
+			return "SOON", "3000+ km"
 		}
 	}
 	return "OK", "OK"
+}
+
+func maintenanceStatusRank(status string) int {
+	switch status {
+	case "OVERDUE":
+		return 3
+	case "DUE":
+		return 2
+	case "SOON":
+		return 1
+	default:
+		return 0
+	}
+}
+
+func maxInt(left, right int) int {
+	if left > right {
+		return left
+	}
+	return right
 }
 
 func firstNonBlankString(optional *string, fallback string) string {

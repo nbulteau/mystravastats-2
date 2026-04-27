@@ -58,6 +58,8 @@ type container struct {
 	getAnnualGoalsUseCase              *dashboardApp.GetAnnualGoalsUseCase
 	updateAnnualGoalsUseCase           *dashboardApp.UpdateAnnualGoalsUseCase
 	getGearAnalysisUseCase             *gearAnalysisApp.GetGearAnalysisUseCase
+	saveGearMaintenanceRecordUseCase   *gearAnalysisApp.SaveGearMaintenanceRecordUseCase
+	deleteGearMaintenanceRecordUseCase *gearAnalysisApp.DeleteGearMaintenanceRecordUseCase
 	getBadgesUseCase                   *badgesApp.GetBadgesUseCase
 	getCacheHealthDetailsUseCase       *healthApp.GetCacheHealthDetailsUseCase
 	getDataQualityReportUseCase        *dataQualityApp.GetDataQualityReportUseCase
@@ -114,6 +116,8 @@ func getContainer() *container {
 			getAnnualGoalsUseCase:              dashboardApp.NewGetAnnualGoalsUseCase(dashboardReader),
 			updateAnnualGoalsUseCase:           dashboardApp.NewUpdateAnnualGoalsUseCase(dashboardReader),
 			getGearAnalysisUseCase:             gearAnalysisApp.NewGetGearAnalysisUseCase(gearAnalysisReader),
+			saveGearMaintenanceRecordUseCase:   gearAnalysisApp.NewSaveGearMaintenanceRecordUseCase(gearAnalysisReader),
+			deleteGearMaintenanceRecordUseCase: gearAnalysisApp.NewDeleteGearMaintenanceRecordUseCase(gearAnalysisReader),
 			getBadgesUseCase:                   badgesApp.NewGetBadgesUseCase(badgesReader),
 			getCacheHealthDetailsUseCase:       healthApp.NewGetCacheHealthDetailsUseCase(healthReader),
 			getDataQualityReportUseCase:        dataQualityApp.NewGetDataQualityReportUseCase(dataQualityReader),

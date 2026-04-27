@@ -1,6 +1,7 @@
 import type { ActivityShort } from "@/models/activity.model";
 
 export type GearKind = "BIKE" | "SHOE" | "UNKNOWN";
+export type GearMaintenanceStatus = "OK" | "SOON" | "DUE" | "OVERDUE";
 
 export interface GearAnalysis {
   items: GearAnalysisItem[];
@@ -14,8 +15,10 @@ export interface GearAnalysisItem extends GearAnalysisSummary {
   kind: GearKind;
   retired: boolean;
   primary: boolean;
-  maintenanceStatus: "OK" | "WATCH" | "REVIEW";
+  maintenanceStatus: GearMaintenanceStatus;
   maintenanceLabel: string;
+  maintenanceTasks: GearMaintenanceTask[];
+  maintenanceHistory: GearMaintenanceRecord[];
   firstUsed: string;
   lastUsed: string;
   longestActivity?: ActivityShort | null;
@@ -42,6 +45,44 @@ export interface GearAnalysisPeriodPoint {
   periodKey: string;
   value: number;
   activityCount: number;
+}
+
+export interface GearMaintenanceRecord {
+  id: string;
+  gearId: string;
+  gearName: string;
+  component: string;
+  componentLabel: string;
+  operation: string;
+  date: string;
+  distance: number;
+  note?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GearMaintenanceRecordRequest {
+  gearId: string;
+  component: string;
+  operation: string;
+  date: string;
+  distance: number;
+  note?: string | null;
+}
+
+export interface GearMaintenanceTask {
+  component: string;
+  componentLabel: string;
+  intervalDistance: number;
+  intervalMonths: number;
+  status: GearMaintenanceStatus;
+  statusLabel: string;
+  distanceSince: number;
+  distanceRemaining: number;
+  nextDueDistance: number;
+  monthsSince: number;
+  monthsRemaining: number;
+  lastMaintenance?: GearMaintenanceRecord | null;
 }
 
 export function emptyGearAnalysis(): GearAnalysis {

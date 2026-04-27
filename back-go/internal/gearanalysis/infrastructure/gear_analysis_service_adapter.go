@@ -16,5 +16,14 @@ func (adapter *GearAnalysisServiceAdapter) FindGearAnalysis(year *int, activityT
 	provider := activityprovider.Get()
 	activities := dataqualityInfra.FilterExcludedFromStats(provider.GetActivitiesByYearAndActivityTypes(year, activityTypes...))
 	athlete := provider.GetAthlete()
-	return buildGearAnalysis(activities, athlete)
+	maintenanceRecords := loadCurrentProviderGearMaintenanceRecords()
+	return buildGearAnalysis(activities, athlete, maintenanceRecords)
+}
+
+func (adapter *GearAnalysisServiceAdapter) SaveGearMaintenanceRecord(request business.GearMaintenanceRecordRequest) (business.GearMaintenanceRecord, error) {
+	return saveCurrentProviderGearMaintenanceRecord(request)
+}
+
+func (adapter *GearAnalysisServiceAdapter) DeleteGearMaintenanceRecord(recordID string) error {
+	return deleteCurrentProviderGearMaintenanceRecord(recordID)
 }

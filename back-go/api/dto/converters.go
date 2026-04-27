@@ -494,6 +494,14 @@ func ToGearAnalysisDto(analysis business.GearAnalysis) GearAnalysisDto {
 				ActivityCount: point.ActivityCount,
 			}
 		}
+		maintenanceTasks := make([]GearMaintenanceTaskDto, len(item.MaintenanceTasks))
+		for j, task := range item.MaintenanceTasks {
+			maintenanceTasks[j] = ToGearMaintenanceTaskDto(task)
+		}
+		maintenanceHistory := make([]GearMaintenanceRecordDto, len(item.MaintenanceHistory))
+		for j, record := range item.MaintenanceHistory {
+			maintenanceHistory[j] = ToGearMaintenanceRecordDto(record)
+		}
 		items[i] = GearAnalysisItemDto{
 			ID:                       item.ID,
 			Name:                     item.Name,
@@ -502,6 +510,8 @@ func ToGearAnalysisDto(analysis business.GearAnalysis) GearAnalysisDto {
 			Primary:                  item.Primary,
 			MaintenanceStatus:        item.MaintenanceStatus,
 			MaintenanceLabel:         item.MaintenanceLabel,
+			MaintenanceTasks:         maintenanceTasks,
+			MaintenanceHistory:       maintenanceHistory,
 			Distance:                 item.Distance,
 			MovingTime:               item.MovingTime,
 			ElevationGain:            item.ElevationGain,
@@ -530,6 +540,55 @@ func ToGearAnalysisDto(analysis business.GearAnalysis) GearAnalysisDto {
 			AssignedActivities:   analysis.Coverage.AssignedActivities,
 			UnassignedActivities: analysis.Coverage.UnassignedActivities,
 		},
+	}
+}
+
+func ToGearMaintenanceRecordDto(record business.GearMaintenanceRecord) GearMaintenanceRecordDto {
+	return GearMaintenanceRecordDto{
+		ID:             record.ID,
+		GearID:         record.GearID,
+		GearName:       record.GearName,
+		Component:      record.Component,
+		ComponentLabel: record.ComponentLabel,
+		Operation:      record.Operation,
+		Date:           record.Date,
+		Distance:       record.Distance,
+		Note:           record.Note,
+		CreatedAt:      record.CreatedAt,
+		UpdatedAt:      record.UpdatedAt,
+	}
+}
+
+func ToGearMaintenanceTaskDto(task business.GearMaintenanceTask) GearMaintenanceTaskDto {
+	var lastMaintenance *GearMaintenanceRecordDto
+	if task.LastMaintenance != nil {
+		last := ToGearMaintenanceRecordDto(*task.LastMaintenance)
+		lastMaintenance = &last
+	}
+	return GearMaintenanceTaskDto{
+		Component:         task.Component,
+		ComponentLabel:    task.ComponentLabel,
+		IntervalDistance:  task.IntervalDistance,
+		IntervalMonths:    task.IntervalMonths,
+		Status:            task.Status,
+		StatusLabel:       task.StatusLabel,
+		DistanceSince:     task.DistanceSince,
+		DistanceRemaining: task.DistanceRemaining,
+		NextDueDistance:   task.NextDueDistance,
+		MonthsSince:       task.MonthsSince,
+		MonthsRemaining:   task.MonthsRemaining,
+		LastMaintenance:   lastMaintenance,
+	}
+}
+
+func ToGearMaintenanceRecordRequest(request GearMaintenanceRecordRequestDto) business.GearMaintenanceRecordRequest {
+	return business.GearMaintenanceRecordRequest{
+		GearID:    request.GearID,
+		Component: request.Component,
+		Operation: request.Operation,
+		Date:      request.Date,
+		Distance:  request.Distance,
+		Note:      request.Note,
 	}
 }
 

@@ -16,6 +16,9 @@ import me.nicolas.stravastats.api.dto.GearAnalysisDto
 import me.nicolas.stravastats.api.dto.GearAnalysisItemDto
 import me.nicolas.stravastats.api.dto.GearAnalysisPeriodPointDto
 import me.nicolas.stravastats.api.dto.GearAnalysisSummaryDto
+import me.nicolas.stravastats.api.dto.GearMaintenanceRecordDto
+import me.nicolas.stravastats.api.dto.GearMaintenanceRecordRequestDto
+import me.nicolas.stravastats.api.dto.GearMaintenanceTaskDto
 import me.nicolas.stravastats.api.dto.HeartRateZoneActivitySummaryDto
 import me.nicolas.stravastats.api.dto.HeartRateZoneAnalysisDto
 import me.nicolas.stravastats.api.dto.HeartRateZoneDistributionDto
@@ -37,6 +40,9 @@ import me.nicolas.stravastats.domain.business.GearAnalysisCoverage
 import me.nicolas.stravastats.domain.business.GearAnalysisItem
 import me.nicolas.stravastats.domain.business.GearAnalysisPeriodPoint
 import me.nicolas.stravastats.domain.business.GearAnalysisSummary
+import me.nicolas.stravastats.domain.business.GearMaintenanceRecord
+import me.nicolas.stravastats.domain.business.GearMaintenanceRecordRequest
+import me.nicolas.stravastats.domain.business.GearMaintenanceTask
 import me.nicolas.stravastats.domain.business.SourceModeEnvironmentVariable
 import me.nicolas.stravastats.domain.business.SourceModePreview
 import me.nicolas.stravastats.domain.business.SourceModePreviewError
@@ -141,11 +147,17 @@ import org.springframework.boot.runApplication
         GearAnalysisSummary::class,
         GearAnalysisCoverage::class,
         GearAnalysisPeriodPoint::class,
+        GearMaintenanceRecord::class,
+        GearMaintenanceRecordRequest::class,
+        GearMaintenanceTask::class,
         GearAnalysisDto::class,
         GearAnalysisItemDto::class,
         GearAnalysisSummaryDto::class,
         GearAnalysisCoverageDto::class,
         GearAnalysisPeriodPointDto::class,
+        GearMaintenanceRecordDto::class,
+        GearMaintenanceRecordRequestDto::class,
+        GearMaintenanceTaskDto::class,
         SourceModePreviewRequest::class,
         SourceModeEnvironmentVariable::class,
         SourceModeYearPreview::class,

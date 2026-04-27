@@ -2,8 +2,11 @@ import { defineStore } from "pinia";
 import {
   emptyGearAnalysis,
   type GearAnalysis,
+  type GearMaintenanceRecord,
+  type GearMaintenanceRecordRequest,
 } from "@/models/gear-analysis.model";
 import { buildFilteredApiUrl, requestJson } from "@/stores/api";
+import { ErrorService } from "@/services/error.service";
 import { useContextStore } from "@/stores/context";
 
 export const useGearAnalysisStore = defineStore("gearAnalysis", {
@@ -24,7 +27,7 @@ export const useGearAnalysisStore = defineStore("gearAnalysis", {
       this.isLoading = true;
       this.error = null;
       try {
-        this.analysis = await requestJson<GearAnalysis>(url);
+        this.analysis = normalizeGearAnalysis(await requestJson<GearAnalysis>(url));
         this.analysisByKey[key] = this.analysis;
       } catch (error) {
         this.error = error instanceof Error ? error.message : "Unable to load gear analysis.";
@@ -42,5 +45,43 @@ export const useGearAnalysisStore = defineStore("gearAnalysis", {
       }
       await this.fetchGearAnalysis();
     },
+    async saveMaintenanceRecord(request: GearMaintenanceRecordRequest): Promise<GearMaintenanceRecord> {
+      const record = await requestJson<GearMaintenanceRecord>("/api/gear-analysis/maintenance", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
+      });
+      await this.fetchGearAnalysis();
+      return record;
+    },
+    async deleteMaintenanceRecord(recordId: string): Promise<void> {
+      const response = await fetch(`/api/gear-analysis/maintenance/${encodeURIComponent(recordId)}`, {
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+      if (!response.ok) {
+        await ErrorService.catchError(response);
+      }
+      await this.fetchGearAnalysis();
+    },
   },
 });
+
+function normalizeGearAnalysis(analysis: GearAnalysis): GearAnalysis {
+  return {
+    ...analysis,
+    items: (analysis.items ?? []).map((item) => ({
+      ...item,
+      maintenanceTasks: item.maintenanceTasks ?? [],
+      maintenanceHistory: item.maintenanceHistory ?? [],
+      monthlyDistance: item.monthlyDistance ?? [],
+    })),
+    unassigned: analysis.unassigned ?? emptyGearAnalysis().unassigned,
+    coverage: analysis.coverage ?? emptyGearAnalysis().coverage,
+  };
+}
