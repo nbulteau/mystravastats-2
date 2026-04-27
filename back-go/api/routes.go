@@ -39,6 +39,7 @@ var routes = Routes{
 	{Name: "GenerateShapeRoutesByActivityType", Method: "POST", Pattern: "/api/routes/generate/shape", HandlerFunc: generateShapeRoutesByActivityType},
 	{Name: "GetGeneratedRouteGpx", Method: "GET", Pattern: "/api/routes/{routeId}/gpx", HandlerFunc: getGeneratedRouteGPXByID},
 	{Name: "GetMapsGPX", Method: "GET", Pattern: "/api/maps/gpx", HandlerFunc: getMapsGPX},
+	{Name: "GetMapPassages", Method: "GET", Pattern: "/api/maps/passages", HandlerFunc: getMapPassages},
 	{Name: "GetChartsDistanceByPeriod", Method: "GET", Pattern: "/api/charts/distance-by-period", HandlerFunc: getChartsDistanceByPeriod},
 	{Name: "GetChartsElevationByPeriod", Method: "GET", Pattern: "/api/charts/elevation-by-period", HandlerFunc: getChartsElevationByPeriod},
 	{Name: "GetChartsAverageSpeedByPeriod", Method: "GET", Pattern: "/api/charts/average-speed-by-period", HandlerFunc: getChartsAverageSpeedByPeriod},

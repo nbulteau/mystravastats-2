@@ -165,20 +165,7 @@
   - la vue detail activite permet de comparer rapidement la sortie brute et la sortie corrigee,
   - les corrections batch sont limitees aux cas classes `safe` et restent annulables.
 
-- [ ] `FUNC-P1-09` (`P1`, `M`) - Carte de densite des passages.
-  Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`, `Maps`.
-  Proposition:
-  - ajouter un mode dans l'onglet `Map` pour colorer les traces selon le nombre de passages,
-  - agreger les portions de trace proches afin d'estimer les corridors frequentes sans exiger des segments Strava,
-  - proposer une legende lisible: peu emprunte, regulier, tres frequente,
-  - permettre de filtrer par annee, type d'activite et source de donnees comme la carte actuelle,
-  - garder un fallback explicite si les traces GPS sont absentes ou trop partielles.
-  Acceptance:
-  - l'utilisateur identifie rapidement ses routes habituelles et les zones peu explorees,
-  - les couleurs restent stables et comparables quand les filtres changent,
-  - les activites exclues des stats n'alimentent pas la densite des passages.
-
-- [x] `FUNC-P1-10` (`P1`, `M`) - Suivi d'entretien des velos.
+- [ ] `FUNC-P1-10` (`P1`, `M`) - Suivi d'entretien des velos.
   Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`, `Gear`.
   Proposition:
   - ajouter dans l'onglet `Gear` un carnet d'entretien local par velo,

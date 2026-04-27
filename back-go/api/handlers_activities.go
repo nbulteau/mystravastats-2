@@ -145,3 +145,33 @@ func getMapsGPX(writer http.ResponseWriter, request *http.Request) {
 		writeInternalServerError(writer, "Failed to encode gpx response")
 	}
 }
+
+// getMapPassages godoc
+// @Summary Get map passage density data
+// @Description Returns aggregated passage corridors from activity GPS streams for map display
+// @Tags maps
+// @Produce json
+// @Param year query int false "Year"
+// @Param activityType query string true "Activity type"
+// @Success 200 {object} object "Map passage data"
+// @Failure 400 {string} string "Invalid parameters"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/maps/passages [get]
+func getMapPassages(writer http.ResponseWriter, request *http.Request) {
+	year, err := getYearParam(request)
+	if err != nil {
+		writeBadRequest(writer, "Invalid request parameters", err.Error())
+		return
+	}
+	activityTypes, err := getActivityTypeParam(request)
+	if err != nil {
+		writeBadRequest(writer, "Invalid request parameters", err.Error())
+		return
+	}
+
+	passages := getContainer().getMapPassagesUseCase.Execute(year, activityTypes)
+	if err := writeJSON(writer, http.StatusOK, passages); err != nil {
+		log.Printf("failed to write map passages response: %v", err)
+		writeInternalServerError(writer, "Failed to encode map passages response")
+	}
+}

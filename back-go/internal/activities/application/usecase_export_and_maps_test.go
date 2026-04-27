@@ -6,10 +6,12 @@ import (
 )
 
 type activitiesExportAndMapsStub struct {
-	csv           string
-	gpx           []MapTrack
-	receivedYear  *int
-	receivedTypes []business.ActivityType
+	csv             string
+	gpx             []MapTrack
+	passages        MapPassagesResponse
+	receivedYear    *int
+	receivedTypes   []business.ActivityType
+	receivedPassage bool
 }
 
 func (stub *activitiesExportAndMapsStub) ExportCSVByYearAndTypes(year *int, activityTypes ...business.ActivityType) string {
@@ -22,6 +24,13 @@ func (stub *activitiesExportAndMapsStub) FindGPXByYearAndTypes(year *int, activi
 	stub.receivedYear = year
 	stub.receivedTypes = append([]business.ActivityType(nil), activityTypes...)
 	return stub.gpx
+}
+
+func (stub *activitiesExportAndMapsStub) FindPassagesByYearAndTypes(year *int, activityTypes ...business.ActivityType) MapPassagesResponse {
+	stub.receivedYear = year
+	stub.receivedTypes = append([]business.ActivityType(nil), activityTypes...)
+	stub.receivedPassage = true
+	return stub.passages
 }
 
 func TestExportActivitiesCSVUseCase_Execute_ForwardsInputs(t *testing.T) {
@@ -93,5 +102,62 @@ func TestGetMapsGPXUseCase_Execute_ReturnsMapTrackMetadata(t *testing.T) {
 	}
 	if len(result[0].Coordinates) != 2 {
 		t.Fatalf("expected 2 coordinates, got %d", len(result[0].Coordinates))
+	}
+}
+
+func TestGetMapPassagesUseCase_Execute_ReturnsEmptySegmentsOnNilReaderResult(t *testing.T) {
+	// GIVEN
+	stub := &activitiesExportAndMapsStub{}
+	useCase := NewGetMapPassagesUseCase(stub)
+
+	// WHEN
+	result := useCase.Execute(nil, []business.ActivityType{business.Ride})
+
+	// THEN
+	if result.Segments == nil {
+		t.Fatal("expected non-nil empty segments")
+	}
+	if len(result.Segments) != 0 {
+		t.Fatalf("expected empty segments, got %d", len(result.Segments))
+	}
+	if !stub.receivedPassage {
+		t.Fatal("expected passages reader to be called")
+	}
+}
+
+func TestGetMapPassagesUseCase_Execute_ForwardsPassageResponse(t *testing.T) {
+	// GIVEN
+	year := 2026
+	expected := MapPassagesResponse{
+		Segments: []MapPassageSegment{
+			{
+				Coordinates:        [][]float64{{48.1, 2.3}, {48.2, 2.4}},
+				PassageCount:       3,
+				ActivityCount:      3,
+				DistanceKm:         1.2,
+				ActivityTypeCounts: map[string]int{"Ride": 3},
+			},
+		},
+		IncludedActivities: 3,
+		ResolutionMeters:   120,
+	}
+	stub := &activitiesExportAndMapsStub{passages: expected}
+	useCase := NewGetMapPassagesUseCase(stub)
+
+	// WHEN
+	result := useCase.Execute(&year, []business.ActivityType{business.Ride})
+
+	// THEN
+	if len(result.Segments) != 1 {
+		t.Fatalf("expected 1 segment, got %d", len(result.Segments))
+	}
+	if result.Segments[0].PassageCount != 3 {
+		t.Fatalf("expected passage count 3, got %d", result.Segments[0].PassageCount)
+	}
+	if result.IncludedActivities != 3 {
+		t.Fatalf("expected 3 included activities, got %d", result.IncludedActivities)
+	}
+	if stub.receivedYear == nil || *stub.receivedYear != year {
+		t.Fatalf("expected year %d, got %+v", year, stub.receivedYear)
 	}
 }

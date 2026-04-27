@@ -2,19 +2,20 @@
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import type { MapTrack } from "@/models/map.model";
+import type { MapPassageSegment, MapPassages, MapTrack } from "@/models/map.model";
 import type { MapViewport } from "@/stores/map";
 import { getActivityTypeColor } from "@/utils/mapTrackColors";
 import { useRouter } from "vue-router";
 
 const props = defineProps<{
   mapTracks: MapTrack[];
+  mapPassages?: MapPassages | null;
   datasetKey: string;
   loading?: boolean;
   error?: string | null;
   initialViewport?: MapViewport | null;
   recenterToken?: number;
-  renderMode?: "TRACES" | "DENSITY";
+  renderMode?: "TRACES" | "PASSAGES" | "POINT_DENSITY";
 }>();
 
 const emit = defineEmits<{
@@ -44,14 +45,25 @@ const aggregatedDistanceKm = ref(0);
 const aggregatedElevationGainM = ref(0);
 const densityCellCount = ref(0);
 const densityPointCount = ref(0);
+const passageCorridorCount = ref(0);
+const passageMaxCount = ref(0);
+const passageResolutionMeters = ref(0);
 
 const isValidCoordinate = (coord: number[]) =>
   Number.isFinite(coord[0]) && Number.isFinite(coord[1]);
 
 const hasRenderableTracks = computed(() => latestBounds.value !== null);
-const isDensityMode = computed(() => props.renderMode === "DENSITY");
-const isAggregatedMode = computed(() => !isDensityMode.value && aggregatedClusterCount.value > 0);
-const isDensityOverlayVisible = computed(() => isDensityMode.value && densityCellCount.value > 0);
+const isPointDensityMode = computed(() => props.renderMode === "POINT_DENSITY");
+const isPassagesMode = computed(() => props.renderMode === "PASSAGES");
+const isAggregatedMode = computed(() => !isPointDensityMode.value && !isPassagesMode.value && aggregatedClusterCount.value > 0);
+const isDensityOverlayVisible = computed(() => isPointDensityMode.value && densityCellCount.value > 0);
+const isPassagesOverlayVisible = computed(() => isPassagesMode.value && passageCorridorCount.value > 0);
+const emptyMapMessage = computed(() => {
+  if (isPassagesMode.value) {
+    return "No passage corridors for the selected filters.";
+  }
+  return "No GPS tracks for the selected filters.";
+});
 
 type MapCluster = {
   center: L.LatLng;
@@ -109,6 +121,23 @@ function densityColor(ratio: number): string {
   return `hsl(${hue} ${saturation}% ${lightness}%)`;
 }
 
+function passageColor(count: number): string {
+  if (count >= 10) {
+    return "#d9480f";
+  }
+  if (count >= 5) {
+    return "#f08c00";
+  }
+  if (count >= 2) {
+    return "#2f9e44";
+  }
+  return "#4dabf7";
+}
+
+function passageWeight(count: number): number {
+  return Math.min(9, 2.5 + Math.sqrt(Math.max(1, count)) * 1.4);
+}
+
 function resetTraceAggregationState() {
   aggregatedClusterCount.value = 0;
   aggregatedTrackCount.value = 0;
@@ -119,6 +148,12 @@ function resetTraceAggregationState() {
 function resetDensityState() {
   densityCellCount.value = 0;
   densityPointCount.value = 0;
+}
+
+function resetPassagesState() {
+  passageCorridorCount.value = 0;
+  passageMaxCount.value = 0;
+  passageResolutionMeters.value = props.mapPassages?.resolutionMeters ?? 0;
 }
 
 function escapeHtml(value: string): string {
@@ -367,6 +402,45 @@ function renderDensityLayer(currentZoom: number): L.LatLng[] {
   return pointsForBounds;
 }
 
+function passageTooltip(segment: MapPassageSegment): string {
+  const passageLabel = segment.passageCount === 1 ? "passage" : "passages";
+  return `${segment.passageCount} ${passageLabel} · ${segment.activityCount} activities · ${segment.distanceKm.toFixed(1)} km`;
+}
+
+function renderPassageLayer(): L.LatLng[] {
+  if (!tracksLayerGroup.value) {
+    return [];
+  }
+
+  const segments = props.mapPassages?.segments ?? [];
+  passageCorridorCount.value = 0;
+  passageMaxCount.value = segments.reduce((max, segment) => Math.max(max, segment.passageCount), 0);
+  passageResolutionMeters.value = props.mapPassages?.resolutionMeters ?? 0;
+
+  const pointsForBounds: L.LatLng[] = [];
+  segments.forEach((segment) => {
+    const latLngs = segment.coordinates
+      .filter((coord) => isValidCoordinate(coord))
+      .map((coord) => L.latLng(coord[0], coord[1]));
+    if (latLngs.length < 2) {
+      return;
+    }
+
+    passageCorridorCount.value++;
+    pointsForBounds.push(...latLngs);
+    const polyline = L.polyline(latLngs, {
+      color: passageColor(segment.passageCount),
+      weight: passageWeight(segment.passageCount),
+      opacity: 0.82,
+      renderer: canvasRenderer,
+      smoothFactor: 0.6,
+    }).addTo(tracksLayerGroup.value!);
+    polyline.bindTooltip(passageTooltip(segment), { direction: "top", opacity: 0.95 });
+  });
+
+  return pointsForBounds;
+}
+
 function zoomToCluster(cluster: MapCluster) {
   if (!map.value) {
     return;
@@ -552,6 +626,7 @@ function renderDensityMode() {
   }
   densityLayerGroup.value.clearLayers();
   resetTraceAggregationState();
+  resetPassagesState();
 
   const currentZoom = map.value.getZoom();
   const densityPoints = renderDensityLayer(currentZoom);
@@ -564,12 +639,36 @@ function renderDensityMode() {
   }
 }
 
+function renderPassagesMode() {
+  latestBounds.value = null;
+  if (!map.value || !tracksLayerGroup.value) {
+    return;
+  }
+  tracksLayerGroup.value.clearLayers();
+  resetTraceAggregationState();
+  resetDensityState();
+
+  const passagePoints = renderPassageLayer();
+  if (passagePoints.length === 0) {
+    return;
+  }
+  const bounds = L.latLngBounds(passagePoints);
+  if (bounds.isValid()) {
+    latestBounds.value = bounds;
+  }
+}
+
 function renderMapLayers() {
   tracksLayerGroup.value?.clearLayers();
   densityLayerGroup.value?.clearLayers();
   resetDensityState();
+  resetPassagesState();
 
-  if (isDensityMode.value) {
+  if (isPassagesMode.value) {
+    renderPassagesMode();
+    return;
+  }
+  if (isPointDensityMode.value) {
     renderDensityMode();
     return;
   }
@@ -613,6 +712,11 @@ watch(
 );
 
 watch(
+  () => props.mapPassages,
+  syncMapWithData,
+);
+
+watch(
   () => props.datasetKey,
   syncMapWithData,
 );
@@ -653,6 +757,7 @@ onBeforeUnmount(() => {
   latestBounds.value = null;
   resetTraceAggregationState();
   resetDensityState();
+  resetPassagesState();
 });
 </script>
 
@@ -666,7 +771,7 @@ onBeforeUnmount(() => {
       v-if="loading"
       class="map-overlay map-overlay--loading"
     >
-      Loading map tracks...
+      Loading map data...
     </div>
     <div
       v-else-if="error"
@@ -678,7 +783,7 @@ onBeforeUnmount(() => {
       v-else-if="!hasRenderableTracks"
       class="map-overlay map-overlay--empty"
     >
-      No GPS tracks for the selected filters.
+      {{ emptyMapMessage }}
     </div>
     <div
       v-if="isAggregatedMode"
@@ -691,7 +796,15 @@ onBeforeUnmount(() => {
       v-if="isDensityOverlayVisible"
       class="map-overlay map-overlay--density"
     >
-      Density mode · {{ densityCellCount }} cells · {{ densityPointCount.toLocaleString() }} points
+      Point density · {{ densityCellCount }} cells · {{ densityPointCount.toLocaleString() }} points
+    </div>
+    <div
+      v-if="isPassagesOverlayVisible"
+      class="map-overlay map-overlay--passages"
+    >
+      Route frequency · {{ passageCorridorCount }} corridors · max {{ passageMaxCount }} passes
+      <span v-if="passageResolutionMeters > 0">· {{ passageResolutionMeters }} m</span>
+      <span v-if="(mapPassages?.omittedSegments ?? 0) > 0">· {{ mapPassages?.omittedSegments.toLocaleString() }} hidden</span>
     </div>
   </main>
 </template>
@@ -753,6 +866,14 @@ onBeforeUnmount(() => {
   color: #0f2b64;
   border: 1px solid #bdd3ff;
   background: rgba(231, 239, 255, 0.95);
+  font-size: 0.8rem;
+}
+
+.map-overlay--passages {
+  inset: 14px 14px auto auto;
+  color: #5b2b00;
+  border: 1px solid #f2c27b;
+  background: rgba(255, 244, 226, 0.95);
   font-size: 0.8rem;
 }
 

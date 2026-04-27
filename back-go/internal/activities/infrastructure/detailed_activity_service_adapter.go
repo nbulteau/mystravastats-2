@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"fmt"
 	application "mystravastats/internal/activities/application"
+	dataqualityInfra "mystravastats/internal/dataquality/infrastructure"
 	"mystravastats/internal/helpers"
 	"mystravastats/internal/platform/activityprovider"
 	"mystravastats/internal/shared/domain/business"
@@ -73,6 +74,11 @@ func (adapter *DetailedActivityServiceAdapter) FindGPXByYearAndTypes(year *int, 
 	}
 
 	return result
+}
+
+func (adapter *DetailedActivityServiceAdapter) FindPassagesByYearAndTypes(year *int, activityTypes ...business.ActivityType) application.MapPassagesResponse {
+	activities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	return computeMapPassagesWithOptions(activities, dataqualityInfra.CurrentProviderExclusions(), mapPassageOptionsForYear(year))
 }
 
 func resolveMapTrackActivityType(activity *strava.Activity) string {

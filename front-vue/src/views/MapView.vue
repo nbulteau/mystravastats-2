@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from "vue";
-import type { MapTrack } from "@/models/map.model";
+import type { MapPassageSegment, MapPassages, MapTrack } from "@/models/map.model";
 import { useContextStore } from "@/stores/context.js";
 import AllTracksMap from "@/components/AllTracksMap.vue";
 import { type MapViewport, useMapStore } from "@/stores/map";
@@ -11,8 +11,9 @@ const mapStore = useMapStore();
 onMounted(() => contextStore.updateCurrentView("map"));
 
 const mapTracks = computed(() => mapStore.mapTracks);
+const mapPassages = computed(() => mapStore.mapPassages);
 const activityTypeFilter = ref("ALL");
-const renderMode = ref<"TRACES" | "DENSITY">("TRACES");
+const renderMode = ref<"TRACES" | "PASSAGES" | "POINT_DENSITY">("TRACES");
 const filtersKey = computed(() => mapStore.currentFiltersKey());
 const isRefreshing = ref(false);
 const recenterToken = ref(0);
@@ -46,6 +47,35 @@ const filteredMapTracks = computed<MapTrack[]>(() => {
   return mapTracks.value.filter((track) => track.activityType === activityTypeFilter.value);
 });
 
+const filteredMapPassages = computed<MapPassages>(() => {
+  if (activityTypeFilter.value === "ALL") {
+    return mapPassages.value;
+  }
+
+  const matchingActivityCount = activityTypeSummaries.value.find((summary) => summary.type === activityTypeFilter.value)?.count ?? 0;
+  const segments = mapPassages.value.segments
+    .map((segment): MapPassageSegment | null => {
+      const passageCount = segment.activityTypeCounts?.[activityTypeFilter.value] ?? 0;
+      if (passageCount <= 0) {
+        return null;
+      }
+      const ratio = segment.passageCount > 0 ? passageCount / segment.passageCount : 0;
+      return {
+        ...segment,
+        passageCount,
+        activityCount: passageCount,
+        distanceKm: segment.distanceKm * ratio,
+      };
+    })
+    .filter((segment): segment is MapPassageSegment => segment !== null);
+
+  return {
+    ...mapPassages.value,
+    segments,
+    includedActivities: matchingActivityCount,
+  };
+});
+
 watch(
   mapTracks,
   (tracks) => {
@@ -68,6 +98,19 @@ const totalPoints = computed(() =>
   filteredMapTracks.value.reduce((count, track) => count + track.coordinates.length, 0),
 );
 
+const totalPassageCorridors = computed(() => filteredMapPassages.value.segments.length);
+const maxPassageCount = computed(() =>
+  filteredMapPassages.value.segments.reduce((max, segment) => Math.max(max, segment.passageCount), 0),
+);
+const omittedPassageSegments = computed(() => filteredMapPassages.value.omittedSegments ?? 0);
+const toolbarStats = computed(() => {
+  if (renderMode.value === "PASSAGES") {
+    const suffix = omittedPassageSegments.value > 0 ? ` · ${omittedPassageSegments.value.toLocaleString()} hidden` : "";
+    return `${totalPassageCorridors.value} corridors · max ${maxPassageCount.value} passes${suffix}`;
+  }
+  return `${totalTracks.value} tracks · ${totalPoints.value.toLocaleString()} points`;
+});
+
 const hasTracks = computed(() => totalTracks.value > 0);
 const initialViewport = computed(() => mapStore.getViewportForCurrentFilters());
 
@@ -80,7 +123,7 @@ function selectActivityTypeFilter(type: string) {
   recenterToken.value += 1;
 }
 
-function setRenderMode(mode: "TRACES" | "DENSITY") {
+function setRenderMode(mode: "TRACES" | "PASSAGES" | "POINT_DENSITY") {
   if (renderMode.value === mode) {
     return;
   }
@@ -100,17 +143,29 @@ async function refreshMap() {
   isRefreshing.value = true;
   try {
     await mapStore.ensureLoaded(true);
+    if (renderMode.value === "PASSAGES") {
+      await mapStore.ensurePassagesLoaded(true);
+    }
   } finally {
     isRefreshing.value = false;
   }
 }
+
+watch(
+  () => [contextStore.currentActivityType, contextStore.currentYear, renderMode.value],
+  () => {
+    if (renderMode.value === "PASSAGES") {
+      void mapStore.ensurePassagesLoaded();
+    }
+  },
+);
 </script>
 
 <template>
   <section class="map-view">
     <header class="map-toolbar">
       <div class="map-toolbar__stats">
-        <strong>{{ totalTracks }}</strong> tracks · {{ totalPoints.toLocaleString() }} points
+        {{ toolbarStats }}
       </div>
       <div class="map-toolbar__actions">
         <div class="btn-group btn-group-sm">
@@ -125,10 +180,18 @@ async function refreshMap() {
           <button
             type="button"
             class="btn"
-            :class="renderMode === 'DENSITY' ? 'btn-primary' : 'btn-outline-primary'"
-            @click="setRenderMode('DENSITY')"
+            :class="renderMode === 'PASSAGES' ? 'btn-primary' : 'btn-outline-primary'"
+            @click="setRenderMode('PASSAGES')"
           >
-            Density
+            Frequency
+          </button>
+          <button
+            type="button"
+            class="btn"
+            :class="renderMode === 'POINT_DENSITY' ? 'btn-primary' : 'btn-outline-primary'"
+            @click="setRenderMode('POINT_DENSITY')"
+          >
+            Point density
           </button>
         </div>
         <button
@@ -186,9 +249,10 @@ async function refreshMap() {
 
     <AllTracksMap
       :map-tracks="filteredMapTracks"
+      :map-passages="filteredMapPassages"
       :dataset-key="filtersKey"
-      :loading="mapStore.isLoading"
-      :error="mapStore.error"
+      :loading="mapStore.isLoading || (renderMode === 'PASSAGES' && mapStore.isPassagesLoading)"
+      :error="renderMode === 'PASSAGES' ? (mapStore.passagesError || mapStore.error) : mapStore.error"
       :initial-viewport="initialViewport"
       :recenter-token="recenterToken"
       :render-mode="renderMode"

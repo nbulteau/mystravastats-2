@@ -93,6 +93,139 @@ class MapsControllerTest{
     }
 
     @Test
+    fun `get passages counts activities instead of GPS points`() {
+        // GIVEN
+        val activityTypes = setOf(ActivityType.Ride)
+        val year = 2026
+        val sparseActivity = TestHelper.stravaActivity.copy(
+            id = 1001,
+            type = ActivityType.Ride.name,
+            stream = Stream(
+                distance = DistanceStream(listOf(0.0, 100.0, 200.0), 3, "high", "distance"),
+                time = TimeStream(listOf(0, 10, 20), 3, "high", "time"),
+                latlng = LatLngStream(
+                    data = listOf(
+                        listOf(48.0000, 2.0000),
+                        listOf(48.0010, 2.0000),
+                        listOf(48.0020, 2.0000),
+                        listOf(48.0030, 2.0000),
+                    ),
+                    originalSize = 4,
+                    resolution = "high",
+                    seriesType = "distance",
+                ),
+            ),
+        )
+        val denseActivity = TestHelper.stravaActivity.copy(
+            id = 1002,
+            type = ActivityType.Ride.name,
+            stream = Stream(
+                distance = DistanceStream(listOf(0.0, 100.0, 200.0), 3, "high", "distance"),
+                time = TimeStream(listOf(0, 10, 20), 3, "high", "time"),
+                latlng = LatLngStream(
+                    data = listOf(
+                        listOf(48.0000, 2.0000),
+                        listOf(48.0003, 2.0000),
+                        listOf(48.0006, 2.0000),
+                        listOf(48.0009, 2.0000),
+                        listOf(48.0012, 2.0000),
+                        listOf(48.0015, 2.0000),
+                        listOf(48.0018, 2.0000),
+                        listOf(48.0021, 2.0000),
+                        listOf(48.0024, 2.0000),
+                        listOf(48.0027, 2.0000),
+                        listOf(48.0030, 2.0000),
+                    ),
+                    originalSize = 11,
+                    resolution = "high",
+                    seriesType = "distance",
+                ),
+            ),
+        )
+
+        every { stravaProxy.getActivitiesByActivityTypeAndYear(activityTypes, year) } returns listOf(sparseActivity, denseActivity)
+        every { stravaProxy.cacheIdentity() } returns null
+
+        // WHEN
+        mockMvc.perform(
+            get("/api/maps/passages")
+                .param("activityType", activityTypes.joinToString("_"))
+                .param("year", year.toString())
+                .accept(MediaType.APPLICATION_JSON)
+        )
+            // THEN
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.includedActivities").value(2))
+            .andExpect(jsonPath("$.excludedActivities").value(0))
+            .andExpect(jsonPath("$.resolutionMeters").value(120))
+            .andExpect(jsonPath("$.minPassageCount").value(1))
+            .andExpect(jsonPath("$.segments").isArray)
+            .andExpect(jsonPath("$.segments[0].passageCount").value(2))
+            .andExpect(jsonPath("$.segments[0].activityTypeCounts.Ride").value(2))
+    }
+
+    @Test
+    fun `get passages in all years filters one-off corridors`() {
+        // GIVEN
+        val activityTypes = setOf(ActivityType.Ride)
+        val repeatedA = TestHelper.stravaActivity.copy(
+            id = 1101,
+            type = ActivityType.Ride.name,
+            stream = Stream(
+                distance = DistanceStream(listOf(0.0, 100.0, 200.0), 3, "high", "distance"),
+                time = TimeStream(listOf(0, 10, 20), 3, "high", "time"),
+                latlng = LatLngStream(
+                    data = listOf(
+                        listOf(48.0000, 2.0000),
+                        listOf(48.0010, 2.0000),
+                        listOf(48.0020, 2.0000),
+                    ),
+                    originalSize = 3,
+                    resolution = "high",
+                    seriesType = "distance",
+                ),
+            ),
+        )
+        val repeatedB = repeatedA.copy(id = 1102)
+        val oneOff = TestHelper.stravaActivity.copy(
+            id = 1103,
+            type = ActivityType.Ride.name,
+            stream = Stream(
+                distance = DistanceStream(listOf(0.0, 100.0, 200.0), 3, "high", "distance"),
+                time = TimeStream(listOf(0, 10, 20), 3, "high", "time"),
+                latlng = LatLngStream(
+                    data = listOf(
+                        listOf(49.0000, 3.0000),
+                        listOf(49.0010, 3.0000),
+                        listOf(49.0020, 3.0000),
+                    ),
+                    originalSize = 3,
+                    resolution = "high",
+                    seriesType = "distance",
+                ),
+            ),
+        )
+
+        every { stravaProxy.getActivitiesByActivityTypeAndYear(activityTypes, null) } returns listOf(repeatedA, repeatedB, oneOff)
+        every { stravaProxy.cacheIdentity() } returns null
+
+        // WHEN
+        mockMvc.perform(
+            get("/api/maps/passages")
+                .param("activityType", activityTypes.joinToString("_"))
+                .accept(MediaType.APPLICATION_JSON)
+        )
+            // THEN
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.includedActivities").value(3))
+            .andExpect(jsonPath("$.resolutionMeters").value(250))
+            .andExpect(jsonPath("$.minPassageCount").value(2))
+            .andExpect(jsonPath("$.omittedSegments").value(org.hamcrest.Matchers.greaterThan(0)))
+            .andExpect(jsonPath("$.segments[0].passageCount").value(2))
+    }
+
+    @Test
     fun `get GPX returns bad request when activity type is invalid`() {
         // GIVEN
         // WHEN

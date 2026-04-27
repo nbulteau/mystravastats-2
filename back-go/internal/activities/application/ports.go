@@ -15,6 +15,24 @@ type MapTrack struct {
 	Coordinates    [][]float64 `json:"coordinates"`
 }
 
+type MapPassagesResponse struct {
+	Segments                []MapPassageSegment `json:"segments"`
+	IncludedActivities      int                 `json:"includedActivities"`
+	ExcludedActivities      int                 `json:"excludedActivities"`
+	MissingStreamActivities int                 `json:"missingStreamActivities"`
+	ResolutionMeters        int                 `json:"resolutionMeters"`
+	MinPassageCount         int                 `json:"minPassageCount"`
+	OmittedSegments         int                 `json:"omittedSegments"`
+}
+
+type MapPassageSegment struct {
+	Coordinates        [][]float64    `json:"coordinates"`
+	PassageCount       int            `json:"passageCount"`
+	ActivityCount      int            `json:"activityCount"`
+	DistanceKm         float64        `json:"distanceKm"`
+	ActivityTypeCounts map[string]int `json:"activityTypeCounts,omitempty"`
+}
+
 // DetailedActivityReader is an outbound port used by the use case.
 // Infrastructure adapters implement this interface.
 type DetailedActivityReader interface {
@@ -37,4 +55,10 @@ type ActivitiesCSVExporter interface {
 // Infrastructure adapters implement this interface.
 type ActivitiesGPXReader interface {
 	FindGPXByYearAndTypes(year *int, activityTypes ...business.ActivityType) []MapTrack
+}
+
+// ActivitiesPassagesReader is an outbound port used by map passage density use cases.
+// Infrastructure adapters implement this interface.
+type ActivitiesPassagesReader interface {
+	FindPassagesByYearAndTypes(year *int, activityTypes ...business.ActivityType) MapPassagesResponse
 }

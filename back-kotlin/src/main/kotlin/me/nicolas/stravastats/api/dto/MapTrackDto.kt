@@ -10,3 +10,20 @@ data class MapTrackDto(
     val coordinates: List<List<Double>>,
 )
 
+data class MapPassagesDto(
+    val segments: List<MapPassageSegmentDto>,
+    val includedActivities: Int,
+    val excludedActivities: Int,
+    val missingStreamActivities: Int,
+    val resolutionMeters: Int,
+    val minPassageCount: Int,
+    val omittedSegments: Int,
+)
+
+data class MapPassageSegmentDto(
+    val coordinates: List<List<Double>>,
+    val passageCount: Int,
+    val activityCount: Int,
+    val distanceKm: Double,
+    val activityTypeCounts: Map<String, Int>,
+)

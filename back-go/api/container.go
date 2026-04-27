@@ -36,6 +36,7 @@ type container struct {
 	listActivitiesUseCase              *activitiesApp.ListActivitiesUseCase
 	exportActivitiesCSVUseCase         *activitiesApp.ExportActivitiesCSVUseCase
 	getMapsGPXUseCase                  *activitiesApp.GetMapsGPXUseCase
+	getMapPassagesUseCase              *activitiesApp.GetMapPassagesUseCase
 	getAthleteUseCase                  *athleteApp.GetAthleteUseCase
 	listStatisticsUseCase              *statisticsApp.ListStatisticsUseCase
 	listPersonalRecordsTimelineUseCase *statisticsApp.ListPersonalRecordsTimelineUseCase
@@ -94,6 +95,7 @@ func getContainer() *container {
 			listActivitiesUseCase:              activitiesApp.NewListActivitiesUseCase(detailedActivityReader),
 			exportActivitiesCSVUseCase:         activitiesApp.NewExportActivitiesCSVUseCase(detailedActivityReader),
 			getMapsGPXUseCase:                  activitiesApp.NewGetMapsGPXUseCase(detailedActivityReader),
+			getMapPassagesUseCase:              activitiesApp.NewGetMapPassagesUseCase(detailedActivityReader),
 			getAthleteUseCase:                  athleteApp.NewGetAthleteUseCase(athleteReader),
 			listStatisticsUseCase:              statisticsApp.NewListStatisticsUseCase(statisticsReader),
 			listPersonalRecordsTimelineUseCase: statisticsApp.NewListPersonalRecordsTimelineUseCase(statisticsReader),
