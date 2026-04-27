@@ -25,8 +25,9 @@ const sortMode = ref<SortMode>("distance");
 const maintenanceFormGearId = ref<string | null>(null);
 const savingMaintenanceGearId = ref<string | null>(null);
 const deletingMaintenanceRecordId = ref<string | null>(null);
+const expandedMaintenanceByGearId = reactive<Record<string, boolean>>({});
 const maintenanceForm = reactive({
-  component: "CHAIN",
+  component: "Chain",
   operation: "",
   date: todayInputValue(),
   distanceKm: "",
@@ -158,13 +159,22 @@ function maintenanceHistoryLabel(record: GearMaintenanceRecord): string {
   return `${formatDate(record.date)} · ${formatDistance(record.distance)}`;
 }
 
+function isMaintenanceExpanded(gearId: string): boolean {
+  return expandedMaintenanceByGearId[gearId] ?? false;
+}
+
+function toggleMaintenance(item: GearAnalysisItem) {
+  expandedMaintenanceByGearId[item.id] = !isMaintenanceExpanded(item.id);
+}
+
 function todayInputValue(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
 function openMaintenanceForm(item: GearAnalysisItem, task?: GearMaintenanceTask) {
+  expandedMaintenanceByGearId[item.id] = true;
   maintenanceFormGearId.value = item.id;
-  maintenanceForm.component = task?.component ?? "CHAIN";
+  maintenanceForm.component = task?.componentLabel ?? "Chain";
   maintenanceForm.operation = task ? `${task.componentLabel} serviced` : "";
   maintenanceForm.date = todayInputValue();
   maintenanceForm.distanceKm = (item.distance / 1000).toFixed(0);
@@ -433,131 +443,159 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
                 <span>Maintenance</span>
                 <strong>{{ item.maintenanceHistory.length }} local records</strong>
               </div>
-              <button
-                type="button"
-                class="btn btn-sm btn-outline-secondary"
-                @click="openMaintenanceForm(item)"
-              >
-                <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true" />
-                Add maintenance
-              </button>
-            </div>
-
-            <div v-if="item.maintenanceTasks.length" class="maintenance-task-list">
-              <div
-                v-for="task in item.maintenanceTasks"
-                :key="`${item.id}-${task.component}`"
-                class="maintenance-task"
-              >
-                <span :class="maintenanceTaskClass(task)">{{ task.status }}</span>
-                <div>
-                  <strong>{{ task.componentLabel }}</strong>
-                  <small>{{ maintenanceProgressLabel(task) }} · interval {{ maintenanceIntervalLabel(task) }}</small>
-                </div>
+              <div class="maintenance-heading__actions">
                 <button
                   type="button"
-                  class="btn btn-sm btn-outline-primary"
-                  :disabled="savingMaintenanceGearId === item.id"
-                  @click="markMaintenanceDone(item, task)"
+                  class="btn btn-sm btn-outline-secondary"
+                  @click="toggleMaintenance(item)"
                 >
-                  <i class="fa-solid fa-check" aria-hidden="true" />
-                  Mark as done
+                  <i
+                    :class="isMaintenanceExpanded(item.id) ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'"
+                    aria-hidden="true"
+                  />
+                  {{ isMaintenanceExpanded(item.id) ? "Hide" : "Show" }}
                 </button>
               </div>
             </div>
 
-            <form
-              v-if="maintenanceFormGearId === item.id"
-              class="maintenance-form"
-              @submit.prevent="saveMaintenanceRecord(item)"
-            >
-              <label>
-                <span>Component</span>
-                <select v-model="maintenanceForm.component" class="form-select form-select-sm">
-                  <option
-                    v-for="component in maintenanceComponents"
-                    :key="component.value"
-                    :value="component.value"
+            <div v-if="isMaintenanceExpanded(item.id)" class="maintenance-body">
+              <div v-if="item.maintenanceTasks.length" class="maintenance-task-list">
+                <div
+                  v-for="task in item.maintenanceTasks"
+                  :key="`${item.id}-${task.component}`"
+                  class="maintenance-task"
+                >
+                  <span :class="maintenanceTaskClass(task)">{{ task.status }}</span>
+                  <div>
+                    <strong>{{ task.componentLabel }}</strong>
+                    <small>{{ maintenanceProgressLabel(task) }} · interval {{ maintenanceIntervalLabel(task) }}</small>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-primary"
+                    :disabled="savingMaintenanceGearId === item.id"
+                    @click="markMaintenanceDone(item, task)"
                   >
-                    {{ component.label }}
-                  </option>
-                </select>
-              </label>
-              <label>
-                <span>Operation</span>
-                <input
-                  v-model="maintenanceForm.operation"
-                  class="form-control form-control-sm"
-                  type="text"
-                  placeholder="Chain changed"
-                >
-              </label>
-              <label>
-                <span>Date</span>
-                <input
-                  v-model="maintenanceForm.date"
-                  class="form-control form-control-sm"
-                  type="date"
-                  required
-                >
-              </label>
-              <label>
-                <span>Odometer (km)</span>
-                <input
-                  v-model="maintenanceForm.distanceKm"
-                  class="form-control form-control-sm"
-                  type="number"
-                  min="0"
-                  step="1"
-                  required
-                >
-              </label>
-              <label class="maintenance-form__note">
-                <span>Note</span>
-                <input
-                  v-model="maintenanceForm.note"
-                  class="form-control form-control-sm"
-                  type="text"
-                  placeholder="Optional"
-                >
-              </label>
-              <div class="maintenance-form__actions">
-                <button
-                  type="submit"
-                  class="btn btn-sm btn-primary"
-                  :disabled="savingMaintenanceGearId === item.id"
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-sm btn-outline-secondary"
-                  @click="closeMaintenanceForm"
-                >
-                  Cancel
-                </button>
+                    <i class="fa-solid fa-check" aria-hidden="true" />
+                    Mark as done
+                  </button>
+                </div>
               </div>
-            </form>
 
-            <div v-if="item.maintenanceHistory.length" class="maintenance-history">
-              <div
-                v-for="record in item.maintenanceHistory.slice(0, 5)"
-                :key="record.id"
-                class="maintenance-history-row"
-              >
+              <div class="maintenance-body-toolbar">
                 <div>
-                  <strong>{{ record.operation }}</strong>
-                  <small>{{ record.componentLabel }} · {{ maintenanceHistoryLabel(record) }}</small>
-                  <small v-if="record.note">{{ record.note }}</small>
+                  <strong>Local maintenance log</strong>
+                  <small>Free-form component, date and odometer for this bike.</small>
                 </div>
                 <button
                   type="button"
                   class="btn btn-sm btn-outline-secondary"
-                  :disabled="deletingMaintenanceRecordId === record.id"
-                  @click="deleteMaintenanceRecord(record)"
+                  @click="openMaintenanceForm(item)"
                 >
-                  <i class="fa-solid fa-trash" aria-hidden="true" />
+                  <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true" />
+                  Add maintenance
                 </button>
+              </div>
+
+              <form
+                v-if="maintenanceFormGearId === item.id"
+                class="maintenance-form"
+                @submit.prevent="saveMaintenanceRecord(item)"
+              >
+                <label>
+                  <span>Component</span>
+                  <input
+                    v-model="maintenanceForm.component"
+                    class="form-control form-control-sm"
+                    list="maintenance-component-suggestions"
+                    type="text"
+                    placeholder="Valve core rear"
+                    required
+                  >
+                  <datalist id="maintenance-component-suggestions">
+                    <option
+                      v-for="component in maintenanceComponents"
+                      :key="component.value"
+                      :value="component.label"
+                    />
+                  </datalist>
+                </label>
+                <label>
+                  <span>Operation</span>
+                  <input
+                    v-model="maintenanceForm.operation"
+                    class="form-control form-control-sm"
+                    type="text"
+                    placeholder="Valve core changed"
+                  >
+                </label>
+                <label>
+                  <span>Date</span>
+                  <input
+                    v-model="maintenanceForm.date"
+                    class="form-control form-control-sm"
+                    type="date"
+                    required
+                  >
+                </label>
+                <label>
+                  <span>Odometer (km)</span>
+                  <input
+                    v-model="maintenanceForm.distanceKm"
+                    class="form-control form-control-sm"
+                    type="number"
+                    min="0"
+                    step="1"
+                    required
+                  >
+                </label>
+                <label class="maintenance-form__note">
+                  <span>Note</span>
+                  <input
+                    v-model="maintenanceForm.note"
+                    class="form-control form-control-sm"
+                    type="text"
+                    placeholder="Optional"
+                  >
+                </label>
+                <div class="maintenance-form__actions">
+                  <button
+                    type="submit"
+                    class="btn btn-sm btn-primary"
+                    :disabled="savingMaintenanceGearId === item.id"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    @click="closeMaintenanceForm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+
+              <div v-if="item.maintenanceHistory.length" class="maintenance-history">
+                <div
+                  v-for="record in item.maintenanceHistory.slice(0, 5)"
+                  :key="record.id"
+                  class="maintenance-history-row"
+                >
+                  <div>
+                    <strong>{{ record.operation }}</strong>
+                    <small>{{ record.componentLabel }} · {{ maintenanceHistoryLabel(record) }}</small>
+                    <small v-if="record.note">{{ record.note }}</small>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    :disabled="deletingMaintenanceRecordId === record.id"
+                    @click="deleteMaintenanceRecord(record)"
+                  >
+                    <i class="fa-solid fa-trash" aria-hidden="true" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -812,6 +850,13 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
   justify-content: space-between;
 }
 
+.maintenance-heading__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
 .maintenance-heading span,
 .maintenance-form label span {
   color: var(--ms-text-muted);
@@ -828,6 +873,7 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
 }
 
 .maintenance-heading .btn,
+.maintenance-body-toolbar .btn,
 .maintenance-task .btn,
 .maintenance-history-row .btn {
   align-items: center;
@@ -838,9 +884,38 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
 }
 
 .maintenance-task-list,
+.maintenance-body,
 .maintenance-history {
   display: grid;
   gap: 1px;
+}
+
+.maintenance-body {
+  gap: 10px;
+}
+
+.maintenance-body-toolbar {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #edf0f4;
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 8px;
+}
+
+.maintenance-body-toolbar strong {
+  color: var(--ms-text);
+  display: block;
+  font-size: 0.86rem;
+}
+
+.maintenance-body-toolbar small {
+  color: var(--ms-text-muted);
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 700;
 }
 
 .maintenance-task,
@@ -1040,10 +1115,15 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
   }
 
   .maintenance-heading,
+  .maintenance-body-toolbar,
   .maintenance-task,
   .maintenance-history-row {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .maintenance-heading__actions {
+    justify-content: flex-start;
   }
 
   .maintenance-form {

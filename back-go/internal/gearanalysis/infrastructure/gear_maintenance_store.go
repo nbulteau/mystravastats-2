@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode"
 
 	"mystravastats/internal/platform/activityprovider"
 	"mystravastats/internal/shared/domain/business"
@@ -186,15 +187,16 @@ func normalizeGearMaintenanceRecords(records []business.GearMaintenanceRecord) [
 }
 
 func normalizeGearMaintenanceComponent(value string) string {
-	normalized := strings.ToUpper(strings.TrimSpace(value))
-	normalized = strings.ReplaceAll(normalized, "-", "_")
-	normalized = strings.ReplaceAll(normalized, " ", "_")
+	normalized := gearMaintenanceComponentKey(value)
+	if normalized == "" {
+		return ""
+	}
 	for _, rule := range bikeMaintenanceRules {
-		if rule.component == normalized {
-			return normalized
+		if rule.component == normalized || gearMaintenanceComponentKey(rule.label) == normalized {
+			return rule.component
 		}
 	}
-	return ""
+	return normalized
 }
 
 func gearMaintenanceComponentLabel(component string) string {
@@ -203,7 +205,41 @@ func gearMaintenanceComponentLabel(component string) string {
 			return rule.label
 		}
 	}
-	return component
+	return gearMaintenanceHumanLabel(component)
+}
+
+func gearMaintenanceComponentKey(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return ""
+	}
+	var builder strings.Builder
+	lastWasSeparator := true
+	for _, char := range strings.ToUpper(trimmed) {
+		if unicode.IsLetter(char) || unicode.IsDigit(char) {
+			builder.WriteRune(char)
+			lastWasSeparator = false
+			continue
+		}
+		if !lastWasSeparator {
+			builder.WriteRune('_')
+			lastWasSeparator = true
+		}
+	}
+	return strings.Trim(builder.String(), "_")
+}
+
+func gearMaintenanceHumanLabel(component string) string {
+	words := strings.Fields(strings.ReplaceAll(strings.ToLower(strings.TrimSpace(component)), "_", " "))
+	for index, word := range words {
+		if word == "" {
+			continue
+		}
+		runes := []rune(word)
+		runes[0] = unicode.ToUpper(runes[0])
+		words[index] = string(runes)
+	}
+	return strings.Join(words, " ")
 }
 
 func gearNameForMaintenance(athlete strava.Athlete, gearID string) string {

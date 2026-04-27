@@ -22,6 +22,7 @@ import java.io.File
 import java.time.Instant
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 import kotlin.math.floor
 import kotlin.math.max
 
@@ -446,12 +447,39 @@ private fun GearMaintenanceRecordRequest.normalize(): GearMaintenanceRecordReque
 }
 
 private fun normalizeGearMaintenanceComponent(value: String): String {
-    val normalized = value.trim().uppercase().replace("-", "_").replace(" ", "_")
-    return bikeMaintenanceRules.firstOrNull { it.component == normalized }?.component.orEmpty()
+    val normalized = gearMaintenanceComponentKey(value)
+    if (normalized.isBlank()) return ""
+    return bikeMaintenanceRules.firstOrNull {
+        it.component == normalized || gearMaintenanceComponentKey(it.label) == normalized
+    }?.component ?: normalized
 }
 
 private fun gearMaintenanceComponentLabel(component: String): String {
-    return bikeMaintenanceRules.firstOrNull { it.component == component }?.label ?: component
+    return bikeMaintenanceRules.firstOrNull { it.component == component }?.label ?: gearMaintenanceHumanLabel(component)
+}
+
+private fun gearMaintenanceComponentKey(value: String): String {
+    val builder = StringBuilder()
+    var lastWasSeparator = true
+    value.trim().uppercase(Locale.ROOT).forEach { char ->
+        if (char.isLetterOrDigit()) {
+            builder.append(char)
+            lastWasSeparator = false
+        } else if (!lastWasSeparator) {
+            builder.append('_')
+            lastWasSeparator = true
+        }
+    }
+    return builder.toString().trim('_')
+}
+
+private fun gearMaintenanceHumanLabel(component: String): String {
+    return component.trim()
+        .lowercase(Locale.ROOT)
+        .replace("_", " ")
+        .split(" ")
+        .filter { it.isNotBlank() }
+        .joinToString(" ") { word -> word.replaceFirstChar { char -> char.titlecase(Locale.ROOT) } }
 }
 
 private fun gearNameForMaintenance(athlete: StravaAthlete, gearId: String): String {

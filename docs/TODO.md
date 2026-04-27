@@ -154,12 +154,16 @@
   - conserver la donnee originale et un journal des corrections appliquees,
   - permettre dans la vue detail activite de basculer entre version brute et version corrigee,
   - afficher clairement les valeurs et traces modifiees quand la version corrigee est activee,
+  - ajouter une action batch `Fix safe issues` pour appliquer uniquement les corrections non ambigues,
+  - afficher un recapitulatif avant application: activites touchees, distance/D+ impactes, records potentiellement modifies,
+  - conserver les anomalies risquees dans une revue manuelle plutot que de les corriger via un bouton global,
   - conserver la distinction deja posee entre stream complet absent, champ de stream structurel manquant et simple couverture capteur optionnelle,
   - permettre d'annuler une correction et d'expliquer son impact sur les statistiques.
   Acceptance:
   - une anomalie peut etre corrigee localement sans modifier la source STRAVA/FIT/GPX,
   - l'utilisateur voit clairement quelle valeur originale est remplacee ou ignoree,
-  - la vue detail activite permet de comparer rapidement la sortie brute et la sortie corrigee.
+  - la vue detail activite permet de comparer rapidement la sortie brute et la sortie corrigee,
+  - les corrections batch sont limitees aux cas classes `safe` et restent annulables.
 
 - [ ] `FUNC-P1-09` (`P1`, `M`) - Carte de densite des passages.
   Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`, `Maps`.
@@ -178,7 +182,9 @@
   Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`, `Gear`.
   Proposition:
   - ajouter dans l'onglet `Gear` un carnet d'entretien local par velo,
-  - suivre les elements sensibles: chaine, cassette, plaquettes, purge freins, pneus, liquide tubeless, boitier pedalier, roulements, transmission,
+  - afficher la maintenance par velo dans un bloc pliable/depliable,
+  - suivre les elements sensibles avec suggestions: chaine, cassette, plaquettes, purge freins, pneus, liquide tubeless, boitier pedalier, roulements, transmission,
+  - permettre aussi une saisie libre de composant, par exemple obus de valve, patte de derailleur ou cintre,
   - enregistrer une operation avec modele, composant, action, date, kilometrage du velo et note optionnelle,
   - calculer automatiquement la distance et/ou le temps depuis la derniere operation a partir du kilometrage actuel du velo,
   - afficher des statuts `OK`, `Soon`, `Due`, `Overdue` selon des seuils par defaut par composant,
@@ -186,6 +192,7 @@
   - conserver ces donnees localement sans ecriture Strava.
   Acceptance:
   - l'utilisateur voit immediatement les entretiens a faire pour chaque velo,
+  - la maintenance peut etre masquee quand l'utilisateur veut seulement lire les stats materiel,
   - chaque composant sensible expose son historique et sa prochaine echeance,
   - les seuils d'entretien par defaut sont appliques sans modifier les activites source.
 
