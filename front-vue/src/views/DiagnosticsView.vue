@@ -5,7 +5,7 @@ import { useDiagnosticsStore } from "@/stores/diagnostics";
 import { useUiStore } from "@/stores/ui";
 import TooltipHint from "@/components/TooltipHint.vue";
 import { ToastTypeEnum } from "@/models/toast.model";
-import type { DataQualityCorrection, DataQualityIssue, DataQualitySummary } from "@/models/data-quality.model";
+import type { DataQualityCorrection, DataQualityCorrectionPreview, DataQualityIssue, DataQualitySummary } from "@/models/data-quality.model";
 import type { HealthRecord } from "@/models/health.model";
 import type { SourceMode } from "@/models/source-mode.model";
 import { RouterLink } from "vue-router";
@@ -19,6 +19,8 @@ const sourceModeInitialized = ref(false);
 const qualityActionActivityId = ref<number | null>(null);
 const qualityActionIssueId = ref<string | null>(null);
 const qualityBatchActionInProgress = ref(false);
+const safeCorrectionPreview = ref<DataQualityCorrectionPreview | null>(null);
+const showSafeCorrectionPreview = ref(false);
 const showAllDataQualityIssues = ref(false);
 const dataQualityPreviewLimit = 12;
 const selectedSourceMode = ref<SourceMode>("STRAVA");
@@ -55,6 +57,8 @@ const dataQualitySummary = computed<DataQualitySummary | null>(() => {
 const dataQualityIssues = computed<DataQualityIssue[]>(() => diagnosticsStore.dataQualityReport?.issues ?? dataQualitySummary.value?.topIssues ?? []);
 const dataQualityCorrections = computed<DataQualityCorrection[]>(() => diagnosticsStore.dataQualityReport?.corrections ?? []);
 const activeDataQualityCorrections = computed(() => dataQualityCorrections.value.filter((correction) => correction.status !== "reverted"));
+const previewedSafeCorrections = computed(() => safeCorrectionPreview.value?.corrections.slice(0, 8) ?? []);
+const safeCorrectionPreviewOverflowCount = computed(() => Math.max((safeCorrectionPreview.value?.corrections.length ?? 0) - previewedSafeCorrections.value.length, 0));
 const hasFullDataQualityReport = computed(() => diagnosticsStore.dataQualityReport !== null);
 const displayedDataQualityIssues = computed(() => {
   if (showAllDataQualityIssues.value) {
@@ -99,6 +103,7 @@ const dataQualityStats = computed(() => {
     { label: "Affected activities", value: formatInteger(summary?.impactedActivities ?? 0), tone: hasActionableFindings ? "warn" : "neutral" },
     { label: "Excluded from stats", value: formatInteger(summary?.excludedActivities ?? 0), tone: (summary?.excludedActivities ?? 0) > 0 ? "warn" : "neutral" },
     { label: "Safe fixes", value: formatInteger(summary?.safeCorrectionCount ?? 0), tone: (summary?.safeCorrectionCount ?? 0) > 0 ? "warn" : "neutral" },
+    { label: "Manual review", value: formatInteger(summary?.manualReviewCount ?? 0), tone: (summary?.manualReviewCount ?? 0) > 0 ? "warn" : "neutral" },
     { label: "Active fixes", value: formatInteger(summary?.correctionCount ?? activeDataQualityCorrections.value.length), tone: activeDataQualityCorrections.value.length > 0 ? "warn" : "neutral" },
     { label: "Critical issues", value: formatInteger(criticalCount), tone: criticalCount > 0 ? "down" : "neutral" },
     { label: "Warning issues", value: formatInteger(warningCount), tone: warningCount > 0 ? "warn" : "neutral" },
@@ -716,6 +721,7 @@ async function applySafeCorrections() {
   qualityBatchActionInProgress.value = true;
   try {
     const preview = await diagnosticsStore.previewSafeCorrections();
+    safeCorrectionPreview.value = preview;
     if (preview.summary.safeCorrectionCount <= 0) {
       uiStore.showToast({
         id: `quality-fix-empty-${Date.now()}`,
@@ -725,18 +731,35 @@ async function applySafeCorrections() {
       });
       return;
     }
-    const confirmed = window.confirm(
-      [
-        `${preview.summary.safeCorrectionCount} safe corrections on ${preview.summary.activityCount} activities.`,
-        `Distance delta: ${formatSignedDistance(preview.summary.distanceDeltaMeters)}.`,
-        `Elevation delta: ${formatSignedMeters(preview.summary.elevationDeltaMeters)}.`,
-        preview.summary.potentiallyImpactsRecords ? "Records and statistics may change." : "",
-      ].filter(Boolean).join("\n"),
-    );
-    if (!confirmed) {
-      return;
-    }
+    showSafeCorrectionPreview.value = true;
+  } catch (error) {
+    uiStore.showToast({
+      id: `quality-fix-batch-failed-${Date.now()}`,
+      type: ToastTypeEnum.WARN,
+      message: error instanceof Error ? error.message : "Unable to preview safe corrections.",
+      timeout: 3600,
+    });
+  } finally {
+    qualityBatchActionInProgress.value = false;
+  }
+}
+
+function closeSafeCorrectionPreview() {
+  if (qualityBatchActionInProgress.value) {
+    return;
+  }
+  showSafeCorrectionPreview.value = false;
+}
+
+async function confirmSafeCorrectionPreview() {
+  if (!safeCorrectionPreview.value || safeCorrectionPreview.value.summary.safeCorrectionCount <= 0) {
+    return;
+  }
+  qualityBatchActionInProgress.value = true;
+  try {
     await diagnosticsStore.applySafeCorrections();
+    showSafeCorrectionPreview.value = false;
+    safeCorrectionPreview.value = null;
     uiStore.showToast({
       id: `quality-fix-batch-${Date.now()}`,
       type: ToastTypeEnum.NORMAL,
@@ -1255,6 +1278,12 @@ async function previewSourceMode() {
                   {{ issue.excludedFromStats ? "Include" : "Exclude" }}
                 </button>
                 <small v-if="issue.excludedFromStats">Excluded from stats</small>
+                <small
+                  v-else-if="issue.correction?.available && issue.correction.safety === 'manual'"
+                  class="quality-manual-note"
+                >
+                  {{ issue.correction.description || "Manual review required" }}
+                </small>
                 <small v-else>{{ issue.suggestion || "Review source" }}</small>
               </span>
             </div>
@@ -1497,6 +1526,115 @@ async function previewSourceMode() {
           </button>
         </div>
         <pre v-if="showRawPayload" class="raw-payload">{{ rawPayload }}</pre>
+      </section>
+    </div>
+
+    <div
+      v-if="showSafeCorrectionPreview && safeCorrectionPreview"
+      class="quality-preview-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="safe-correction-preview-title"
+      @click.self="closeSafeCorrectionPreview"
+    >
+      <section class="quality-preview-panel">
+        <div class="quality-preview-heading">
+          <div>
+            <p>Local corrections</p>
+            <h2 id="safe-correction-preview-title">Review safe fixes</h2>
+          </div>
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            :disabled="qualityBatchActionInProgress"
+            @click="closeSafeCorrectionPreview"
+          >
+            <i class="fa-solid fa-xmark" aria-hidden="true" />
+          </button>
+        </div>
+
+        <div class="quality-preview-stats">
+          <div>
+            <span>Safe fixes</span>
+            <strong>{{ formatInteger(safeCorrectionPreview.summary.safeCorrectionCount) }}</strong>
+          </div>
+          <div>
+            <span>Activities</span>
+            <strong>{{ formatInteger(safeCorrectionPreview.summary.activityCount) }}</strong>
+          </div>
+          <div>
+            <span>Distance</span>
+            <strong>{{ formatSignedDistance(safeCorrectionPreview.summary.distanceDeltaMeters) }}</strong>
+          </div>
+          <div>
+            <span>Elevation</span>
+            <strong>{{ formatSignedMeters(safeCorrectionPreview.summary.elevationDeltaMeters) }}</strong>
+          </div>
+        </div>
+
+        <div
+          v-if="safeCorrectionPreview.summary.manualReviewCount > 0 || safeCorrectionPreview.summary.unsupportedIssueCount > 0"
+          class="quality-preview-review"
+        >
+          <span>{{ formatInteger(safeCorrectionPreview.summary.manualReviewCount) }} manual review</span>
+          <span>{{ formatInteger(safeCorrectionPreview.summary.unsupportedIssueCount) }} unsupported</span>
+        </div>
+
+        <div class="quality-preview-list">
+          <div
+            v-for="correction in previewedSafeCorrections"
+            :key="correction.id"
+            class="quality-preview-row"
+          >
+            <span>
+              <strong>{{ correction.activityName || correction.activityId }}</strong>
+              <small>{{ correctionLabel(correction.type) }}</small>
+            </span>
+            <span>{{ correction.modifiedFields.join(", ") }}</span>
+            <span>
+              {{ formatSignedDistance(correction.impact.distanceDeltaMeters) }}
+              <small>{{ formatSignedMeters(correction.impact.elevationDeltaMeters) }}</small>
+            </span>
+          </div>
+          <small
+            v-if="safeCorrectionPreviewOverflowCount > 0"
+            class="quality-preview-overflow"
+          >
+            +{{ formatInteger(safeCorrectionPreviewOverflowCount) }} more
+          </small>
+        </div>
+
+        <div
+          v-if="safeCorrectionPreview.summary.modifiedFields.length > 0"
+          class="quality-preview-fields"
+        >
+          <span
+            v-for="field in safeCorrectionPreview.summary.modifiedFields"
+            :key="field"
+          >
+            {{ field }}
+          </span>
+        </div>
+
+        <div class="quality-preview-actions">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            :disabled="qualityBatchActionInProgress"
+            @click="closeSafeCorrectionPreview"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            :disabled="qualityBatchActionInProgress"
+            @click="confirmSafeCorrectionPreview"
+          >
+            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true" />
+            {{ qualityBatchActionInProgress ? "Applying" : "Apply safe fixes" }}
+          </button>
+        </div>
       </section>
     </div>
   </div>
@@ -2262,6 +2400,10 @@ dd {
   font-weight: 800;
 }
 
+.quality-manual-note {
+  max-width: 220px;
+}
+
 .quality-corrections {
   display: grid;
   gap: 1px;
@@ -2298,6 +2440,150 @@ dd {
   gap: 6px;
   min-height: 30px;
   width: fit-content;
+}
+
+.quality-preview-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1040;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.46);
+}
+
+.quality-preview-panel {
+  display: grid;
+  gap: 12px;
+  width: min(760px, 100%);
+  max-height: min(760px, calc(100vh - 36px));
+  overflow: auto;
+  border: 1px solid #c8d2e1;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 22px 70px rgba(15, 23, 42, 0.24);
+  padding: 16px;
+}
+
+.quality-preview-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.quality-preview-heading p {
+  margin: 0 0 2px;
+  color: var(--ms-text-muted);
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.quality-preview-heading h2 {
+  margin: 0;
+  font-size: 1.16rem;
+}
+
+.quality-preview-heading .btn,
+.quality-preview-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.quality-preview-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.quality-preview-stats div {
+  min-width: 0;
+  border: 1px solid #e5e7ee;
+  border-radius: 8px;
+  background: #fafbfe;
+  padding: 9px;
+}
+
+.quality-preview-stats span {
+  display: block;
+  color: var(--ms-text-muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.quality-preview-stats strong {
+  display: block;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.quality-preview-review,
+.quality-preview-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.quality-preview-review span,
+.quality-preview-fields span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border: 1px solid #f3d17e;
+  border-radius: 999px;
+  background: #fff8e3;
+  color: #805d05;
+  padding: 2px 9px;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.quality-preview-fields span {
+  border-color: #c8d2e1;
+  background: #eef4fb;
+  color: #31506f;
+}
+
+.quality-preview-list {
+  display: grid;
+  gap: 1px;
+  overflow-x: auto;
+  border: 1px solid var(--ms-border);
+  border-radius: 8px;
+}
+
+.quality-preview-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 1fr) minmax(110px, 0.6fr);
+  gap: 10px;
+  min-width: 620px;
+  background: #ffffff;
+  padding: 9px 10px;
+}
+
+.quality-preview-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.quality-preview-row small,
+.quality-preview-overflow {
+  display: block;
+  color: var(--ms-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.quality-preview-overflow {
+  padding: 9px 10px;
+}
+
+.quality-preview-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .quality-empty {
@@ -2379,6 +2665,7 @@ dd {
   .warmup-steps,
   .runtime-config-grid,
   .quality-metrics,
+  .quality-preview-stats,
   .source-mode-layout,
   .source-activation-summary,
   .source-env-row,

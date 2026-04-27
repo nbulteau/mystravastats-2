@@ -135,7 +135,7 @@
   Acceptance:
   - un utilisateur peut choisir une route sans lire les raisons brutes du moteur.
 
-- [ ] `FUNC-P1-08` (`P1`, `M`) - Corrections locales non destructives des activites.
+- [x] `FUNC-P1-08` (`P1`, `M`) - Corrections locales non destructives des activites.
   Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
   Proposition:
   - partir de l'audit qualite existant dans `Status`,
@@ -153,7 +153,9 @@
   - corrections `safe` couvertes: suppression d'un point GPS aberrant isole et lissage d'un spike altitude isole,
   - endpoints preview/apply batch `Fix safe issues`, action unitaire et `?version=raw` sur le detail activite,
   - les surfaces de lecture principales appliquent la version corrigee par defaut, avec bascule brut/corrige dans le detail,
-  - reste a traiter: masquage/recalcul des valeurs invalides hors stream, revue manuelle plus riche et tests de contrat plus larges.
+  - tranche finale: recalcul local des scalaires invalides depuis les streams quand c'est fiable, masquage des valeurs non serialisables quand aucun stream suffisant n'existe,
+  - le batch `Fix safe issues` affiche un recapitulatif avant application: activites touchees, distance/D+ impactes, champs modifies et compte des cas en revue manuelle,
+  - couverture ciblee ajoutee cote Go/Kotlin pour les corrections GPS, altitude et scalaires invalides; le front est valide par type-check.
   Acceptance:
   - une anomalie peut etre corrigee localement sans modifier la source STRAVA/FIT/GPX,
   - l'utilisateur voit clairement quelle valeur originale est remplacee ou ignoree,
@@ -192,7 +194,6 @@
 ## Dette visible a traiter en premier
 
 - Smoke tests source modes (`TECH-P0-05`).
-- Corrections locales non destructives des activites (`FUNC-P1-08`).
 - Contrat OpenAPI partage (`TECH-P1-01`).
 
 ## Verification conseillee selon le type de changement

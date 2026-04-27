@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	"math"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
 	"testing"
@@ -185,9 +186,59 @@ func TestAnalyzeLocalActivitiesAddsSafeCorrectionSuggestions(t *testing.T) {
 	}
 }
 
+func TestAnalyzeLocalActivitiesAddsSafeScalarCorrectionSuggestions(t *testing.T) {
+	activity := &strava.Activity{
+		Id:                 88,
+		Name:               "Non serializable ride",
+		Type:               "Ride",
+		SportType:          "Ride",
+		Distance:           math.NaN(),
+		AverageSpeed:       math.NaN(),
+		MaxSpeed:           math.Inf(1),
+		ElapsedTime:        120,
+		MovingTime:         120,
+		TotalElevationGain: math.NaN(),
+		StartDateLocal:     "2026-04-26T08:00:00Z",
+		Stream: &strava.Stream{
+			Distance: strava.DistanceStream{Data: []float64{0, 0, 0}},
+			Time:     strava.TimeStream{Data: []int{0, 60, 120}},
+			LatLng: &strava.LatLngStream{Data: [][]float64{
+				{48.0, -1.0},
+				{48.001, -1.0},
+				{48.002, -1.0},
+			}},
+			Altitude: &strava.AltitudeStream{Data: []float64{50, 60, 70}},
+		},
+	}
+
+	report := AnalyzeLocalActivities("fit", "/tmp/fit", []*strava.Activity{activity})
+
+	for _, field := range []string{"distance", "average_speed", "max_speed", "total_elevation_gain"} {
+		issue := findDataQualityIssueByField(report.Issues, business.DataQualityCategoryInvalidValue, field)
+		if issue == nil {
+			t.Fatalf("expected invalid value issue for %s, got %+v", field, report.Issues)
+		}
+		if issue.Correction == nil || issue.Correction.Safety != business.DataQualityCorrectionSafetySafe {
+			t.Fatalf("expected %s to expose a safe correction, got %+v", field, issue)
+		}
+	}
+	if report.Summary.SafeCorrectionCount != 4 {
+		t.Fatalf("expected four safe scalar corrections, got %d", report.Summary.SafeCorrectionCount)
+	}
+}
+
 func findDataQualityIssue(issues []business.DataQualityIssue, category business.DataQualityCategory) *business.DataQualityIssue {
 	for index := range issues {
 		if issues[index].Category == category {
+			return &issues[index]
+		}
+	}
+	return nil
+}
+
+func findDataQualityIssueByField(issues []business.DataQualityIssue, category business.DataQualityCategory, field string) *business.DataQualityIssue {
+	for index := range issues {
+		if issues[index].Category == category && issues[index].Field == field {
 			return &issues[index]
 		}
 	}

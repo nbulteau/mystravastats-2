@@ -152,6 +152,46 @@ class DataQualityServiceTest {
         assertEquals(2, report.summary.safeCorrectionCount)
     }
 
+    @Test
+    fun `getReport exposes safe scalar corrections for invalid serializable values`() {
+        val activity = dataQualityActivity(
+            stream = Stream(
+                distance = DistanceStream(listOf(0.0, 0.0, 0.0), 3, "high", "distance"),
+                time = TimeStream(listOf(0, 60, 120), 3, "high", "time"),
+                latlng = LatLngStream(
+                    listOf(
+                        listOf(48.0, -1.0),
+                        listOf(48.001, -1.0),
+                        listOf(48.002, -1.0),
+                    ),
+                    3,
+                    "high",
+                    "time",
+                ),
+                altitude = AltitudeStream(listOf(50.0, 60.0, 70.0), 3, "high", "altitude"),
+            )
+        ).copy(
+            distance = Double.NaN,
+            averageSpeed = Double.NaN,
+            maxSpeed = Float.POSITIVE_INFINITY,
+            elapsedTime = 120,
+            movingTime = 120,
+            totalElevationGain = Double.NaN,
+        )
+        every { activityProvider.getCacheDiagnostics() } returns mapOf("provider" to "fit", "fitDirectory" to "/tmp/fit")
+        every { activityProvider.cacheIdentity() } returns null
+        every { activityProvider.getActivitiesByActivityTypeAndYear(ActivityType.values().toSet(), null) } returns listOf(activity)
+
+        val report = DataQualityService(activityProvider).getReport()
+
+        listOf("distance", "average_speed", "max_speed", "total_elevation_gain").forEach { field ->
+            val issue = report.issues.firstOrNull { candidate -> candidate.category == "INVALID_VALUE" && candidate.field == field }
+            assertNotNull(issue, "Expected invalid value issue for $field")
+            assertEquals("safe", issue?.correction?.safety)
+        }
+        assertEquals(4, report.summary.safeCorrectionCount)
+    }
+
     private fun dataQualityActivity(stream: Stream?): StravaActivity =
         StravaActivity(
             athlete = AthleteRef(id = 1),

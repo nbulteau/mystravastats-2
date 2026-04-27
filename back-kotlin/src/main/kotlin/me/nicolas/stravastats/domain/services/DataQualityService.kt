@@ -507,6 +507,7 @@ private fun buildCorrectionForIssue(activity: StravaActivity?, issue: DataQualit
                 buildSmoothAltitudeCorrection(activity, issue, index)
             }
         }
+        "INVALID_VALUE" -> buildInvalidValueCorrection(activity, issue)
         else -> null
     }
 }
@@ -525,6 +526,83 @@ private fun buildSmoothAltitudeCorrection(activity: StravaActivity, issue: DataQ
         pointIndexes = listOf(index),
         modifiedFields = listOf("stream.altitude", "total_elevation_gain", "elev_high"),
         reason = "Replace isolated altitude point $index by interpolation and recompute elevation gain.",
+    )
+    return correction.copy(impact = impactForCorrection(activity, correction))
+}
+
+private fun buildInvalidValueCorrection(activity: StravaActivity, issue: DataQualityIssue): DataQualityCorrection? {
+    return when (issue.field) {
+        "distance" -> {
+            if (activity.canRecomputeDistance()) {
+                buildRecalculateFromStreamCorrection(activity, issue, activity.recomputeMotionModifiedFields(), "Recompute local distance and speed fields from GPS coordinates.")
+            } else {
+                manualCorrection(issue, "Distance needs GPS coordinates for a safe local recalculation.")
+            }
+        }
+        "average_speed" -> {
+            when {
+                issue.severity == "critical" && activity.canRecomputeAverageSpeedFromSummary() ->
+                    buildRecalculateFromStreamCorrection(activity, issue, listOf("average_speed"), "Recompute local average speed from distance and moving time.")
+                issue.severity == "critical" && activity.canRecomputeAverageSpeedFromStream() ->
+                    buildRecalculateFromStreamCorrection(activity, issue, activity.recomputeMotionModifiedFields(), "Recompute local average speed from corrected distance and moving time.")
+                activity.fieldHasNonFiniteValue(issue.field) ->
+                    buildMaskInvalidValueCorrection(activity, issue, listOf(issue.field))
+                else ->
+                    manualCorrection(issue, "Unusually high average speed needs manual review before changing records.")
+            }
+        }
+        "max_speed" -> {
+            when {
+                issue.severity == "critical" && activity.canRecomputeVelocity() ->
+                    buildRecalculateFromStreamCorrection(activity, issue, listOf("stream.velocitySmooth", "max_speed"), "Recompute local max speed from GPS and time streams.")
+                activity.fieldHasNonFiniteValue(issue.field) ->
+                    buildMaskInvalidValueCorrection(activity, issue, listOf(issue.field))
+                else ->
+                    manualCorrection(issue, "Unusually high max speed needs manual review before changing records.")
+            }
+        }
+        "total_elevation_gain" -> {
+            when {
+                activity.canRecomputeElevation() ->
+                    buildRecalculateFromStreamCorrection(activity, issue, listOf("stream.altitude", "total_elevation_gain", "elev_high"), "Recompute local elevation gain from the altitude stream.")
+                activity.fieldHasNonFiniteValue(issue.field) ->
+                    buildMaskInvalidValueCorrection(activity, issue, listOf(issue.field))
+                else ->
+                    manualCorrection(issue, "Elevation gain needs an altitude stream for a safe local recalculation.")
+            }
+        }
+        "elapsed_time", "moving_time" ->
+            manualCorrection(issue, "Timing fields need manual review before changing activity duration.")
+        else -> null
+    }
+}
+
+private fun buildRecalculateFromStreamCorrection(
+    activity: StravaActivity,
+    issue: DataQualityIssue,
+    modifiedFields: List<String>,
+    reason: String,
+): DataQualityCorrection {
+    val correction = baseCorrection(activity, issue, "RECALCULATE_FROM_STREAM").copy(
+        modifiedFields = modifiedFields,
+        reason = reason,
+    )
+    val groupedCorrection = when {
+        modifiedFields.shouldRecomputeDistance() -> correction.copy(id = correctionId("${issue.source}-${activity.id}-motion-stream", "RECALCULATE_FROM_STREAM"))
+        modifiedFields.shouldRecomputeElevation() -> correction.copy(id = correctionId("${issue.source}-${activity.id}-elevation-stream", "RECALCULATE_FROM_STREAM"))
+        else -> correction
+    }
+    return groupedCorrection.copy(impact = impactForCorrection(activity, groupedCorrection))
+}
+
+private fun buildMaskInvalidValueCorrection(
+    activity: StravaActivity,
+    issue: DataQualityIssue,
+    modifiedFields: List<String>,
+): DataQualityCorrection {
+    val correction = baseCorrection(activity, issue, "MASK_INVALID_VALUE").copy(
+        modifiedFields = modifiedFields,
+        reason = "Mask non-serializable ${issue.field} with 0 in the corrected local view; the source activity stays unchanged.",
     )
     return correction.copy(impact = impactForCorrection(activity, correction))
 }
@@ -563,14 +641,14 @@ private fun manualCorrection(issue: DataQualityIssue, reason: String): DataQuali
 private fun impactForCorrection(activity: StravaActivity, correction: DataQualityCorrection): DataQualityCorrectionImpact {
     val corrected = activity.applyDataQualityCorrections(listOf(correction))
     return DataQualityCorrectionImpact(
-        distanceMetersBefore = activity.distance,
-        distanceMetersAfter = corrected.distance,
-        elevationMetersBefore = activity.totalElevationGain,
-        elevationMetersAfter = corrected.totalElevationGain,
-        maxSpeedBefore = activity.maxSpeed.toDouble(),
-        maxSpeedAfter = corrected.maxSpeed.toDouble(),
-        distanceDeltaMeters = corrected.distance - activity.distance,
-        elevationDeltaMeters = corrected.totalElevationGain - activity.totalElevationGain,
+        distanceMetersBefore = activity.distance.finiteOrZero(),
+        distanceMetersAfter = corrected.distance.finiteOrZero(),
+        elevationMetersBefore = activity.totalElevationGain.finiteOrZero(),
+        elevationMetersAfter = corrected.totalElevationGain.finiteOrZero(),
+        maxSpeedBefore = activity.maxSpeed.toDouble().finiteOrZero(),
+        maxSpeedAfter = corrected.maxSpeed.toDouble().finiteOrZero(),
+        distanceDeltaMeters = corrected.distance.finiteOrZero() - activity.distance.finiteOrZero(),
+        elevationDeltaMeters = corrected.totalElevationGain.finiteOrZero() - activity.totalElevationGain.finiteOrZero(),
     )
 }
 
@@ -583,6 +661,62 @@ private fun correctionLabel(type: String): String = when (type) {
     "MASK_INVALID_VALUE" -> "Mask invalid value"
     else -> "Recalculate from stream"
 }
+
+private fun StravaActivity.recomputeMotionModifiedFields(): List<String> {
+    val fields = mutableListOf("stream.distance", "distance")
+    if (movingTime > 0 || elapsedTime > 0) {
+        fields += "average_speed"
+    }
+    if (canRecomputeVelocity()) {
+        fields += listOf("stream.velocitySmooth", "max_speed")
+    }
+    return fields
+}
+
+private fun StravaActivity.fieldHasNonFiniteValue(field: String): Boolean {
+    return when (field) {
+        "distance" -> !distance.isFinite()
+        "average_speed" -> !averageSpeed.isFinite()
+        "max_speed" -> !maxSpeed.toDouble().isFinite()
+        "total_elevation_gain" -> !totalElevationGain.isFinite()
+        else -> false
+    }
+}
+
+private fun StravaActivity.canRecomputeDistance(): Boolean {
+    val points = stream?.latlng?.data ?: return false
+    return points.size >= 2
+}
+
+private fun StravaActivity.canRecomputeAverageSpeedFromSummary(): Boolean =
+    distance.isFinite() && distance > 0.0 && (movingTime > 0 || elapsedTime > 0)
+
+private fun StravaActivity.canRecomputeAverageSpeedFromStream(): Boolean =
+    canRecomputeDistance() && (movingTime > 0 || elapsedTime > 0)
+
+private fun StravaActivity.canRecomputeVelocity(): Boolean {
+    val times = stream?.time?.data ?: return false
+    return canRecomputeDistance() && times.size >= 2
+}
+
+private fun StravaActivity.canRecomputeElevation(): Boolean {
+    val altitudes = stream?.altitude?.data ?: return false
+    return altitudes.isNotEmpty()
+}
+
+private fun List<String>.shouldRecomputeDistance(): Boolean =
+    any { field -> field == "stream.distance" || field == "distance" }
+
+private fun List<String>.shouldRecomputeAverageSpeed(): Boolean =
+    any { field -> field == "average_speed" }
+
+private fun List<String>.shouldRecomputeVelocity(): Boolean =
+    any { field -> field == "stream.velocitySmooth" || field == "max_speed" }
+
+private fun List<String>.shouldRecomputeElevation(): Boolean =
+    any { field -> field == "stream.altitude" || field == "total_elevation_gain" || field == "elev_high" }
+
+private fun Double.finiteOrZero(): Double = if (isFinite()) this else 0.0
 
 private fun findIsolatedGpsOutlier(activity: StravaActivity): Int? {
     val stream = activity.stream ?: return null
@@ -690,9 +824,43 @@ private fun StravaActivity.applyDataQualityCorrections(corrections: List<DataQua
         when (correction.type) {
             "REMOVE_GPS_POINT" -> current.removeGpsPoint(correction.pointIndexes.firstOrNull())
             "SMOOTH_ALTITUDE_SPIKE" -> current.smoothAltitudePoint(correction.pointIndexes.firstOrNull())
+            "RECALCULATE_FROM_STREAM" -> current.recalculateFromStream(correction.modifiedFields)
+            "MASK_INVALID_VALUE" -> current.maskInvalidValues(correction.modifiedFields)
             else -> current
         }
     }
+}
+
+private fun StravaActivity.recalculateFromStream(fields: List<String>): StravaActivity {
+    var corrected = this
+    if (fields.shouldRecomputeDistance()) {
+        corrected = corrected.recomputeDistanceAndSpeed()
+    } else {
+        if (fields.shouldRecomputeAverageSpeed()) {
+            corrected = corrected.recomputeAverageSpeed()
+        }
+        if (fields.shouldRecomputeVelocity()) {
+            corrected = corrected.recomputeMaxSpeed()
+        }
+    }
+    if (fields.shouldRecomputeElevation()) {
+        corrected = corrected.recomputeElevation()
+    }
+    return corrected
+}
+
+private fun StravaActivity.maskInvalidValues(fields: List<String>): StravaActivity {
+    var corrected = this
+    fields.forEach { field ->
+        corrected = when (field) {
+            "distance" -> if (!corrected.distance.isFinite()) corrected.copy(distance = 0.0) else corrected
+            "average_speed" -> if (!corrected.averageSpeed.isFinite()) corrected.copy(averageSpeed = 0.0) else corrected
+            "max_speed" -> if (!corrected.maxSpeed.toDouble().isFinite()) corrected.copy(maxSpeed = 0.0f) else corrected
+            "total_elevation_gain" -> if (!corrected.totalElevationGain.isFinite()) corrected.copy(totalElevationGain = 0.0) else corrected
+            else -> corrected
+        }
+    }
+    return corrected
 }
 
 private fun StravaActivity.removeGpsPoint(index: Int?): StravaActivity {
@@ -748,8 +916,6 @@ private fun StravaActivity.recomputeDistanceAndSpeed(): StravaActivity {
         }
     }
     val distanceMeters = distances.last()
-    val movingSeconds = movingTime.takeIf { it > 0 } ?: elapsedTime
-    val averageSpeed = if (movingSeconds > 0) distanceMeters / movingSeconds else averageSpeed
     val velocity = recomputeVelocity(points, stream.time.data)
     val updatedStream = stream.copy(
         distance = stream.distance.copy(data = distances, originalSize = distances.size),
@@ -758,7 +924,24 @@ private fun StravaActivity.recomputeDistanceAndSpeed(): StravaActivity {
     return copy(
         stream = updatedStream,
         distance = distanceMeters,
-        averageSpeed = averageSpeed,
+        maxSpeed = (velocity.maxOrNull() ?: 0.0).toFloat(),
+    ).recomputeAverageSpeed()
+}
+
+private fun StravaActivity.recomputeAverageSpeed(): StravaActivity {
+    val movingSeconds = movingTime.takeIf { it > 0 } ?: elapsedTime
+    if (movingSeconds <= 0 || !distance.isFinite()) return this
+    return copy(averageSpeed = distance / movingSeconds)
+}
+
+private fun StravaActivity.recomputeMaxSpeed(): StravaActivity {
+    val stream = stream ?: return this
+    val points = stream.latlng?.data ?: return this
+    val velocity = recomputeVelocity(points, stream.time.data)
+    return copy(
+        stream = stream.copy(
+            velocitySmooth = SmoothVelocityStream(velocity, velocity.size, stream.distance.resolution, "time"),
+        ),
         maxSpeed = (velocity.maxOrNull() ?: 0.0).toFloat(),
     )
 }

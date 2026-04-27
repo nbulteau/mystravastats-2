@@ -251,6 +251,8 @@ func buildCorrectionForIssue(activity *strava.Activity, issue business.DataQuali
 			return manualCorrection(issue, "Altitude spike is not isolated enough for a safe automatic fix"), nil, nil, true
 		}
 		return buildSmoothAltitudeCorrection(activity, issue, index), nil, nil, true
+	case business.DataQualityCategoryInvalidValue:
+		return buildInvalidValueCorrection(activity, issue)
 	default:
 		return business.DataQualityCorrection{}, nil, []string{fmt.Sprintf("%s cannot be corrected automatically", issue.ID)}, false
 	}
@@ -322,6 +324,68 @@ func buildSmoothAltitudeCorrection(activity *strava.Activity, issue business.Dat
 	return correction
 }
 
+func buildInvalidValueCorrection(activity *strava.Activity, issue business.DataQualityIssue) (business.DataQualityCorrection, []string, []string, bool) {
+	switch issue.Field {
+	case "distance":
+		if canRecomputeDistance(activity) {
+			return buildRecalculateFromStreamCorrection(activity, issue, recomputeMotionModifiedFields(activity), "Recompute local distance and speed fields from GPS coordinates."), nil, nil, true
+		}
+		return manualCorrection(issue, "Distance needs GPS coordinates for a safe local recalculation."), nil, nil, true
+	case "average_speed":
+		if issue.Severity == business.DataQualitySeverityCritical && canRecomputeAverageSpeedFromSummary(activity) {
+			return buildRecalculateFromStreamCorrection(activity, issue, []string{"average_speed"}, "Recompute local average speed from distance and moving time."), nil, nil, true
+		}
+		if issue.Severity == business.DataQualitySeverityCritical && canRecomputeAverageSpeedFromStream(activity) {
+			return buildRecalculateFromStreamCorrection(activity, issue, recomputeMotionModifiedFields(activity), "Recompute local average speed from corrected distance and moving time."), nil, nil, true
+		}
+		if fieldHasNonFiniteValue(activity, issue.Field) {
+			return buildMaskInvalidValueCorrection(activity, issue, []string{issue.Field}), nil, nil, true
+		}
+		return manualCorrection(issue, "Unusually high average speed needs manual review before changing records."), nil, nil, true
+	case "max_speed":
+		if issue.Severity == business.DataQualitySeverityCritical && canRecomputeVelocity(activity) {
+			return buildRecalculateFromStreamCorrection(activity, issue, []string{"stream.velocitySmooth", "max_speed"}, "Recompute local max speed from GPS and time streams."), nil, nil, true
+		}
+		if fieldHasNonFiniteValue(activity, issue.Field) {
+			return buildMaskInvalidValueCorrection(activity, issue, []string{issue.Field}), nil, nil, true
+		}
+		return manualCorrection(issue, "Unusually high max speed needs manual review before changing records."), nil, nil, true
+	case "total_elevation_gain":
+		if canRecomputeElevation(activity) {
+			return buildRecalculateFromStreamCorrection(activity, issue, []string{"stream.altitude", "total_elevation_gain", "elev_high"}, "Recompute local elevation gain from the altitude stream."), nil, nil, true
+		}
+		if fieldHasNonFiniteValue(activity, issue.Field) {
+			return buildMaskInvalidValueCorrection(activity, issue, []string{issue.Field}), nil, nil, true
+		}
+		return manualCorrection(issue, "Elevation gain needs an altitude stream for a safe local recalculation."), nil, nil, true
+	case "elapsed_time", "moving_time":
+		return manualCorrection(issue, "Timing fields need manual review before changing activity duration."), nil, nil, true
+	default:
+		return business.DataQualityCorrection{}, nil, []string{fmt.Sprintf("%s cannot be corrected automatically", issue.ID)}, false
+	}
+}
+
+func buildRecalculateFromStreamCorrection(activity *strava.Activity, issue business.DataQualityIssue, modifiedFields []string, reason string) business.DataQualityCorrection {
+	correction := baseCorrection(activity, issue, business.DataQualityCorrectionTypeRecalculateFromStream)
+	if shouldRecomputeDistance(modifiedFields) {
+		correction.ID = correctionID(fmt.Sprintf("%s-%d-motion-stream", issue.Source, activity.Id), business.DataQualityCorrectionTypeRecalculateFromStream)
+	} else if shouldRecomputeElevation(modifiedFields) {
+		correction.ID = correctionID(fmt.Sprintf("%s-%d-elevation-stream", issue.Source, activity.Id), business.DataQualityCorrectionTypeRecalculateFromStream)
+	}
+	correction.ModifiedFields = modifiedFields
+	correction.Reason = reason
+	correction.Impact = impactForCorrection(activity, correction)
+	return correction
+}
+
+func buildMaskInvalidValueCorrection(activity *strava.Activity, issue business.DataQualityIssue, modifiedFields []string) business.DataQualityCorrection {
+	correction := baseCorrection(activity, issue, business.DataQualityCorrectionTypeMaskInvalidValue)
+	correction.ModifiedFields = modifiedFields
+	correction.Reason = fmt.Sprintf("Mask non-serializable %s with 0 in the corrected local view; the source activity stays unchanged.", issue.Field)
+	correction.Impact = impactForCorrection(activity, correction)
+	return correction
+}
+
 func baseCorrection(activity *strava.Activity, issue business.DataQualityIssue, correctionType business.DataQualityCorrectionType) business.DataQualityCorrection {
 	return business.DataQualityCorrection{
 		ID:             correctionID(issue.ID, correctionType),
@@ -345,14 +409,14 @@ func impactForCorrection(activity *strava.Activity, correction business.DataQual
 	after := cloneActivity(activity)
 	applyCorrectionToActivity(after, correction)
 	return business.DataQualityCorrectionImpact{
-		DistanceMetersBefore:  beforeDistance,
-		DistanceMetersAfter:   after.Distance,
-		ElevationMetersBefore: beforeElevation,
-		ElevationMetersAfter:  after.TotalElevationGain,
-		MaxSpeedBefore:        beforeMaxSpeed,
-		MaxSpeedAfter:         after.MaxSpeed,
-		DistanceDeltaMeters:   after.Distance - beforeDistance,
-		ElevationDeltaMeters:  after.TotalElevationGain - beforeElevation,
+		DistanceMetersBefore:  finiteOrZero(beforeDistance),
+		DistanceMetersAfter:   finiteOrZero(after.Distance),
+		ElevationMetersBefore: finiteOrZero(beforeElevation),
+		ElevationMetersAfter:  finiteOrZero(after.TotalElevationGain),
+		MaxSpeedBefore:        finiteOrZero(beforeMaxSpeed),
+		MaxSpeedAfter:         finiteOrZero(after.MaxSpeed),
+		DistanceDeltaMeters:   finiteOrZero(after.Distance) - finiteOrZero(beforeDistance),
+		ElevationDeltaMeters:  finiteOrZero(after.TotalElevationGain) - finiteOrZero(beforeElevation),
 	}
 }
 
@@ -372,6 +436,62 @@ func correctionLabel(correctionType business.DataQualityCorrectionType) string {
 	default:
 		return "Recalculate from stream"
 	}
+}
+
+func recomputeMotionModifiedFields(activity *strava.Activity) []string {
+	fields := []string{"stream.distance", "distance"}
+	if activity.MovingTime > 0 || activity.ElapsedTime > 0 {
+		fields = append(fields, "average_speed")
+	}
+	if canRecomputeVelocity(activity) {
+		fields = append(fields, "stream.velocitySmooth", "max_speed")
+	}
+	return fields
+}
+
+func fieldHasNonFiniteValue(activity *strava.Activity, field string) bool {
+	switch field {
+	case "distance":
+		return invalidFloat(activity.Distance)
+	case "average_speed":
+		return invalidFloat(activity.AverageSpeed)
+	case "max_speed":
+		return invalidFloat(activity.MaxSpeed)
+	case "total_elevation_gain":
+		return invalidFloat(activity.TotalElevationGain)
+	default:
+		return false
+	}
+}
+
+func canRecomputeDistance(activity *strava.Activity) bool {
+	stream := activity.Stream
+	return stream != nil && stream.LatLng != nil && len(stream.LatLng.Data) >= 2
+}
+
+func canRecomputeAverageSpeedFromSummary(activity *strava.Activity) bool {
+	return !invalidFloat(activity.Distance) && activity.Distance > 0 && (activity.MovingTime > 0 || activity.ElapsedTime > 0)
+}
+
+func canRecomputeAverageSpeedFromStream(activity *strava.Activity) bool {
+	return canRecomputeDistance(activity) && (activity.MovingTime > 0 || activity.ElapsedTime > 0)
+}
+
+func canRecomputeVelocity(activity *strava.Activity) bool {
+	stream := activity.Stream
+	return canRecomputeDistance(activity) && len(stream.Time.Data) >= 2
+}
+
+func canRecomputeElevation(activity *strava.Activity) bool {
+	stream := activity.Stream
+	return stream != nil && stream.Altitude != nil && len(stream.Altitude.Data) > 0
+}
+
+func finiteOrZero(value float64) float64 {
+	if invalidFloat(value) {
+		return 0
+	}
+	return value
 }
 
 func findIsolatedGPSOutlier(activity *strava.Activity) (int, bool) {
@@ -466,7 +586,89 @@ func applyCorrectionToActivity(activity *strava.Activity, correction business.Da
 			return
 		}
 		smoothAltitudePoint(activity, correction.PointIndexes[0])
+	case business.DataQualityCorrectionTypeRecalculateFromStream:
+		recalculateFromStream(activity, correction.ModifiedFields)
+	case business.DataQualityCorrectionTypeMaskInvalidValue:
+		maskInvalidValues(activity, correction.ModifiedFields)
 	}
+}
+
+func recalculateFromStream(activity *strava.Activity, fields []string) {
+	if shouldRecomputeDistance(fields) {
+		recomputeDistanceAndSpeed(activity)
+	} else {
+		if shouldRecomputeAverageSpeed(fields) {
+			recomputeAverageSpeed(activity)
+		}
+		if shouldRecomputeVelocity(fields) {
+			recomputeVelocity(activity)
+		}
+	}
+	if shouldRecomputeElevation(fields) {
+		recomputeElevation(activity)
+	}
+}
+
+func maskInvalidValues(activity *strava.Activity, fields []string) {
+	for _, field := range fields {
+		switch field {
+		case "distance":
+			if invalidFloat(activity.Distance) {
+				activity.Distance = 0
+			}
+		case "average_speed":
+			if invalidFloat(activity.AverageSpeed) {
+				activity.AverageSpeed = 0
+			}
+		case "max_speed":
+			if invalidFloat(activity.MaxSpeed) {
+				activity.MaxSpeed = 0
+			}
+		case "total_elevation_gain":
+			if invalidFloat(activity.TotalElevationGain) {
+				activity.TotalElevationGain = 0
+			}
+		}
+	}
+}
+
+func shouldRecomputeDistance(fields []string) bool {
+	for _, field := range fields {
+		switch field {
+		case "stream.distance", "distance":
+			return true
+		}
+	}
+	return false
+}
+
+func shouldRecomputeAverageSpeed(fields []string) bool {
+	for _, field := range fields {
+		if field == "average_speed" {
+			return true
+		}
+	}
+	return false
+}
+
+func shouldRecomputeVelocity(fields []string) bool {
+	for _, field := range fields {
+		switch field {
+		case "stream.velocitySmooth", "max_speed":
+			return true
+		}
+	}
+	return false
+}
+
+func shouldRecomputeElevation(fields []string) bool {
+	for _, field := range fields {
+		switch field {
+		case "stream.altitude", "total_elevation_gain", "elev_high":
+			return true
+		}
+	}
+	return false
 }
 
 func removeGPSPoint(activity *strava.Activity, index int) {
@@ -533,14 +735,18 @@ func recomputeDistanceAndSpeed(activity *strava.Activity) {
 	stream.Distance.OriginalSize = len(distances)
 	activity.Distance = distances[len(distances)-1]
 
+	recomputeAverageSpeed(activity)
+	recomputeVelocity(activity)
+}
+
+func recomputeAverageSpeed(activity *strava.Activity) {
 	movingTime := activity.MovingTime
 	if movingTime <= 0 {
 		movingTime = activity.ElapsedTime
 	}
-	if movingTime > 0 {
+	if movingTime > 0 && !invalidFloat(activity.Distance) {
 		activity.AverageSpeed = activity.Distance / float64(movingTime)
 	}
-	recomputeVelocity(activity)
 }
 
 func recomputeVelocity(activity *strava.Activity) {
