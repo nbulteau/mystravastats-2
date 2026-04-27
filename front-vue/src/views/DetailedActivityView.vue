@@ -33,10 +33,27 @@
           <div class="detail-hero__meta">
             <span class="detail-chip">{{ activityDateLabel }}</span>
             <span v-if="activity?.commute" class="detail-chip">Commute</span>
+            <span class="detail-chip detail-chip--active">{{ activityVersionLabel }}</span>
             <span class="detail-chip">{{ effortCountLabel }}</span>
           </div>
         </div>
         <div class="detail-hero__actions">
+          <div class="detail-version-toggle" aria-label="Activity data version">
+            <button
+              type="button"
+              :class="['btn btn-sm', activityVersion === 'corrected' ? 'btn-primary' : 'btn-outline-secondary']"
+              @click="switchActivityVersion('corrected')"
+            >
+              Corrected
+            </button>
+            <button
+              type="button"
+              :class="['btn btn-sm', activityVersion === 'raw' ? 'btn-primary' : 'btn-outline-secondary']"
+              @click="switchActivityVersion('raw')"
+            >
+              Raw
+            </button>
+          </div>
           <a
             :href="stravaActivityUrl"
             target="_blank"
@@ -242,6 +259,7 @@ const activityId = Array.isArray(route.params.id) ? route.params.id[0] : route.p
 
 
 const activity = ref<DetailedActivity | null>(null);
+const activityVersion = ref<"corrected" | "raw">("corrected");
 const loadError = ref<string | null>(null);
 const loadWarning = ref<string | null>(null);
 
@@ -298,6 +316,7 @@ const selectedEffortSummary = computed<SelectedEffortSummary | null>(() => {
 
 const stravaActivityUrl = computed(() => `https://www.strava.com/activities/${activity.value?.id ?? activityId ?? ""}`);
 const activityTypeLabel = computed(() => activity.value?.type ?? "Activity");
+const activityVersionLabel = computed(() => activityVersion.value === "corrected" ? "Corrected" : "Raw");
 
 const activityDateLabel = computed(() => {
   const rawDate = activity.value?.startDateLocal ?? activity.value?.startDate;
@@ -447,8 +466,8 @@ const buildRadioOptions = () => {
   }
 };
 
-async function fetchDetailedActivity(id: string) {
-  const url = `/api/activities/${id}`;
+async function fetchDetailedActivity(id: string, version: "corrected" | "raw" = activityVersion.value) {
+  const url = version === "raw" ? `/api/activities/${id}?version=raw` : `/api/activities/${id}`;
   const response = await fetch(url);
   if (!response.ok) {
     const apiMessage = await extractApiErrorMessage(response.clone());
@@ -461,8 +480,27 @@ async function fetchDetailedActivity(id: string) {
   }
   const detailed = (await response.json()) as DetailedActivity;
   activity.value = detailed;
+  activityVersion.value = version;
   loadError.value = null;
   loadWarning.value = getDetailedActivityWarning(detailed);
+}
+
+async function switchActivityVersion(version: "corrected" | "raw") {
+  if (version === activityVersion.value || !activityId) {
+    return;
+  }
+  try {
+    await fetchDetailedActivity(activityId, version);
+    clearSelectedEffort();
+    await nextTick();
+    updateMap();
+    initChart();
+    buildRadioOptions();
+  } catch (error) {
+    loadError.value = error instanceof Error && error.message
+      ? error.message
+      : "Unable to load this activity.";
+  }
 }
 
 async function extractApiErrorMessage(response: Response): Promise<string> {
@@ -1040,6 +1078,16 @@ watch([showPowerCurve, activity], () => {
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.detail-version-toggle {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.detail-version-toggle .btn {
+  min-height: 38px;
+  font-weight: 800;
 }
 
 .detail-btn-strava {

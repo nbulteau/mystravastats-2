@@ -39,6 +39,10 @@ type DetailedActivityReader interface {
 	FindDetailedActivityByID(activityID int64) (*strava.DetailedActivity, error)
 }
 
+type RawDetailedActivityReader interface {
+	FindRawDetailedActivityByID(activityID int64) (*strava.DetailedActivity, error)
+}
+
 // ActivitiesReader is an outbound port used by list activities use cases.
 // Infrastructure adapters implement this interface.
 type ActivitiesReader interface {

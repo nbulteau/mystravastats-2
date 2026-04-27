@@ -32,6 +32,11 @@ import me.nicolas.stravastats.domain.business.AnnualGoalTargets
 import me.nicolas.stravastats.domain.business.AnnualGoals
 import me.nicolas.stravastats.domain.business.DataQualityExclusion
 import me.nicolas.stravastats.domain.business.DataQualityExclusionRequest
+import me.nicolas.stravastats.domain.business.DataQualityCorrection
+import me.nicolas.stravastats.domain.business.DataQualityCorrectionBatchSummary
+import me.nicolas.stravastats.domain.business.DataQualityCorrectionImpact
+import me.nicolas.stravastats.domain.business.DataQualityCorrectionPreview
+import me.nicolas.stravastats.domain.business.DataQualityCorrectionSuggestion
 import me.nicolas.stravastats.domain.business.DataQualityIssue
 import me.nicolas.stravastats.domain.business.DataQualityReport
 import me.nicolas.stravastats.domain.business.DataQualitySummary
@@ -140,6 +145,11 @@ import org.springframework.boot.runApplication
         DataQualityIssue::class,
         DataQualityExclusion::class,
         DataQualityExclusionRequest::class,
+        DataQualityCorrection::class,
+        DataQualityCorrectionBatchSummary::class,
+        DataQualityCorrectionImpact::class,
+        DataQualityCorrectionPreview::class,
+        DataQualityCorrectionSuggestion::class,
         DataQualitySummary::class,
         DataQualityReport::class,
         GearAnalysis::class,

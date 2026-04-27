@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service
 
 interface IActivityService {
 
-    fun getDetailedActivity(activityId: Long): StravaDetailedActivity?
+    fun getDetailedActivity(activityId: Long, corrected: Boolean = true): StravaDetailedActivity?
 
     fun getActivitiesByActivityTypeAndYear(activityTypes: Set<ActivityType>, year: Int?): List<StravaActivity>
 
@@ -31,6 +31,7 @@ internal class ActivityService(
         logger.info("Get activities by activity type ($activityTypes) for ${year ?: "all years"}")
 
         return activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
+            .withDataQualityCorrections(activityProvider)
     }
 
     override fun exportCSV(activityTypes: Set<ActivityType>, year: Int?): String {
@@ -39,6 +40,7 @@ internal class ActivityService(
         val clientId = activityProvider.athlete().id.toString()
 
         val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
+            .withDataQualityCorrections(activityProvider)
 
         // activityTypes must not be empty, otherwise we cannot determine the activity type
         if (activityTypes.isEmpty()) {
@@ -70,8 +72,13 @@ internal class ActivityService(
         return exporter.export()
     }
 
-    override fun getDetailedActivity(activityId: Long): StravaDetailedActivity? {
+    override fun getDetailedActivity(activityId: Long, corrected: Boolean): StravaDetailedActivity? {
         logger.info("Get detailed activity $activityId")
-        return activityProvider.getDetailedActivity(activityId)
+        val activity = activityProvider.getDetailedActivity(activityId)
+        return if (corrected) {
+            activity?.withDataQualityCorrections(activityProvider)
+        } else {
+            activity
+        }
     }
 }

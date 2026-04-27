@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { requestJson } from "@/stores/api";
-import type { DataQualityReport } from "@/models/data-quality.model";
+import type { DataQualityCorrectionPreview, DataQualityReport } from "@/models/data-quality.model";
 import type { HealthDetailsPayload } from "@/models/health.model";
 import type { SourceModePreview, SourceModePreviewRequest } from "@/models/source-mode.model";
 
@@ -101,6 +101,44 @@ export const useDiagnosticsStore = defineStore("diagnostics", {
       this.dataQualityReport = normalizeDataQualityReport(report);
       return this.dataQualityReport;
     },
+    async previewSafeCorrections(): Promise<DataQualityCorrectionPreview> {
+      return requestJson<DataQualityCorrectionPreview>("/api/data-quality/corrections/safe/preview", {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+    },
+    async applySafeCorrections(): Promise<DataQualityReport> {
+      const report = await requestJson<DataQualityReport>("/api/data-quality/corrections/safe", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+      this.dataQualityReport = normalizeDataQualityReport(report);
+      return this.dataQualityReport;
+    },
+    async applyCorrection(issueId: string): Promise<DataQualityReport> {
+      const report = await requestJson<DataQualityReport>(`/api/data-quality/corrections/${encodeURIComponent(issueId)}`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+      this.dataQualityReport = normalizeDataQualityReport(report);
+      return this.dataQualityReport;
+    },
+    async revertCorrection(correctionId: string): Promise<DataQualityReport> {
+      const report = await requestJson<DataQualityReport>(`/api/data-quality/corrections/${encodeURIComponent(correctionId)}`, {
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+      this.dataQualityReport = normalizeDataQualityReport(report);
+      return this.dataQualityReport;
+    },
   },
 });
 
@@ -111,6 +149,9 @@ function normalizeDataQualityReport(report: DataQualityReport): DataQualityRepor
     issueCount: 0,
     impactedActivities: 0,
     excludedActivities: 0,
+    correctionCount: 0,
+    safeCorrectionCount: 0,
+    manualReviewCount: 0,
     bySeverity: {},
     byCategory: {},
     topIssues: [],
@@ -118,13 +159,27 @@ function normalizeDataQualityReport(report: DataQualityReport): DataQualityRepor
   return {
     ...report,
     exclusions: report.exclusions ?? [],
+    corrections: (report.corrections ?? []).map((correction) => ({
+      ...correction,
+      pointIndexes: correction.pointIndexes ?? [],
+      modifiedFields: correction.modifiedFields ?? [],
+      impact: correction.impact ?? {
+        distanceDeltaMeters: 0,
+        elevationDeltaMeters: 0,
+      },
+    })),
     issues: (report.issues ?? []).map((issue) => ({
       ...issue,
       excludedFromStats: issue.excludedFromStats ?? false,
+      corrected: issue.corrected ?? false,
+      correction: issue.correction ?? null,
     })),
     summary: {
       ...summary,
       excludedActivities: summary.excludedActivities ?? 0,
+      correctionCount: summary.correctionCount ?? 0,
+      safeCorrectionCount: summary.safeCorrectionCount ?? 0,
+      manualReviewCount: summary.manualReviewCount ?? 0,
       bySeverity: summary.bySeverity ?? {},
       byCategory: summary.byCategory ?? {},
       topIssues: summary.topIssues ?? [],

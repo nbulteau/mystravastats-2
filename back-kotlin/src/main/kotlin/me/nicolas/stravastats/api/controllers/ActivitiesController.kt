@@ -117,8 +117,9 @@ class ActivitiesController(
     @GetMapping("/{activityId}")
     fun getDetailedActivity(
         @PathVariable activityId: Long,
+        @RequestParam(required = false) version: String?,
     ): DetailedActivityDto {
-        return (activityService.getDetailedActivity(activityId)
+        return (activityService.getDetailedActivity(activityId, corrected = version != "raw")
             ?: throw ResourceNotFoundException("StravaActivity id $activityId not found")).toDto()
     }
 }

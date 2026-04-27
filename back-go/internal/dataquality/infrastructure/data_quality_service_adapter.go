@@ -37,6 +37,26 @@ func (adapter *DataQualityServiceAdapter) IncludeActivityInStats(activityID int6
 	return includeCurrentProviderActivityInStats(activityID)
 }
 
+func (adapter *DataQualityServiceAdapter) PreviewCorrection(issueID string) (business.DataQualityCorrectionPreview, error) {
+	return CurrentProviderCorrectionPreview(issueID)
+}
+
+func (adapter *DataQualityServiceAdapter) PreviewSafeCorrections() business.DataQualityCorrectionPreview {
+	return CurrentProviderSafeCorrectionPreview()
+}
+
+func (adapter *DataQualityServiceAdapter) ApplyCorrection(issueID string) (business.DataQualityReport, error) {
+	return ApplyCurrentProviderCorrection(issueID)
+}
+
+func (adapter *DataQualityServiceAdapter) ApplySafeCorrections() (business.DataQualityReport, error) {
+	return ApplyCurrentProviderSafeCorrections()
+}
+
+func (adapter *DataQualityServiceAdapter) RevertCorrection(correctionID string) (business.DataQualityReport, error) {
+	return RevertCurrentProviderCorrection(correctionID)
+}
+
 func CurrentProviderReport() business.DataQualityReport {
 	provider := activityprovider.Get()
 	diagnostics := provider.CacheDiagnostics()
@@ -45,7 +65,9 @@ func CurrentProviderReport() business.DataQualityReport {
 
 	activities := provider.GetActivitiesByYearAndActivityTypes(nil, allActivityTypes()...)
 	exclusions := loadExclusions(provider.CacheRootPath(), provider.ClientID())
-	return AnalyzeActivities(source, sourcePath, activities, exclusions)
+	corrections := loadCorrections(provider.CacheRootPath(), provider.ClientID())
+	correctedActivities := ApplyCorrectionsToActivities(activities, corrections)
+	return AnalyzeActivitiesWithCorrections(source, sourcePath, correctedActivities, exclusions, corrections)
 }
 
 func AnalyzeLocalActivities(source string, sourcePath string, activities []*strava.Activity) business.DataQualityReport {
@@ -53,19 +75,28 @@ func AnalyzeLocalActivities(source string, sourcePath string, activities []*stra
 }
 
 func AnalyzeActivities(source string, sourcePath string, activities []*strava.Activity, exclusions []business.DataQualityExclusion) business.DataQualityReport {
+	return AnalyzeActivitiesWithCorrections(source, sourcePath, activities, exclusions, []business.DataQualityCorrection{})
+}
+
+func AnalyzeActivitiesWithCorrections(source string, sourcePath string, activities []*strava.Activity, exclusions []business.DataQualityExclusion, corrections []business.DataQualityCorrection) business.DataQualityReport {
 	source = strings.ToLower(strings.TrimSpace(source))
 	issues := make([]business.DataQualityIssue, 0)
 	exclusionsByID := exclusionsByActivityID(exclusions)
+	correctionsByIssue := activeCorrectionsByIssueID(corrections)
 	for _, activity := range activities {
-		issues = append(issues, markIssueExclusions(analyzeActivity(source, sourcePath, activity), exclusionsByID)...)
+		activityIssues := analyzeActivity(source, sourcePath, activity)
+		activityIssues = markIssueExclusions(activityIssues, exclusionsByID)
+		activityIssues = markIssueCorrections(activityIssues, correctionsByIssue)
+		issues = append(issues, activityIssues...)
 	}
 
 	sortIssues(issues)
 	return business.DataQualityReport{
 		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
-		Summary:     buildSummary(source, issues, exclusions),
+		Summary:     buildSummary(source, issues, exclusions, corrections),
 		Issues:      issues,
 		Exclusions:  sortedExclusions(exclusionsByID),
+		Corrections: sortedCorrections(corrections),
 	}
 }
 
@@ -120,7 +151,7 @@ func analyzeActivity(source string, sourcePath string, activity *strava.Activity
 	issues = append(issues, analyzeStreamPresence(source, sourcePath, activity)...)
 	issues = append(issues, analyzeGPSGlitch(source, sourcePath, activity)...)
 	issues = append(issues, analyzeAltitudeSpike(source, sourcePath, activity)...)
-	return issues
+	return annotateCorrectionSuggestions(activity, issues)
 }
 
 func analyzeStreamPresence(source string, sourcePath string, activity *strava.Activity) []business.DataQualityIssue {
@@ -238,7 +269,7 @@ func analyzeAltitudeSpike(source string, sourcePath string, activity *strava.Act
 	return nil
 }
 
-func buildSummary(provider string, issues []business.DataQualityIssue, exclusions []business.DataQualityExclusion) business.DataQualitySummary {
+func buildSummary(provider string, issues []business.DataQualityIssue, exclusions []business.DataQualityExclusion, corrections []business.DataQualityCorrection) business.DataQualitySummary {
 	bySeverity := map[string]int{
 		string(business.DataQualitySeverityCritical): 0,
 		string(business.DataQualitySeverityWarning):  0,
@@ -246,12 +277,22 @@ func buildSummary(provider string, issues []business.DataQualityIssue, exclusion
 	}
 	byCategory := make(map[string]int)
 	impactedActivities := make(map[int64]struct{})
+	safeCorrectionCount := 0
+	manualReviewCount := 0
 
 	for _, issue := range issues {
 		bySeverity[string(issue.Severity)]++
 		byCategory[string(issue.Category)]++
 		if issue.ActivityID != 0 {
 			impactedActivities[issue.ActivityID] = struct{}{}
+		}
+		if issue.Correction == nil || !issue.Correction.Available {
+			continue
+		}
+		if issue.Correction.Safety == business.DataQualityCorrectionSafetySafe {
+			safeCorrectionCount++
+		} else if issue.Correction.Safety == business.DataQualityCorrectionSafetyManual {
+			manualReviewCount++
 		}
 	}
 
@@ -269,14 +310,17 @@ func buildSummary(provider string, issues []business.DataQualityIssue, exclusion
 	copy(topIssues, issues[:topIssueCount])
 
 	return business.DataQualitySummary{
-		Status:             status,
-		Provider:           provider,
-		IssueCount:         len(issues),
-		ImpactedActivities: len(impactedActivities),
-		ExcludedActivities: len(exclusionsByActivityID(exclusions)),
-		BySeverity:         bySeverity,
-		ByCategory:         byCategory,
-		TopIssues:          topIssues,
+		Status:              status,
+		Provider:            provider,
+		IssueCount:          len(issues),
+		ImpactedActivities:  len(impactedActivities),
+		ExcludedActivities:  len(exclusionsByActivityID(exclusions)),
+		CorrectionCount:     len(activeCorrections(corrections)),
+		SafeCorrectionCount: safeCorrectionCount,
+		ManualReviewCount:   manualReviewCount,
+		BySeverity:          bySeverity,
+		ByCategory:          byCategory,
+		TopIssues:           topIssues,
 	}
 }
 
@@ -288,6 +332,34 @@ func markIssueExclusions(issues []business.DataQualityIssue, exclusions map[int6
 		}
 	}
 	return issues
+}
+
+func markIssueCorrections(issues []business.DataQualityIssue, corrections map[string]business.DataQualityCorrection) []business.DataQualityIssue {
+	for index := range issues {
+		if correction, corrected := corrections[issues[index].ID]; corrected {
+			issues[index].Corrected = true
+			issues[index].CorrectionAppliedAt = correction.AppliedAt
+		}
+	}
+	return issues
+}
+
+func annotateCorrectionSuggestions(activity *strava.Activity, issues []business.DataQualityIssue) []business.DataQualityIssue {
+	for index := range issues {
+		issues[index].Correction = correctionSuggestionForIssue(activity, issues[index])
+	}
+	return issues
+}
+
+func activeCorrectionsByIssueID(corrections []business.DataQualityCorrection) map[string]business.DataQualityCorrection {
+	result := make(map[string]business.DataQualityCorrection)
+	for _, correction := range activeCorrections(corrections) {
+		if correction.IssueID == "" {
+			continue
+		}
+		result[correction.IssueID] = correction
+	}
+	return result
 }
 
 func newIssue(source string, sourcePath string, activity *strava.Activity, severity business.DataQualitySeverity, category business.DataQualityCategory, field string, message string, rawValue string, suggestion string) business.DataQualityIssue {

@@ -12,6 +12,7 @@ import me.nicolas.stravastats.api.dto.MapTrackDto
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.services.dataQualityExcludedActivityIds
+import me.nicolas.stravastats.domain.services.withDataQualityCorrections
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
@@ -64,6 +65,7 @@ class MapsController(
         val activityTypes = activityType.convertToActivityTypeSet()
 
         val activities = stravaProxy.getActivitiesByActivityTypeAndYear(activityTypes, year)
+            .withDataQualityCorrections(stravaProxy)
 
         // Keep enough points to render smooth tracks while avoiding huge payloads.
         val step = year?.let { 10 } ?: 100
@@ -97,6 +99,7 @@ class MapsController(
     ): MapPassagesDto {
         val activityTypes = activityType.convertToActivityTypeSet()
         val activities = stravaProxy.getActivitiesByActivityTypeAndYear(activityTypes, year)
+            .withDataQualityCorrections(stravaProxy)
         val excludedIds = dataQualityExcludedActivityIds(stravaProxy)
         return buildPassages(
             activities = activities.filterNot { activity -> excludedIds.contains(activity.id) },

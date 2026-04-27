@@ -7,6 +7,7 @@ import (
 	"log"
 	"mystravastats/api/dto"
 	activitiesDomain "mystravastats/internal/activities/domain"
+	"mystravastats/internal/shared/domain/strava"
 	"net/http"
 	"strconv"
 
@@ -65,7 +66,13 @@ func getDetailedActivity(writer http.ResponseWriter, request *http.Request) {
 		writeBadRequest(writer, "Invalid request parameters", "invalid activityId")
 		return
 	}
-	activity, err := getContainer().getDetailedActivityUseCase.Execute(activityId)
+	rawVersion := request.URL.Query().Get("version") == "raw"
+	var detailedActivity *strava.DetailedActivity
+	if rawVersion {
+		detailedActivity, err = getContainer().getDetailedActivityUseCase.ExecuteRaw(activityId)
+	} else {
+		detailedActivity, err = getContainer().getDetailedActivityUseCase.Execute(activityId)
+	}
 	if err != nil {
 		if errors.Is(err, activitiesDomain.ErrInvalidActivityID) {
 			writeBadRequest(writer, "Invalid request parameters", "activityId must be > 0")
@@ -75,7 +82,7 @@ func getDetailedActivity(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	detailedActivityDto := dto.ToDetailedActivityDto(activity)
+	detailedActivityDto := dto.ToDetailedActivityDto(detailedActivity)
 	if err := writeJSON(writer, http.StatusOK, detailedActivityDto); err != nil {
 		log.Printf("failed to write detailed activity response: %v", err)
 		writeInternalServerError(writer, "Failed to encode detailed activity response")

@@ -58,6 +58,7 @@ class RouteExplorerService(
         request: RouteExplorerRequest,
     ): RouteExplorerResult {
         val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
+            .withDataQualityCorrections(activityProvider)
         val candidates = buildRouteCandidates(activities)
         val limit = normalizeLimit(request.limit)
         val generatedWithoutCache = buildRoadGraphRecommendationsFromEngine(

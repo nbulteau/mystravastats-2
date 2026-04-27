@@ -5,7 +5,7 @@ import { useDiagnosticsStore } from "@/stores/diagnostics";
 import { useUiStore } from "@/stores/ui";
 import TooltipHint from "@/components/TooltipHint.vue";
 import { ToastTypeEnum } from "@/models/toast.model";
-import type { DataQualityIssue, DataQualitySummary } from "@/models/data-quality.model";
+import type { DataQualityCorrection, DataQualityIssue, DataQualitySummary } from "@/models/data-quality.model";
 import type { HealthRecord } from "@/models/health.model";
 import type { SourceMode } from "@/models/source-mode.model";
 import { RouterLink } from "vue-router";
@@ -17,6 +17,8 @@ const showRawPayload = ref(false);
 const sourceModePathEdited = ref(false);
 const sourceModeInitialized = ref(false);
 const qualityActionActivityId = ref<number | null>(null);
+const qualityActionIssueId = ref<string | null>(null);
+const qualityBatchActionInProgress = ref(false);
 const showAllDataQualityIssues = ref(false);
 const dataQualityPreviewLimit = 12;
 const selectedSourceMode = ref<SourceMode>("STRAVA");
@@ -51,6 +53,8 @@ const dataQualitySummary = computed<DataQualitySummary | null>(() => {
   return normalizeDataQualitySummary(root.value.dataQuality);
 });
 const dataQualityIssues = computed<DataQualityIssue[]>(() => diagnosticsStore.dataQualityReport?.issues ?? dataQualitySummary.value?.topIssues ?? []);
+const dataQualityCorrections = computed<DataQualityCorrection[]>(() => diagnosticsStore.dataQualityReport?.corrections ?? []);
+const activeDataQualityCorrections = computed(() => dataQualityCorrections.value.filter((correction) => correction.status !== "reverted"));
 const hasFullDataQualityReport = computed(() => diagnosticsStore.dataQualityReport !== null);
 const displayedDataQualityIssues = computed(() => {
   if (showAllDataQualityIssues.value) {
@@ -94,6 +98,8 @@ const dataQualityStats = computed(() => {
     { label: "Total issues", value: formatInteger(summary?.issueCount ?? 0), tone: hasActionableFindings ? "warn" : "neutral" },
     { label: "Affected activities", value: formatInteger(summary?.impactedActivities ?? 0), tone: hasActionableFindings ? "warn" : "neutral" },
     { label: "Excluded from stats", value: formatInteger(summary?.excludedActivities ?? 0), tone: (summary?.excludedActivities ?? 0) > 0 ? "warn" : "neutral" },
+    { label: "Safe fixes", value: formatInteger(summary?.safeCorrectionCount ?? 0), tone: (summary?.safeCorrectionCount ?? 0) > 0 ? "warn" : "neutral" },
+    { label: "Active fixes", value: formatInteger(summary?.correctionCount ?? activeDataQualityCorrections.value.length), tone: activeDataQualityCorrections.value.length > 0 ? "warn" : "neutral" },
     { label: "Critical issues", value: formatInteger(criticalCount), tone: criticalCount > 0 ? "down" : "neutral" },
     { label: "Warning issues", value: formatInteger(warningCount), tone: warningCount > 0 ? "warn" : "neutral" },
     { label: "Info issues", value: formatInteger(infoCount), tone: "neutral" },
@@ -504,6 +510,18 @@ function formatInteger(value: number | null): string {
   return new Intl.NumberFormat().format(value);
 }
 
+function formatSignedMeters(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "n/a";
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toFixed(0)} m`;
+}
+
+function formatSignedDistance(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "n/a";
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${(value / 1000).toFixed(2)} km`;
+}
+
 function statusClass(status: string): string {
   if (status === "up") return "status-chip status-chip--up";
   if (status === "disabled") return "status-chip status-chip--neutral";
@@ -582,6 +600,16 @@ function formatDataQualityCategory(value: string): string {
   return labels[value] || value;
 }
 
+function correctionLabel(value: string): string {
+  const labels: Record<string, string> = {
+    REMOVE_GPS_POINT: "Remove GPS point",
+    SMOOTH_ALTITUDE_SPIKE: "Smooth altitude spike",
+    MASK_INVALID_VALUE: "Mask invalid value",
+    RECALCULATE_FROM_STREAM: "Recalculate from stream",
+  };
+  return labels[value] || value;
+}
+
 function dataQualityCategoryTooltip(value: string): string {
   const descriptions: Record<string, string> = {
     INVALID_FILE: "The source file could not be parsed reliably or contains an unsupported payload.",
@@ -656,6 +684,96 @@ async function toggleStatsExclusion(issue: DataQualityIssue) {
     });
   } finally {
     qualityActionActivityId.value = null;
+  }
+}
+
+async function applyIssueCorrection(issue: DataQualityIssue) {
+  if (!issue.correction?.available || issue.correction.safety !== "safe") {
+    return;
+  }
+  qualityActionIssueId.value = issue.id;
+  try {
+    await diagnosticsStore.applyCorrection(issue.id);
+    uiStore.showToast({
+      id: `quality-fix-${Date.now()}`,
+      type: ToastTypeEnum.NORMAL,
+      message: "Local correction applied.",
+      timeout: 2600,
+    });
+  } catch (error) {
+    uiStore.showToast({
+      id: `quality-fix-failed-${Date.now()}`,
+      type: ToastTypeEnum.WARN,
+      message: error instanceof Error ? error.message : "Unable to apply local correction.",
+      timeout: 3600,
+    });
+  } finally {
+    qualityActionIssueId.value = null;
+  }
+}
+
+async function applySafeCorrections() {
+  qualityBatchActionInProgress.value = true;
+  try {
+    const preview = await diagnosticsStore.previewSafeCorrections();
+    if (preview.summary.safeCorrectionCount <= 0) {
+      uiStore.showToast({
+        id: `quality-fix-empty-${Date.now()}`,
+        type: ToastTypeEnum.NORMAL,
+        message: "No safe local correction available.",
+        timeout: 2600,
+      });
+      return;
+    }
+    const confirmed = window.confirm(
+      [
+        `${preview.summary.safeCorrectionCount} safe corrections on ${preview.summary.activityCount} activities.`,
+        `Distance delta: ${formatSignedDistance(preview.summary.distanceDeltaMeters)}.`,
+        `Elevation delta: ${formatSignedMeters(preview.summary.elevationDeltaMeters)}.`,
+        preview.summary.potentiallyImpactsRecords ? "Records and statistics may change." : "",
+      ].filter(Boolean).join("\n"),
+    );
+    if (!confirmed) {
+      return;
+    }
+    await diagnosticsStore.applySafeCorrections();
+    uiStore.showToast({
+      id: `quality-fix-batch-${Date.now()}`,
+      type: ToastTypeEnum.NORMAL,
+      message: "Safe local corrections applied.",
+      timeout: 2800,
+    });
+  } catch (error) {
+    uiStore.showToast({
+      id: `quality-fix-batch-failed-${Date.now()}`,
+      type: ToastTypeEnum.WARN,
+      message: error instanceof Error ? error.message : "Unable to apply safe corrections.",
+      timeout: 3600,
+    });
+  } finally {
+    qualityBatchActionInProgress.value = false;
+  }
+}
+
+async function revertCorrection(correction: DataQualityCorrection) {
+  qualityActionIssueId.value = correction.issueId;
+  try {
+    await diagnosticsStore.revertCorrection(correction.id);
+    uiStore.showToast({
+      id: `quality-revert-${Date.now()}`,
+      type: ToastTypeEnum.NORMAL,
+      message: "Local correction reverted.",
+      timeout: 2600,
+    });
+  } catch (error) {
+    uiStore.showToast({
+      id: `quality-revert-failed-${Date.now()}`,
+      type: ToastTypeEnum.WARN,
+      message: error instanceof Error ? error.message : "Unable to revert local correction.",
+      timeout: 3600,
+    });
+  } finally {
+    qualityActionIssueId.value = null;
   }
 }
 
@@ -1049,18 +1167,30 @@ async function previewSourceMode() {
                 <strong>Issue list</strong>
                 <small>{{ dataQualityIssueListLabel }}</small>
               </div>
-              <button
-                v-if="canToggleDataQualityIssues"
-                type="button"
-                class="btn btn-sm btn-outline-secondary"
-                @click="showAllDataQualityIssues = !showAllDataQualityIssues"
-              >
-                <i
-                  :class="showAllDataQualityIssues ? 'fa-solid fa-compress' : 'fa-solid fa-list'"
-                  aria-hidden="true"
-                />
-                {{ showAllDataQualityIssues ? `Show top ${dataQualityPreviewLimit}` : "Show all" }}
-              </button>
+              <div class="quality-table-actions">
+                <button
+                  v-if="(dataQualitySummary.safeCorrectionCount ?? 0) > 0"
+                  type="button"
+                  class="btn btn-sm btn-primary"
+                  :disabled="qualityBatchActionInProgress"
+                  @click="applySafeCorrections"
+                >
+                  <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true" />
+                  Fix safe issues
+                </button>
+                <button
+                  v-if="canToggleDataQualityIssues"
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  @click="showAllDataQualityIssues = !showAllDataQualityIssues"
+                >
+                  <i
+                    :class="showAllDataQualityIssues ? 'fa-solid fa-compress' : 'fa-solid fa-list'"
+                    aria-hidden="true"
+                  />
+                  {{ showAllDataQualityIssues ? `Show top ${dataQualityPreviewLimit}` : "Show all" }}
+                </button>
+              </div>
             </div>
             <div class="quality-row quality-row--head">
               <span>Severity</span>
@@ -1092,9 +1222,25 @@ async function previewSourceMode() {
                   <TooltipHint :text="dataQualityCategoryTooltip(issue.category)" />
                 </strong>
                 <small>{{ issue.message }}</small>
+                <small
+                  v-if="issue.correction?.available"
+                  :class="['quality-correction-chip', `quality-correction-chip--${issue.correction.safety}`]"
+                >
+                  {{ issue.correction.safety === "safe" ? "Safe local fix" : "Manual review" }}
+                </small>
               </span>
               <span class="monospace">{{ issue.rawValue || issue.field }}</span>
               <span class="quality-action-cell">
+                <button
+                  v-if="issue.correction?.available && issue.correction.safety === 'safe'"
+                  type="button"
+                  class="btn btn-sm btn-outline-primary"
+                  :disabled="qualityActionIssueId === issue.id"
+                  @click="applyIssueCorrection(issue)"
+                >
+                  <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true" />
+                  Fix
+                </button>
                 <button
                   v-if="issue.activityId"
                   type="button"
@@ -1115,7 +1261,46 @@ async function previewSourceMode() {
           </div>
 
           <div
-            v-else
+            v-if="activeDataQualityCorrections.length > 0"
+            class="quality-corrections"
+          >
+            <div class="quality-table-toolbar">
+              <div>
+                <strong>Local corrections</strong>
+                <small>{{ formatInteger(activeDataQualityCorrections.length) }} active</small>
+              </div>
+            </div>
+            <div
+              v-for="correction in activeDataQualityCorrections"
+              :key="correction.id"
+              class="quality-correction-row"
+            >
+              <span>
+                <strong>{{ correction.activityName || correction.activityId }}</strong>
+                <small>{{ [correction.activityType, correction.year].filter(Boolean).join(" · ") }}</small>
+              </span>
+              <span>
+                {{ correctionLabel(correction.type) }}
+                <small>{{ correction.modifiedFields.join(", ") }}</small>
+              </span>
+              <span>
+                {{ formatSignedDistance(correction.impact.distanceDeltaMeters) }}
+                <small>{{ formatSignedMeters(correction.impact.elevationDeltaMeters) }}</small>
+              </span>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary"
+                :disabled="qualityActionIssueId === correction.issueId"
+                @click="revertCorrection(correction)"
+              >
+                <i class="fa-solid fa-rotate-left" aria-hidden="true" />
+                Undo
+              </button>
+            </div>
+          </div>
+
+          <div
+            v-if="dataQualityIssues.length === 0"
             class="quality-empty"
           >
             {{ dataQualitySummary.status === "not_applicable" ? "Local data quality checks are available in FIT or GPX mode." : "No local data quality issue detected." }}
@@ -1963,6 +2148,13 @@ dd {
   white-space: nowrap;
 }
 
+.quality-table-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .quality-row {
   display: grid;
   grid-template-columns: minmax(88px, 0.55fr) minmax(180px, 1.1fr) minmax(240px, 1.5fr) minmax(110px, 0.8fr) minmax(220px, 1.3fr);
@@ -1990,6 +2182,29 @@ dd {
   margin-top: 2px;
   color: var(--ms-text-muted);
   font-size: 0.78rem;
+}
+
+.quality-correction-chip {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 22px;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.quality-correction-chip--safe {
+  border: 1px solid #9ec9aa;
+  background: #edf8ef;
+  color: #176a37;
+}
+
+.quality-correction-chip--manual {
+  border: 1px solid #f3d17e;
+  background: #fff8e3;
+  color: #805d05;
 }
 
 .quality-activity-link {
@@ -2045,6 +2260,44 @@ dd {
   gap: 6px;
   min-height: 30px;
   font-weight: 800;
+}
+
+.quality-corrections {
+  display: grid;
+  gap: 1px;
+  overflow-x: auto;
+  border: 1px solid var(--ms-border);
+  border-radius: 8px;
+}
+
+.quality-correction-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 1fr) minmax(110px, 0.6fr) minmax(90px, 0.35fr);
+  gap: 10px;
+  min-width: 760px;
+  padding: 9px 10px;
+  background: #ffffff;
+}
+
+.quality-correction-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.quality-correction-row small {
+  display: block;
+  margin-top: 2px;
+  color: var(--ms-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.quality-correction-row .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  width: fit-content;
 }
 
 .quality-empty {

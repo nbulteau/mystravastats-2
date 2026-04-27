@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	dataqualityInfra "mystravastats/internal/dataquality/infrastructure"
 	"mystravastats/internal/platform/activityprovider"
 	routeApp "mystravastats/internal/routes/application"
 	routesDomain "mystravastats/internal/routes/domain"
@@ -26,7 +27,7 @@ func (adapter *RouteServiceAdapter) FindRouteExplorerByYearAndTypes(
 	request routesDomain.RouteExplorerRequest,
 	activityTypes ...business.ActivityType,
 ) routesDomain.RouteExplorerResult {
-	activities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	activities := dataqualityInfra.ApplyCurrentProviderCorrections(activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...))
 	result := computeRouteExplorerFromActivities(activities, request)
 
 	if adapter.routingEngine == nil || request.StartPoint == nil {

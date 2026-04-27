@@ -147,6 +147,53 @@ func TestAnalyzeActivitiesMarksExcludedIssues(t *testing.T) {
 	}
 }
 
+func TestAnalyzeLocalActivitiesAddsSafeCorrectionSuggestions(t *testing.T) {
+	activity := &strava.Activity{
+		Id:                 77,
+		Name:               "Correctable ride",
+		Type:               "Ride",
+		SportType:          "Ride",
+		Distance:           1000,
+		ElapsedTime:        600,
+		MovingTime:         600,
+		TotalElevationGain: 250,
+		StartDateLocal:     "2026-04-26T08:00:00Z",
+		Stream: &strava.Stream{
+			Distance: strava.DistanceStream{Data: []float64{0, 500, 1000}},
+			Time:     strava.TimeStream{Data: []int{0, 5, 10}},
+			LatLng: &strava.LatLngStream{Data: [][]float64{
+				{48.0, -1.0},
+				{49.0, -1.0},
+				{48.0001, -1.0},
+			}},
+			Altitude: &strava.AltitudeStream{Data: []float64{100, 320, 101}},
+		},
+	}
+
+	report := AnalyzeLocalActivities("fit", "/tmp/fit", []*strava.Activity{activity})
+
+	gpsIssue := findDataQualityIssue(report.Issues, business.DataQualityCategoryGPSGlitch)
+	if gpsIssue == nil || gpsIssue.Correction == nil || gpsIssue.Correction.Safety != business.DataQualityCorrectionSafetySafe {
+		t.Fatalf("expected GPS glitch to expose a safe correction, got %+v", gpsIssue)
+	}
+	altitudeIssue := findDataQualityIssue(report.Issues, business.DataQualityCategoryAltitudeSpike)
+	if altitudeIssue == nil || altitudeIssue.Correction == nil || altitudeIssue.Correction.Safety != business.DataQualityCorrectionSafetySafe {
+		t.Fatalf("expected altitude spike to expose a safe correction, got %+v", altitudeIssue)
+	}
+	if report.Summary.SafeCorrectionCount != 2 {
+		t.Fatalf("expected two safe corrections, got %d", report.Summary.SafeCorrectionCount)
+	}
+}
+
+func findDataQualityIssue(issues []business.DataQualityIssue, category business.DataQualityCategory) *business.DataQualityIssue {
+	for index := range issues {
+		if issues[index].Category == category {
+			return &issues[index]
+		}
+	}
+	return nil
+}
+
 func completeStream() *strava.Stream {
 	return &strava.Stream{
 		Distance: strava.DistanceStream{Data: []float64{0, 5000, 10000}},

@@ -13,6 +13,7 @@ import me.nicolas.stravastats.domain.business.strava.stream.TimeStream
 import me.nicolas.stravastats.domain.services.activityproviders.ActivityProviderCacheIdentity
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -115,6 +116,40 @@ class DataQualityServiceTest {
         val included = service.includeActivityInStats(activity.id)
         assertEquals(0, included.summary.excludedActivities)
         assertTrue(included.issues.none { issue -> issue.excludedFromStats })
+    }
+
+    @Test
+    fun `getReport exposes safe correction suggestions for isolated GPS and altitude issues`() {
+        val activity = dataQualityActivity(
+            stream = Stream(
+                distance = DistanceStream(listOf(0.0, 500.0, 1_000.0), 3, "high", "distance"),
+                time = TimeStream(listOf(0, 5, 10), 3, "high", "time"),
+                latlng = LatLngStream(
+                    listOf(
+                        listOf(48.0, -1.0),
+                        listOf(49.0, -1.0),
+                        listOf(48.0001, -1.0),
+                    ),
+                    3,
+                    "high",
+                    "time",
+                ),
+                altitude = AltitudeStream(listOf(100.0, 320.0, 101.0), 3, "high", "altitude"),
+            )
+        )
+        every { activityProvider.getCacheDiagnostics() } returns mapOf("provider" to "fit", "fitDirectory" to "/tmp/fit")
+        every { activityProvider.cacheIdentity() } returns null
+        every { activityProvider.getActivitiesByActivityTypeAndYear(ActivityType.values().toSet(), null) } returns listOf(activity)
+
+        val report = DataQualityService(activityProvider).getReport()
+
+        val gpsIssue = report.issues.firstOrNull { issue -> issue.category == "GPS_GLITCH" }
+        val altitudeIssue = report.issues.firstOrNull { issue -> issue.category == "ALTITUDE_SPIKE" }
+        assertNotNull(gpsIssue)
+        assertEquals("safe", gpsIssue?.correction?.safety)
+        assertNotNull(altitudeIssue)
+        assertEquals("safe", altitudeIssue?.correction?.safety)
+        assertEquals(2, report.summary.safeCorrectionCount)
     }
 
     private fun dataQualityActivity(stream: Stream?): StravaActivity =

@@ -5,6 +5,7 @@ import (
 	"log"
 	"math"
 	"mystravastats/domain/statistics"
+	dataqualityInfra "mystravastats/internal/dataquality/infrastructure"
 	"mystravastats/internal/platform/activityprovider"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
@@ -19,7 +20,7 @@ func computeExportCSVByYearAndTypes(year *int, activityTypes ...business.Activit
 		log.Printf("Get export CSV by activity (%s) type by year (%d)", activityTypes, *year)
 	}
 
-	activities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	activities := dataqualityInfra.ApplyCurrentProviderCorrections(activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...))
 
 	switch activityTypes[0] {
 	case business.Ride, business.VirtualRide, business.MountainBikeRide, business.GravelRide, business.Commute:

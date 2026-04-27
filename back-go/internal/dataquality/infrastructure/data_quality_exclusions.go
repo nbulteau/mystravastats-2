@@ -31,13 +31,14 @@ func FilterExcludedFromStats(activities []*strava.Activity) []*strava.Activity {
 		return []*strava.Activity{}
 	}
 
+	correctedActivities := ApplyCurrentProviderCorrections(activities)
 	exclusions := CurrentProviderExclusions()
 	if len(exclusions) == 0 {
-		return cloneDataQualityActivityPointers(activities)
+		return correctedActivities
 	}
 
-	filtered := make([]*strava.Activity, 0, len(activities))
-	for _, activity := range activities {
+	filtered := make([]*strava.Activity, 0, len(correctedActivities))
+	for _, activity := range correctedActivities {
 		if activity == nil {
 			continue
 		}

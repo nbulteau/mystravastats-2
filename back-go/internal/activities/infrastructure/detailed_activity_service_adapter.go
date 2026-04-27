@@ -19,6 +19,14 @@ func NewDetailedActivityServiceAdapter() *DetailedActivityServiceAdapter {
 }
 
 func (adapter *DetailedActivityServiceAdapter) FindDetailedActivityByID(activityID int64) (*strava.DetailedActivity, error) {
+	detailedActivity, err := adapter.FindRawDetailedActivityByID(activityID)
+	if err != nil {
+		return nil, err
+	}
+	return dataqualityInfra.ApplyCurrentProviderCorrectionsToDetailedActivity(detailedActivity), nil
+}
+
+func (adapter *DetailedActivityServiceAdapter) FindRawDetailedActivityByID(activityID int64) (*strava.DetailedActivity, error) {
 	detailedActivity := activityprovider.Get().GetDetailedActivity(activityID)
 	if detailedActivity == nil {
 		return nil, fmt.Errorf("activity %d not found", activityID)
@@ -27,7 +35,7 @@ func (adapter *DetailedActivityServiceAdapter) FindDetailedActivityByID(activity
 }
 
 func (adapter *DetailedActivityServiceAdapter) FindActivitiesByYearAndTypes(year *int, activityTypes ...business.ActivityType) []*strava.Activity {
-	return activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	return dataqualityInfra.ApplyCurrentProviderCorrections(activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...))
 }
 
 func (adapter *DetailedActivityServiceAdapter) ExportCSVByYearAndTypes(year *int, activityTypes ...business.ActivityType) string {
@@ -35,7 +43,7 @@ func (adapter *DetailedActivityServiceAdapter) ExportCSVByYearAndTypes(year *int
 }
 
 func (adapter *DetailedActivityServiceAdapter) FindGPXByYearAndTypes(year *int, activityTypes ...business.ActivityType) []application.MapTrack {
-	activities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	activities := dataqualityInfra.ApplyCurrentProviderCorrections(activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...))
 
 	step := 100
 	if year != nil {
@@ -77,7 +85,7 @@ func (adapter *DetailedActivityServiceAdapter) FindGPXByYearAndTypes(year *int, 
 }
 
 func (adapter *DetailedActivityServiceAdapter) FindPassagesByYearAndTypes(year *int, activityTypes ...business.ActivityType) application.MapPassagesResponse {
-	activities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	activities := dataqualityInfra.ApplyCurrentProviderCorrections(activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...))
 	return computeMapPassagesWithOptions(activities, dataqualityInfra.CurrentProviderExclusions(), mapPassageOptionsForYear(year))
 }
 

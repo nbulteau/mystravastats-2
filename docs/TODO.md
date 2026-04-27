@@ -148,6 +148,12 @@
   - conserver les anomalies risquees dans une revue manuelle plutot que de les corriger via un bouton global,
   - conserver la distinction deja posee entre stream complet absent, champ de stream structurel manquant et simple couverture capteur optionnelle,
   - permettre d'annuler une correction et d'expliquer son impact sur les statistiques.
+  Avancement 2026-04-27:
+  - premiere tranche implementee cote Go/Kotlin/Front: corrections locales stockees hors source, journal actif, undo,
+  - corrections `safe` couvertes: suppression d'un point GPS aberrant isole et lissage d'un spike altitude isole,
+  - endpoints preview/apply batch `Fix safe issues`, action unitaire et `?version=raw` sur le detail activite,
+  - les surfaces de lecture principales appliquent la version corrigee par defaut, avec bascule brut/corrige dans le detail,
+  - reste a traiter: masquage/recalcul des valeurs invalides hors stream, revue manuelle plus riche et tests de contrat plus larges.
   Acceptance:
   - une anomalie peut etre corrigee localement sans modifier la source STRAVA/FIT/GPX,
   - l'utilisateur voit clairement quelle valeur originale est remplacee ou ignoree,

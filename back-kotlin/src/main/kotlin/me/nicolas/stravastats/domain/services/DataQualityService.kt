@@ -1,11 +1,18 @@
 package me.nicolas.stravastats.domain.services
 
 import me.nicolas.stravastats.domain.business.ActivityType
+import me.nicolas.stravastats.domain.business.DataQualityCorrection
+import me.nicolas.stravastats.domain.business.DataQualityCorrectionBatchSummary
+import me.nicolas.stravastats.domain.business.DataQualityCorrectionImpact
+import me.nicolas.stravastats.domain.business.DataQualityCorrectionPreview
+import me.nicolas.stravastats.domain.business.DataQualityCorrectionSuggestion
 import me.nicolas.stravastats.domain.business.DataQualityExclusion
 import me.nicolas.stravastats.domain.business.DataQualityIssue
 import me.nicolas.stravastats.domain.business.DataQualityReport
 import me.nicolas.stravastats.domain.business.DataQualitySummary
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
+import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
+import me.nicolas.stravastats.domain.business.strava.stream.SmoothVelocityStream
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import org.springframework.stereotype.Service
 import tools.jackson.databind.DeserializationFeature
@@ -25,6 +32,11 @@ interface IDataQualityService {
     fun getReport(): DataQualityReport
     fun excludeActivityFromStats(activityId: Long, reason: String?): DataQualityReport
     fun includeActivityInStats(activityId: Long): DataQualityReport
+    fun previewCorrection(issueId: String): DataQualityCorrectionPreview
+    fun previewSafeCorrections(): DataQualityCorrectionPreview
+    fun applyCorrection(issueId: String): DataQualityReport
+    fun applySafeCorrections(): DataQualityReport
+    fun revertCorrection(correctionId: String): DataQualityReport
 }
 
 @Service
@@ -65,7 +77,93 @@ class DataQualityService(
         return buildReport()
     }
 
+    override fun previewCorrection(issueId: String): DataQualityCorrectionPreview {
+        val normalizedIssueId = issueId.trim()
+        require(normalizedIssueId.isNotEmpty()) { "issueId must not be empty" }
+        val context = correctionContext()
+        val issue = context.report.issues.firstOrNull { it.id == normalizedIssueId }
+            ?: throw IllegalArgumentException("issue $normalizedIssueId not found")
+        val correction = buildCorrectionForIssue(issue.activityId?.let { context.activitiesById[it] }, issue)
+        val corrections = if (correction != null) listOf(correction) else emptyList()
+        val blockingReasons = if (correction == null) listOf("${issue.id} cannot be corrected automatically") else emptyList()
+        return DataQualityCorrectionPreview(
+            generatedAt = Instant.now().toString(),
+            mode = "single",
+            summary = summarizeCorrections(corrections, 0, blockingReasons.size),
+            corrections = corrections,
+            blockingReasons = blockingReasons,
+        )
+    }
+
+    override fun previewSafeCorrections(): DataQualityCorrectionPreview {
+        val context = correctionContext()
+        val corrections = mutableListOf<DataQualityCorrection>()
+        var manualReviewCount = 0
+        var unsupportedIssueCount = 0
+        val blockingReasons = mutableListOf<String>()
+        context.report.issues.forEach { issue ->
+            val correction = buildCorrectionForIssue(issue.activityId?.let { context.activitiesById[it] }, issue)
+            when {
+                correction?.safety == "safe" -> corrections += correction
+                correction?.safety == "manual" -> manualReviewCount++
+                else -> {
+                    unsupportedIssueCount++
+                    blockingReasons += "${issue.id} cannot be corrected automatically"
+                }
+            }
+        }
+        val deduped = corrections.associateBy { it.id }.values.sortedWith(correctionComparator())
+        return DataQualityCorrectionPreview(
+            generatedAt = Instant.now().toString(),
+            mode = "safe_batch",
+            summary = summarizeCorrections(deduped, manualReviewCount, unsupportedIssueCount),
+            corrections = deduped,
+            blockingReasons = blockingReasons,
+        )
+    }
+
+    override fun applyCorrection(issueId: String): DataQualityReport {
+        val preview = previewCorrection(issueId)
+        val correction = preview.corrections.firstOrNull()
+            ?: throw IllegalArgumentException("issue $issueId has no safe correction")
+        require(correction.safety == "safe") { "issue $issueId requires manual review" }
+        DataQualityCorrectionStorage.saveMerged(activityProvider, listOf(correction))
+        return buildReport()
+    }
+
+    override fun applySafeCorrections(): DataQualityReport {
+        val preview = previewSafeCorrections()
+        if (preview.corrections.isNotEmpty()) {
+            DataQualityCorrectionStorage.saveMerged(activityProvider, preview.corrections)
+        }
+        return buildReport()
+    }
+
+    override fun revertCorrection(correctionId: String): DataQualityReport {
+        val normalizedCorrectionId = correctionId.trim()
+        require(normalizedCorrectionId.isNotEmpty()) { "correctionId must not be empty" }
+        val corrections = DataQualityCorrectionStorage.load(activityProvider)
+        var found = false
+        val now = Instant.now().toString()
+        val updated = corrections.map { correction ->
+            if (correction.id == normalizedCorrectionId) {
+                found = true
+                correction.copy(status = "reverted", revertedAt = now)
+            } else {
+                correction
+            }
+        }
+        require(found) { "correction $normalizedCorrectionId not found" }
+        DataQualityCorrectionStorage.save(activityProvider, updated.sortedWith(correctionComparator()))
+        return buildReport()
+    }
+
     private fun buildReport(): DataQualityReport {
+        val context = correctionContext()
+        return context.report
+    }
+
+    private fun correctionContext(): CorrectionContext {
         val diagnostics = activityProvider.getCacheDiagnostics()
         val provider = diagnostics["provider"]?.toString()?.trim()?.lowercase().orEmpty()
         val sourcePath = listOfNotNull(
@@ -77,17 +175,26 @@ class DataQualityService(
 
         val activities = activityProvider.getActivitiesByActivityTypeAndYear(ActivityType.values().toSet(), null)
         val exclusions = DataQualityExclusionStorage.load(activityProvider)
+        val corrections = DataQualityCorrectionStorage.load(activityProvider)
+        val correctedActivities = activities.withDataQualityCorrections(corrections)
         val exclusionsById = exclusions.associateBy { exclusion -> exclusion.activityId }
-        val issues = activities
+        val correctionsByIssueId = corrections.active().associateBy { correction -> correction.issueId }
+        val issues = correctedActivities
             .flatMap { activity -> analyzeActivity(provider, sourcePath, activity) }
             .map { issue -> issue.markExcluded(exclusionsById) }
+            .map { issue -> issue.markCorrected(correctionsByIssueId) }
             .sortedWith(issueComparator())
 
-        return DataQualityReport(
+        val report = DataQualityReport(
             generatedAt = Instant.now().toString(),
-            summary = buildSummary(provider, issues, exclusions),
+            summary = buildSummary(provider, issues, exclusions, corrections),
             issues = issues,
             exclusions = exclusions.sortedWith(exclusionComparator()),
+            corrections = corrections.sortedWith(correctionComparator()),
+        )
+        return CorrectionContext(
+            report = report,
+            activitiesById = correctedActivities.associateBy { activity -> activity.id },
         )
     }
 
@@ -126,13 +233,13 @@ class DataQualityService(
         if (stream == null) {
             if (source == "strava" && activity.uploadId > 0) {
                 issues += issue(source, sourcePath, activity, "info", "MISSING_STREAM", "stream", "Detailed stream is missing from the local cache.", "", "Download missing streams from Strava when API access is available.")
-                return issues
+                return issues.withCorrectionSuggestions(activity)
             }
             if (source != "fit" && source != "gpx") {
-                return issues
+                return issues.withCorrectionSuggestions(activity)
             }
             issues += issue(source, sourcePath, activity, "warning", "MISSING_STREAM", "stream", "Activity has no stream data.", "", "Open the source file and verify GPS/time streams are present.")
-            return issues
+            return issues.withCorrectionSuggestions(activity)
         }
 
         if (stream.distance.data.isEmpty()) {
@@ -166,7 +273,7 @@ class DataQualityService(
 
         issues += analyzeGpsGlitch(source, sourcePath, activity)
         issues += analyzeAltitudeSpike(source, sourcePath, activity)
-        return issues
+        return issues.withCorrectionSuggestions(activity)
     }
 
     private fun analyzeDerivedSpeed(source: String, sourcePath: String, activity: StravaActivity): List<DataQualityIssue> {
@@ -231,7 +338,12 @@ class DataQualityService(
         return emptyList()
     }
 
-    private fun buildSummary(provider: String, issues: List<DataQualityIssue>, exclusions: List<DataQualityExclusion>): DataQualitySummary {
+    private fun buildSummary(
+        provider: String,
+        issues: List<DataQualityIssue>,
+        exclusions: List<DataQualityExclusion>,
+        corrections: List<DataQualityCorrection>,
+    ): DataQualitySummary {
         val bySeverity = mutableMapOf("critical" to 0, "warning" to 0, "info" to 0)
         issues.forEach { issue -> bySeverity[issue.severity] = (bySeverity[issue.severity] ?: 0) + 1 }
         val byCategory = issues.groupingBy { issue -> issue.category }.eachCount()
@@ -247,6 +359,9 @@ class DataQualityService(
             issueCount = issues.size,
             impactedActivities = issues.mapNotNull { issue -> issue.activityId }.distinct().size,
             excludedActivities = exclusions.map { exclusion -> exclusion.activityId }.distinct().size,
+            correctionCount = corrections.active().size,
+            safeCorrectionCount = issues.count { issue -> issue.correction?.let { it.available && it.safety == "safe" } == true },
+            manualReviewCount = issues.count { issue -> issue.correction?.let { it.available && it.safety == "manual" } == true },
             bySeverity = bySeverity,
             byCategory = byCategory,
             topIssues = issues.take(5),
@@ -287,6 +402,31 @@ class DataQualityService(
         return copy(excludedFromStats = true, excludedAt = exclusion.excludedAt)
     }
 
+    private fun DataQualityIssue.markCorrected(correctionsByIssueId: Map<String, DataQualityCorrection>): DataQualityIssue {
+        val correction = correctionsByIssueId[id] ?: return this
+        return copy(corrected = true, correctionAppliedAt = correction.appliedAt)
+    }
+
+    private fun List<DataQualityIssue>.withCorrectionSuggestions(activity: StravaActivity): List<DataQualityIssue> {
+        return map { issue -> issue.copy(correction = correctionSuggestionForIssue(activity, issue)) }
+    }
+
+    private fun correctionSuggestionForIssue(activity: StravaActivity, issue: DataQualityIssue): DataQualityCorrectionSuggestion {
+        val correction = buildCorrectionForIssue(activity, issue)
+            ?: return DataQualityCorrectionSuggestion(
+                available = false,
+                safety = "unsupported",
+                description = "No local non-destructive correction is available for this issue.",
+            )
+        return DataQualityCorrectionSuggestion(
+            available = true,
+            safety = correction.safety,
+            type = correction.type,
+            label = correctionLabel(correction.type),
+            description = correction.reason,
+        )
+    }
+
     private fun issueComparator(): Comparator<DataQualityIssue> =
         compareBy<DataQualityIssue> { severityRank(it.severity) }
             .thenByDescending { it.year.orEmpty() }
@@ -295,6 +435,12 @@ class DataQualityService(
     private fun exclusionComparator(): Comparator<DataQualityExclusion> =
         compareByDescending<DataQualityExclusion> { it.year.orEmpty() }
             .thenBy { it.activityId }
+
+    private fun correctionComparator(): Comparator<DataQualityCorrection> =
+        compareBy<DataQualityCorrection> { it.status }
+            .thenByDescending { it.year.orEmpty() }
+            .thenBy { it.activityId }
+            .thenBy { it.id }
 
     private fun severityRank(severity: String): Int = when (severity) {
         "critical" -> 0
@@ -333,15 +479,370 @@ class DataQualityService(
     }
 }
 
+private const val altitudeSpikeMeters = 120.0
+private const val altitudeSpikeSeconds = 15
+private const val altitudeSpikeInterpolationMaxNeighborDeltaMeters = 60.0
+
+private data class CorrectionContext(
+    val report: DataQualityReport,
+    val activitiesById: Map<Long, StravaActivity>,
+)
+
+private fun buildCorrectionForIssue(activity: StravaActivity?, issue: DataQualityIssue): DataQualityCorrection? {
+    if (activity == null || issue.activityId == null) return null
+    return when (issue.category) {
+        "GPS_GLITCH" -> {
+            val index = findIsolatedGpsOutlier(activity)
+            if (index == null) {
+                manualCorrection(issue, "GPS glitch is not isolated enough for a safe automatic fix.")
+            } else {
+                buildRemoveGpsPointCorrection(activity, issue, index)
+            }
+        }
+        "ALTITUDE_SPIKE" -> {
+            val index = findIsolatedAltitudeSpike(activity)
+            if (index == null) {
+                manualCorrection(issue, "Altitude spike is not isolated enough for a safe automatic fix.")
+            } else {
+                buildSmoothAltitudeCorrection(activity, issue, index)
+            }
+        }
+        else -> null
+    }
+}
+
+private fun buildRemoveGpsPointCorrection(activity: StravaActivity, issue: DataQualityIssue, index: Int): DataQualityCorrection {
+    val correction = baseCorrection(activity, issue, "REMOVE_GPS_POINT").copy(
+        pointIndexes = listOf(index),
+        modifiedFields = listOf("stream.latlng", "stream.distance", "stream.velocitySmooth", "distance", "average_speed", "max_speed"),
+        reason = "Remove isolated GPS point $index and recompute distance and speed from remaining coordinates.",
+    )
+    return correction.copy(impact = impactForCorrection(activity, correction))
+}
+
+private fun buildSmoothAltitudeCorrection(activity: StravaActivity, issue: DataQualityIssue, index: Int): DataQualityCorrection {
+    val correction = baseCorrection(activity, issue, "SMOOTH_ALTITUDE_SPIKE").copy(
+        pointIndexes = listOf(index),
+        modifiedFields = listOf("stream.altitude", "total_elevation_gain", "elev_high"),
+        reason = "Replace isolated altitude point $index by interpolation and recompute elevation gain.",
+    )
+    return correction.copy(impact = impactForCorrection(activity, correction))
+}
+
+private fun baseCorrection(activity: StravaActivity, issue: DataQualityIssue, type: String): DataQualityCorrection {
+    return DataQualityCorrection(
+        id = correctionId(issue.id, type),
+        issueId = issue.id,
+        source = issue.source,
+        activityId = activity.id,
+        activityName = activity.name.trim(),
+        activityType = activity.type,
+        year = activity.startDateLocal.take(4).ifBlank { activity.startDate.take(4) },
+        type = type,
+        safety = "safe",
+        status = "active",
+    )
+}
+
+private fun manualCorrection(issue: DataQualityIssue, reason: String): DataQualityCorrection {
+    return DataQualityCorrection(
+        id = correctionId(issue.id, "RECALCULATE_FROM_STREAM"),
+        issueId = issue.id,
+        source = issue.source,
+        activityId = issue.activityId ?: 0,
+        activityName = issue.activityName,
+        activityType = issue.activityType,
+        year = issue.year,
+        type = "RECALCULATE_FROM_STREAM",
+        safety = "manual",
+        status = "active",
+        reason = reason,
+    )
+}
+
+private fun impactForCorrection(activity: StravaActivity, correction: DataQualityCorrection): DataQualityCorrectionImpact {
+    val corrected = activity.applyDataQualityCorrections(listOf(correction))
+    return DataQualityCorrectionImpact(
+        distanceMetersBefore = activity.distance,
+        distanceMetersAfter = corrected.distance,
+        elevationMetersBefore = activity.totalElevationGain,
+        elevationMetersAfter = corrected.totalElevationGain,
+        maxSpeedBefore = activity.maxSpeed.toDouble(),
+        maxSpeedAfter = corrected.maxSpeed.toDouble(),
+        distanceDeltaMeters = corrected.distance - activity.distance,
+        elevationDeltaMeters = corrected.totalElevationGain - activity.totalElevationGain,
+    )
+}
+
+private fun correctionId(issueId: String, type: String): String =
+    "${issueId.lowercase().replace(" ", "-")}-${type.lowercase()}"
+
+private fun correctionLabel(type: String): String = when (type) {
+    "REMOVE_GPS_POINT" -> "Remove GPS point"
+    "SMOOTH_ALTITUDE_SPIKE" -> "Smooth altitude spike"
+    "MASK_INVALID_VALUE" -> "Mask invalid value"
+    else -> "Recalculate from stream"
+}
+
+private fun findIsolatedGpsOutlier(activity: StravaActivity): Int? {
+    val stream = activity.stream ?: return null
+    val points = stream.latlng?.data ?: return null
+    val times = stream.time.data
+    val limit = minOf(points.size, times.size)
+    if (limit < 3) return null
+    val threshold = correctionSpeedThreshold(activity.type)
+    var bestIndex: Int? = null
+    var bestScore = 0.0
+    for (index in 1 until limit - 1) {
+        val previousSpeed = segmentSpeed(points[index - 1], points[index], times[index] - times[index - 1]) ?: continue
+        val nextSpeed = segmentSpeed(points[index], points[index + 1], times[index + 1] - times[index]) ?: continue
+        val stitchedSpeed = segmentSpeed(points[index - 1], points[index + 1], times[index + 1] - times[index - 1]) ?: continue
+        if (previousSpeed <= threshold || nextSpeed <= threshold || stitchedSpeed > threshold) continue
+        val score = previousSpeed + nextSpeed - stitchedSpeed
+        if (score > bestScore) {
+            bestScore = score
+            bestIndex = index
+        }
+    }
+    return bestIndex
+}
+
+private fun findIsolatedAltitudeSpike(activity: StravaActivity): Int? {
+    val stream = activity.stream ?: return null
+    val altitudes = stream.altitude?.data ?: return null
+    if (altitudes.size < 3) return null
+    val times = stream.time.data
+    val limit = if (times.isNotEmpty()) minOf(altitudes.size, times.size) else altitudes.size
+    var bestIndex: Int? = null
+    var bestDelta = 0.0
+    for (index in 1 until limit - 1) {
+        val previousDelta = abs(altitudes[index] - altitudes[index - 1])
+        val nextDelta = abs(altitudes[index] - altitudes[index + 1])
+        val neighborDelta = abs(altitudes[index + 1] - altitudes[index - 1])
+        if (previousDelta < altitudeSpikeMeters || nextDelta < altitudeSpikeMeters) continue
+        if (neighborDelta > altitudeSpikeInterpolationMaxNeighborDeltaMeters) continue
+        if (times.isNotEmpty() && times[index + 1] - times[index - 1] > altitudeSpikeSeconds * 2) continue
+        if (previousDelta + nextDelta > bestDelta) {
+            bestDelta = previousDelta + nextDelta
+            bestIndex = index
+        }
+    }
+    return bestIndex
+}
+
+private fun segmentSpeed(previous: List<Double>, current: List<Double>, seconds: Int): Double? {
+    if (previous.size < 2 || current.size < 2 || seconds <= 0) return null
+    return correctionHaversineMeters(previous[0], previous[1], current[0], current[1]) / seconds
+}
+
+private fun correctionSpeedThreshold(activityType: String): Double = when (activityType) {
+    "Run", "TrailRun" -> 12.0
+    "Hike", "Walk" -> 7.0
+    "AlpineSki" -> 45.0
+    else -> 35.0
+}
+
+private fun correctionHaversineMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+    val lat1Rad = lat1 * PI / 180
+    val lat2Rad = lat2 * PI / 180
+    val deltaLat = (lat2 - lat1) * PI / 180
+    val deltaLon = (lon2 - lon1) * PI / 180
+    val a = sin(deltaLat / 2) * sin(deltaLat / 2) +
+            cos(lat1Rad) * cos(lat2Rad) *
+            sin(deltaLon / 2) * sin(deltaLon / 2)
+    val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return 6371e3 * c
+}
+
+private fun summarizeCorrections(
+    corrections: Collection<DataQualityCorrection>,
+    manualReviewCount: Int,
+    unsupportedIssueCount: Int,
+): DataQualityCorrectionBatchSummary {
+    return DataQualityCorrectionBatchSummary(
+        safeCorrectionCount = corrections.size,
+        manualReviewCount = manualReviewCount,
+        unsupportedIssueCount = unsupportedIssueCount,
+        activityCount = corrections.map { it.activityId }.distinct().size,
+        distanceDeltaMeters = corrections.sumOf { it.impact.distanceDeltaMeters },
+        elevationDeltaMeters = corrections.sumOf { it.impact.elevationDeltaMeters },
+        modifiedFields = corrections.flatMap { it.modifiedFields }.distinct().sorted(),
+        potentiallyImpactsRecords = corrections.isNotEmpty(),
+    )
+}
+
+private fun List<DataQualityCorrection>.active(): List<DataQualityCorrection> =
+    filterNot { correction -> correction.status == "reverted" }
+
+fun List<StravaActivity>.withDataQualityCorrections(activityProvider: IActivityProvider): List<StravaActivity> {
+    return withDataQualityCorrections(DataQualityCorrectionStorage.load(activityProvider))
+}
+
+private fun List<StravaActivity>.withDataQualityCorrections(corrections: List<DataQualityCorrection>): List<StravaActivity> {
+    if (isEmpty()) return emptyList()
+    val activeByActivityId = corrections.active().groupBy { correction -> correction.activityId }
+    if (activeByActivityId.isEmpty()) return this
+    return map { activity -> activity.applyDataQualityCorrections(activeByActivityId[activity.id].orEmpty()) }
+}
+
+private fun StravaActivity.applyDataQualityCorrections(corrections: List<DataQualityCorrection>): StravaActivity {
+    return corrections.sortedBy { it.appliedAt.orEmpty() }.fold(this) { current, correction ->
+        when (correction.type) {
+            "REMOVE_GPS_POINT" -> current.removeGpsPoint(correction.pointIndexes.firstOrNull())
+            "SMOOTH_ALTITUDE_SPIKE" -> current.smoothAltitudePoint(correction.pointIndexes.firstOrNull())
+            else -> current
+        }
+    }
+}
+
+private fun StravaActivity.removeGpsPoint(index: Int?): StravaActivity {
+    val stream = stream ?: return this
+    val latlng = stream.latlng ?: return this
+    val resolvedIndex = index ?: return this
+    if (resolvedIndex <= 0 || resolvedIndex >= latlng.data.size - 1) return this
+    val originalSize = latlng.data.size
+    val updatedStream = stream.copy(
+        latlng = latlng.copy(data = latlng.data.removeAtIndex(resolvedIndex), originalSize = originalSize - 1),
+        time = if (stream.time.data.size == originalSize) stream.time.copy(data = stream.time.data.removeAtIndex(resolvedIndex), originalSize = originalSize - 1) else stream.time,
+        altitude = stream.altitude?.let { altitude ->
+            if (altitude.data.size == originalSize) altitude.copy(data = altitude.data.removeAtIndex(resolvedIndex), originalSize = originalSize - 1) else altitude
+        },
+        moving = stream.moving?.let { moving ->
+            if (moving.data.size == originalSize) moving.copy(data = moving.data.removeAtIndex(resolvedIndex), originalSize = originalSize - 1) else moving
+        },
+        heartrate = stream.heartrate?.let { heartrate ->
+            if (heartrate.data.size == originalSize) heartrate.copy(data = heartrate.data.removeAtIndex(resolvedIndex), originalSize = originalSize - 1) else heartrate
+        },
+        watts = stream.watts?.let { watts ->
+            if (watts.data.size == originalSize) watts.copy(data = watts.data.removeAtIndex(resolvedIndex), originalSize = originalSize - 1) else watts
+        },
+        cadence = stream.cadence?.let { cadence ->
+            if (cadence.data.size == originalSize) cadence.copy(data = cadence.data.removeAtIndex(resolvedIndex), originalSize = originalSize - 1) else cadence
+        },
+    )
+    return copy(stream = updatedStream).recomputeDistanceAndSpeed().recomputeElevation()
+}
+
+private fun StravaActivity.smoothAltitudePoint(index: Int?): StravaActivity {
+    val stream = stream ?: return this
+    val altitude = stream.altitude ?: return this
+    val resolvedIndex = index ?: return this
+    if (resolvedIndex <= 0 || resolvedIndex >= altitude.data.size - 1) return this
+    val updatedAltitude = altitude.data.toMutableList()
+    updatedAltitude[resolvedIndex] = (updatedAltitude[resolvedIndex - 1] + updatedAltitude[resolvedIndex + 1]) / 2
+    return copy(stream = stream.copy(altitude = altitude.copy(data = updatedAltitude))).recomputeElevation()
+}
+
+private fun StravaActivity.recomputeDistanceAndSpeed(): StravaActivity {
+    val stream = stream ?: return this
+    val points = stream.latlng?.data ?: return this
+    if (points.isEmpty()) return this
+    val distances = MutableList(points.size) { 0.0 }
+    for (index in 1 until points.size) {
+        val previous = points[index - 1]
+        val current = points[index]
+        distances[index] = distances[index - 1] + if (previous.size >= 2 && current.size >= 2) {
+            correctionHaversineMeters(previous[0], previous[1], current[0], current[1])
+        } else {
+            0.0
+        }
+    }
+    val distanceMeters = distances.last()
+    val movingSeconds = movingTime.takeIf { it > 0 } ?: elapsedTime
+    val averageSpeed = if (movingSeconds > 0) distanceMeters / movingSeconds else averageSpeed
+    val velocity = recomputeVelocity(points, stream.time.data)
+    val updatedStream = stream.copy(
+        distance = stream.distance.copy(data = distances, originalSize = distances.size),
+        velocitySmooth = SmoothVelocityStream(velocity, velocity.size, stream.distance.resolution, "time"),
+    )
+    return copy(
+        stream = updatedStream,
+        distance = distanceMeters,
+        averageSpeed = averageSpeed,
+        maxSpeed = (velocity.maxOrNull() ?: 0.0).toFloat(),
+    )
+}
+
+private fun recomputeVelocity(points: List<List<Double>>, times: List<Int>): List<Float> {
+    val velocity = MutableList(points.size) { 0.0f }
+    val limit = minOf(points.size, times.size)
+    for (index in 1 until limit) {
+        velocity[index] = (segmentSpeed(points[index - 1], points[index], times[index] - times[index - 1]) ?: 0.0).toFloat()
+    }
+    return velocity
+}
+
+private fun StravaActivity.recomputeElevation(): StravaActivity {
+    val altitude = stream?.altitude?.data ?: return this
+    if (altitude.isEmpty()) return this
+    val totalGain = altitude.zipWithNext { previous, current -> current - previous }
+        .filter { delta -> delta > 0 }
+        .sum()
+    return copy(totalElevationGain = totalGain, elevHigh = altitude.maxOrNull() ?: elevHigh)
+}
+
+fun StravaDetailedActivity.withDataQualityCorrections(activityProvider: IActivityProvider): StravaDetailedActivity {
+    val corrections = DataQualityCorrectionStorage.load(activityProvider).active().filter { correction -> correction.activityId == id }
+    if (corrections.isEmpty()) return this
+    val corrected = toCorrectionActivity().applyDataQualityCorrections(corrections)
+    return copy(
+        averageSpeed = corrected.averageSpeed,
+        distance = corrected.distance.toInt(),
+        elevHigh = corrected.elevHigh,
+        maxSpeed = corrected.maxSpeed.toDouble(),
+        totalElevationGain = corrected.totalElevationGain.toInt(),
+        stream = corrected.stream,
+    )
+}
+
+private fun StravaDetailedActivity.toCorrectionActivity(): StravaActivity =
+    StravaActivity(
+        athlete = me.nicolas.stravastats.domain.business.strava.AthleteRef(athlete.id.toInt()),
+        averageSpeed = averageSpeed,
+        averageCadence = averageCadence,
+        averageHeartrate = averageHeartrate,
+        maxHeartrate = maxHeartrate,
+        averageWatts = averageWatts.toInt(),
+        commute = commute,
+        distance = distance.toDouble(),
+        deviceWatts = deviceWatts,
+        elapsedTime = elapsedTime,
+        elevHigh = elevHigh,
+        id = id,
+        kilojoules = kilojoules,
+        maxSpeed = maxSpeed.toFloat(),
+        movingTime = movingTime,
+        name = name,
+        startDate = startDate,
+        startDateLocal = startDateLocal,
+        startLatlng = startLatLng,
+        totalElevationGain = totalElevationGain.toDouble(),
+        type = type,
+        uploadId = uploadId,
+        weightedAverageWatts = weightedAverageWatts,
+        gearId = gearId,
+        stream = stream,
+    )
+
+private fun <T> List<T>.removeAtIndex(index: Int): List<T> =
+    filterIndexed { currentIndex, _ -> currentIndex != index }
+
 fun List<StravaActivity>.withoutDataQualityExcludedStats(activityProvider: IActivityProvider): List<StravaActivity> {
     if (isEmpty()) return emptyList()
+    val correctedActivities = withDataQualityCorrections(activityProvider)
     val exclusions = DataQualityExclusionStorage.load(activityProvider).map { exclusion -> exclusion.activityId }.toSet()
-    if (exclusions.isEmpty()) return this
-    return filterNot { activity -> exclusions.contains(activity.id) }
+    if (exclusions.isEmpty()) return correctedActivities
+    return correctedActivities.filterNot { activity -> exclusions.contains(activity.id) }
 }
 
 fun dataQualityExclusionSignature(activityProvider: IActivityProvider): String {
     val file = DataQualityExclusionStorage.file(activityProvider) ?: return "none"
+    val exclusionSignature = if (!file.exists()) "none" else "${file.lastModified()}:${file.length()}"
+    return "$exclusionSignature|${dataQualityCorrectionSignature(activityProvider)}"
+}
+
+fun dataQualityCorrectionSignature(activityProvider: IActivityProvider): String {
+    val file = DataQualityCorrectionStorage.file(activityProvider) ?: return "none"
     if (!file.exists()) return "none"
     return "${file.lastModified()}:${file.length()}"
 }
@@ -352,6 +853,10 @@ fun dataQualityExcludedActivityIds(activityProvider: IActivityProvider): Set<Lon
 
 private data class DataQualityExclusionFile(
     val exclusions: List<DataQualityExclusion> = emptyList(),
+)
+
+private data class DataQualityCorrectionFile(
+    val corrections: List<DataQualityCorrection> = emptyList(),
 )
 
 private object DataQualityExclusionStorage {
@@ -380,5 +885,43 @@ private object DataQualityExclusionStorage {
         val identity = runCatching { activityProvider.cacheIdentity() }.getOrNull() ?: return null
         val athleteDirectory = File(identity.cacheRoot, "strava-${identity.athleteId}")
         return File(athleteDirectory, "data-quality-exclusions-${identity.athleteId}.json")
+    }
+}
+
+private object DataQualityCorrectionStorage {
+    private val objectMapper = JsonMapper.builder()
+        .addModule(KotlinModule.Builder().build())
+        .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+        .build()
+
+    fun load(activityProvider: IActivityProvider): List<DataQualityCorrection> {
+        val file = file(activityProvider) ?: return emptyList()
+        if (!file.exists()) return emptyList()
+        return runCatching {
+            objectMapper.readValue(file, DataQualityCorrectionFile::class.java).corrections
+        }.getOrElse {
+            emptyList()
+        }
+    }
+
+    fun saveMerged(activityProvider: IActivityProvider, corrections: List<DataQualityCorrection>) {
+        val existing = load(activityProvider).associateBy { correction -> correction.id }.toMutableMap()
+        val now = Instant.now().toString()
+        corrections.forEach { correction ->
+            existing[correction.id] = correction.copy(status = "active", appliedAt = now, revertedAt = null)
+        }
+        save(activityProvider, existing.values.sortedWith(compareBy<DataQualityCorrection> { it.status }.thenByDescending { it.year.orEmpty() }.thenBy { it.activityId }.thenBy { it.id }))
+    }
+
+    fun save(activityProvider: IActivityProvider, corrections: List<DataQualityCorrection>) {
+        val file = file(activityProvider) ?: return
+        file.parentFile?.mkdirs()
+        objectMapper.writeValue(file, DataQualityCorrectionFile(corrections))
+    }
+
+    fun file(activityProvider: IActivityProvider): File? {
+        val identity = runCatching { activityProvider.cacheIdentity() }.getOrNull() ?: return null
+        val athleteDirectory = File(identity.cacheRoot, "strava-${identity.athleteId}")
+        return File(athleteDirectory, "data-quality-corrections-${identity.athleteId}.json")
     }
 }
