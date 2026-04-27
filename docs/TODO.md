@@ -165,24 +165,6 @@
   - la vue detail activite permet de comparer rapidement la sortie brute et la sortie corrigee,
   - les corrections batch sont limitees aux cas classes `safe` et restent annulables.
 
-- [ ] `FUNC-P1-10` (`P1`, `M`) - Suivi d'entretien des velos.
-  Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`, `Gear`.
-  Proposition:
-  - ajouter dans l'onglet `Gear` un carnet d'entretien local par velo,
-  - afficher la maintenance par velo dans un bloc pliable/depliable,
-  - suivre les elements sensibles avec suggestions: chaine, cassette, plaquettes, purge freins, pneus, liquide tubeless, boitier pedalier, roulements, transmission,
-  - permettre aussi une saisie libre de composant, par exemple obus de valve, patte de derailleur ou cintre,
-  - enregistrer une operation avec modele, composant, action, date, kilometrage du velo et note optionnelle,
-  - calculer automatiquement la distance et/ou le temps depuis la derniere operation a partir du kilometrage actuel du velo,
-  - afficher des statuts `OK`, `Soon`, `Due`, `Overdue` selon des seuils par defaut par composant,
-  - proposer une action rapide `Mark as done` qui pre-remplit le kilometrage courant du velo,
-  - conserver ces donnees localement sans ecriture Strava.
-  Acceptance:
-  - l'utilisateur voit immediatement les entretiens a faire pour chaque velo,
-  - la maintenance peut etre masquee quand l'utilisateur veut seulement lire les stats materiel,
-  - chaque composant sensible expose son historique et sa prochaine echeance,
-  - les seuils d'entretien par defaut sont appliques sans modifier les activites source.
-
 ### Priorite basse
 
 - [ ] `FUNC-P2-02` (`P2`, `M`) - Calendrier d'entrainement unifie.

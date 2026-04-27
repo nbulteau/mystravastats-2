@@ -45,6 +45,13 @@ const maintenanceComponents = [
   { value: "BOTTOM_BRACKET", label: "Bottom bracket" },
   { value: "BEARINGS", label: "Bearings" },
   { value: "DRIVETRAIN", label: "Drivetrain" },
+  { value: "VALVE_CORE_FRONT", label: "Front valve core" },
+  { value: "VALVE_CORE_REAR", label: "Rear valve core" },
+  { value: "DERAILLEUR_HANGER", label: "Derailleur hanger" },
+  { value: "CHAINRING", label: "Chainring" },
+  { value: "WHEEL_TRUING", label: "Wheel truing" },
+  { value: "FORK_SERVICE", label: "Fork service" },
+  { value: "SHOCK_SERVICE", label: "Shock service" },
 ];
 
 onMounted(() => contextStore.updateCurrentView("gear"));
@@ -446,6 +453,15 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
               <div class="maintenance-heading__actions">
                 <button
                   type="button"
+                  class="btn btn-sm btn-outline-primary"
+                  :disabled="savingMaintenanceGearId === item.id"
+                  @click="openMaintenanceForm(item)"
+                >
+                  <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true" />
+                  Add service record
+                </button>
+                <button
+                  type="button"
                   class="btn btn-sm btn-outline-secondary"
                   @click="toggleMaintenance(item)"
                 >
@@ -468,7 +484,7 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
                   <span :class="maintenanceTaskClass(task)">{{ task.status }}</span>
                   <div>
                     <strong>{{ task.componentLabel }}</strong>
-                    <small>{{ maintenanceProgressLabel(task) }} · interval {{ maintenanceIntervalLabel(task) }}</small>
+                    <small>{{ task.statusLabel }} · {{ maintenanceProgressLabel(task) }} · interval {{ maintenanceIntervalLabel(task) }}</small>
                   </div>
                   <button
                     type="button"
@@ -484,17 +500,9 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
 
               <div class="maintenance-body-toolbar">
                 <div>
-                  <strong>Local maintenance log</strong>
-                  <small>Free-form component, date and odometer for this bike.</small>
+                  <strong>Local service log</strong>
+                  <small>Free-form component, date, odometer and note for this bike.</small>
                 </div>
-                <button
-                  type="button"
-                  class="btn btn-sm btn-outline-secondary"
-                  @click="openMaintenanceForm(item)"
-                >
-                  <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true" />
-                  Add maintenance
-                </button>
               </div>
 
               <form
@@ -578,7 +586,7 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
 
               <div v-if="item.maintenanceHistory.length" class="maintenance-history">
                 <div
-                  v-for="record in item.maintenanceHistory.slice(0, 5)"
+                  v-for="record in item.maintenanceHistory"
                   :key="record.id"
                   class="maintenance-history-row"
                 >
@@ -596,6 +604,9 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
                     <i class="fa-solid fa-trash" aria-hidden="true" />
                   </button>
                 </div>
+              </div>
+              <div v-else class="maintenance-empty">
+                No local service record yet.
               </div>
             </div>
           </div>
@@ -924,6 +935,15 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
   border: 1px solid #edf0f4;
   border-radius: 6px;
   justify-content: space-between;
+  padding: 8px;
+}
+
+.maintenance-empty {
+  border: 1px dashed #dfe6ef;
+  border-radius: 6px;
+  color: var(--ms-text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
   padding: 8px;
 }
 

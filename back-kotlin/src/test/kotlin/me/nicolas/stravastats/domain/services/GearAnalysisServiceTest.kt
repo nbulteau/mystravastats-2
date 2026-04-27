@@ -4,23 +4,30 @@ import io.mockk.every
 import io.mockk.mockk
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.GearKind
+import me.nicolas.stravastats.domain.business.GearMaintenanceRecordRequest
 import me.nicolas.stravastats.domain.business.strava.AthleteRef
 import me.nicolas.stravastats.domain.business.strava.Bike
 import me.nicolas.stravastats.domain.business.strava.Shoe
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
+import me.nicolas.stravastats.domain.services.activityproviders.ActivityProviderCacheIdentity
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
+import java.nio.file.Path
 
 class GearAnalysisServiceTest {
 
     private lateinit var gearAnalysisService: IGearAnalysisService
 
     private val activityProvider = mockk<IActivityProvider>()
+
+    @TempDir
+    lateinit var tempDir: Path
 
     @BeforeEach
     fun setUp() {
@@ -95,6 +102,48 @@ class GearAnalysisServiceTest {
         assertEquals(1, result.unassigned.activities)
         assertEquals(7000.0, result.unassigned.distance)
         assertEquals(200.0, result.unassigned.elevationGain)
+    }
+
+    @Test
+    fun `saveMaintenanceRecord accepts free-form components`() {
+        val athlete = StravaAthlete(
+            id = 42L,
+            bikes = listOf(
+                Bike(
+                    id = "b123",
+                    name = "Gravel Bike",
+                    nickname = null,
+                    retired = false,
+                    convertedDistance = 0.0,
+                    distance = 0,
+                    primary = true,
+                    resourceState = 2,
+                )
+            ),
+        )
+        every { activityProvider.athlete() } returns athlete
+        every { activityProvider.cacheIdentity() } returns ActivityProviderCacheIdentity(
+            cacheRoot = tempDir.toString(),
+            athleteId = "athlete-1",
+        )
+
+        val record = gearAnalysisService.saveMaintenanceRecord(
+            GearMaintenanceRecordRequest(
+                gearId = " b123 ",
+                component = "Rear valve core",
+                operation = "",
+                date = "2026-04-27T12:00:00Z",
+                distance = 3603000.0,
+                note = " slow leak ",
+            )
+        )
+
+        assertEquals("b123", record.gearId)
+        assertEquals("REAR_VALVE_CORE", record.component)
+        assertEquals("Rear Valve Core", record.componentLabel)
+        assertEquals("Rear Valve Core serviced", record.operation)
+        assertEquals("2026-04-27", record.date)
+        assertEquals("slow leak", record.note)
     }
 
     private fun gearAnalysisActivity(
