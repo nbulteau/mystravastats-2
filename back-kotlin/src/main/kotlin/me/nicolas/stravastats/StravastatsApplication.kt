@@ -27,6 +27,11 @@ import me.nicolas.stravastats.domain.business.AnnualGoalMonth
 import me.nicolas.stravastats.domain.business.AnnualGoalProgress
 import me.nicolas.stravastats.domain.business.AnnualGoalTargets
 import me.nicolas.stravastats.domain.business.AnnualGoals
+import me.nicolas.stravastats.domain.business.DataQualityExclusion
+import me.nicolas.stravastats.domain.business.DataQualityExclusionRequest
+import me.nicolas.stravastats.domain.business.DataQualityIssue
+import me.nicolas.stravastats.domain.business.DataQualityReport
+import me.nicolas.stravastats.domain.business.DataQualitySummary
 import me.nicolas.stravastats.domain.business.GearAnalysis
 import me.nicolas.stravastats.domain.business.GearAnalysisCoverage
 import me.nicolas.stravastats.domain.business.GearAnalysisItem
@@ -126,6 +131,11 @@ import org.springframework.boot.runApplication
         AnnualGoalMonthDto::class,
         AnnualGoalProgressDto::class,
         AnnualGoalsDto::class,
+        DataQualityIssue::class,
+        DataQualityExclusion::class,
+        DataQualityExclusionRequest::class,
+        DataQualitySummary::class,
+        DataQualityReport::class,
         GearAnalysis::class,
         GearAnalysisItem::class,
         GearAnalysisSummary::class,

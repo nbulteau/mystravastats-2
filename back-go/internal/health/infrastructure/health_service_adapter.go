@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	dataqualityInfra "mystravastats/internal/dataquality/infrastructure"
 	"mystravastats/internal/platform/activityprovider"
 	"mystravastats/internal/platform/runtimeconfig"
 	routeApp "mystravastats/internal/routes/application"
@@ -26,6 +27,7 @@ func (adapter *HealthServiceAdapter) FindCacheHealthDetails() map[string]any {
 	if adapter.routingEngine != nil {
 		diagnostics["routing"] = adapter.routingEngine.HealthDetails()
 	}
+	diagnostics["dataQuality"] = dataqualityInfra.CurrentProviderReport().Summary
 	diagnostics["runtimeConfig"] = runtimeconfig.Details()
 	return diagnostics
 }

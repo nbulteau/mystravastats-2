@@ -3,12 +3,11 @@ package business
 type AnnualGoalMetric string
 
 const (
-	AnnualGoalMetricDistanceKm        AnnualGoalMetric = "DISTANCE_KM"
-	AnnualGoalMetricElevationMeters   AnnualGoalMetric = "ELEVATION_METERS"
-	AnnualGoalMetricMovingTimeSeconds AnnualGoalMetric = "MOVING_TIME_SECONDS"
-	AnnualGoalMetricActivities        AnnualGoalMetric = "ACTIVITIES"
-	AnnualGoalMetricActiveDays        AnnualGoalMetric = "ACTIVE_DAYS"
-	AnnualGoalMetricEddington         AnnualGoalMetric = "EDDINGTON"
+	AnnualGoalMetricDistanceKm      AnnualGoalMetric = "DISTANCE_KM"
+	AnnualGoalMetricElevationMeters AnnualGoalMetric = "ELEVATION_METERS"
+	AnnualGoalMetricActivities      AnnualGoalMetric = "ACTIVITIES"
+	AnnualGoalMetricActiveDays      AnnualGoalMetric = "ACTIVE_DAYS"
+	AnnualGoalMetricEddington       AnnualGoalMetric = "EDDINGTON"
 )
 
 type AnnualGoalStatus string

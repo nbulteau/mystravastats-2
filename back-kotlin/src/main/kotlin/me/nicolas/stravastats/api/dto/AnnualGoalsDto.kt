@@ -8,7 +8,6 @@ import me.nicolas.stravastats.domain.business.AnnualGoals
 data class AnnualGoalTargetsDto(
     val distanceKm: Double? = null,
     val elevationMeters: Int? = null,
-    val movingTimeSeconds: Int? = null,
     val activities: Int? = null,
     val activeDays: Int? = null,
     val eddington: Int? = null,
@@ -91,7 +90,6 @@ fun AnnualGoalTargets.toDto(): AnnualGoalTargetsDto {
     return AnnualGoalTargetsDto(
         distanceKm = distanceKm,
         elevationMeters = elevationMeters,
-        movingTimeSeconds = movingTimeSeconds,
         activities = activities,
         activeDays = activeDays,
         eddington = eddington,
@@ -102,7 +100,6 @@ fun AnnualGoalTargetsDto.toDomain(): AnnualGoalTargets {
     return AnnualGoalTargets(
         distanceKm = distanceKm,
         elevationMeters = elevationMeters,
-        movingTimeSeconds = movingTimeSeconds,
         activities = activities,
         activeDays = activeDays,
         eddington = eddington,

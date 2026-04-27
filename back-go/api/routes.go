@@ -13,6 +13,9 @@ type Routes []Route
 
 var routes = Routes{
 	{Name: "GetHealthDetails", Method: "GET", Pattern: "/api/health/details", HandlerFunc: getHealthDetails},
+	{Name: "GetDataQualityIssues", Method: "GET", Pattern: "/api/data-quality/issues", HandlerFunc: getDataQualityIssues},
+	{Name: "PutDataQualityStatsExclusion", Method: "PUT", Pattern: "/api/data-quality/exclusions/{activityId}", HandlerFunc: putDataQualityStatsExclusion},
+	{Name: "DeleteDataQualityStatsExclusion", Method: "DELETE", Pattern: "/api/data-quality/exclusions/{activityId}", HandlerFunc: deleteDataQualityStatsExclusion},
 	{Name: "PostSourceModePreview", Method: "POST", Pattern: "/api/source-modes/preview", HandlerFunc: postSourceModePreview},
 	{Name: "GetAthlete", Method: "GET", Pattern: "/api/athletes/me", HandlerFunc: getAthlete},
 	{Name: "GetAthleteHeartRateZones", Method: "GET", Pattern: "/api/athletes/me/heart-rate-zones", HandlerFunc: getAthleteHeartRateZones},

@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"log"
 	"math"
+	dataqualityInfra "mystravastats/internal/dataquality/infrastructure"
 	"mystravastats/internal/platform/activityprovider"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
@@ -28,7 +29,7 @@ func computeAnnualGoals(year int, targets business.AnnualGoalTargets, activityTy
 	log.Printf("Get annual goals for year %d and activity type %s", year, activityTypes)
 
 	normalizedTargets := normalizeAnnualGoalTargets(targets)
-	activities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(&year, activityTypes...)
+	activities := dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(&year, activityTypes...))
 	return buildAnnualGoals(year, activityTypeKey(activityTypes...), normalizedTargets, activities, time.Now())
 }
 
@@ -39,7 +40,7 @@ func saveAnnualGoals(year int, targets business.AnnualGoalTargets, activityTypes
 	repository := localrepository.NewStravaRepository(provider.CacheRootPath())
 	repository.SaveAnnualGoalTargets(provider.ClientID(), key, normalizedTargets)
 
-	activities := provider.GetActivitiesByYearAndActivityTypes(&year, activityTypes...)
+	activities := dataqualityInfra.FilterExcludedFromStats(provider.GetActivitiesByYearAndActivityTypes(&year, activityTypes...))
 	return buildAnnualGoals(year, activityTypeKey(activityTypes...), normalizedTargets, activities, time.Now())
 }
 
@@ -49,7 +50,7 @@ func loadAnnualGoals(year int, activityTypes ...business.ActivityType) business.
 	repository := localrepository.NewStravaRepository(provider.CacheRootPath())
 	targets := repository.LoadAnnualGoalTargets(provider.ClientID(), key)
 
-	activities := provider.GetActivitiesByYearAndActivityTypes(&year, activityTypes...)
+	activities := dataqualityInfra.FilterExcludedFromStats(provider.GetActivitiesByYearAndActivityTypes(&year, activityTypes...))
 	return buildAnnualGoals(year, activityTypeKey(activityTypes...), normalizeAnnualGoalTargets(targets), activities, time.Now())
 }
 
@@ -86,16 +87,6 @@ func buildAnnualGoals(
 			target:           intTarget(targets.ElevationMeters),
 			monthlyValues:    monthlyValues[business.AnnualGoalMetricElevationMeters],
 			last30DaysValue:  last30DaysValues.elevationMeters,
-		},
-		{
-			metric:           business.AnnualGoalMetricMovingTimeSeconds,
-			label:            "Moving time",
-			unit:             "s",
-			requiredPaceUnit: "s/day",
-			current:          current.movingTimeSeconds,
-			target:           intTarget(targets.MovingTimeSeconds),
-			monthlyValues:    monthlyValues[business.AnnualGoalMetricMovingTimeSeconds],
-			last30DaysValue:  last30DaysValues.movingTimeSeconds,
 		},
 		{
 			metric:           business.AnnualGoalMetricActivities,
@@ -143,21 +134,19 @@ func buildAnnualGoals(
 }
 
 type annualGoalValues struct {
-	distanceKm        float64
-	elevationMeters   float64
-	movingTimeSeconds float64
-	activities        float64
-	activeDays        float64
-	eddington         float64
+	distanceKm      float64
+	elevationMeters float64
+	activities      float64
+	activeDays      float64
+	eddington       float64
 }
 
 func annualGoalCurrentValues(activities []*strava.Activity) annualGoalValues {
 	return annualGoalValues{
-		distanceKm:        sumDistance(activities),
-		elevationMeters:   float64(sumElevation(activities)),
-		movingTimeSeconds: float64(sumMovingTime(activities)),
-		activities:        float64(len(activities)),
-		activeDays:        float64(countActiveDays(activities)),
+		distanceKm:      sumDistance(activities),
+		elevationMeters: float64(sumElevation(activities)),
+		activities:      float64(len(activities)),
+		activeDays:      float64(countActiveDays(activities)),
 	}
 }
 
@@ -175,12 +164,11 @@ func annualGoalDailyDistanceTotals(activities []*strava.Activity) map[string]int
 
 func annualGoalMonthlyValues(activities []*strava.Activity) map[business.AnnualGoalMetric][]float64 {
 	values := map[business.AnnualGoalMetric][]float64{
-		business.AnnualGoalMetricDistanceKm:        make([]float64, 12),
-		business.AnnualGoalMetricElevationMeters:   make([]float64, 12),
-		business.AnnualGoalMetricMovingTimeSeconds: make([]float64, 12),
-		business.AnnualGoalMetricActivities:        make([]float64, 12),
-		business.AnnualGoalMetricActiveDays:        make([]float64, 12),
-		business.AnnualGoalMetricEddington:         make([]float64, 12),
+		business.AnnualGoalMetricDistanceKm:      make([]float64, 12),
+		business.AnnualGoalMetricElevationMeters: make([]float64, 12),
+		business.AnnualGoalMetricActivities:      make([]float64, 12),
+		business.AnnualGoalMetricActiveDays:      make([]float64, 12),
+		business.AnnualGoalMetricEddington:       make([]float64, 12),
 	}
 	activeDaysByMonth := make([]map[string]struct{}, 12)
 	dailyDistanceByMonth := make([]map[string]int, 12)
@@ -198,7 +186,6 @@ func annualGoalMonthlyValues(activities []*strava.Activity) map[business.AnnualG
 		day := activityDate.Format("2006-01-02")
 		values[business.AnnualGoalMetricDistanceKm][monthIndex] += activity.Distance / 1000
 		values[business.AnnualGoalMetricElevationMeters][monthIndex] += activity.TotalElevationGain
-		values[business.AnnualGoalMetricMovingTimeSeconds][monthIndex] += float64(activityMovingTimeSeconds(activity))
 		values[business.AnnualGoalMetricActivities][monthIndex]++
 		activeDaysByMonth[monthIndex][day] = struct{}{}
 		dailyDistanceByMonth[monthIndex][day] += int(activity.Distance / 1000)
@@ -266,13 +253,6 @@ func annualGoalActivityDate(activity *strava.Activity) (time.Time, bool) {
 		return time.Time{}, false
 	}
 	return parsed, true
-}
-
-func activityMovingTimeSeconds(activity *strava.Activity) int {
-	if activity.MovingTime > 0 {
-		return activity.MovingTime
-	}
-	return activity.ElapsedTime
 }
 
 func buildAnnualGoalProgress(year int, now time.Time, definition annualGoalMetricDefinition, last30DaysWindowDays int) business.AnnualGoalProgress {
@@ -440,7 +420,7 @@ func normalizeAnnualGoalTargets(targets business.AnnualGoalTargets) business.Ann
 	return business.AnnualGoalTargets{
 		DistanceKm:        positiveFloatPointer(targets.DistanceKm),
 		ElevationMeters:   positiveIntPointer(targets.ElevationMeters),
-		MovingTimeSeconds: positiveIntPointer(targets.MovingTimeSeconds),
+		MovingTimeSeconds: nil,
 		Activities:        positiveIntPointer(targets.Activities),
 		ActiveDays:        positiveIntPointer(targets.ActiveDays),
 		Eddington:         positiveIntPointer(targets.Eddington),

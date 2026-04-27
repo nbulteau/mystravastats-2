@@ -5,6 +5,7 @@ import (
 	"math"
 	"mystravastats/domain/statistics"
 	dashboardDomain "mystravastats/internal/dashboard/domain"
+	dataqualityInfra "mystravastats/internal/dataquality/infrastructure"
 	"mystravastats/internal/platform/activityprovider"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
@@ -16,8 +17,8 @@ import (
 func computeEddingtonNumber(activityTypes ...business.ActivityType) business.EddingtonNumber {
 	log.Printf("Get Eddington number for activity type %s", activityTypes)
 
-	activitiesByActiveDays := activityprovider.Get().GetActivitiesByActivityTypeGroupByActiveDays(activityTypes...)
-	return computeEddingtonFromDailyTotals(activitiesByActiveDays)
+	activities := dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(nil, activityTypes...))
+	return computeEddingtonFromDailyTotals(dailyDistanceTotals(activities))
 }
 
 func computeEddingtonFromDailyTotals(activitiesByActiveDays map[string]int) business.EddingtonNumber {
@@ -57,10 +58,22 @@ func computeEddingtonFromDailyTotals(activitiesByActiveDays map[string]int) busi
 	return business.EddingtonNumber{Number: eddingtonNumber, List: eddingtonList}
 }
 
+func dailyDistanceTotals(activities []*strava.Activity) map[string]int {
+	result := make(map[string]int)
+	for _, activity := range activities {
+		if activity == nil || len(activity.StartDateLocal) < 10 {
+			continue
+		}
+		day := activity.StartDateLocal[:10]
+		result[day] += int(activity.Distance / 1000)
+	}
+	return result
+}
+
 func computeCumulativeDistancePerYear(activityTypes ...business.ActivityType) map[string]map[string]float64 {
 	log.Printf("Get cumulative distance per year for activity type %s", activityTypes)
 
-	activitiesByYear := activityprovider.Get().GetActivitiesByActivityTypeGroupByYear(activityTypes...)
+	activitiesByYear := groupActivitiesByYear(dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(nil, activityTypes...)))
 	currentYear := time.Now().Year()
 	result := make(map[string]map[string]float64)
 
@@ -90,7 +103,7 @@ func calculateCumulativeDistance(activitiesByDay map[string][]*strava.Activity) 
 func computeCumulativeElevationPerYear(activityTypes ...business.ActivityType) map[string]map[string]float64 {
 	log.Printf("Get cumulative elevation per year for activity type %s", activityTypes)
 
-	activitiesByYear := activityprovider.Get().GetActivitiesByActivityTypeGroupByYear(activityTypes...)
+	activitiesByYear := groupActivitiesByYear(dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(nil, activityTypes...)))
 	result := make(map[string]map[string]float64)
 	currentYear := time.Now().Year()
 
@@ -120,7 +133,7 @@ func calculateCumulativeElevation(activitiesByDay map[string][]*strava.Activity)
 func computeDashboardData(activityTypes ...business.ActivityType) business.DashboardData {
 	log.Printf("Get dashboard data for activity type %s", activityTypes)
 
-	activities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(nil, activityTypes...)
+	activities := dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(nil, activityTypes...))
 	activitiesGroupedByYear := groupActivitiesByYear(activities)
 
 	nbActivitiesByYear := make(map[string]int)
@@ -372,7 +385,7 @@ func daysInYear(year int) int {
 func computeActivityHeatmap(activityTypes ...business.ActivityType) map[string]map[string]dashboardDomain.ActivityHeatmapDay {
 	log.Printf("Get activity heatmap for activity type %s", activityTypes)
 
-	activitiesByYear := activityprovider.Get().GetActivitiesByActivityTypeGroupByYear(activityTypes...)
+	activitiesByYear := groupActivitiesByYear(dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(nil, activityTypes...)))
 	result := make(map[string]map[string]dashboardDomain.ActivityHeatmapDay)
 	currentYear := time.Now().Year()
 

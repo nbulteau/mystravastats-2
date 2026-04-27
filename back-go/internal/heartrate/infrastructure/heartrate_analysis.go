@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"math"
+	dataqualityInfra "mystravastats/internal/dataquality/infrastructure"
 	"mystravastats/internal/platform/activityprovider"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
@@ -13,7 +14,7 @@ var heartRateZoneLabels = []string{"Recovery", "Endurance", "Tempo", "Threshold"
 
 func computeHeartRateZoneAnalysisByYearAndTypes(year *int, activityTypes ...business.ActivityType) business.HeartRateZoneAnalysis {
 	settings := normalizeHeartRateZoneSettings(activityprovider.Get().GetHeartRateZoneSettings())
-	activities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	activities := dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...))
 	sort.Slice(activities, func(i, j int) bool {
 		return activities[i].StartDateLocal < activities[j].StartDateLocal
 	})

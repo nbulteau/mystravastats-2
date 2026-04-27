@@ -13,6 +13,8 @@ import (
 	chartsInfra "mystravastats/internal/charts/infrastructure"
 	dashboardApp "mystravastats/internal/dashboard/application"
 	dashboardInfra "mystravastats/internal/dashboard/infrastructure"
+	dataQualityApp "mystravastats/internal/dataquality/application"
+	dataQualityInfra "mystravastats/internal/dataquality/infrastructure"
 	gearAnalysisApp "mystravastats/internal/gearanalysis/application"
 	gearAnalysisInfra "mystravastats/internal/gearanalysis/infrastructure"
 	healthApp "mystravastats/internal/health/application"
@@ -58,6 +60,9 @@ type container struct {
 	getGearAnalysisUseCase             *gearAnalysisApp.GetGearAnalysisUseCase
 	getBadgesUseCase                   *badgesApp.GetBadgesUseCase
 	getCacheHealthDetailsUseCase       *healthApp.GetCacheHealthDetailsUseCase
+	getDataQualityReportUseCase        *dataQualityApp.GetDataQualityReportUseCase
+	excludeActivityFromStatsUseCase    *dataQualityApp.ExcludeActivityFromStatsUseCase
+	includeActivityInStatsUseCase      *dataQualityApp.IncludeActivityInStatsUseCase
 	previewSourceModeUseCase           *sourceModeApp.PreviewSourceModeUseCase
 }
 
@@ -78,6 +83,7 @@ func getContainer() *container {
 		heartRateReader := heartrateInfra.NewHeartRateServiceAdapter()
 		gearAnalysisReader := gearAnalysisInfra.NewGearAnalysisServiceAdapter()
 		healthReader := healthInfra.NewHealthServiceAdapter(routingEngine)
+		dataQualityReader := dataQualityInfra.NewDataQualityServiceAdapter()
 		chartsReader := chartsInfra.NewChartsServiceAdapter()
 		dashboardReader := dashboardInfra.NewDashboardServiceAdapter()
 		sourceModeReader := sourceModeInfra.NewSourceModeServiceAdapter()
@@ -110,6 +116,9 @@ func getContainer() *container {
 			getGearAnalysisUseCase:             gearAnalysisApp.NewGetGearAnalysisUseCase(gearAnalysisReader),
 			getBadgesUseCase:                   badgesApp.NewGetBadgesUseCase(badgesReader),
 			getCacheHealthDetailsUseCase:       healthApp.NewGetCacheHealthDetailsUseCase(healthReader),
+			getDataQualityReportUseCase:        dataQualityApp.NewGetDataQualityReportUseCase(dataQualityReader),
+			excludeActivityFromStatsUseCase:    dataQualityApp.NewExcludeActivityFromStatsUseCase(dataQualityReader),
+			includeActivityInStatsUseCase:      dataQualityApp.NewIncludeActivityInStatsUseCase(dataQualityReader),
 			previewSourceModeUseCase:           sourceModeApp.NewPreviewSourceModeUseCase(sourceModeReader),
 		}
 	})

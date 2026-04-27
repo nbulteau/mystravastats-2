@@ -40,6 +40,7 @@ internal class BadgesService(
         logger.info("Checking general badges for $activityTypes in ${year ?: "all years"}")
 
         val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
+            .withoutDataQualityExcludedStats(activityProvider)
         val representativeActivityType = activityTypes.representativeBadgeActivityType()
 
         return when (representativeActivityType) {
@@ -69,6 +70,7 @@ internal class BadgesService(
         logger.info("Checking famous badges for $activityTypes in ${year ?: "all years"}")
 
         val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
+            .withoutDataQualityExcludedStats(activityProvider)
         val representativeActivityType = activityTypes.representativeBadgeActivityType()
 
         return when (representativeActivityType) {

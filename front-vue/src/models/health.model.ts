@@ -1,3 +1,5 @@
+import type { DataQualitySummary } from "@/models/data-quality.model";
+
 export type HealthRecord = Record<string, unknown>;
 
 export interface HealthDetailsPayload extends HealthRecord {
@@ -15,4 +17,5 @@ export interface HealthDetailsPayload extends HealthRecord {
   files?: HealthRecord;
   routing?: HealthRecord;
   runtimeConfig?: HealthRecord;
+  dataQuality?: DataQualitySummary;
 }

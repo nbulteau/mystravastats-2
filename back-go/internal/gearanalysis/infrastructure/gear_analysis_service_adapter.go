@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	dataqualityInfra "mystravastats/internal/dataquality/infrastructure"
 	"mystravastats/internal/platform/activityprovider"
 	"mystravastats/internal/shared/domain/business"
 )
@@ -13,7 +14,7 @@ func NewGearAnalysisServiceAdapter() *GearAnalysisServiceAdapter {
 
 func (adapter *GearAnalysisServiceAdapter) FindGearAnalysis(year *int, activityTypes ...business.ActivityType) business.GearAnalysis {
 	provider := activityprovider.Get()
-	activities := provider.GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	activities := dataqualityInfra.FilterExcludedFromStats(provider.GetActivitiesByYearAndActivityTypes(year, activityTypes...))
 	athlete := provider.GetAthlete()
 	return buildGearAnalysis(activities, athlete)
 }

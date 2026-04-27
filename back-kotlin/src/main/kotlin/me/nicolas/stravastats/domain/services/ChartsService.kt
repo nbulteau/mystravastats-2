@@ -154,11 +154,14 @@ internal class ChartsService(
             append(period.name)
             append('-')
             append(activityTypes.sorted().joinToString("_") { it.name })
+            append('-')
+            append(dataQualityExclusionSignature(activityProvider))
         }
 
         activitiesByPeriodCache[key]?.let { return it }
 
         val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
+            .withoutDataQualityExcludedStats(activityProvider)
 
         val activitiesByPeriod = when (period) {
             Period.MONTHS -> groupActivitiesByMonth(filteredActivities)

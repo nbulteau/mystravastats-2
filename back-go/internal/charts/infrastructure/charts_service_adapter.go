@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"mystravastats/internal/charts/application"
+	dataqualityInfra "mystravastats/internal/dataquality/infrastructure"
 	"mystravastats/internal/platform/activityprovider"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
@@ -26,7 +27,7 @@ func (adapter *ChartsServiceAdapter) FindDistanceByPeriod(year *int, period busi
 
 	log.Printf("Get distance by %s by activity (%v) type by year (%d)", period, activityTypes, resolvedYear)
 
-	activities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	activities := dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...))
 	activitiesByPeriod := activitiesByPeriod(activities, resolvedYear, period)
 
 	result := make([]application.ChartPeriodPoint, 0, len(activitiesByPeriod))
@@ -54,7 +55,7 @@ func (adapter *ChartsServiceAdapter) FindElevationByPeriod(year *int, period bus
 
 	log.Printf("Get elevation by %s by activity (%v) type by year (%d)", period, activityTypes, resolvedYear)
 
-	activities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	activities := dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...))
 	activitiesByPeriod := activitiesByPeriod(activities, resolvedYear, period)
 
 	size := 12
@@ -90,7 +91,7 @@ func (adapter *ChartsServiceAdapter) FindAverageSpeedByPeriod(year *int, period 
 
 	log.Printf("Get average speed by %s by activity (%v) type by year (%d)", period, activityTypes, resolvedYear)
 
-	activities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	activities := dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...))
 	activitiesByPeriod := activitiesByPeriod(activities, resolvedYear, period)
 
 	size := 12
@@ -135,7 +136,7 @@ func (adapter *ChartsServiceAdapter) FindAverageCadenceByPeriod(year *int, perio
 
 	log.Printf("Get average cadence by %s by activity (%v) type by year (%d)", period, activityTypes, resolvedYear)
 
-	activities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	activities := dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...))
 	activitiesByPeriod := activitiesByPeriod(activities, resolvedYear, period)
 
 	size := 12

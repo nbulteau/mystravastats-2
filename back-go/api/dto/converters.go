@@ -166,23 +166,21 @@ func ToAnnualGoalsDto(goals business.AnnualGoals) AnnualGoalsDto {
 
 func ToAnnualGoalTargetsDto(targets business.AnnualGoalTargets) AnnualGoalTargetsDto {
 	return AnnualGoalTargetsDto{
-		DistanceKm:        targets.DistanceKm,
-		ElevationMeters:   targets.ElevationMeters,
-		MovingTimeSeconds: targets.MovingTimeSeconds,
-		Activities:        targets.Activities,
-		ActiveDays:        targets.ActiveDays,
-		Eddington:         targets.Eddington,
+		DistanceKm:      targets.DistanceKm,
+		ElevationMeters: targets.ElevationMeters,
+		Activities:      targets.Activities,
+		ActiveDays:      targets.ActiveDays,
+		Eddington:       targets.Eddington,
 	}
 }
 
 func ToAnnualGoalTargets(targets AnnualGoalTargetsDto) business.AnnualGoalTargets {
 	return business.AnnualGoalTargets{
-		DistanceKm:        targets.DistanceKm,
-		ElevationMeters:   targets.ElevationMeters,
-		MovingTimeSeconds: targets.MovingTimeSeconds,
-		Activities:        targets.Activities,
-		ActiveDays:        targets.ActiveDays,
-		Eddington:         targets.Eddington,
+		DistanceKm:      targets.DistanceKm,
+		ElevationMeters: targets.ElevationMeters,
+		Activities:      targets.Activities,
+		ActiveDays:      targets.ActiveDays,
+		Eddington:       targets.Eddington,
 	}
 }
 

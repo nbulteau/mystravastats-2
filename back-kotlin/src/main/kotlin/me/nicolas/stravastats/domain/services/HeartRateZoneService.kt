@@ -43,6 +43,7 @@ internal class HeartRateZoneService(
     override fun getAnalysis(activityTypes: Set<ActivityType>, year: Int?): HeartRateZoneAnalysis {
         val settings = activityProvider.getHeartRateZoneSettings().normalize()
         val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
+            .withoutDataQualityExcludedStats(activityProvider)
             .sortedBy { activity -> activity.startDateLocal }
         val resolvedSettings = resolveSettings(settings, activities) ?: return emptyAnalysis(settings, null)
 

@@ -243,7 +243,7 @@ class DashboardServiceTest {
         val result = dashboardService.getAnnualGoals(2025, activityTypes)
 
         // THEN
-        assertEquals(6, result.progress.size)
+        assertEquals(5, result.progress.size)
         val eddington = result.progress.first { item -> item.metric == AnnualGoalMetric.EDDINGTON }
         assertEquals(2.0, eddington.current)
         assertEquals(AnnualGoalStatus.NOT_SET, eddington.status)

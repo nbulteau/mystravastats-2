@@ -32,12 +32,11 @@ type CumulativeDataPerYearDto struct {
 }
 
 type AnnualGoalTargetsDto struct {
-	DistanceKm        *float64 `json:"distanceKm"`
-	ElevationMeters   *int     `json:"elevationMeters"`
-	MovingTimeSeconds *int     `json:"movingTimeSeconds"`
-	Activities        *int     `json:"activities"`
-	ActiveDays        *int     `json:"activeDays"`
-	Eddington         *int     `json:"eddington"`
+	DistanceKm      *float64 `json:"distanceKm"`
+	ElevationMeters *int     `json:"elevationMeters"`
+	Activities      *int     `json:"activities"`
+	ActiveDays      *int     `json:"activeDays"`
+	Eddington       *int     `json:"eddington"`
 }
 
 type AnnualGoalProgressDto struct {

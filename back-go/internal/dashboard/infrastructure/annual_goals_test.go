@@ -53,8 +53,8 @@ func TestBuildAnnualGoals_ReturnsNotSetRowsForMissingTargets(t *testing.T) {
 	result := buildAnnualGoals(2026, "Ride", business.AnnualGoalTargets{}, nil, now)
 
 	// THEN
-	if len(result.Progress) != 6 {
-		t.Fatalf("expected 6 annual goal rows, got %d", len(result.Progress))
+	if len(result.Progress) != 5 {
+		t.Fatalf("expected 5 annual goal rows, got %d", len(result.Progress))
 	}
 	for _, progress := range result.Progress {
 		if progress.Status != business.AnnualGoalStatusNotSet {

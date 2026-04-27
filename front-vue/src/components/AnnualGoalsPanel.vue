@@ -24,7 +24,6 @@ const emit = defineEmits<{
 const metricOrder: AnnualGoalMetric[] = [
   "DISTANCE_KM",
   "ELEVATION_METERS",
-  "MOVING_TIME_SECONDS",
   "ACTIVITIES",
   "ACTIVE_DAYS",
   "EDDINGTON",
@@ -33,7 +32,6 @@ const metricOrder: AnnualGoalMetric[] = [
 const metricLabels: Record<AnnualGoalMetric, string> = {
   DISTANCE_KM: "Distance",
   ELEVATION_METERS: "Dénivelé",
-  MOVING_TIME_SECONDS: "Temps",
   ACTIVITIES: "Sorties",
   ACTIVE_DAYS: "Jours actifs",
   EDDINGTON: "Eddington",
@@ -51,7 +49,6 @@ const monthLabels = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû",
 const targetInputs = reactive<Record<AnnualGoalMetric, string>>({
   DISTANCE_KM: "",
   ELEVATION_METERS: "",
-  MOVING_TIME_SECONDS: "",
   ACTIVITIES: "",
   ACTIVE_DAYS: "",
   EDDINGTON: "",
@@ -68,9 +65,6 @@ watch(
   (targets) => {
     targetInputs.DISTANCE_KM = inputValue(targets.distanceKm);
     targetInputs.ELEVATION_METERS = inputValue(targets.elevationMeters);
-    targetInputs.MOVING_TIME_SECONDS = inputValue(
-      targets.movingTimeSeconds === null ? null : (targets.movingTimeSeconds ?? 0) / 3600,
-    );
     targetInputs.ACTIVITIES = inputValue(targets.activities);
     targetInputs.ACTIVE_DAYS = inputValue(targets.activeDays);
     targetInputs.EDDINGTON = inputValue(targets.eddington);
@@ -130,7 +124,6 @@ function parsePositiveNumber(metric: AnnualGoalMetric): number | null {
 function buildTargets(): AnnualGoalTargets {
   const distanceKm = parsePositiveNumber("DISTANCE_KM");
   const elevationMeters = parsePositiveNumber("ELEVATION_METERS");
-  const movingTimeHours = parsePositiveNumber("MOVING_TIME_SECONDS");
   const activities = parsePositiveNumber("ACTIVITIES");
   const activeDays = parsePositiveNumber("ACTIVE_DAYS");
   const eddington = parsePositiveNumber("EDDINGTON");
@@ -139,7 +132,6 @@ function buildTargets(): AnnualGoalTargets {
     ...emptyAnnualGoalTargets(),
     distanceKm,
     elevationMeters: elevationMeters === null ? null : Math.round(elevationMeters),
-    movingTimeSeconds: movingTimeHours === null ? null : Math.round(movingTimeHours * 3600),
     activities: activities === null ? null : Math.round(activities),
     activeDays: activeDays === null ? null : Math.round(activeDays),
     eddington: eddington === null ? null : Math.round(eddington),
@@ -151,13 +143,10 @@ function saveGoals() {
 }
 
 function inputStep(metric: AnnualGoalMetric): string {
-  return metric === "DISTANCE_KM" || metric === "MOVING_TIME_SECONDS" ? "0.1" : "1";
+  return metric === "DISTANCE_KM" ? "0.1" : "1";
 }
 
 function inputUnit(metric: AnnualGoalMetric): string {
-  if (metric === "MOVING_TIME_SECONDS") {
-    return "h";
-  }
   if (metric === "DISTANCE_KM") {
     return "km";
   }
@@ -170,9 +159,6 @@ function inputUnit(metric: AnnualGoalMetric): string {
 function formatValue(metric: AnnualGoalMetric, value: number): string {
   if (!Number.isFinite(value)) {
     return "-";
-  }
-  if (metric === "MOVING_TIME_SECONDS") {
-    return formatDuration(value);
   }
   if (metric === "DISTANCE_KM") {
     return `${value.toFixed(1)} km`;
@@ -187,9 +173,6 @@ function formatPace(row: AnnualGoalProgress): string {
   if (row.target <= 0 || row.requiredPace <= 0) {
     return "-";
   }
-  if (row.metric === "MOVING_TIME_SECONDS") {
-    return `${formatDuration(row.requiredPace)}/j`;
-  }
   const value = row.metric === "DISTANCE_KM" ? row.requiredPace.toFixed(1) : Math.ceil(row.requiredPace).toString();
   return `${value} ${inputUnit(row.metric) || row.unit}/j`;
 }
@@ -198,9 +181,6 @@ function formatWeeklyPace(row: AnnualGoalProgress, value: number): string {
   if (row.target <= 0 || value <= 0) {
     return "-";
   }
-  if (row.metric === "MOVING_TIME_SECONDS") {
-    return `${formatDuration(value)}/sem`;
-  }
   const formatted = row.metric === "DISTANCE_KM" ? value.toFixed(1) : Math.ceil(value).toString();
   return `${formatted} ${inputUnit(row.metric) || row.unit}/sem`;
 }
@@ -208,9 +188,6 @@ function formatWeeklyPace(row: AnnualGoalProgress, value: number): string {
 function formatCompactValue(metric: AnnualGoalMetric, value: number): string {
   if (!Number.isFinite(value) || value <= 0) {
     return "-";
-  }
-  if (metric === "MOVING_TIME_SECONDS") {
-    return formatDuration(value);
   }
   if (metric === "DISTANCE_KM") {
     return value >= 10 ? `${Math.round(value)} km` : `${value.toFixed(1)} km`;
@@ -235,9 +212,6 @@ function suggestedInputValue(row: AnnualGoalProgress): string {
   if (row.suggestedTarget === null || row.suggestedTarget <= 0) {
     return "";
   }
-  if (row.metric === "MOVING_TIME_SECONDS") {
-    return inputValue(row.suggestedTarget / 3600);
-  }
   return inputValue(row.suggestedTarget);
 }
 
@@ -260,14 +234,6 @@ function progressWidth(row: AnnualGoalProgress): string {
   return `${Math.max(0, Math.min(100, row.progressPercent))}%`;
 }
 
-function formatDuration(totalSeconds: number): string {
-  const seconds = Math.max(0, totalSeconds);
-  const hours = seconds / 3600;
-  if (hours >= 1) {
-    return `${hours.toFixed(1)} h`;
-  }
-  return `${Math.round(seconds / 60)} min`;
-}
 </script>
 
 <template>

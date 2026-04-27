@@ -83,16 +83,6 @@
   Acceptance:
   - la parite critique n'est plus limitee au moteur routes.
 
-- [ ] `TECH-P1-06` (`P1`, `M`) - Journaliser les problemes de qualite de donnees locales.
-  Owners: `Back-Go`, `Back-Kotlin`, `Front`.
-  Proposition:
-  - collecter par provider les champs ignores, valeurs invalides, fichiers partiellement lus et streams absents,
-  - journaliser les signaux bruts utiles aux corrections futures: sauts GPS, vitesses impossibles, trous de streams et valeurs non numeriques,
-  - exposer un resume dans `/api/health/details` et la page Diagnostics,
-  - relier les anomalies a des IDs d'activites quand c'est possible.
-  Acceptance:
-  - quand une activite locale affiche une metrique a zero, l'utilisateur peut savoir si c'est une vraie valeur ou un fallback.
-
 ### Priorite basse
 
 - [ ] `TECH-P2-01` (`P2`, `M`) - Nettoyer la strategie d'assets frontend embarques.
@@ -125,21 +115,6 @@
 
 ### Priorite haute
 
-- [ ] `FUNC-P0-05` (`P0`, `M`) - Qualite et audit des activites locales.
-  Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
-  Proposition:
-  - ajouter une vue de controle des activites FIT/GPX importees,
-  - signaler fichiers invalides, activites sans GPS, streams absents, valeurs fallback, doublons probables, glitches GPS, vitesses incoherentes et donnees manquantes,
-  - tracer les anomalies par activite avec severite, source du probleme et champ concerne,
-  - proposer des corrections locales non destructives: ignorer points GPS aberrants, recalculer distance/D+, masquer une valeur invalide, exclure une activite des statistiques,
-  - conserver la donnee originale et un journal des corrections appliquees,
-  - permettre de filtrer par annee, sport, niveau de confiance et type de probleme.
-  Valeur:
-  - rend les modes locaux fiables sans obliger a lire les logs.
-  Acceptance:
-  - les activites locales problematiques sont visibles avant de casser ou polluer les statistiques,
-  - une correction locale peut etre appliquee, annulee et expliquee sans modifier le fichier source.
-
 ### Priorite moyenne
 
 - [ ] `FUNC-P1-04` (`P1`, `M`) - Comparaison d'activite a effort similaire.
@@ -170,6 +145,18 @@
   Acceptance:
   - un utilisateur peut voir rapidement la repartition route/chemin/single d'une sortie depuis le detail activite,
   - les segments non classifies restent visibles comme `inconnu` plutot que d'etre caches.
+
+- [ ] `FUNC-P1-08` (`P1`, `M`) - Corrections locales non destructives des activites.
+  Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
+  Proposition:
+  - partir de l'audit qualite existant dans `Status`,
+  - proposer des corrections locales non destructives: ignorer points GPS aberrants, recalculer distance/D+, masquer une valeur invalide,
+  - conserver la donnee originale et un journal des corrections appliquees,
+  - conserver la distinction deja posee entre stream complet absent, champ de stream structurel manquant et simple couverture capteur optionnelle,
+  - permettre d'annuler une correction et d'expliquer son impact sur les statistiques.
+  Acceptance:
+  - une anomalie peut etre corrigee localement sans modifier la source STRAVA/FIT/GPX,
+  - l'utilisateur voit clairement quelle valeur originale est remplacee ou ignoree.
 
 ### Priorite basse
 
@@ -203,7 +190,7 @@
 ## Dette visible a traiter en premier
 
 - Smoke tests source modes (`TECH-P0-05`).
-- Audit qualite des activites locales (`FUNC-P0-05`).
+- Corrections locales non destructives des activites (`FUNC-P1-08`).
 - Contrat OpenAPI partage (`TECH-P1-01`).
 
 ## Verification conseillee selon le type de changement

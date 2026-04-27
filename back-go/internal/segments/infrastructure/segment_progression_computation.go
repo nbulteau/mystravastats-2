@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	dataqualityInfra "mystravastats/internal/dataquality/infrastructure"
 	"mystravastats/internal/helpers"
 	"mystravastats/internal/platform/activityprovider"
 	"mystravastats/internal/shared/domain/business"
@@ -61,14 +62,14 @@ func computeSegmentClimbProgressionByYearMetricTargetAndTypes(
 		return emptySegmentClimbProgression(resolvedMetric, resolvedTargetType)
 	}
 
-	filteredActivities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	filteredActivities := dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...))
 	if len(filteredActivities) == 0 && year != nil {
 		log.Printf(
 			"Segment progression fallback to all years: requestedYear=%v targetType=%s activities=0",
 			yearValueForLog(year),
 			resolvedTargetType,
 		)
-		filteredActivities = activityprovider.Get().GetActivitiesByYearAndActivityTypes(nil, activityTypes...)
+		filteredActivities = dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(nil, activityTypes...))
 	}
 	sort.Slice(filteredActivities, func(i, j int) bool {
 		return filteredActivities[i].StartDateLocal < filteredActivities[j].StartDateLocal

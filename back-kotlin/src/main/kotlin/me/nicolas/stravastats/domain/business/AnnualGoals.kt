@@ -3,7 +3,6 @@ package me.nicolas.stravastats.domain.business
 enum class AnnualGoalMetric {
     DISTANCE_KM,
     ELEVATION_METERS,
-    MOVING_TIME_SECONDS,
     ACTIVITIES,
     ACTIVE_DAYS,
     EDDINGTON,

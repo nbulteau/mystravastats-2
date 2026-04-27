@@ -24,6 +24,7 @@ import java.io.File
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlin.math.round
+import kotlin.math.roundToInt
 
 interface IDashboardService {
     fun getCumulativeDistancePerYear(activityTypes: Set<ActivityType>): Map<String, Map<String, Number>>
@@ -105,7 +106,6 @@ class DashboardService(
     private data class AnnualGoalCurrentValues(
         val distanceKm: Double,
         val elevationMeters: Double,
-        val movingTimeSeconds: Double,
         val activities: Double,
         val activeDays: Double,
         val eddington: Double,
@@ -139,7 +139,15 @@ class DashboardService(
     override fun getEddingtonNumber(activityTypes: Set<ActivityType>): EddingtonNumber {
         logger.info("Get Eddington number for activity type $activityTypes")
 
-        val activitiesByActiveDays = activityProvider.getActivitiesByActivityTypeGroupByActiveDays(activityTypes)
+        val excludedActivityIds = dataQualityExcludedActivityIds(activityProvider)
+        val activitiesByActiveDays = if (excludedActivityIds.isEmpty()) {
+            activityProvider.getActivitiesByActivityTypeGroupByActiveDays(activityTypes)
+        } else {
+            activityProvider.getActivitiesByActivityTypeAndYear(activityTypes)
+                .withoutDataQualityExcludedStats(activityProvider)
+                .groupBy { activity -> activity.startDateLocal.substringBefore('T') }
+                .mapValues { (_, activities) -> activities.sumOf { activity -> activity.distance / 1000 }.roundToInt() }
+        }
         val eddingtonList = computeEddingtonListFromDailyTotals(activitiesByActiveDays.values)
 
         var eddingtonNumber = 0
@@ -157,6 +165,7 @@ class DashboardService(
         logger.info("Get annual goals for year $year and activity type $activityTypes")
         val targets = loadAnnualGoalTargets(year, activityTypes).normalize()
         val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
+            .withoutDataQualityExcludedStats(activityProvider)
         return buildAnnualGoals(year, activityTypeKey(activityTypes), targets, activities, LocalDate.now())
     }
 
@@ -169,6 +178,7 @@ class DashboardService(
         val normalizedTargets = targets.normalize()
         saveAnnualGoalTargets(year, activityTypes, normalizedTargets)
         val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
+            .withoutDataQualityExcludedStats(activityProvider)
         return buildAnnualGoals(year, activityTypeKey(activityTypes), normalizedTargets, activities, LocalDate.now())
     }
 
@@ -194,6 +204,7 @@ class DashboardService(
         logger.info("Get dashboard data for activity type $activityTypes")
 
         val activitiesByYear = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes)
+            .withoutDataQualityExcludedStats(activityProvider)
             .groupBy { activity -> activity.startDateLocal.subSequence(0, 4).toString() }
 
         val yearlyAccumulators = activitiesByYear.mapValues { (_, activities) ->
@@ -375,7 +386,9 @@ class DashboardService(
         activityTypes: Set<ActivityType>,
         calculate: (Map<String, List<StravaActivity>>) -> Map<String, T>,
     ): Map<String, Map<String, T>> {
-        val activitiesByYear = activityProvider.getActivitiesByActivityTypeGroupByYear(activityTypes)
+        val activitiesByYear = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes)
+            .withoutDataQualityExcludedStats(activityProvider)
+            .groupBy { activity -> activity.startDateLocal.subSequence(0, 4).toString() }
         return (StravaActivityProvider.STRAVA_FIRST_YEAR..LocalDate.now().year).mapNotNull { year ->
             activitiesByYear[year.toString()]?.let { activities ->
                 val activitiesByDay = groupActivitiesByDay(activities, year)
@@ -477,16 +490,6 @@ class DashboardService(
                 last30DaysValue = last30DaysValues.elevationMeters,
             ),
             AnnualGoalMetricDefinition(
-                metric = AnnualGoalMetric.MOVING_TIME_SECONDS,
-                label = "Moving time",
-                unit = "s",
-                requiredPaceUnit = "s/day",
-                current = current.movingTimeSeconds,
-                target = targets.movingTimeSeconds?.toDouble(),
-                monthlyValues = monthlyValues.getValue(AnnualGoalMetric.MOVING_TIME_SECONDS),
-                last30DaysValue = last30DaysValues.movingTimeSeconds,
-            ),
-            AnnualGoalMetricDefinition(
                 metric = AnnualGoalMetric.ACTIVITIES,
                 label = "Activities",
                 unit = "activities",
@@ -541,7 +544,6 @@ class DashboardService(
         return AnnualGoalCurrentValues(
             distanceKm = activities.sumOf { activity -> activity.distance / 1000.0 },
             elevationMeters = activities.sumOf { activity -> activity.totalElevationGain },
-            movingTimeSeconds = sumMovingTimeSeconds(activities).toDouble(),
             activities = activities.size.toDouble(),
             activeDays = countActiveDays(activities).toDouble(),
             eddington = eddington.toDouble(),
@@ -559,7 +561,6 @@ class DashboardService(
             val day = activityDate.toString()
             values.getValue(AnnualGoalMetric.DISTANCE_KM)[monthIndex] += activity.distance / 1000.0
             values.getValue(AnnualGoalMetric.ELEVATION_METERS)[monthIndex] += activity.totalElevationGain
-            values.getValue(AnnualGoalMetric.MOVING_TIME_SECONDS)[monthIndex] += activityMovingTimeSeconds(activity).toDouble()
             values.getValue(AnnualGoalMetric.ACTIVITIES)[monthIndex] += 1.0
             activeDaysByMonth[monthIndex].add(day)
             dailyDistanceByMonth[monthIndex][day] =
@@ -592,7 +593,6 @@ class DashboardService(
         val window = annualGoalLast30DaysWindow(year, today) ?: return AnnualGoalCurrentValues(
             distanceKm = 0.0,
             elevationMeters = 0.0,
-            movingTimeSeconds = 0.0,
             activities = 0.0,
             activeDays = 0.0,
             eddington = 0.0,
@@ -820,7 +820,7 @@ class DashboardService(
         return AnnualGoalTargets(
             distanceKm = distanceKm?.takeIf { it > 0.0 },
             elevationMeters = elevationMeters?.takeIf { it > 0 },
-            movingTimeSeconds = movingTimeSeconds?.takeIf { it > 0 },
+            movingTimeSeconds = null,
             activities = activities?.takeIf { it > 0 },
             activeDays = activeDays?.takeIf { it > 0 },
             eddington = eddington?.takeIf { it > 0 },

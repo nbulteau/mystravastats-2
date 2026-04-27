@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"mystravastats/domain/statistics"
+	dataqualityInfra "mystravastats/internal/dataquality/infrastructure"
 	"mystravastats/internal/helpers"
 	"mystravastats/internal/platform/activityprovider"
 	"mystravastats/internal/shared/domain/business"
@@ -28,7 +29,7 @@ func computePersonalRecordsTimelineByYearMetricAndTypes(year *int, metric *strin
 		return []business.PersonalRecordTimelineEntry{}
 	}
 
-	filteredActivities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	filteredActivities := dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...))
 	return buildPersonalRecordsTimeline(filteredActivities, metric, activityTypes)
 }
 

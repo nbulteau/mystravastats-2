@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"mystravastats/domain/badges"
+	dataqualityInfra "mystravastats/internal/dataquality/infrastructure"
 	"mystravastats/internal/platform/activityprovider"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
@@ -34,7 +35,7 @@ func (adapter *BadgesServiceAdapter) FindGeneralBadges(year *int, activityTypes 
 		return []business.BadgeCheckResult{}
 	}
 
-	activities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	activities := dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...))
 	return checkGeneralBadges(activities, activityTypes...)
 }
 
@@ -73,7 +74,7 @@ func (adapter *BadgesServiceAdapter) FindFamousBadges(year *int, activityTypes .
 		pyreneesBadgeSet = loadBadgeSet("pyrenees", "strava-cache/famous-climb/pyrenees.json")
 	})
 
-	activities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	activities := dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...))
 	representativeActivityType, ok := business.RepresentativeBadgeActivityType(activityTypes...)
 	if ok && representativeActivityType == business.Ride {
 		return append(alpesBadgeSet.Check(activities), pyreneesBadgeSet.Check(activities)...)

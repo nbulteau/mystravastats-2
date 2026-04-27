@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	domainStatistics "mystravastats/domain/statistics"
+	dataqualityInfra "mystravastats/internal/dataquality/infrastructure"
 	"mystravastats/internal/helpers"
 	"mystravastats/internal/platform/activityprovider"
 	"mystravastats/internal/shared/domain/business"
@@ -22,7 +23,7 @@ func computeStatisticsByYearAndTypes(year *int, activityTypes ...business.Activi
 		log.Printf("Compute statistics for %v for %v", activityTypes, *year)
 	}
 
-	filteredActivities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	filteredActivities := dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...))
 	if len(filteredActivities) == 0 {
 		if year == nil {
 			log.Printf("No activities found for %v in all years", activityTypes)

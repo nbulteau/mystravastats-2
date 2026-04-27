@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"hash/fnv"
+	dataqualityInfra "mystravastats/internal/dataquality/infrastructure"
 	"mystravastats/internal/platform/activityprovider"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
@@ -120,7 +121,7 @@ func collectSegmentAttemptsGroupedByTarget(
 	to *string,
 	activityTypes ...business.ActivityType,
 ) map[int64][]segmentAttemptRaw {
-	filteredActivities := activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...)
+	filteredActivities := dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...))
 	sort.Slice(filteredActivities, func(i, j int) bool {
 		return filteredActivities[i].StartDateLocal < filteredActivities[j].StartDateLocal
 	})

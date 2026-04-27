@@ -3,9 +3,12 @@ import { computed, onMounted, ref, watch } from "vue";
 import { useContextStore } from "@/stores/context";
 import { useDiagnosticsStore } from "@/stores/diagnostics";
 import { useUiStore } from "@/stores/ui";
+import TooltipHint from "@/components/TooltipHint.vue";
 import { ToastTypeEnum } from "@/models/toast.model";
+import type { DataQualityIssue, DataQualitySummary } from "@/models/data-quality.model";
 import type { HealthRecord } from "@/models/health.model";
 import type { SourceMode } from "@/models/source-mode.model";
+import { RouterLink } from "vue-router";
 
 const contextStore = useContextStore();
 const diagnosticsStore = useDiagnosticsStore();
@@ -13,6 +16,9 @@ const uiStore = useUiStore();
 const showRawPayload = ref(false);
 const sourceModePathEdited = ref(false);
 const sourceModeInitialized = ref(false);
+const qualityActionActivityId = ref<number | null>(null);
+const showAllDataQualityIssues = ref(false);
+const dataQualityPreviewLimit = 12;
 const selectedSourceMode = ref<SourceMode>("STRAVA");
 const sourceModePath = ref("");
 const sourceModeOptions: Array<{ mode: SourceMode; label: string; icon: string }> = [
@@ -38,6 +44,70 @@ const runtimeServer = computed(() => asRecord(runtimeConfig.value.server));
 const runtimeCors = computed(() => asRecord(runtimeConfig.value.cors));
 const runtimeRouting = computed(() => asRecord(runtimeConfig.value.routing));
 const hasRuntimeConfig = computed(() => Object.keys(runtimeConfig.value).length > 0);
+const dataQualitySummary = computed<DataQualitySummary | null>(() => {
+  if (diagnosticsStore.dataQualityReport) {
+    return diagnosticsStore.dataQualityReport.summary;
+  }
+  return normalizeDataQualitySummary(root.value.dataQuality);
+});
+const dataQualityIssues = computed<DataQualityIssue[]>(() => diagnosticsStore.dataQualityReport?.issues ?? dataQualitySummary.value?.topIssues ?? []);
+const hasFullDataQualityReport = computed(() => diagnosticsStore.dataQualityReport !== null);
+const displayedDataQualityIssues = computed(() => {
+  if (showAllDataQualityIssues.value) {
+    return dataQualityIssues.value;
+  }
+  return dataQualityIssues.value.slice(0, dataQualityPreviewLimit);
+});
+const dataQualityIssueListLabel = computed(() => {
+  const visible = displayedDataQualityIssues.value.length;
+  const total = hasFullDataQualityReport.value
+    ? dataQualityIssues.value.length
+    : dataQualitySummary.value?.issueCount ?? dataQualityIssues.value.length;
+  if (total <= visible) {
+    return `${formatInteger(visible)} issues`;
+  }
+  return `Showing ${formatInteger(visible)} of ${formatInteger(total)} issues`;
+});
+const canToggleDataQualityIssues = computed(() => hasFullDataQualityReport.value && dataQualityIssues.value.length > dataQualityPreviewLimit);
+const dataQualityStatusLabel = computed(() => {
+  const status = dataQualitySummary.value?.status ?? "not_applicable";
+  if (status === "ok") return "OK";
+  if (status === "critical") return "Critical";
+  if (status === "warning") return "To check";
+  return "No local source";
+});
+const dataQualityStatusClass = computed(() => {
+  const status = dataQualitySummary.value?.status ?? "not_applicable";
+  if (status === "ok") return "status-chip status-chip--up";
+  if (status === "critical") return "status-chip status-chip--down";
+  if (status === "warning") return "status-chip status-chip--warn";
+  return "status-chip status-chip--neutral";
+});
+const dataQualityStats = computed(() => {
+  const summary = dataQualitySummary.value;
+  const bySeverity = summary?.bySeverity ?? {};
+  const criticalCount = bySeverity.critical ?? 0;
+  const warningCount = bySeverity.warning ?? 0;
+  const infoCount = bySeverity.info ?? 0;
+  const hasActionableFindings = criticalCount > 0 || warningCount > 0;
+  return [
+    { label: "Total issues", value: formatInteger(summary?.issueCount ?? 0), tone: hasActionableFindings ? "warn" : "neutral" },
+    { label: "Affected activities", value: formatInteger(summary?.impactedActivities ?? 0), tone: hasActionableFindings ? "warn" : "neutral" },
+    { label: "Excluded from stats", value: formatInteger(summary?.excludedActivities ?? 0), tone: (summary?.excludedActivities ?? 0) > 0 ? "warn" : "neutral" },
+    { label: "Critical issues", value: formatInteger(criticalCount), tone: criticalCount > 0 ? "down" : "neutral" },
+    { label: "Warning issues", value: formatInteger(warningCount), tone: warningCount > 0 ? "warn" : "neutral" },
+    { label: "Info issues", value: formatInteger(infoCount), tone: "neutral" },
+  ];
+});
+const dataQualityCategories = computed(() =>
+  Object.entries(dataQualitySummary.value?.byCategory ?? {})
+    .sort((left, right) => {
+      const priorityDelta = dataQualityCategoryPriority(left[0]) - dataQualityCategoryPriority(right[0]);
+      if (priorityDelta !== 0) return priorityDelta;
+      return right[1] - left[1];
+    })
+    .map(([category, count]) => ({ category, count })),
+);
 
 const providerLabel = computed(() => formatProvider(textValue(root.value.provider) || inferProvider(root.value)));
 const activityCount = computed(() => numberValue(root.value.activities));
@@ -303,6 +373,57 @@ function asRecord(value: unknown): HealthRecord {
     : {};
 }
 
+function normalizeDataQualitySummary(value: unknown): DataQualitySummary | null {
+  const record = asRecord(value);
+  if (Object.keys(record).length === 0) {
+    return null;
+  }
+  return {
+    status: textValue(record.status) || "not_applicable",
+    provider: textValue(record.provider),
+    issueCount: numberValue(record.issueCount) ?? 0,
+    impactedActivities: numberValue(record.impactedActivities) ?? 0,
+    excludedActivities: numberValue(record.excludedActivities) ?? 0,
+    bySeverity: numberRecord(record.bySeverity),
+    byCategory: numberRecord(record.byCategory),
+    topIssues: Array.isArray(record.topIssues)
+      ? record.topIssues.map(normalizeDataQualityIssue).filter((issue): issue is DataQualityIssue => issue !== null)
+      : [],
+  };
+}
+
+function normalizeDataQualityIssue(value: unknown): DataQualityIssue | null {
+  const record = asRecord(value);
+  if (!textValue(record.id) && !textValue(record.message)) {
+    return null;
+  }
+  return {
+    id: textValue(record.id) || `${textValue(record.category)}-${textValue(record.field)}-${textValue(record.activityId)}`,
+    source: textValue(record.source),
+    activityId: numberValue(record.activityId),
+    activityName: textValue(record.activityName),
+    activityType: textValue(record.activityType),
+    year: textValue(record.year),
+    filePath: textValue(record.filePath),
+    severity: textValue(record.severity) || "info",
+    category: textValue(record.category),
+    field: textValue(record.field),
+    message: textValue(record.message),
+    rawValue: textValue(record.rawValue),
+    suggestion: textValue(record.suggestion),
+    excludedFromStats: booleanValue(record.excludedFromStats),
+    excludedAt: textValue(record.excludedAt),
+  };
+}
+
+function numberRecord(value: unknown): Record<string, number> {
+  const record = asRecord(value);
+  return Object.fromEntries(
+    Object.entries(record)
+      .map(([key, entry]) => [key, numberValue(entry) ?? 0]),
+  );
+}
+
 function textValue(value: unknown): string {
   if (typeof value === "string") return value.trim();
   if (typeof value === "number" && Number.isFinite(value)) return String(value);
@@ -444,6 +565,98 @@ function formatSourceField(value: string): string {
     cadence: "Cadence",
   };
   return labels[value] || value;
+}
+
+function formatDataQualityCategory(value: string): string {
+  const labels: Record<string, string> = {
+    INVALID_FILE: "Invalid file",
+    MISSING_STREAM: "Missing detailed stream",
+    MISSING_STREAM_FIELD: "Missing stream field",
+    STREAM_DATA_COVERAGE: "Stream coverage",
+    INVALID_VALUE: "Invalid value",
+    INCONSISTENT_TIME: "Time",
+    GPS_GLITCH: "GPS glitch",
+    ALTITUDE_SPIKE: "Altitude spike",
+    FALLBACK_VALUE: "Fallback",
+  };
+  return labels[value] || value;
+}
+
+function dataQualityCategoryTooltip(value: string): string {
+  const descriptions: Record<string, string> = {
+    INVALID_FILE: "The source file could not be parsed reliably or contains an unsupported payload.",
+    MISSING_STREAM: "The activity has no detailed stream in the local cache. In Strava mode this can usually be fetched from the API.",
+    MISSING_STREAM_FIELD: "A detailed stream exists, but one required field such as time, distance, GPS trace, or altitude is missing or inconsistent.",
+    STREAM_DATA_COVERAGE: "Optional sensor samples are incomplete. Summary values may exist, but charts using sample-by-sample data will be partial.",
+    INVALID_VALUE: "A summary value is missing, not serializable, or outside a plausible range for the activity type.",
+    INCONSISTENT_TIME: "Timing fields disagree, for example moving time is greater than elapsed time.",
+    GPS_GLITCH: "The GPS trace contains a jump that implies an impossible speed for this activity type.",
+    ALTITUDE_SPIKE: "The altitude stream contains a sharp elevation jump that can distort elevation gain.",
+    FALLBACK_VALUE: "The displayed value comes from a fallback calculation instead of the original source data.",
+  };
+  return descriptions[value] || "Data quality finding detected for this category.";
+}
+
+function dataQualityCategoryPriority(value: string): number {
+  const priority: Record<string, number> = {
+    INVALID_FILE: 0,
+    INVALID_VALUE: 1,
+    INCONSISTENT_TIME: 2,
+    GPS_GLITCH: 3,
+    ALTITUDE_SPIKE: 4,
+    MISSING_STREAM_FIELD: 5,
+    MISSING_STREAM: 6,
+    FALLBACK_VALUE: 7,
+    STREAM_DATA_COVERAGE: 8,
+  };
+  return priority[value] ?? 99;
+}
+
+function dataQualitySeverityClass(severity: string): string {
+  if (severity === "critical") return "quality-severity quality-severity--critical";
+  if (severity === "warning") return "quality-severity quality-severity--warning";
+  return "quality-severity quality-severity--info";
+}
+
+function dataQualityStatClass(tone: string): string {
+  if (tone === "down") return "quality-metric quality-metric--down";
+  if (tone === "warn") return "quality-metric quality-metric--warn";
+  return "quality-metric";
+}
+
+async function toggleStatsExclusion(issue: DataQualityIssue) {
+  if (!issue.activityId) {
+    return;
+  }
+  qualityActionActivityId.value = issue.activityId;
+  try {
+    if (issue.excludedFromStats) {
+      await diagnosticsStore.includeActivityInStats(issue.activityId);
+      uiStore.showToast({
+        id: `quality-include-${Date.now()}`,
+        type: ToastTypeEnum.NORMAL,
+        message: "Activity included in statistics.",
+        timeout: 2600,
+      });
+    } else {
+      await diagnosticsStore.excludeActivityFromStats(issue.activityId);
+      uiStore.showToast({
+        id: `quality-exclude-${Date.now()}`,
+        type: ToastTypeEnum.NORMAL,
+        message: "Activity excluded from statistics.",
+        timeout: 2600,
+      });
+    }
+  } catch (error) {
+    uiStore.showToast({
+      id: `quality-action-failed-${Date.now()}`,
+      type: ToastTypeEnum.WARN,
+      message: error instanceof Error ? error.message : "Unable to update data quality exclusion.",
+      timeout: 3600,
+    });
+  } finally {
+    qualityActionActivityId.value = null;
+  }
 }
 
 async function refreshDiagnostics() {
@@ -787,6 +1000,125 @@ async function previewSourceMode() {
                 <span>{{ recommendation }}</span>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        v-if="dataQualitySummary"
+        class="diagnostics-panel diagnostics-panel--wide"
+      >
+        <div class="panel-heading">
+          <h2>Data Quality</h2>
+          <span :class="dataQualityStatusClass">{{ dataQualityStatusLabel }}</span>
+        </div>
+        <div class="quality-layout">
+          <div class="quality-overview">
+            <div class="quality-metrics">
+              <div
+                v-for="stat in dataQualityStats"
+                :key="stat.label"
+                :class="dataQualityStatClass(stat.tone)"
+              >
+                <span>{{ stat.label }}</span>
+                <strong>{{ stat.value }}</strong>
+              </div>
+            </div>
+            <div
+              v-if="dataQualityCategories.length > 0"
+              class="quality-categories"
+            >
+              <span
+                v-for="item in dataQualityCategories"
+                :key="item.category"
+                class="quality-category"
+                :title="dataQualityCategoryTooltip(item.category)"
+              >
+                {{ formatDataQualityCategory(item.category) }} · {{ item.count }}
+                <TooltipHint :text="dataQualityCategoryTooltip(item.category)" />
+              </span>
+            </div>
+          </div>
+
+          <div
+            v-if="dataQualityIssues.length > 0"
+            class="quality-table"
+          >
+            <div class="quality-table-toolbar">
+              <div>
+                <strong>Issue list</strong>
+                <small>{{ dataQualityIssueListLabel }}</small>
+              </div>
+              <button
+                v-if="canToggleDataQualityIssues"
+                type="button"
+                class="btn btn-sm btn-outline-secondary"
+                @click="showAllDataQualityIssues = !showAllDataQualityIssues"
+              >
+                <i
+                  :class="showAllDataQualityIssues ? 'fa-solid fa-compress' : 'fa-solid fa-list'"
+                  aria-hidden="true"
+                />
+                {{ showAllDataQualityIssues ? `Show top ${dataQualityPreviewLimit}` : "Show all" }}
+              </button>
+            </div>
+            <div class="quality-row quality-row--head">
+              <span>Severity</span>
+              <span>Activity</span>
+              <span>Problem</span>
+              <span>Value</span>
+              <span>Action</span>
+            </div>
+            <div
+              v-for="issue in displayedDataQualityIssues"
+              :key="issue.id"
+              class="quality-row"
+            >
+              <span :class="dataQualitySeverityClass(issue.severity)">{{ issue.severity }}</span>
+              <span>
+                <RouterLink
+                  v-if="issue.activityId"
+                  :to="`/activities/${issue.activityId}`"
+                  class="quality-activity-link"
+                >
+                  {{ issue.activityName || issue.activityId }}
+                </RouterLink>
+                <span v-else>{{ issue.activityName || "n/a" }}</span>
+                <small>{{ [issue.activityType, issue.year].filter(Boolean).join(" · ") }}</small>
+              </span>
+              <span>
+                <strong class="quality-problem-label">
+                  {{ formatDataQualityCategory(issue.category) }}
+                  <TooltipHint :text="dataQualityCategoryTooltip(issue.category)" />
+                </strong>
+                <small>{{ issue.message }}</small>
+              </span>
+              <span class="monospace">{{ issue.rawValue || issue.field }}</span>
+              <span class="quality-action-cell">
+                <button
+                  v-if="issue.activityId"
+                  type="button"
+                  :class="['btn btn-sm', issue.excludedFromStats ? 'btn-outline-secondary' : 'btn-outline-danger']"
+                  :disabled="qualityActionActivityId === issue.activityId"
+                  @click="toggleStatsExclusion(issue)"
+                >
+                  <i
+                    :class="issue.excludedFromStats ? 'fa-solid fa-rotate-left' : 'fa-solid fa-ban'"
+                    aria-hidden="true"
+                  />
+                  {{ issue.excludedFromStats ? "Include" : "Exclude" }}
+                </button>
+                <small v-if="issue.excludedFromStats">Excluded from stats</small>
+                <small v-else>{{ issue.suggestion || "Review source" }}</small>
+              </span>
+            </div>
+          </div>
+
+          <div
+            v-else
+            class="quality-empty"
+          >
+            {{ dataQualitySummary.status === "not_applicable" ? "Local data quality checks are available in FIT or GPX mode." : "No local data quality issue detected." }}
           </div>
         </div>
       </section>
@@ -1522,6 +1854,208 @@ dd {
   color: #9b1c1c;
 }
 
+.quality-layout {
+  display: grid;
+  gap: 12px;
+}
+
+.quality-overview {
+  display: grid;
+  gap: 10px;
+}
+
+.quality-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+.quality-metric {
+  min-width: 0;
+  border: 1px solid #e5e7ee;
+  border-radius: 8px;
+  background: #fafbfe;
+  padding: 9px;
+}
+
+.quality-metric--warn {
+  border-color: #f3d17e;
+  background: #fff8e3;
+}
+
+.quality-metric--down {
+  border-color: #efa4a4;
+  background: #fff0f0;
+}
+
+.quality-metric span {
+  display: block;
+  color: var(--ms-text-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.quality-metric strong {
+  display: block;
+  margin-top: 2px;
+}
+
+.quality-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.quality-category {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border: 1px solid #c8d2e1;
+  border-radius: 999px;
+  background: #eef4fb;
+  color: #31506f;
+  padding: 2px 9px;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.quality-problem-label {
+  display: inline-flex;
+  align-items: center;
+}
+
+.quality-table {
+  display: grid;
+  gap: 1px;
+  overflow-x: auto;
+  border: 1px solid var(--ms-border);
+  border-radius: 8px;
+}
+
+.quality-table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 900px;
+  padding: 9px 10px;
+  background: #ffffff;
+}
+
+.quality-table-toolbar strong {
+  display: block;
+  font-size: 0.86rem;
+}
+
+.quality-table-toolbar small {
+  display: block;
+  margin-top: 2px;
+  color: var(--ms-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.quality-table-toolbar .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  white-space: nowrap;
+}
+
+.quality-row {
+  display: grid;
+  grid-template-columns: minmax(88px, 0.55fr) minmax(180px, 1.1fr) minmax(240px, 1.5fr) minmax(110px, 0.8fr) minmax(220px, 1.3fr);
+  gap: 10px;
+  min-width: 900px;
+  padding: 9px 10px;
+  background: #ffffff;
+}
+
+.quality-row--head {
+  background: #f3f6fa;
+  color: var(--ms-text-muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.quality-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.quality-row small {
+  display: block;
+  margin-top: 2px;
+  color: var(--ms-text-muted);
+  font-size: 0.78rem;
+}
+
+.quality-activity-link {
+  color: #254e7b;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.quality-activity-link:hover {
+  color: var(--ms-primary);
+}
+
+.quality-severity {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  height: 24px;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.quality-severity--critical {
+  border: 1px solid #efa4a4;
+  background: #fff0f0;
+  color: #9b1c1c;
+}
+
+.quality-severity--warning {
+  border: 1px solid #f3d17e;
+  background: #fff8e3;
+  color: #805d05;
+}
+
+.quality-severity--info {
+  border: 1px solid #c8d2e1;
+  background: #eef4fb;
+  color: #31506f;
+}
+
+.quality-action-cell {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: 4px;
+}
+
+.quality-action-cell .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  font-weight: 800;
+}
+
+.quality-empty {
+  border: 1px dashed var(--ms-border);
+  border-radius: 8px;
+  background: #fafbfe;
+  color: var(--ms-text-muted);
+  padding: 12px;
+  font-weight: 700;
+}
+
 .files-table {
   display: grid;
   gap: 1px;
@@ -1591,6 +2125,7 @@ dd {
   .detail-list--columns,
   .warmup-steps,
   .runtime-config-grid,
+  .quality-metrics,
   .source-mode-layout,
   .source-activation-summary,
   .source-env-row,

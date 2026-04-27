@@ -95,6 +95,7 @@ internal class StatisticsService(
         logger.info("Compute $activityTypes statistics for ${year ?: "all years"}")
 
         val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
+            .withoutDataQualityExcludedStats(activityProvider)
 
         return when (resolvePrimaryActivityType(activityTypes)) {
             ActivityType.Run -> computeRunStatistics(filteredActivities)
@@ -113,6 +114,7 @@ internal class StatisticsService(
         logger.info("Compute personal records timeline for $activityTypes in ${year ?: "all years"}")
 
         val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
+            .withoutDataQualityExcludedStats(activityProvider)
             .sortedWith(
                 compareBy<StravaActivity> { activity ->
                     extractSortableDay(activity.startDateLocal)
@@ -214,6 +216,7 @@ internal class StatisticsService(
         )
 
         val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
+            .withoutDataQualityExcludedStats(activityProvider)
             .sortedBy { activity -> activity.startDateLocal }
 
         val rawAttempts = filteredActivities.flatMap { activity ->
@@ -567,6 +570,7 @@ internal class StatisticsService(
         val toDate = parseDateFilter(to)
 
         val filteredActivities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
+            .withoutDataQualityExcludedStats(activityProvider)
             .sortedBy { activity -> activity.startDateLocal }
 
         val cacheKey = buildSegmentAttemptsCacheKey(

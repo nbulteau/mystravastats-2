@@ -32,6 +32,7 @@ internal class GearAnalysisService(
 
     override fun getGearAnalysis(activityTypes: Set<ActivityType>, year: Int?): GearAnalysis {
         val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
+            .withoutDataQualityExcludedStats(activityProvider)
         return buildGearAnalysis(activities, activityProvider.athlete())
     }
 
