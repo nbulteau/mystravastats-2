@@ -13,6 +13,7 @@ import { useContextStore } from "@/stores/context";
 import { useGearAnalysisStore } from "@/stores/gear-analysis";
 import { useUiStore } from "@/stores/ui";
 import { ToastTypeEnum } from "@/models/toast.model";
+import TooltipHint from "@/components/TooltipHint.vue";
 
 type KindFilter = "ALL" | GearKind | "RETIRED";
 type SortMode = "distance" | "lastUsed" | "elevationGain" | "activities";
@@ -39,7 +40,8 @@ const maintenanceComponents = [
   { value: "BRAKE_PADS_FRONT", label: "Front brake pads" },
   { value: "BRAKE_PADS_REAR", label: "Rear brake pads" },
   { value: "BRAKE_BLEED", label: "Brake bleed" },
-  { value: "TIRES", label: "Tires" },
+  { value: "TIRE_FRONT", label: "Front tire" },
+  { value: "TIRE_REAR", label: "Rear tire" },
   { value: "TUBELESS_FRONT", label: "Front tubeless sealant" },
   { value: "TUBELESS_REAR", label: "Rear tubeless sealant" },
   { value: "BOTTOM_BRACKET", label: "Bottom bracket" },
@@ -53,6 +55,29 @@ const maintenanceComponents = [
   { value: "FORK_SERVICE", label: "Fork service" },
   { value: "SHOCK_SERVICE", label: "Shock service" },
 ];
+
+const maintenanceComponentDescriptions: Record<string, string> = {
+  CHAIN: "Chain wear affects shifting and cassette wear.",
+  CASSETTE: "Rear sprocket cluster; usually replaced after extended chain wear.",
+  BRAKE_PADS_FRONT: "Front brake pads. Front and rear pads wear differently.",
+  BRAKE_PADS_REAR: "Rear brake pads. Front and rear pads wear differently.",
+  BRAKE_BLEED: "Hydraulic brake fluid purge to restore lever feel and braking power.",
+  TIRE_FRONT: "Front tire. Track it separately because wear differs from the rear.",
+  TIRE_REAR: "Rear tire. Usually wears faster than the front tire.",
+  TIRES: "Legacy combined tire record; used as a fallback for front and rear tire tasks.",
+  TUBELESS_FRONT: "Sealant refresh for the front tubeless tire.",
+  TUBELESS_REAR: "Sealant refresh for the rear tubeless tire.",
+  BOTTOM_BRACKET: "Bottom bracket: bearing assembly where the crank spindle turns in the frame.",
+  BEARINGS: "General bearings such as wheel hubs, headset or suspension pivots.",
+  DRIVETRAIN: "Whole transmission: chain, cassette, chainrings, derailleurs and pulleys.",
+  VALVE_CORE_FRONT: "Small removable valve insert on the front wheel.",
+  VALVE_CORE_REAR: "Small removable valve insert on the rear wheel.",
+  DERAILLEUR_HANGER: "Replaceable frame tab that holds and protects the rear derailleur.",
+  CHAINRING: "Front toothed ring driven by the chain.",
+  WHEEL_TRUING: "Wheel spoke tension and rim alignment check.",
+  FORK_SERVICE: "Suspension fork service interval.",
+  SHOCK_SERVICE: "Rear suspension shock service interval.",
+};
 
 onMounted(() => contextStore.updateCurrentView("gear"));
 
@@ -140,6 +165,17 @@ function maintenanceComponentLabel(component: string): string {
   return maintenanceComponents.find((item) => item.value === component)?.label ?? component;
 }
 
+function maintenanceComponentDescription(component: string): string {
+  const normalized = componentKey(component);
+  const matched = maintenanceComponents.find((item) => item.value === normalized || componentKey(item.label) === normalized);
+  const canonical = matched?.value ?? normalized;
+  return maintenanceComponentDescriptions[canonical] ?? maintenanceComponentDescriptions[normalized] ?? "";
+}
+
+function componentKey(value: string): string {
+  return value.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
 function maintenanceIntervalLabel(task: GearMaintenanceTask): string {
   const parts = [];
   if (task.intervalDistance > 0) {
@@ -166,6 +202,10 @@ function maintenanceHistoryLabel(record: GearMaintenanceRecord): string {
   return `${formatDate(record.date)} · ${formatDistance(record.distance)}`;
 }
 
+function gearOdometerDistance(item: GearAnalysisItem): number {
+  return item.totalDistance && item.totalDistance > 0 ? item.totalDistance : item.distance;
+}
+
 function isMaintenanceExpanded(gearId: string): boolean {
   return expandedMaintenanceByGearId[gearId] ?? false;
 }
@@ -184,7 +224,7 @@ function openMaintenanceForm(item: GearAnalysisItem, task?: GearMaintenanceTask)
   maintenanceForm.component = task?.componentLabel ?? "Chain";
   maintenanceForm.operation = task ? `${task.componentLabel} serviced` : "";
   maintenanceForm.date = todayInputValue();
-  maintenanceForm.distanceKm = (item.distance / 1000).toFixed(0);
+  maintenanceForm.distanceKm = (gearOdometerDistance(item) / 1000).toFixed(0);
   maintenanceForm.note = "";
 }
 
@@ -199,7 +239,7 @@ function buildMaintenanceRequest(item: GearAnalysisItem): GearMaintenanceRecordR
     component: maintenanceForm.component,
     operation: maintenanceForm.operation.trim() || `${maintenanceComponentLabel(maintenanceForm.component)} serviced`,
     date: maintenanceForm.date,
-    distance: Number.isFinite(distanceKm) ? distanceKm * 1000 : item.distance,
+    distance: Number.isFinite(distanceKm) ? distanceKm * 1000 : gearOdometerDistance(item),
     note: maintenanceForm.note.trim() || null,
   };
 }
@@ -235,7 +275,7 @@ async function markMaintenanceDone(item: GearAnalysisItem, task: GearMaintenance
       component: task.component,
       operation: `${task.componentLabel} serviced`,
       date: todayInputValue(),
-      distance: item.distance,
+      distance: gearOdometerDistance(item),
       note: null,
     });
     uiStore.showToast({
@@ -449,17 +489,9 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
               <div>
                 <span>Maintenance</span>
                 <strong>{{ item.maintenanceHistory.length }} local records</strong>
+                <small>Odometer {{ formatDistance(gearOdometerDistance(item)) }}</small>
               </div>
               <div class="maintenance-heading__actions">
-                <button
-                  type="button"
-                  class="btn btn-sm btn-outline-primary"
-                  :disabled="savingMaintenanceGearId === item.id"
-                  @click="openMaintenanceForm(item)"
-                >
-                  <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true" />
-                  Add service record
-                </button>
                 <button
                   type="button"
                   class="btn btn-sm btn-outline-secondary"
@@ -483,7 +515,13 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
                 >
                   <span :class="maintenanceTaskClass(task)">{{ task.status }}</span>
                   <div>
-                    <strong>{{ task.componentLabel }}</strong>
+                    <strong class="maintenance-component-title">
+                      {{ task.componentLabel }}
+                      <TooltipHint
+                        v-if="maintenanceComponentDescription(task.component)"
+                        :text="maintenanceComponentDescription(task.component)"
+                      />
+                    </strong>
                     <small>{{ task.statusLabel }} · {{ maintenanceProgressLabel(task) }} · interval {{ maintenanceIntervalLabel(task) }}</small>
                   </div>
                   <button
@@ -503,6 +541,15 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
                   <strong>Local service log</strong>
                   <small>Free-form component, date, odometer and note for this bike.</small>
                 </div>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-primary"
+                  :disabled="savingMaintenanceGearId === item.id"
+                  @click="openMaintenanceForm(item)"
+                >
+                  <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true" />
+                  Add service record
+                </button>
               </div>
 
               <form
@@ -511,7 +558,13 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
                 @submit.prevent="saveMaintenanceRecord(item)"
               >
                 <label>
-                  <span>Component</span>
+                  <span class="maintenance-label-with-help">
+                    Component
+                    <TooltipHint
+                      v-if="maintenanceComponentDescription(maintenanceForm.component)"
+                      :text="maintenanceComponentDescription(maintenanceForm.component)"
+                    />
+                  </span>
                   <input
                     v-model="maintenanceForm.component"
                     class="form-control form-control-sm"
@@ -877,10 +930,22 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
   text-transform: uppercase;
 }
 
+.maintenance-form label .maintenance-label-with-help {
+  align-items: center;
+  display: inline-flex;
+}
+
 .maintenance-heading strong {
   color: var(--ms-text);
   display: block;
   font-size: 0.9rem;
+}
+
+.maintenance-heading small {
+  color: var(--ms-text-muted);
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .maintenance-heading .btn,
@@ -958,6 +1023,11 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
   color: var(--ms-text);
   display: block;
   font-size: 0.86rem;
+}
+
+.maintenance-task .maintenance-component-title {
+  align-items: center;
+  display: inline-flex;
 }
 
 .maintenance-task small,

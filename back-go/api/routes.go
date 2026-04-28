@@ -43,6 +43,7 @@ var routes = Routes{
 	{Name: "GenerateTargetRoutesByActivityType", Method: "POST", Pattern: "/api/routes/generate/target", HandlerFunc: generateTargetRoutesByActivityType},
 	{Name: "GenerateShapeRoutesByActivityType", Method: "POST", Pattern: "/api/routes/generate/shape", HandlerFunc: generateShapeRoutesByActivityType},
 	{Name: "GetGeneratedRouteGpx", Method: "GET", Pattern: "/api/routes/{routeId}/gpx", HandlerFunc: getGeneratedRouteGPXByID},
+	{Name: "PostOSRMStart", Method: "POST", Pattern: "/api/routing/osrm/start", HandlerFunc: postOSRMStart},
 	{Name: "GetMapsGPX", Method: "GET", Pattern: "/api/maps/gpx", HandlerFunc: getMapsGPX},
 	{Name: "GetMapPassages", Method: "GET", Pattern: "/api/maps/passages", HandlerFunc: getMapPassages},
 	{Name: "GetChartsDistanceByPeriod", Method: "GET", Pattern: "/api/charts/distance-by-period", HandlerFunc: getChartsDistanceByPeriod},

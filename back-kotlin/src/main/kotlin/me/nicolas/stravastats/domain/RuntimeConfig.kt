@@ -71,6 +71,11 @@ object RuntimeConfig {
                 ),
                 "historyBiasEnabled" to readBoolConfig("OSM_ROUTING_HISTORY_BIAS_ENABLED", false),
                 "historyHalfLifeDays" to historyHalfLifeDays,
+                "controlEnabled" to readBoolConfig("OSRM_CONTROL_ENABLED", true),
+                "controlTimeoutMs" to readIntConfig("OSRM_CONTROL_TIMEOUT_MS", 30_000),
+                "controlProjectDir" to readStringConfig("OSRM_CONTROL_PROJECT_DIR", ""),
+                "controlComposeFile" to readStringConfig("OSRM_CONTROL_COMPOSE_FILE", "docker-compose-routing-osrm.yml"),
+                "controlDockerBin" to readStringConfig("OSRM_CONTROL_DOCKER_BIN", ""),
             ),
         )
     }

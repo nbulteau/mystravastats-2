@@ -23,6 +23,7 @@ import (
 	heartrateInfra "mystravastats/internal/heartrate/infrastructure"
 	routesApp "mystravastats/internal/routes/application"
 	routesInfra "mystravastats/internal/routes/infrastructure"
+	routingControlInfra "mystravastats/internal/routingcontrol/infrastructure"
 	segmentsApp "mystravastats/internal/segments/application"
 	segmentsInfra "mystravastats/internal/segments/infrastructure"
 	sourceModeApp "mystravastats/internal/sourcemode/application"
@@ -63,6 +64,7 @@ type container struct {
 	deleteGearMaintenanceRecordUseCase       *gearAnalysisApp.DeleteGearMaintenanceRecordUseCase
 	getBadgesUseCase                         *badgesApp.GetBadgesUseCase
 	getCacheHealthDetailsUseCase             *healthApp.GetCacheHealthDetailsUseCase
+	osrmControl                              *routingControlInfra.OSRMControlAdapter
 	getDataQualityReportUseCase              *dataQualityApp.GetDataQualityReportUseCase
 	excludeActivityFromStatsUseCase          *dataQualityApp.ExcludeActivityFromStatsUseCase
 	includeActivityInStatsUseCase            *dataQualityApp.IncludeActivityInStatsUseCase
@@ -87,6 +89,7 @@ func getContainer() *container {
 		statisticsReader := statisticsInfra.NewStatisticsServiceAdapter()
 		segmentsReader := segmentsInfra.NewSegmentServiceAdapter()
 		routingEngine := routesInfra.NewOSMRoutingAdapter()
+		osrmControl := routingControlInfra.NewOSRMControlAdapter()
 		routesReader := routesInfra.NewRouteServiceAdapter(routingEngine)
 		heartRateReader := heartrateInfra.NewHeartRateServiceAdapter()
 		gearAnalysisReader := gearAnalysisInfra.NewGearAnalysisServiceAdapter()
@@ -127,6 +130,7 @@ func getContainer() *container {
 			deleteGearMaintenanceRecordUseCase:       gearAnalysisApp.NewDeleteGearMaintenanceRecordUseCase(gearAnalysisReader),
 			getBadgesUseCase:                         badgesApp.NewGetBadgesUseCase(badgesReader),
 			getCacheHealthDetailsUseCase:             healthApp.NewGetCacheHealthDetailsUseCase(healthReader),
+			osrmControl:                              osrmControl,
 			getDataQualityReportUseCase:              dataQualityApp.NewGetDataQualityReportUseCase(dataQualityReader),
 			excludeActivityFromStatsUseCase:          dataQualityApp.NewExcludeActivityFromStatsUseCase(dataQualityReader),
 			includeActivityInStatsUseCase:            dataQualityApp.NewIncludeActivityInStatsUseCase(dataQualityReader),

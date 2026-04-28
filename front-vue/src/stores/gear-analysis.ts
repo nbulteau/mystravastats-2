@@ -77,6 +77,7 @@ function normalizeGearAnalysis(analysis: GearAnalysis): GearAnalysis {
     ...analysis,
     items: (analysis.items ?? []).map((item) => ({
       ...item,
+      totalDistance: item.totalDistance ?? item.distance ?? 0,
       maintenanceTasks: item.maintenanceTasks ?? [],
       maintenanceHistory: item.maintenanceHistory ?? [],
       monthlyDistance: item.monthlyDistance ?? [],

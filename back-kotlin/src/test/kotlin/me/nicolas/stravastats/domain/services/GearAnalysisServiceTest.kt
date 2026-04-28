@@ -72,6 +72,7 @@ class GearAnalysisServiceTest {
         )
 
         every { activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, 2026) } returns activities
+        every { activityProvider.getActivitiesByActivityTypeAndYear(ActivityType.values().toSet(), null) } returns activities
         every { activityProvider.athlete() } returns athlete
 
         val result = gearAnalysisService.getGearAnalysis(activityTypes, 2026)
@@ -88,6 +89,7 @@ class GearAnalysisServiceTest {
         assertTrue(bike.primary)
         assertFalse(bike.retired)
         assertEquals(30000.0, bike.distance)
+        assertEquals(30000.0, bike.totalDistance)
         assertEquals(4800, bike.movingTime)
         assertEquals(400.0, bike.elevationGain)
         assertEquals(2, bike.activities)
@@ -102,6 +104,70 @@ class GearAnalysisServiceTest {
         assertEquals(1, result.unassigned.activities)
         assertEquals(7000.0, result.unassigned.distance)
         assertEquals(200.0, result.unassigned.elevationGain)
+    }
+
+    @Test
+    fun `getGearAnalysis uses lifetime bike distance for maintenance odometer`() {
+        val activityTypes = setOf(ActivityType.Ride)
+        val activities2026 = listOf(
+            gearAnalysisActivity(1L, "Current year ride", "Ride", "2026-01-03T08:00:00Z", "b123", 1_000_000.0, 1800, 100.0),
+        )
+        val lifetimeActivities = activities2026 + listOf(
+            gearAnalysisActivity(2L, "Previous year ride", "Ride", "2025-01-03T08:00:00Z", "b123", 9_000_000.0, 1800, 100.0),
+        )
+        val athlete = StravaAthlete(
+            id = 42L,
+            bikes = listOf(
+                Bike(
+                    id = "b123",
+                    name = "Road Bike",
+                    nickname = null,
+                    retired = false,
+                    convertedDistance = 0.0,
+                    distance = 0,
+                    primary = true,
+                    resourceState = 2,
+                )
+            ),
+        )
+        every { activityProvider.athlete() } returns athlete
+        every { activityProvider.cacheIdentity() } returns ActivityProviderCacheIdentity(
+            cacheRoot = tempDir.toString(),
+            athleteId = "athlete-1",
+        )
+        every { activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, 2026) } returns activities2026
+        every { activityProvider.getActivitiesByActivityTypeAndYear(ActivityType.values().toSet(), null) } returns lifetimeActivities
+
+        gearAnalysisService.saveMaintenanceRecord(
+            GearMaintenanceRecordRequest(
+                gearId = "b123",
+                component = "CHAIN",
+                operation = "Chain changed",
+                date = "2026-01-01",
+                distance = 0.0,
+            )
+        )
+        gearAnalysisService.saveMaintenanceRecord(
+            GearMaintenanceRecordRequest(
+                gearId = "b123",
+                component = "Tires",
+                operation = "Tires changed",
+                date = "2026-01-01",
+                distance = 0.0,
+            )
+        )
+
+        val result = gearAnalysisService.getGearAnalysis(activityTypes, 2026)
+        val bike = result.items.first()
+        val chain = bike.maintenanceTasks.first { it.component == "CHAIN" }
+        val frontTire = bike.maintenanceTasks.first { it.component == "TIRE_FRONT" }
+        val rearTire = bike.maintenanceTasks.first { it.component == "TIRE_REAR" }
+
+        assertEquals(1_000_000.0, bike.distance)
+        assertEquals(10_000_000.0, bike.totalDistance)
+        assertEquals(10_000_000.0, chain.distanceSince)
+        assertEquals(10_000_000.0, frontTire.distanceSince)
+        assertEquals(10_000_000.0, rearTire.distanceSince)
     }
 
     @Test

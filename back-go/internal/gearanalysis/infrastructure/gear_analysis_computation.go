@@ -39,7 +39,8 @@ var bikeMaintenanceRules = []gearMaintenanceRule{
 	{component: "BRAKE_PADS_FRONT", label: "Front brake pads", intervalDistance: 1800 * 1000},
 	{component: "BRAKE_PADS_REAR", label: "Rear brake pads", intervalDistance: 1800 * 1000},
 	{component: "BRAKE_BLEED", label: "Brake bleed", intervalMonths: 12},
-	{component: "TIRES", label: "Tires", intervalDistance: 3500 * 1000},
+	{component: "TIRE_FRONT", label: "Front tire", intervalDistance: 3500 * 1000},
+	{component: "TIRE_REAR", label: "Rear tire", intervalDistance: 3500 * 1000},
 	{component: "TUBELESS_FRONT", label: "Front tubeless sealant", intervalMonths: 4},
 	{component: "TUBELESS_REAR", label: "Rear tubeless sealant", intervalMonths: 4},
 	{component: "BOTTOM_BRACKET", label: "Bottom bracket", intervalDistance: 8000 * 1000},
@@ -47,8 +48,9 @@ var bikeMaintenanceRules = []gearMaintenanceRule{
 	{component: "DRIVETRAIN", label: "Drivetrain", intervalDistance: 5000 * 1000},
 }
 
-func buildGearAnalysis(activities []*strava.Activity, athlete strava.Athlete, maintenanceRecords []business.GearMaintenanceRecord) business.GearAnalysis {
+func buildGearAnalysis(activities []*strava.Activity, lifetimeActivities []*strava.Activity, athlete strava.Athlete, maintenanceRecords []business.GearMaintenanceRecord) business.GearAnalysis {
 	metadata := buildGearMetadata(athlete)
+	totalDistanceByGearID := totalGearDistances(lifetimeActivities)
 	itemsByID := make(map[string]*gearAccumulator)
 	unassigned := business.GearAnalysisSummary{}
 	coverage := business.GearAnalysisCoverage{TotalActivities: len(activities)}
@@ -89,7 +91,7 @@ func buildGearAnalysis(activities []*strava.Activity, athlete strava.Athlete, ma
 
 	items := make([]business.GearAnalysisItem, 0, len(itemsByID))
 	for _, accumulator := range itemsByID {
-		finalizeGearItem(accumulator)
+		finalizeGearItem(accumulator, totalDistanceByGearID)
 		items = append(items, accumulator.item)
 	}
 	applyGearMaintenance(items, maintenanceRecords)
@@ -127,6 +129,21 @@ func buildGearMetadata(athlete strava.Athlete) map[string]gearMetadata {
 			retired: boolValue(shoe.Retired),
 			primary: shoe.Primary,
 		}
+	}
+	return result
+}
+
+func totalGearDistances(activities []*strava.Activity) map[string]float64 {
+	result := make(map[string]float64)
+	for _, activity := range activities {
+		if activity == nil {
+			continue
+		}
+		gearID := normalizedGearID(activity.GearId)
+		if gearID == "" {
+			continue
+		}
+		result[gearID] += finiteGearFloat(activity.Distance)
 	}
 	return result
 }
@@ -175,11 +192,16 @@ func addActivityToGear(accumulator *gearAccumulator, activity *strava.Activity) 
 	}
 }
 
-func finalizeGearItem(accumulator *gearAccumulator) {
+func finalizeGearItem(accumulator *gearAccumulator, totalDistanceByGearID map[string]float64) {
+	totalDistance := totalDistanceByGearID[accumulator.item.ID]
+	if totalDistance <= 0 {
+		totalDistance = accumulator.item.Distance
+	}
+	accumulator.item.TotalDistance = roundGearValue(totalDistance)
 	if accumulator.item.MovingTime > 0 {
 		accumulator.item.AverageSpeed = roundGearValue(accumulator.item.Distance / float64(accumulator.item.MovingTime))
 	}
-	accumulator.item.MaintenanceStatus, accumulator.item.MaintenanceLabel = gearMaintenance(accumulator.item.Kind, accumulator.item.Distance)
+	accumulator.item.MaintenanceStatus, accumulator.item.MaintenanceLabel = gearMaintenance(accumulator.item.Kind, accumulator.item.TotalDistance)
 	accumulator.item.Distance = roundGearValue(accumulator.item.Distance)
 	accumulator.item.ElevationGain = roundGearValue(accumulator.item.ElevationGain)
 
@@ -216,7 +238,7 @@ func buildGearMaintenanceTasks(item business.GearAnalysisItem, records []busines
 
 	tasks := make([]business.GearMaintenanceTask, 0, len(bikeMaintenanceRules))
 	for _, rule := range bikeMaintenanceRules {
-		componentRecords := recordsByComponent[rule.component]
+		componentRecords := maintenanceRecordsForRule(recordsByComponent, rule.component)
 		var last *business.GearMaintenanceRecord
 		if len(componentRecords) > 0 {
 			last = &componentRecords[0]
@@ -239,9 +261,10 @@ func buildGearMaintenanceTasks(item business.GearAnalysisItem, records []busines
 
 		task.LastMaintenance = last
 		if rule.intervalDistance > 0 {
-			task.DistanceSince = roundGearValue(math.Max(0, item.Distance-last.Distance))
+			odometerDistance := gearMaintenanceOdometer(item)
+			task.DistanceSince = roundGearValue(math.Max(0, odometerDistance-last.Distance))
 			task.NextDueDistance = roundGearValue(last.Distance + rule.intervalDistance)
-			task.DistanceRemaining = roundGearValue(math.Max(0, task.NextDueDistance-item.Distance))
+			task.DistanceRemaining = roundGearValue(math.Max(0, task.NextDueDistance-odometerDistance))
 			ratio := task.DistanceSince / rule.intervalDistance
 			if ratio >= 1 {
 				task.Status = "OVERDUE"
@@ -276,6 +299,14 @@ func buildGearMaintenanceTasks(item business.GearAnalysisItem, records []busines
 		tasks = append(tasks, task)
 	}
 	return tasks
+}
+
+func maintenanceRecordsForRule(recordsByComponent map[string][]business.GearMaintenanceRecord, component string) []business.GearMaintenanceRecord {
+	records := recordsByComponent[component]
+	if len(records) == 0 && (component == "TIRE_FRONT" || component == "TIRE_REAR") {
+		return recordsByComponent["TIRES"]
+	}
+	return records
 }
 
 func summarizeGearMaintenance(tasks []business.GearMaintenanceTask) (string, string) {
@@ -450,6 +481,13 @@ func gearMaintenance(kind business.GearKind, distanceMeters float64) (string, st
 		}
 	}
 	return "OK", "OK"
+}
+
+func gearMaintenanceOdometer(item business.GearAnalysisItem) float64 {
+	if item.TotalDistance > 0 {
+		return item.TotalDistance
+	}
+	return item.Distance
 }
 
 func maintenanceStatusRank(status string) int {

@@ -521,6 +521,11 @@ Runtime configuration is centralized in the backend diagnostics payload. `GET /a
 | `OSM_ROUTING_DEBUG` | yes | yes | `false` | Adds verbose routing diagnostics. |
 | `OSM_ROUTING_HISTORY_BIAS_ENABLED` | yes | yes | `false` | Treats historical routes as a positive signal when enabled. |
 | `OSM_ROUTING_HISTORY_HALF_LIFE_DAYS` | yes | yes | `75` | Decay window for historical route weighting. |
+| `OSRM_CONTROL_ENABLED` | yes | yes | `true` | Allows the Diagnostics tab to run the fixed local `docker compose ... up -d osrm` start command. |
+| `OSRM_CONTROL_TIMEOUT_MS` | yes | yes | `30000` | Timeout for the OSRM start command. |
+| `OSRM_CONTROL_PROJECT_DIR` | yes | yes | unset | Optional project-root override used by the OSRM start command. |
+| `OSRM_CONTROL_COMPOSE_FILE` | yes | yes | `docker-compose-routing-osrm.yml` | Compose file used by the OSRM start command. |
+| `OSRM_CONTROL_DOCKER_BIN` | yes | yes | unset | Optional Docker CLI path override. |
 | `API_BACKEND_URL` | frontend Docker | frontend Docker | `http://back:8080` | Backend upstream used by the Docker frontend Nginx proxy. |
 | `https_proxy` / `HTTPS_PROXY` | no | yes | unset | Proxy support for Strava API access in the Kotlin backend. |
 

@@ -29,6 +29,7 @@ export interface GearAnalysisItem extends GearAnalysisSummary {
 
 export interface GearAnalysisSummary {
   distance: number;
+  totalDistance?: number;
   movingTime: number;
   elevationGain: number;
   activities: number;

@@ -944,6 +944,7 @@ onMounted(async () => {
       new Tooltip(label, {
         title: label.getAttribute("title") || "",
         html: true,
+        customClass: "detailed-activity-tooltip",
       });
     });
   } catch (error) {
@@ -1289,8 +1290,12 @@ watch([showPowerCurve, activity], () => {
   justify-content: flex-end;
 }
 
-.tooltip-inner ul,
-.tooltip-inner li {
+:global(.detailed-activity-tooltip .tooltip-inner) {
+  text-align: left;
+}
+
+:global(.detailed-activity-tooltip .tooltip-inner ul),
+:global(.detailed-activity-tooltip .tooltip-inner li) {
   text-align: left;
 }
 

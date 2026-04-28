@@ -25,6 +25,7 @@ type GearAnalysisItem struct {
 	MaintenanceTasks         []GearMaintenanceTask
 	MaintenanceHistory       []GearMaintenanceRecord
 	Distance                 float64
+	TotalDistance            float64
 	MovingTime               int
 	ElevationGain            float64
 	Activities               int

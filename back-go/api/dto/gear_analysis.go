@@ -17,6 +17,7 @@ type GearAnalysisItemDto struct {
 	MaintenanceTasks         []GearMaintenanceTaskDto     `json:"maintenanceTasks"`
 	MaintenanceHistory       []GearMaintenanceRecordDto   `json:"maintenanceHistory"`
 	Distance                 float64                      `json:"distance"`
+	TotalDistance            float64                      `json:"totalDistance"`
 	MovingTime               int                          `json:"movingTime"`
 	ElevationGain            float64                      `json:"elevationGain"`
 	Activities               int                          `json:"activities"`

@@ -513,6 +513,7 @@ func ToGearAnalysisDto(analysis business.GearAnalysis) GearAnalysisDto {
 			MaintenanceTasks:         maintenanceTasks,
 			MaintenanceHistory:       maintenanceHistory,
 			Distance:                 item.Distance,
+			TotalDistance:            item.TotalDistance,
 			MovingTime:               item.MovingTime,
 			ElevationGain:            item.ElevationGain,
 			Activities:               item.Activities,

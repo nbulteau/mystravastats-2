@@ -126,6 +126,21 @@
   Acceptance:
   - une activite donne immediatement du contexte par rapport aux sorties comparables.
 
+- [ ] `FUNC-P1-09` (`P1`, `M`) - Detecteur d'ascensions avec hysteresis.
+  Owners: `Product`, `Stats`, `Back-Go`, `Back-Kotlin`, `Front`.
+  Constat:
+  - le detecteur actuel de `Slope` segmente les montees par changements locaux de pente,
+  - les ascensions irregulieres peuvent etre trop fragmentees ou mal bornees dans le detail activite.
+  Proposition:
+  - basculer vers une detection d'ascensions soutenues avec seuil de demarrage et seuil de sortie distincts,
+  - utiliser une pente lissee sur fenetre de distance, idealement `grade_smooth` quand disponible,
+  - fusionner les faux-plats courts au milieu d'une meme montee,
+  - garder l'affichage principal centre sur les ascensions, avec libelles et tooltips plus explicites que `Slope`.
+  Acceptance:
+  - les montees affichees dans le detail activite sont moins fragmentees,
+  - les bornes debut/fin restent stables sur des profils irreguliers,
+  - Go et Kotlin restent alignes via tests ou fixtures partagees.
+
 - [ ] `FUNC-P1-05` (`P1`, `M`) - Enrichir Routes avec difficulte et lisibilite terrain.
   Owners: `Product`, `Routes`, `Front`.
   Proposition:
@@ -134,33 +149,6 @@
   - conserver les diagnostics techniques mais les traduire en signaux produit.
   Acceptance:
   - un utilisateur peut choisir une route sans lire les raisons brutes du moteur.
-
-- [x] `FUNC-P1-08` (`P1`, `M`) - Corrections locales non destructives des activites.
-  Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
-  Proposition:
-  - partir de l'audit qualite existant dans `Status`,
-  - proposer des corrections locales non destructives: ignorer points GPS aberrants, recalculer distance/D+, masquer une valeur invalide,
-  - conserver la donnee originale et un journal des corrections appliquees,
-  - permettre dans la vue detail activite de basculer entre version brute et version corrigee,
-  - afficher clairement les valeurs et traces modifiees quand la version corrigee est activee,
-  - ajouter une action batch `Fix safe issues` pour appliquer uniquement les corrections non ambigues,
-  - afficher un recapitulatif avant application: activites touchees, distance/D+ impactes, records potentiellement modifies,
-  - conserver les anomalies risquees dans une revue manuelle plutot que de les corriger via un bouton global,
-  - conserver la distinction deja posee entre stream complet absent, champ de stream structurel manquant et simple couverture capteur optionnelle,
-  - permettre d'annuler une correction et d'expliquer son impact sur les statistiques.
-  Avancement 2026-04-27:
-  - premiere tranche implementee cote Go/Kotlin/Front: corrections locales stockees hors source, journal actif, undo,
-  - corrections `safe` couvertes: suppression d'un point GPS aberrant isole et lissage d'un spike altitude isole,
-  - endpoints preview/apply batch `Fix safe issues`, action unitaire et `?version=raw` sur le detail activite,
-  - les surfaces de lecture principales appliquent la version corrigee par defaut, avec bascule brut/corrige dans le detail,
-  - tranche finale: recalcul local des scalaires invalides depuis les streams quand c'est fiable, masquage des valeurs non serialisables quand aucun stream suffisant n'existe,
-  - le batch `Fix safe issues` affiche un recapitulatif avant application: activites touchees, distance/D+ impactes, champs modifies et compte des cas en revue manuelle,
-  - couverture ciblee ajoutee cote Go/Kotlin pour les corrections GPS, altitude et scalaires invalides; le front est valide par type-check.
-  Acceptance:
-  - une anomalie peut etre corrigee localement sans modifier la source STRAVA/FIT/GPX,
-  - l'utilisateur voit clairement quelle valeur originale est remplacee ou ignoree,
-  - la vue detail activite permet de comparer rapidement la sortie brute et la sortie corrigee,
-  - les corrections batch sont limitees aux cas classes `safe` et restent annulables.
 
 ### Priorite basse
 

@@ -26,6 +26,11 @@ class RuntimeConfigTest {
         "OSM_ROUTING_DEBUG",
         "OSM_ROUTING_HISTORY_BIAS_ENABLED",
         "OSM_ROUTING_HISTORY_HALF_LIFE_DAYS",
+        "OSRM_CONTROL_ENABLED",
+        "OSRM_CONTROL_TIMEOUT_MS",
+        "OSRM_CONTROL_PROJECT_DIR",
+        "OSRM_CONTROL_COMPOSE_FILE",
+        "OSRM_CONTROL_DOCKER_BIN",
     )
 
     @AfterEach
@@ -53,6 +58,8 @@ class RuntimeConfigTest {
         assertEquals("http://localhost:5000", routing["baseUrl"])
         assertEquals(3000, routing["timeoutMs"])
         assertEquals(75, routing["historyHalfLifeDays"])
+        assertEquals(true, routing["controlEnabled"])
+        assertEquals("docker-compose-routing-osrm.yml", routing["controlComposeFile"])
     }
 
     @Test
@@ -66,6 +73,8 @@ class RuntimeConfigTest {
         System.setProperty("OSM_ROUTING_BASE_URL", "http://osrm:5000/")
         System.setProperty("OSM_ROUTING_TIMEOUT_MS", "250")
         System.setProperty("OSM_ROUTING_HISTORY_HALF_LIFE_DAYS", "90")
+        System.setProperty("OSRM_CONTROL_ENABLED", "false")
+        System.setProperty("OSRM_CONTROL_TIMEOUT_MS", "12000")
 
         val details = RuntimeConfig.details()
         val data = details["data"] as Map<*, *>
@@ -81,6 +90,8 @@ class RuntimeConfigTest {
         assertEquals("http://osrm:5000", routing["baseUrl"])
         assertEquals(300, routing["timeoutMs"])
         assertEquals(90, routing["historyHalfLifeDays"])
+        assertEquals(false, routing["controlEnabled"])
+        assertEquals(12000, routing["controlTimeoutMs"])
     }
 
     private fun clearRuntimeConfigForTest() {

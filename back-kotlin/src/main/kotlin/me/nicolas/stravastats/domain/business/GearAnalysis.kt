@@ -23,6 +23,7 @@ data class GearAnalysisItem(
     val maintenanceTasks: List<GearMaintenanceTask> = emptyList(),
     val maintenanceHistory: List<GearMaintenanceRecord> = emptyList(),
     val distance: Double,
+    val totalDistance: Double,
     val movingTime: Int,
     val elevationGain: Double,
     val activities: Int,

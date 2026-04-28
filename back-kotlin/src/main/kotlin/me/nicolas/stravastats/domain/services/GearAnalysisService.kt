@@ -47,7 +47,9 @@ internal class GearAnalysisService(
     override fun getGearAnalysis(activityTypes: Set<ActivityType>, year: Int?): GearAnalysis {
         val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
             .withoutDataQualityExcludedStats(activityProvider)
-        return buildGearAnalysis(activities, activityProvider.athlete(), GearMaintenanceStorage.load(activityProvider))
+        val lifetimeActivities = activityProvider.getActivitiesByActivityTypeAndYear(ActivityType.values().toSet(), null)
+            .withoutDataQualityExcludedStats(activityProvider)
+        return buildGearAnalysis(activities, lifetimeActivities, activityProvider.athlete(), GearMaintenanceStorage.load(activityProvider))
     }
 
     override fun saveMaintenanceRecord(request: GearMaintenanceRecordRequest): GearMaintenanceRecord {
@@ -83,10 +85,12 @@ internal class GearAnalysisService(
 
     private fun buildGearAnalysis(
         activities: List<StravaActivity>,
+        lifetimeActivities: List<StravaActivity>,
         athlete: StravaAthlete,
         maintenanceRecords: List<GearMaintenanceRecord>,
     ): GearAnalysis {
         val metadataById = buildGearMetadata(athlete)
+        val totalDistanceByGearId = lifetimeActivities.totalGearDistances()
         val itemsById = linkedMapOf<String, GearAccumulator>()
         val unassigned = GearSummaryAccumulator()
         var assignedActivities = 0
@@ -120,7 +124,7 @@ internal class GearAnalysisService(
         }
 
         val items = itemsById.values
-            .map { it.toItem() }
+            .map { it.toItem(totalDistanceByGearId) }
             .withGearMaintenance(maintenanceRecords)
             .sortedWith(
                 compareByDescending<GearAnalysisItem> { it.distance }
@@ -213,16 +217,18 @@ internal class GearAnalysisService(
             }
         }
 
-        fun toItem(): GearAnalysisItem {
+        fun toItem(totalDistanceByGearId: Map<String, Double>): GearAnalysisItem {
+            val totalDistance = (totalDistanceByGearId[id] ?: distance).roundGearValue()
             return GearAnalysisItem(
                 id = id,
                 name = name,
                 kind = kind,
                 retired = retired,
                 primary = primary,
-                maintenanceStatus = gearMaintenance(kind, distance).first,
-                maintenanceLabel = gearMaintenance(kind, distance).second,
+                maintenanceStatus = gearMaintenance(kind, totalDistance).first,
+                maintenanceLabel = gearMaintenance(kind, totalDistance).second,
                 distance = distance.roundGearValue(),
+                totalDistance = totalDistance,
                 movingTime = movingTime,
                 elevationGain = elevationGain.roundGearValue(),
                 activities = activities,
@@ -295,7 +301,8 @@ private val bikeMaintenanceRules = listOf(
     GearMaintenanceRule(component = "BRAKE_PADS_FRONT", label = "Front brake pads", intervalDistance = 1800.0 * 1000.0),
     GearMaintenanceRule(component = "BRAKE_PADS_REAR", label = "Rear brake pads", intervalDistance = 1800.0 * 1000.0),
     GearMaintenanceRule(component = "BRAKE_BLEED", label = "Brake bleed", intervalMonths = 12),
-    GearMaintenanceRule(component = "TIRES", label = "Tires", intervalDistance = 3500.0 * 1000.0),
+    GearMaintenanceRule(component = "TIRE_FRONT", label = "Front tire", intervalDistance = 3500.0 * 1000.0),
+    GearMaintenanceRule(component = "TIRE_REAR", label = "Rear tire", intervalDistance = 3500.0 * 1000.0),
     GearMaintenanceRule(component = "TUBELESS_FRONT", label = "Front tubeless sealant", intervalMonths = 4),
     GearMaintenanceRule(component = "TUBELESS_REAR", label = "Rear tubeless sealant", intervalMonths = 4),
     GearMaintenanceRule(component = "BOTTOM_BRACKET", label = "Bottom bracket", intervalDistance = 8000.0 * 1000.0),
@@ -327,6 +334,16 @@ private fun List<GearAnalysisItem>.withGearMaintenance(records: List<GearMainten
     }
 }
 
+private fun List<StravaActivity>.totalGearDistances(): Map<String, Double> {
+    return this
+        .mapNotNull { activity ->
+            val gearId = activity.gearId?.trim().orEmpty()
+            if (gearId.isBlank()) null else gearId to activity.distance.finiteOrZero()
+        }
+        .groupBy({ it.first }, { it.second })
+        .mapValues { (_, distances) -> distances.sum() }
+}
+
 private fun buildGearMaintenanceTasks(
     item: GearAnalysisItem,
     records: List<GearMaintenanceRecord>,
@@ -334,8 +351,8 @@ private fun buildGearMaintenanceTasks(
 ): List<GearMaintenanceTask> {
     val recordsByComponent = records.groupBy { it.component }
     return bikeMaintenanceRules.map { rule ->
-        val last = recordsByComponent[rule.component]
-            .orEmpty()
+        val odometerDistance = item.gearMaintenanceOdometerDistance()
+        val last = recordsByComponent.maintenanceRecordsForRule(rule.component)
             .maxWithOrNull(compareBy<GearMaintenanceRecord> { it.date }.thenBy { it.createdAt })
         if (last == null) {
             return@map GearMaintenanceTask(
@@ -360,9 +377,9 @@ private fun buildGearMaintenanceTasks(
         var distanceRemaining = 0.0
         var nextDueDistance = 0.0
         if (rule.intervalDistance > 0.0) {
-            distanceSince = max(0.0, item.distance - last.distance).roundGearValue()
+            distanceSince = max(0.0, odometerDistance - last.distance).roundGearValue()
             nextDueDistance = (last.distance + rule.intervalDistance).roundGearValue()
-            distanceRemaining = max(0.0, nextDueDistance - item.distance).roundGearValue()
+            distanceRemaining = max(0.0, nextDueDistance - odometerDistance).roundGearValue()
             val ratio = distanceSince / rule.intervalDistance
             when {
                 ratio >= 1.0 -> {
@@ -417,6 +434,14 @@ private fun buildGearMaintenanceTasks(
     }
 }
 
+private fun Map<String, List<GearMaintenanceRecord>>.maintenanceRecordsForRule(component: String): List<GearMaintenanceRecord> {
+    val records = this[component].orEmpty()
+    if (records.isEmpty() && (component == "TIRE_FRONT" || component == "TIRE_REAR")) {
+        return this["TIRES"].orEmpty()
+    }
+    return records
+}
+
 private fun summarizeGearMaintenance(tasks: List<GearMaintenanceTask>): Pair<String, String> {
     if (tasks.isEmpty()) return "OK" to "OK"
     val counts = tasks.groupingBy { it.status }.eachCount()
@@ -428,6 +453,9 @@ private fun summarizeGearMaintenance(tasks: List<GearMaintenanceTask>): Pair<Str
         else -> "OK" to "OK"
     }
 }
+
+private fun GearAnalysisItem.gearMaintenanceOdometerDistance(): Double =
+    totalDistance.takeIf { it > 0.0 } ?: distance
 
 private fun GearMaintenanceRecordRequest.normalize(): GearMaintenanceRecordRequest {
     val normalizedComponent = normalizeGearMaintenanceComponent(component)

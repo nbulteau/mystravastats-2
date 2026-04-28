@@ -48,6 +48,47 @@ describe("diagnostics store", () => {
     expect(store.isLoading).toBe(false);
   });
 
+  it("starts OSRM then refreshes diagnostics", async () => {
+    const startPayload = {
+      status: "started",
+      message: "OSRM start requested.",
+      command: "docker compose -f docker-compose-routing-osrm.yml up -d osrm",
+      projectDir: "/repo",
+      composeFile: "/repo/docker-compose-routing-osrm.yml",
+    };
+    const healthPayload = {
+      provider: "strava",
+      routing: {
+        status: "up",
+        reachable: true,
+      },
+    };
+    vi.mocked(requestJson)
+      .mockResolvedValueOnce(startPayload)
+      .mockResolvedValueOnce(healthPayload)
+      .mockRejectedValueOnce(new Error("data quality unavailable"));
+    const store = useDiagnosticsStore();
+
+    const result = await store.startOsrm();
+
+    expect(requestJson).toHaveBeenNthCalledWith(1, "/api/routing/osrm/start", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(requestJson).toHaveBeenNthCalledWith(2, "/api/health/details", {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(result).toEqual(startPayload);
+    expect(store.osrmStartResult).toEqual(startPayload);
+    expect(store.health).toEqual(healthPayload);
+    expect(store.isStartingOsrm).toBe(false);
+  });
+
   it("previews a source mode", async () => {
     const payload = {
       mode: "GPX",

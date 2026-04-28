@@ -186,6 +186,16 @@ Default endpoint:
 
 - `http://localhost:5000`
 
+The Diagnostics tab can also start the local OSRM container with **Start OSRM**.
+It runs the fixed command:
+
+```sh
+docker compose -f docker-compose-routing-osrm.yml up -d osrm
+```
+
+This only starts already-prepared OSRM data. It does not run the heavier
+extract/partition/customize preparation step.
+
 ## 4. Verify backend health integration
 
 Check:
@@ -208,6 +218,11 @@ Expected fields:
 - `OSM_ROUTING_PROFILE` (optional override, e.g. `cycling` or `walking`)
 - `OSM_ROUTING_EXTRACT_PROFILE` (optional backend override for extract profile detection)
 - `OSM_ROUTING_EXTRACT_PROFILE_FILE` (default `./osm/region.osrm.profile`)
+- `OSRM_CONTROL_ENABLED` (default `true`, allows the Diagnostics tab to start OSRM)
+- `OSRM_CONTROL_TIMEOUT_MS` (default `30000`, start command timeout)
+- `OSRM_CONTROL_PROJECT_DIR` (optional project root override for the compose command)
+- `OSRM_CONTROL_COMPOSE_FILE` (default `docker-compose-routing-osrm.yml`)
+- `OSRM_CONTROL_DOCKER_BIN` (optional Docker CLI path override)
 - `OSRM_EXTRACT_PROFILE` (default `/opt/bicycle.lua`, used at preprocess time)
 - `OSRM_THREADS` (default `2`, used for extract/partition/customize)
 

@@ -11,6 +11,11 @@ func TestDetails_DefaultsToStravaRuntimeConfig(t *testing.T) {
 	t.Setenv("GPX_FILES_PATH", "")
 	t.Setenv("CORS_ALLOWED_ORIGINS", "")
 	t.Setenv("OSM_ROUTING_BASE_URL", "")
+	t.Setenv("OSRM_CONTROL_ENABLED", "")
+	t.Setenv("OSRM_CONTROL_TIMEOUT_MS", "")
+	t.Setenv("OSRM_CONTROL_PROJECT_DIR", "")
+	t.Setenv("OSRM_CONTROL_COMPOSE_FILE", "")
+	t.Setenv("OSRM_CONTROL_DOCKER_BIN", "")
 
 	details := Details()
 	data := details["data"].(map[string]any)
@@ -35,6 +40,12 @@ func TestDetails_DefaultsToStravaRuntimeConfig(t *testing.T) {
 	if routing["baseUrl"] != defaultOSMRoutingBaseURL {
 		t.Fatalf("expected default OSRM base URL, got %#v", routing["baseUrl"])
 	}
+	if routing["controlEnabled"] != true {
+		t.Fatalf("expected OSRM control enabled by default, got %#v", routing["controlEnabled"])
+	}
+	if routing["controlComposeFile"] != "docker-compose-routing-osrm.yml" {
+		t.Fatalf("expected default OSRM control compose file, got %#v", routing["controlComposeFile"])
+	}
 }
 
 func TestDetails_ExposesConfiguredRuntimeValues(t *testing.T) {
@@ -44,6 +55,8 @@ func TestDetails_ExposesConfiguredRuntimeValues(t *testing.T) {
 	t.Setenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173, https://app.example")
 	t.Setenv("OSM_ROUTING_ENABLED", "false")
 	t.Setenv("OSM_ROUTING_HISTORY_HALF_LIFE_DAYS", "90")
+	t.Setenv("OSRM_CONTROL_ENABLED", "false")
+	t.Setenv("OSRM_CONTROL_TIMEOUT_MS", "12000")
 
 	details := Details()
 	data := details["data"].(map[string]any)
@@ -68,5 +81,11 @@ func TestDetails_ExposesConfiguredRuntimeValues(t *testing.T) {
 	}
 	if routing["historyHalfLifeDays"] != 90 {
 		t.Fatalf("expected history half-life 90, got %#v", routing["historyHalfLifeDays"])
+	}
+	if routing["controlEnabled"] != false {
+		t.Fatalf("expected OSRM control disabled, got %#v", routing["controlEnabled"])
+	}
+	if routing["controlTimeoutMs"] != 12000 {
+		t.Fatalf("expected OSRM control timeout 12000, got %#v", routing["controlTimeoutMs"])
 	}
 }

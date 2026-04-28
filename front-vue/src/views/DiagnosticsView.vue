@@ -138,6 +138,18 @@ const rateLimitActive = computed(() => booleanValue(rateLimit.value.active));
 const rateLimitUntilLabel = computed(() => formatEpochMs(numberValue(rateLimit.value.untilEpochMs)));
 const routingStatus = computed(() => (textValue(routing.value.status) || "unknown").toLowerCase());
 const routingReachable = computed(() => booleanValue(routing.value.reachable));
+const osrmControlEnabled = computed(() =>
+  runtimeRouting.value.controlEnabled === undefined ? true : booleanValue(runtimeRouting.value.controlEnabled),
+);
+const osrmStartDisabledReason = computed(() => {
+  if (!osrmControlEnabled.value) return "OSRM control is disabled.";
+  if (routingStatus.value === "up" && routingReachable.value) return "OSRM is already online.";
+  if (routingStatus.value === "disabled") return "OSRM routing is disabled.";
+  if (diagnosticsStore.isStartingOsrm) return "Starting OSRM...";
+  if (diagnosticsStore.isLoading) return "Diagnostics are refreshing.";
+  return "";
+});
+const canStartOsrm = computed(() => osrmStartDisabledReason.value === "");
 const routingStatusLabel = computed(() => {
   if (routingStatus.value === "up" && routingReachable.value) return "Online";
   if (routingStatus.value === "disabled") return "Disabled";
@@ -262,6 +274,7 @@ const runtimeConfigItems = computed<Array<{ label: string; value: string; monosp
   { label: "Listen", value: runtimeListenAddress.value, monospace: true },
   { label: "OSRM base URL", value: textValue(runtimeRouting.value.baseUrl) || "n/a", monospace: true },
   { label: "OSRM enabled", value: yesNo(runtimeRouting.value.enabled), monospace: false },
+  { label: "OSRM control", value: yesNo(osrmControlEnabled.value), monospace: false },
   { label: "History bias", value: yesNo(runtimeRouting.value.historyBiasEnabled), monospace: false },
 ]);
 const sourceModePreview = computed(() => diagnosticsStore.sourceModePreview);
@@ -808,6 +821,25 @@ async function checkRouting() {
   await diagnosticsStore.refreshDiagnostics();
 }
 
+async function startOsrm() {
+  try {
+    const result = await diagnosticsStore.startOsrm();
+    uiStore.showToast({
+      id: `osrm-start-${Date.now()}`,
+      type: ToastTypeEnum.NORMAL,
+      message: result.message || "OSRM start requested.",
+      timeout: 3200,
+    });
+  } catch (error) {
+    uiStore.showToast({
+      id: `osrm-start-failed-${Date.now()}`,
+      type: ToastTypeEnum.WARN,
+      message: error instanceof Error ? error.message : "Unable to start OSRM.",
+      timeout: 4200,
+    });
+  }
+}
+
 async function copySourcePath() {
   if (!sourcePath.value) {
     return;
@@ -885,6 +917,16 @@ async function previewSourceMode() {
         <h1>System Status</h1>
       </div>
       <div class="diagnostics-actions">
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          :disabled="!canStartOsrm"
+          :title="osrmStartDisabledReason || 'Start local OSRM Docker service'"
+          @click="startOsrm"
+        >
+          <i class="fa-solid fa-play" aria-hidden="true" />
+          {{ diagnosticsStore.isStartingOsrm ? "Starting OSRM" : "Start OSRM" }}
+        </button>
         <button
           type="button"
           class="btn btn-outline-secondary"

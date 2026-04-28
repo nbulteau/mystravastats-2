@@ -26,7 +26,7 @@ func TestBuildGearAnalysis_AggregatesGearAndUnassignedActivities(t *testing.T) {
 	}
 
 	// WHEN
-	result := buildGearAnalysis(activities, athlete, nil)
+	result := buildGearAnalysis(activities, activities, athlete, nil)
 
 	// THEN
 	if result.Coverage.TotalActivities != 4 || result.Coverage.AssignedActivities != 3 || result.Coverage.UnassignedActivities != 1 {
@@ -42,6 +42,9 @@ func TestBuildGearAnalysis_AggregatesGearAndUnassignedActivities(t *testing.T) {
 	}
 	if bike.Distance != 30000 || bike.MovingTime != 4800 || bike.ElevationGain != 400 || bike.Activities != 2 {
 		t.Fatalf("unexpected bike totals: %#v", bike)
+	}
+	if bike.TotalDistance != 30000 {
+		t.Fatalf("expected lifetime bike distance to match all activities, got %.1f", bike.TotalDistance)
 	}
 	if bike.AverageSpeed != 6.3 {
 		t.Fatalf("expected weighted average speed 6.3m/s, got %.1f", bike.AverageSpeed)
@@ -87,14 +90,26 @@ func TestBuildGearAnalysis_AddsBikeMaintenanceTasksAndHistory(t *testing.T) {
 			CreatedAt:      "2026-01-01T00:00:00Z",
 			UpdatedAt:      "2026-01-01T00:00:00Z",
 		},
+		{
+			ID:             "gm-2",
+			GearID:         "b123",
+			GearName:       "Road Bike",
+			Component:      "TIRES",
+			ComponentLabel: "Tires",
+			Operation:      "Tires changed",
+			Date:           "2026-01-02",
+			Distance:       500000,
+			CreatedAt:      "2026-01-02T00:00:00Z",
+			UpdatedAt:      "2026-01-02T00:00:00Z",
+		},
 	}
 
 	// WHEN
-	result := buildGearAnalysis(activities, athlete, records)
+	result := buildGearAnalysis(activities, activities, athlete, records)
 
 	// THEN
 	bike := result.Items[0]
-	if len(bike.MaintenanceHistory) != 1 {
+	if len(bike.MaintenanceHistory) != 2 {
 		t.Fatalf("expected maintenance history, got %#v", bike.MaintenanceHistory)
 	}
 	chain := gearMaintenanceTaskByComponent(bike.MaintenanceTasks, "CHAIN")
@@ -106,6 +121,63 @@ func TestBuildGearAnalysis_AddsBikeMaintenanceTasksAndHistory(t *testing.T) {
 	}
 	if chain.DistanceSince != 1900000 {
 		t.Fatalf("expected 1900km since service, got %.1f", chain.DistanceSince)
+	}
+	frontTire := gearMaintenanceTaskByComponent(bike.MaintenanceTasks, "TIRE_FRONT")
+	rearTire := gearMaintenanceTaskByComponent(bike.MaintenanceTasks, "TIRE_REAR")
+	if frontTire == nil || rearTire == nil {
+		t.Fatalf("expected separate tire tasks, got %#v", bike.MaintenanceTasks)
+	}
+	if frontTire.DistanceSince != 1500000 || rearTire.DistanceSince != 1500000 {
+		t.Fatalf("expected legacy tire record to feed both tire tasks, got front=%.1f rear=%.1f", frontTire.DistanceSince, rearTire.DistanceSince)
+	}
+}
+
+func TestBuildGearAnalysis_UsesLifetimeDistanceForMaintenanceOdometer(t *testing.T) {
+	// GIVEN
+	activities := []*strava.Activity{
+		gearAnalysisActivity(1, "Current year ride", "Ride", "2026-01-03T08:00:00Z", "b123", 1000000, 1800, 100),
+	}
+	lifetimeActivities := []*strava.Activity{
+		gearAnalysisActivity(1, "Current year ride", "Ride", "2026-01-03T08:00:00Z", "b123", 1000000, 1800, 100),
+		gearAnalysisActivity(2, "Previous year ride", "Ride", "2025-01-03T08:00:00Z", "b123", 9000000, 1800, 100),
+	}
+	athlete := strava.Athlete{
+		Bikes: []strava.Bike{
+			{Id: "b123", Name: "Road Bike", Primary: true},
+		},
+	}
+	records := []business.GearMaintenanceRecord{
+		{
+			ID:             "gm-1",
+			GearID:         "b123",
+			GearName:       "Road Bike",
+			Component:      "CHAIN",
+			ComponentLabel: "Chain",
+			Operation:      "Chain changed",
+			Date:           "2026-01-01",
+			Distance:       0,
+			CreatedAt:      "2026-01-01T00:00:00Z",
+			UpdatedAt:      "2026-01-01T00:00:00Z",
+		},
+	}
+
+	// WHEN
+	result := buildGearAnalysis(activities, lifetimeActivities, athlete, records)
+
+	// THEN
+	bike := result.Items[0]
+	if bike.Distance != 1000000 {
+		t.Fatalf("expected filtered bike distance to stay current-year only, got %.1f", bike.Distance)
+	}
+	if bike.TotalDistance != 10000000 {
+		t.Fatalf("expected lifetime bike distance, got %.1f", bike.TotalDistance)
+	}
+	chain := gearMaintenanceTaskByComponent(bike.MaintenanceTasks, "CHAIN")
+	if chain == nil {
+		t.Fatalf("expected chain maintenance task, got %#v", bike.MaintenanceTasks)
+	}
+	if chain.DistanceSince != 10000000 {
+		t.Fatalf("expected chain task to use lifetime odometer, got %.1f", chain.DistanceSince)
 	}
 }
 

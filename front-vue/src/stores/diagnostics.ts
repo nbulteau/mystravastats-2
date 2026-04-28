@@ -4,12 +4,23 @@ import type { DataQualityCorrectionPreview, DataQualityReport } from "@/models/d
 import type { HealthDetailsPayload } from "@/models/health.model";
 import type { SourceModePreview, SourceModePreviewRequest } from "@/models/source-mode.model";
 
+interface OsrmControlResult {
+  status: string;
+  message: string;
+  command: string;
+  projectDir: string;
+  composeFile: string;
+  output?: string;
+}
+
 export const useDiagnosticsStore = defineStore("diagnostics", {
   state: () => ({
     health: null as HealthDetailsPayload | null,
     dataQualityReport: null as DataQualityReport | null,
     sourceModePreview: null as SourceModePreview | null,
+    osrmStartResult: null as OsrmControlResult | null,
     isLoading: false,
+    isStartingOsrm: false,
     isPreviewingSourceMode: false,
     error: null as string | null,
     sourceModePreviewError: null as string | null,
@@ -54,6 +65,22 @@ export const useDiagnosticsStore = defineStore("diagnostics", {
         this.dataQualityReport = null;
       } finally {
         this.isLoading = false;
+      }
+    },
+    async startOsrm(): Promise<OsrmControlResult> {
+      this.isStartingOsrm = true;
+      try {
+        const result = await requestJson<OsrmControlResult>("/api/routing/osrm/start", {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+          },
+        });
+        this.osrmStartResult = result;
+        await this.refreshDiagnostics();
+        return result;
+      } finally {
+        this.isStartingOsrm = false;
       }
     },
     async previewSourceMode(request: SourceModePreviewRequest): Promise<SourceModePreview> {

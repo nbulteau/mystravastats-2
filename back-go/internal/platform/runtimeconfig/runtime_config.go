@@ -71,6 +71,11 @@ func Details() map[string]any {
 			"extractProfileFile":  readStringEnv("OSM_ROUTING_EXTRACT_PROFILE_FILE", defaultOSMRoutingProfileFile),
 			"historyBiasEnabled":  readBoolEnv("OSM_ROUTING_HISTORY_BIAS_ENABLED", false),
 			"historyHalfLifeDays": RoutingHistoryHalfLifeDays(),
+			"controlEnabled":      readBoolEnv("OSRM_CONTROL_ENABLED", true),
+			"controlTimeoutMs":    readIntEnv("OSRM_CONTROL_TIMEOUT_MS", 30000),
+			"controlProjectDir":   readStringEnv("OSRM_CONTROL_PROJECT_DIR", ""),
+			"controlComposeFile":  readStringEnv("OSRM_CONTROL_COMPOSE_FILE", "docker-compose-routing-osrm.yml"),
+			"controlDockerBin":    readStringEnv("OSRM_CONTROL_DOCKER_BIN", ""),
 		},
 	}
 }
