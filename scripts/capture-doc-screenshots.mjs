@@ -46,7 +46,7 @@ Usage:
 
 Options:
   --base-url <url>            Front URL (default: http://localhost:8080)
-  --out-dir <path>            Output directory (default: ./docs)
+  --out-dir <path>            Output directory (default: ./docs/assets/screenshots)
   --year <value>              Year filter (example: 2025 or "All years")
   --activities <list>         Activity selection (same group only).
                               Examples:
@@ -65,7 +65,7 @@ Options:
 function parseArgs(argv) {
   const options = {
     baseUrl: "http://localhost:8080",
-    outDir: path.resolve(process.cwd(), "docs"),
+    outDir: path.resolve(process.cwd(), "docs/assets/screenshots"),
     year: undefined,
     activitiesRaw: undefined,
     detailedActivityId: "15340076302",

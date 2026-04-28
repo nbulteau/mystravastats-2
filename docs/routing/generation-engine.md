@@ -270,5 +270,6 @@ return selected + diagnostics
 
 ## Related Docs
 
-- [OSM Routing Setup](./osm-routing-setup.md)
-- [Main project doc](./README.md)
+- [OSRM Setup](./osrm-setup.md)
+- [Manual Route Checks](./manual-checks.md)
+- [Main project doc](../README.md)

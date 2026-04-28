@@ -5,8 +5,8 @@ This page gives a high-level view of how MyStravaStats is structured.
 ## Main Components
 
 - `front-vue`: user interface
-- `back-kotlin`: main modern backend
-- `back-go`: legacy or packaging-oriented backend
+- `back-kotlin`: Spring Boot + Kotlin backend
+- `back-go`: Go backend and local binary packaging path
 - `strava-cache`: local persisted activity cache
 - Strava API: remote activity source
 
@@ -60,11 +60,14 @@ The Kotlin backend supports:
 The Go backend supports:
 - Strava API
 - local Strava cache
+- FIT files
 
 ## Current Practical Status
 
 Today, the repository contains two backend implementations:
-- Kotlin is the richest implementation and the best target for future work
-- Go still matters because some packaging scripts still use it
+- Kotlin is the richest implementation for source-provider variety, especially GPX
+- Go still matters for the local binary and should stay aligned on shared behavior
 
 That is why both appear in the repository and in the build flows.
+
+For current support details, see [Backend Capability Matrix](./backend-capability-matrix.md).

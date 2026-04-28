@@ -6,16 +6,16 @@ This guide explains how to set up a local OSRM router for MyStravaStats route ge
 
 This guide provides commands for **Windows (PowerShell)**, **macOS**, and **Linux**.
 
-Replace path examples with your actual project path:
-- **Windows:** `D:\workspace\mystravastats-2`
-- **macOS/Linux:** `/Users/nicolas/Workspace/mystravastats-2` (or your path)
+Examples below assume:
+- **Windows:** `$ProjectRoot = "D:\workspace\mystravastats-2"`
+- **macOS/Linux:** `PROJECT_ROOT=/path/to/mystravastats-2`
 
 ## 1. Download an OSM extract (`.osm.pbf`)
 
 Put the file here:
 
-- **Windows:** `D:\workspace\mystravastats-2\osm\region.osm.pbf`
-- **macOS/Linux:** `/Users/nicolas/Workspace/mystravastats-2/osm/region.osm.pbf`
+- **Windows:** `$ProjectRoot\osm\region.osm.pbf`
+- **macOS/Linux:** `$PROJECT_ROOT/osm/region.osm.pbf`
 
 ### Option A - Geofabrik (recommended)
 
@@ -44,17 +44,19 @@ Invoke-WebRequest -Uri "https://download.geofabrik.de/europe/france/bretagne-lat
 **macOS/Linux:**
 
 ```sh
-mkdir -p /Users/nicolas/Workspace/mystravastats-2/osm
+PROJECT_ROOT=/path/to/mystravastats-2
+mkdir -p "$PROJECT_ROOT/osm"
 curl -L "https://download.geofabrik.de/europe/france-latest.osm.pbf" \
-  -o /Users/nicolas/Workspace/mystravastats-2/osm/region.osm.pbf
+  -o "$PROJECT_ROOT/osm/region.osm.pbf"
 ```
 
 If you only want Brittany (recommended for lower RAM usage and faster OSRM preparation):
 
 ```sh
-mkdir -p /Users/nicolas/Workspace/mystravastats-2/osm
+PROJECT_ROOT=/path/to/mystravastats-2
+mkdir -p "$PROJECT_ROOT/osm"
 curl -L "https://download.geofabrik.de/europe/france/bretagne-latest.osm.pbf" \
-  -o /Users/nicolas/Workspace/mystravastats-2/osm/region.osm.pbf
+  -o "$PROJECT_ROOT/osm/region.osm.pbf"
 ```
 
 ### Option B - BBBike (custom area)
@@ -87,8 +89,9 @@ Copy-Item -Path "C:\path\to\your-download.osm.pbf" -Destination "$ProjectRoot\os
 **macOS/Linux:**
 
 ```sh
-mkdir -p /Users/nicolas/Workspace/mystravastats-2/osm
-cp /path/to/your-download.osm.pbf /Users/nicolas/Workspace/mystravastats-2/osm/region.osm.pbf
+PROJECT_ROOT=/path/to/mystravastats-2
+mkdir -p "$PROJECT_ROOT/osm"
+cp /path/to/your-download.osm.pbf "$PROJECT_ROOT/osm/region.osm.pbf"
 ```
 
 Tips:
@@ -110,7 +113,8 @@ docker compose -f "$ProjectRoot\docker-compose-routing-osrm.yml" --profile prepa
 **macOS/Linux:**
 
 ```sh
-docker compose -f /Users/nicolas/Workspace/mystravastats-2/docker-compose-routing-osrm.yml --profile prepare run --rm osrm-prepare
+PROJECT_ROOT=/path/to/mystravastats-2
+docker compose -f "$PROJECT_ROOT/docker-compose-routing-osrm.yml" --profile prepare run --rm osrm-prepare
 ```
 
 By default, extraction uses `/opt/bicycle.lua` (cycling-oriented routing).
@@ -131,8 +135,9 @@ docker compose -f "$ProjectRoot\docker-compose-routing-osrm.yml" --profile prepa
 **macOS/Linux - walking/hiking:**
 
 ```sh
+PROJECT_ROOT=/path/to/mystravastats-2
 OSRM_EXTRACT_PROFILE=/opt/foot.lua \
-docker compose -f /Users/nicolas/Workspace/mystravastats-2/docker-compose-routing-osrm.yml --profile prepare run --rm osrm-prepare
+docker compose -f "$PROJECT_ROOT/docker-compose-routing-osrm.yml" --profile prepare run --rm osrm-prepare
 ```
 
 **Windows (PowerShell) - car profile:**
@@ -146,8 +151,9 @@ docker compose -f "$ProjectRoot\docker-compose-routing-osrm.yml" --profile prepa
 **macOS/Linux - car profile:**
 
 ```sh
+PROJECT_ROOT=/path/to/mystravastats-2
 OSRM_EXTRACT_PROFILE=/opt/car.lua \
-docker compose -f /Users/nicolas/Workspace/mystravastats-2/docker-compose-routing-osrm.yml --profile prepare run --rm osrm-prepare
+docker compose -f "$PROJECT_ROOT/docker-compose-routing-osrm.yml" --profile prepare run --rm osrm-prepare
 ```
 
 If your machine has enough RAM and you want faster preprocessing:
@@ -163,8 +169,9 @@ docker compose -f "$ProjectRoot\docker-compose-routing-osrm.yml" --profile prepa
 **macOS/Linux:**
 
 ```sh
+PROJECT_ROOT=/path/to/mystravastats-2
 OSRM_THREADS=4 \
-docker compose -f /Users/nicolas/Workspace/mystravastats-2/docker-compose-routing-osrm.yml --profile prepare run --rm osrm-prepare
+docker compose -f "$PROJECT_ROOT/docker-compose-routing-osrm.yml" --profile prepare run --rm osrm-prepare
 ```
 
 ## 3. Start the OSRM router
@@ -179,7 +186,8 @@ docker compose -f "$ProjectRoot\docker-compose-routing-osrm.yml" up -d osrm
 **macOS/Linux:**
 
 ```sh
-docker compose -f /Users/nicolas/Workspace/mystravastats-2/docker-compose-routing-osrm.yml up -d osrm
+PROJECT_ROOT=/path/to/mystravastats-2
+docker compose -f "$PROJECT_ROOT/docker-compose-routing-osrm.yml" up -d osrm
 ```
 
 Default endpoint:
@@ -249,6 +257,7 @@ docker compose -f "$ProjectRoot\docker-compose-routing-osrm.yml" --profile prepa
 **macOS/Linux:**
 
 ```sh
+PROJECT_ROOT=/path/to/mystravastats-2
 OSRM_THREADS=1 \
-docker compose -f /Users/nicolas/Workspace/mystravastats-2/docker-compose-routing-osrm.yml --profile prepare run --rm osrm-prepare
+docker compose -f "$PROJECT_ROOT/docker-compose-routing-osrm.yml" --profile prepare run --rm osrm-prepare
 ```

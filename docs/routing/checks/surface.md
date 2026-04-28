@@ -14,7 +14,7 @@ Validated rules:
 ## Prerequisites
 
 - OSRM is running and reachable.
-- Go backend is running from current source (`back-go`), default URL `http://127.0.0.1:8080`.
+- Backend is running from current source, default URL `http://127.0.0.1:8080`.
 
 ## Quick run
 

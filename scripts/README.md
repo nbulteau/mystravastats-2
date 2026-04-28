@@ -4,12 +4,16 @@
 
 Capture documentation screenshots for MyStravaStats.
 
-Usage:
-node capture-doc-screenshots.mjs [options]
+Usage from the repository root:
+
+```shell
+node scripts/capture-doc-screenshots.mjs [options]
+```
 
 Options:
+```text
 --base-url <url>            Front URL (default: http://localhost:8080)
---out-dir <path>            Output directory (default: ./docs)
+--out-dir <path>            Output directory (default: ./docs/assets/screenshots)
 --year <value>              Year filter (example: 2025 or "All years")
 --activities <list>         Activity selection (same group only).
                             Examples:
@@ -22,7 +26,8 @@ Options:
 --full-page                 Capture full page screenshots
 --screens <list>            Comma list: dashboard,charts,heatmap,statistics,badges,activities,map,segments,detailed
 --help                      Show this help
+```
 
 ```shell
-node capture-doc-screenshots.mjs --year 2025
+node scripts/capture-doc-screenshots.mjs --year 2025
 ```
