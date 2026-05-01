@@ -35,6 +35,8 @@ const (
 	historyAxisBiasWeight       = 0.75
 	historyZoneBiasWeight       = 0.25
 	shapeModeStrategyShapeFirst = "shape-first"
+	shapeModeStrategyRoadSnap   = "shape-road-snap"
+	shapeModeStrategyStitched   = "shape-stitched"
 	shapeModeStrategySimplified = "shape-simplified"
 	shapeModeStrategyRoadFirst  = "road-first"
 	shapeModeStrategyBestEffort = "shape-best-effort"
@@ -483,6 +485,11 @@ func (adapter *OSMRoutingAdapter) GenerateShapeLoops(
 	strategies := []shapeRoutingStrategy{
 		{
 			code:      shapeModeStrategyShapeFirst,
+			label:     "dense sketch anchors",
+			waypoints: buildShapeDenseWaypoints(routeAnchor, routingShape),
+		},
+		{
+			code:      shapeModeStrategyShapeFirst,
 			label:     "map sketch waypoints",
 			waypoints: buildShapeLoopWaypoints(routeAnchor, routingShape),
 		},
@@ -551,6 +558,12 @@ func (adapter *OSMRoutingAdapter) GenerateShapeLoops(
 			fmt.Sprintf("Shape similarity: %.0f%%", shapeScore*100.0),
 			fmt.Sprintf("Shape mode: %s", strategy.label),
 		)
+		if strategy.code == shapeModeStrategyRoadSnap {
+			recommendation.Reasons = append(
+				recommendation.Reasons,
+				"Shape trace snap: nearest routable anchors routed segment-by-segment",
+			)
+		}
 		idealShapeScore := minShapeModeSimilarity(strategy.code)
 		if shapeScore < idealShapeScore {
 			recommendation.Reasons = append(
@@ -583,12 +596,51 @@ func (adapter *OSMRoutingAdapter) GenerateShapeLoops(
 		seenSignatures[signature] = struct{}{}
 	}
 
+	if snappedRoute, ok := adapter.fetchOSRMNearestRoadTraceRoute(profile, routingShape); ok {
+		strategy := shapeRoutingStrategy{
+			code:      shapeModeStrategyRoadSnap,
+			label:     "nearest-road trace",
+			waypoints: routingShape,
+		}
+		usedStrategies++
+		fetchedRouteCount++
+		appendShapeCandidate(strategy, snappedRoute, 3000)
+	} else {
+		incrementRejectCount(rejectCounts, "OSRM_TRACE_SNAP_FAILED")
+	}
+
+	if stitchedWaypoints := buildShapeStitchedWaypoints(routeAnchor, routingShape); len(stitchedWaypoints) >= 3 {
+		routes, err := adapter.fetchOSRMShapeSegmentStitchedRoutes(profile, stitchedWaypoints)
+		if err != nil {
+			incrementRejectCount(rejectCounts, "OSRM_STITCHED_CALL_FAILED")
+			if adapter.debug {
+				log.Printf(
+					"OSRM shape stitched generation call failed: profile=%s waypoints=%d err=%v",
+					profile,
+					len(stitchedWaypoints),
+					err,
+				)
+			}
+		} else {
+			usedStrategies++
+			fetchedRouteCount += len(routes)
+			strategy := shapeRoutingStrategy{
+				code:      shapeModeStrategyStitched,
+				label:     "segment stitched alternatives",
+				waypoints: stitchedWaypoints,
+			}
+			for routeIndex, osrmRoute := range routes {
+				appendShapeCandidate(strategy, osrmRoute, 2000+routeIndex)
+			}
+		}
+	}
+
 	for _, strategy := range strategies {
 		if len(strategy.waypoints) < 3 {
 			incrementRejectCount(rejectCounts, "SHAPE_WAYPOINTS_TOO_FEW")
 			continue
 		}
-		routes, err := adapter.fetchOSRMRoutes(profile, strategy.waypoints)
+		routes, err := adapter.fetchOSRMRoutesForShape(profile, strategy.waypoints)
 		if err != nil {
 			incrementRejectCount(rejectCounts, "OSRM_CALL_FAILED")
 			if adapter.debug {
@@ -616,7 +668,7 @@ func (adapter *OSMRoutingAdapter) GenerateShapeLoops(
 				incrementRejectCount(rejectCounts, "SHAPE_BEST_EFFORT_WAYPOINTS_TOO_FEW")
 				continue
 			}
-			routes, err := adapter.fetchOSRMRoutes(profile, strategy.waypoints)
+			routes, err := adapter.fetchOSRMRoutesForShape(profile, strategy.waypoints)
 			if err != nil {
 				incrementRejectCount(rejectCounts, "OSRM_BEST_EFFORT_CALL_FAILED")
 				if adapter.debug {
@@ -1262,6 +1314,21 @@ func (adapter *OSMRoutingAdapter) fetchOSRMRoutes(
 	profile string,
 	waypoints []routesDomain.Coordinates,
 ) ([]osrmRoute, error) {
+	return adapter.fetchOSRMRoutesWithContinueStraight(profile, waypoints, true)
+}
+
+func (adapter *OSMRoutingAdapter) fetchOSRMRoutesForShape(
+	profile string,
+	waypoints []routesDomain.Coordinates,
+) ([]osrmRoute, error) {
+	return adapter.fetchOSRMRoutesWithContinueStraight(profile, waypoints, false)
+}
+
+func (adapter *OSMRoutingAdapter) fetchOSRMRoutesWithContinueStraight(
+	profile string,
+	waypoints []routesDomain.Coordinates,
+	continueStraight bool,
+) ([]osrmRoute, error) {
 	if len(waypoints) < 2 {
 		return nil, fmt.Errorf("at least 2 waypoints are required")
 	}
@@ -1271,10 +1338,11 @@ func (adapter *OSMRoutingAdapter) fetchOSRMRoutes(
 		coordinates = append(coordinates, fmt.Sprintf("%.6f,%.6f", point.Lng, point.Lat))
 	}
 	url := fmt.Sprintf(
-		"%s/route/v1/%s/%s?alternatives=true&steps=true&overview=full&geometries=geojson&continue_straight=true",
+		"%s/route/v1/%s/%s?alternatives=true&steps=true&overview=full&geometries=geojson&continue_straight=%s",
 		adapter.baseURL,
 		profile,
 		strings.Join(coordinates, ";"),
+		strconv.FormatBool(continueStraight),
 	)
 
 	request, err := http.NewRequest(http.MethodGet, url, nil)
@@ -1302,6 +1370,142 @@ func (adapter *OSMRoutingAdapter) fetchOSRMRoutes(
 		return nil, fmt.Errorf("osrm route API returned code %s: %s", payload.Code, payload.Message)
 	}
 	return payload.Routes, nil
+}
+
+func (adapter *OSMRoutingAdapter) fetchOSRMShapeSegmentStitchedRoutes(
+	profile string,
+	waypoints []routesDomain.Coordinates,
+) ([]osrmRoute, error) {
+	if len(waypoints) < 3 {
+		return nil, fmt.Errorf("at least 3 waypoints are required for stitched shape routing")
+	}
+
+	segments := make([]osrmRoute, 0, len(waypoints)-1)
+	for index := 0; index < len(waypoints)-1; index++ {
+		segmentWaypoints := []routesDomain.Coordinates{waypoints[index], waypoints[index+1]}
+		routes, err := adapter.fetchOSRMRoutesForShape(profile, segmentWaypoints)
+		if err != nil {
+			return nil, err
+		}
+		targetSegment := coordinatesToLatLngPoints(segmentWaypoints)
+		route, ok := chooseBestShapeSegmentRoute(routes, targetSegment)
+		if !ok {
+			return nil, fmt.Errorf("no valid OSRM segment route at index %d", index)
+		}
+		segments = append(segments, route)
+	}
+
+	stitched, ok := stitchOSRMRoutes(segments)
+	if !ok {
+		return nil, fmt.Errorf("stitched OSRM route has invalid geometry")
+	}
+	return []osrmRoute{stitched}, nil
+}
+
+func (adapter *OSMRoutingAdapter) fetchOSRMNearestRoadTraceRoute(
+	profile string,
+	shape []routesDomain.Coordinates,
+) (osrmRoute, bool) {
+	if len(shape) < 2 {
+		return osrmRoute{}, false
+	}
+	sampled := sampleCoordinates(shape, 20)
+	snapped := make([]routesDomain.Coordinates, 0, len(sampled)+1)
+	maxSnapDistanceMeters := 0.0
+	totalSnapDistanceMeters := 0.0
+	for _, point := range sampled {
+		snappedPoint, snapDistanceMeters, ok := adapter.snapToNearestRoutablePoint(profile, point)
+		if !ok {
+			return osrmRoute{}, false
+		}
+		if snapDistanceMeters > 650.0 {
+			return osrmRoute{}, false
+		}
+		if len(snapped) > 0 {
+			previous := snapped[len(snapped)-1]
+			if haversineDistanceMeters(previous.Lat, previous.Lng, snappedPoint.Lat, snappedPoint.Lng) < 35.0 {
+				continue
+			}
+		}
+		snapped = append(snapped, snappedPoint)
+		totalSnapDistanceMeters += snapDistanceMeters
+		maxSnapDistanceMeters = math.Max(maxSnapDistanceMeters, snapDistanceMeters)
+	}
+	if len(snapped) < 3 {
+		return osrmRoute{}, false
+	}
+	snapped = appendLoopClosureWaypoint(snapped, snapped[0])
+	if len(snapped) < 3 {
+		return osrmRoute{}, false
+	}
+	averageSnapDistanceMeters := totalSnapDistanceMeters / float64(len(snapped))
+	if averageSnapDistanceMeters > 260.0 || maxSnapDistanceMeters > 650.0 {
+		return osrmRoute{}, false
+	}
+	routes, err := adapter.fetchOSRMShapeSegmentStitchedRoutes(profile, snapped)
+	if err != nil || len(routes) == 0 {
+		return osrmRoute{}, false
+	}
+	return routes[0], true
+}
+
+func chooseBestShapeSegmentRoute(routes []osrmRoute, targetSegment [][]float64) (osrmRoute, bool) {
+	var bestRoute osrmRoute
+	bestScore := math.Inf(-1)
+	bestDistance := math.Inf(1)
+	found := false
+	for _, route := range routes {
+		points, ok := osrmRouteToPreviewPoints(route)
+		if !ok || len(points) < 2 || route.Distance <= 0 {
+			continue
+		}
+		score := shapeSimilarityScore(points, targetSegment)
+		if !found || score > bestScore+0.0001 || (math.Abs(score-bestScore) <= 0.0001 && route.Distance < bestDistance) {
+			bestRoute = route
+			bestScore = score
+			bestDistance = route.Distance
+			found = true
+		}
+	}
+	return bestRoute, found
+}
+
+func stitchOSRMRoutes(routes []osrmRoute) (osrmRoute, bool) {
+	if len(routes) == 0 {
+		return osrmRoute{}, false
+	}
+	stitched := osrmRoute{
+		Geometry: osrmGeometry{Type: "LineString"},
+		Legs:     make([]osrmLeg, 0, len(routes)),
+	}
+	for routeIndex, route := range routes {
+		if route.Distance <= 0 || len(route.Geometry.Coordinates) < 2 {
+			return osrmRoute{}, false
+		}
+		stitched.Distance += route.Distance
+		stitched.Duration += route.Duration
+		stitched.Legs = append(stitched.Legs, route.Legs...)
+		for coordinateIndex, coordinate := range route.Geometry.Coordinates {
+			if len(coordinate) < 2 {
+				continue
+			}
+			if routeIndex > 0 && coordinateIndex == 0 && coordinatesEqualOSRM(
+				stitched.Geometry.Coordinates[len(stitched.Geometry.Coordinates)-1],
+				coordinate,
+			) {
+				continue
+			}
+			stitched.Geometry.Coordinates = append(stitched.Geometry.Coordinates, []float64{coordinate[0], coordinate[1]})
+		}
+	}
+	return stitched, len(stitched.Geometry.Coordinates) >= 2
+}
+
+func coordinatesEqualOSRM(left []float64, right []float64) bool {
+	if len(left) < 2 || len(right) < 2 {
+		return false
+	}
+	return math.Abs(left[0]-right[0]) < 0.000001 && math.Abs(left[1]-right[1]) < 0.000001
 }
 
 func (adapter *OSMRoutingAdapter) snapToNearestRoutablePoint(
@@ -1726,9 +1930,6 @@ func selectCandidatesWithRelaxation(
 		return left.recommendation.RouteID < right.recommendation.RouteID
 	})
 
-	// Levels are evaluated in order: strict -> balanced -> relaxed -> fallback.
-	// We fill results incrementally: if strict cannot fill the target limit,
-	// next levels progressively loosen constraints while keeping quality.
 	levels := buildRouteRelaxationLevels(
 		request.RouteType,
 		hasDirection,
@@ -1738,10 +1939,9 @@ func selectCandidatesWithRelaxation(
 	selected := make([]routesDomain.RouteRecommendation, 0, limit)
 	selectedIDs := make(map[string]struct{}, limit)
 
-	for _, level := range levels {
-		if len(selected) >= limit {
-			break
-		}
+	if shapeMode {
+		// Strava Art is judged first by the drawing: try candidates in visual-fit
+		// order, then attach the strictest relaxation profile each candidate can pass.
 		for _, candidate := range sortedCandidates {
 			if len(selected) >= limit {
 				break
@@ -1750,45 +1950,68 @@ func selectCandidatesWithRelaxation(
 			if _, exists := selectedIDs[routeID]; exists {
 				continue
 			}
-			if candidate.directionPenalty > level.maxDirectionPenalty {
-				incrementRejectCount(rejectCounts, "DIRECTION_CONSTRAINT")
-				continue
+			for _, level := range levels {
+				if !candidatePassesRelaxation(candidate, level, shapeMode, rejectCounts) {
+					continue
+				}
+				recommendation := candidate.recommendation
+				recommendation.Reasons = append(
+					recommendation.Reasons,
+					"Selection priority: art-fit first",
+					fmt.Sprintf("Selection profile: %s", level.name),
+				)
+				selected = append(selected, recommendation)
+				selectedIDs[routeID] = struct{}{}
+				break
 			}
-			if candidate.backtrackingRatio > level.maxBacktrackingRatio {
-				incrementRejectCount(rejectCounts, "OPPOSITE_EDGE_TRAVERSAL")
-				continue
+		}
+	} else {
+		// Levels are evaluated in order: strict -> balanced -> relaxed -> fallback.
+		// We fill results incrementally: if strict cannot fill the target limit,
+		// next levels progressively loosen constraints while keeping quality.
+		for _, level := range levels {
+			if len(selected) >= limit {
+				break
 			}
-			if candidate.corridorOverlap > level.maxCorridorOverlap {
-				incrementRejectCount(rejectCounts, "CORRIDOR_OVERLAP")
-				continue
-			}
-			if candidate.edgeReuseRatio > level.maxEdgeReuseRatio {
-				incrementRejectCount(rejectCounts, "EDGE_REUSE")
-				continue
-			}
-			if candidate.maxAxisReuseCount > level.maxAxisReuseCount {
-				incrementRejectCount(rejectCounts, "MAX_AXIS_REUSE")
-				continue
-			}
-			if candidate.segmentDiversity < level.minSegmentDiversity {
-				incrementRejectCount(rejectCounts, "LOW_SEGMENT_DIVERSITY")
-				continue
-			}
-			if !shapeMode && candidate.distanceDeltaRatio > level.maxDistanceDeltaRatio {
-				incrementRejectCount(rejectCounts, "DISTANCE_CONSTRAINT")
-				continue
-			}
+			for _, candidate := range sortedCandidates {
+				if len(selected) >= limit {
+					break
+				}
+				routeID := candidate.recommendation.RouteID
+				if _, exists := selectedIDs[routeID]; exists {
+					continue
+				}
+				if !candidatePassesRelaxation(candidate, level, shapeMode, rejectCounts) {
+					continue
+				}
 
-			recommendation := candidate.recommendation
-			recommendation.Reasons = append(recommendation.Reasons, fmt.Sprintf("Selection profile: %s", level.name))
-			selected = append(selected, recommendation)
-			selectedIDs[routeID] = struct{}{}
+				recommendation := candidate.recommendation
+				recommendation.Reasons = append(recommendation.Reasons, fmt.Sprintf("Selection profile: %s", level.name))
+				selected = append(selected, recommendation)
+				selectedIDs[routeID] = struct{}{}
+			}
 		}
 	}
 
 	// Safety net: if all configured levels reject candidates, return the best
 	// ranked loops with softer anti-overlap limits instead of returning zero.
 	softAxisCap, directionalAxisCap := bestEffortAxisReuseCaps(request.DistanceTargetKm, hasDirection, request.DirectionStrict)
+	if shapeMode && len(selected) < limit {
+		selected = appendBestEffortCandidates(
+			sortedCandidates,
+			selected,
+			selectedIDs,
+			limit,
+			1.0,
+			0.24,
+			0.60,
+			0.26,
+			4,
+			0.80,
+			"best-effort-soft (art-fit first)",
+			"Selection priority: art-fit first",
+		)
+	}
 	if len(selected) < limit {
 		softMaxBacktracking := 0.16
 		softMaxCorridor := 0.12
@@ -1814,6 +2037,7 @@ func selectCandidatesWithRelaxation(
 			softAxisCap,
 			0.20,
 			"best-effort-soft",
+			"",
 		)
 	}
 	if len(selected) < limit && hasDirection {
@@ -1831,6 +2055,7 @@ func selectCandidatesWithRelaxation(
 			directionalAxisCap,
 			0.25,
 			"directional-best-effort",
+			"",
 		)
 	}
 	if len(selected) == 0 {
@@ -1852,6 +2077,43 @@ func selectCandidatesWithRelaxation(
 	return selected
 }
 
+func candidatePassesRelaxation(
+	candidate osrmRouteCandidate,
+	level routeRelaxationLevel,
+	shapeMode bool,
+	rejectCounts map[string]int,
+) bool {
+	if candidate.directionPenalty > level.maxDirectionPenalty {
+		incrementRejectCount(rejectCounts, "DIRECTION_CONSTRAINT")
+		return false
+	}
+	if candidate.backtrackingRatio > level.maxBacktrackingRatio {
+		incrementRejectCount(rejectCounts, "OPPOSITE_EDGE_TRAVERSAL")
+		return false
+	}
+	if candidate.corridorOverlap > level.maxCorridorOverlap {
+		incrementRejectCount(rejectCounts, "CORRIDOR_OVERLAP")
+		return false
+	}
+	if candidate.edgeReuseRatio > level.maxEdgeReuseRatio {
+		incrementRejectCount(rejectCounts, "EDGE_REUSE")
+		return false
+	}
+	if candidate.maxAxisReuseCount > level.maxAxisReuseCount {
+		incrementRejectCount(rejectCounts, "MAX_AXIS_REUSE")
+		return false
+	}
+	if candidate.segmentDiversity < level.minSegmentDiversity {
+		incrementRejectCount(rejectCounts, "LOW_SEGMENT_DIVERSITY")
+		return false
+	}
+	if !shapeMode && candidate.distanceDeltaRatio > level.maxDistanceDeltaRatio {
+		incrementRejectCount(rejectCounts, "DISTANCE_CONSTRAINT")
+		return false
+	}
+	return true
+}
+
 func appendBestEffortCandidates(
 	sortedCandidates []osrmRouteCandidate,
 	selected []routesDomain.RouteRecommendation,
@@ -1864,6 +2126,7 @@ func appendBestEffortCandidates(
 	maxAxisReuseCount int,
 	maxDistanceShortfallRatio float64,
 	profileName string,
+	priorityReason string,
 ) []routesDomain.RouteRecommendation {
 	for _, candidate := range sortedCandidates {
 		if len(selected) >= limit {
@@ -1892,6 +2155,9 @@ func appendBestEffortCandidates(
 			continue
 		}
 		recommendation := candidate.recommendation
+		if strings.TrimSpace(priorityReason) != "" {
+			recommendation.Reasons = append(recommendation.Reasons, priorityReason)
+		}
 		recommendation.Reasons = append(recommendation.Reasons, fmt.Sprintf("Selection profile: %s", profileName))
 		selected = append(selected, recommendation)
 		selectedIDs[routeID] = struct{}{}
@@ -2816,6 +3082,54 @@ func buildShapeLoopWaypoints(
 		}
 		waypoints = append(waypoints, point)
 		previous = point
+	}
+	return appendLoopClosureWaypoint(waypoints, start)
+}
+
+func buildShapeDenseWaypoints(
+	start routesDomain.Coordinates,
+	shape []routesDomain.Coordinates,
+) []routesDomain.Coordinates {
+	if len(shape) < 2 {
+		return []routesDomain.Coordinates{}
+	}
+	sampled := sampleCoordinates(shape, 28)
+	waypoints := make([]routesDomain.Coordinates, 0, len(sampled)+2)
+	waypoints = append(waypoints, start)
+	previous := start
+	for _, point := range sampled {
+		if haversineDistanceMeters(previous.Lat, previous.Lng, point.Lat, point.Lng) < 60.0 {
+			continue
+		}
+		waypoints = append(waypoints, point)
+		previous = point
+	}
+	if len(waypoints) < 3 {
+		return buildShapeLoopWaypoints(start, shape)
+	}
+	return appendLoopClosureWaypoint(waypoints, start)
+}
+
+func buildShapeStitchedWaypoints(
+	start routesDomain.Coordinates,
+	shape []routesDomain.Coordinates,
+) []routesDomain.Coordinates {
+	if len(shape) < 2 {
+		return []routesDomain.Coordinates{}
+	}
+	sampled := sampleCoordinates(shape, 14)
+	waypoints := make([]routesDomain.Coordinates, 0, len(sampled)+2)
+	waypoints = append(waypoints, start)
+	previous := start
+	for _, point := range sampled {
+		if haversineDistanceMeters(previous.Lat, previous.Lng, point.Lat, point.Lng) < 120.0 {
+			continue
+		}
+		waypoints = append(waypoints, point)
+		previous = point
+	}
+	if len(waypoints) < 3 {
+		return buildShapeSimplifiedWaypoints(start, shape)
 	}
 	return appendLoopClosureWaypoint(waypoints, start)
 }

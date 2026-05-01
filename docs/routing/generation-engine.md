@@ -78,12 +78,17 @@ The shape endpoint asks the route explorer for shape-aware candidates:
 - `closestLoops`: historical candidates kept for recommendations and diagnostics, not returned as Strava Art proposals
 - `shapeRemixes`: historical remix candidates for shape composition
 
-Public `POST /api/routes/generate/shape` responses are stricter than the internal explorer result: they only return OSRM candidates generated from the drawing (`Shape mode:*`). If OSRM cannot produce such a candidate, the response is empty with diagnostics instead of substituting an old activity.
+Public `POST /api/routes/generate/shape` responses are stricter than the internal explorer result: they only return OSRM candidates generated from the drawing (`Shape mode:*`). If the strict strategies fail, shape-mode best-effort strategies may still return a low-confidence OSRM route with a weak `Art fit` and explicit fallback reasons; historical activities are not substituted as Strava Art proposals.
 
 Routing strategy parity (Go/Kotlin):
 
-- `shape-first`: projected shape waypoints (high geometry fidelity)
+- `nearest-road trace`: snap sampled drawing points to their nearest OSRM-routable anchors, route each anchor-to-anchor segment with OSRM, then stitch the routed geometries; this is the preferred GPS drawing strategy when it stays close enough to the road graph
+- `segment stitched alternatives`: route each drawing segment with OSRM alternatives and stitch the best segment matches together
+- `dense sketch anchors`: denser projected shape waypoints for simple forms that need more contour fidelity
+- `map sketch waypoints`: projected shape waypoints (high geometry fidelity)
+- `simplified sketch anchors`: reduced projected shape waypoints for better routability
 - `road-first`: compact road anchors from the projected shape (better routability in sparse/complex areas)
+- best-effort shape fallbacks: simplified/envelope variants returned only when normal shape strategies cannot provide enough candidates
 
 Hard anti-backtracking rules remain owned by the routing engine:
 
@@ -160,8 +165,10 @@ Examples of success diagnostics:
   - wrapped JSON fields (`points`, `coordinates`, `latLng`)
   - encoded polyline string
   - GPX points (`trkpt`, `rtept`, `wpt`) when payload is GPX XML
-- strategy scoring includes an adaptive low-similarity drift penalty (`road-first` stricter than `shape-first`) so highly off-shape routes are naturally deprioritized
-- both strategies are scored, deduplicated by geometry, then merged into the generated route payload
+- strategy scoring includes an adaptive low-similarity drift penalty (`road-first` stricter than shape-first strategies) so highly off-shape routes are naturally deprioritized
+- shape candidates are scored, deduplicated by geometry, then selected by `Art fit` first before the strictest compatible relaxation profile is attached
+- the `nearest-road trace` strategy is explicit about its trade-off: it preserves the drawing order with nearby routable anchors, but the exported geometry always comes from OSRM-routed segments instead of straight lines between anchors
+- if no strict/balanced/relaxed shape candidate survives, an `Art fit` oriented soft fallback is tried before the absolute emergency fallback
 
 ## History Profile (Step 1)
 
@@ -213,15 +220,20 @@ explorerCandidates += closestHistoricalRoutes(shapeFamily, profile)
 explorerCandidates += shapeRemixes(shape, profile)
 
 publicCandidates = onlyOSRMShapeMode(explorerCandidates)
+publicCandidates += nearestRoadTrace(shape, profile)
+publicCandidates += stitchedSegmentAlternatives(shape, profile)
 
 for candidate in publicCandidates:
   computeMetrics(candidate)
   computeScores(candidate)
 
 publicCandidates = dedupeByGeometry(publicCandidates)
-candidates = sortBySelectionPriority(candidates)
+candidates = sortByArtFitThenRouteQuality(publicCandidates)
+selected = selectStrictestCompatibleProfiles(candidates)
 
-selected = candidates.take(limit)
+if selected is not full:
+  selected += artFitFirstSoftFallback(candidates)
+
 return selected + diagnostics
 ```
 

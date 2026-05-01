@@ -995,6 +995,88 @@ func TestGenerateShapeRoutesByActivityType_StravaArtSmokeGeneratesAndExportsGPX(
 	}
 }
 
+func TestGenerateShapeRoutesByActivityType_OrdersShapeRoutesByArtFit(t *testing.T) {
+	// GIVEN
+	lowShapeScore := 0.62
+	highShapeScore := 0.91
+	setTestContainer(t, &container{
+		getRouteExplorerUseCase: routesApp.NewGetRouteExplorerUseCase(&contractRoutesReaderStub{
+			result: routesDomain.RouteExplorerResult{
+				ShapeMatches: []routesDomain.RouteRecommendation{
+					{
+						RouteID:        "low-art-fit",
+						Activity:       business.ActivityShort{Id: 101, Name: "Low art fit", Type: business.Ride},
+						DistanceKm:     8.0,
+						ElevationGainM: 80,
+						DurationSec:    1800,
+						VariantType:    routesDomain.RouteVariantShape,
+						MatchScore:     96,
+						Reasons: []string{
+							"Generated with OSM road graph (OSRM)",
+							"Shape similarity: 62%",
+							"Shape mode: nearest-road trace",
+						},
+						PreviewLatLng: [][]float64{{48.12, -1.63}, {48.13, -1.64}},
+						ShapeScore:    &lowShapeScore,
+					},
+					{
+						RouteID:        "high-art-fit",
+						Activity:       business.ActivityShort{Id: 102, Name: "High art fit", Type: business.Ride},
+						DistanceKm:     12.0,
+						ElevationGainM: 120,
+						DurationSec:    2500,
+						VariantType:    routesDomain.RouteVariantShape,
+						MatchScore:     78,
+						Reasons: []string{
+							"Generated with OSM road graph (OSRM)",
+							"Shape similarity: 91%",
+							"Shape mode: map sketch waypoints",
+						},
+						PreviewLatLng: [][]float64{{48.12, -1.63}, {48.14, -1.65}},
+						ShapeScore:    &highShapeScore,
+					},
+				},
+			},
+		}),
+	})
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/api/routes/generate/shape?activityType=Ride",
+		strings.NewReader(`{
+			"shapeInputType": "draw",
+			"shapeData": "[[48.12,-1.63],[48.14,-1.65]]",
+			"startPoint": {"lat": 48.121, "lng": -1.635},
+			"routeType": "RIDE",
+			"variantCount": 1
+		}`),
+	)
+	request.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	// WHEN
+	generateShapeRoutesByActivityType(recorder, request)
+
+	// THEN
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d (%s)", recorder.Code, recorder.Body.String())
+	}
+	var response map[string]any
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode JSON response: %v", err)
+	}
+	routes, ok := response["routes"].([]any)
+	if !ok || len(routes) != 1 {
+		t.Fatalf("expected a single route, got %+v", response["routes"])
+	}
+	firstRoute, ok := routes[0].(map[string]any)
+	if !ok {
+		t.Fatalf("expected first route object, got %+v", routes[0])
+	}
+	if got := firstRoute["routeId"]; got != "high-art-fit" {
+		t.Fatalf("expected highest art fit route first, got %v", got)
+	}
+}
+
 func TestGenerateShapeRoutesByActivityType_IgnoresHistoricalCandidates(t *testing.T) {
 	// GIVEN
 	// WHEN

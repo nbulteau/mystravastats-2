@@ -102,7 +102,21 @@ run_case() {
     selectedElevationGainM: .routes[0].elevationGainM,
     artFit: .routes[0].score.shape,
     routeQuality: .routes[0].score.global,
-    diagnostics
+    selectedShapeMode: ([.routes[0].reasons[]? | select(startswith("Shape mode:"))] | join("; ")),
+    selectedProfile: ([.routes[0].reasons[]? | select(startswith("Selection profile:"))] | join("; ")),
+    selectedPriority: ([.routes[0].reasons[]? | select(startswith("Selection priority:"))] | join("; ")),
+    topRoutes: [
+      .routes[] | {
+        routeId,
+        distanceKm,
+        artFit: .score.shape,
+        routeQuality: .score.global,
+        shapeMode: ([.reasons[]? | select(startswith("Shape mode:"))] | join("; ")),
+        selectionProfile: ([.reasons[]? | select(startswith("Selection profile:"))] | join("; "))
+      }
+    ],
+    diagnostics,
+    selectedReasons: .routes[0].reasons
   }'
 }
 

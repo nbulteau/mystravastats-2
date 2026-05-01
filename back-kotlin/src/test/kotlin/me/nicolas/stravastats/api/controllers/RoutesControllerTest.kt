@@ -116,6 +116,93 @@ class RoutesControllerTest {
     }
 
     @Test
+    fun `generate shape routes orders proposals by art fit`() {
+        // GIVEN
+        every {
+            routeExplorerService.getRouteExplorer(any(), any(), any())
+        } returns RouteExplorerResult(
+            closestLoops = emptyList(),
+            variants = emptyList(),
+            seasonal = emptyList(),
+            roadGraphLoops = emptyList(),
+            shapeMatches = listOf(
+                RouteRecommendation(
+                    routeId = "low-art-fit",
+                    activity = ActivityShort(101L, "Low art fit", ActivityType.Ride),
+                    activityDate = "2025-01-01",
+                    distanceKm = 8.0,
+                    elevationGainM = 80.0,
+                    durationSec = 1800,
+                    isLoop = true,
+                    start = null,
+                    end = null,
+                    startArea = "Rennes",
+                    season = "SPRING",
+                    variantType = RouteVariantType.SHAPE_MATCH,
+                    matchScore = 96.0,
+                    reasons = listOf(
+                        "Generated with OSM road graph (OSRM)",
+                        "Shape similarity: 62%",
+                        "Shape mode: nearest-road trace",
+                    ),
+                    previewLatLng = listOf(listOf(48.12, -1.63), listOf(48.13, -1.64)),
+                    shape = "CUSTOM_SHAPE",
+                    shapeScore = 0.62,
+                    experimental = true,
+                ),
+                RouteRecommendation(
+                    routeId = "high-art-fit",
+                    activity = ActivityShort(102L, "High art fit", ActivityType.Ride),
+                    activityDate = "2025-01-01",
+                    distanceKm = 12.0,
+                    elevationGainM = 120.0,
+                    durationSec = 2500,
+                    isLoop = true,
+                    start = null,
+                    end = null,
+                    startArea = "Rennes",
+                    season = "SPRING",
+                    variantType = RouteVariantType.SHAPE_MATCH,
+                    matchScore = 78.0,
+                    reasons = listOf(
+                        "Generated with OSM road graph (OSRM)",
+                        "Shape similarity: 91%",
+                        "Shape mode: map sketch waypoints",
+                    ),
+                    previewLatLng = listOf(listOf(48.12, -1.63), listOf(48.14, -1.65)),
+                    shape = "CUSTOM_SHAPE",
+                    shapeScore = 0.91,
+                    experimental = true,
+                ),
+            ),
+            shapeRemixes = emptyList(),
+        )
+
+        // WHEN
+        mockMvc.perform(
+            post("/api/routes/generate/shape")
+                .param("activityType", "Ride")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "shapeInputType": "draw",
+                      "shapeData": "[[48.12,-1.63],[48.14,-1.65]]",
+                      "startPoint": {"lat": 48.121, "lng": -1.635},
+                      "routeType": "RIDE",
+                      "variantCount": 1
+                    }
+                    """.trimIndent()
+                )
+        )
+            // THEN
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.routes.length()").value(1))
+            .andExpect(jsonPath("$.routes[0].routeId").value("high-art-fit"))
+            .andExpect(jsonPath("$.routes[0].score.shape").value(91.0))
+    }
+
+    @Test
     fun `generate shape routes uses surface fitness reason for road fitness score`() {
         // GIVEN
         every {

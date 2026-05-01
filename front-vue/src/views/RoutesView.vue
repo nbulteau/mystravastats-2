@@ -245,22 +245,13 @@ const nonBlockingGenerationDiagnosticCodes = new Set([
   "SELECTION_RELAXED",
   "EMERGENCY_FALLBACK",
 ]);
-const preferredRouteReasonPrefixes = [
-  "Shape",
-  "Surface fitness",
-  "Path ratio",
-  "Road graph",
-  "Generation engine",
-  "Selection profile",
-  "Direction",
-  "Target mode",
-  "History guidance",
-  "Anti-backtracking",
-];
-const hiddenRouteReasonPrefixes = [
-  "Directional alignment",
-  "Surface mix",
-];
+
+interface RouteBadge {
+  id: string;
+  label: string;
+  tone: "strong" | "info" | "warn";
+  icon: string;
+}
 
 interface PresentedDiagnostic {
   code: string;
@@ -424,13 +415,13 @@ function routeQualityScore(route: GeneratedRoute): number {
 function routeQualityLabel(route: GeneratedRoute): string {
   const score = routeQualityScore(route);
   if (score >= 85) {
-    return "Smooth route";
+    return "Easy to ride";
   }
   if (score >= 70) {
-    return "Usable route";
+    return "Usable ride";
   }
   if (score >= 55) {
-    return "Check route";
+    return "Check before riding";
   }
   return "Low confidence";
 }
@@ -450,24 +441,183 @@ function scoreBandClass(value: number | undefined): string {
 }
 
 function routeSourceLabel(route: GeneratedRoute): string {
+  const shapeMode = routeShapeMode(route);
+  if (shapeMode === "nearest-road trace") {
+    return "Drawing-first road snap";
+  }
+  if (shapeMode === "segment stitched alternatives") {
+    return "Segment road snap";
+  }
+  if (shapeMode.includes("fallback")) {
+    return "Best-effort OSRM snap";
+  }
+  if (shapeMode.length > 0) {
+    return "OSRM sketch anchors";
+  }
   if (route.isRoadGraphGenerated) {
     return "OSRM road snap";
   }
   return formatVariantType(route.variantType);
 }
 
-function highlightedRouteReasons(route: GeneratedRoute): string[] {
-  const cleanedReasons = route.reasons
+function routeReasons(route: GeneratedRoute): string[] {
+  return route.reasons
     .map((reason) => reason.trim())
-    .filter((reason) =>
-      reason.length > 0
-      && !hiddenRouteReasonPrefixes.some((prefix) => reason.toLowerCase().startsWith(prefix.toLowerCase()))
-    );
-  const preferredReasons = cleanedReasons.filter((reason) =>
-    preferredRouteReasonPrefixes.some((prefix) => reason.toLowerCase().startsWith(prefix.toLowerCase()))
+    .filter((reason) => reason.length > 0);
+}
+
+function routeReasonPayload(route: GeneratedRoute, prefix: string): string {
+  const normalizedPrefix = prefix.toLowerCase();
+  const reason = routeReasons(route).find((candidate) =>
+    candidate.toLowerCase().startsWith(normalizedPrefix)
   );
-  const selectedReasons = preferredReasons.length > 0 ? preferredReasons : cleanedReasons;
-  return selectedReasons.slice(0, 3);
+  if (!reason) {
+    return "";
+  }
+  return reason.slice(prefix.length).trim();
+}
+
+function hasRouteReason(route: GeneratedRoute, prefix: string): boolean {
+  return routeReasonPayload(route, prefix).length > 0;
+}
+
+function routeShapeMode(route: GeneratedRoute): string {
+  return routeReasonPayload(route, "Shape mode:").toLowerCase();
+}
+
+function routeSelectionProfile(route: GeneratedRoute): string {
+  return routeReasonPayload(route, "Selection profile:").toLowerCase();
+}
+
+function routeShapeSimilarity(route: GeneratedRoute): number | null {
+  const payload = routeReasonPayload(route, "Shape similarity:");
+  const match = payload.match(/^(\d+(?:\.\d+)?)%/);
+  if (!match) {
+    return null;
+  }
+  const value = Number.parseFloat(match[1]);
+  return Number.isFinite(value) ? Math.round(value) : null;
+}
+
+function routeProductBadges(route: GeneratedRoute): RouteBadge[] {
+  const badges: RouteBadge[] = [];
+  const shapeMode = routeShapeMode(route);
+  const profile = routeSelectionProfile(route);
+
+  if (shapeMode === "nearest-road trace") {
+    badges.push({
+      id: "mode-nearest",
+      label: "Drawing-first snap",
+      tone: "strong",
+      icon: "fa-solid fa-magnet",
+    });
+  } else if (shapeMode === "segment stitched alternatives") {
+    badges.push({
+      id: "mode-segment",
+      label: "Segment stitching",
+      tone: "info",
+      icon: "fa-solid fa-route",
+    });
+  } else if (shapeMode.includes("fallback")) {
+    badges.push({
+      id: "mode-fallback",
+      label: "Fallback shape",
+      tone: "warn",
+      icon: "fa-solid fa-triangle-exclamation",
+    });
+  } else if (shapeMode.length > 0) {
+    badges.push({
+      id: "mode-osrm",
+      label: "OSRM anchors",
+      tone: "info",
+      icon: "fa-solid fa-map-location-dot",
+    });
+  }
+
+  if (profile.startsWith("strict")) {
+    badges.push({
+      id: "profile-strict",
+      label: "Strict fit",
+      tone: "strong",
+      icon: "fa-solid fa-circle-check",
+    });
+  } else if (profile.startsWith("best-effort-soft")) {
+    badges.push({
+      id: "profile-soft",
+      label: "Best effort",
+      tone: "warn",
+      icon: "fa-solid fa-life-ring",
+    });
+  } else if (profile.includes("emergency-fallback")) {
+    badges.push({
+      id: "profile-emergency",
+      label: "Fully relaxed",
+      tone: "warn",
+      icon: "fa-solid fa-life-ring",
+    });
+  }
+
+  if (hasRouteReason(route, "Selection priority: art-fit first")) {
+    badges.push({
+      id: "priority-art-fit",
+      label: "Art fit first",
+      tone: "strong",
+      icon: "fa-solid fa-pen-nib",
+    });
+  }
+
+  return badges.slice(0, 3);
+}
+
+function routeProductSummary(route: GeneratedRoute): string {
+  const shapeMode = routeShapeMode(route);
+  const profile = routeSelectionProfile(route);
+  if (shapeMode === "nearest-road trace") {
+    return "Sketch order preserved on nearby routable roads.";
+  }
+  if (profile.includes("emergency-fallback")) {
+    return "Exportable fallback; inspect the drawing before riding.";
+  }
+  if (profile.startsWith("best-effort-soft")) {
+    return "Best-effort route kept available for export.";
+  }
+  if (shapeMode === "segment stitched alternatives") {
+    return "OSRM alternatives stitched segment by segment.";
+  }
+  return routeQualityLabel(route);
+}
+
+function highlightedRouteReasons(route: GeneratedRoute): string[] {
+  const highlights: string[] = [];
+  const shapeSimilarity = routeShapeSimilarity(route);
+  const shapeMode = routeShapeMode(route);
+  const profile = routeSelectionProfile(route);
+
+  if (shapeSimilarity !== null) {
+    highlights.push(`Visual match: ${shapeSimilarity}% shape similarity.`);
+  }
+
+  if (hasRouteReason(route, "Shape trace snap:")) {
+    highlights.push("Road snap: nearest anchors, routed by OSRM.");
+  } else if (shapeMode === "segment stitched alternatives") {
+    highlights.push("Routing: alternatives chosen per sketch segment.");
+  } else if (shapeMode.includes("fallback")) {
+    highlights.push("Routing: fallback kept an exportable route.");
+  }
+
+  if (profile.startsWith("strict")) {
+    highlights.push("Confidence: strict candidate selected.");
+  } else if (profile.startsWith("best-effort-soft")) {
+    highlights.push("Confidence: relaxed to preserve the artwork.");
+  } else if (profile.includes("emergency-fallback")) {
+    highlights.push("Confidence: fully relaxed fallback.");
+  }
+
+  if (hasRouteReason(route, "Shape similarity below ideal:")) {
+    highlights.push("Review: visual match is below the ideal target.");
+  }
+
+  return [...new Set(highlights)].slice(0, 3);
 }
 
 function routeTitle(route: GeneratedRoute, index: number): string {
@@ -1888,12 +2038,27 @@ onBeforeUnmount(() => {
               <strong>{{ artFitScore(route) }}%</strong>
             </div>
             <div :class="[scoreBandClass(routeQualityScore(route)), 'route-score-row--secondary']">
-              <span>Route quality</span>
+              <span>Rideability</span>
               <div class="route-score-meter" aria-hidden="true">
                 <span :style="scoreMeterStyle(routeQualityScore(route))" />
               </div>
               <strong>{{ routeQualityScore(route) }}%</strong>
             </div>
+          </div>
+
+          <div
+            v-if="routeProductBadges(route).length > 0"
+            class="route-card-badges"
+          >
+            <span
+              v-for="badge in routeProductBadges(route)"
+              :key="badge.id"
+              class="route-card-badge"
+              :class="`route-card-badge--${badge.tone}`"
+            >
+              <i :class="badge.icon" aria-hidden="true" />
+              {{ badge.label }}
+            </span>
           </div>
 
           <dl class="route-card-metrics">
@@ -1911,7 +2076,7 @@ onBeforeUnmount(() => {
             </div>
           </dl>
 
-          <p class="route-card-meta">{{ routeQualityLabel(route) }}</p>
+          <p class="route-card-meta">{{ routeProductSummary(route) }}</p>
 
           <ul
             v-if="highlightedRouteReasons(route).length > 0"
@@ -2694,6 +2859,49 @@ onBeforeUnmount(() => {
 
 .route-score-row--warn .route-score-meter span {
   background: #de5b5b;
+}
+
+.route-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.route-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  border: 1px solid #cfd8e6;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #4f5668;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.2;
+  padding: 4px 7px;
+}
+
+.route-card-badge i {
+  flex: 0 0 auto;
+}
+
+.route-card-badge--strong {
+  border-color: #bfe8cc;
+  background: #f0fbf4;
+  color: #1d7f42;
+}
+
+.route-card-badge--info {
+  border-color: #bdd4ff;
+  background: #f1f6ff;
+  color: #235fb7;
+}
+
+.route-card-badge--warn {
+  border-color: #f0d9a6;
+  background: #fff8ec;
+  color: #8f5f1f;
 }
 
 .route-quality-chip {

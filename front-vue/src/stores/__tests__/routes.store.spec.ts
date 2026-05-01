@@ -355,6 +355,57 @@ describe("routes store", () => {
     expect(store.selectedRouteId).toBe("shape-route-1");
   });
 
+  it("orders Strava Art proposals by drawing fit before selecting the first route", async () => {
+    const store = useRoutesStore();
+    store.mode = "SHAPE";
+    store.shapePoints = [
+      [45.0, 6.0],
+      [45.1, 6.1],
+      [45.2, 6.0],
+    ];
+
+    vi.mocked(requestJson).mockResolvedValueOnce({
+      routes: [
+        buildRoute({
+          routeId: "low-art-fit",
+          score: {
+            global: 96,
+            distance: 96,
+            elevation: 96,
+            duration: 96,
+            direction: 96,
+            shape: 62,
+            roadFitness: 96,
+          },
+        }),
+        buildRoute({
+          routeId: "high-art-fit",
+          previewLatLng: [
+            [45.0, 6.0],
+            [45.04, 6.02],
+            [45.12, 6.08],
+            [45.21, 6.0],
+          ],
+          score: {
+            global: 78,
+            distance: 78,
+            elevation: 78,
+            duration: 78,
+            direction: 78,
+            shape: 91,
+            roadFitness: 78,
+          },
+        }),
+      ],
+      diagnostics: [],
+    });
+
+    await store.generateRoutes();
+
+    expect(store.routes.map((route) => route.routeId)).toEqual(["high-art-fit", "low-art-fit"]);
+    expect(store.selectedRouteId).toBe("high-art-fit");
+  });
+
   it("does not constrain Strava Art shape generation with distance or elevation defaults", async () => {
     const store = useRoutesStore();
     store.mode = "SHAPE";

@@ -1010,6 +1010,27 @@ export const useRoutesStore = defineStore("routes", {
       }
       return uniqueRoutes;
     },
+    sortRoutesForStravaArt(routes: GeneratedRoute[]): GeneratedRoute[] {
+      return [...routes].sort((left, right) => {
+        const shapeDelta = (right.score.shape ?? 0) - (left.score.shape ?? 0);
+        if (shapeDelta !== 0) {
+          return shapeDelta;
+        }
+        const globalDelta = (right.score.global ?? 0) - (left.score.global ?? 0);
+        if (globalDelta !== 0) {
+          return globalDelta;
+        }
+        const roadFitnessDelta = (right.score.roadFitness ?? 0) - (left.score.roadFitness ?? 0);
+        if (roadFitnessDelta !== 0) {
+          return roadFitnessDelta;
+        }
+        const distanceDelta = (left.distanceKm ?? 0) - (right.distanceKm ?? 0);
+        if (distanceDelta !== 0) {
+          return distanceDelta;
+        }
+        return left.routeId.localeCompare(right.routeId);
+      });
+    },
     async generateRoutes() {
       this.isLoading = true;
       try {
@@ -1053,7 +1074,7 @@ export const useRoutesStore = defineStore("routes", {
           body: JSON.stringify(payload),
         },
       );
-      this.routes = this.dedupeRoutesByGeometry(data.routes ?? []);
+      this.routes = this.sortRoutesForStravaArt(this.dedupeRoutesByGeometry(data.routes ?? []));
       this.generationDiagnostics = data.diagnostics ?? [];
       this.selectedRouteId = this.routes[0]?.routeId ?? "";
     },

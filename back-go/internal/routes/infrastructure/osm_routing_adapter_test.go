@@ -4,6 +4,9 @@ import (
 	"math"
 	"mystravastats/internal/routes/application"
 	routesDomain "mystravastats/internal/routes/domain"
+	"net/http"
+	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -404,6 +407,157 @@ func TestBuildShapeSimplifiedWaypoints_KeepsSimpleShapeAnchors(t *testing.T) {
 			t.Fatalf("expected %s waypoints to close the loop, first=%+v last=%+v", label, first, last)
 		}
 	}
+}
+
+func TestBuildShapeStitchedWaypoints_ReturnsCompactAnchoredLoop(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.1300, Lng: -1.6300}
+	circle := prepareShapeForRouting(
+		coordinatesFromLatLng(testCircleLatLng(start.Lat, start.Lng, 1000.0, 72)),
+		start,
+	)
+	shapeFirstWaypoints := buildShapeLoopWaypoints(circle[0], circle)
+
+	// WHEN
+	stitchedWaypoints := buildShapeStitchedWaypoints(circle[0], circle)
+
+	// THEN
+	if len(stitchedWaypoints) < 8 {
+		t.Fatalf("expected stitched waypoints to keep enough contour anchors, got %d", len(stitchedWaypoints))
+	}
+	if len(stitchedWaypoints) >= len(shapeFirstWaypoints) {
+		t.Fatalf("expected stitched waypoints to stay more compact than dense shape-first, stitched=%d shape-first=%d", len(stitchedWaypoints), len(shapeFirstWaypoints))
+	}
+	first := stitchedWaypoints[0]
+	last := stitchedWaypoints[len(stitchedWaypoints)-1]
+	if haversineDistanceMeters(first.Lat, first.Lng, last.Lat, last.Lng) > 120.0 {
+		t.Fatalf("expected stitched waypoints to close the loop, first=%+v last=%+v", first, last)
+	}
+}
+
+func TestStitchOSRMRoutes_MergesSegmentsAndDropsDuplicateJoin(t *testing.T) {
+	// GIVEN
+	segments := []osrmRoute{
+		{
+			Distance: 100.0,
+			Duration: 20.0,
+			Geometry: osrmGeometry{Type: "LineString", Coordinates: [][]float64{
+				{-1.6300, 48.1300},
+				{-1.6200, 48.1300},
+			}},
+		},
+		{
+			Distance: 150.0,
+			Duration: 30.0,
+			Geometry: osrmGeometry{Type: "LineString", Coordinates: [][]float64{
+				{-1.6200, 48.1300},
+				{-1.6100, 48.1400},
+			}},
+		},
+	}
+
+	// WHEN
+	stitched, ok := stitchOSRMRoutes(segments)
+
+	// THEN
+	if !ok {
+		t.Fatalf("expected stitched route to be valid")
+	}
+	if stitched.Distance != 250.0 || stitched.Duration != 50.0 {
+		t.Fatalf("expected summed distance/duration, got distance=%.1f duration=%.1f", stitched.Distance, stitched.Duration)
+	}
+	if len(stitched.Geometry.Coordinates) != 3 {
+		t.Fatalf("expected duplicate join coordinate to be dropped, got %d coordinates", len(stitched.Geometry.Coordinates))
+	}
+}
+
+func TestFetchOSRMNearestRoadTraceRoute_RoutesBetweenSnappedAnchors(t *testing.T) {
+	// GIVEN
+	routeCalls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		switch {
+		case strings.HasPrefix(request.URL.Path, "/nearest/v1/cycling/"):
+			rawCoordinate := strings.TrimPrefix(request.URL.Path, "/nearest/v1/cycling/")
+			lng, lat := parseOSRMTestCoordinate(t, rawCoordinate)
+			writeOSRMTestJSON(response, http.StatusOK, `{"code":"Ok","waypoints":[{"location":[`+
+				formatOSRMTestFloat(lng)+`,`+formatOSRMTestFloat(lat)+`],"distance":5.0}]}`)
+		case strings.HasPrefix(request.URL.Path, "/route/v1/cycling/"):
+			routeCalls++
+			rawCoordinates := strings.TrimPrefix(request.URL.Path, "/route/v1/cycling/")
+			parts := strings.Split(rawCoordinates, ";")
+			if len(parts) != 2 {
+				t.Fatalf("expected two route coordinates, got %q", rawCoordinates)
+			}
+			startLng, startLat := parseOSRMTestCoordinate(t, parts[0])
+			endLng, endLat := parseOSRMTestCoordinate(t, parts[1])
+			midLng := (startLng+endLng)/2.0 + 0.0002
+			midLat := (startLat+endLat)/2.0 + 0.0002
+			writeOSRMTestJSON(response, http.StatusOK, `{"code":"Ok","routes":[{"distance":100.0,"duration":20.0,"geometry":{"type":"LineString","coordinates":[[`+
+				formatOSRMTestFloat(startLng)+`,`+formatOSRMTestFloat(startLat)+`],[`+
+				formatOSRMTestFloat(midLng)+`,`+formatOSRMTestFloat(midLat)+`],[`+
+				formatOSRMTestFloat(endLng)+`,`+formatOSRMTestFloat(endLat)+`]]},"legs":[{"steps":[{"distance":100.0,"mode":"cycling"}]}]}]}`)
+		default:
+			writeOSRMTestJSON(response, http.StatusNotFound, `{"code":"NotFound"}`)
+		}
+	}))
+	defer server.Close()
+
+	adapter := &OSMRoutingAdapter{
+		baseURL: server.URL,
+		client:  server.Client(),
+	}
+	shape := []routesDomain.Coordinates{
+		{Lat: 48.1300, Lng: -1.6300},
+		{Lat: 48.1310, Lng: -1.6200},
+		{Lat: 48.1300, Lng: -1.6100},
+	}
+
+	// WHEN
+	route, ok := adapter.fetchOSRMNearestRoadTraceRoute("cycling", shape)
+
+	// THEN
+	if !ok {
+		t.Fatalf("expected nearest-road trace route to be valid")
+	}
+	if routeCalls != 3 {
+		t.Fatalf("expected one OSRM route call per snapped segment, got %d", routeCalls)
+	}
+	if route.Distance <= 0 || route.Duration <= 0 {
+		t.Fatalf("expected positive distance and duration, got distance=%.1f duration=%.1f", route.Distance, route.Duration)
+	}
+	if len(route.Geometry.Coordinates) <= len(shape)+1 {
+		t.Fatalf("expected routed geometry points beyond snapped anchors, got %d", len(route.Geometry.Coordinates))
+	}
+	if route.Geometry.Coordinates[0][0] != shape[0].Lng || route.Geometry.Coordinates[0][1] != shape[0].Lat {
+		t.Fatalf("expected OSRM lon/lat coordinates, got %+v", route.Geometry.Coordinates[0])
+	}
+}
+
+func writeOSRMTestJSON(response http.ResponseWriter, status int, body string) {
+	response.Header().Set("Content-Type", "application/json")
+	response.WriteHeader(status)
+	_, _ = response.Write([]byte(body))
+}
+
+func parseOSRMTestCoordinate(t *testing.T, raw string) (float64, float64) {
+	t.Helper()
+	parts := strings.Split(raw, ",")
+	if len(parts) != 2 {
+		t.Fatalf("expected lon,lat coordinate, got %q", raw)
+	}
+	lng, err := strconv.ParseFloat(parts[0], 64)
+	if err != nil {
+		t.Fatalf("failed to parse lng from %q: %v", raw, err)
+	}
+	lat, err := strconv.ParseFloat(parts[1], 64)
+	if err != nil {
+		t.Fatalf("failed to parse lat from %q: %v", raw, err)
+	}
+	return lng, lat
+}
+
+func formatOSRMTestFloat(value float64) string {
+	return strconv.FormatFloat(value, 'f', 6, 64)
 }
 
 func TestProjectShapePolylineToStart_PreservesMapPlacedShapeAroundStart(t *testing.T) {
@@ -1165,6 +1319,122 @@ func TestSelectCandidatesWithRelaxation_PrioritizesLowerBacktracking(t *testing.
 	}
 	if recommendations[0].RouteID != "low-backtracking" {
 		t.Fatalf("expected low-backtracking route to be selected first, got %s", recommendations[0].RouteID)
+	}
+}
+
+func TestSelectCandidatesWithRelaxation_ShapeModePrioritizesArtFitBeforeStrictness(t *testing.T) {
+	// GIVEN
+	request := application.RoutingEngineRequest{
+		StartPoint:       routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000},
+		DistanceTargetKm: 12.0,
+		RouteType:        "RIDE",
+		ShapePolyline:    "[[48.13,-1.63],[48.14,-1.62],[48.13,-1.63]]",
+		Limit:            1,
+	}
+	highShapeScore := 0.82
+	lowShapeScore := 0.44
+	candidates := []osrmRouteCandidate{
+		{
+			recommendation: routesDomain.RouteRecommendation{
+				RouteID:    "strict-low-art-fit",
+				MatchScore: 92.0,
+				ShapeScore: &lowShapeScore,
+			},
+			backtrackingRatio:   0.0005,
+			corridorOverlap:     0.0010,
+			edgeReuseRatio:      0.005,
+			maxAxisReuseCount:   1,
+			segmentDiversity:    0.70,
+			effectiveMatchScore: 91.0,
+		},
+		{
+			recommendation: routesDomain.RouteRecommendation{
+				RouteID:    "relaxed-high-art-fit",
+				MatchScore: 78.0,
+				ShapeScore: &highShapeScore,
+			},
+			backtrackingRatio:   0.0060,
+			corridorOverlap:     0.0010,
+			edgeReuseRatio:      0.005,
+			maxAxisReuseCount:   1,
+			segmentDiversity:    0.70,
+			effectiveMatchScore: 70.0,
+		},
+	}
+	rejectCounts := map[string]int{}
+
+	// WHEN
+	recommendations := selectCandidatesWithRelaxation(request, candidates, rejectCounts)
+
+	// THEN
+	if len(recommendations) != 1 {
+		t.Fatalf("expected 1 recommendation, got %d", len(recommendations))
+	}
+	if recommendations[0].RouteID != "relaxed-high-art-fit" {
+		t.Fatalf("expected relaxed-high-art-fit route to be selected first, got %s", recommendations[0].RouteID)
+	}
+	foundArtFitReason := false
+	for _, reason := range recommendations[0].Reasons {
+		if reason == "Selection priority: art-fit first" {
+			foundArtFitReason = true
+			break
+		}
+	}
+	if !foundArtFitReason {
+		t.Fatalf("expected art-fit selection reason, got %+v", recommendations[0].Reasons)
+	}
+}
+
+func TestSelectCandidatesWithRelaxation_ShapeModeUsesArtFitSoftBeforeEmergency(t *testing.T) {
+	// GIVEN
+	request := application.RoutingEngineRequest{
+		StartPoint:       routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000},
+		DistanceTargetKm: 12.0,
+		RouteType:        "RIDE",
+		ShapePolyline:    "[[48.13,-1.63],[48.14,-1.62],[48.13,-1.63]]",
+		Limit:            1,
+	}
+	shapeScore := 0.57
+	candidates := []osrmRouteCandidate{
+		{
+			recommendation: routesDomain.RouteRecommendation{
+				RouteID:    "shape-needs-soft-art-fit",
+				MatchScore: 70.0,
+				ShapeScore: &shapeScore,
+			},
+			backtrackingRatio:   0.17,
+			corridorOverlap:     0.49,
+			edgeReuseRatio:      0.12,
+			maxAxisReuseCount:   2,
+			segmentDiversity:    0.70,
+			distanceDeltaRatio:  0.02,
+			effectiveMatchScore: 20.0,
+		},
+	}
+	rejectCounts := map[string]int{}
+
+	// WHEN
+	recommendations := selectCandidatesWithRelaxation(request, candidates, rejectCounts)
+
+	// THEN
+	if len(recommendations) != 1 {
+		t.Fatalf("expected 1 recommendation, got %d", len(recommendations))
+	}
+	if recommendations[0].RouteID != "shape-needs-soft-art-fit" {
+		t.Fatalf("expected shape-needs-soft-art-fit route to be selected, got %s", recommendations[0].RouteID)
+	}
+	foundArtFitReason := false
+	foundSoftProfile := false
+	for _, reason := range recommendations[0].Reasons {
+		if reason == "Selection priority: art-fit first" {
+			foundArtFitReason = true
+		}
+		if reason == "Selection profile: best-effort-soft (art-fit first)" {
+			foundSoftProfile = true
+		}
+	}
+	if !foundArtFitReason || !foundSoftProfile {
+		t.Fatalf("expected art-fit soft selection reasons, got %+v", recommendations[0].Reasons)
 	}
 }
 

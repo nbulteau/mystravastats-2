@@ -11,6 +11,7 @@ import (
 	routesDomain "mystravastats/internal/routes/domain"
 	"mystravastats/internal/shared/domain/business"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -109,9 +110,6 @@ func buildShapeGeneratedRoutesResponse(
 	seen := make(map[string]struct{}, limit)
 
 	appendRoute := func(recommendation routesDomain.RouteRecommendation) {
-		if len(routes) >= limit {
-			return
-		}
 		if _, exists := seen[recommendation.RouteID]; exists {
 			return
 		}
@@ -133,6 +131,10 @@ func buildShapeGeneratedRoutesResponse(
 		}
 		appendRoute(recommendation)
 	}
+	sortShapeGeneratedRoutes(routes)
+	if len(routes) > limit {
+		routes = routes[:limit]
+	}
 
 	diagnostics := buildShapeGenerationDiagnostics(
 		routes,
@@ -146,6 +148,26 @@ func buildShapeGeneratedRoutesResponse(
 		Routes:      routes,
 		Diagnostics: diagnostics,
 	}
+}
+
+func sortShapeGeneratedRoutes(routes []dto.GeneratedRouteDto) {
+	sort.SliceStable(routes, func(i, j int) bool {
+		left := routes[i]
+		right := routes[j]
+		if left.Score.Shape != right.Score.Shape {
+			return left.Score.Shape > right.Score.Shape
+		}
+		if left.Score.Global != right.Score.Global {
+			return left.Score.Global > right.Score.Global
+		}
+		if left.Score.RoadFitness != right.Score.RoadFitness {
+			return left.Score.RoadFitness > right.Score.RoadFitness
+		}
+		if left.DistanceKm != right.DistanceKm {
+			return left.DistanceKm < right.DistanceKm
+		}
+		return left.RouteID < right.RouteID
+	})
 }
 
 func isShapeGeneratedRouteCandidate(recommendation routesDomain.RouteRecommendation) bool {

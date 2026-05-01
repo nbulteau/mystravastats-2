@@ -45,6 +45,8 @@ private const val BACKTRACKING_START_ZONE_METERS = 2000.0
 private const val MIN_AXIS_SEGMENT_LENGTH_METERS = 25.0
 private const val MIN_OPPOSITE_REUSE_METERS = 120.0
 private const val SHAPE_MODE_STRATEGY_SHAPE_FIRST = "shape-first"
+private const val SHAPE_MODE_STRATEGY_ROAD_SNAP = "shape-road-snap"
+private const val SHAPE_MODE_STRATEGY_STITCHED = "shape-stitched"
 private const val SHAPE_MODE_STRATEGY_SIMPLIFIED = "shape-simplified"
 private const val SHAPE_MODE_STRATEGY_ROAD_FIRST = "road-first"
 private const val SHAPE_MODE_STRATEGY_BEST_EFFORT = "shape-best-effort"
@@ -280,7 +282,11 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                     if (debug) {
                         logger.info(
                             "OSRM target generation call failed: call={} profile={} radiusKm={} rotation={} err={}",
-                            callIndex + 1, profile, String.format("%.2f", radiusKm), String.format("%.1f", rotation), error.message
+                            callIndex + 1,
+                            profile,
+                            String.format(Locale.US, "%.2f", radiusKm),
+                            String.format(Locale.US, "%.1f", rotation),
+                            error.message
                         )
                     } else {
                         logger.debug("OSRM route generation failed: {}", error.message)
@@ -410,7 +416,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 "OSRM target generation summary: routeType={} direction={} target={}km/{} calls={} fetched={} accepted={} fetchErrors={} rejects={}",
                 request.routeType?.trim()?.uppercase(Locale.getDefault()).orEmpty(),
                 request.startDirection?.trim()?.uppercase(Locale.getDefault()).orEmpty(),
-                String.format("%.1f", request.distanceTargetKm),
+                String.format(Locale.US, "%.1f", request.distanceTargetKm),
                 targetElevation,
                 maxCalls,
                 fetchedRouteCount,
@@ -468,6 +474,11 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             val bestEffort: Boolean = false,
         )
         val strategies = listOf(
+            ShapeRoutingStrategy(
+                code = SHAPE_MODE_STRATEGY_SHAPE_FIRST,
+                label = "dense sketch anchors",
+                waypoints = buildShapeDenseWaypoints(routeAnchor, routingShape),
+            ),
             ShapeRoutingStrategy(
                 code = SHAPE_MODE_STRATEGY_SHAPE_FIRST,
                 label = "map sketch waypoints",
@@ -531,6 +542,9 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 reasons = candidate.recommendation.reasons + buildList {
                     add("Shape similarity: ${(shapeScore * 100.0).roundToInt()}%")
                     add("Shape mode: ${strategy.label}")
+                    if (strategy.code == SHAPE_MODE_STRATEGY_ROAD_SNAP) {
+                        add("Shape trace snap: nearest routable anchors routed segment-by-segment")
+                    }
                     val idealShapeScore = minShapeModeSimilarity(strategy.code)
                     if (shapeScore < idealShapeScore) {
                         add(
@@ -558,12 +572,52 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             )
         }
 
+        fetchNearestRoadTraceRoute(profile, routingShape)?.let { snappedRoute ->
+            val strategy = ShapeRoutingStrategy(
+                code = SHAPE_MODE_STRATEGY_ROAD_SNAP,
+                label = "nearest-road trace",
+                waypoints = routingShape,
+            )
+            usedStrategies += 1
+            fetchedRouteCount += 1
+            appendShapeCandidate(strategy, snappedRoute, 3000)
+        } ?: incrementRejectCount(rejectCounts, "OSRM_TRACE_SNAP_FAILED")
+
+        val stitchedWaypoints = buildShapeStitchedWaypoints(routeAnchor, routingShape)
+        if (stitchedWaypoints.size >= 3) {
+            val routes = runCatching { fetchShapeSegmentStitchedRoutes(profile, stitchedWaypoints) }
+                .onFailure { error ->
+                    incrementRejectCount(rejectCounts, "OSRM_STITCHED_CALL_FAILED")
+                    if (debug) {
+                        logger.info(
+                            "OSRM shape stitched generation call failed: profile={} waypoints={} err={}",
+                            profile, stitchedWaypoints.size, error.message
+                        )
+                    } else {
+                        logger.debug("OSRM shape stitched generation failed: {}", error.message)
+                    }
+                }
+                .getOrElse { emptyList() }
+            if (routes.isNotEmpty()) {
+                usedStrategies += 1
+                fetchedRouteCount += routes.size
+                val strategy = ShapeRoutingStrategy(
+                    code = SHAPE_MODE_STRATEGY_STITCHED,
+                    label = "segment stitched alternatives",
+                    waypoints = stitchedWaypoints,
+                )
+                routes.forEachIndexed { routeIndex, route ->
+                    appendShapeCandidate(strategy, route, 2000 + routeIndex)
+                }
+            }
+        }
+
         strategies.forEach { strategy ->
             if (strategy.waypoints.size < 3) {
                 incrementRejectCount(rejectCounts, "SHAPE_WAYPOINTS_TOO_FEW")
                 return@forEach
             }
-            val routes = runCatching { fetchRoutes(profile, strategy.waypoints) }
+            val routes = runCatching { fetchRoutes(profile, strategy.waypoints, continueStraight = false) }
                 .onFailure { error ->
                     incrementRejectCount(rejectCounts, "OSRM_CALL_FAILED")
                     if (debug) {
@@ -593,7 +647,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                     incrementRejectCount(rejectCounts, "SHAPE_BEST_EFFORT_WAYPOINTS_TOO_FEW")
                     return@forEachIndexed
                 }
-                val routes = runCatching { fetchRoutes(profile, strategy.waypoints) }
+                val routes = runCatching { fetchRoutes(profile, strategy.waypoints, continueStraight = false) }
                     .onFailure { error ->
                         incrementRejectCount(rejectCounts, "OSRM_BEST_EFFORT_CALL_FAILED")
                         if (debug) {
@@ -695,7 +749,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             logger.info(
                 "OSRM custom target generation summary: routeType={} target={}km/{} customWaypoints={} fetched={} accepted={} rejects={}",
                 request.routeType?.trim()?.uppercase(Locale.getDefault()).orEmpty(),
-                String.format("%.1f", request.distanceTargetKm),
+                String.format(Locale.US, "%.1f", request.distanceTargetKm),
                 targetElevation,
                 request.waypoints.size,
                 routes.size,
@@ -869,7 +923,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 "OSRM target generation v3 summary: routeType={} direction={} target={}km/{} anchors={} fetched={} accepted={} fetchErrors={} rejects={}",
                 request.routeType?.trim()?.uppercase(Locale.getDefault()).orEmpty(),
                 request.startDirection?.trim()?.uppercase(Locale.getDefault()).orEmpty(),
-                String.format("%.1f", request.distanceTargetKm),
+                String.format(Locale.US, "%.1f", request.distanceTargetKm),
                 targetElevation,
                 anchors.size,
                 fetchedRouteCount,
@@ -1273,10 +1327,17 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         return waypoints
     }
 
-    private fun fetchRoutes(profile: String, waypoints: List<Coordinates>): List<OsrmRoute> {
+    private fun fetchRoutes(
+        profile: String,
+        waypoints: List<Coordinates>,
+        continueStraight: Boolean = true,
+    ): List<OsrmRoute> {
         if (waypoints.size < 2) return emptyList()
-        val coordinates = waypoints.joinToString(";") { waypoint -> "%.6f,%.6f".format(waypoint.lng, waypoint.lat) }
-        val url = "$baseUrl/route/v1/$profile/$coordinates?alternatives=true&steps=true&overview=full&geometries=geojson&continue_straight=true"
+        val coordinates = waypoints.joinToString(";") { waypoint ->
+            "%.6f,%.6f".format(Locale.US, waypoint.lng, waypoint.lat)
+        }
+        val url =
+            "$baseUrl/route/v1/$profile/$coordinates?alternatives=true&steps=true&overview=full&geometries=geojson&continue_straight=$continueStraight"
         val response = httpClient.send(
             HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -1295,8 +1356,108 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         return payload.routes
     }
 
+    private fun fetchShapeSegmentStitchedRoutes(
+        profile: String,
+        waypoints: List<Coordinates>,
+    ): List<OsrmRoute> {
+        require(waypoints.size >= 3) { "at least 3 waypoints are required for stitched shape routing" }
+        val segments = mutableListOf<OsrmRoute>()
+        for (index in 0 until waypoints.lastIndex) {
+            val segmentWaypoints = listOf(waypoints[index], waypoints[index + 1])
+            val routes = fetchRoutes(profile, segmentWaypoints, continueStraight = false)
+            val segment = chooseBestShapeSegmentRoute(
+                routes = routes,
+                targetSegment = coordinatesToLatLng(segmentWaypoints),
+            ) ?: throw IllegalStateException("no valid OSRM segment route at index $index")
+            segments += segment
+        }
+        return listOf(stitchOsrmRoutes(segments))
+    }
+
+    private fun fetchNearestRoadTraceRoute(
+        profile: String,
+        shape: List<Coordinates>,
+    ): OsrmRoute? {
+        if (shape.size < 2) return null
+        val sampled = sampleCoordinates(shape, 20)
+        val snapped = mutableListOf<Coordinates>()
+        var maxSnapDistanceMeters = 0.0
+        var totalSnapDistanceMeters = 0.0
+        sampled.forEach { point ->
+            val (snappedPoint, snapDistanceMeters) = snapToNearestRoutablePoint(profile, point) ?: return null
+            if (snapDistanceMeters > 650.0) return null
+            if (
+                snapped.isNotEmpty() &&
+                haversineDistanceMeters(snapped.last().lat, snapped.last().lng, snappedPoint.lat, snappedPoint.lng) < 35.0
+            ) {
+                return@forEach
+            }
+            snapped += snappedPoint
+            totalSnapDistanceMeters += snapDistanceMeters
+            maxSnapDistanceMeters = max(maxSnapDistanceMeters, snapDistanceMeters)
+        }
+        if (snapped.size < 3) return null
+        val closedSnapped = appendLoopClosureWaypoint(snapped, snapped.first())
+        val averageSnapDistanceMeters = totalSnapDistanceMeters / snapped.size.toDouble()
+        if (averageSnapDistanceMeters > 260.0 || maxSnapDistanceMeters > 650.0) return null
+        return fetchShapeSegmentStitchedRoutes(profile, closedSnapped).firstOrNull()
+    }
+
+    private fun chooseBestShapeSegmentRoute(
+        routes: List<OsrmRoute>,
+        targetSegment: List<List<Double>>,
+    ): OsrmRoute? {
+        return routes
+            .filter { it.distance > 0.0 && it.geometry != null && it.geometry.coordinates.size >= 2 }
+            .maxWithOrNull(
+                compareBy<OsrmRoute> {
+                    shapeSimilarityScore(osrmRouteToPreviewPoints(it), targetSegment)
+                }.thenBy { -it.distance }
+            )
+    }
+
+    private fun stitchOsrmRoutes(routes: List<OsrmRoute>): OsrmRoute {
+        require(routes.isNotEmpty()) { "at least one route segment is required" }
+        val coordinates = mutableListOf<List<Double>>()
+        val legs = mutableListOf<OsrmLeg>()
+        var distance = 0.0
+        var duration = 0.0
+        routes.forEachIndexed { routeIndex, route ->
+            val geometryCoordinates = route.geometry?.coordinates.orEmpty()
+            require(route.distance > 0.0 && geometryCoordinates.size >= 2) { "invalid OSRM segment geometry" }
+            distance += route.distance
+            duration += route.duration
+            legs += route.legs
+            geometryCoordinates.forEachIndexed { coordinateIndex, coordinate ->
+                if (
+                    routeIndex > 0 &&
+                    coordinateIndex == 0 &&
+                    coordinates.isNotEmpty() &&
+                    sameOsrmCoordinate(coordinates.last(), coordinate)
+                ) {
+                    return@forEachIndexed
+                }
+                if (coordinate.size >= 2) {
+                    coordinates += listOf(coordinate[0], coordinate[1])
+                }
+            }
+        }
+        require(coordinates.size >= 2) { "stitched OSRM route has invalid geometry" }
+        return OsrmRoute(
+            distance = distance,
+            duration = duration,
+            geometry = OsrmGeometry(type = "LineString", coordinates = coordinates),
+            legs = legs,
+        )
+    }
+
+    private fun sameOsrmCoordinate(left: List<Double>, right: List<Double>): Boolean {
+        if (left.size < 2 || right.size < 2) return false
+        return abs(left[0] - right[0]) < 0.000001 && abs(left[1] - right[1]) < 0.000001
+    }
+
     private fun snapToNearestRoutablePoint(profile: String, point: Coordinates): Pair<Coordinates, Double>? {
-        val coordinate = "%.6f,%.6f".format(point.lng, point.lat)
+        val coordinate = "%.6f,%.6f".format(Locale.US, point.lng, point.lat)
         val url = "$baseUrl/nearest/v1/$profile/$coordinate?number=1"
         val response = runCatching {
             httpClient.send(
@@ -1487,7 +1648,12 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         val matchScore = computeOsmMatchScore(request, distanceKm, elevationEstimate, preview)
         val routeId = generatedRouteId(preview, request.startPoint, index)
         val titleSuffix = if (index > 0) " #${index + 1}" else ""
-        val title = "Generated loop near %.4f, %.4f%s".format(request.startPoint.lat, request.startPoint.lng, titleSuffix)
+        val title = "Generated loop near %.4f, %.4f%s".format(
+            Locale.US,
+            request.startPoint.lat,
+            request.startPoint.lng,
+            titleSuffix,
+        )
         val surfaceScore = surfaceMatchScore(request.routeType, surfaceBreakdown)
         val pathRatio = surfaceBreakdown.pathRatio()
         val requiredPathRatio = requiredPathRatioForRequest(request.routeType, request.strictBacktracking)
@@ -1553,7 +1719,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             isLoop = true,
             start = start,
             end = end,
-            startArea = "%.4f, %.4f".format(start.lat, start.lng),
+            startArea = "%.4f, %.4f".format(Locale.US, start.lat, start.lng),
             season = seasonFromDate(Instant.now()),
             variantType = RouteVariantType.ROAD_GRAPH,
             matchScore = matchScore,
@@ -1658,9 +1824,6 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                     .thenBy { it.recommendation.routeId },
             )
         }
-        // Levels are evaluated in order: strict -> balanced -> relaxed -> fallback.
-        // We fill results incrementally: if strict cannot fill the target limit,
-        // next levels progressively loosen constraints while keeping quality.
         val levels = buildRouteRelaxationLevels(
             routeType = request.routeType,
             hasDirection = hasDirection,
@@ -1670,43 +1833,38 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         val selected = mutableListOf<RouteRecommendation>()
         val selectedIds = mutableSetOf<String>()
 
-        for (level in levels) {
-            if (selected.size >= limit) break
+        if (shapeMode) {
+            // Strava Art is judged first by the drawing: try candidates in visual-fit
+            // order, then attach the strictest relaxation profile each candidate can pass.
             for (candidate in sortedCandidates) {
                 if (selected.size >= limit) break
                 if (selectedIds.contains(candidate.recommendation.routeId)) continue
-                if (candidate.directionPenalty > level.maxDirectionPenalty) {
-                    incrementRejectCount(rejectCounts, "DIRECTION_CONSTRAINT")
-                    continue
+                for (level in levels) {
+                    if (!candidatePassesRelaxation(candidate, level, shapeMode, rejectCounts)) continue
+                    selectedIds += candidate.recommendation.routeId
+                    selected += candidate.recommendation.copy(
+                        reasons = candidate.recommendation.reasons +
+                            "Selection priority: art-fit first" +
+                            "Selection profile: ${level.name}",
+                    )
+                    break
                 }
-                if (candidate.backtrackingRatio > level.maxBacktrackingRatio) {
-                    incrementRejectCount(rejectCounts, "OPPOSITE_EDGE_TRAVERSAL")
-                    continue
+            }
+        } else {
+            // Levels are evaluated in order: strict -> balanced -> relaxed -> fallback.
+            // We fill results incrementally: if strict cannot fill the target limit,
+            // next levels progressively loosen constraints while keeping quality.
+            for (level in levels) {
+                if (selected.size >= limit) break
+                for (candidate in sortedCandidates) {
+                    if (selected.size >= limit) break
+                    if (selectedIds.contains(candidate.recommendation.routeId)) continue
+                    if (!candidatePassesRelaxation(candidate, level, shapeMode, rejectCounts)) continue
+                    selectedIds += candidate.recommendation.routeId
+                    selected += candidate.recommendation.copy(
+                        reasons = candidate.recommendation.reasons + "Selection profile: ${level.name}",
+                    )
                 }
-                if (candidate.corridorOverlap > level.maxCorridorOverlap) {
-                    incrementRejectCount(rejectCounts, "CORRIDOR_OVERLAP")
-                    continue
-                }
-                if (candidate.edgeReuseRatio > level.maxEdgeReuseRatio) {
-                    incrementRejectCount(rejectCounts, "EDGE_REUSE")
-                    continue
-                }
-                if (candidate.maxAxisReuseCount > level.maxAxisReuseCount) {
-                    incrementRejectCount(rejectCounts, "MAX_AXIS_REUSE")
-                    continue
-                }
-                if (candidate.segmentDiversity < level.minSegmentDiversity) {
-                    incrementRejectCount(rejectCounts, "LOW_SEGMENT_DIVERSITY")
-                    continue
-                }
-                if (!shapeMode && candidate.distanceDeltaRatio > level.maxDistanceDeltaRatio) {
-                    incrementRejectCount(rejectCounts, "DISTANCE_CONSTRAINT")
-                    continue
-                }
-                selectedIds += candidate.recommendation.routeId
-                selected += candidate.recommendation.copy(
-                    reasons = candidate.recommendation.reasons + "Selection profile: ${level.name}",
-                )
             }
         }
 
@@ -1717,6 +1875,22 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             hasDirection = hasDirection,
             directionStrict = request.directionStrict,
         )
+        if (shapeMode && selected.size < limit) {
+            appendBestEffortCandidates(
+                sortedCandidates = sortedCandidates,
+                selected = selected,
+                selectedIds = selectedIds,
+                limit = limit,
+                maxDirectionPenalty = 1.0,
+                maxBacktrackingRatio = 0.24,
+                maxCorridorOverlap = 0.60,
+                maxEdgeReuseRatio = 0.26,
+                maxAxisReuseCount = 4,
+                maxDistanceShortfallRatio = 0.80,
+                profileName = "best-effort-soft (art-fit first)",
+                priorityReason = "Selection priority: art-fit first",
+            )
+        }
         if (selected.size < limit) {
             var softMaxBacktracking = 0.16
             var softMaxCorridor = 0.12
@@ -1742,6 +1916,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 maxAxisReuseCount = softAxisCap,
                 maxDistanceShortfallRatio = 0.20,
                 profileName = "best-effort-soft",
+                priorityReason = "",
             )
         }
         if (selected.size < limit && hasDirection) {
@@ -1759,6 +1934,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 maxAxisReuseCount = directionalAxisCap,
                 maxDistanceShortfallRatio = 0.25,
                 profileName = "directional-best-effort",
+                priorityReason = "",
             )
         }
         if (selected.isEmpty()) {
@@ -1774,6 +1950,43 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         return selected
     }
 
+    private fun candidatePassesRelaxation(
+        candidate: OsrmRouteCandidate,
+        level: RouteRelaxationLevel,
+        shapeMode: Boolean,
+        rejectCounts: MutableMap<String, Int>,
+    ): Boolean {
+        if (candidate.directionPenalty > level.maxDirectionPenalty) {
+            incrementRejectCount(rejectCounts, "DIRECTION_CONSTRAINT")
+            return false
+        }
+        if (candidate.backtrackingRatio > level.maxBacktrackingRatio) {
+            incrementRejectCount(rejectCounts, "OPPOSITE_EDGE_TRAVERSAL")
+            return false
+        }
+        if (candidate.corridorOverlap > level.maxCorridorOverlap) {
+            incrementRejectCount(rejectCounts, "CORRIDOR_OVERLAP")
+            return false
+        }
+        if (candidate.edgeReuseRatio > level.maxEdgeReuseRatio) {
+            incrementRejectCount(rejectCounts, "EDGE_REUSE")
+            return false
+        }
+        if (candidate.maxAxisReuseCount > level.maxAxisReuseCount) {
+            incrementRejectCount(rejectCounts, "MAX_AXIS_REUSE")
+            return false
+        }
+        if (candidate.segmentDiversity < level.minSegmentDiversity) {
+            incrementRejectCount(rejectCounts, "LOW_SEGMENT_DIVERSITY")
+            return false
+        }
+        if (!shapeMode && candidate.distanceDeltaRatio > level.maxDistanceDeltaRatio) {
+            incrementRejectCount(rejectCounts, "DISTANCE_CONSTRAINT")
+            return false
+        }
+        return true
+    }
+
     private fun appendBestEffortCandidates(
         sortedCandidates: List<OsrmRouteCandidate>,
         selected: MutableList<RouteRecommendation>,
@@ -1786,6 +1999,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         maxAxisReuseCount: Int,
         maxDistanceShortfallRatio: Double,
         profileName: String,
+        priorityReason: String,
     ) {
         for (candidate in sortedCandidates) {
             if (selected.size >= limit) break
@@ -1798,7 +2012,9 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             if (candidate.distanceDeltaRatio > maxDistanceShortfallRatio) continue
             selectedIds += candidate.recommendation.routeId
             selected += candidate.recommendation.copy(
-                reasons = candidate.recommendation.reasons + "Selection profile: $profileName",
+                reasons = candidate.recommendation.reasons +
+                    listOfNotNull(priorityReason.takeIf { it.isNotBlank() }) +
+                    "Selection profile: $profileName",
             )
         }
     }
@@ -2007,9 +2223,9 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
     private fun generatedRouteId(points: List<List<Double>>, start: Coordinates, index: Int): String {
         val step = if (points.size > 40) max(1, points.size / 40) else 1
         val signature = buildString {
-            append("%.5f|%.5f|%d|".format(start.lat, start.lng, index))
+            append("%.5f|%.5f|%d|".format(Locale.US, start.lat, start.lng, index))
             points.indices.step(step).forEach { idx ->
-                append("%.5f,%.5f|".format(points[idx][0], points[idx][1]))
+                append("%.5f,%.5f|".format(Locale.US, points[idx][0], points[idx][1]))
             }
         }
         return "generated-osm-${signature.hashCode().toUInt().toString(16)}"
@@ -2322,6 +2538,42 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             }
             waypoints += point
             previous = point
+        }
+        return appendLoopClosureWaypoint(waypoints, start)
+    }
+
+    private fun buildShapeDenseWaypoints(start: Coordinates, shape: List<Coordinates>): List<Coordinates> {
+        if (shape.size < 2) return emptyList()
+        val sampled = sampleCoordinates(shape, 28)
+        val waypoints = mutableListOf(start)
+        var previous = start
+        sampled.forEach { point ->
+            if (haversineDistanceMeters(previous.lat, previous.lng, point.lat, point.lng) < 60.0) {
+                return@forEach
+            }
+            waypoints += point
+            previous = point
+        }
+        if (waypoints.size < 3) {
+            return buildShapeLoopWaypoints(start, shape)
+        }
+        return appendLoopClosureWaypoint(waypoints, start)
+    }
+
+    private fun buildShapeStitchedWaypoints(start: Coordinates, shape: List<Coordinates>): List<Coordinates> {
+        if (shape.size < 2) return emptyList()
+        val sampled = sampleCoordinates(shape, 14)
+        val waypoints = mutableListOf(start)
+        var previous = start
+        sampled.forEach { point ->
+            if (haversineDistanceMeters(previous.lat, previous.lng, point.lat, point.lng) < 120.0) {
+                return@forEach
+            }
+            waypoints += point
+            previous = point
+        }
+        if (waypoints.size < 3) {
+            return buildShapeSimplifiedWaypoints(start, shape)
         }
         return appendLoopClosureWaypoint(waypoints, start)
     }
@@ -2721,7 +2973,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             points.indices.step(step).forEach { idx ->
                 val point = points[idx]
                 if (point.size >= 2) {
-                    append("%.5f,%.5f|".format(point[0], point[1]))
+                    append("%.5f,%.5f|".format(Locale.US, point[0], point[1]))
                 }
             }
         }
@@ -2732,7 +2984,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         return if (absolute < 1.0) {
             "${round(absolute * 1000.0).toInt()} m"
         } else {
-            "${"%.2f".format(absolute)} km"
+            "${"%.2f".format(Locale.US, absolute)} km"
         }
     }
 
@@ -3800,7 +4052,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         return bearing
     }
 
-    private fun quantizedPointKey(lat: Double, lng: Double): String = "%.5f:%.5f".format(lat, lng)
+    private fun quantizedPointKey(lat: Double, lng: Double): String = "%.5f:%.5f".format(Locale.US, lat, lng)
 
     private fun canonicalEdgeKey(a: String, b: String): String = if (a < b) "$a|$b" else "$b|$a"
 

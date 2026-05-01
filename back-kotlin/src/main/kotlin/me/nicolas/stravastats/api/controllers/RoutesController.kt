@@ -380,9 +380,6 @@ class RoutesController(
         val ordered = (result.shapeMatches + result.roadGraphLoops)
             .filter { recommendation -> isShapeGeneratedRouteCandidate(recommendation) }
         for (recommendation in ordered) {
-            if (routes.size >= limit) {
-                break
-            }
             if (!seen.add(recommendation.routeId)) {
                 continue
             }
@@ -390,6 +387,14 @@ class RoutesController(
             routes += recommendation.toGeneratedRouteDto(score, routeType)
         }
         return routes
+            .sortedWith(
+                compareByDescending<GeneratedRouteDto> { route -> route.score.shape }
+                    .thenByDescending { route -> route.score.global }
+                    .thenByDescending { route -> route.score.roadFitness }
+                    .thenBy { route -> route.distanceKm }
+                    .thenBy { route -> route.routeId }
+            )
+            .take(limit)
     }
 
     private fun isShapeGeneratedRouteCandidate(recommendation: RouteRecommendation): Boolean {

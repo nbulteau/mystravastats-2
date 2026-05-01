@@ -252,7 +252,13 @@
   - [x] en mode Strava Art, une faible ressemblance ne bloque plus la generation: elle degrade `Art fit` et ajoute une raison `below ideal`,
   - [x] fallback OSRM best-effort: si les strategies dessin strictes ne produisent aucun candidat, tenter des waypoints simplifies/enveloppe et retourner une route faible confiance au lieu de bloquer,
   - [x] strategie OSRM `simplified sketch anchors`: essayer en generation normale une version reduite du dessin pour mieux router les formes simples (cercle, etoile, carre) avant le fallback,
-  - [x] le snap OSRM ne transforme plus automatiquement le sketch visible: recentrage et scale restent des actions manuelles de transformation.
+  - [x] le snap OSRM ne transforme plus automatiquement le sketch visible: recentrage et scale restent des actions manuelles de transformation,
+  - [x] ranking shape mode: selectionner d'abord les candidats avec le meilleur `Art fit`, puis leur appliquer le profil de relaxation le plus strict compatible,
+  - [x] strategie OSRM `dense sketch anchors`: ajouter une tentative plus dense pour mieux suivre les formes simples avant les strategies simplifiees,
+  - [x] fallback shape mode oriente `Art fit`: avant l'`emergency-fallback`, accepter un candidat faible confiance si la route respecte mieux le dessin et annoter `Selection priority: art-fit first`,
+  - [x] strategie `segment stitched alternatives`: autoriser les virages serres Strava Art et choisir les alternatives OSRM segment par segment quand cela suit mieux le trait,
+  - [x] strategie `nearest-road trace`: pour le mode GPS drawing, snapper les points du dessin sur les ancres routables OSRM les plus proches, router chaque segment entre ancres avec OSRM et selectionner ce candidat quand il respecte nettement mieux l'art,
+  - [x] les propositions Strava Art sont triees par `Art fit` avant la limite de resultats et avant la selection initiale, cote Go, Kotlin et store Vue.
 
 - [x] `FUNC-P0-03D` (`P0`, `M`) - Resultats lisibles et diagnostics produit.
   Owners: `Product`, `Front`, `Routes`.
@@ -274,6 +280,8 @@
   - les distances, D+ et durees sont presentes comme resultats, pas comme objectifs,
   - chaque carte de proposition explique pourquoi elle est bonne ou degradee,
   - un echec de generation est actionnable sans lire les logs.
+  Progress:
+  - [x] les cartes de proposition Strava Art affichent des signaux produit (`Drawing-first snap`, profil de confiance, `Art fit`) et masquent les raisons techniques brutes comme `Directional alignment`, `Surface mix` ou `Surface fitness`.
 
 - [x] `FUNC-P0-03E` (`P1`, `M`) - Comparaison visuelle dessin original vs route generee.
   Owners: `Product`, `Front`, `Routes`.

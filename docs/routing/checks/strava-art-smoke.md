@@ -42,3 +42,5 @@ To run a different smoke matrix, point `FIXTURE_PATH` to a JSON file with a
 - The generated route GPX endpoint returns a GPX payload containing track points.
 - A low `artFit` score is acceptable for hard road layouts, but a missing route
   is a regression for these simple shapes.
+- The summary prints the selected shape strategy, selection profile, route
+  reasons, and top route scores so ranking regressions are visible.
