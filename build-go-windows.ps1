@@ -65,10 +65,16 @@ if ($SkipFrontBuild -ne "1") {
     # Build the UI project using Docker
     Write-VerboseOutput "[FRONT] Building front-vue project..."
     $frontFixCommand = 'npm pkg delete "dependencies.@rolldown/binding-darwin-arm64" "devDependencies.@rolldown/binding-darwin-arm64" >/dev/null 2>&1 || true'
-    if ($Verbose) {
-        & docker run --rm -v "${RootDir}:/app" -w /app/front-vue node:25.9.0 sh -c "$frontFixCommand && npm ci && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build"
-    } else {
-        & docker run --rm -v "${RootDir}:/app" -w /app/front-vue node:25.9.0 sh -c "$frontFixCommand && npm ci >/dev/null 2>&1 && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build >/dev/null 2>&1" *> $null
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        if ($Verbose) {
+            & docker run --rm -v "${RootDir}:/app" -w /app/front-vue node:25.9.0 sh -c "$frontFixCommand && npm ci && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build"
+        } else {
+            & docker run --rm -v "${RootDir}:/app" -w /app/front-vue node:25.9.0 sh -c "$frontFixCommand && npm ci >/dev/null 2>&1 && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build >/dev/null 2>&1" *> $null
+        }
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
     }
 
     if ($LASTEXITCODE -ne 0) {
