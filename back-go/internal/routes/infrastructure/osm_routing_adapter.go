@@ -35,7 +35,9 @@ const (
 	historyAxisBiasWeight       = 0.75
 	historyZoneBiasWeight       = 0.25
 	shapeModeStrategyShapeFirst = "shape-first"
+	shapeModeStrategySimplified = "shape-simplified"
 	shapeModeStrategyRoadFirst  = "road-first"
+	shapeModeStrategyBestEffort = "shape-best-effort"
 	defaultOSRMProfileFilePath  = "./osm/region.osrm.profile"
 	fallbackOSRMProfilePath     = "../osm/region.osrm.profile"
 )
@@ -53,6 +55,13 @@ type osrmRouteCandidate struct {
 	pathRatio           float64
 	historyReuseScore   float64
 	effectiveMatchScore float64
+}
+
+type shapeRoutingStrategy struct {
+	code       string
+	label      string
+	waypoints  []routesDomain.Coordinates
+	bestEffort bool
 }
 
 type routingHistoryBiasContext struct {
@@ -463,31 +472,34 @@ func (adapter *OSMRoutingAdapter) GenerateShapeLoops(
 	}
 
 	projectedShape := projectShapePolylineToStart(rawShape, request.StartPoint, targetDistanceKm)
-	shapePreview := coordinatesToLatLngPoints(projectedShape)
+	routingShape := prepareShapeForRouting(projectedShape, request.StartPoint)
+	shapePreview := coordinatesToLatLngPoints(routingShape)
 	if len(shapePreview) < 2 {
 		return []routesDomain.RouteRecommendation{}, nil
 	}
+	routeAnchor := routingShape[0]
 
 	profile := adapter.profileForRouteType(request.RouteType)
-	type shapeRoutingStrategy struct {
-		code      string
-		label     string
-		waypoints []routesDomain.Coordinates
-	}
 	strategies := []shapeRoutingStrategy{
 		{
 			code:      shapeModeStrategyShapeFirst,
-			label:     "projected waypoints",
-			waypoints: buildShapeLoopWaypoints(request.StartPoint, projectedShape),
+			label:     "map sketch waypoints",
+			waypoints: buildShapeLoopWaypoints(routeAnchor, routingShape),
+		},
+		{
+			code:      shapeModeStrategySimplified,
+			label:     "simplified sketch anchors",
+			waypoints: buildShapeSimplifiedWaypoints(routeAnchor, routingShape),
 		},
 		{
 			code:      shapeModeStrategyRoadFirst,
 			label:     "road-first anchors",
-			waypoints: buildShapeRoadFirstWaypoints(request.StartPoint, projectedShape),
+			waypoints: buildShapeRoadFirstWaypoints(routeAnchor, routingShape),
 		},
 	}
 
 	shapeRequest := request
+	shapeRequest.StartPoint = routeAnchor
 	shapeRequest.DistanceTargetKm = targetDistanceKm
 	shapeRequest.StartDirection = ""
 	shapeRequest.DirectionStrict = false
@@ -496,6 +508,80 @@ func (adapter *OSMRoutingAdapter) GenerateShapeLoops(
 	seenSignatures := make(map[string]struct{}, request.Limit*10)
 	fetchedRouteCount := 0
 	usedStrategies := 0
+
+	appendShapeCandidate := func(strategy shapeRoutingStrategy, osrmRoute osrmRoute, routeIndex int) {
+		var candidate osrmRouteCandidate
+		var ok bool
+		if strategy.bestEffort {
+			candidate, ok = adapter.toRouteCandidateBestEffort(shapeRequest, osrmRoute, routeIndex, rejectCounts)
+		} else {
+			candidate, ok = adapter.toRouteCandidate(shapeRequest, osrmRoute, routeIndex, rejectCounts)
+		}
+		if !ok {
+			return
+		}
+		signature := routeGeometrySignature(candidate.recommendation.PreviewLatLng)
+		if signature == "" {
+			incrementRejectCount(rejectCounts, "EMPTY_GEOMETRY_SIGNATURE")
+			return
+		}
+		if _, exists := seenSignatures[signature]; exists {
+			incrementRejectCount(rejectCounts, "DUPLICATE_GEOMETRY")
+			return
+		}
+
+		shapeScore := shapeSimilarityScore(candidate.recommendation.PreviewLatLng, shapePreview)
+		shapeName := "CUSTOM_SHAPE"
+		recommendation := candidate.recommendation
+		recommendation.VariantType = routesDomain.RouteVariantShape
+		recommendation.Shape = &shapeName
+		recommendation.ShapeScore = &shapeScore
+		matchScore, shapeDriftPenalty := shapeModeMatchScore(
+			recommendation.MatchScore,
+			shapeScore,
+			candidate.backtrackingRatio,
+			candidate.corridorOverlap,
+			candidate.edgeReuseRatio,
+			candidate.maxAxisReuseRatio,
+			strategy.code,
+		)
+		recommendation.MatchScore = matchScore
+		recommendation.Reasons = append(
+			recommendation.Reasons,
+			fmt.Sprintf("Shape similarity: %.0f%%", shapeScore*100.0),
+			fmt.Sprintf("Shape mode: %s", strategy.label),
+		)
+		idealShapeScore := minShapeModeSimilarity(strategy.code)
+		if shapeScore < idealShapeScore {
+			recommendation.Reasons = append(
+				recommendation.Reasons,
+				fmt.Sprintf("Shape similarity below ideal: %.0f%% (target %.0f%%)", shapeScore*100.0, idealShapeScore*100.0),
+			)
+		}
+		if strategy.bestEffort {
+			recommendation.Reasons = append(
+				recommendation.Reasons,
+				"Shape best effort: returned despite weak matching to avoid blocking generation",
+			)
+		}
+		if shapeDriftPenalty > 0.05 {
+			recommendation.Reasons = append(
+				recommendation.Reasons,
+				fmt.Sprintf("Shape drift penalty: -%.1f", shapeDriftPenalty),
+			)
+		}
+
+		candidate.recommendation = recommendation
+		candidate.effectiveMatchScore = clampOSMScore(
+			recommendation.MatchScore -
+				candidate.backtrackingRatio*95.0 -
+				candidate.corridorOverlap*125.0 -
+				candidate.edgeReuseRatio*140.0 -
+				candidate.maxAxisReuseRatio*170.0,
+		)
+		candidates = append(candidates, candidate)
+		seenSignatures[signature] = struct{}{}
+	}
 
 	for _, strategy := range strategies {
 		if len(strategy.waypoints) < 3 {
@@ -520,58 +606,35 @@ func (adapter *OSMRoutingAdapter) GenerateShapeLoops(
 		fetchedRouteCount += len(routes)
 
 		for routeIndex, osrmRoute := range routes {
-			candidate, ok := adapter.toRouteCandidate(shapeRequest, osrmRoute, routeIndex, rejectCounts)
-			if !ok {
-				continue
-			}
-			signature := routeGeometrySignature(candidate.recommendation.PreviewLatLng)
-			if signature == "" {
-				incrementRejectCount(rejectCounts, "EMPTY_GEOMETRY_SIGNATURE")
-				continue
-			}
-			if _, exists := seenSignatures[signature]; exists {
-				incrementRejectCount(rejectCounts, "DUPLICATE_GEOMETRY")
-				continue
-			}
+			appendShapeCandidate(strategy, osrmRoute, routeIndex)
+		}
+	}
 
-			shapeScore := shapeSimilarityScore(candidate.recommendation.PreviewLatLng, shapePreview)
-			shapeName := "CUSTOM_SHAPE"
-			recommendation := candidate.recommendation
-			recommendation.VariantType = routesDomain.RouteVariantShape
-			recommendation.Shape = &shapeName
-			recommendation.ShapeScore = &shapeScore
-			matchScore, shapeDriftPenalty := shapeModeMatchScore(
-				recommendation.MatchScore,
-				shapeScore,
-				candidate.backtrackingRatio,
-				candidate.corridorOverlap,
-				candidate.edgeReuseRatio,
-				candidate.maxAxisReuseRatio,
-				strategy.code,
-			)
-			recommendation.MatchScore = matchScore
-			recommendation.Reasons = append(
-				recommendation.Reasons,
-				fmt.Sprintf("Shape similarity: %.0f%%", shapeScore*100.0),
-				fmt.Sprintf("Shape mode: %s", strategy.label),
-			)
-			if shapeDriftPenalty > 0.05 {
-				recommendation.Reasons = append(
-					recommendation.Reasons,
-					fmt.Sprintf("Shape drift penalty: -%.1f", shapeDriftPenalty),
-				)
+	if len(candidates) == 0 {
+		for strategyIndex, strategy := range buildShapeBestEffortRoutingStrategies(routeAnchor, routingShape) {
+			if len(strategy.waypoints) < 3 {
+				incrementRejectCount(rejectCounts, "SHAPE_BEST_EFFORT_WAYPOINTS_TOO_FEW")
+				continue
 			}
-
-			candidate.recommendation = recommendation
-			candidate.effectiveMatchScore = clampOSMScore(
-				recommendation.MatchScore -
-					candidate.backtrackingRatio*95.0 -
-					candidate.corridorOverlap*125.0 -
-					candidate.edgeReuseRatio*140.0 -
-					candidate.maxAxisReuseRatio*170.0,
-			)
-			candidates = append(candidates, candidate)
-			seenSignatures[signature] = struct{}{}
+			routes, err := adapter.fetchOSRMRoutes(profile, strategy.waypoints)
+			if err != nil {
+				incrementRejectCount(rejectCounts, "OSRM_BEST_EFFORT_CALL_FAILED")
+				if adapter.debug {
+					log.Printf(
+						"OSRM shape best-effort call failed: mode=%s profile=%s waypoints=%d err=%v",
+						strategy.code,
+						profile,
+						len(strategy.waypoints),
+						err,
+					)
+				}
+				continue
+			}
+			usedStrategies++
+			fetchedRouteCount += len(routes)
+			for routeIndex, osrmRoute := range routes {
+				appendShapeCandidate(strategy, osrmRoute, 1000+(strategyIndex*20)+routeIndex)
+			}
 		}
 	}
 
@@ -1291,6 +1354,25 @@ func (adapter *OSMRoutingAdapter) toRouteCandidate(
 	index int,
 	rejectCounts map[string]int,
 ) (osrmRouteCandidate, bool) {
+	return adapter.toRouteCandidateWithMode(request, route, index, rejectCounts, false)
+}
+
+func (adapter *OSMRoutingAdapter) toRouteCandidateBestEffort(
+	request application.RoutingEngineRequest,
+	route osrmRoute,
+	index int,
+	rejectCounts map[string]int,
+) (osrmRouteCandidate, bool) {
+	return adapter.toRouteCandidateWithMode(request, route, index, rejectCounts, true)
+}
+
+func (adapter *OSMRoutingAdapter) toRouteCandidateWithMode(
+	request application.RoutingEngineRequest,
+	route osrmRoute,
+	index int,
+	rejectCounts map[string]int,
+	bestEffort bool,
+) (osrmRouteCandidate, bool) {
 	if route.Distance <= 0 || len(route.Geometry.Coordinates) < 2 {
 		incrementRejectCount(rejectCounts, "INVALID_ROUTE_GEOMETRY")
 		return osrmRouteCandidate{}, false
@@ -1305,7 +1387,7 @@ func (adapter *OSMRoutingAdapter) toRouteCandidate(
 	if durationSec <= 0 {
 		durationSec = int(math.Round(distanceKm * 180.0))
 	}
-	return adapter.toRouteCandidateFromPreview(
+	return adapter.toRouteCandidateFromPreviewWithMode(
 		request,
 		points,
 		computeSurfaceBreakdown(route),
@@ -1313,6 +1395,7 @@ func (adapter *OSMRoutingAdapter) toRouteCandidate(
 		durationSec,
 		index,
 		rejectCounts,
+		bestEffort,
 	)
 }
 
@@ -1325,12 +1408,34 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreview(
 	index int,
 	rejectCounts map[string]int,
 ) (osrmRouteCandidate, bool) {
+	return adapter.toRouteCandidateFromPreviewWithMode(
+		request,
+		points,
+		surfaceBreakdown,
+		distanceKm,
+		durationSec,
+		index,
+		rejectCounts,
+		false,
+	)
+}
+
+func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreviewWithMode(
+	request application.RoutingEngineRequest,
+	points [][]float64,
+	surfaceBreakdown routeSurfaceBreakdown,
+	distanceKm float64,
+	durationSec int,
+	index int,
+	rejectCounts map[string]int,
+	bestEffort bool,
+) (osrmRouteCandidate, bool) {
 	if len(points) < 2 {
 		incrementRejectCount(rejectCounts, "INVALID_COORDINATES")
 		return osrmRouteCandidate{}, false
 	}
 	startOffsetMeters := haversineDistanceMeters(points[0][0], points[0][1], request.StartPoint.Lat, request.StartPoint.Lng)
-	if !startsNearRequestedStart(points, request.StartPoint, startSnapToleranceMeters) {
+	if !bestEffort && !startsNearRequestedStart(points, request.StartPoint, startSnapToleranceMeters) {
 		// In fallback mode, allow larger snap distance to avoid returning no route.
 		if request.StrictBacktracking || !startsNearRequestedStart(points, request.StartPoint, fallbackStartSnapTolerance) {
 			incrementRejectCount(rejectCounts, "START_TOO_FAR")
@@ -1352,6 +1457,7 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreview(
 	diversityRatio := axisStats.segmentDiversityRatio()
 	distanceDeltaRatio := distanceShortfallRatio(distanceKm, request.DistanceTargetKm)
 	distanceOvershootRatioValue := distanceOvershootRatio(distanceKm, request.DistanceTargetKm)
+	shapeMode := strings.TrimSpace(request.ShapePolyline) != ""
 	minOppositeReuseMetersForRequest := minimumOppositeReuseMetersForRequest(
 		request.RouteType,
 		request.StrictBacktracking,
@@ -1367,7 +1473,7 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreview(
 		request.RouteType,
 		request.StrictBacktracking,
 	)
-	if hasOppositeOutsideStart {
+	if !bestEffort && hasOppositeOutsideStart {
 		if request.StrictBacktracking {
 			incrementRejectCount(rejectCounts, "STRICT_BACKTRACKING_OUTSIDE_START")
 		} else {
@@ -1375,11 +1481,11 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreview(
 		}
 		return osrmRouteCandidate{}, false
 	}
-	if maxAxisReuseOutsideStart > maxAxisReuseOutsideStartLimit {
+	if !bestEffort && maxAxisReuseOutsideStart > maxAxisReuseOutsideStartLimit {
 		incrementRejectCount(rejectCounts, "AXIS_REUSE_OUTSIDE_START")
 		return osrmRouteCandidate{}, false
 	}
-	if !meetsMinimumDistance(distanceKm, request.DistanceTargetKm) {
+	if !bestEffort && !shapeMode && !meetsMinimumDistance(distanceKm, request.DistanceTargetKm) {
 		incrementRejectCount(rejectCounts, "DISTANCE_BELOW_MINIMUM")
 		return osrmRouteCandidate{}, false
 	}
@@ -1394,10 +1500,10 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreview(
 		maxEdgeReuseReject = 0.55
 		maxAxisReuseReject = 14
 	}
-	if backtrackingRatio > maxBacktrackingReject ||
+	if !bestEffort && (backtrackingRatio > maxBacktrackingReject ||
 		corridorOverlap > maxCorridorReject ||
 		edgeReuse > maxEdgeReuseReject ||
-		maxAxisReuseCount > maxAxisReuseReject {
+		maxAxisReuseCount > maxAxisReuseReject) {
 		incrementRejectCount(rejectCounts, "EXCESSIVE_RETRACE")
 		return osrmRouteCandidate{}, false
 	}
@@ -1434,13 +1540,16 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreview(
 			allowedOppositeOutsideStartRatio(request.RouteType, request.StrictBacktracking)*100.0,
 		),
 	}
+	if bestEffort {
+		reasons = append(reasons, "Generation engine fallback: shape best effort")
+	}
 	if request.ElevationTargetM != nil {
 		reasons = append(reasons, fmt.Sprintf("Elevation estimate: %s", formatElevationDelta(elevationGainM-*request.ElevationTargetM)))
 	}
 	if request.StartDirection != "" {
 		reasons = append(reasons, fmt.Sprintf("Direction: %s", startDirectionLabel(request.StartDirection)))
 	}
-	if !request.StrictBacktracking && startOffsetMeters > startSnapToleranceMeters {
+	if (bestEffort || !request.StrictBacktracking) && startOffsetMeters > startSnapToleranceMeters {
 		reasons = append(
 			reasons,
 			fmt.Sprintf(
@@ -1454,7 +1563,7 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreview(
 	pathRatio := surfaceBreakdown.pathRatio()
 	requiredPathRatio := requiredPathRatioForRequest(request.RouteType, request.StrictBacktracking)
 	normalizedRouteType := strings.ToUpper(strings.TrimSpace(request.RouteType))
-	if normalizedRouteType == "GRAVEL" && pathRatio < requiredPathRatio {
+	if !bestEffort && normalizedRouteType == "GRAVEL" && pathRatio < requiredPathRatio {
 		incrementRejectCount(rejectCounts, "GRAVEL_MIN_PATH_RATIO")
 		return osrmRouteCandidate{}, false
 	}
@@ -1465,7 +1574,9 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreview(
 		fmt.Sprintf("Surface fitness: %.0f%%", surfaceScore),
 		"Surface source: OSRM step classes, mode, and surface/tracktype tags when available",
 	)
-	if request.StrictBacktracking {
+	if bestEffort {
+		reasons = append(reasons, "Anti-backtracking: best-effort fallback")
+	} else if request.StrictBacktracking {
 		reasons = append(reasons, "Anti-backtracking: native ultra")
 	} else {
 		reasons = append(reasons, "Anti-backtracking: relaxed fallback")
@@ -1507,6 +1618,9 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreview(
 		-math.Max(0.0, distanceOvershootRatioValue-0.25)*12.0 +
 		(surfaceScore-70.0)*surfaceScoreWeight(request.RouteType) +
 		pathPreferenceBonus(request.RouteType, pathRatio))
+	if bestEffort {
+		effectiveScore = clampOSMScore(effectiveScore - 22.0)
+	}
 	// effectiveScore is an internal ranking score (not API score):
 	// it aggressively penalizes backtracking and bad directional fit to keep
 	// generated loops practical even in relaxed levels.
@@ -1539,12 +1653,42 @@ func selectCandidatesWithRelaxation(
 		limit = 1
 	}
 	hasDirection := strings.TrimSpace(request.StartDirection) != ""
+	shapeMode := strings.TrimSpace(request.ShapePolyline) != ""
 
 	sortedCandidates := make([]osrmRouteCandidate, len(candidates))
 	copy(sortedCandidates, candidates)
 	sort.SliceStable(sortedCandidates, func(i, j int) bool {
 		left := sortedCandidates[i]
 		right := sortedCandidates[j]
+		if shapeMode {
+			leftShapeScore := routeShapeScore(left.recommendation)
+			rightShapeScore := routeShapeScore(right.recommendation)
+			if leftShapeScore != rightShapeScore {
+				return leftShapeScore > rightShapeScore
+			}
+			if left.effectiveMatchScore != right.effectiveMatchScore {
+				return left.effectiveMatchScore > right.effectiveMatchScore
+			}
+			if left.recommendation.MatchScore != right.recommendation.MatchScore {
+				return left.recommendation.MatchScore > right.recommendation.MatchScore
+			}
+			if left.corridorOverlap != right.corridorOverlap {
+				return left.corridorOverlap < right.corridorOverlap
+			}
+			if left.backtrackingRatio != right.backtrackingRatio {
+				return left.backtrackingRatio < right.backtrackingRatio
+			}
+			if left.edgeReuseRatio != right.edgeReuseRatio {
+				return left.edgeReuseRatio < right.edgeReuseRatio
+			}
+			if left.maxAxisReuseCount != right.maxAxisReuseCount {
+				return left.maxAxisReuseCount < right.maxAxisReuseCount
+			}
+			if left.distanceDeltaRatio != right.distanceDeltaRatio {
+				return left.distanceDeltaRatio < right.distanceDeltaRatio
+			}
+			return left.recommendation.RouteID < right.recommendation.RouteID
+		}
 		if left.corridorOverlap != right.corridorOverlap {
 			return left.corridorOverlap < right.corridorOverlap
 		}
@@ -1630,7 +1774,7 @@ func selectCandidatesWithRelaxation(
 				incrementRejectCount(rejectCounts, "LOW_SEGMENT_DIVERSITY")
 				continue
 			}
-			if candidate.distanceDeltaRatio > level.maxDistanceDeltaRatio {
+			if !shapeMode && candidate.distanceDeltaRatio > level.maxDistanceDeltaRatio {
 				incrementRejectCount(rejectCounts, "DISTANCE_CONSTRAINT")
 				continue
 			}
@@ -2476,18 +2620,26 @@ func projectShapePolylineToStart(
 	if len(shape) == 0 {
 		return []routesDomain.Coordinates{}
 	}
-	translated := make([]routesDomain.Coordinates, 0, len(shape))
-	deltaLat := start.Lat - shape[0].Lat
-	deltaLng := start.Lng - shape[0].Lng
-	for _, point := range shape {
-		translated = append(translated, routesDomain.Coordinates{
-			Lat: point.Lat + deltaLat,
-			Lng: point.Lng + deltaLng,
-		})
+
+	shapeCenter, shapeRadiusMeters := shapeCenterAndRadius(shape)
+	scaleAnchor := shapeCenter
+	projectedBase := cloneCoordinates(shape)
+
+	if !preserveGeoreferencedShapePlacement(shape, start, shapeCenter, shapeRadiusMeters) {
+		deltaLat := start.Lat - shapeCenter.Lat
+		deltaLng := start.Lng - shapeCenter.Lng
+		projectedBase = make([]routesDomain.Coordinates, 0, len(shape))
+		for _, point := range shape {
+			projectedBase = append(projectedBase, routesDomain.Coordinates{
+				Lat: point.Lat + deltaLat,
+				Lng: point.Lng + deltaLng,
+			})
+		}
+		scaleAnchor = start
 	}
 
 	scale := 1.0
-	shapeDistanceKm := polylineDistanceKmFromCoordinates(translated)
+	shapeDistanceKm := polylineDistanceKmFromCoordinates(projectedBase)
 	if targetDistanceKm > 0 && shapeDistanceKm > 0 {
 		scale = targetDistanceKm / shapeDistanceKm
 		if scale < 0.45 {
@@ -2498,16 +2650,135 @@ func projectShapePolylineToStart(
 		}
 	}
 
-	projected := make([]routesDomain.Coordinates, 0, len(translated))
-	projected = append(projected, start)
-	for index := 1; index < len(translated); index++ {
-		point := translated[index]
+	projected := make([]routesDomain.Coordinates, 0, len(projectedBase))
+	for _, point := range projectedBase {
 		projected = append(projected, routesDomain.Coordinates{
-			Lat: start.Lat + (point.Lat-start.Lat)*scale,
-			Lng: start.Lng + (point.Lng-start.Lng)*scale,
+			Lat: scaleAnchor.Lat + (point.Lat-scaleAnchor.Lat)*scale,
+			Lng: scaleAnchor.Lng + (point.Lng-scaleAnchor.Lng)*scale,
 		})
 	}
 	return projected
+}
+
+func cloneCoordinates(points []routesDomain.Coordinates) []routesDomain.Coordinates {
+	cloned := make([]routesDomain.Coordinates, len(points))
+	copy(cloned, points)
+	return cloned
+}
+
+func shapeCenterAndRadius(points []routesDomain.Coordinates) (routesDomain.Coordinates, float64) {
+	if len(points) == 0 {
+		return routesDomain.Coordinates{}, 0.0
+	}
+	minLat := points[0].Lat
+	maxLat := points[0].Lat
+	minLng := points[0].Lng
+	maxLng := points[0].Lng
+	for _, point := range points[1:] {
+		if point.Lat < minLat {
+			minLat = point.Lat
+		}
+		if point.Lat > maxLat {
+			maxLat = point.Lat
+		}
+		if point.Lng < minLng {
+			minLng = point.Lng
+		}
+		if point.Lng > maxLng {
+			maxLng = point.Lng
+		}
+	}
+	center := routesDomain.Coordinates{
+		Lat: (minLat + maxLat) / 2.0,
+		Lng: (minLng + maxLng) / 2.0,
+	}
+	radiusMeters := 0.0
+	for _, point := range points {
+		radiusMeters = math.Max(
+			radiusMeters,
+			haversineDistanceMeters(center.Lat, center.Lng, point.Lat, point.Lng),
+		)
+	}
+	return center, radiusMeters
+}
+
+func preserveGeoreferencedShapePlacement(
+	shape []routesDomain.Coordinates,
+	start routesDomain.Coordinates,
+	center routesDomain.Coordinates,
+	radiusMeters float64,
+) bool {
+	centerDistanceMeters := haversineDistanceMeters(start.Lat, start.Lng, center.Lat, center.Lng)
+	if centerDistanceMeters <= math.Max(900.0, radiusMeters*1.35) {
+		return true
+	}
+	nearestPointMeters := math.MaxFloat64
+	for _, point := range shape {
+		nearestPointMeters = math.Min(
+			nearestPointMeters,
+			haversineDistanceMeters(start.Lat, start.Lng, point.Lat, point.Lng),
+		)
+	}
+	return nearestPointMeters <= math.Max(500.0, radiusMeters*0.35)
+}
+
+func prepareShapeForRouting(
+	shape []routesDomain.Coordinates,
+	preferredStart routesDomain.Coordinates,
+) []routesDomain.Coordinates {
+	if len(shape) < 2 {
+		return cloneCoordinates(shape)
+	}
+	closed := haversineDistanceMeters(
+		shape[0].Lat,
+		shape[0].Lng,
+		shape[len(shape)-1].Lat,
+		shape[len(shape)-1].Lng,
+	) <= 120.0
+	points := cloneCoordinates(shape)
+	if closed && len(points) > 2 {
+		points = points[:len(points)-1]
+	}
+	if len(points) < 2 {
+		return cloneCoordinates(shape)
+	}
+	if closed {
+		startIndex := nearestCoordinateIndex(points, preferredStart)
+		rotated := make([]routesDomain.Coordinates, 0, len(points)+1)
+		rotated = append(rotated, points[startIndex:]...)
+		rotated = append(rotated, points[:startIndex]...)
+		rotated = append(rotated, rotated[0])
+		return rotated
+	}
+
+	firstDistance := haversineDistanceMeters(preferredStart.Lat, preferredStart.Lng, points[0].Lat, points[0].Lng)
+	lastDistance := haversineDistanceMeters(preferredStart.Lat, preferredStart.Lng, points[len(points)-1].Lat, points[len(points)-1].Lng)
+	if lastDistance < firstDistance {
+		reverseCoordinates(points)
+	}
+	return points
+}
+
+func nearestCoordinateIndex(points []routesDomain.Coordinates, target routesDomain.Coordinates) int {
+	if len(points) == 0 {
+		return 0
+	}
+	bestIndex := 0
+	bestDistance := math.MaxFloat64
+	for index, point := range points {
+		distance := haversineDistanceMeters(target.Lat, target.Lng, point.Lat, point.Lng)
+		if distance < bestDistance {
+			bestDistance = distance
+			bestIndex = index
+		}
+	}
+	return bestIndex
+}
+
+func reverseCoordinates(points []routesDomain.Coordinates) {
+	for left, right := 0, len(points)-1; left < right; left, right = left+1, right-1 {
+		points[left], points[right] = points[right], points[left]
+	}
 }
 
 func sampleCoordinates(points []routesDomain.Coordinates, maxPoints int) []routesDomain.Coordinates {
@@ -2535,20 +2806,42 @@ func buildShapeLoopWaypoints(
 	start routesDomain.Coordinates,
 	shape []routesDomain.Coordinates,
 ) []routesDomain.Coordinates {
-	sampled := sampleCoordinates(shape, 10)
+	sampled := sampleCoordinates(shape, 18)
 	waypoints := make([]routesDomain.Coordinates, 0, len(sampled)+2)
 	waypoints = append(waypoints, start)
 	previous := start
-	for index := 1; index < len(sampled); index++ {
-		point := sampled[index]
-		if haversineDistanceMeters(previous.Lat, previous.Lng, point.Lat, point.Lng) < 120.0 {
+	for _, point := range sampled {
+		if haversineDistanceMeters(previous.Lat, previous.Lng, point.Lat, point.Lng) < 80.0 {
 			continue
 		}
 		waypoints = append(waypoints, point)
 		previous = point
 	}
+	return appendLoopClosureWaypoint(waypoints, start)
+}
+
+func buildShapeSimplifiedWaypoints(
+	start routesDomain.Coordinates,
+	shape []routesDomain.Coordinates,
+) []routesDomain.Coordinates {
+	if len(shape) < 2 {
+		return []routesDomain.Coordinates{}
+	}
+	sampled := sampleCoordinates(shape, 12)
+	waypoints := make([]routesDomain.Coordinates, 0, len(sampled)+2)
 	waypoints = append(waypoints, start)
-	return waypoints
+	previous := start
+	for _, point := range sampled {
+		if haversineDistanceMeters(previous.Lat, previous.Lng, point.Lat, point.Lng) < 160.0 {
+			continue
+		}
+		waypoints = append(waypoints, point)
+		previous = point
+	}
+	if len(waypoints) < 3 {
+		return buildShapeLoopWaypoints(start, shape)
+	}
+	return appendLoopClosureWaypoint(waypoints, start)
 }
 
 func buildShapeRoadFirstWaypoints(
@@ -2559,7 +2852,7 @@ func buildShapeRoadFirstWaypoints(
 		return []routesDomain.Coordinates{}
 	}
 
-	sampled := sampleCoordinates(shape, 16)
+	sampled := sampleCoordinates(shape, 20)
 	if len(sampled) < 2 {
 		return []routesDomain.Coordinates{}
 	}
@@ -2570,7 +2863,7 @@ func buildShapeRoadFirstWaypoints(
 		distance float64
 	}
 	scored := make([]indexedPoint, 0, len(sampled))
-	for index := 1; index < len(sampled); index++ {
+	for index := 0; index < len(sampled); index++ {
 		point := sampled[index]
 		distance := haversineDistanceMeters(start.Lat, start.Lng, point.Lat, point.Lng)
 		if distance < 280.0 {
@@ -2592,8 +2885,8 @@ func buildShapeRoadFirstWaypoints(
 		}
 		return scored[i].distance > scored[j].distance
 	})
-	if len(scored) > 6 {
-		scored = scored[:6]
+	if len(scored) > 8 {
+		scored = scored[:8]
 	}
 	sort.Slice(scored, func(i, j int) bool {
 		return scored[i].index < scored[j].index
@@ -2613,8 +2906,79 @@ func buildShapeRoadFirstWaypoints(
 	if len(waypoints) < 3 {
 		return buildShapeLoopWaypoints(start, shape)
 	}
+	return appendLoopClosureWaypoint(waypoints, start)
+}
+
+func buildShapeBestEffortRoutingStrategies(
+	start routesDomain.Coordinates,
+	shape []routesDomain.Coordinates,
+) []shapeRoutingStrategy {
+	strategies := make([]shapeRoutingStrategy, 0, 2)
+	if waypoints := buildShapeBestEffortWaypoints(start, shape); len(waypoints) >= 3 {
+		strategies = append(strategies, shapeRoutingStrategy{
+			code:       shapeModeStrategyBestEffort,
+			label:      "simplified sketch fallback",
+			waypoints:  waypoints,
+			bestEffort: true,
+		})
+	}
+	if waypoints := buildShapeEnvelopeWaypoints(start, shape); len(waypoints) >= 3 {
+		strategies = append(strategies, shapeRoutingStrategy{
+			code:       shapeModeStrategyBestEffort,
+			label:      "shape envelope fallback",
+			waypoints:  waypoints,
+			bestEffort: true,
+		})
+	}
+	return strategies
+}
+
+func buildShapeBestEffortWaypoints(
+	start routesDomain.Coordinates,
+	shape []routesDomain.Coordinates,
+) []routesDomain.Coordinates {
+	sampled := sampleCoordinates(shape, 8)
+	waypoints := make([]routesDomain.Coordinates, 0, len(sampled)+2)
 	waypoints = append(waypoints, start)
-	return waypoints
+	previous := start
+	for _, point := range sampled {
+		if haversineDistanceMeters(previous.Lat, previous.Lng, point.Lat, point.Lng) < 220.0 {
+			continue
+		}
+		waypoints = append(waypoints, point)
+		previous = point
+	}
+	return appendLoopClosureWaypoint(waypoints, start)
+}
+
+func buildShapeEnvelopeWaypoints(
+	start routesDomain.Coordinates,
+	shape []routesDomain.Coordinates,
+) []routesDomain.Coordinates {
+	if len(shape) < 2 {
+		return []routesDomain.Coordinates{}
+	}
+	center, radiusMeters := shapeCenterAndRadius(shape)
+	radiusKm := radiusMeters / 1000.0
+	if radiusKm < 0.55 {
+		radiusKm = 0.55
+	}
+	if radiusKm > 5.0 {
+		radiusKm = 5.0
+	}
+	bearings := []float64{0.0, 90.0, 180.0, 270.0}
+	waypoints := make([]routesDomain.Coordinates, 0, len(bearings)+2)
+	waypoints = append(waypoints, start)
+	previous := start
+	for _, bearing := range bearings {
+		point := destinationFromBearing(center, radiusKm, bearing)
+		if haversineDistanceMeters(previous.Lat, previous.Lng, point.Lat, point.Lng) < 220.0 {
+			continue
+		}
+		waypoints = append(waypoints, point)
+		previous = point
+	}
+	return appendLoopClosureWaypoint(waypoints, start)
 }
 
 func coordinatesToLatLngPoints(points []routesDomain.Coordinates) [][]float64 {
@@ -2625,9 +2989,32 @@ func coordinatesToLatLngPoints(points []routesDomain.Coordinates) [][]float64 {
 	return result
 }
 
+func appendLoopClosureWaypoint(
+	waypoints []routesDomain.Coordinates,
+	start routesDomain.Coordinates,
+) []routesDomain.Coordinates {
+	if len(waypoints) == 0 {
+		return []routesDomain.Coordinates{start}
+	}
+	last := waypoints[len(waypoints)-1]
+	if haversineDistanceMeters(last.Lat, last.Lng, start.Lat, start.Lng) > 80.0 {
+		waypoints = append(waypoints, start)
+	}
+	return waypoints
+}
+
 type normalizedShapePoint struct {
 	x float64
 	y float64
+}
+
+type shapeSimilarityBreakdown struct {
+	score         float64
+	contourScore  float64
+	anchoredScore float64
+	orderedScore  float64
+	centroidScore float64
+	lengthScore   float64
 }
 
 type shapeModeScoringConfig struct {
@@ -2641,18 +3028,27 @@ func shapeModeScoringConfigFor(strategyCode string) shapeModeScoringConfig {
 	switch strings.ToLower(strings.TrimSpace(strategyCode)) {
 	case shapeModeStrategyRoadFirst:
 		return shapeModeScoringConfig{
-			baseMatchWeight:          0.55,
-			shapeWeight:              0.45,
-			lowSimilarityThreshold:   0.58,
-			lowSimilarityPenaltyRate: 0.70,
+			baseMatchWeight:          0.20,
+			shapeWeight:              0.80,
+			lowSimilarityThreshold:   0.76,
+			lowSimilarityPenaltyRate: 1.35,
 		}
 	default:
 		return shapeModeScoringConfig{
-			baseMatchWeight:          0.35,
-			shapeWeight:              0.65,
-			lowSimilarityThreshold:   0.50,
-			lowSimilarityPenaltyRate: 0.28,
+			baseMatchWeight:          0.14,
+			shapeWeight:              0.86,
+			lowSimilarityThreshold:   0.72,
+			lowSimilarityPenaltyRate: 1.10,
 		}
+	}
+}
+
+func minShapeModeSimilarity(strategyCode string) float64 {
+	switch strings.ToLower(strings.TrimSpace(strategyCode)) {
+	case shapeModeStrategyRoadFirst:
+		return 0.72
+	default:
+		return 0.68
 	}
 }
 
@@ -2688,16 +3084,91 @@ func shapeModeMatchScore(
 }
 
 func shapeSimilarityScore(routePoints [][]float64, shapePoints [][]float64) float64 {
-	normalizedRoute := normalizeShapePolyline(samplePolylinePoints(routePoints, 90))
-	normalizedShape := normalizeShapePolyline(samplePolylinePoints(shapePoints, 90))
+	return shapeSimilarityBreakdownFor(routePoints, shapePoints).score
+}
+
+func shapeSimilarityBreakdownFor(routePoints [][]float64, shapePoints [][]float64) shapeSimilarityBreakdown {
+	sampledRoute := samplePolylinePoints(routePoints, 90)
+	sampledShape := samplePolylinePoints(shapePoints, 90)
+	normalizedRoute := normalizeShapePolyline(sampledRoute)
+	normalizedShape := normalizeShapePolyline(sampledShape)
 	if len(normalizedRoute) < 2 || len(normalizedShape) < 2 {
-		return 0.0
+		return shapeSimilarityBreakdown{}
 	}
 	meanForward := meanNearestShapeDistance(normalizedShape, normalizedRoute)
 	meanBackward := meanNearestShapeDistance(normalizedRoute, normalizedShape)
-	distance := (meanForward + meanBackward) / 2.0
-	score := 1.0 - (distance / 1.35)
-	return clampUnit(score)
+	contourDistance := (meanForward + meanBackward) / 2.0
+	contourScore := clampUnit(1.0 - (contourDistance / 1.35))
+
+	shapeCenterLat, shapeCenterLng, ok := latLngCentroid(sampledShape)
+	if !ok {
+		return shapeSimilarityBreakdown{score: contourScore, contourScore: contourScore}
+	}
+	shapeRadius := maxLatLngRadiusMeters(sampledShape, shapeCenterLat, shapeCenterLng)
+	if shapeRadius < 1.0 {
+		shapeRadius = 1.0
+	}
+	anchoredShape := projectLatLngToShapeSpace(sampledShape, shapeCenterLat, shapeCenterLng, shapeRadius)
+	anchoredRoute := projectLatLngToShapeSpace(sampledRoute, shapeCenterLat, shapeCenterLng, shapeRadius)
+	if len(anchoredShape) < 2 || len(anchoredRoute) < 2 {
+		return shapeSimilarityBreakdown{score: contourScore, contourScore: contourScore}
+	}
+
+	anchoredForward := meanNearestShapeDistance(anchoredShape, anchoredRoute)
+	anchoredBackward := meanNearestShapeDistance(anchoredRoute, anchoredShape)
+	anchoredDistance := (anchoredForward + anchoredBackward) / 2.0
+	anchoredScore := clampUnit(1.0 - (anchoredDistance / 0.82))
+	orderedDistance := meanIndexedShapeDistance(anchoredShape, anchoredRoute)
+	orderedScore := clampUnit(1.0 - (orderedDistance / 0.92))
+
+	centroidScore := 0.0
+	if routeCenterLat, routeCenterLng, ok := latLngCentroid(sampledRoute); ok {
+		centroidDrift := haversineDistanceMeters(shapeCenterLat, shapeCenterLng, routeCenterLat, routeCenterLng) / shapeRadius
+		centroidScore = clampUnit(1.0 - (centroidDrift / 0.80))
+	}
+
+	shapeLengthKm := polylineDistanceKmFromLatLng(sampledShape)
+	routeLengthKm := polylineDistanceKmFromLatLng(sampledRoute)
+	lengthScore := shapeLengthSimilarityScore(routeLengthKm, shapeLengthKm)
+
+	score := contourScore*0.08 +
+		anchoredScore*0.42 +
+		orderedScore*0.30 +
+		centroidScore*0.14 +
+		lengthScore*0.06
+	score = math.Min(score, 0.62+centroidScore*0.38)
+	return shapeSimilarityBreakdown{
+		score:         clampUnit(score),
+		contourScore:  contourScore,
+		anchoredScore: anchoredScore,
+		orderedScore:  orderedScore,
+		centroidScore: centroidScore,
+		lengthScore:   lengthScore,
+	}
+}
+
+func polylineDistanceKmFromLatLng(points [][]float64) float64 {
+	if len(points) < 2 {
+		return 0.0
+	}
+	totalMeters := 0.0
+	for index := 0; index < len(points)-1; index++ {
+		left := points[index]
+		right := points[index+1]
+		if len(left) < 2 || len(right) < 2 {
+			continue
+		}
+		totalMeters += haversineDistanceMeters(left[0], left[1], right[0], right[1])
+	}
+	return totalMeters / 1000.0
+}
+
+func shapeLengthSimilarityScore(routeLengthKm float64, shapeLengthKm float64) float64 {
+	if routeLengthKm <= 0 || shapeLengthKm <= 0 {
+		return 0.0
+	}
+	deltaRatio := math.Abs(routeLengthKm-shapeLengthKm) / math.Max(routeLengthKm, shapeLengthKm)
+	return clampUnit(1.0 - deltaRatio*1.35)
 }
 
 func normalizeShapePolyline(points [][]float64) []normalizedShapePoint {
@@ -2745,6 +3216,55 @@ func normalizeShapePolyline(points [][]float64) []normalizedShapePoint {
 	return normalized
 }
 
+func latLngCentroid(points [][]float64) (float64, float64, bool) {
+	sumLat := 0.0
+	sumLng := 0.0
+	count := 0
+	for _, point := range points {
+		if len(point) < 2 {
+			continue
+		}
+		sumLat += point[0]
+		sumLng += point[1]
+		count++
+	}
+	if count == 0 {
+		return 0, 0, false
+	}
+	return sumLat / float64(count), sumLng / float64(count), true
+}
+
+func maxLatLngRadiusMeters(points [][]float64, centerLat float64, centerLng float64) float64 {
+	maxRadius := 0.0
+	for _, point := range points {
+		if len(point) < 2 {
+			continue
+		}
+		radius := haversineDistanceMeters(centerLat, centerLng, point[0], point[1])
+		if radius > maxRadius {
+			maxRadius = radius
+		}
+	}
+	return maxRadius
+}
+
+func projectLatLngToShapeSpace(points [][]float64, centerLat float64, centerLng float64, scaleMeters float64) []normalizedShapePoint {
+	if scaleMeters < 1.0 {
+		scaleMeters = 1.0
+	}
+	cosLat := math.Cos(degreesToRadians(centerLat))
+	projected := make([]normalizedShapePoint, 0, len(points))
+	for _, point := range points {
+		if len(point) < 2 {
+			continue
+		}
+		x := (point[1] - centerLng) * 111320.0 * cosLat / scaleMeters
+		y := (point[0] - centerLat) * 111320.0 / scaleMeters
+		projected = append(projected, normalizedShapePoint{x: x, y: y})
+	}
+	return projected
+}
+
 func meanNearestShapeDistance(from []normalizedShapePoint, to []normalizedShapePoint) float64 {
 	if len(from) == 0 || len(to) == 0 {
 		return 1.0
@@ -2763,6 +3283,27 @@ func meanNearestShapeDistance(from []normalizedShapePoint, to []normalizedShapeP
 		total += minDistance
 	}
 	return total / float64(len(from))
+}
+
+func meanIndexedShapeDistance(left []normalizedShapePoint, right []normalizedShapePoint) float64 {
+	count := minInt(len(left), len(right))
+	if count == 0 {
+		return 1.0
+	}
+	total := 0.0
+	for index := 0; index < count; index++ {
+		dx := left[index].x - right[index].x
+		dy := left[index].y - right[index].y
+		total += math.Sqrt(dx*dx + dy*dy)
+	}
+	return total / float64(count)
+}
+
+func routeShapeScore(recommendation routesDomain.RouteRecommendation) float64 {
+	if recommendation.ShapeScore == nil {
+		return 0.0
+	}
+	return clampUnit(*recommendation.ShapeScore)
 }
 
 func degreesToRadians(value float64) float64 {

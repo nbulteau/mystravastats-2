@@ -1,0 +1,18 @@
+{
+  "shapeInputType": "draw",
+  "shapeData": "[[45.180000,5.720000],[45.190000,5.745000],[45.205000,5.725000],[45.180000,5.720000]]",
+  "startPoint": {
+    "lat": 45.18,
+    "lng": 5.72
+  },
+  "routeType": "RIDE",
+  "variantCount": 3,
+  "generatedRouteId": "strava-art-smoke-1",
+  "generatedRouteName": "Strava Art smoke",
+  "generatedPreviewLatLng": [
+    [45.18, 5.72],
+    [45.19, 5.745],
+    [45.205, 5.725],
+    [45.18, 5.72]
+  ]
+}

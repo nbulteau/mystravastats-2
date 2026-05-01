@@ -10,18 +10,18 @@ import (
 	"testing"
 )
 
-type targetDiagnosticsParityFixture struct {
-	Cases []targetDiagnosticsParityCase `json:"cases"`
+type generationDiagnosticsParityFixture struct {
+	Cases []generationDiagnosticsParityCase `json:"cases"`
 }
 
-type targetDiagnosticsParityCase struct {
+type generationDiagnosticsParityCase struct {
 	Name          string   `json:"name"`
 	Reasons       []string `json:"reasons"`
 	ExpectedCodes []string `json:"expectedCodes"`
 }
 
-func TestTargetDiagnosticsParityFixture_SuccessDiagnosticsCodes(t *testing.T) {
-	fixture := loadTargetDiagnosticsParityFixture(t)
+func TestGenerationDiagnosticsParityFixture_SuccessDiagnosticsCodes(t *testing.T) {
+	fixture := loadGenerationDiagnosticsParityFixture(t)
 	if len(fixture.Cases) == 0 {
 		t.Fatal("expected at least one diagnostics parity case")
 	}
@@ -36,7 +36,7 @@ func TestTargetDiagnosticsParityFixture_SuccessDiagnosticsCodes(t *testing.T) {
 				},
 			}
 
-			gotDiagnostics := buildSuccessfulTargetDiagnostics(routes)
+			gotDiagnostics := buildSuccessfulGenerationDiagnostics(routes)
 			gotCodes := make([]string, 0, len(gotDiagnostics))
 			for _, diagnostic := range gotDiagnostics {
 				gotCodes = append(gotCodes, diagnostic.Code)
@@ -49,9 +49,9 @@ func TestTargetDiagnosticsParityFixture_SuccessDiagnosticsCodes(t *testing.T) {
 	}
 }
 
-func loadTargetDiagnosticsParityFixture(t *testing.T) targetDiagnosticsParityFixture {
+func loadGenerationDiagnosticsParityFixture(t *testing.T) generationDiagnosticsParityFixture {
 	t.Helper()
-	fixturePath, err := findRouteDiagnosticsFixtureFile("test-fixtures/routes/target-diagnostics-parity.json")
+	fixturePath, err := findRouteFixtureFile("test-fixtures/routes/target-diagnostics-parity.json")
 	if err != nil {
 		t.Fatalf("failed to locate diagnostics parity fixture file: %v", err)
 	}
@@ -59,14 +59,14 @@ func loadTargetDiagnosticsParityFixture(t *testing.T) targetDiagnosticsParityFix
 	if err != nil {
 		t.Fatalf("failed to read diagnostics parity fixture file %q: %v", fixturePath, err)
 	}
-	var fixture targetDiagnosticsParityFixture
+	var fixture generationDiagnosticsParityFixture
 	if err := json.Unmarshal(payload, &fixture); err != nil {
 		t.Fatalf("failed to decode diagnostics parity fixture file %q: %v", fixturePath, err)
 	}
 	return fixture
 }
 
-func findRouteDiagnosticsFixtureFile(relativePath string) (string, error) {
+func findRouteFixtureFile(relativePath string) (string, error) {
 	currentDir, err := os.Getwd()
 	if err != nil {
 		return "", err

@@ -15,7 +15,6 @@ type GeneratedRouteDto struct {
 	Title                string                  `json:"title"`
 	VariantType          string                  `json:"variantType"`
 	RouteType            string                  `json:"routeType,omitempty"`
-	StartDirection       string                  `json:"startDirection,omitempty"`
 	DistanceKm           float64                 `json:"distanceKm"`
 	ElevationGainM       float64                 `json:"elevationGainM"`
 	DurationSec          int                     `json:"durationSec"`

@@ -70,14 +70,21 @@ class RouteExplorerService(
             historyBiasEnabled = false,
             historyProfile = null,
         )
-
         if (candidates.isEmpty()) {
+            val generatedShapeWithoutCache = buildShapeMatchRecommendationsFromEngine(
+                request = request,
+                distanceTarget = request.distanceTargetKm ?: 0.0,
+                elevationTarget = request.elevationTargetM ?: 0.0,
+                limit = limit,
+                historyBiasEnabled = false,
+                historyProfile = null,
+            )
             return RouteExplorerResult(
                 closestLoops = emptyList(),
                 variants = emptyList(),
                 seasonal = emptyList(),
                 roadGraphLoops = generatedWithoutCache,
-                shapeMatches = emptyList(),
+                shapeMatches = generatedShapeWithoutCache,
                 shapeRemixes = emptyList(),
             )
         }

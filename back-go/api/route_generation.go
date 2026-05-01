@@ -22,69 +22,15 @@ type routeStartPointPayload struct {
 	Lng float64 `json:"lng"`
 }
 
-type generateTargetRoutesPayload struct {
-	StartPoint          *routeStartPointPayload  `json:"startPoint"`
-	GenerationMode      string                   `json:"generationMode,omitempty"`
-	CustomWaypoints     []routeStartPointPayload `json:"customWaypoints,omitempty"`
-	RouteType           string                   `json:"routeType"`
-	StartDirection      string                   `json:"startDirection"`
-	StrictDirection     *bool                    `json:"strictDirection,omitempty"`
-	StrictBacktracking  *bool                    `json:"strictBacktracking,omitempty"`
-	BacktrackingProfile string                   `json:"backtrackingProfile,omitempty"`
-	DistanceTarget      float64                  `json:"distanceTargetKm"`
-	ElevationTarget     *float64                 `json:"elevationTargetM,omitempty"`
-	VariantCount        *int                     `json:"variantCount,omitempty"`
-}
-
 type generateShapeRoutesPayload struct {
-	ShapeInputType  string                  `json:"shapeInputType"`
-	ShapeData       string                  `json:"shapeData"`
-	StartPoint      *routeStartPointPayload `json:"startPoint,omitempty"`
-	DistanceTarget  *float64                `json:"distanceTargetKm,omitempty"`
-	ElevationTarget *float64                `json:"elevationTargetM,omitempty"`
-	RouteType       string                  `json:"routeType"`
-	VariantCount    *int                    `json:"variantCount,omitempty"`
+	ShapeInputType string                  `json:"shapeInputType"`
+	ShapeData      string                  `json:"shapeData"`
+	StartPoint     *routeStartPointPayload `json:"startPoint,omitempty"`
+	RouteType      string                  `json:"routeType"`
+	VariantCount   *int                    `json:"variantCount,omitempty"`
 }
 
 // Payload validation
-
-func validateGenerateTargetRoutesPayload(payload generateTargetRoutesPayload) error {
-	if payload.StartPoint == nil {
-		return fmt.Errorf("startPoint is required")
-	}
-	if !isValidLatLng(payload.StartPoint.Lat, payload.StartPoint.Lng) {
-		return fmt.Errorf("startPoint has invalid coordinates")
-	}
-	targetMode := normalizeGenerateTargetMode(payload.GenerationMode)
-	if targetMode == "" {
-		return fmt.Errorf("generationMode must be one of AUTOMATIC/CUSTOM")
-	}
-	if payload.DistanceTarget <= 0 {
-		return fmt.Errorf("distanceTargetKm must be greater than 0")
-	}
-	if payload.ElevationTarget != nil && *payload.ElevationTarget < 0 {
-		return fmt.Errorf("elevationTargetM must be greater than or equal to 0")
-	}
-	if payload.VariantCount != nil && (*payload.VariantCount < 1 || *payload.VariantCount > maxGeneratedVariantCount) {
-		return fmt.Errorf("variantCount must be between 1 and %d", maxGeneratedVariantCount)
-	}
-	if targetMode == "AUTOMATIC" {
-		if direction := normalizeGenerateStartDirection(payload.StartDirection); payload.StartDirection != "" && direction == "" && !isUndefinedGenerateStartDirection(payload.StartDirection) {
-			return fmt.Errorf("startDirection must be one of N/S/E/W/UNDEFINED")
-		}
-	}
-	if targetMode == "CUSTOM" {
-		if len(payload.CustomWaypoints) == 0 {
-			return fmt.Errorf("customWaypoints must contain at least one waypoint when generationMode is CUSTOM")
-		}
-		for _, point := range payload.CustomWaypoints {
-			if !isValidLatLng(point.Lat, point.Lng) {
-				return fmt.Errorf("customWaypoints has invalid coordinates")
-			}
-		}
-	}
-	return nil
-}
 
 func validateGenerateShapeRoutesPayload(payload generateShapeRoutesPayload) error {
 	inputType := strings.ToLower(strings.TrimSpace(payload.ShapeInputType))
@@ -98,12 +44,6 @@ func validateGenerateShapeRoutesPayload(payload generateShapeRoutesPayload) erro
 	}
 	if strings.TrimSpace(payload.ShapeData) == "" {
 		return fmt.Errorf("shapeData is required")
-	}
-	if payload.DistanceTarget != nil && *payload.DistanceTarget <= 0 {
-		return fmt.Errorf("distanceTargetKm must be greater than 0")
-	}
-	if payload.ElevationTarget != nil && *payload.ElevationTarget < 0 {
-		return fmt.Errorf("elevationTargetM must be greater than or equal to 0")
 	}
 	if payload.StartPoint != nil && !isValidLatLng(payload.StartPoint.Lat, payload.StartPoint.Lng) {
 		return fmt.Errorf("startPoint has invalid coordinates")
@@ -124,32 +64,6 @@ func normalizeGenerateRouteType(value string) string {
 	default:
 		return "RIDE"
 	}
-}
-
-func normalizeGenerateTargetMode(value string) string {
-	normalized := strings.ToUpper(strings.TrimSpace(value))
-	switch normalized {
-	case "", defaultTargetMode:
-		return defaultTargetMode
-	case "CUSTOM":
-		return "CUSTOM"
-	default:
-		return ""
-	}
-}
-
-func normalizeGenerateStartDirection(value string) string {
-	normalized := strings.ToUpper(strings.TrimSpace(value))
-	switch normalized {
-	case "N", "S", "E", "W":
-		return normalized
-	default:
-		return ""
-	}
-}
-
-func isUndefinedGenerateStartDirection(value string) bool {
-	return strings.EqualFold(strings.TrimSpace(value), "UNDEFINED")
 }
 
 func normalizeGenerateVariantCount(value *int) int {
@@ -183,58 +97,8 @@ func defaultRouteGenerationActivityTypes() []business.ActivityType {
 
 // Route response builders
 
-func buildTargetGeneratedRoutesResponse(
-	result routesDomain.RouteExplorerResult,
-	distanceTarget float64,
-	elevationTarget *float64,
-	routeType string,
-	startDirection string,
-	directionStrict bool,
-	strictBacktracking bool,
-	targetMode string,
-	requestID string,
-	limit int,
-) dto.GenerateRoutesResponseDto {
-	recommendations := targetGenerationRecommendations(result)
-
-	routes := toGeneratedRoutesFromRecommendations(recommendations, &distanceTarget, elevationTarget, routeType, startDirection, limit)
-	diagnostics := buildTargetGenerationDiagnostics(distanceTarget, elevationTarget, startDirection, directionStrict, strictBacktracking, targetMode, routeType, requestID, routes)
-	return dto.GenerateRoutesResponseDto{
-		Routes:      routes,
-		Diagnostics: diagnostics,
-	}
-}
-
-func targetGenerationRecommendations(
-	result routesDomain.RouteExplorerResult,
-) []routesDomain.RouteRecommendation {
-	if len(result.RoadGraphLoops) > 0 {
-		recommendations := make([]routesDomain.RouteRecommendation, 0, len(result.RoadGraphLoops))
-		recommendations = append(recommendations, result.RoadGraphLoops...)
-		return recommendations
-	}
-
-	fallbackPool := make([]routesDomain.RouteRecommendation, 0, len(result.ClosestLoops)+len(result.Variants)+len(result.Seasonal))
-	fallbackPool = append(fallbackPool, result.ClosestLoops...)
-	fallbackPool = append(fallbackPool, result.Variants...)
-	fallbackPool = append(fallbackPool, result.Seasonal...)
-	if len(fallbackPool) == 0 {
-		return []routesDomain.RouteRecommendation{}
-	}
-
-	recommendations := make([]routesDomain.RouteRecommendation, 0, len(fallbackPool))
-	for _, recommendation := range fallbackPool {
-		cloned := recommendation
-		cloned.Reasons = append(cloned.Reasons, "Generation fallback: historical route cache")
-		recommendations = append(recommendations, cloned)
-	}
-	return recommendations
-}
-
 func buildShapeGeneratedRoutesResponse(
 	result routesDomain.RouteExplorerResult,
-	distanceTarget *float64,
-	elevationTarget *float64,
 	routeType string,
 	shapeInputType string,
 	shapeFilter string,
@@ -251,161 +115,91 @@ func buildShapeGeneratedRoutesResponse(
 		if _, exists := seen[recommendation.RouteID]; exists {
 			return
 		}
-		score := buildGeneratedRouteScore(recommendation, distanceTarget, elevationTarget, "")
-		converted := dto.ToGeneratedRouteDto(recommendation, score, routeType, "")
+		score := buildGeneratedRouteScore(recommendation)
+		converted := dto.ToGeneratedRouteDto(recommendation, score, routeType)
 		routes = append(routes, converted)
 		seen[recommendation.RouteID] = struct{}{}
 	}
 
 	for _, recommendation := range result.ShapeMatches {
+		if !isShapeGeneratedRouteCandidate(recommendation) {
+			continue
+		}
 		appendRoute(recommendation)
 	}
 	for _, recommendation := range result.RoadGraphLoops {
-		appendRoute(recommendation)
-	}
-	for _, recommendation := range result.ClosestLoops {
-		appendRoute(recommendation)
-	}
-	for _, remix := range result.ShapeRemixes {
-		if len(routes) >= limit {
-			break
-		}
-		if _, exists := seen[remix.ID]; exists {
+		if !isShapeGeneratedRouteCandidate(recommendation) {
 			continue
 		}
-		score := dto.RouteGenerationScoreDto{
-			Global:      clampScore(remix.MatchScore),
-			Distance:    clampScore(remix.MatchScore),
-			Elevation:   clampScore(remix.MatchScore),
-			Duration:    clampScore(remix.MatchScore),
-			Direction:   clampScore(remix.MatchScore),
-			Shape:       clampScore(remix.MatchScore),
-			RoadFitness: 75.0,
-		}
-		routes = append(routes, dto.ToGeneratedRouteFromShapeRemixDto(remix, score, routeType))
-		seen[remix.ID] = struct{}{}
+		appendRoute(recommendation)
 	}
 
-	diagnostics := buildShapeGenerationDiagnostics(routes, distanceTarget, elevationTarget, routeType, shapeInputType, shapeFilter, requestID)
+	diagnostics := buildShapeGenerationDiagnostics(
+		routes,
+		routeType,
+		shapeInputType,
+		shapeFilter,
+		requestID,
+		countIgnoredShapeGenerationCandidates(result),
+	)
 	return dto.GenerateRoutesResponseDto{
 		Routes:      routes,
 		Diagnostics: diagnostics,
 	}
 }
 
-func buildTargetGenerationDiagnostics(
-	distanceTarget float64,
-	elevationTarget *float64,
-	startDirection string,
-	directionStrict bool,
-	strictBacktracking bool,
-	targetMode string,
-	routeType string,
-	requestID string,
-	routes []dto.GeneratedRouteDto,
-) []dto.RouteGenerationDiagnosticDto {
-	if len(routes) > 0 {
-		return buildSuccessfulTargetDiagnostics(routes)
+func isShapeGeneratedRouteCandidate(recommendation routesDomain.RouteRecommendation) bool {
+	switch recommendation.VariantType {
+	case routesDomain.RouteVariantShape, routesDomain.RouteVariantRoadGraph:
+	default:
+		return false
 	}
-
-	diagnostics := []dto.RouteGenerationDiagnosticDto{
-		{Code: "NO_CANDIDATE", Message: "No route candidate matched all current constraints."},
-	}
-
-	if distanceTarget >= 120.0 {
-		diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
-			Code:    "DISTANCE_TOO_FAR",
-			Message: "Distance target is high for the current area and may remove most candidates.",
-		})
-	}
-
-	if elevationTarget != nil && distanceTarget > 0 {
-		elevationPerKm := *elevationTarget / distanceTarget
-		if elevationPerKm > 35.0 {
-			diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
-				Code:    "ELEVATION_TOO_LOW",
-				Message: "Requested elevation gain is likely too high for the selected distance and area.",
-			})
+	for _, reason := range recommendation.Reasons {
+		if strings.HasPrefix(strings.TrimSpace(reason), "Shape mode:") {
+			return true
 		}
 	}
-
-	if strings.EqualFold(strings.TrimSpace(targetMode), "CUSTOM") {
-		diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
-			Code:    "CUSTOM_WAYPOINTS_CONFLICT",
-			Message: "Custom waypoint geometry may be too constrained in this area.",
-		})
-	}
-
-	if strings.EqualFold(strings.TrimSpace(targetMode), "AUTOMATIC") && strings.TrimSpace(startDirection) != "" && directionStrict {
-		diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
-			Code:    "DIRECTION_CONFLICT",
-			Message: "Strict direction can filter out otherwise valid loops.",
-		})
-	}
-	if strictBacktracking {
-		diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
-			Code:    "STRICT_BACKTRACKING",
-			Message: "Strict anti-backtracking mode rejects routes that reuse the same axis too much.",
-		})
-	}
-
-	diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
-		Code:    "BACKTRACKING_FILTERED",
-		Message: "Candidates that return over the same segment in reverse are rejected.",
-	})
-	diagnostics = append(diagnostics, buildTargetFailureSummaryDiagnostic(distanceTarget, elevationTarget, routeType, targetMode, startDirection, requestID))
-
-	return diagnostics
+	return false
 }
 
-func buildTargetFailureSummaryDiagnostic(
-	distanceTarget float64,
-	elevationTarget *float64,
-	routeType string,
-	targetMode string,
-	startDirection string,
-	requestID string,
-) dto.RouteGenerationDiagnosticDto {
-	targetParts := []string{
-		fmt.Sprintf("%s %.1fkm", normalizeGenerateRouteType(routeType), distanceTarget),
+func countIgnoredShapeGenerationCandidates(result routesDomain.RouteExplorerResult) int {
+	ignored := len(result.ClosestLoops) + len(result.ShapeRemixes)
+	for _, recommendation := range result.ShapeMatches {
+		if !isShapeGeneratedRouteCandidate(recommendation) {
+			ignored++
+		}
 	}
-	if elevationTarget != nil {
-		targetParts = append(targetParts, fmt.Sprintf("%.0fm+", *elevationTarget))
+	for _, recommendation := range result.RoadGraphLoops {
+		if !isShapeGeneratedRouteCandidate(recommendation) {
+			ignored++
+		}
 	}
-	if strings.EqualFold(strings.TrimSpace(targetMode), "CUSTOM") {
-		targetParts = append(targetParts, "custom waypoints")
-	} else if direction := strings.TrimSpace(startDirection); direction != "" {
-		targetParts = append(targetParts, fmt.Sprintf("direction=%s", direction))
-	}
-
-	return dto.RouteGenerationDiagnosticDto{
-		Code: "FAILURE_SUMMARY",
-		Message: fmt.Sprintf(
-			"No route generated (%s). Try lowering distance/elevation or relaxing direction constraints. requestId=%s",
-			strings.Join(targetParts, ", "),
-			requestID,
-		),
-	}
+	return ignored
 }
 
 func buildShapeGenerationDiagnostics(
 	routes []dto.GeneratedRouteDto,
-	distanceTarget *float64,
-	elevationTarget *float64,
 	routeType string,
 	shapeInputType string,
 	shapeFilter string,
 	requestID string,
+	ignoredCandidateCount int,
 ) []dto.RouteGenerationDiagnosticDto {
 	if len(routes) > 0 {
-		return []dto.RouteGenerationDiagnosticDto{}
+		return buildSuccessfulGenerationDiagnostics(routes)
 	}
 
 	diagnostics := []dto.RouteGenerationDiagnosticDto{
 		{
 			Code:    "NO_CANDIDATE",
-			Message: "No route candidate matched the provided shape and constraints.",
+			Message: "No route candidate matched the provided shape.",
 		},
+	}
+	if ignoredCandidateCount > 0 {
+		diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
+			Code:    "NON_SHAPE_CANDIDATES_IGNORED",
+			Message: "Historical or non-shape route candidates were ignored because Strava Art only returns OSRM routes generated from the drawing.",
+		})
 	}
 
 	shapeLabel := strings.TrimSpace(shapeFilter)
@@ -415,19 +209,13 @@ func buildShapeGenerationDiagnostics(
 	targetParts := []string{
 		fmt.Sprintf("%s shape=%s", normalizeGenerateRouteType(routeType), shapeLabel),
 	}
-	if distanceTarget != nil {
-		targetParts = append(targetParts, fmt.Sprintf("%.1fkm", *distanceTarget))
-	}
-	if elevationTarget != nil {
-		targetParts = append(targetParts, fmt.Sprintf("%.0fm+", *elevationTarget))
-	}
 	if input := strings.TrimSpace(shapeInputType); input != "" {
 		targetParts = append(targetParts, fmt.Sprintf("input=%s", strings.ToLower(input)))
 	}
 	diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
 		Code: "FAILURE_SUMMARY",
 		Message: fmt.Sprintf(
-			"No route generated (%s). Try simplifying the shape or widening constraints. requestId=%s",
+			"No route generated (%s). Try simplifying the shape or moving the start point. requestId=%s",
 			strings.Join(targetParts, ", "),
 			requestID,
 		),
@@ -436,7 +224,7 @@ func buildShapeGenerationDiagnostics(
 	return diagnostics
 }
 
-func buildSuccessfulTargetDiagnostics(routes []dto.GeneratedRouteDto) []dto.RouteGenerationDiagnosticDto {
+func buildSuccessfulGenerationDiagnostics(routes []dto.GeneratedRouteDto) []dto.RouteGenerationDiagnosticDto {
 	diagnostics := []dto.RouteGenerationDiagnosticDto{}
 	seenCodes := map[string]struct{}{}
 	appendOnce := func(code string, message string) {
@@ -479,57 +267,12 @@ func buildSuccessfulTargetDiagnostics(routes []dto.GeneratedRouteDto) []dto.Rout
 	return diagnostics
 }
 
-func toGeneratedRoutesFromRecommendations(
-	recommendations []routesDomain.RouteRecommendation,
-	distanceTarget *float64,
-	elevationTarget *float64,
-	routeType string,
-	startDirection string,
-	limit int,
-) []dto.GeneratedRouteDto {
-	routes := make([]dto.GeneratedRouteDto, 0, limit)
-	seen := make(map[string]struct{}, limit)
-	for _, recommendation := range recommendations {
-		if len(routes) >= limit {
-			break
-		}
-		if recommendation.RouteID == "" {
-			continue
-		}
-		if _, exists := seen[recommendation.RouteID]; exists {
-			continue
-		}
-		score := buildGeneratedRouteScore(recommendation, distanceTarget, elevationTarget, startDirection)
-		routes = append(routes, dto.ToGeneratedRouteDto(recommendation, score, routeType, startDirection))
-		seen[recommendation.RouteID] = struct{}{}
-	}
-	return routes
-}
-
 // Scoring
 
 func buildGeneratedRouteScore(
 	recommendation routesDomain.RouteRecommendation,
-	distanceTarget *float64,
-	elevationTarget *float64,
-	startDirection string,
 ) dto.RouteGenerationScoreDto {
 	global := clampScore(recommendation.MatchScore)
-	distance := global
-	elevation := global
-	duration := global
-	direction := global
-
-	if distanceTarget != nil && *distanceTarget > 0 {
-		distance = proximityScore(recommendation.DistanceKm, *distanceTarget)
-	}
-	if elevationTarget != nil && *elevationTarget >= 0 {
-		elevation = proximityScore(recommendation.ElevationGainM, *elevationTarget)
-	}
-	if startDirection != "" && recommendation.Start != nil && recommendation.End != nil {
-		direction = directionScore(*recommendation.Start, *recommendation.End, startDirection)
-	}
-
 	shape := 50.0
 	if recommendation.ShapeScore != nil {
 		shape = clampScore(*recommendation.ShapeScore * 100.0)
@@ -546,10 +289,10 @@ func buildGeneratedRouteScore(
 
 	return dto.RouteGenerationScoreDto{
 		Global:      global,
-		Distance:    distance,
-		Elevation:   elevation,
-		Duration:    duration,
-		Direction:   direction,
+		Distance:    global,
+		Elevation:   global,
+		Duration:    global,
+		Direction:   global,
 		Shape:       shape,
 		RoadFitness: roadFitness,
 	}
@@ -570,43 +313,6 @@ func parseSurfaceFitnessReason(reasons []string) (float64, bool) {
 		return clampScore(value), true
 	}
 	return 0, false
-}
-
-func proximityScore(actual float64, target float64) float64 {
-	if target <= 0 {
-		return 50.0
-	}
-	deltaRatio := math.Abs(actual-target) / target
-	return clampScore(100.0 - (deltaRatio * 100.0))
-}
-
-func directionScore(start routesDomain.Coordinates, end routesDomain.Coordinates, expected string) float64 {
-	actual := normalizedDirectionFromCoordinates(start, end)
-	if actual == "" {
-		return 50.0
-	}
-	if actual == expected {
-		return 100.0
-	}
-	return 40.0
-}
-
-func normalizedDirectionFromCoordinates(start routesDomain.Coordinates, end routesDomain.Coordinates) string {
-	dLat := end.Lat - start.Lat
-	dLng := end.Lng - start.Lng
-	if math.Abs(dLat) < 0.0001 && math.Abs(dLng) < 0.0001 {
-		return ""
-	}
-	if math.Abs(dLat) >= math.Abs(dLng) {
-		if dLat >= 0 {
-			return "N"
-		}
-		return "S"
-	}
-	if dLng >= 0 {
-		return "E"
-	}
-	return "W"
 }
 
 func clampScore(value float64) float64 {
@@ -888,29 +594,12 @@ func isValidLatLng(lat float64, lng float64) bool {
 	return lat >= -90.0 && lat <= 90.0 && lng >= -180.0 && lng <= 180.0
 }
 
-// Coordinate conversion helpers
-
-func toRouteCoordinates(points []routeStartPointPayload) []routesDomain.Coordinates {
-	if len(points) == 0 {
-		return []routesDomain.Coordinates{}
-	}
-	coords := make([]routesDomain.Coordinates, 0, len(points))
-	for _, point := range points {
-		coords = append(coords, routesDomain.Coordinates{Lat: point.Lat, Lng: point.Lng})
-	}
-	return coords
-}
-
 func optionalNonEmptyString(value string) *string {
 	normalized := strings.TrimSpace(value)
 	if normalized == "" {
 		return nil
 	}
 	return &normalized
-}
-
-func optionalBool(value bool) *bool {
-	return &value
 }
 
 // findRouteForGPXExport searches a RouteExplorerResult for a matching routeID.

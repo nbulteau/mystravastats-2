@@ -1,6 +1,6 @@
-# Route fallback manual check (API + UI)
+# Strava Art fallback manual check (API + UI)
 
-This guide validates that fallback diagnostics are now visible both in API responses and in the UI even when route generation succeeds.
+This guide validates that fallback diagnostics are visible both in API responses and in the UI for Strava Art generation.
 
 ## Prerequisites
 
@@ -12,49 +12,42 @@ Typical local URLs:
 - Backend: `http://127.0.0.1:8090`
 - Front: `http://127.0.0.1:5173`
 
-## Quick run (API + UI protocol)
+## API protocol
 
 ```bash
-./scripts/manual-route-fallback-check.sh
+curl -sS -X POST "$BACKEND_URL/api/routes/generate/shape?activityType=$ACTIVITY_TYPE" \
+  -H 'Content-Type: application/json' \
+  -H 'X-Request-Id: route-fallback-manual' \
+  -d '{
+    "shapeInputType": "draw",
+    "shapeData": "[[48.157563,-1.587309],[48.165000,-1.570000],[48.157563,-1.587309]]",
+    "startPoint": {"lat": 48.157563, "lng": -1.587309},
+    "routeType": "RUN",
+    "variantCount": 2
+  }' | jq '{routesCount: (.routes | length), diagnostics}'
 ```
-
-The script:
-- checks backend health,
-- optionally resolves a start point from `ACTIVITY_ID`,
-- calls `POST /api/routes/generate/target`,
-- validates that at least one fallback diagnostic code is present,
-- prints a short UI checklist.
 
 ## Useful overrides
 
 ```bash
 BACKEND_URL=http://127.0.0.1:8096 \
 FRONT_URL=http://127.0.0.1:5173 \
-ACTIVITY_ID=1112134846 \
 ACTIVITY_TYPE=Run \
 ROUTE_TYPE=RUN \
-START_DIRECTION=N \
-DISTANCE_TARGET_KM=30 \
 VARIANT_COUNT=1 \
-./scripts/manual-route-fallback-check.sh
-```
-
-If you do not want activity lookup, force coordinates:
-
-```bash
-ACTIVITY_ID= \
 START_LAT=48.157563 \
-START_LNG=-1.587309 \
-./scripts/manual-route-fallback-check.sh
+START_LNG=-1.587309
 ```
 
 ## Expected outcome
 
 - API returns at least one route.
 - API diagnostics include at least one non-blocking fallback code such as:
-  - `DIRECTION_RELAXED`
-  - `DIRECTION_BEST_EFFORT`
   - `BACKTRACKING_RELAXED`
   - `ENGINE_FALLBACK_LEGACY`
+  - `ROUTE_TYPE_FALLBACK`
+  - `START_POINT_SNAPPED`
+  - `SELECTION_RELAXED`
+  - `EMERGENCY_FALLBACK`
 - In the UI, a warning toast appears when such fallback diagnostics are returned.
 - In the UI, diagnostics are visible under the generation panel even when routes are present.

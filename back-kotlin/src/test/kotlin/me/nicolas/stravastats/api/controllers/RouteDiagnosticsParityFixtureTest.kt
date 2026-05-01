@@ -18,7 +18,7 @@ import kotlin.test.fail
 class RouteDiagnosticsParityFixtureTest {
 
     @Test
-    fun `target diagnostics parity fixture maps reasons to expected codes`() {
+    fun `generation diagnostics parity fixture maps reasons to expected codes`() {
         // GIVEN
         val fixture = loadDiagnosticsParityFixture()
         val controller = RoutesController(
@@ -30,7 +30,7 @@ class RouteDiagnosticsParityFixtureTest {
             val routes = listOf(
                 buildGeneratedRoute(reasons = parityCase.reasons),
             )
-            val diagnostics = invokeBuildSuccessfulTargetDiagnostics(controller, routes)
+            val diagnostics = invokeBuildSuccessfulGenerationDiagnostics(controller, routes)
             val gotCodes = diagnostics.map { diagnostic -> diagnostic.code }
 
             assertEquals(
@@ -47,7 +47,6 @@ class RouteDiagnosticsParityFixtureTest {
             title = "Generated parity route",
             variantType = "ROAD_GRAPH",
             routeType = "RIDE",
-            startDirection = "N",
             distanceKm = 42.0,
             elevationGainM = 600.0,
             durationSec = 7200,
@@ -71,12 +70,12 @@ class RouteDiagnosticsParityFixtureTest {
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun invokeBuildSuccessfulTargetDiagnostics(
+    private fun invokeBuildSuccessfulGenerationDiagnostics(
         controller: RoutesController,
         routes: List<GeneratedRouteDto>,
     ): List<RouteGenerationDiagnosticDto> {
         val method = controller.javaClass.getDeclaredMethod(
-            "buildSuccessfulTargetDiagnostics",
+            "buildSuccessfulGenerationDiagnostics",
             List::class.java,
         )
         method.isAccessible = true

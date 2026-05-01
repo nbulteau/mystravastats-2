@@ -12,8 +12,6 @@ const (
 	defaultRoutesVariantCount = 2
 	maxGeneratedVariantCount  = 24
 	generatedRouteCacheTTL    = 6 * time.Hour
-	defaultTargetMode         = "AUTOMATIC"
-	nativeBacktrackingProfile = "ULTRA"
 )
 
 type generatedRouteCacheEntry struct {

@@ -2,19 +2,20 @@
 
 This document is the single source of truth for route generation behavior in both backends (Go and Kotlin).
 
-It merges the former engine matrix and the former v3 constraint-first spec.
+The public generator is now the Strava Art studio: one Draw art workflow that snaps a drawn/imported shape to routable roads.
 
 ## Scope
 
 Covered endpoints:
 
-- `POST /api/routes/generate/target`
 - `POST /api/routes/generate/shape`
+- `GET /api/routes/{routeId}/gpx`
 
 Current runtime behavior:
 
-- v3 disjoint-anchor generation is enabled by default for target mode
-- automatic fallback to legacy synthetic-waypoint generation when needed
+- Draw art is the only public route generation mode
+- distance/elevation/direction targets are not part of the Strava Art request contract
+- shape generation keeps parity between Go and Kotlin
 - parity objective between Go and Kotlin remains mandatory
 - history-profile indexing (step 1) is available behind feature flags and propagated to the routing engine request
 
@@ -25,30 +26,23 @@ History-profile feature flags:
 
 ## Inputs And Normalization
 
-Target input is normalized as follows:
-
-- `routeType`: `RIDE|MTB|GRAVEL|RUN|TRAIL|HIKE` (fallback `RIDE`)
-- `startDirection`: `N|S|E|W|UNDEFINED` (`UNDEFINED` means no global direction constraint)
-- `generationMode`: `AUTOMATIC|CUSTOM`
-- `distanceTargetKm`: required and `> 0`
-- `elevationTargetM`: optional and `>= 0`
-- `variantCount`: clamped to safe max
-
-Shape input is normalized as follows:
+Strava Art input is normalized as follows:
 
 - `shapeInputType`: `draw|polyline|gpx|svg`
 - `shapeData`: required non-empty payload
+- `startPoint`: optional preferred anchor point
+- `routeType`: `RIDE|MTB|GRAVEL|RUN|TRAIL|HIKE` (fallback `RIDE`)
+- `variantCount`: clamped to safe max
 - shape inference accepts JSON coordinates and encoded polyline strings
 
 ## Route Type Matrix
 
-`routeType` drives five decisions:
+`routeType` drives the route intent:
 
 1. OSRM profile selection
-2. candidate scoring weights
-3. anti-overlap/diversity thresholds
-4. cache fallback scoring profile
-5. returned activity tag
+2. surface fitness scoring
+3. cache fallback scoring profile
+4. returned activity tag
 
 | Route type | OSRM profile | OSRM scoring weights (Distance / Elevation / Direction / Diversity) | Min segment diversity | In-cache scoring (Distance / Elevation / Duration) | Returned tag |
 |---|---|---:|---:|---:|---|
@@ -59,65 +53,60 @@ Shape input is normalized as follows:
 | `TRAIL` | `walking` | `0.42 / 0.33 / 0.15 / 0.10` | `0.30` | `0.36 / 0.40 / 0.24` | `TrailRun` |
 | `HIKE` | `walking` | `0.34 / 0.41 / 0.15 / 0.10` | `0.28` | `0.30 / 0.45 / 0.25` | `Hike` |
 
-Dynamic redistribution:
+The numeric columns still describe the internal route explorer and routing engine scoring profiles. Public Strava Art generation does not ask the user for distance, elevation, or direction targets.
 
-- without elevation target, elevation weight is redistributed mostly to distance then diversity
-- without direction target, direction weight is redistributed mostly to distance then diversity
-
-## Target Generator Algorithm
+## Strava Art Generator Algorithm
 
 ### 1. Validate request
 
-- validate start point and numeric targets
-- normalize route type, direction, generation mode, limits
+- validate shape payload and optional start point
+- normalize route type and variant count
+- reject empty/unsupported shape inputs
 
-### 2. Select routing profile
+### 2. Parse and infer shape
 
-- `RUN/TRAIL/HIKE` -> walking profile
-- `RIDE/MTB/GRAVEL` -> cycling profile
+- parse drawn JSON coordinates, wrapped coordinate objects, encoded polylines, or GPX points
+- infer shape family (`LOOP`, `OUT_AND_BACK`, `POINT_TO_POINT`) when coordinates are available
+- keep the raw shape payload so both backends can project/snap the same input
 
-### 3. Generate loop candidates (v3 first)
+### 3. Snap artwork to roads
 
-#### 3.1 v3 disjoint-anchor generation
+The shape endpoint asks the route explorer for shape-aware candidates:
 
-For each sampled anchor around the start point:
+- `shapeMatches`: OSRM shape-mode candidates generated from the drawing; cache-derived shape matches remain internal explorer data
+- `roadGraphLoops`: target/road-graph candidates used by the explorer, not public Strava Art replacements unless they are explicitly shape-mode generated
+- `closestLoops`: historical candidates kept for recommendations and diagnostics, not returned as Strava Art proposals
+- `shapeRemixes`: historical remix candidates for shape composition
 
-- compute outbound path `start -> anchor`
-- compute inbound path `anchor -> start` with axis reuse penalties/constraints
-- merge both into a loop candidate
+Public `POST /api/routes/generate/shape` responses are stricter than the internal explorer result: they only return OSRM candidates generated from the drawing (`Shape mode:*`). If OSRM cannot produce such a candidate, the response is empty with diagnostics instead of substituting an old activity.
 
-Hard anti-backtracking rules during construction:
+Routing strategy parity (Go/Kotlin):
+
+- `shape-first`: projected shape waypoints (high geometry fidelity)
+- `road-first`: compact road anchors from the projected shape (better routability in sparse/complex areas)
+
+Hard anti-backtracking rules remain owned by the routing engine:
 
 - reject opposite traversal on the same axis
-- reject candidate when axis reuse exceeds hard cap
-- keep closure-to-start behavior only for final return logic
-
-State tracked per candidate includes:
-
-- used axis counters
-- opposite-axis usage flags
-- distance/elevation aggregates
-- direction dominance signals
-
-#### 3.2 Legacy fallback generation
-
-If v3 yields no accepted candidate:
-
-- generate synthetic waypoints around start
-- call OSRM with alternatives/full geometry
-- convert routes to internal candidates
+- reject candidates when axis reuse exceeds hard caps
+- keep the 2 km start/finish tolerance behavior explicit
 
 ### 4. Score each candidate
 
-Main metrics:
+Main Strava Art response scores:
 
-- distance delta ratio
-- elevation delta ratio
-- direction penalty (global orientation)
-- backtracking ratio
-- corridor overlap
-- segment diversity
-- surface mix fitness (`paved/gravel/trail/unknown`)
+- `global`: backend match score
+- `shape`: anchored shape match score when available
+- `roadFitness`: surface mix fitness (`paved/gravel/trail/unknown`)
+- `distance`, `elevation`, `duration`, `direction`: mirror `global` because those are no longer user constraints for Strava Art
+
+Shape-mode scoring is stricter than generic route scoring:
+
+- contour similarity after normalization checks the overall form,
+- anchored proximity checks the route against the projected sketch in real map space,
+- ordered path similarity penalizes routes that touch similar areas in the wrong sequence,
+- centroid drift penalizes candidates shifted away from the drawing,
+- low-similarity shape-mode candidates are rejected before selection instead of being shown with a flattering `Art fit`.
 
 Surface scoring signals (Go + Kotlin parity):
 
@@ -144,36 +133,11 @@ Scores:
 - collapse reverse-equivalent geometry
 - keep one candidate per signature
 
-### 6. Progressive relaxation
-
-Candidates are sorted by:
-
-1. corridor overlap ascending
-2. backtracking ratio ascending
-3. effective score descending
-
-Selection levels:
-
-- `strict`
-- `balanced`
-- `relaxed`
-- `fallback`
-
-Relaxed dimensions:
-
-- direction tolerance
-- distance tolerance
-- elevation tolerance
-
-Never relaxed:
-
-- opposite-axis traversal ban
-- hard axis reuse cap
-
-### 7. Return routes and diagnostics
+### 6. Diagnostics
 
 - return generated routes with scores and reasons
-- surface fallback/relaxation diagnostics when relevant, including on success
+- return non-blocking fallback/relaxation diagnostics when relevant, including on success
+- return `NO_CANDIDATE` and `FAILURE_SUMMARY` when no route can be produced
 
 Examples of success diagnostics:
 
@@ -186,9 +150,7 @@ Examples of success diagnostics:
 - `SELECTION_RELAXED`
 - `EMERGENCY_FALLBACK`
 
-## Shape Generator Notes
-
-For `POST /api/routes/generate/shape`:
+## Shape Payload Notes
 
 - accepts `draw|polyline|gpx|svg`
 - keeps raw shape payload for shape projection/routing
@@ -198,11 +160,8 @@ For `POST /api/routes/generate/shape`:
   - wrapped JSON fields (`points`, `coordinates`, `latLng`)
   - encoded polyline string
   - GPX points (`trkpt`, `rtept`, `wpt`) when payload is GPX XML
-- routing strategy parity (Go/Kotlin):
-  - `shape-first`: projected shape waypoints (high geometry fidelity)
-  - `road-first`: compact road anchors from the projected shape (better routability in sparse/complex areas)
 - strategy scoring includes an adaptive low-similarity drift penalty (`road-first` stricter than `shape-first`) so highly off-shape routes are naturally deprioritized
-- both strategies are scored, deduplicated by geometry, then merged through the same relaxation pipeline as target mode
+- both strategies are scored, deduplicated by geometry, then merged into the generated route payload
 
 ## History Profile (Step 1)
 
@@ -236,8 +195,8 @@ Routing health is exposed by `/api/health/details`:
 
 Behavior:
 
-- when routing is up: road-graph generation executes
-- when routing is degraded: no road-graph result, historical fallback stays available
+- when routing is up: OSRM shape-mode generation executes from the drawing
+- when routing is degraded: no public Strava Art route is returned; historical candidates stay available only to the explorer/recommendation layer
 - partial per-call failures remain non-fatal when at least one valid candidate survives
 
 ## Simplified Pseudocode
@@ -245,25 +204,30 @@ Behavior:
 ```text
 normalize(request)
 profile = profileFromRouteType(routeType)
+shape = parseShape(shapeInputType, shapeData)
+shapeFamily = inferShapeFamily(shape)
 
-candidates = v3DisjointAnchorGenerate(start, target, profile, constraints)
-if candidates is empty:
-  candidates = legacySyntheticGenerate(start, target, profile)
+explorerCandidates = shapeMatches(shape, profile)
+explorerCandidates += roadGraphShapeRoutes(shape, profile)
+explorerCandidates += closestHistoricalRoutes(shapeFamily, profile)
+explorerCandidates += shapeRemixes(shape, profile)
 
-for candidate in candidates:
+publicCandidates = onlyOSRMShapeMode(explorerCandidates)
+
+for candidate in publicCandidates:
   computeMetrics(candidate)
   computeScores(candidate)
 
-candidates = dedupeByGeometry(candidates)
+publicCandidates = dedupeByGeometry(publicCandidates)
 candidates = sortBySelectionPriority(candidates)
 
-selected = selectWithRelaxationLevels(candidates, limit)
+selected = candidates.take(limit)
 return selected + diagnostics
 ```
 
 ## Acceptance Targets
 
-- target generation returns a practicable loop in most dense-area local tests
+- Strava Art generation returns a practicable road-snapped route for drawn/GPX/polyline inputs in dense-area local tests
 - anti-backtracking remains strongly constrained outside start/finish tolerance zone
 - route-type behavior remains meaningfully distinct (`Ride` vs `Gravel` vs `MTB`)
 - parity checks remain mandatory across Go/Kotlin

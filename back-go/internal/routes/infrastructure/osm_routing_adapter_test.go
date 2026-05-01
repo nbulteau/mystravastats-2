@@ -1,8 +1,10 @@
 package infrastructure
 
 import (
+	"math"
 	"mystravastats/internal/routes/application"
 	routesDomain "mystravastats/internal/routes/domain"
+	"strings"
 	"testing"
 )
 
@@ -355,6 +357,200 @@ func TestBuildShapeRoadFirstWaypoints_ReturnsAnchoredLoopWithFarAnchors(t *testi
 	}
 }
 
+func TestBuildShapeSimplifiedWaypoints_KeepsSimpleShapeAnchors(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.1300, Lng: -1.6300}
+	circle := prepareShapeForRouting(
+		coordinatesFromLatLng(testCircleLatLng(start.Lat, start.Lng, 1000.0, 72)),
+		start,
+	)
+	square := []routesDomain.Coordinates{
+		destinationFromBearing(start, 1.0, 315.0),
+		destinationFromBearing(start, 1.0, 45.0),
+		destinationFromBearing(start, 1.0, 135.0),
+		destinationFromBearing(start, 1.0, 225.0),
+		destinationFromBearing(start, 1.0, 315.0),
+	}
+	star := coordinatesFromLatLng(testStarLatLng(start.Lat, start.Lng, 1000.0, 420.0))
+	star = prepareShapeForRouting(star, start)
+
+	// WHEN
+	circleWaypoints := buildShapeSimplifiedWaypoints(circle[0], circle)
+	circleShapeFirstWaypoints := buildShapeLoopWaypoints(circle[0], circle)
+	squareWaypoints := buildShapeSimplifiedWaypoints(square[0], square)
+	starWaypoints := buildShapeSimplifiedWaypoints(star[0], star)
+
+	// THEN
+	if len(circleWaypoints) < 7 {
+		t.Fatalf("expected circle to keep enough anchors, got %d", len(circleWaypoints))
+	}
+	if len(circleWaypoints) >= len(circleShapeFirstWaypoints) {
+		t.Fatalf("expected circle anchors to be simpler than shape-first, simplified=%d shape-first=%d", len(circleWaypoints), len(circleShapeFirstWaypoints))
+	}
+	if len(squareWaypoints) != len(square) {
+		t.Fatalf("expected square corners to be preserved, got %d vs %d", len(squareWaypoints), len(square))
+	}
+	if len(starWaypoints) < 10 {
+		t.Fatalf("expected star points to be preserved, got %d", len(starWaypoints))
+	}
+	for label, waypoints := range map[string][]routesDomain.Coordinates{
+		"circle": circleWaypoints,
+		"square": squareWaypoints,
+		"star":   starWaypoints,
+	} {
+		first := waypoints[0]
+		last := waypoints[len(waypoints)-1]
+		if haversineDistanceMeters(first.Lat, first.Lng, last.Lat, last.Lng) > 120.0 {
+			t.Fatalf("expected %s waypoints to close the loop, first=%+v last=%+v", label, first, last)
+		}
+	}
+}
+
+func TestProjectShapePolylineToStart_PreservesMapPlacedShapeAroundStart(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.1300, Lng: -1.6300}
+	shape := coordinatesFromLatLng(testCircleLatLng(start.Lat, start.Lng, 1000.0, 72))
+	targetDistanceKm := polylineDistanceKmFromCoordinates(shape)
+
+	// WHEN
+	projected := projectShapePolylineToStart(shape, start, targetDistanceKm)
+	projectedCenter, _ := shapeCenterAndRadius(projected)
+
+	// THEN
+	if len(projected) != len(shape) {
+		t.Fatalf("expected projected shape to preserve point count, got %d vs %d", len(projected), len(shape))
+	}
+	firstPointDistance := haversineDistanceMeters(start.Lat, start.Lng, projected[0].Lat, projected[0].Lng)
+	if firstPointDistance < 900.0 {
+		t.Fatalf("expected first sketch point to remain on the drawn contour, got %.1fm from start", firstPointDistance)
+	}
+	centerDrift := haversineDistanceMeters(start.Lat, start.Lng, projectedCenter.Lat, projectedCenter.Lng)
+	if centerDrift > 30.0 {
+		t.Fatalf("expected map-placed shape center to stay near start, drift=%.1fm", centerDrift)
+	}
+}
+
+func TestProjectShapePolylineToStart_RecentersRemoteShapeByCenter(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.1300, Lng: -1.6300}
+	remoteShape := coordinatesFromLatLng(testCircleLatLng(45.1885, 5.7245, 1000.0, 72))
+	targetDistanceKm := polylineDistanceKmFromCoordinates(remoteShape)
+
+	// WHEN
+	projected := projectShapePolylineToStart(remoteShape, start, targetDistanceKm)
+	projectedCenter, _ := shapeCenterAndRadius(projected)
+
+	// THEN
+	centerDrift := haversineDistanceMeters(start.Lat, start.Lng, projectedCenter.Lat, projectedCenter.Lng)
+	if centerDrift > 30.0 {
+		t.Fatalf("expected remote shape to be recentered around start, drift=%.1fm", centerDrift)
+	}
+	firstPointDistance := haversineDistanceMeters(start.Lat, start.Lng, projected[0].Lat, projected[0].Lng)
+	if firstPointDistance < 900.0 {
+		t.Fatalf("expected recentered shape to preserve its contour radius, got %.1fm", firstPointDistance)
+	}
+}
+
+func TestPrepareShapeForRouting_RotatesClosedShapeToNearestContourPoint(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.1300, Lng: -1.6300}
+	shape := coordinatesFromLatLng(testCircleLatLng(start.Lat, start.Lng, 1000.0, 72))
+
+	// WHEN
+	routed := prepareShapeForRouting(shape, start)
+
+	// THEN
+	if len(routed) != len(shape) {
+		t.Fatalf("expected routed shape to preserve point count, got %d vs %d", len(routed), len(shape))
+	}
+	firstPointDistance := haversineDistanceMeters(start.Lat, start.Lng, routed[0].Lat, routed[0].Lng)
+	if firstPointDistance < 900.0 {
+		t.Fatalf("expected routing to start on the drawn contour, got %.1fm from start", firstPointDistance)
+	}
+	closureDistance := haversineDistanceMeters(
+		routed[0].Lat,
+		routed[0].Lng,
+		routed[len(routed)-1].Lat,
+		routed[len(routed)-1].Lng,
+	)
+	if closureDistance > 120.0 {
+		t.Fatalf("expected closed routing shape, got closure distance %.1fm", closureDistance)
+	}
+}
+
+func TestBuildShapeBestEffortRoutingStrategies_ReturnsFallbackWaypoints(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.1300, Lng: -1.6300}
+	shape := prepareShapeForRouting(
+		coordinatesFromLatLng(testCircleLatLng(start.Lat, start.Lng, 1000.0, 72)),
+		start,
+	)
+
+	// WHEN
+	strategies := buildShapeBestEffortRoutingStrategies(shape[0], shape)
+
+	// THEN
+	if len(strategies) < 2 {
+		t.Fatalf("expected simplified and envelope fallback strategies, got %d", len(strategies))
+	}
+	for _, strategy := range strategies {
+		if !strategy.bestEffort {
+			t.Fatalf("expected strategy %s to be marked best-effort", strategy.label)
+		}
+		if len(strategy.waypoints) < 3 {
+			t.Fatalf("expected strategy %s to keep at least 3 waypoints, got %d", strategy.label, len(strategy.waypoints))
+		}
+	}
+}
+
+func TestToRouteCandidateBestEffort_KeepsHighlyRetracedShapeRoute(t *testing.T) {
+	// GIVEN
+	adapter := NewOSMRoutingAdapter()
+	start := routesDomain.Coordinates{Lat: 48.1300, Lng: -1.6300}
+	route := osrmRoute{
+		Distance: 9000.0,
+		Duration: 1800.0,
+		Geometry: osrmGeometry{
+			Coordinates: [][]float64{
+				{start.Lng, start.Lat},
+				{start.Lng, start.Lat + 0.035},
+				{start.Lng, start.Lat},
+				{start.Lng, start.Lat + 0.035},
+				{start.Lng, start.Lat},
+			},
+		},
+	}
+	request := application.RoutingEngineRequest{
+		StartPoint:       start,
+		DistanceTargetKm: 4.0,
+		RouteType:        "RIDE",
+		ShapePolyline:    "[[48.13,-1.63],[48.15,-1.63],[48.13,-1.63]]",
+		Limit:            1,
+	}
+	rejectCounts := map[string]int{}
+	if _, ok := adapter.toRouteCandidate(request, route, 0, rejectCounts); ok {
+		t.Fatalf("expected normal candidate conversion to reject excessive retrace")
+	}
+
+	// WHEN
+	candidate, ok := adapter.toRouteCandidateBestEffort(request, route, 0, rejectCounts)
+
+	// THEN
+	if !ok {
+		t.Fatalf("expected best-effort candidate conversion to keep the route")
+	}
+	foundReason := false
+	for _, reason := range candidate.recommendation.Reasons {
+		if strings.Contains(reason, "shape best effort") {
+			foundReason = true
+			break
+		}
+	}
+	if !foundReason {
+		t.Fatalf("expected best-effort reason, got %+v", candidate.recommendation.Reasons)
+	}
+}
+
 func TestShapeModeMatchScore_RoadFirstPenalizesLowShapeSimilarity(t *testing.T) {
 	// GIVEN
 	baseMatch := 78.0
@@ -422,6 +618,46 @@ func TestShapeModeMatchScore_LowSimilarityPrefersShapeFirstOverRoadFirst(t *test
 	}
 }
 
+func TestShapeSimilarityScore_PenalizesAnchoredShapeDrift(t *testing.T) {
+	// GIVEN
+	shape := testCircleLatLng(48.1300, -1.6300, 1000.0, 96)
+	matchingRoute := testCircleLatLng(48.1300, -1.6300, 1000.0, 96)
+	shiftedRoute := testCircleLatLng(48.1300, -1.6460, 1000.0, 96)
+
+	// WHEN
+	matchingScore := shapeSimilarityScore(matchingRoute, shape)
+	shiftedScore := shapeSimilarityScore(shiftedRoute, shape)
+
+	// THEN
+	if matchingScore < 0.95 {
+		t.Fatalf("expected matching circle to keep high shape score, got %.3f", matchingScore)
+	}
+	if shiftedScore > 0.62 {
+		t.Fatalf("expected shifted circle to be rejected-level similarity, got %.3f", shiftedScore)
+	}
+}
+
+func TestShapeSimilarityScore_PenalizesOrderedPathMismatch(t *testing.T) {
+	// GIVEN
+	shape := testCircleLatLng(48.1300, -1.6300, 1000.0, 96)
+	zigzagRoute := [][]float64{
+		{48.1300, -1.6300},
+		{48.1390, -1.6400},
+		{48.1210, -1.6380},
+		{48.1390, -1.6250},
+		{48.1210, -1.6220},
+		{48.1300, -1.6300},
+	}
+
+	// WHEN
+	score := shapeSimilarityScore(zigzagRoute, shape)
+
+	// THEN
+	if score > 0.56 {
+		t.Fatalf("expected zigzag route to fail shape-first similarity floor, got %.3f", score)
+	}
+}
+
 func TestComputeSurfaceBreakdown_UsesSurfaceAndTracktypeTagsWhenAvailable(t *testing.T) {
 	// GIVEN
 	route := osrmRoute{
@@ -456,6 +692,45 @@ func TestComputeSurfaceBreakdown_UsesSurfaceAndTracktypeTagsWhenAvailable(t *tes
 	if unknownRatio != 0.0 {
 		t.Fatalf("expected unknown ratio to be 0.0, got %.3f", unknownRatio)
 	}
+}
+
+func testCircleLatLng(centerLat float64, centerLng float64, radiusMeters float64, pointCount int) [][]float64 {
+	cosLat := math.Cos(degreesToRadians(centerLat))
+	points := make([][]float64, 0, pointCount+1)
+	for index := 0; index <= pointCount; index++ {
+		angle := 2.0 * math.Pi * float64(index) / float64(pointCount)
+		lat := centerLat + math.Sin(angle)*radiusMeters/111320.0
+		lng := centerLng + math.Cos(angle)*radiusMeters/(111320.0*cosLat)
+		points = append(points, []float64{lat, lng})
+	}
+	return points
+}
+
+func testStarLatLng(centerLat float64, centerLng float64, outerRadiusMeters float64, innerRadiusMeters float64) [][]float64 {
+	cosLat := math.Cos(degreesToRadians(centerLat))
+	points := make([][]float64, 0, 11)
+	for index := 0; index <= 10; index++ {
+		radius := outerRadiusMeters
+		if index%2 == 1 {
+			radius = innerRadiusMeters
+		}
+		angle := -math.Pi/2.0 + float64(index)*math.Pi/5.0
+		lat := centerLat + math.Sin(angle)*radius/111320.0
+		lng := centerLng + math.Cos(angle)*radius/(111320.0*cosLat)
+		points = append(points, []float64{lat, lng})
+	}
+	return points
+}
+
+func coordinatesFromLatLng(points [][]float64) []routesDomain.Coordinates {
+	coordinates := make([]routesDomain.Coordinates, 0, len(points))
+	for _, point := range points {
+		if len(point) < 2 {
+			continue
+		}
+		coordinates = append(coordinates, routesDomain.Coordinates{Lat: point[0], Lng: point[1]})
+	}
+	return coordinates
 }
 
 func TestRespectsHalfPlaneDirection_NorthRejectsPointsSouthOfStart(t *testing.T) {

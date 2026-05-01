@@ -40,7 +40,6 @@ var routes = Routes{
 	{Name: "GetSegmentSummaryByActivityType", Method: "GET", Pattern: "/api/segments/{segmentId}/summary", HandlerFunc: getSegmentSummaryByActivityType},
 	{Name: "GetRouteRecommendationsByActivityType", Method: "GET", Pattern: "/api/routes/recommendations", HandlerFunc: getRouteRecommendationsByActivityType},
 	{Name: "GetRouteRecommendationGpxByActivityType", Method: "GET", Pattern: "/api/routes/recommendations/gpx", HandlerFunc: getRouteRecommendationGPXByActivityType},
-	{Name: "GenerateTargetRoutesByActivityType", Method: "POST", Pattern: "/api/routes/generate/target", HandlerFunc: generateTargetRoutesByActivityType},
 	{Name: "GenerateShapeRoutesByActivityType", Method: "POST", Pattern: "/api/routes/generate/shape", HandlerFunc: generateShapeRoutesByActivityType},
 	{Name: "GetGeneratedRouteGpx", Method: "GET", Pattern: "/api/routes/{routeId}/gpx", HandlerFunc: getGeneratedRouteGPXByID},
 	{Name: "PostOSRMStart", Method: "POST", Pattern: "/api/routing/osrm/start", HandlerFunc: postOSRMStart},

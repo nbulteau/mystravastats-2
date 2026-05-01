@@ -10,6 +10,20 @@ const uiStore = useUiStore();
 const route = useRoute();
 
 const isCurrent = (name: string) => route.name === name;
+
+const navItems = [
+  { id: "dashboard-tab", name: "dashboard", controls: "dashboard-tab-pane", to: "/dashboard", label: "Dashboard" },
+  { id: "heatmap-tab", name: "heatmap", controls: "heatmap-tab-pane", to: "/heatmap", label: "Heatmap" },
+  { id: "activities-tab", name: "activities", controls: "activities-tab-pane", to: "/activities", label: "Activities" },
+  { id: "statistics-tab", name: "statistics", controls: "home-tab-pane", to: "/statistics", label: "Statistics" },
+  { id: "charts-tab", name: "charts", controls: "chart-tab-pane", to: "/charts", label: "Charts" },
+  { id: "badges-tab", name: "badges", controls: "badges-tab-pane", to: "/badges", label: "Badges" },
+  { id: "segments-tab", name: "segments", controls: "segments-tab-pane", to: "/segments", label: "Segments" },
+  { id: "map-tab", name: "map", controls: "map-tab-pane", to: "/map", label: "Map" },
+  { id: "routes-tab", name: "routes", controls: "routes-tab-pane", to: "/routes", label: "Strava Art", beta: true },
+  { id: "gear-tab", name: "gear", controls: "gear-tab-pane", to: "/gear", label: "Gear" },
+  { id: "diagnostics-tab", name: "diagnostics", controls: "diagnostics-tab-pane", to: "/diagnostics", label: "Status" },
+] as const;
 </script>
 
 <template>
@@ -23,180 +37,27 @@ const isCurrent = (name: string) => route.name === name;
         role="tablist"
       >
         <li
+          v-for="item in navItems"
+          :key="item.name"
           class="nav-item"
           role="presentation"
         >
           <RouterLink
-            id="dashboard-tab"
+            :id="item.id"
             class="nav-link"
-            :class="{ active: isCurrent('dashboard') }"
+            :class="{ active: isCurrent(item.name) }"
             role="tab"
-            aria-controls="dashboard-tab-pane"
-            :aria-selected="isCurrent('dashboard')"
-            to="/dashboard"
+            :aria-controls="item.controls"
+            :aria-selected="isCurrent(item.name)"
+            :to="item.to"
           >
-            Dashboard
-          </RouterLink>
-        </li>
-        <li
-          class="nav-item"
-          role="presentation"
-        >
-          <RouterLink
-            id="charts-tab"
-            class="nav-link"
-            :class="{ active: isCurrent('charts') }"
-            role="tab"
-            aria-controls="chart-tab-pane"
-            :aria-selected="isCurrent('charts')"
-            to="/charts"
-          >
-            Charts
-          </RouterLink>
-        </li>
-        <li
-          class="nav-item"
-          role="presentation"
-        >
-          <RouterLink
-            id="heatmap-tab"
-            class="nav-link"
-            :class="{ active: isCurrent('heatmap') }"
-            role="tab"
-            aria-controls="heatmap-tab-pane"
-            :aria-selected="isCurrent('heatmap')"
-            to="/heatmap"
-          >
-            Heatmap
-          </RouterLink>
-        </li>
-        <li
-          class="nav-item"
-          role="presentation"
-        >
-          <RouterLink
-            id="statistics-tab"
-            class="nav-link"
-            :class="{ active: isCurrent('statistics') }"
-            role="tab"
-            aria-controls="home-tab-pane"
-            :aria-selected="isCurrent('statistics')"
-            to="/statistics"
-          >
-            Statistics
-          </RouterLink>
-        </li>
-        <li
-          class="nav-item"
-          role="presentation"
-        >
-          <RouterLink
-            id="gear-tab"
-            class="nav-link"
-            :class="{ active: isCurrent('gear') }"
-            role="tab"
-            aria-controls="gear-tab-pane"
-            :aria-selected="isCurrent('gear')"
-            to="/gear"
-          >
-            Gear
-          </RouterLink>
-        </li>
-        <li
-          class="nav-item"
-          role="presentation"
-        >
-          <RouterLink
-            id="badges-tab"
-            class="nav-link"
-            :class="{ active: isCurrent('badges') }"
-            role="tab"
-            aria-controls="badges-tab-pane"
-            :aria-selected="isCurrent('badges')"
-            to="/badges"
-          >
-            Badges
-          </RouterLink>
-        </li>
-        <li
-          class="nav-item"
-          role="presentation"
-        >
-          <RouterLink
-            id="activities-tab"
-            class="nav-link"
-            :class="{ active: isCurrent('activities') }"
-            role="tab"
-            aria-controls="activities-tab-pane"
-            :aria-selected="isCurrent('activities')"
-            to="/activities"
-          >
-            Activities
-          </RouterLink>
-        </li>
-        <li
-          class="nav-item"
-          role="presentation"
-        >
-          <RouterLink
-            id="map-tab"
-            class="nav-link"
-            :class="{ active: isCurrent('map') }"
-            role="tab"
-            aria-controls="map-tab-pane"
-            :aria-selected="isCurrent('map')"
-            to="/map"
-          >
-            Map
-          </RouterLink>
-        </li>
-        <li
-          class="nav-item"
-          role="presentation"
-        >
-          <RouterLink
-            id="segments-tab"
-            class="nav-link"
-            :class="{ active: isCurrent('segments') }"
-            role="tab"
-            aria-controls="segments-tab-pane"
-            :aria-selected="isCurrent('segments')"
-            to="/segments"
-          >
-            Segments
-          </RouterLink>
-        </li>
-        <li
-          class="nav-item"
-          role="presentation"
-        >
-          <RouterLink
-            id="routes-tab"
-            class="nav-link"
-            :class="{ active: isCurrent('routes') }"
-            role="tab"
-            aria-controls="routes-tab-pane"
-            :aria-selected="isCurrent('routes')"
-            to="/routes"
-          >
-            Routes
-            <span class="tab-beta">beta</span>
-          </RouterLink>
-        </li>
-        <li
-          class="nav-item"
-          role="presentation"
-        >
-          <RouterLink
-            id="diagnostics-tab"
-            class="nav-link"
-            :class="{ active: isCurrent('diagnostics') }"
-            role="tab"
-            aria-controls="diagnostics-tab-pane"
-            :aria-selected="isCurrent('diagnostics')"
-            to="/diagnostics"
-          >
-            Status
+            {{ item.label }}
+            <span
+              v-if="'beta' in item && item.beta"
+              class="tab-beta"
+            >
+              beta
+            </span>
           </RouterLink>
         </li>
       </ul>

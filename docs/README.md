@@ -1,6 +1,6 @@
 # MyStravaStats Documentation
 
-MyStravaStats is a personal analytics application for Strava and local activity files. It lets you explore activities, dashboards, charts, heatmaps, maps, badges, best efforts, personal records, gear data, and route generation.
+MyStravaStats is a personal analytics application for Strava and local activity files. It lets you explore activities, dashboards, charts, heatmaps, maps, badges, best efforts, personal records, gear data, and Strava Art route drawing.
 
 This directory is organized by intent: start here, then jump to the page matching the work you are doing.
 
@@ -27,7 +27,7 @@ This directory is organized by intent: start here, then jump to the page matchin
 ## Routing
 
 - [OSRM Setup](./routing/osrm-setup.md)
-- [Route Generation Engine](./routing/generation-engine.md)
+- [Route Generation Engine](./routing/generation-engine.md) - Strava Art / Draw art route generation.
 - [Manual Route Checks](./routing/manual-checks.md)
 
 ## Reference
@@ -37,7 +37,7 @@ This directory is organized by intent: start here, then jump to the page matchin
 
 ## Planning
 
-- [TODO](./TODO.md) remains at the docs root because project instructions refer to this exact path.
+- [TODO](./TODO.md) (TODO is in French) remains at the docs root because project instructions refer to this exact path.
 
 ## Repository Layout
 

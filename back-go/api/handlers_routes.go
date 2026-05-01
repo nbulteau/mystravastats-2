@@ -8,7 +8,6 @@ import (
 	routesDomain "mystravastats/internal/routes/domain"
 	"mystravastats/internal/shared/domain/business"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -69,90 +68,6 @@ func getRouteRecommendationGPXByActivityType(writer http.ResponseWriter, request
 	}
 }
 
-func generateTargetRoutesByActivityType(writer http.ResponseWriter, request *http.Request) {
-	requestID := resolveRouteGenerationRequestID(request)
-	writer.Header().Set("X-Request-Id", requestID)
-	startedAt := time.Now()
-
-	year, activityTypes, err := parseRouteGenerationFilters(request)
-	if err != nil {
-		writeBadRequest(writer, "Invalid request parameters", err.Error())
-		return
-	}
-
-	payload, err := parseGenerateTargetRoutesPayload(request)
-	if err != nil {
-		writeBadRequest(writer, "Invalid request body", err.Error())
-		return
-	}
-	if err := validateGenerateTargetRoutesPayload(payload); err != nil {
-		writeBadRequest(writer, "Invalid request body", err.Error())
-		return
-	}
-
-	routeType := normalizeGenerateRouteType(payload.RouteType)
-	targetMode := normalizeGenerateTargetMode(payload.GenerationMode)
-	startDirection := normalizeGenerateStartDirection(payload.StartDirection)
-	directionStrict := targetMode == "AUTOMATIC" && isUndefinedGenerateStartDirection(payload.StartDirection)
-	if targetMode == "CUSTOM" {
-		startDirection = ""
-		directionStrict = false
-	}
-	// Backtracking profile is native ULTRA and is no longer user-configurable.
-	const strictBacktracking = true
-	variantCount := normalizeGenerateVariantCount(payload.VariantCount)
-	preferredStart := &routesDomain.Coordinates{
-		Lat: payload.StartPoint.Lat,
-		Lng: payload.StartPoint.Lng,
-	}
-
-	req := routesDomain.RouteExplorerRequest{
-		DistanceTargetKm:    &payload.DistanceTarget,
-		ElevationTargetM:    payload.ElevationTarget,
-		StartPoint:          preferredStart,
-		StartDirection:      optionalNonEmptyString(startDirection),
-		DirectionStrict:     optionalBool(directionStrict),
-		StrictBacktracking:  optionalBool(strictBacktracking),
-		BacktrackingProfile: optionalNonEmptyString(nativeBacktrackingProfile),
-		TargetMode:          optionalNonEmptyString(targetMode),
-		CustomWaypoints:     toRouteCoordinates(payload.CustomWaypoints),
-		RouteType:           optionalNonEmptyString(routeType),
-		Limit:               variantCount,
-	}
-
-	result := getContainer().getRouteExplorerUseCase.Execute(year, req, activityTypes)
-	response := buildTargetGeneratedRoutesResponse(
-		result,
-		payload.DistanceTarget,
-		payload.ElevationTarget,
-		routeType,
-		startDirection,
-		directionStrict,
-		strictBacktracking,
-		targetMode,
-		requestID,
-		variantCount,
-	)
-	cacheGeneratedRoutes(response.Routes)
-	logRouteGenerationSummary(
-		"target",
-		requestID,
-		routeType,
-		payload.DistanceTarget,
-		payload.ElevationTarget,
-		startDirection,
-		payload.GenerationMode,
-		variantCount,
-		response,
-		time.Since(startedAt),
-	)
-
-	if err := writeJSON(writer, http.StatusOK, response); err != nil {
-		log.Printf("failed to write generated target routes response: %v", err)
-		writeInternalServerError(writer, "Failed to encode generated routes response")
-	}
-}
-
 func generateShapeRoutesByActivityType(writer http.ResponseWriter, request *http.Request) {
 	requestID := resolveRouteGenerationRequestID(request)
 	writer.Header().Set("X-Request-Id", requestID)
@@ -186,20 +101,16 @@ func generateShapeRoutesByActivityType(writer http.ResponseWriter, request *http
 	}
 
 	req := routesDomain.RouteExplorerRequest{
-		DistanceTargetKm: payload.DistanceTarget,
-		ElevationTargetM: payload.ElevationTarget,
-		StartPoint:       preferredStart,
-		RouteType:        optionalNonEmptyString(routeType),
-		Limit:            variantCount,
-		Shape:            optionalNonEmptyString(shapeFilter),
-		ShapePolyline:    optionalNonEmptyString(strings.TrimSpace(payload.ShapeData)),
-		IncludeRemix:     true,
+		StartPoint:    preferredStart,
+		RouteType:     optionalNonEmptyString(routeType),
+		Limit:         variantCount,
+		Shape:         optionalNonEmptyString(shapeFilter),
+		ShapePolyline: optionalNonEmptyString(strings.TrimSpace(payload.ShapeData)),
+		IncludeRemix:  true,
 	}
 	result := getContainer().getRouteExplorerUseCase.Execute(year, req, activityTypes)
 	response := buildShapeGeneratedRoutesResponse(
 		result,
-		payload.DistanceTarget,
-		payload.ElevationTarget,
 		routeType,
 		payload.ShapeInputType,
 		shapeFilter,
@@ -211,9 +122,6 @@ func generateShapeRoutesByActivityType(writer http.ResponseWriter, request *http
 		"shape",
 		requestID,
 		routeType,
-		derefRouteGenerationOptionalFloat(payload.DistanceTarget),
-		payload.ElevationTarget,
-		"",
 		payload.ShapeInputType,
 		variantCount,
 		response,
@@ -258,16 +166,6 @@ func getGeneratedRouteGPXByID(writer http.ResponseWriter, request *http.Request)
 	}
 }
 
-// parseGenerateTargetRoutesPayload decodes a generateTargetRoutesPayload from the request body.
-func parseGenerateTargetRoutesPayload(request *http.Request) (generateTargetRoutesPayload, error) {
-	defer func() { _ = request.Body.Close() }()
-	var payload generateTargetRoutesPayload
-	if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
-		return generateTargetRoutesPayload{}, fmt.Errorf("target payload is invalid")
-	}
-	return payload, nil
-}
-
 // parseGenerateShapeRoutesPayload decodes a generateShapeRoutesPayload from the request body.
 func parseGenerateShapeRoutesPayload(request *http.Request) (generateShapeRoutesPayload, error) {
 	defer func() { _ = request.Body.Close() }()
@@ -307,36 +205,23 @@ func logRouteGenerationSummary(
 	mode string,
 	requestID string,
 	routeType string,
-	distanceTarget float64,
-	elevationTarget *float64,
-	startDirection string,
 	requestMode string,
 	variantCount int,
 	response dto.GenerateRoutesResponseDto,
 	elapsed time.Duration,
 ) {
 	log.Printf(
-		"category=routes requestId=%s mode=%s requestMode=%s routeType=%s distanceKm=%.1f elevationM=%s startDirection=%s variantCount=%d generatedRoutes=%d diagnostics=%s routeReasons=%s durationMs=%d",
+		"category=routes requestId=%s mode=%s requestMode=%s routeType=%s variantCount=%d generatedRoutes=%d diagnostics=%s routeReasons=%s durationMs=%d",
 		requestID,
 		mode,
 		routeGenerationLogValue(strings.ToUpper(strings.TrimSpace(requestMode))),
 		routeGenerationLogValue(routeType),
-		distanceTarget,
-		formatRouteGenerationElevation(elevationTarget),
-		routeGenerationLogValue(startDirection),
 		variantCount,
 		len(response.Routes),
 		diagnosticsCodeSummary(response.Diagnostics),
 		routeReasonSummary(response.Routes),
 		elapsed.Milliseconds(),
 	)
-}
-
-func formatRouteGenerationElevation(value *float64) string {
-	if value == nil {
-		return "none"
-	}
-	return strconv.FormatFloat(*value, 'f', 0, 64)
 }
 
 func routeGenerationLogValue(value string) string {
@@ -396,11 +281,4 @@ func routeReasonSummary(routes []dto.GeneratedRouteDto) string {
 		return "none"
 	}
 	return strings.Join(reasons, "|")
-}
-
-func derefRouteGenerationOptionalFloat(value *float64) float64 {
-	if value == nil {
-		return 0
-	}
-	return *value
 }

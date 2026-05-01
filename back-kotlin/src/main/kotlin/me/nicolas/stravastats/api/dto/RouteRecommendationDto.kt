@@ -75,7 +75,6 @@ data class GeneratedRouteDto(
     val title: String,
     val variantType: String,
     val routeType: String?,
-    val startDirection: String?,
     val distanceKm: Double,
     val elevationGainM: Double,
     val durationSec: Int,
@@ -106,26 +105,10 @@ data class RouteStartPointDto(
     val lng: Double,
 )
 
-data class GenerateTargetRoutesRequestDto(
-    val startPoint: RouteStartPointDto?,
-    val generationMode: String?,
-    val customWaypoints: List<RouteStartPointDto>?,
-    val routeType: String?,
-    val startDirection: String?,
-    val strictDirection: Boolean? = null,
-    val strictBacktracking: Boolean? = null,
-    val backtrackingProfile: String? = null,
-    val distanceTargetKm: Double?,
-    val elevationTargetM: Double?,
-    val variantCount: Int?,
-)
-
 data class GenerateShapeRoutesRequestDto(
     val shapeInputType: String?,
     val shapeData: String?,
     val startPoint: RouteStartPointDto?,
-    val distanceTargetKm: Double?,
-    val elevationTargetM: Double?,
     val routeType: String?,
     val variantCount: Int?,
 )

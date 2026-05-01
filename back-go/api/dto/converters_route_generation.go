@@ -1,12 +1,14 @@
 package dto
 
-import routesDomain "mystravastats/internal/routes/domain"
+import (
+	routesDomain "mystravastats/internal/routes/domain"
+	"strings"
+)
 
 func ToGeneratedRouteDto(
 	recommendation routesDomain.RouteRecommendation,
 	score RouteGenerationScoreDto,
 	routeType string,
-	startDirection string,
 ) GeneratedRouteDto {
 	var activityID *int64
 	if recommendation.Activity.Id != 0 {
@@ -24,7 +26,6 @@ func ToGeneratedRouteDto(
 		Title:                title,
 		VariantType:          string(recommendation.VariantType),
 		RouteType:            routeType,
-		StartDirection:       startDirection,
 		DistanceKm:           recommendation.DistanceKm,
 		ElevationGainM:       recommendation.ElevationGainM,
 		DurationSec:          recommendation.DurationSec,
@@ -35,8 +36,20 @@ func ToGeneratedRouteDto(
 		Start:                toRouteCoordinateDto(recommendation.Start),
 		End:                  toRouteCoordinateDto(recommendation.End),
 		ActivityID:           activityID,
-		IsRoadGraphGenerated: recommendation.VariantType == routesDomain.RouteVariantRoadGraph,
+		IsRoadGraphGenerated: isRoadGraphGeneratedRecommendation(recommendation),
 	}
+}
+
+func isRoadGraphGeneratedRecommendation(recommendation routesDomain.RouteRecommendation) bool {
+	if recommendation.VariantType == routesDomain.RouteVariantRoadGraph {
+		return true
+	}
+	for _, reason := range recommendation.Reasons {
+		if strings.TrimSpace(reason) == "Generated with OSM road graph (OSRM)" {
+			return true
+		}
+	}
+	return false
 }
 
 func ToGeneratedRouteFromShapeRemixDto(

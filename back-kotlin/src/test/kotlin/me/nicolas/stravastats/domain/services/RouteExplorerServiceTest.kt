@@ -497,6 +497,73 @@ class RouteExplorerServiceTest {
     }
 
     @Test
+    fun `route explorer still calls shape routing engine when cache candidates are empty`() {
+        // GIVEN
+        val activityTypes = setOf(ActivityType.Ride)
+        every { activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, 2026) } returns emptyList()
+
+        val generatedShape = RouteRecommendation(
+            routeId = "generated-shape-empty-cache",
+            activity = ActivityShort(id = 0L, name = "Generated Shape", type = ActivityType.Ride),
+            activityDate = "2026-01-01T08:00:00Z",
+            distanceKm = 12.4,
+            elevationGainM = 120.0,
+            durationSec = 2400,
+            isLoop = true,
+            start = Coordinates(45.0, 6.0),
+            end = Coordinates(45.0, 6.0),
+            startArea = "45.0000, 6.0000",
+            season = "WINTER",
+            variantType = RouteVariantType.SHAPE_MATCH,
+            matchScore = 91.0,
+            reasons = listOf(
+                "Generated with OSM road graph (OSRM)",
+                "Shape similarity: 91%",
+                "Shape mode: projected waypoints",
+            ),
+            previewLatLng = listOf(
+                listOf(45.0, 6.0),
+                listOf(45.02, 6.02),
+                listOf(45.0, 6.0),
+            ),
+            shape = "CUSTOM_SHAPE",
+            shapeScore = 0.91,
+            experimental = false,
+        )
+        var capturedShapeRequest: RoutingEngineRequest? = null
+        val engine = object : RoutingEnginePort {
+            override fun generateTargetLoops(request: RoutingEngineRequest): List<RouteRecommendation> = emptyList()
+            override fun generateShapeLoops(request: RoutingEngineRequest): List<RouteRecommendation> {
+                capturedShapeRequest = request
+                return listOf(generatedShape)
+            }
+
+            override fun healthDetails(): Map<String, Any?> = mapOf("status" to "up")
+        }
+        val serviceWithEngine = RouteExplorerService(activityProvider, engine)
+        val shapePolyline = "[[45.0,6.0],[45.02,6.02],[45.0,6.0]]"
+        val request = RouteExplorerRequest(
+            distanceTargetKm = null,
+            elevationTargetM = null,
+            durationTargetMin = null,
+            startPoint = Coordinates(lat = 45.0, lng = 6.0),
+            routeType = "RIDE",
+            season = null,
+            limit = 5,
+            shape = "LOOP",
+            shapePolyline = shapePolyline,
+            includeRemix = true,
+        )
+
+        // WHEN
+        val result = serviceWithEngine.getRouteExplorer(activityTypes, 2026, request)
+
+        // THEN
+        assertEquals("generated-shape-empty-cache", result.shapeMatches.firstOrNull()?.routeId)
+        assertEquals(shapePolyline, capturedShapeRequest?.shapePolyline)
+    }
+
+    @Test
     fun `route explorer forwards history profile when history bias flag is enabled`() {
         // GIVEN
         val activityTypes = setOf(ActivityType.Ride)

@@ -1,5 +1,4 @@
-export type RouteMode = "TARGET" | "SHAPE";
-export type TargetGenerationMode = "AUTOMATIC" | "CUSTOM";
+export type RouteMode = "SHAPE";
 
 export type RouteType =
   | "RIDE"
@@ -8,13 +7,6 @@ export type RouteType =
   | "RUN"
   | "TRAIL"
   | "HIKE";
-
-export type StartDirection =
-  | "UNDEFINED"
-  | "N"
-  | "S"
-  | "E"
-  | "W";
 
 export type ShapeInputType =
   | "draw"
@@ -41,7 +33,6 @@ export interface GeneratedRoute {
   title: string;
   variantType: string;
   routeType?: string;
-  startDirection?: string;
   distanceKm: number;
   elevationGainM: number;
   durationSec: number;

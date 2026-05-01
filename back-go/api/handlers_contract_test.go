@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"slices"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -31,6 +31,34 @@ type contractErrorResponse struct {
 	Message     string `json:"message"`
 	Description string `json:"description"`
 	Code        int    `json:"code"`
+}
+
+type stravaArtSmokeFixture struct {
+	ShapeInputType         string                 `json:"shapeInputType"`
+	ShapeData              string                 `json:"shapeData"`
+	StartPoint             routeStartPointPayload `json:"startPoint"`
+	RouteType              string                 `json:"routeType"`
+	VariantCount           int                    `json:"variantCount"`
+	GeneratedRouteID       string                 `json:"generatedRouteId"`
+	GeneratedRouteName     string                 `json:"generatedRouteName"`
+	GeneratedPreviewLatLng [][]float64            `json:"generatedPreviewLatLng"`
+}
+
+func loadStravaArtSmokeFixture(t *testing.T) stravaArtSmokeFixture {
+	t.Helper()
+	fixturePath, err := findRouteFixtureFile("test-fixtures/routes/strava-art-smoke.json")
+	if err != nil {
+		t.Fatalf("failed to locate Strava Art smoke fixture file: %v", err)
+	}
+	payload, err := os.ReadFile(fixturePath)
+	if err != nil {
+		t.Fatalf("failed to read Strava Art smoke fixture file %q: %v", fixturePath, err)
+	}
+	var fixture stravaArtSmokeFixture
+	if err := json.Unmarshal(payload, &fixture); err != nil {
+		t.Fatalf("failed to decode Strava Art smoke fixture file %q: %v", fixturePath, err)
+	}
+	return fixture
 }
 
 type contractActivitiesReaderStub struct {
@@ -844,10 +872,13 @@ func TestGetDashboardAnnualGoals_MissingYear_Returns400(t *testing.T) {
 	}
 }
 
-func TestGenerateTargetRoutesByActivityType_ReturnsGeneratedRoutesAndCachesForGPX(t *testing.T) {
+func TestGenerateShapeRoutesByActivityType_StravaArtSmokeGeneratesAndExportsGPX(t *testing.T) {
 	// GIVEN
 	// WHEN
 	// THEN
+	fixture := loadStravaArtSmokeFixture(t)
+	shapeName := "CUSTOM_SHAPE"
+	shapeScore := 0.91
 	generatedRouteCache.mu.Lock()
 	generatedRouteCache.items = map[string]generatedRouteCacheEntry{}
 	generatedRouteCache.mu.Unlock()
@@ -855,35 +886,45 @@ func TestGenerateTargetRoutesByActivityType_ReturnsGeneratedRoutesAndCachesForGP
 	setTestContainer(t, &container{
 		getRouteExplorerUseCase: routesApp.NewGetRouteExplorerUseCase(&contractRoutesReaderStub{
 			result: routesDomain.RouteExplorerResult{
-				RoadGraphLoops: []routesDomain.RouteRecommendation{
+				ShapeMatches: []routesDomain.RouteRecommendation{
 					{
-						RouteID:        "generated-loop-1",
-						Activity:       business.ActivityShort{Id: 1234, Name: "Generated loop", Type: business.Ride},
+						RouteID:        fixture.GeneratedRouteID,
+						Activity:       business.ActivityShort{Id: 1234, Name: fixture.GeneratedRouteName, Type: business.Ride},
 						DistanceKm:     42.1,
 						ElevationGainM: 860,
 						DurationSec:    7200,
-						VariantType:    routesDomain.RouteVariantRoadGraph,
+						VariantType:    routesDomain.RouteVariantShape,
 						MatchScore:     91.4,
-						Reasons:        []string{"Road-graph generated loop"},
-						PreviewLatLng:  [][]float64{{45.0, 6.0}, {45.01, 6.02}, {45.0, 6.0}},
+						Reasons: []string{
+							"Generated with OSM road graph (OSRM)",
+							"Shape similarity: 91%",
+							"Shape mode: projected waypoints",
+						},
+						PreviewLatLng: fixture.GeneratedPreviewLatLng,
+						Shape:         &shapeName,
+						ShapeScore:    &shapeScore,
 					},
 				},
 			},
 		}),
 	})
 
-	request := httptest.NewRequest(http.MethodPost, "/api/routes/generate/target?activityType=Ride&year=2025", strings.NewReader(`{
-	  "startPoint": {"lat": 45.1, "lng": 6.1},
-	  "routeType": "RIDE",
-	  "startDirection": "N",
-	  "distanceTargetKm": 42,
-	  "elevationTargetM": 900,
-	  "variantCount": 3
-	}`))
+	requestPayload := map[string]any{
+		"shapeInputType": fixture.ShapeInputType,
+		"shapeData":      fixture.ShapeData,
+		"startPoint":     fixture.StartPoint,
+		"routeType":      fixture.RouteType,
+		"variantCount":   fixture.VariantCount,
+	}
+	requestBody, err := json.Marshal(requestPayload)
+	if err != nil {
+		t.Fatalf("failed to encode smoke request body: %v", err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/api/routes/generate/shape?activityType=Ride&year=2025", strings.NewReader(string(requestBody)))
 	request.Header.Set("Content-Type", "application/json")
 	recorder := httptest.NewRecorder()
 
-	generateTargetRoutesByActivityType(recorder, request)
+	generateShapeRoutesByActivityType(recorder, request)
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d (%s)", recorder.Code, recorder.Body.String())
@@ -897,9 +938,16 @@ func TestGenerateTargetRoutesByActivityType_ReturnsGeneratedRoutesAndCachesForGP
 	if !ok || len(routes) == 0 {
 		t.Fatalf("expected routes array, got %+v", response)
 	}
+	firstRoute, ok := routes[0].(map[string]any)
+	if !ok {
+		t.Fatalf("expected first route object, got %+v", routes[0])
+	}
+	if got := firstRoute["routeId"]; got != fixture.GeneratedRouteID {
+		t.Fatalf("expected routeId %q, got %v", fixture.GeneratedRouteID, got)
+	}
 
-	gpxRequest := httptest.NewRequest(http.MethodGet, "/api/routes/generated-loop-1/gpx", nil)
-	gpxRequest = mux.SetURLVars(gpxRequest, map[string]string{"routeId": "generated-loop-1"})
+	gpxRequest := httptest.NewRequest(http.MethodGet, "/api/routes/"+fixture.GeneratedRouteID+"/gpx", nil)
+	gpxRequest = mux.SetURLVars(gpxRequest, map[string]string{"routeId": fixture.GeneratedRouteID})
 	gpxRecorder := httptest.NewRecorder()
 	getGeneratedRouteGPXByID(gpxRecorder, gpxRequest)
 
@@ -911,44 +959,71 @@ func TestGenerateTargetRoutesByActivityType_ReturnsGeneratedRoutesAndCachesForGP
 	}
 }
 
-func TestGenerateTargetRoutesByActivityType_ReturnsFallbackDiagnosticsWhenRouteIsRelaxed(t *testing.T) {
+func TestGenerateShapeRoutesByActivityType_IgnoresHistoricalCandidates(t *testing.T) {
 	// GIVEN
+	// WHEN
+	// THEN
+	shapeName := "LOOP"
+	shapeScore := 0.82
 	setTestContainer(t, &container{
 		getRouteExplorerUseCase: routesApp.NewGetRouteExplorerUseCase(&contractRoutesReaderStub{
 			result: routesDomain.RouteExplorerResult{
+				ShapeMatches: []routesDomain.RouteRecommendation{
+					{
+						RouteID:        "old-shape-match",
+						Activity:       business.ActivityShort{Id: 91, Name: "Already done shape", Type: business.Ride},
+						DistanceKm:     39.2,
+						ElevationGainM: 640,
+						DurationSec:    6500,
+						VariantType:    routesDomain.RouteVariantShape,
+						MatchScore:     88.0,
+						Reasons:        []string{"Shape match: loop", "Route geometry confidence 82%"},
+						PreviewLatLng:  [][]float64{{45.18, 5.72}, {45.19, 5.73}},
+						Shape:          &shapeName,
+						ShapeScore:     &shapeScore,
+					},
+				},
 				RoadGraphLoops: []routesDomain.RouteRecommendation{
 					{
-						RouteID:        "generated-loop-relaxed-direction",
-						Activity:       business.ActivityShort{Id: 999, Name: "Generated relaxed loop", Type: business.Ride},
-						DistanceKm:     39.8,
-						ElevationGainM: 780,
+						RouteID:        "cache-road-graph",
+						Activity:       business.ActivityShort{Id: 0, Name: "Generated from cache", Type: business.Ride},
+						DistanceKm:     41.0,
+						ElevationGainM: 700,
 						DurationSec:    6900,
 						VariantType:    routesDomain.RouteVariantRoadGraph,
-						MatchScore:     88.5,
-						Reasons: []string{
-							"Direction relaxed: no route found with requested heading",
-							"Selection profile: directional-best-effort",
-						},
-						PreviewLatLng: [][]float64{{45.0, 6.0}, {45.04, 6.03}, {45.0, 6.0}},
+						MatchScore:     84.0,
+						Reasons:        []string{"Generated on cache road-graph (beta)", "Built from local road-network connectivity"},
+						PreviewLatLng:  [][]float64{{45.18, 5.72}, {45.20, 5.75}},
+					},
+				},
+				ClosestLoops: []routesDomain.RouteRecommendation{
+					{
+						RouteID:        "old-closest-loop",
+						Activity:       business.ActivityShort{Id: 92, Name: "Already done ride", Type: business.Ride},
+						DistanceKm:     42.0,
+						ElevationGainM: 720,
+						DurationSec:    7000,
+						VariantType:    routesDomain.RouteVariantClosest,
+						MatchScore:     82.0,
+						Reasons:        []string{"Historical match"},
+						PreviewLatLng:  [][]float64{{45.18, 5.72}, {45.21, 5.76}},
 					},
 				},
 			},
 		}),
 	})
 
-	request := httptest.NewRequest(http.MethodPost, "/api/routes/generate/target?activityType=Ride", strings.NewReader(`{
-	  "startPoint": {"lat": 45.1, "lng": 6.1},
-	  "routeType": "RIDE",
-	  "startDirection": "N",
-	  "distanceTargetKm": 40
+	request := httptest.NewRequest(http.MethodPost, "/api/routes/generate/shape?activityType=Ride", strings.NewReader(`{
+	  "shapeInputType": "draw",
+	  "shapeData": "[[45.18,5.72],[45.20,5.75],[45.18,5.72]]",
+	  "startPoint": {"lat": 45.19, "lng": 5.73},
+	  "routeType": "RIDE"
 	}`))
 	request.Header.Set("Content-Type", "application/json")
 	recorder := httptest.NewRecorder()
 
-	// WHEN
-	generateTargetRoutesByActivityType(recorder, request)
+	generateShapeRoutesByActivityType(recorder, request)
 
-	// THEN
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d (%s)", recorder.Code, recorder.Body.String())
 	}
@@ -957,84 +1032,30 @@ func TestGenerateTargetRoutesByActivityType_ReturnsFallbackDiagnosticsWhenRouteI
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 		t.Fatalf("failed to decode JSON response: %v", err)
 	}
-
-	diagnostics, ok := response["diagnostics"].([]any)
-	if !ok || len(diagnostics) == 0 {
-		t.Fatalf("expected non-empty diagnostics, got %+v", response["diagnostics"])
+	routes, ok := response["routes"].([]any)
+	if !ok {
+		t.Fatalf("expected routes array, got %+v", response)
 	}
-
-	var diagnosticCodes []string
-	for _, entry := range diagnostics {
-		item, ok := entry.(map[string]any)
-		if !ok {
-			t.Fatalf("expected diagnostics entry object, got %+v", entry)
-		}
-		code, _ := item["code"].(string)
-		diagnosticCodes = append(diagnosticCodes, code)
-	}
-
-	if !slices.Contains(diagnosticCodes, "DIRECTION_RELAXED") {
-		t.Fatalf("expected DIRECTION_RELAXED diagnostic, got %v", diagnosticCodes)
-	}
-	if !slices.Contains(diagnosticCodes, "DIRECTION_BEST_EFFORT") {
-		t.Fatalf("expected DIRECTION_BEST_EFFORT diagnostic, got %v", diagnosticCodes)
-	}
-}
-
-func TestGenerateTargetRoutesByActivityType_ReturnsFailureSummaryAndRequestIDHeader(t *testing.T) {
-	// GIVEN
-	setTestContainer(t, &container{
-		getRouteExplorerUseCase: routesApp.NewGetRouteExplorerUseCase(&contractRoutesReaderStub{
-			result: routesDomain.RouteExplorerResult{},
-		}),
-	})
-
-	request := httptest.NewRequest(http.MethodPost, "/api/routes/generate/target?activityType=Ride", strings.NewReader(`{
-	  "startPoint": {"lat": 45.1, "lng": 6.1},
-	  "routeType": "RIDE",
-	  "startDirection": "N",
-	  "distanceTargetKm": 42,
-	  "elevationTargetM": 900
-	}`))
-	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Request-Id", "req-target-123")
-	recorder := httptest.NewRecorder()
-
-	// WHEN
-	generateTargetRoutesByActivityType(recorder, request)
-
-	// THEN
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d (%s)", recorder.Code, recorder.Body.String())
-	}
-	if got := recorder.Header().Get("X-Request-Id"); got != "req-target-123" {
-		t.Fatalf("expected X-Request-Id=req-target-123, got %q", got)
-	}
-
-	var response map[string]any
-	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
-		t.Fatalf("failed to decode JSON response: %v", err)
+	if len(routes) != 0 {
+		t.Fatalf("expected historical candidates to be ignored, got %+v", routes)
 	}
 	diagnostics, ok := response["diagnostics"].([]any)
-	if !ok || len(diagnostics) == 0 {
-		t.Fatalf("expected diagnostics array, got %+v", response["diagnostics"])
+	if !ok {
+		t.Fatalf("expected diagnostics array, got %+v", response)
 	}
-
-	var hasSummary bool
+	var hasIgnoredDiagnostic bool
 	for _, entry := range diagnostics {
 		item, ok := entry.(map[string]any)
 		if !ok {
 			continue
 		}
-		code, _ := item["code"].(string)
-		message, _ := item["message"].(string)
-		if code == "FAILURE_SUMMARY" {
-			hasSummary = strings.Contains(message, "requestId=req-target-123")
+		if item["code"] == "NON_SHAPE_CANDIDATES_IGNORED" {
+			hasIgnoredDiagnostic = true
 			break
 		}
 	}
-	if !hasSummary {
-		t.Fatalf("expected FAILURE_SUMMARY containing request id, got %+v", diagnostics)
+	if !hasIgnoredDiagnostic {
+		t.Fatalf("expected NON_SHAPE_CANDIDATES_IGNORED diagnostic, got %+v", diagnostics)
 	}
 }
 
@@ -1076,8 +1097,7 @@ func TestGenerateShapeRoutesByActivityType_ReturnsFailureSummaryAndRequestIDHead
 	request := httptest.NewRequest(http.MethodPost, "/api/routes/generate/shape?activityType=Ride", strings.NewReader(`{
 	  "shapeInputType": "draw",
 	  "shapeData": "[[45.0,6.0],[45.1,6.1]]",
-	  "routeType": "RIDE",
-	  "distanceTargetKm": 30
+	  "routeType": "RIDE"
 	}`))
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-Request-Id", "req-shape-456")
@@ -1196,103 +1216,5 @@ func TestGenerateShapeRoutesByActivityType_GPX_InfersShapeFilter(t *testing.T) {
 	}
 	if got := *routesReader.capturedRequest.ShapePolyline; got != gpxData {
 		t.Fatalf("expected shapePolyline %q, got %q", gpxData, got)
-	}
-}
-
-func TestGenerateTargetRoutesByActivityType_CustomModeWithoutWaypoints_Returns400(t *testing.T) {
-	// GIVEN
-	// WHEN
-	// THEN
-	request := httptest.NewRequest(http.MethodPost, "/api/routes/generate/target?activityType=Ride", strings.NewReader(`{
-	  "startPoint": {"lat": 45.1, "lng": 6.1},
-	  "generationMode": "CUSTOM",
-	  "routeType": "RIDE",
-	  "distanceTargetKm": 42
-	}`))
-	request.Header.Set("Content-Type", "application/json")
-	recorder := httptest.NewRecorder()
-
-	generateTargetRoutesByActivityType(recorder, request)
-
-	if recorder.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", recorder.Code)
-	}
-
-	var response contractErrorResponse
-	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
-		t.Fatalf("failed to decode JSON response: %v", err)
-	}
-	if response.Message != "Invalid request body" {
-		t.Fatalf("expected message 'Invalid request body', got %q", response.Message)
-	}
-}
-
-func TestGenerateTargetRoutesByActivityType_FallsBackToHistoricalRoutesWhenRoadGraphUnavailable(t *testing.T) {
-	// GIVEN
-	// WHEN
-	// THEN
-	setTestContainer(t, &container{
-		getRouteExplorerUseCase: routesApp.NewGetRouteExplorerUseCase(&contractRoutesReaderStub{
-			result: routesDomain.RouteExplorerResult{
-				ClosestLoops: []routesDomain.RouteRecommendation{
-					{
-						RouteID:        "route-legacy-1",
-						Activity:       business.ActivityShort{Id: 111, Name: "Already done ride", Type: business.Ride},
-						DistanceKm:     41.5,
-						ElevationGainM: 780,
-						DurationSec:    7100,
-						VariantType:    routesDomain.RouteVariantClosest,
-						MatchScore:     88.0,
-						PreviewLatLng:  [][]float64{{45.0, 6.0}, {45.1, 6.1}},
-					},
-				},
-			},
-		}),
-	})
-
-	request := httptest.NewRequest(http.MethodPost, "/api/routes/generate/target?activityType=Ride&year=2025", strings.NewReader(`{
-	  "startPoint": {"lat": 45.1, "lng": 6.1},
-	  "routeType": "RIDE",
-	  "startDirection": "N",
-	  "distanceTargetKm": 42,
-	  "elevationTargetM": 900
-	}`))
-	request.Header.Set("Content-Type", "application/json")
-	recorder := httptest.NewRecorder()
-
-	generateTargetRoutesByActivityType(recorder, request)
-
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d (%s)", recorder.Code, recorder.Body.String())
-	}
-
-	var response map[string]any
-	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
-		t.Fatalf("failed to decode JSON response: %v", err)
-	}
-	routes, ok := response["routes"].([]any)
-	if !ok {
-		t.Fatalf("expected routes array, got %+v", response)
-	}
-	if len(routes) != 1 {
-		t.Fatalf("expected one fallback route when road-graph generation is unavailable, got %d", len(routes))
-	}
-	firstRoute, ok := routes[0].(map[string]any)
-	if !ok {
-		t.Fatalf("expected routes[0] object, got %+v", routes[0])
-	}
-	if got := firstRoute["routeId"]; got != "route-legacy-1" {
-		t.Fatalf("expected fallback routeId route-legacy-1, got %v", got)
-	}
-	diagnostics, ok := response["diagnostics"].([]any)
-	if !ok || len(diagnostics) == 0 {
-		t.Fatalf("expected generation diagnostics, got %+v", response["diagnostics"])
-	}
-	firstDiagnostic, ok := diagnostics[0].(map[string]any)
-	if !ok {
-		t.Fatalf("expected diagnostics[0] object, got %+v", diagnostics[0])
-	}
-	if got := firstDiagnostic["code"]; got != "ENGINE_CACHE_FALLBACK" {
-		t.Fatalf("expected first diagnostic code ENGINE_CACHE_FALLBACK, got %v", got)
 	}
 }

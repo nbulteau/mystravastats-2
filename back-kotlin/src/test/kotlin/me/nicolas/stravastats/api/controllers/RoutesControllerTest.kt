@@ -22,6 +22,13 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.module.kotlin.KotlinModule
+import tools.jackson.module.kotlin.readValue
+import kotlin.test.fail
 
 @ExtendWith(SpringExtension::class)
 @WebMvcTest(RoutesController::class)
@@ -34,7 +41,7 @@ class RoutesControllerTest {
     private lateinit var routeExplorerService: IRouteExplorerService
 
     @Test
-    fun `generate target routes returns unified routes payload`() {
+    fun `generate shape routes returns unified routes payload`() {
         // GIVEN
         every {
             routeExplorerService.getRouteExplorer(
@@ -43,14 +50,17 @@ class RoutesControllerTest {
                 match { request ->
                     request.startPoint?.let { startPoint ->
                         startPoint.lat == 45.19 && startPoint.lng == 5.73
-                    } == true
+                    } == true &&
+                        request.distanceTargetKm == null &&
+                        request.elevationTargetM == null
                 }
             )
         } returns RouteExplorerResult(
             closestLoops = emptyList(),
             variants = emptyList(),
             seasonal = emptyList(),
-            roadGraphLoops = listOf(
+            roadGraphLoops = emptyList(),
+            shapeMatches = listOf(
                 RouteRecommendation(
                     routeId = "generated-loop-kt",
                     activity = ActivityShort(12L, "Generated loop", ActivityType.Ride),
@@ -63,33 +73,35 @@ class RoutesControllerTest {
                     end = null,
                     startArea = "Grenoble",
                     season = "SPRING",
-                    variantType = RouteVariantType.ROAD_GRAPH,
+                    variantType = RouteVariantType.SHAPE_MATCH,
                     matchScore = 92.1,
-                    reasons = listOf("Road-graph generated loop"),
+                    reasons = listOf(
+                        "Generated with OSM road graph (OSRM)",
+                        "Shape similarity: 90%",
+                        "Shape mode: projected waypoints",
+                    ),
                     previewLatLng = listOf(listOf(45.18, 5.72), listOf(45.20, 5.75), listOf(45.18, 5.72)),
-                    shape = "LOOP",
+                    shape = "CUSTOM_SHAPE",
                     shapeScore = 0.9,
                     experimental = true,
                 )
             ),
-            shapeMatches = emptyList(),
             shapeRemixes = emptyList(),
         )
 
         // WHEN
         mockMvc.perform(
-            post("/api/routes/generate/target")
+            post("/api/routes/generate/shape")
                 .param("activityType", "Ride")
                 .param("year", "2025")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
                     {
+                      "shapeInputType": "draw",
+                      "shapeData": "[[45.18,5.72],[45.20,5.75],[45.18,5.72]]",
                       "startPoint": {"lat": 45.19, "lng": 5.73},
                       "routeType": "RIDE",
-                      "startDirection": "N",
-                      "distanceTargetKm": 42.0,
-                      "elevationTargetM": 900.0,
                       "variantCount": 3
                     }
                     """.trimIndent()
@@ -104,7 +116,7 @@ class RoutesControllerTest {
     }
 
     @Test
-    fun `generate target routes uses surface fitness reason for road fitness score`() {
+    fun `generate shape routes uses surface fitness reason for road fitness score`() {
         // GIVEN
         every {
             routeExplorerService.getRouteExplorer(any(), any(), any())
@@ -112,7 +124,8 @@ class RoutesControllerTest {
             closestLoops = emptyList(),
             variants = emptyList(),
             seasonal = emptyList(),
-            roadGraphLoops = listOf(
+            roadGraphLoops = emptyList(),
+            shapeMatches = listOf(
                 RouteRecommendation(
                     routeId = "generated-surface-kt",
                     activity = ActivityShort(42L, "Generated surface loop", ActivityType.GravelRide),
@@ -125,34 +138,36 @@ class RoutesControllerTest {
                     end = null,
                     startArea = "Grenoble",
                     season = "SPRING",
-                    variantType = RouteVariantType.ROAD_GRAPH,
+                    variantType = RouteVariantType.SHAPE_MATCH,
                     matchScore = 87.0,
                     reasons = listOf(
                         "Generated with OSM road graph (OSRM)",
+                        "Shape similarity: 82%",
+                        "Shape mode: projected waypoints",
                         "Surface mix: paved 38%, gravel 52%, trail 10%, unknown 0%",
                         "Surface fitness: 68%",
                     ),
                     previewLatLng = listOf(listOf(45.18, 5.72), listOf(45.20, 5.75), listOf(45.18, 5.72)),
-                    shape = "LOOP",
+                    shape = "CUSTOM_SHAPE",
                     shapeScore = 0.82,
                     experimental = true,
                 )
             ),
-            shapeMatches = emptyList(),
             shapeRemixes = emptyList(),
         )
 
         // WHEN
         mockMvc.perform(
-            post("/api/routes/generate/target")
+            post("/api/routes/generate/shape")
                 .param("activityType", "Ride")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
                     {
+                      "shapeInputType": "draw",
+                      "shapeData": "[[45.18,5.72],[45.20,5.75],[45.18,5.72]]",
                       "startPoint": {"lat": 45.19, "lng": 5.73},
-                      "routeType": "GRAVEL",
-                      "distanceTargetKm": 40.0
+                      "routeType": "GRAVEL"
                     }
                     """.trimIndent()
                 )
@@ -161,94 +176,6 @@ class RoutesControllerTest {
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.routes[0].routeId").value("generated-surface-kt"))
             .andExpect(jsonPath("$.routes[0].score.roadFitness").value(68.0))
-    }
-
-    @Test
-    fun `generate target routes infers strictDirection when startDirection is undefined`() {
-        // GIVEN
-        every {
-            routeExplorerService.getRouteExplorer(
-                any(),
-                any(),
-                any(),
-            )
-        } returns RouteExplorerResult(
-            closestLoops = emptyList(),
-            variants = emptyList(),
-            seasonal = emptyList(),
-            roadGraphLoops = emptyList(),
-            shapeMatches = emptyList(),
-            shapeRemixes = emptyList(),
-        )
-
-        // WHEN
-        mockMvc.perform(
-            post("/api/routes/generate/target")
-                .param("activityType", "Ride")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    """
-                    {
-                      "startPoint": {"lat": 45.19, "lng": 5.73},
-                      "generationMode": "AUTOMATIC",
-                      "routeType": "RIDE",
-                      "startDirection": "UNDEFINED",
-                      "distanceTargetKm": 42.0
-                    }
-                    """.trimIndent()
-                )
-        )
-            // THEN
-            .andExpect(status().isOk)
-
-        verify {
-            routeExplorerService.getRouteExplorer(
-                any(),
-                any(),
-                match { request: RouteExplorerRequest ->
-                    request.strictDirection && request.startDirection == null
-                }
-            )
-        }
-    }
-
-    @Test
-    fun `generate target routes returns failure summary and propagates request id header`() {
-        // GIVEN
-        every {
-            routeExplorerService.getRouteExplorer(any(), any(), any())
-        } returns RouteExplorerResult(
-            closestLoops = emptyList(),
-            variants = emptyList(),
-            seasonal = emptyList(),
-            roadGraphLoops = emptyList(),
-            shapeMatches = emptyList(),
-            shapeRemixes = emptyList(),
-        )
-
-        // WHEN
-        mockMvc.perform(
-            post("/api/routes/generate/target")
-                .param("activityType", "Ride")
-                .header("X-Request-Id", "req-target-kt-1")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    """
-                    {
-                      "startPoint": {"lat": 45.19, "lng": 5.73},
-                      "routeType": "RIDE",
-                      "startDirection": "N",
-                      "distanceTargetKm": 42.0,
-                      "elevationTargetM": 900.0
-                    }
-                    """.trimIndent()
-                )
-        )
-            // THEN
-            .andExpect(status().isOk)
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("FAILURE_SUMMARY")))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("requestId=req-target-kt-1")))
-            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("X-Request-Id", "req-target-kt-1"))
     }
 
     @Test
@@ -309,8 +236,7 @@ class RoutesControllerTest {
                     {
                       "shapeInputType": "draw",
                       "shapeData": "[[45.0,6.0],[45.1,6.1]]",
-                      "routeType": "RIDE",
-                      "distanceTargetKm": 30.0
+                      "routeType": "RIDE"
                     }
                     """.trimIndent()
                 )
@@ -411,41 +337,20 @@ class RoutesControllerTest {
     }
 
     @Test
-    fun `generate target routes rejects custom mode without waypoints`() {
+    fun `Strava Art smoke generates route and exports gpx`() {
         // GIVEN
-        // WHEN
-        mockMvc.perform(
-            post("/api/routes/generate/target")
-                .param("activityType", "Ride")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    """
-                    {
-                      "startPoint": {"lat": 45.19, "lng": 5.73},
-                      "generationMode": "CUSTOM",
-                      "routeType": "RIDE",
-                      "distanceTargetKm": 42.0
-                    }
-                    """.trimIndent()
-                )
-        )
-            // THEN
-            .andExpect(status().isBadRequest)
-    }
-
-    @Test
-    fun `generated route gpx endpoint returns file after generate`() {
-        // GIVEN
+        val fixture = loadStravaArtSmokeFixture()
         every {
             routeExplorerService.getRouteExplorer(any(), any(), any())
         } returns RouteExplorerResult(
             closestLoops = emptyList(),
             variants = emptyList(),
             seasonal = emptyList(),
-            roadGraphLoops = listOf(
+            roadGraphLoops = emptyList(),
+            shapeMatches = listOf(
                 RouteRecommendation(
-                    routeId = "generated-cache-kt",
-                    activity = ActivityShort(34L, "Generated loop cache", ActivityType.Ride),
+                    routeId = fixture.generatedRouteId,
+                    activity = ActivityShort(34L, fixture.generatedRouteName, ActivityType.Ride),
                     activityDate = "2025-01-01",
                     distanceKm = 30.0,
                     elevationGainM = 450.0,
@@ -455,36 +360,42 @@ class RoutesControllerTest {
                     end = null,
                     startArea = "Grenoble",
                     season = "SUMMER",
-                    variantType = RouteVariantType.ROAD_GRAPH,
+                    variantType = RouteVariantType.SHAPE_MATCH,
                     matchScore = 88.0,
-                    reasons = listOf("Generated route"),
-                    previewLatLng = listOf(listOf(45.18, 5.72), listOf(45.19, 5.73), listOf(45.18, 5.72)),
-                    shape = "LOOP",
+                    reasons = listOf(
+                        "Generated with OSM road graph (OSRM)",
+                        "Shape similarity: 85%",
+                        "Shape mode: projected waypoints",
+                    ),
+                    previewLatLng = fixture.generatedPreviewLatLng,
+                    shape = "CUSTOM_SHAPE",
                     shapeScore = 0.85,
                     experimental = true,
                 )
             ),
-            shapeMatches = emptyList(),
             shapeRemixes = emptyList(),
         )
 
         mockMvc.perform(
-            post("/api/routes/generate/target")
+            post("/api/routes/generate/shape")
                 .param("activityType", "Ride")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
                     {
-                      "startPoint": {"lat": 45.19, "lng": 5.73},
-                      "routeType": "RIDE",
-                      "distanceTargetKm": 30.0
+                      "shapeInputType": "${fixture.shapeInputType}",
+                      "shapeData": "${fixture.shapeData}",
+                      "startPoint": {"lat": ${fixture.startPoint.lat}, "lng": ${fixture.startPoint.lng}},
+                      "routeType": "${fixture.routeType}",
+                      "variantCount": ${fixture.variantCount}
                     }
                     """.trimIndent()
                 )
         ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.routes[0].routeId").value(fixture.generatedRouteId))
 
         // WHEN
-        mockMvc.perform(get("/api/routes/generated-cache-kt/gpx"))
+        mockMvc.perform(get("/api/routes/${fixture.generatedRouteId}/gpx"))
             // THEN
             .andExpect(status().isOk)
             .andExpect(content().contentType("application/gpx+xml"))
@@ -492,7 +403,7 @@ class RoutesControllerTest {
     }
 
     @Test
-    fun `generate target routes falls back to historical routes when road graph is unavailable`() {
+    fun `generate shape routes ignores historical route candidates`() {
         // GIVEN
         every {
             routeExplorerService.getRouteExplorer(any(), any(), any())
@@ -521,36 +432,77 @@ class RoutesControllerTest {
             ),
             variants = emptyList(),
             seasonal = emptyList(),
-            roadGraphLoops = emptyList(),
-            shapeMatches = emptyList(),
+            roadGraphLoops = listOf(
+                RouteRecommendation(
+                    routeId = "cache-road-graph-kt",
+                    activity = ActivityShort(0L, "Generated from local cache", ActivityType.Ride),
+                    activityDate = "2025-01-01",
+                    distanceKm = 42.0,
+                    elevationGainM = 720.0,
+                    durationSec = 7000,
+                    isLoop = true,
+                    start = null,
+                    end = null,
+                    startArea = "Grenoble",
+                    season = "SPRING",
+                    variantType = RouteVariantType.ROAD_GRAPH,
+                    matchScore = 82.0,
+                    reasons = listOf("Generated on cache road-graph (beta)", "Built from local road-network connectivity"),
+                    previewLatLng = listOf(listOf(45.18, 5.72), listOf(45.20, 5.75)),
+                    shape = "LOOP",
+                    shapeScore = 0.78,
+                    experimental = true,
+                )
+            ),
+            shapeMatches = listOf(
+                RouteRecommendation(
+                    routeId = "historical-shape-kt",
+                    activity = ActivityShort(91L, "Already done shape", ActivityType.Ride),
+                    activityDate = "2025-01-01",
+                    distanceKm = 39.0,
+                    elevationGainM = 690.0,
+                    durationSec = 6600,
+                    isLoop = true,
+                    start = null,
+                    end = null,
+                    startArea = "Grenoble",
+                    season = "SPRING",
+                    variantType = RouteVariantType.SHAPE_MATCH,
+                    matchScore = 86.0,
+                    reasons = listOf("Shape match: loop", "Route geometry confidence 81%"),
+                    previewLatLng = listOf(listOf(45.18, 5.72), listOf(45.19, 5.73)),
+                    shape = "LOOP",
+                    shapeScore = 0.81,
+                    experimental = false,
+                )
+            ),
             shapeRemixes = emptyList(),
         )
 
         // WHEN
         mockMvc.perform(
-            post("/api/routes/generate/target")
+            post("/api/routes/generate/shape")
                 .param("activityType", "Ride")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
                     {
+                      "shapeInputType": "draw",
+                      "shapeData": "[[45.18,5.72],[45.19,5.73],[45.18,5.72]]",
                       "startPoint": {"lat": 45.19, "lng": 5.73},
-                      "routeType": "RIDE",
-                      "startDirection": "N",
-                      "distanceTargetKm": 42.0
+                      "routeType": "RIDE"
                     }
                     """.trimIndent()
                 )
         )
             // THEN
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.routes.length()").value(1))
-            .andExpect(jsonPath("$.routes[0].routeId").value("legacy-route-kt"))
-            .andExpect(jsonPath("$.diagnostics[0].code").value("ENGINE_CACHE_FALLBACK"))
+            .andExpect(jsonPath("$.routes.length()").value(0))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("NON_SHAPE_CANDIDATES_IGNORED")))
     }
 
     @Test
-    fun `generate target routes returns fallback diagnostics when route is relaxed`() {
+    fun `generate shape routes returns fallback diagnostics when route is relaxed`() {
         // GIVEN
         every {
             routeExplorerService.getRouteExplorer(any(), any(), any())
@@ -558,7 +510,8 @@ class RoutesControllerTest {
             closestLoops = emptyList(),
             variants = emptyList(),
             seasonal = emptyList(),
-            roadGraphLoops = listOf(
+            roadGraphLoops = emptyList(),
+            shapeMatches = listOf(
                 RouteRecommendation(
                     routeId = "generated-relaxed-kt",
                     activity = ActivityShort(101L, "Generated relaxed loop", ActivityType.Ride),
@@ -571,34 +524,36 @@ class RoutesControllerTest {
                     end = null,
                     startArea = "Grenoble",
                     season = "SPRING",
-                    variantType = RouteVariantType.ROAD_GRAPH,
+                    variantType = RouteVariantType.SHAPE_MATCH,
                     matchScore = 88.2,
                     reasons = listOf(
+                        "Generated with OSM road graph (OSRM)",
+                        "Shape similarity: 85%",
+                        "Shape mode: projected waypoints",
                         "Direction relaxed: no route found with requested heading",
                         "Selection profile: directional-best-effort",
                     ),
                     previewLatLng = listOf(listOf(45.18, 5.72), listOf(45.22, 5.76), listOf(45.18, 5.72)),
-                    shape = "LOOP",
+                    shape = "CUSTOM_SHAPE",
                     shapeScore = 0.85,
                     experimental = true,
                 )
             ),
-            shapeMatches = emptyList(),
             shapeRemixes = emptyList(),
         )
 
         // WHEN
         mockMvc.perform(
-            post("/api/routes/generate/target")
+            post("/api/routes/generate/shape")
                 .param("activityType", "Ride")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
                     {
+                      "shapeInputType": "draw",
+                      "shapeData": "[[45.18,5.72],[45.22,5.76],[45.18,5.72]]",
                       "startPoint": {"lat": 45.19, "lng": 5.73},
-                      "routeType": "RIDE",
-                      "startDirection": "N",
-                      "distanceTargetKm": 40.0
+                      "routeType": "RIDE"
                     }
                     """.trimIndent()
                 )
@@ -611,7 +566,7 @@ class RoutesControllerTest {
     }
 
     @Test
-    fun `generate target routes defaults include walk when activityType is missing`() {
+    fun `generate shape routes defaults include walk when activityType is missing`() {
         // GIVEN
         every {
             routeExplorerService.getRouteExplorer(any(), any(), any())
@@ -626,14 +581,15 @@ class RoutesControllerTest {
 
         // WHEN
         mockMvc.perform(
-            post("/api/routes/generate/target")
+            post("/api/routes/generate/shape")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
                     {
+                      "shapeInputType": "draw",
+                      "shapeData": "[[45.18,5.72],[45.19,5.73],[45.18,5.72]]",
                       "startPoint": {"lat": 45.19, "lng": 5.73},
-                      "routeType": "RIDE",
-                      "distanceTargetKm": 30.0
+                      "routeType": "RIDE"
                     }
                     """.trimIndent()
                 )
@@ -649,4 +605,47 @@ class RoutesControllerTest {
             )
         }
     }
+
+    private fun loadStravaArtSmokeFixture(): StravaArtSmokeFixture {
+        val mapper = JsonMapper.builder()
+            .addModule(KotlinModule.Builder().build())
+            .build()
+        val relative = Paths.get("test-fixtures", "routes", "strava-art-smoke.json")
+        val directCandidates = listOf(
+            Paths.get("..").resolve(relative),
+            relative,
+        )
+        directCandidates.forEach { candidate ->
+            if (Files.exists(candidate)) {
+                return mapper.readValue(Files.readString(candidate))
+            }
+        }
+
+        var cursor: Path = Paths.get("").toAbsolutePath()
+        repeat(8) {
+            val candidate = cursor.resolve(relative)
+            if (Files.exists(candidate)) {
+                return mapper.readValue(Files.readString(candidate))
+            }
+            val parent = cursor.parent ?: return@repeat
+            cursor = parent
+        }
+        fail("failed to locate Strava Art smoke fixture file: $relative")
+    }
+
+    private data class StravaArtSmokeFixture(
+        val shapeInputType: String,
+        val shapeData: String,
+        val startPoint: SmokeStartPoint,
+        val routeType: String,
+        val variantCount: Int,
+        val generatedRouteId: String,
+        val generatedRouteName: String,
+        val generatedPreviewLatLng: List<List<Double>>,
+    )
+
+    private data class SmokeStartPoint(
+        val lat: Double,
+        val lng: Double,
+    )
 }
