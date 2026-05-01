@@ -42,6 +42,19 @@ type stravaArtSmokeFixture struct {
 	GeneratedRouteID       string                 `json:"generatedRouteId"`
 	GeneratedRouteName     string                 `json:"generatedRouteName"`
 	GeneratedPreviewLatLng [][]float64            `json:"generatedPreviewLatLng"`
+	Cases                  []stravaArtSmokeCase   `json:"cases"`
+}
+
+type stravaArtSmokeCase struct {
+	Name                   string                 `json:"name"`
+	ShapeInputType         string                 `json:"shapeInputType"`
+	ShapeData              string                 `json:"shapeData"`
+	StartPoint             routeStartPointPayload `json:"startPoint"`
+	RouteType              string                 `json:"routeType"`
+	VariantCount           int                    `json:"variantCount"`
+	GeneratedRouteID       string                 `json:"generatedRouteId"`
+	GeneratedRouteName     string                 `json:"generatedRouteName"`
+	GeneratedPreviewLatLng [][]float64            `json:"generatedPreviewLatLng"`
 }
 
 func loadStravaArtSmokeFixture(t *testing.T) stravaArtSmokeFixture {
@@ -59,6 +72,25 @@ func loadStravaArtSmokeFixture(t *testing.T) stravaArtSmokeFixture {
 		t.Fatalf("failed to decode Strava Art smoke fixture file %q: %v", fixturePath, err)
 	}
 	return fixture
+}
+
+func stravaArtSmokeCases(fixture stravaArtSmokeFixture) []stravaArtSmokeCase {
+	if len(fixture.Cases) > 0 {
+		return fixture.Cases
+	}
+	return []stravaArtSmokeCase{
+		{
+			Name:                   "default",
+			ShapeInputType:         fixture.ShapeInputType,
+			ShapeData:              fixture.ShapeData,
+			StartPoint:             fixture.StartPoint,
+			RouteType:              fixture.RouteType,
+			VariantCount:           fixture.VariantCount,
+			GeneratedRouteID:       fixture.GeneratedRouteID,
+			GeneratedRouteName:     fixture.GeneratedRouteName,
+			GeneratedPreviewLatLng: fixture.GeneratedPreviewLatLng,
+		},
+	}
 }
 
 type contractActivitiesReaderStub struct {
@@ -877,85 +909,89 @@ func TestGenerateShapeRoutesByActivityType_StravaArtSmokeGeneratesAndExportsGPX(
 	// WHEN
 	// THEN
 	fixture := loadStravaArtSmokeFixture(t)
-	shapeName := "CUSTOM_SHAPE"
-	shapeScore := 0.91
-	generatedRouteCache.mu.Lock()
-	generatedRouteCache.items = map[string]generatedRouteCacheEntry{}
-	generatedRouteCache.mu.Unlock()
+	for _, smokeCase := range stravaArtSmokeCases(fixture) {
+		t.Run(smokeCase.Name, func(t *testing.T) {
+			shapeName := "CUSTOM_SHAPE"
+			shapeScore := 0.91
+			generatedRouteCache.mu.Lock()
+			generatedRouteCache.items = map[string]generatedRouteCacheEntry{}
+			generatedRouteCache.mu.Unlock()
 
-	setTestContainer(t, &container{
-		getRouteExplorerUseCase: routesApp.NewGetRouteExplorerUseCase(&contractRoutesReaderStub{
-			result: routesDomain.RouteExplorerResult{
-				ShapeMatches: []routesDomain.RouteRecommendation{
-					{
-						RouteID:        fixture.GeneratedRouteID,
-						Activity:       business.ActivityShort{Id: 1234, Name: fixture.GeneratedRouteName, Type: business.Ride},
-						DistanceKm:     42.1,
-						ElevationGainM: 860,
-						DurationSec:    7200,
-						VariantType:    routesDomain.RouteVariantShape,
-						MatchScore:     91.4,
-						Reasons: []string{
-							"Generated with OSM road graph (OSRM)",
-							"Shape similarity: 91%",
-							"Shape mode: projected waypoints",
+			setTestContainer(t, &container{
+				getRouteExplorerUseCase: routesApp.NewGetRouteExplorerUseCase(&contractRoutesReaderStub{
+					result: routesDomain.RouteExplorerResult{
+						ShapeMatches: []routesDomain.RouteRecommendation{
+							{
+								RouteID:        smokeCase.GeneratedRouteID,
+								Activity:       business.ActivityShort{Id: 1234, Name: smokeCase.GeneratedRouteName, Type: business.Ride},
+								DistanceKm:     42.1,
+								ElevationGainM: 860,
+								DurationSec:    7200,
+								VariantType:    routesDomain.RouteVariantShape,
+								MatchScore:     91.4,
+								Reasons: []string{
+									"Generated with OSM road graph (OSRM)",
+									"Shape similarity: 91%",
+									"Shape mode: projected waypoints",
+								},
+								PreviewLatLng: smokeCase.GeneratedPreviewLatLng,
+								Shape:         &shapeName,
+								ShapeScore:    &shapeScore,
+							},
 						},
-						PreviewLatLng: fixture.GeneratedPreviewLatLng,
-						Shape:         &shapeName,
-						ShapeScore:    &shapeScore,
 					},
-				},
-			},
-		}),
-	})
+				}),
+			})
 
-	requestPayload := map[string]any{
-		"shapeInputType": fixture.ShapeInputType,
-		"shapeData":      fixture.ShapeData,
-		"startPoint":     fixture.StartPoint,
-		"routeType":      fixture.RouteType,
-		"variantCount":   fixture.VariantCount,
-	}
-	requestBody, err := json.Marshal(requestPayload)
-	if err != nil {
-		t.Fatalf("failed to encode smoke request body: %v", err)
-	}
-	request := httptest.NewRequest(http.MethodPost, "/api/routes/generate/shape?activityType=Ride&year=2025", strings.NewReader(string(requestBody)))
-	request.Header.Set("Content-Type", "application/json")
-	recorder := httptest.NewRecorder()
+			requestPayload := map[string]any{
+				"shapeInputType": smokeCase.ShapeInputType,
+				"shapeData":      smokeCase.ShapeData,
+				"startPoint":     smokeCase.StartPoint,
+				"routeType":      smokeCase.RouteType,
+				"variantCount":   smokeCase.VariantCount,
+			}
+			requestBody, err := json.Marshal(requestPayload)
+			if err != nil {
+				t.Fatalf("failed to encode smoke request body: %v", err)
+			}
+			request := httptest.NewRequest(http.MethodPost, "/api/routes/generate/shape?activityType=Ride&year=2025", strings.NewReader(string(requestBody)))
+			request.Header.Set("Content-Type", "application/json")
+			recorder := httptest.NewRecorder()
 
-	generateShapeRoutesByActivityType(recorder, request)
+			generateShapeRoutesByActivityType(recorder, request)
 
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d (%s)", recorder.Code, recorder.Body.String())
-	}
+			if recorder.Code != http.StatusOK {
+				t.Fatalf("expected status 200, got %d (%s)", recorder.Code, recorder.Body.String())
+			}
 
-	var response map[string]any
-	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
-		t.Fatalf("failed to decode JSON response: %v", err)
-	}
-	routes, ok := response["routes"].([]any)
-	if !ok || len(routes) == 0 {
-		t.Fatalf("expected routes array, got %+v", response)
-	}
-	firstRoute, ok := routes[0].(map[string]any)
-	if !ok {
-		t.Fatalf("expected first route object, got %+v", routes[0])
-	}
-	if got := firstRoute["routeId"]; got != fixture.GeneratedRouteID {
-		t.Fatalf("expected routeId %q, got %v", fixture.GeneratedRouteID, got)
-	}
+			var response map[string]any
+			if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+				t.Fatalf("failed to decode JSON response: %v", err)
+			}
+			routes, ok := response["routes"].([]any)
+			if !ok || len(routes) == 0 {
+				t.Fatalf("expected routes array, got %+v", response)
+			}
+			firstRoute, ok := routes[0].(map[string]any)
+			if !ok {
+				t.Fatalf("expected first route object, got %+v", routes[0])
+			}
+			if got := firstRoute["routeId"]; got != smokeCase.GeneratedRouteID {
+				t.Fatalf("expected routeId %q, got %v", smokeCase.GeneratedRouteID, got)
+			}
 
-	gpxRequest := httptest.NewRequest(http.MethodGet, "/api/routes/"+fixture.GeneratedRouteID+"/gpx", nil)
-	gpxRequest = mux.SetURLVars(gpxRequest, map[string]string{"routeId": fixture.GeneratedRouteID})
-	gpxRecorder := httptest.NewRecorder()
-	getGeneratedRouteGPXByID(gpxRecorder, gpxRequest)
+			gpxRequest := httptest.NewRequest(http.MethodGet, "/api/routes/"+smokeCase.GeneratedRouteID+"/gpx", nil)
+			gpxRequest = mux.SetURLVars(gpxRequest, map[string]string{"routeId": smokeCase.GeneratedRouteID})
+			gpxRecorder := httptest.NewRecorder()
+			getGeneratedRouteGPXByID(gpxRecorder, gpxRequest)
 
-	if gpxRecorder.Code != http.StatusOK {
-		t.Fatalf("expected gpx status 200, got %d (%s)", gpxRecorder.Code, gpxRecorder.Body.String())
-	}
-	if !strings.Contains(gpxRecorder.Body.String(), "<gpx") {
-		t.Fatalf("expected GPX payload, got %s", gpxRecorder.Body.String())
+			if gpxRecorder.Code != http.StatusOK {
+				t.Fatalf("expected gpx status 200, got %d (%s)", gpxRecorder.Code, gpxRecorder.Body.String())
+			}
+			if !strings.Contains(gpxRecorder.Body.String(), "<gpx") {
+				t.Fatalf("expected GPX payload, got %s", gpxRecorder.Body.String())
+			}
+		})
 	}
 }
 

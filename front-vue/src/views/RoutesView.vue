@@ -984,11 +984,6 @@ function toggleFreestyleMode(event: Event) {
   routesStore.setFreestyleMode(input.checked);
 }
 
-function toggleAutoFitBeforeRouting(event: Event) {
-  const input = event.target as HTMLInputElement;
-  routesStore.setAutoFitBeforeRouting(input.checked);
-}
-
 function exportSketchGpx() {
   try {
     routesStore.exportCurrentShapeGpx(saveShapeName.value || "strava-art-sketch");
@@ -1107,42 +1102,6 @@ function setStartToMapCenter() {
   showToast("Start point set from map center");
 }
 
-function visibleRoadRadiusKmAroundStart(): number | undefined {
-  const currentMap = map.value;
-  const start = routesStore.startPoint;
-  if (!currentMap || !start) {
-    return undefined;
-  }
-  const bounds = currentMap.getBounds();
-  const anchor = L.latLng(start.lat, start.lng);
-  if (!bounds.contains(anchor)) {
-    return undefined;
-  }
-  const distancesMeters = [
-    currentMap.distance(anchor, L.latLng(bounds.getNorth(), start.lng)),
-    currentMap.distance(anchor, L.latLng(bounds.getSouth(), start.lng)),
-    currentMap.distance(anchor, L.latLng(start.lat, bounds.getEast())),
-    currentMap.distance(anchor, L.latLng(start.lat, bounds.getWest())),
-  ].filter((distance) => Number.isFinite(distance) && distance > 0);
-  if (distancesMeters.length === 0) {
-    return undefined;
-  }
-  return Math.min(...distancesMeters) / 1000;
-}
-
-function autoFitSketchBeforeRouting(): boolean {
-  if (!routesStore.autoFitBeforeRouting || !routesStore.startPoint || !canTransformShape.value) {
-    return false;
-  }
-  const fitted = routesStore.fitShapeToStart({
-    viewportRadiusKm: visibleRoadRadiusKmAroundStart(),
-  });
-  if (fitted) {
-    redrawMapLayers({ fitBounds: false });
-  }
-  return fitted;
-}
-
 function runCorrectionSuggestion(suggestion: CorrectionSuggestion) {
   if (!suggestion.action || suggestion.disabled) {
     return;
@@ -1245,7 +1204,6 @@ function transformShape(action: "scaleDown" | "scaleUp" | "rotateLeft" | "rotate
 
 async function generateRoutes() {
   try {
-    autoFitSketchBeforeRouting();
     await routesStore.generateRoutes();
     redrawMapLayers();
     if (!routesStore.hasRoutes) {
@@ -1395,18 +1353,6 @@ onBeforeUnmount(() => {
           <i class="fa-solid fa-crosshairs" aria-hidden="true" />
           Reset start point
         </button>
-
-        <label class="routes-form-check routes-form-check--stacked">
-          <span class="routes-checkline">
-            <input
-              type="checkbox"
-              :checked="routesStore.autoFitBeforeRouting"
-              @change="toggleAutoFitBeforeRouting"
-            >
-            <span>Auto-fit sketch</span>
-          </span>
-          <small>Center and scale before routing.</small>
-        </label>
 
         <div class="routes-shape-tools">
           <div class="routes-shape-tools-head">

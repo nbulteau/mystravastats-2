@@ -340,66 +340,68 @@ class RoutesControllerTest {
     fun `Strava Art smoke generates route and exports gpx`() {
         // GIVEN
         val fixture = loadStravaArtSmokeFixture()
-        every {
-            routeExplorerService.getRouteExplorer(any(), any(), any())
-        } returns RouteExplorerResult(
-            closestLoops = emptyList(),
-            variants = emptyList(),
-            seasonal = emptyList(),
-            roadGraphLoops = emptyList(),
-            shapeMatches = listOf(
-                RouteRecommendation(
-                    routeId = fixture.generatedRouteId,
-                    activity = ActivityShort(34L, fixture.generatedRouteName, ActivityType.Ride),
-                    activityDate = "2025-01-01",
-                    distanceKm = 30.0,
-                    elevationGainM = 450.0,
-                    durationSec = 4500,
-                    isLoop = true,
-                    start = null,
-                    end = null,
-                    startArea = "Grenoble",
-                    season = "SUMMER",
-                    variantType = RouteVariantType.SHAPE_MATCH,
-                    matchScore = 88.0,
-                    reasons = listOf(
-                        "Generated with OSM road graph (OSRM)",
-                        "Shape similarity: 85%",
-                        "Shape mode: projected waypoints",
-                    ),
-                    previewLatLng = fixture.generatedPreviewLatLng,
-                    shape = "CUSTOM_SHAPE",
-                    shapeScore = 0.85,
-                    experimental = true,
-                )
-            ),
-            shapeRemixes = emptyList(),
-        )
+        fixture.smokeCases().forEach { smokeCase ->
+            every {
+                routeExplorerService.getRouteExplorer(any(), any(), any())
+            } returns RouteExplorerResult(
+                closestLoops = emptyList(),
+                variants = emptyList(),
+                seasonal = emptyList(),
+                roadGraphLoops = emptyList(),
+                shapeMatches = listOf(
+                    RouteRecommendation(
+                        routeId = smokeCase.generatedRouteId,
+                        activity = ActivityShort(34L, smokeCase.generatedRouteName, ActivityType.Ride),
+                        activityDate = "2025-01-01",
+                        distanceKm = 30.0,
+                        elevationGainM = 450.0,
+                        durationSec = 4500,
+                        isLoop = true,
+                        start = null,
+                        end = null,
+                        startArea = "Rennes",
+                        season = "SUMMER",
+                        variantType = RouteVariantType.SHAPE_MATCH,
+                        matchScore = 88.0,
+                        reasons = listOf(
+                            "Generated with OSM road graph (OSRM)",
+                            "Shape similarity: 85%",
+                            "Shape mode: projected waypoints",
+                        ),
+                        previewLatLng = smokeCase.generatedPreviewLatLng,
+                        shape = "CUSTOM_SHAPE",
+                        shapeScore = 0.85,
+                        experimental = true,
+                    )
+                ),
+                shapeRemixes = emptyList(),
+            )
 
-        mockMvc.perform(
-            post("/api/routes/generate/shape")
-                .param("activityType", "Ride")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    """
-                    {
-                      "shapeInputType": "${fixture.shapeInputType}",
-                      "shapeData": "${fixture.shapeData}",
-                      "startPoint": {"lat": ${fixture.startPoint.lat}, "lng": ${fixture.startPoint.lng}},
-                      "routeType": "${fixture.routeType}",
-                      "variantCount": ${fixture.variantCount}
-                    }
-                    """.trimIndent()
-                )
-        ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.routes[0].routeId").value(fixture.generatedRouteId))
+            mockMvc.perform(
+                post("/api/routes/generate/shape")
+                    .param("activityType", "Ride")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "shapeInputType": "${smokeCase.shapeInputType}",
+                          "shapeData": "${smokeCase.shapeData}",
+                          "startPoint": {"lat": ${smokeCase.startPoint.lat}, "lng": ${smokeCase.startPoint.lng}},
+                          "routeType": "${smokeCase.routeType}",
+                          "variantCount": ${smokeCase.variantCount}
+                        }
+                        """.trimIndent()
+                    )
+            ).andExpect(status().isOk)
+                .andExpect(jsonPath("$.routes[0].routeId").value(smokeCase.generatedRouteId))
 
-        // WHEN
-        mockMvc.perform(get("/api/routes/${fixture.generatedRouteId}/gpx"))
-            // THEN
-            .andExpect(status().isOk)
-            .andExpect(content().contentType("application/gpx+xml"))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("<gpx")))
+            // WHEN
+            mockMvc.perform(get("/api/routes/${smokeCase.generatedRouteId}/gpx"))
+                // THEN
+                .andExpect(status().isOk)
+                .andExpect(content().contentType("application/gpx+xml"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("<gpx")))
+        }
     }
 
     @Test
@@ -634,6 +636,37 @@ class RoutesControllerTest {
     }
 
     private data class StravaArtSmokeFixture(
+        val name: String? = null,
+        val shapeInputType: String,
+        val shapeData: String,
+        val startPoint: SmokeStartPoint,
+        val routeType: String,
+        val variantCount: Int,
+        val generatedRouteId: String,
+        val generatedRouteName: String,
+        val generatedPreviewLatLng: List<List<Double>>,
+        val cases: List<StravaArtSmokeCase> = emptyList(),
+    )
+
+    private fun StravaArtSmokeFixture.smokeCases(): List<StravaArtSmokeCase> {
+        if (cases.isNotEmpty()) return cases
+        return listOf(
+            StravaArtSmokeCase(
+                name = name ?: "default",
+                shapeInputType = shapeInputType,
+                shapeData = shapeData,
+                startPoint = startPoint,
+                routeType = routeType,
+                variantCount = variantCount,
+                generatedRouteId = generatedRouteId,
+                generatedRouteName = generatedRouteName,
+                generatedPreviewLatLng = generatedPreviewLatLng,
+            )
+        )
+    }
+
+    private data class StravaArtSmokeCase(
+        val name: String,
         val shapeInputType: String,
         val shapeData: String,
         val startPoint: SmokeStartPoint,

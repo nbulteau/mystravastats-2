@@ -213,7 +213,7 @@ describe("routes store", () => {
     expect(store.shapePoints.length).toBe(4);
   });
 
-  it("auto-fits a sketch around the start point before routing", () => {
+  it("fits a sketch around the start point when requested manually", () => {
     const store = useRoutesStore();
     store.startPoint = { lat: 48, lng: -1.6 };
     store.shapePoints = [

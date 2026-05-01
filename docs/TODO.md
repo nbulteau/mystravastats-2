@@ -211,6 +211,7 @@
   Owners: `Routes`, `Back-Go`, `Back-Kotlin`, `QA`.
   Scope:
   - ajouter une fixture partagee `test-fixtures/routes/strava-art-smoke.json`,
+  - couvrir explicitement les formes simples `Heart`, `Circle`, `Star` et `Square`,
   - couvrir generation shape + cache route + export GPX en Go,
   - couvrir generation shape + export GPX en Kotlin,
   - ajouter un smoke manuel `./scripts/manual-strava-art-smoke-check.sh` contre un backend reel avec OSRM,
@@ -218,7 +219,10 @@
   Acceptance:
   - les tests Go/Kotlin lisent la meme fixture,
   - chaque backend valide au moins un retour de route et un GPX exportable,
+  - le smoke manuel doit accepter un `Art fit` faible mais jamais une absence de route sur ces formes simples,
   - le smoke manuel echoue clairement si generation ou export GPX casse.
+  Progress:
+  - [x] fixture et smoke manuel etendus a `Heart`, `Circle`, `Star`, `Square`; le smoke local OSRM retourne une route exportable pour les quatre formes, avec `Art fit` faible/moyen a traiter ensuite.
 
 - [ ] `FUNC-P0-03C` (`P0`, `M`) - UX MVP dessin/import/generation.
   Owners: `Product`, `Front`, `Routes`.
@@ -248,7 +252,7 @@
   - [x] en mode Strava Art, une faible ressemblance ne bloque plus la generation: elle degrade `Art fit` et ajoute une raison `below ideal`,
   - [x] fallback OSRM best-effort: si les strategies dessin strictes ne produisent aucun candidat, tenter des waypoints simplifies/enveloppe et retourner une route faible confiance au lieu de bloquer,
   - [x] strategie OSRM `simplified sketch anchors`: essayer en generation normale une version reduite du dessin pour mieux router les formes simples (cercle, etoile, carre) avant le fallback,
-  - [x] auto-fit avant routage: option activee par defaut pour recentrer et redimensionner le sketch autour du point de depart et de la carte visible avant l'appel OSRM.
+  - [x] le snap OSRM ne transforme plus automatiquement le sketch visible: recentrage et scale restent des actions manuelles de transformation.
 
 - [x] `FUNC-P0-03D` (`P0`, `M`) - Resultats lisibles et diagnostics produit.
   Owners: `Product`, `Front`, `Routes`.

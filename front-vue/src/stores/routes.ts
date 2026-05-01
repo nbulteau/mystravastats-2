@@ -379,7 +379,6 @@ export const useRoutesStore = defineStore("routes", {
     shapeTransformRedoStack: [] as number[][][],
     savedShapeTemplates: [] as SavedShapeTemplate[],
     freestyleMode: false,
-    autoFitBeforeRouting: true,
     isDrawingShape: false,
     routes: [] as GeneratedRoute[],
     generationDiagnostics: [] as RouteGenerationDiagnostic[],
@@ -520,9 +519,6 @@ export const useRoutesStore = defineStore("routes", {
     },
     setFreestyleMode(value: boolean) {
       this.freestyleMode = value;
-    },
-    setAutoFitBeforeRouting(value: boolean) {
-      this.autoFitBeforeRouting = value;
     },
     loadSavedShapeTemplates() {
       this.savedShapeTemplates = readSavedShapeTemplates();
