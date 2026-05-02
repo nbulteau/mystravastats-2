@@ -23,6 +23,7 @@ interface IActivityService {
 @Service
 internal class ActivityService(
     activityProvider: IActivityProvider,
+    private val exporters: List<ICSVExporter> = emptyList()
 ) : IActivityService, AbstractStravaService(activityProvider) {
 
     private val logger = LoggerFactory.getLogger(ActivityService::class.java)
@@ -42,34 +43,22 @@ internal class ActivityService(
         val activities = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
             .withDataQualityCorrections(activityProvider)
 
-        // activityTypes must not be empty, otherwise we cannot determine the activity type
-        if (activityTypes.isEmpty()) {
+        val targetActivityType = if (activityTypes.isEmpty()) {
             logger.warn("No activity types provided, defaulting to Ride")
-            return RideCSVExporter(clientId, activities, year).export()
+            ActivityType.Ride
+        } else {
+            when {
+                rideActivities.contains(activityTypes.first()) -> ActivityType.Ride
+                runActivities.contains(activityTypes.first()) -> ActivityType.Run
+                else -> activityTypes.first()
+            }
         }
 
-        // Determine the activity type based on the first activity type in the set
-        // This is a simplification, as we assume all activities in the set are of the same type
-        val activityType = when {
-            rideActivities.contains(activityTypes.first()) -> ActivityType.Ride
-            runActivities.contains(activityTypes.first()) -> ActivityType.Run
-            else -> activityTypes.firstOrNull()
-        }
+        // Find supported exporter or default to Ride if not found
+        val exporter = exporters.firstOrNull { it.supports(targetActivityType) }
+            ?: exporters.first { it.supports(ActivityType.Ride) }
 
-        val exporter = when (activityType) {
-            ActivityType.Ride -> RideCSVExporter(clientId = clientId, activities = activities, year = year)
-            ActivityType.Run -> RunCSVExporter(clientId = clientId, activities = activities, year = year)
-            ActivityType.InlineSkate -> InlineSkateCSVExporter(
-                clientId = clientId,
-                activities = activities,
-                year = year
-            )
-
-            ActivityType.Hike, ActivityType.Walk -> HikeCSVExporter(clientId = clientId, activities = activities, year = year)
-            ActivityType.AlpineSki -> AlpineSkiCSVExporter(clientId = clientId, activities = activities, year = year)
-            else -> RideCSVExporter(clientId = clientId, activities = activities, year = year)
-        }
-        return exporter.export()
+        return exporter.export(clientId, activities, year)
     }
 
     override fun getDetailedActivity(activityId: Long, corrected: Boolean): StravaDetailedActivity? {

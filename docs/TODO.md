@@ -22,6 +22,7 @@
 - Pour `Strava Art`, conserver `/routes` comme URL interne tant qu'aucune migration n'est prevue.
 - Pour `Strava Art`, rendre visibles le dessin d'origine, la route OSRM generee, les scores de ressemblance/praticabilite et les raisons de fallback.
 - Pour `Strava Art`, le score `Art fit` doit rester centre sur le respect du dessin: proximite ancree, derive du centre, ordre du trace et forme globale.
+- Pour `Strava Art`, le point de depart est un indice de placement, pas une contrainte produit forte: pour une forme fermee, generation et scoring doivent rester flexibles sur le point de depart du contour.
 - Pour `Strava Art`, les retours sur ses pas sont acceptables quand ils ameliorent nettement la ressemblance au modele utilisateur; l'anti-retrace devient un signal de praticabilite/diagnostic, pas un rejet dur.
 - Garder les exports GPX generes compatibles avec Strava, Garmin, Komoot et les outils GPS standards.
 - Ne pas changer silencieusement les contrats API: ajouter migration, compatibilite ou tests de contrat.

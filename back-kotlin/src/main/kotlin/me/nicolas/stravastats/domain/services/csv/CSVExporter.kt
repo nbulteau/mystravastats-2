@@ -3,36 +3,34 @@ package me.nicolas.stravastats.domain.services.csv
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.ActivityType
 
-import java.io.File
-import java.io.FileWriter
 import java.util.Locale
 
+internal interface ICSVExporter {
+    fun supports(activityType: ActivityType): Boolean
+    fun export(clientId: String, activities: List<StravaActivity>, year: Int?): String
+}
+
 internal abstract class CSVExporter(
-    clientId: String,
-    activities: List<StravaActivity>,
-    year: Int?,
-    activityType: ActivityType,
-) {
+    private val activityType: ActivityType,
+) : ICSVExporter {
 
-    protected val activities: List<StravaActivity> = activities
-        .filter { activity -> activity.type == activityType.name }
+    override fun supports(activityType: ActivityType): Boolean = this.activityType == activityType
 
-    private val writer: FileWriter = FileWriter(File("$clientId-$activityType-${year?.toString() ?: "all-years"}.csv"))
+    override fun export(clientId: String, activities: List<StravaActivity>, year: Int?): String {
+        val filteredActivities = activities
+            .filter { activity -> activity.type == activityType.name }
 
-    fun export(): String {
         // if no activities: nothing to do
-        if (activities.isNotEmpty()) {
-            writer.use {
-                return generateHeader() + generateActivities() + generateFooter()
-            }
+        if (filteredActivities.isNotEmpty()) {
+            return generateHeader() + generateActivities(filteredActivities) + generateFooter(filteredActivities)
         }
 
         return ""
     }
 
-    protected abstract fun generateActivities(): String
+    protected abstract fun generateActivities(activities: List<StravaActivity>): String
     protected abstract fun generateHeader(): String
-    protected abstract fun generateFooter(): String
+    protected abstract fun generateFooter(activities: List<StravaActivity>): String
 
     protected fun enrichedHeader(): List<String> = listOf(
         "Activity ID",
@@ -103,7 +101,6 @@ internal abstract class CSVExporter(
             first = false
         }
         sb.append("\n")
-        writer.append(sb.toString())
 
         return sb.toString()
     }

@@ -186,6 +186,11 @@ private data class ShapeModeScoringConfig(
     val lowSimilarityPenaltyRate: Double,
 )
 
+private data class ShapeRoutingVariant(
+    val label: String,
+    val shape: List<Coordinates>,
+)
+
 @Component
 class OsmRoutingEngineAdapter : RoutingEnginePort {
 
@@ -459,12 +464,17 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             start = request.startPoint,
             targetDistanceKm = distanceTargetKm,
         )
-        val routingShape = prepareShapeForRouting(projectedShape, request.startPoint)
-        val shapePreview = coordinatesToLatLng(routingShape)
+        val routingVariants = buildShapeRoutingVariants(projectedShape, request.startPoint)
+        if (routingVariants.isEmpty()) {
+            return emptyList()
+        }
+        var shapePreview = coordinatesToLatLng(projectedShape)
+        if (shapePreview.size < 2) {
+            shapePreview = coordinatesToLatLng(routingVariants.first().shape)
+        }
         if (shapePreview.size < 2) {
             return emptyList()
         }
-        val routeAnchor = routingShape.first()
 
         val profile = profileForRouteType(request.routeType)
         data class ShapeRoutingStrategy(
@@ -473,42 +483,19 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             val waypoints: List<Coordinates>,
             val bestEffort: Boolean = false,
         )
-        val strategies = listOf(
-            ShapeRoutingStrategy(
-                code = SHAPE_MODE_STRATEGY_SHAPE_FIRST,
-                label = "dense sketch anchors",
-                waypoints = buildShapeDenseWaypoints(routeAnchor, routingShape),
-            ),
-            ShapeRoutingStrategy(
-                code = SHAPE_MODE_STRATEGY_SHAPE_FIRST,
-                label = "map sketch waypoints",
-                waypoints = buildShapeLoopWaypoints(routeAnchor, routingShape),
-            ),
-            ShapeRoutingStrategy(
-                code = SHAPE_MODE_STRATEGY_SIMPLIFIED,
-                label = "simplified sketch anchors",
-                waypoints = buildShapeSimplifiedWaypoints(routeAnchor, routingShape),
-            ),
-            ShapeRoutingStrategy(
-                code = SHAPE_MODE_STRATEGY_ROAD_FIRST,
-                label = "road-first anchors",
-                waypoints = buildShapeRoadFirstWaypoints(routeAnchor, routingShape),
-            ),
-        )
-
-        val shapeRequest = request.copy(
-            startPoint = routeAnchor,
-            distanceTargetKm = distanceTargetKm,
-            startDirection = null,
-            directionStrict = false,
-        )
         val rejectCounts = mutableMapOf<String, Int>()
         val candidates = mutableListOf<OsrmRouteCandidate>()
         val seenGeometry = mutableSetOf<String>()
         var fetchedRouteCount = 0
         var usedStrategies = 0
 
-        fun appendShapeCandidate(strategy: ShapeRoutingStrategy, route: OsrmRoute, routeIndex: Int) {
+        fun appendShapeCandidate(
+            shapeRequest: RoutingEngineRequest,
+            variant: ShapeRoutingVariant,
+            strategy: ShapeRoutingStrategy,
+            route: OsrmRoute,
+            routeIndex: Int,
+        ) {
             val candidate = if (strategy.bestEffort) {
                 toRouteCandidateBestEffort(shapeRequest, route, routeIndex, rejectCounts)
             } else {
@@ -542,6 +529,9 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 reasons = candidate.recommendation.reasons + buildList {
                     add("Shape similarity: ${(shapeScore * 100.0).roundToInt()}%")
                     add("Shape mode: ${strategy.label}")
+                    if (variant.label.isNotBlank()) {
+                        add("Shape anchor: ${variant.label}")
+                    }
                     if (strategy.code == SHAPE_MODE_STRATEGY_ROAD_SNAP) {
                         add("Shape trace snap: nearest routable anchors routed segment-by-segment")
                     }
@@ -572,77 +562,123 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             )
         }
 
-        fetchNearestRoadTraceRoute(profile, routingShape)?.let { snappedRoute ->
-            val strategy = ShapeRoutingStrategy(
-                code = SHAPE_MODE_STRATEGY_ROAD_SNAP,
-                label = "nearest-road trace",
-                waypoints = routingShape,
+        routingVariants.forEachIndexed { variantIndex, variant ->
+            if (variant.shape.size < 2) {
+                return@forEachIndexed
+            }
+            val routeAnchor = variant.shape.first()
+            val shapeRequest = request.copy(
+                startPoint = routeAnchor,
+                distanceTargetKm = distanceTargetKm,
+                startDirection = null,
+                directionStrict = false,
             )
-            usedStrategies += 1
-            fetchedRouteCount += 1
-            appendShapeCandidate(strategy, snappedRoute, 3000)
-        } ?: incrementRejectCount(rejectCounts, "OSRM_TRACE_SNAP_FAILED")
+            val routeIndexOffset = variantIndex * 100
+            val strategies = listOf(
+                ShapeRoutingStrategy(
+                    code = SHAPE_MODE_STRATEGY_SHAPE_FIRST,
+                    label = "dense sketch anchors",
+                    waypoints = buildShapeDenseWaypoints(routeAnchor, variant.shape),
+                ),
+                ShapeRoutingStrategy(
+                    code = SHAPE_MODE_STRATEGY_SHAPE_FIRST,
+                    label = "map sketch waypoints",
+                    waypoints = buildShapeLoopWaypoints(routeAnchor, variant.shape),
+                ),
+                ShapeRoutingStrategy(
+                    code = SHAPE_MODE_STRATEGY_SIMPLIFIED,
+                    label = "simplified sketch anchors",
+                    waypoints = buildShapeSimplifiedWaypoints(routeAnchor, variant.shape),
+                ),
+                ShapeRoutingStrategy(
+                    code = SHAPE_MODE_STRATEGY_ROAD_FIRST,
+                    label = "road-first anchors",
+                    waypoints = buildShapeRoadFirstWaypoints(routeAnchor, variant.shape),
+                ),
+            )
 
-        val stitchedWaypoints = buildShapeStitchedWaypoints(routeAnchor, routingShape)
-        if (stitchedWaypoints.size >= 3) {
-            val routes = runCatching { fetchShapeSegmentStitchedRoutes(profile, stitchedWaypoints) }
-                .onFailure { error ->
-                    incrementRejectCount(rejectCounts, "OSRM_STITCHED_CALL_FAILED")
-                    if (debug) {
-                        logger.info(
-                            "OSRM shape stitched generation call failed: profile={} waypoints={} err={}",
-                            profile, stitchedWaypoints.size, error.message
+            if (variantIndex == 0) {
+                fetchNearestRoadTraceRoute(profile, variant.shape)?.let { snappedRoute ->
+                    val strategy = ShapeRoutingStrategy(
+                        code = SHAPE_MODE_STRATEGY_ROAD_SNAP,
+                        label = "nearest-road trace",
+                        waypoints = variant.shape,
+                    )
+                    usedStrategies += 1
+                    fetchedRouteCount += 1
+                    appendShapeCandidate(shapeRequest, variant, strategy, snappedRoute, 3000 + routeIndexOffset)
+                } ?: incrementRejectCount(rejectCounts, "OSRM_TRACE_SNAP_FAILED")
+
+                val stitchedWaypoints = buildShapeStitchedWaypoints(routeAnchor, variant.shape)
+                if (stitchedWaypoints.size >= 3) {
+                    val routes = runCatching { fetchShapeSegmentStitchedRoutes(profile, stitchedWaypoints) }
+                        .onFailure { error ->
+                            incrementRejectCount(rejectCounts, "OSRM_STITCHED_CALL_FAILED")
+                            if (debug) {
+                                logger.info(
+                                    "OSRM shape stitched generation call failed: profile={} waypoints={} err={}",
+                                    profile, stitchedWaypoints.size, error.message
+                                )
+                            } else {
+                                logger.debug("OSRM shape stitched generation failed: {}", error.message)
+                            }
+                        }
+                        .getOrElse { emptyList() }
+                    if (routes.isNotEmpty()) {
+                        usedStrategies += 1
+                        fetchedRouteCount += routes.size
+                        val strategy = ShapeRoutingStrategy(
+                            code = SHAPE_MODE_STRATEGY_STITCHED,
+                            label = "segment stitched alternatives",
+                            waypoints = stitchedWaypoints,
                         )
-                    } else {
-                        logger.debug("OSRM shape stitched generation failed: {}", error.message)
+                        routes.forEachIndexed { routeIndex, route ->
+                            appendShapeCandidate(shapeRequest, variant, strategy, route, 2000 + routeIndexOffset + routeIndex)
+                        }
                     }
                 }
-                .getOrElse { emptyList() }
-            if (routes.isNotEmpty()) {
+            }
+
+            strategies.forEach { strategy ->
+                if (strategy.waypoints.size < 3) {
+                    incrementRejectCount(rejectCounts, "SHAPE_WAYPOINTS_TOO_FEW")
+                    return@forEach
+                }
+                val routes = runCatching { fetchRoutes(profile, strategy.waypoints, continueStraight = false) }
+                    .onFailure { error ->
+                        incrementRejectCount(rejectCounts, "OSRM_CALL_FAILED")
+                        if (debug) {
+                            logger.info(
+                                "OSRM shape generation call failed: mode={} profile={} waypoints={} err={}",
+                                strategy.code, profile, strategy.waypoints.size, error.message
+                            )
+                        } else {
+                            logger.debug("OSRM shape generation failed: {}", error.message)
+                        }
+                    }
+                    .getOrElse { emptyList() }
+                if (routes.isEmpty()) {
+                    return@forEach
+                }
                 usedStrategies += 1
                 fetchedRouteCount += routes.size
-                val strategy = ShapeRoutingStrategy(
-                    code = SHAPE_MODE_STRATEGY_STITCHED,
-                    label = "segment stitched alternatives",
-                    waypoints = stitchedWaypoints,
-                )
-                routes.forEachIndexed { routeIndex, route ->
-                    appendShapeCandidate(strategy, route, 2000 + routeIndex)
-                }
-            }
-        }
 
-        strategies.forEach { strategy ->
-            if (strategy.waypoints.size < 3) {
-                incrementRejectCount(rejectCounts, "SHAPE_WAYPOINTS_TOO_FEW")
-                return@forEach
-            }
-            val routes = runCatching { fetchRoutes(profile, strategy.waypoints, continueStraight = false) }
-                .onFailure { error ->
-                    incrementRejectCount(rejectCounts, "OSRM_CALL_FAILED")
-                    if (debug) {
-                        logger.info(
-                            "OSRM shape generation call failed: mode={} profile={} waypoints={} err={}",
-                            strategy.code, profile, strategy.waypoints.size, error.message
-                        )
-                    } else {
-                        logger.debug("OSRM shape generation failed: {}", error.message)
-                    }
+                routes.forEachIndexed { index, route ->
+                    appendShapeCandidate(shapeRequest, variant, strategy, route, routeIndexOffset + index)
                 }
-                .getOrElse { emptyList() }
-            if (routes.isEmpty()) {
-                return@forEach
-            }
-            usedStrategies += 1
-            fetchedRouteCount += routes.size
-
-            routes.forEachIndexed { index, route ->
-                appendShapeCandidate(strategy, route, index)
             }
         }
 
         if (candidates.isEmpty()) {
-            buildShapeBestEffortRoutingStrategies(routeAnchor, routingShape).forEachIndexed { strategyIndex, strategy ->
+            val primaryVariant = routingVariants.first()
+            val routeAnchor = primaryVariant.shape.first()
+            val shapeRequest = request.copy(
+                startPoint = routeAnchor,
+                distanceTargetKm = distanceTargetKm,
+                startDirection = null,
+                directionStrict = false,
+            )
+            buildShapeBestEffortRoutingStrategies(routeAnchor, primaryVariant.shape).forEachIndexed { strategyIndex, strategy ->
                 if (strategy.waypoints.size < 3) {
                     incrementRejectCount(rejectCounts, "SHAPE_BEST_EFFORT_WAYPOINTS_TOO_FEW")
                     return@forEachIndexed
@@ -667,6 +703,8 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 fetchedRouteCount += routes.size
                 routes.forEachIndexed { routeIndex, route ->
                     appendShapeCandidate(
+                        shapeRequest,
+                        primaryVariant,
                         ShapeRoutingStrategy(
                             code = strategy.code,
                             label = strategy.label,
@@ -680,7 +718,11 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             }
         }
 
-        val recommendations = selectCandidatesWithRelaxation(shapeRequest, candidates, rejectCounts)
+        val recommendations = selectCandidatesWithRelaxation(
+            request.copy(distanceTargetKm = distanceTargetKm, shapePolyline = shapePolyline),
+            candidates,
+            rejectCounts,
+        )
             .take(request.limit)
 
         if (debug || recommendations.isEmpty()) {
@@ -2426,6 +2468,61 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         return nearestPointMeters <= max(500.0, radiusMeters * 0.35)
     }
 
+    private fun buildShapeRoutingVariants(
+        shape: List<Coordinates>,
+        preferredStart: Coordinates,
+    ): List<ShapeRoutingVariant> {
+        if (shape.size < 2) return emptyList()
+        val variants = mutableListOf<ShapeRoutingVariant>()
+        val seenAnchors = mutableSetOf<String>()
+
+        fun addVariant(label: String, points: List<Coordinates>) {
+            if (points.size < 2) return
+            val key = "%.6f,%.6f".format(Locale.US, points.first().lat, points.first().lng)
+            if (!seenAnchors.add(key)) return
+            variants += ShapeRoutingVariant(
+                label = label,
+                shape = points.map { point -> Coordinates(lat = point.lat, lng = point.lng) },
+            )
+        }
+
+        addVariant("nearest contour to requested start", prepareShapeForRouting(shape, preferredStart))
+        if (!isClosedCoordinateShape(shape, 120.0)) {
+            return variants
+        }
+
+        val contour = if (shape.size > 2 && isClosedCoordinateShape(shape, 120.0)) {
+            shape.dropLast(1)
+        } else {
+            shape
+        }
+        if (contour.size < 3) {
+            return variants
+        }
+
+        listOf(0, contour.size / 4, contour.size / 2, (contour.size * 3) / 4).forEach { index ->
+            addVariant("flexible contour start", rotateClosedCoordinateShape(contour, index))
+        }
+        return variants
+    }
+
+    private fun isClosedCoordinateShape(points: List<Coordinates>, toleranceMeters: Double): Boolean {
+        if (points.size < 3) return false
+        return haversineDistanceMeters(
+            points.first().lat,
+            points.first().lng,
+            points.last().lat,
+            points.last().lng,
+        ) <= toleranceMeters
+    }
+
+    private fun rotateClosedCoordinateShape(points: List<Coordinates>, startIndex: Int): List<Coordinates> {
+        if (points.isEmpty()) return emptyList()
+        val normalizedIndex = ((startIndex % points.size) + points.size) % points.size
+        val rotated = points.drop(normalizedIndex) + points.take(normalizedIndex)
+        return rotated + rotated.first()
+    }
+
     private fun prepareShapeForRouting(
         shape: List<Coordinates>,
         preferredStart: Coordinates,
@@ -2811,7 +2908,14 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         val anchoredBackward = meanNearestShapeDistance(anchoredRoute, anchoredShape)
         val anchoredDistance = (anchoredForward + anchoredBackward) / 2.0
         val anchoredScore = clampUnit(1.0 - (anchoredDistance / 0.82))
-        val orderedDistance = meanIndexedShapeDistance(anchoredShape, anchoredRoute)
+        val orderedDistance = if (
+            isClosedLatLngPolyline(sampledShape, 160.0) &&
+            isClosedLatLngPolyline(sampledRoute, 220.0)
+        ) {
+            meanCyclicIndexedShapeDistance(anchoredShape, anchoredRoute)
+        } else {
+            meanIndexedShapeDistance(anchoredShape, anchoredRoute)
+        }
         val orderedScore = clampUnit(1.0 - (orderedDistance / 0.92))
 
         val centroidScore = latLngCentroid(sampledRoute)?.let { routeCenter ->
@@ -2842,6 +2946,18 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             centroidScore = centroidScore,
             lengthScore = lengthScore,
         )
+    }
+
+    private fun isClosedLatLngPolyline(points: List<List<Double>>, toleranceMeters: Double): Boolean {
+        if (points.size < 3 || points.first().size < 2 || points.last().size < 2) {
+            return false
+        }
+        return haversineDistanceMeters(
+            points.first()[0],
+            points.first()[1],
+            points.last()[0],
+            points.last()[1],
+        ) <= toleranceMeters
     }
 
     private fun normalizeShapePolyline(points: List<List<Double>>): List<NormalizedShapePoint> {
@@ -2959,6 +3075,67 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             total += sqrt(dx * dx + dy * dy)
         }
         return total / count.toDouble()
+    }
+
+    private fun meanCyclicIndexedShapeDistance(
+        left: List<NormalizedShapePoint>,
+        right: List<NormalizedShapePoint>,
+    ): Double {
+        val leftOpen = normalizedWithoutClosingDuplicate(left)
+        val rightOpen = normalizedWithoutClosingDuplicate(right)
+        if (leftOpen.size < 2 || rightOpen.size < 2) {
+            return meanIndexedShapeDistance(leftOpen, rightOpen)
+        }
+        return min(
+            meanCyclicIndexedShapeDistanceDirected(leftOpen, rightOpen),
+            meanCyclicIndexedShapeDistanceDirected(leftOpen, rightOpen.asReversed()),
+        )
+    }
+
+    private fun meanCyclicIndexedShapeDistanceDirected(
+        left: List<NormalizedShapePoint>,
+        right: List<NormalizedShapePoint>,
+    ): Double {
+        val count = min(left.size, right.size)
+        if (count == 0) {
+            return 1.0
+        }
+        var best = Double.MAX_VALUE
+        for (shift in right.indices) {
+            var total = 0.0
+            for (index in 0 until count) {
+                val leftPoint = left[scaledShapeIndex(index, count, left.size)]
+                val rightPoint = right[(scaledShapeIndex(index, count, right.size) + shift) % right.size]
+                val dx = leftPoint.x - rightPoint.x
+                val dy = leftPoint.y - rightPoint.y
+                total += sqrt(dx * dx + dy * dy)
+            }
+            best = min(best, total / count.toDouble())
+        }
+        return best
+    }
+
+    private fun normalizedWithoutClosingDuplicate(points: List<NormalizedShapePoint>): List<NormalizedShapePoint> {
+        if (points.size < 3) {
+            return points
+        }
+        val first = points.first()
+        val last = points.last()
+        val dx = first.x - last.x
+        val dy = first.y - last.y
+        if (sqrt(dx * dx + dy * dy) > 0.06) {
+            return points
+        }
+        return points.dropLast(1)
+    }
+
+    private fun scaledShapeIndex(index: Int, count: Int, length: Int): Int {
+        if (length <= 1 || count <= 1) {
+            return 0
+        }
+        return round(index.toDouble() * (length - 1).toDouble() / (count - 1).toDouble())
+            .toInt()
+            .coerceIn(0, length - 1)
     }
 
     private fun routeShapeScore(recommendation: RouteRecommendation): Double {

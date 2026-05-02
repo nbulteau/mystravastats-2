@@ -632,6 +632,35 @@ func TestPrepareShapeForRouting_RotatesClosedShapeToNearestContourPoint(t *testi
 	}
 }
 
+func TestBuildShapeRoutingVariants_ClosedShapeOffersFlexibleContourStarts(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.1300, Lng: -1.6300}
+	shape := coordinatesFromLatLng(testStarLatLng(start.Lat, start.Lng, 1000.0, 420.0))
+
+	// WHEN
+	variants := buildShapeRoutingVariants(shape, start)
+
+	// THEN
+	if len(variants) < 4 {
+		t.Fatalf("expected several contour-start variants, got %d", len(variants))
+	}
+	anchors := map[string]struct{}{}
+	for _, variant := range variants {
+		if len(variant.shape) < 3 {
+			t.Fatalf("expected variant to keep closed shape points, got %d", len(variant.shape))
+		}
+		first := variant.shape[0]
+		last := variant.shape[len(variant.shape)-1]
+		if haversineDistanceMeters(first.Lat, first.Lng, last.Lat, last.Lng) > 120.0 {
+			t.Fatalf("expected variant to close the loop, first=%+v last=%+v", first, last)
+		}
+		anchors[coordinateTestKey(first)] = struct{}{}
+	}
+	if len(anchors) < 4 {
+		t.Fatalf("expected at least 4 distinct contour anchors, got %d", len(anchors))
+	}
+}
+
 func TestBuildShapeBestEffortRoutingStrategies_ReturnsFallbackWaypoints(t *testing.T) {
 	// GIVEN
 	start := routesDomain.Coordinates{Lat: 48.1300, Lng: -1.6300}
@@ -792,6 +821,20 @@ func TestShapeSimilarityScore_PenalizesAnchoredShapeDrift(t *testing.T) {
 	}
 }
 
+func TestShapeSimilarityScore_ClosedSketchIgnoresContourStart(t *testing.T) {
+	// GIVEN
+	shape := testStarLatLng(48.1300, -1.6300, 1000.0, 420.0)
+	rotatedRoute := rotateClosedLatLng(shape, 3)
+
+	// WHEN
+	score := shapeSimilarityScore(rotatedRoute, shape)
+
+	// THEN
+	if score < 0.94 {
+		t.Fatalf("expected contour-start invariant shape score, got %.3f", score)
+	}
+}
+
 func TestShapeSimilarityScore_PenalizesOrderedPathMismatch(t *testing.T) {
 	// GIVEN
 	shape := testCircleLatLng(48.1300, -1.6300, 1000.0, 96)
@@ -886,6 +929,42 @@ func coordinatesFromLatLng(points [][]float64) []routesDomain.Coordinates {
 		coordinates = append(coordinates, routesDomain.Coordinates{Lat: point[0], Lng: point[1]})
 	}
 	return coordinates
+}
+
+func coordinateTestKey(point routesDomain.Coordinates) string {
+	return strconv.FormatFloat(point.Lat, 'f', 6, 64) + "," + strconv.FormatFloat(point.Lng, 'f', 6, 64)
+}
+
+func rotateClosedLatLng(points [][]float64, startIndex int) [][]float64 {
+	if len(points) == 0 {
+		return [][]float64{}
+	}
+	open := points
+	if len(points) > 2 {
+		first := points[0]
+		last := points[len(points)-1]
+		if len(first) >= 2 && len(last) >= 2 &&
+			haversineDistanceMeters(first[0], first[1], last[0], last[1]) <= 120.0 {
+			open = points[:len(points)-1]
+		}
+	}
+	normalizedIndex := startIndex % len(open)
+	if normalizedIndex < 0 {
+		normalizedIndex += len(open)
+	}
+	rotated := make([][]float64, 0, len(open)+1)
+	rotated = append(rotated, cloneLatLngPoints(open[normalizedIndex:])...)
+	rotated = append(rotated, cloneLatLngPoints(open[:normalizedIndex])...)
+	rotated = append(rotated, []float64{rotated[0][0], rotated[0][1]})
+	return rotated
+}
+
+func cloneLatLngPoints(points [][]float64) [][]float64 {
+	cloned := make([][]float64, 0, len(points))
+	for _, point := range points {
+		cloned = append(cloned, []float64{point[0], point[1]})
+	}
+	return cloned
 }
 
 func TestRespectsHalfPlaneDirection_NorthRejectsPointsSouthOfStart(t *testing.T) {

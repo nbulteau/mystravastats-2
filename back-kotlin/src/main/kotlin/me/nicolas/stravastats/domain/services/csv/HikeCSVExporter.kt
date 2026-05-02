@@ -9,8 +9,10 @@ import me.nicolas.stravastats.domain.services.statistics.calculateBestTimeForDis
 import me.nicolas.stravastats.domain.utils.formatDate
 import me.nicolas.stravastats.domain.utils.formatSeconds
 
-internal class HikeCSVExporter(clientId: String, activities: List<StravaActivity>, year: Int?) :
-    CSVExporter(clientId, activities, year, ActivityType.Hike) {
+import org.springframework.stereotype.Component
+
+@Component
+internal class HikeCSVExporter : CSVExporter(ActivityType.Hike) {
 
     override fun generateHeader(): String {
         return writeCSVLine(
@@ -34,8 +36,8 @@ internal class HikeCSVExporter(clientId: String, activities: List<StravaActivity
         )
     }
 
-    override fun generateActivities(): String {
-        return activities.joinToString("\n") { activity ->
+    override fun generateActivities(activities: List<StravaActivity>): String {
+        return activities.joinToString("") { activity ->
             writeCSVLine(
                 listOf(
                     activity.startDateLocal.formatDate(),
@@ -58,7 +60,7 @@ internal class HikeCSVExporter(clientId: String, activities: List<StravaActivity
         }
     }
 
-    override fun generateFooter(): String {
+    override fun generateFooter(activities: List<StravaActivity>): String {
         val lastRow = activities.size + 1
         return writeCSVLine(
             listOf(

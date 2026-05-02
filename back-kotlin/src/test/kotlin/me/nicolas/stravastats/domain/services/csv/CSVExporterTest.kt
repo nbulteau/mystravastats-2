@@ -32,7 +32,7 @@ class CSVExporterTest {
         )
 
         try {
-            val csv = RideCSVExporter(clientId, listOf(activity), null).export()
+            val csv = RideCSVExporter().export(clientId, listOf(activity), null)
 
             assertTrue(csv.contains("Activity ID"))
             assertTrue(csv.contains("Gear ID"))

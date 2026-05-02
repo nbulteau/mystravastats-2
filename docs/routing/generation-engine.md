@@ -168,6 +168,7 @@ Examples of success diagnostics:
   - encoded polyline string
   - GPX points (`trkpt`, `rtept`, `wpt`) when payload is GPX XML
 - strategy scoring includes an adaptive low-similarity drift penalty (`road-first` stricter than shape-first strategies) so highly off-shape routes are naturally deprioritized
+- closed sketches are generated from several contour anchors and scored with a contour-start invariant ordered score: the requested start point is only a placement hint, not a reason to prefer a visibly worse drawing
 - shape candidates are scored, deduplicated by geometry, then selected by `Art fit` first before the strictest compatible relaxation profile is attached
 - the `nearest-road trace` strategy is explicit about its trade-off: it preserves the drawing order with nearby routable anchors, but the exported geometry always comes from OSRM-routed segments instead of straight lines between anchors
 - if no strict/balanced/relaxed shape candidate survives, an `Art fit` oriented soft fallback is tried before the absolute emergency fallback

@@ -400,6 +400,31 @@ class OsmRoutingEngineAdapterShapeTest {
     }
 
     @Test
+    fun `closed shape routing variants offer flexible contour starts`() {
+        // GIVEN
+        val adapter = OsmRoutingEngineAdapter()
+        val start = Coordinates(lat = 48.1300, lng = -1.6300)
+        val shape = coordinatesFromLatLng(testStarLatLng(start.lat, start.lng, 1000.0, 420.0))
+
+        // WHEN
+        val variants = invokeBuildShapeRoutingVariants(adapter, shape, start)
+
+        // THEN
+        assertTrue(variants.size >= 4, "expected several contour-start variants, got ${variants.size}")
+        val anchors = mutableSetOf<String>()
+        variants.forEach { variant ->
+            val points = variant.javaClass.getDeclaredField("shape")
+                .apply { isAccessible = true }
+                .get(variant) as List<Coordinates>
+            assertTrue(points.size >= 3, "variant should keep closed shape points")
+            val closureDistance = haversineDistanceMeters(points.first(), points.last())
+            assertTrue(closureDistance < 120.0, "variant should close the loop")
+            anchors += coordinateTestKey(points.first())
+        }
+        assertTrue(anchors.size >= 4, "expected at least 4 distinct contour anchors, got ${anchors.size}")
+    }
+
+    @Test
     fun `best effort shape routing strategies keep fallback waypoint sets`() {
         // GIVEN
         val adapter = OsmRoutingEngineAdapter()
@@ -507,6 +532,20 @@ class OsmRoutingEngineAdapterShapeTest {
         // THEN
         assertTrue(matchingScore > 0.95, "matching circle should keep high shape score, got $matchingScore")
         assertTrue(shiftedScore < 0.62, "shifted circle should be rejected-level similarity, got $shiftedScore")
+    }
+
+    @Test
+    fun `shape similarity score ignores contour start for closed sketch`() {
+        // GIVEN
+        val adapter = OsmRoutingEngineAdapter()
+        val shape = testStarLatLng(48.1300, -1.6300, 1000.0, 420.0)
+        val rotatedRoute = rotateClosedLatLng(shape, 3)
+
+        // WHEN
+        val score = invokeShapeSimilarityScore(adapter, rotatedRoute, shape)
+
+        // THEN
+        assertTrue(score > 0.94, "closed sketch score should be contour-start invariant, got $score")
     }
 
     @Test
@@ -770,6 +809,21 @@ class OsmRoutingEngineAdapterShapeTest {
     }
 
     @Suppress("UNCHECKED_CAST")
+    private fun invokeBuildShapeRoutingVariants(
+        adapter: OsmRoutingEngineAdapter,
+        shape: List<Coordinates>,
+        start: Coordinates,
+    ): List<Any> {
+        val method = adapter.javaClass.getDeclaredMethod(
+            "buildShapeRoutingVariants",
+            List::class.java,
+            Coordinates::class.java,
+        )
+        method.isAccessible = true
+        return method.invoke(adapter, shape, start) as List<Any>
+    }
+
+    @Suppress("UNCHECKED_CAST")
     private fun invokeBuildShapeBestEffortRoutingStrategies(
         adapter: OsmRoutingEngineAdapter,
         start: Coordinates,
@@ -907,6 +961,28 @@ class OsmRoutingEngineAdapterShapeTest {
 
     private fun coordinatesFromLatLng(points: List<List<Double>>): List<Coordinates> {
         return points.map { point -> Coordinates(lat = point[0], lng = point[1]) }
+    }
+
+    private fun coordinateTestKey(point: Coordinates): String {
+        return "%.6f,%.6f".format(Locale.US, point.lat, point.lng)
+    }
+
+    private fun rotateClosedLatLng(points: List<List<Double>>, startIndex: Int): List<List<Double>> {
+        if (points.isEmpty()) return emptyList()
+        val open = if (
+            points.size > 2 &&
+            haversineDistanceMeters(
+                Coordinates(lat = points.first()[0], lng = points.first()[1]),
+                Coordinates(lat = points.last()[0], lng = points.last()[1]),
+            ) <= 120.0
+        ) {
+            points.dropLast(1)
+        } else {
+            points
+        }
+        val normalizedIndex = ((startIndex % open.size) + open.size) % open.size
+        val rotated = open.drop(normalizedIndex) + open.take(normalizedIndex)
+        return rotated + listOf(rotated.first())
     }
 
     private fun boundingCenter(points: List<Coordinates>): Coordinates {
