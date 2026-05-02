@@ -301,7 +301,13 @@ class DashboardServiceTest {
         assertTrue(distance.weeklyPaceGap > 0.0)
         assertTrue(distance.suggestedTarget != null)
         assertEquals(12, distance.monthly.size)
-        assertTrue(distance.monthly[today.monthValue - 1].value >= 30.0)
+        // Activities at today-15 and today-5 may land in the previous month when today is early in the month
+        // Compute the combined value across both months to validate the monthly aggregation
+        val d41MonthIdx = today.minusDays(15).monthValue - 1
+        val d42MonthIdx = today.minusDays(5).monthValue - 1
+        val combinedMonthlyValue = distance.monthly[d41MonthIdx].value +
+            if (d41MonthIdx != d42MonthIdx) distance.monthly[d42MonthIdx].value else 0.0
+        assertTrue(combinedMonthlyValue >= 30.0)
     }
 
     private fun createActivity(

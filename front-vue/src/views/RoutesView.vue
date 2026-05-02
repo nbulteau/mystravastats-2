@@ -200,6 +200,68 @@ const generateRouteButtonLabel = computed(() => {
   }
   return "Snap artwork to roads";
 });
+const primaryActionLabel = computed(() => {
+  if (routesStore.isLoading) {
+    return "Generating...";
+  }
+  if (routesStore.shapePoints.length < 2) {
+    return routesStore.isDrawingShape ? "Stop drawing" : "Draw";
+  }
+  if (!routesStore.startPoint) {
+    return isLocating.value ? "Locating..." : "Set start";
+  }
+  if (!routesStore.hasRoutes) {
+    return "Generate";
+  }
+  return isExporting.value ? "Exporting..." : "Export GPX";
+});
+const primaryActionIcon = computed(() => {
+  if (routesStore.shapePoints.length < 2) {
+    return "fa-solid fa-pen-nib";
+  }
+  if (!routesStore.startPoint) {
+    return "fa-solid fa-location-crosshairs";
+  }
+  if (!routesStore.hasRoutes) {
+    return "fa-solid fa-route";
+  }
+  return "fa-solid fa-download";
+});
+const primaryActionDisabled = computed(() => {
+  if (routesStore.isLoading || isExporting.value) {
+    return true;
+  }
+  if (routesStore.shapePoints.length < 2) {
+    return false;
+  }
+  if (!routesStore.startPoint) {
+    return isLocating.value;
+  }
+  if (!routesStore.hasRoutes) {
+    return !canGenerate.value;
+  }
+  return !selectedRoute.value;
+});
+const workspaceStage = computed(() => {
+  if (routesStore.shapePoints.length < 2) {
+    return "Sketch";
+  }
+  if (!routesStore.startPoint) {
+    return "Anchor";
+  }
+  if (!routesStore.hasRoutes) {
+    return "Generate";
+  }
+  if (!selectedRoute.value) {
+    return "Choose";
+  }
+  return "Export";
+});
+const canvasStatusLabel = computed(() => {
+  const pointLabel = `${routesStore.shapePoints.length} point${routesStore.shapePoints.length === 1 ? "" : "s"}`;
+  const routeLabel = routesStore.hasRoutes ? `${routesStore.routes.length} proposal${routesStore.routes.length === 1 ? "" : "s"}` : "no proposal";
+  return `${pointLabel} · ${routeLabel}`;
+});
 
 const routeTypeOptions: Array<{ value: RouteType; label: string }> = [
   { value: "RIDE", label: "Ride" },
@@ -541,6 +603,13 @@ function routeProductBadges(route: GeneratedRoute): RouteBadge[] {
       tone: "strong",
       icon: "fa-solid fa-circle-check",
     });
+  } else if (profile.startsWith("art-fit-diagnostic")) {
+    badges.push({
+      id: "profile-art-diagnostic",
+      label: "Drawing wins",
+      tone: "strong",
+      icon: "fa-solid fa-pen-nib",
+    });
   } else if (profile.startsWith("best-effort-soft")) {
     badges.push({
       id: "profile-soft",
@@ -565,6 +634,14 @@ function routeProductBadges(route: GeneratedRoute): RouteBadge[] {
       icon: "fa-solid fa-pen-nib",
     });
   }
+  if (hasRouteReason(route, "Retrace policy:")) {
+    badges.push({
+      id: "retrace-art",
+      label: "Overlap allowed",
+      tone: "info",
+      icon: "fa-solid fa-repeat",
+    });
+  }
 
   return badges.slice(0, 3);
 }
@@ -577,6 +654,9 @@ function routeProductSummary(route: GeneratedRoute): string {
   }
   if (profile.includes("emergency-fallback")) {
     return "Exportable fallback; inspect the drawing before riding.";
+  }
+  if (profile.startsWith("art-fit-diagnostic")) {
+    return "Drawing match selected; overlap is rideability context.";
   }
   if (profile.startsWith("best-effort-soft")) {
     return "Best-effort route kept available for export.";
@@ -607,10 +687,16 @@ function highlightedRouteReasons(route: GeneratedRoute): string[] {
 
   if (profile.startsWith("strict")) {
     highlights.push("Confidence: strict candidate selected.");
+  } else if (profile.startsWith("art-fit-diagnostic")) {
+    highlights.push("Priority: drawing resemblance selected first.");
   } else if (profile.startsWith("best-effort-soft")) {
     highlights.push("Confidence: relaxed to preserve the artwork.");
   } else if (profile.includes("emergency-fallback")) {
     highlights.push("Confidence: fully relaxed fallback.");
+  }
+
+  if (hasRouteReason(route, "Retrace policy:")) {
+    highlights.push("Overlap: allowed when it keeps the drawing recognizable.");
   }
 
   if (hasRouteReason(route, "Shape similarity below ideal:")) {
@@ -1378,6 +1464,22 @@ async function generateRoutes() {
   }
 }
 
+async function runPrimaryAction() {
+  if (routesStore.shapePoints.length < 2) {
+    routesStore.toggleShapeDrawing();
+    return;
+  }
+  if (!routesStore.startPoint) {
+    await useMyLocation();
+    return;
+  }
+  if (!routesStore.hasRoutes) {
+    await generateRoutes();
+    return;
+  }
+  await exportSelectedRoute();
+}
+
 function pickRoute(routeId: string) {
   routesStore.setSelectedRoute(routeId);
   redrawMapLayers({ fitBounds: true });
@@ -1453,14 +1555,31 @@ onBeforeUnmount(() => {
         </div>
       </div>
       <div class="routes-art-steps" aria-label="Strava Art workflow">
-        <span><i class="fa-solid fa-pencil" aria-hidden="true" /> Sketch</span>
-        <span><i class="fa-solid fa-magnet" aria-hidden="true" /> OSRM snap</span>
-        <span><i class="fa-solid fa-file-export" aria-hidden="true" /> GPX export</span>
+        <span :class="{ 'routes-art-step--active': workspaceStage === 'Sketch' }">
+          <i class="fa-solid fa-pencil" aria-hidden="true" />
+          Sketch
+        </span>
+        <span :class="{ 'routes-art-step--active': workspaceStage === 'Anchor' }">
+          <i class="fa-solid fa-location-crosshairs" aria-hidden="true" />
+          Anchor
+        </span>
+        <span :class="{ 'routes-art-step--active': workspaceStage === 'Generate' }">
+          <i class="fa-solid fa-magnet" aria-hidden="true" />
+          Generate
+        </span>
+        <span :class="{ 'routes-art-step--active': workspaceStage === 'Choose' || workspaceStage === 'Export' }">
+          <i class="fa-solid fa-file-export" aria-hidden="true" />
+          Export
+        </span>
       </div>
     </header>
 
-    <section class="routes-panel routes-layout">
-      <aside class="routes-controls">
+    <section class="routes-workspace">
+      <aside class="routes-panel routes-controls">
+        <div class="routes-sidebar-head">
+          <strong>Source</strong>
+          <span>{{ workspaceStage }}</span>
+        </div>
         <button
           type="button"
           class="btn btn-outline-primary routes-location-btn"
@@ -1560,15 +1679,18 @@ onBeforeUnmount(() => {
             Clear shape
           </button>
           <small class="routes-hint">
-            Click on the map while drawing to add points.
+            {{ routesStore.isDrawingShape ? "Drawing is active" : "Drawing paused" }}
           </small>
         </div>
 
-        <div class="routes-library-tools">
-          <div class="routes-library-tools-head">
-            <strong>Shape library</strong>
-            <span>{{ routesStore.savedShapeTemplateCount }} saved</span>
-          </div>
+        <details
+          class="routes-library-tools"
+          open
+        >
+          <summary>
+            <span>Templates and imports</span>
+            <strong>{{ routesStore.savedShapeTemplateCount }} saved</strong>
+          </summary>
           <div class="routes-template-row">
             <label class="routes-field routes-field--compact">
               <span>Simple shape</span>
@@ -1720,39 +1842,43 @@ onBeforeUnmount(() => {
               FIT
             </button>
           </div>
-        </div>
+        </details>
 
       </aside>
 
-      <div class="routes-map-panel">
-        <div class="routes-map-head">
-          <span class="routes-map-title">Art canvas</span>
+      <div class="routes-panel routes-map-panel">
+        <div class="routes-canvas-topbar">
+          <div>
+            <span class="routes-map-title">Art canvas</span>
+            <span class="routes-canvas-status">{{ canvasStatusLabel }}</span>
+          </div>
           <div class="routes-map-actions">
             <button
               type="button"
               class="btn btn-primary btn-sm routes-map-generate-btn"
-              :disabled="routesStore.isLoading || !canGenerate"
-              @click="generateRoutes"
+              :disabled="primaryActionDisabled"
+              @click="runPrimaryAction"
             >
-              <i class="fa-solid fa-route" aria-hidden="true" />
-              {{ generateRouteButtonLabel }}
+              <i :class="primaryActionIcon" aria-hidden="true" />
+              {{ primaryActionLabel }}
             </button>
             <button
               type="button"
               class="btn btn-outline-primary btn-sm"
-              :disabled="!selectedRoute || isExporting"
-              @click="exportSelectedRoute"
+              :disabled="routesStore.isLoading || !canGenerate"
+              @click="generateRoutes"
             >
-              <i class="fa-solid fa-download" aria-hidden="true" />
-              {{ isExporting ? "Exporting..." : "Export GPX" }}
+              <i class="fa-solid fa-rotate" aria-hidden="true" />
+              {{ generateRouteButtonLabel }}
             </button>
           </div>
         </div>
-        <div class="routes-canvas-tools">
-          <div class="routes-canvas-tools-head">
-            <strong>Transform sketch</strong>
-            <span>{{ routesStore.canUndoShapeTransform ? "Undo available" : "Ready" }}</span>
-          </div>
+        <div class="routes-map-shell">
+          <div
+            ref="mapContainer"
+            class="routes-map"
+          />
+          <div class="routes-canvas-tools">
           <div class="routes-canvas-toolbar">
             <div class="routes-canvas-tool-group" aria-label="Move sketch">
               <button
@@ -1883,10 +2009,6 @@ onBeforeUnmount(() => {
             </div>
           </div>
         </div>
-        <div
-          ref="mapContainer"
-          class="routes-map"
-        />
         <div class="routes-map-legend" aria-label="Map layers">
           <span class="routes-layer-key routes-layer-key--sketch">
             <span aria-hidden="true" />
@@ -1899,6 +2021,7 @@ onBeforeUnmount(() => {
             <span aria-hidden="true" />
             Generated route
           </span>
+        </div>
         </div>
         <div class="routes-assistant-tools routes-assistant-tools--map">
           <div class="routes-assistant-tools-head">
@@ -1962,9 +2085,8 @@ onBeforeUnmount(() => {
           </div>
         </div>
       </div>
-    </section>
 
-    <section class="routes-panel routes-results">
+      <aside class="routes-panel routes-results routes-decision-panel">
       <header class="routes-results-head">
         <h2>Art proposals</h2>
         <span>{{ routesStore.routes.length }} GPX route(s)</span>
@@ -2128,6 +2250,7 @@ onBeforeUnmount(() => {
           </div>
         </article>
       </div>
+      </aside>
     </section>
   </section>
 </template>
@@ -2189,7 +2312,8 @@ onBeforeUnmount(() => {
 }
 
 .routes-controls .btn,
-.routes-map-head .btn {
+.routes-canvas-topbar .btn,
+.routes-canvas-toolbar .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2226,6 +2350,12 @@ onBeforeUnmount(() => {
   font-size: 0.84rem;
   font-weight: 700;
   padding: 6px 10px;
+}
+
+.routes-art-step--active {
+  border-color: #0d6efd !important;
+  background: #eef5ff !important;
+  color: #0d4fb3 !important;
 }
 
 .routes-engine-chip {
@@ -2272,16 +2402,43 @@ onBeforeUnmount(() => {
   background: currentColor;
 }
 
-.routes-layout {
+.routes-workspace {
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
+  grid-template-columns: minmax(240px, 290px) minmax(420px, 1fr) minmax(280px, 340px);
   gap: 12px;
+  align-items: start;
 }
 
 .routes-controls {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  position: sticky;
+  top: 12px;
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+}
+
+.routes-sidebar-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  color: #303746;
+}
+
+.routes-sidebar-head strong {
+  font-size: 1rem;
+}
+
+.routes-sidebar-head span {
+  border: 1px solid #d6e2f5;
+  border-radius: 999px;
+  background: #f5f8fd;
+  color: #4d6388;
+  font-size: 0.76rem;
+  font-weight: 800;
+  padding: 4px 8px;
 }
 
 .routes-location-btn {
@@ -2361,6 +2518,27 @@ onBeforeUnmount(() => {
   gap: 8px;
   border-top: 1px solid #e5ebf4;
   padding-top: 10px;
+}
+
+.routes-library-tools summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  color: #4d566a;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 800;
+  list-style: none;
+}
+
+.routes-library-tools summary::-webkit-details-marker {
+  display: none;
+}
+
+.routes-library-tools summary strong {
+  color: #6f7687;
+  font-size: 0.78rem;
 }
 
 .routes-library-tools-head {
@@ -2529,10 +2707,11 @@ onBeforeUnmount(() => {
 .routes-map-panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  min-width: 0;
 }
 
-.routes-map-head {
+.routes-canvas-topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -2540,9 +2719,22 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
 }
 
+.routes-canvas-topbar > div:first-child {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .routes-map-title {
   font-weight: 700;
   color: #344056;
+}
+
+.routes-canvas-status {
+  color: #687389;
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 .routes-map-actions {
@@ -2556,15 +2748,24 @@ onBeforeUnmount(() => {
   min-width: 190px;
 }
 
+.routes-map-shell {
+  position: relative;
+  min-height: 560px;
+}
+
 .routes-canvas-tools {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 8px 12px;
-  align-items: center;
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 12px;
+  z-index: 450;
+  display: flex;
+  justify-content: center;
   border: 1px solid #dfe6f1;
   border-radius: 8px;
-  background: #f8fbff;
+  background: rgba(248, 251, 255, 0.96);
   padding: 8px 10px;
+  box-shadow: 0 8px 22px rgba(12, 21, 38, 0.12);
 }
 
 .routes-canvas-tools-head {
@@ -2610,16 +2811,26 @@ onBeforeUnmount(() => {
 
 .routes-map {
   width: 100%;
-  height: 440px;
+  height: min(64vh, 720px);
+  min-height: 560px;
   border: 1px solid #d7deea;
   border-radius: 8px;
   overflow: hidden;
 }
 
 .routes-map-legend {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 450;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  border: 1px solid #dfe6f1;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  padding: 6px 9px;
+  box-shadow: 0 6px 18px rgba(12, 21, 38, 0.10);
 }
 
 .routes-layer-key {
@@ -2738,6 +2949,13 @@ onBeforeUnmount(() => {
   margin-bottom: 10px;
 }
 
+.routes-decision-panel {
+  position: sticky;
+  top: 12px;
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+}
+
 .routes-results-head h2 {
   margin: 0;
   font-size: 1.02rem;
@@ -2747,6 +2965,10 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 10px;
+}
+
+.routes-decision-panel .routes-results-grid {
+  grid-template-columns: 1fr;
 }
 
 .route-card {
@@ -3057,16 +3279,28 @@ onBeforeUnmount(() => {
     justify-content: flex-start;
   }
 
-  .routes-layout {
+  .routes-workspace {
     grid-template-columns: 1fr;
+  }
+
+  .routes-controls,
+  .routes-decision-panel {
+    position: static;
+    max-height: none;
   }
 
   .routes-map-actions {
     justify-content: flex-start;
   }
 
+  .routes-map-shell {
+    min-height: 420px;
+  }
+
   .routes-canvas-tools {
-    grid-template-columns: 1fr;
+    position: static;
+    margin-bottom: 8px;
+    box-shadow: none;
   }
 
   .routes-canvas-toolbar {
@@ -3075,6 +3309,7 @@ onBeforeUnmount(() => {
 
   .routes-map {
     height: 400px;
+    min-height: 400px;
   }
 
   .routes-comparison {

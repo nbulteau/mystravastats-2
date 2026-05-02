@@ -177,21 +177,6 @@
 
 ### Priorite moyenne
 
-- [ ] `FUNC-P1-11` (`P1`, `M`) - Repenser l'IHM de l'onglet Strava Art.
-  Owners: `Product`, `Front`, `Routes`.
-  Constat:
-  - la vue actuelle expose les capacites du studio, mais melange preparation, dessin, transformations, bibliotheque, corrections, exports et propositions dans un flux dense,
-  - la carte doit devenir le centre de gravite de l'experience, avec les outils et diagnostics en appui contextuel.
-  Proposition:
-  - passer a un workspace carte-dominante avec barre d'outils compacte, panneau source a gauche et tiroir propositions/diagnostics/exports a droite,
-  - organiser le parcours en etats clairs: preparer le dessin, ajuster, generer, comparer, exporter,
-  - regrouper les fonctions avancees dans des sections repliables ou modes secondaires pour garder le MVP lisible,
-  - rendre la selection d'une proposition immediate sur la carte et dans la liste, avec un CTA principal adapte a l'etat courant.
-  Acceptance:
-  - un nouvel utilisateur comprend l'action suivante sans lire la documentation,
-  - la carte reste dominante sur desktop et mobile,
-  - les fonctions avancees restent accessibles sans encombrer le parcours principal.
-
 - [ ] `FUNC-P1-04` (`P1`, `M`) - Comparaison d'activite a effort similaire.
   Owners: `Product`, `Stats`, `Front`.
   Proposition:
