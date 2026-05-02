@@ -1605,7 +1605,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             routeType = request.routeType,
             strict = request.strictBacktracking,
         )
-        if (!bestEffort && hasOppositeOutsideStart) {
+        if (!bestEffort && !shapeMode && hasOppositeOutsideStart) {
             if (request.strictBacktracking) {
                 incrementRejectCount(rejectCounts, "STRICT_BACKTRACKING_OUTSIDE_START")
             } else {
@@ -1613,7 +1613,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             }
             return null
         }
-        if (!bestEffort && maxAxisReuseOutsideStart > maxAxisReuseOutsideStartLimit) {
+        if (!bestEffort && !shapeMode && maxAxisReuseOutsideStart > maxAxisReuseOutsideStartLimit) {
             incrementRejectCount(rejectCounts, "AXIS_REUSE_OUTSIDE_START")
             return null
         }
@@ -1632,7 +1632,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             maxEdgeReuseReject = 0.55
             maxAxisReuseReject = 14
         }
-        if (!bestEffort && (
+        if (!bestEffort && !shapeMode && (
             backtrackingRatio > maxBacktrackingReject ||
             corridorOverlap > maxCorridorReject ||
             edgeReuse > maxEdgeReuseReject ||
@@ -1696,7 +1696,9 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             add("Path ratio: ${(pathRatio * 100.0).roundToInt()}%")
             add("Surface fitness: ${surfaceScore.roundToInt()}%")
             add("Surface source: OSRM step classes, mode, and surface/tracktype tags when available")
-            if (bestEffort) {
+            if (shapeMode) {
+                add("Retrace policy: art-fit first (diagnostic only)")
+            } else if (bestEffort) {
                 add("Anti-backtracking: best-effort fallback")
             } else if (request.strictBacktracking) {
                 add("Anti-backtracking: native ultra")
@@ -1748,9 +1750,9 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         } else {
             effectiveScore
         }
-        // effectiveMatchScore is an internal ranking score (not API score):
-        // it aggressively penalizes backtracking and bad directional fit to keep
-        // generated loops practical even in relaxed levels.
+        // effectiveMatchScore is an internal ranking score (not API score). For
+        // classic loops it penalizes retrace heavily; Strava Art selection still
+        // sorts by shape score first and keeps retrace as a rideability signal.
         return OsrmRouteCandidate(
             recommendation = recommendation,
             directionPenalty = directionPenalty,
@@ -1834,21 +1836,18 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         val selectedIds = mutableSetOf<String>()
 
         if (shapeMode) {
-            // Strava Art is judged first by the drawing: try candidates in visual-fit
-            // order, then attach the strictest relaxation profile each candidate can pass.
+            // Strava Art is judged first by the drawing. Retrace can be necessary
+            // to preserve the model, so route-loop relaxation levels are diagnostics
+            // here, not hard selection gates.
             for (candidate in sortedCandidates) {
                 if (selected.size >= limit) break
                 if (selectedIds.contains(candidate.recommendation.routeId)) continue
-                for (level in levels) {
-                    if (!candidatePassesRelaxation(candidate, level, shapeMode, rejectCounts)) continue
-                    selectedIds += candidate.recommendation.routeId
-                    selected += candidate.recommendation.copy(
-                        reasons = candidate.recommendation.reasons +
-                            "Selection priority: art-fit first" +
-                            "Selection profile: ${level.name}",
-                    )
-                    break
-                }
+                selectedIds += candidate.recommendation.routeId
+                selected += candidate.recommendation.copy(
+                    reasons = candidate.recommendation.reasons +
+                        "Selection priority: art-fit first" +
+                        "Selection profile: art-fit-diagnostic (retrace allowed)",
+                )
             }
         } else {
             // Levels are evaluated in order: strict -> balanced -> relaxed -> fallback.

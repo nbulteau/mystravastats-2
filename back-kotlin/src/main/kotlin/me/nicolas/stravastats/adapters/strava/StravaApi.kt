@@ -1,14 +1,6 @@
 package me.nicolas.stravastats.adapters.strava
 
-
-import io.ktor.http.*
-import io.ktor.server.engine.*
-import io.ktor.server.netty.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlin.time.Duration.Companion.milliseconds
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
@@ -340,8 +332,11 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
     }
 
     private fun setAccessToken(clientId: String, clientSecret: String) {
+        val redirectPort = 8090
+        val redirectUri = "http://localhost:$redirectPort/exchange_token"
         val url =
-            "https://www.strava.com/api/v3/oauth/authorize?client_id=$clientId&response_type=code&redirect_uri=http://localhost:8090/exchange_token&approval_prompt=auto&scope=read_all,activity:read_all,profile:read_all"
+            "https://www.strava.com/api/v3/oauth/authorize?client_id=$clientId&response_type=code" +
+                "&redirect_uri=$redirectUri&approval_prompt=auto&scope=read_all,activity:read_all,profile:read_all"
         openBrowser(url)
 
         println()
@@ -349,35 +344,56 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
         println(url)
         println()
 
-        runBlocking {
-            val channel = Channel<String>()
+        logger.info("Waiting for your agreement to allow MyStravaStats to access to your Strava data ...")
+        val authorizationCode = receiveOAuthCallback(redirectPort)
+        logger.info("Access granted - exchanging authorization code for access token.")
+        setAccessToken(getAccessToken(clientId, clientSecret, authorizationCode))
+    }
 
-            val embeddedServer = embeddedServer(Netty, 8090) {
-                routing {
-                    get("/exchange_token") {
-                        val authorizationCode = call.request.queryParameters["code"] ?: "no authorization code"
-                        call.respondText(
-                            buildResponseHtml(),
-                            ContentType.Text.Html
-                        )
-                        launch {
-                            // Get an authorization token with the code
-                            val accessToken = getAccessToken(clientId, clientSecret, authorizationCode)
-                            channel.send(accessToken)
+    /**
+     * Opens a temporary [ServerSocket] on [port], accepts a single HTTP request from the
+     * Strava OAuth redirect, extracts the "code" query parameter, returns a confirmation
+     * HTML page to the browser, then closes the socket.
+     *
+     * This replaces the previously embedded Ktor server and requires no additional
+     * HTTP-server dependency.
+     */
+    private fun receiveOAuthCallback(port: Int): String {
+        // 5-minute timeout: if the user does not authorise in time, we fail loudly.
+        ServerSocket(port).use { serverSocket ->
+            serverSocket.soTimeout = 5 * 60 * 1_000
+            serverSocket.accept().use { socket ->
+                // Only the first line of the HTTP request is needed:
+                // "GET /exchange_token?state=&code=<CODE>&scope=... HTTP/1.1"
+                val requestLine = socket.getInputStream().bufferedReader().readLine()
+                    ?: throw RuntimeException("Empty HTTP request received on OAuth callback port $port")
 
-                        }
-                    }
+                // Extract the "code" parameter value from the query string.
+                val code = requestLine
+                    .substringAfter("code=", "")
+                    .substringBefore("&")
+                    .substringBefore(" ")
+
+                if (code.isBlank()) {
+                    throw RuntimeException("No authorization code in OAuth callback. Request line: $requestLine")
                 }
-            }.start(wait = false)
 
-            logger.info("Waiting for your agreement to allow MyStravaStats to access to your Strava data ...")
-            val accessTokenFromToken = channel.receive()
-            logger.info("Access granted.")
-            setAccessToken(accessTokenFromToken)
+                // Send a minimal HTTP 200 response with the confirmation page.
+                val htmlBytes = buildResponseHtml().toByteArray(Charsets.UTF_8)
+                socket.getOutputStream().apply {
+                    write(
+                        ("HTTP/1.1 200 OK\r\n" +
+                            "Content-Type: text/html; charset=UTF-8\r\n" +
+                            "Content-Length: ${htmlBytes.size}\r\n" +
+                            "Connection: close\r\n" +
+                            "\r\n").toByteArray(Charsets.US_ASCII)
+                    )
+                    write(htmlBytes)
+                    flush()
+                }
 
-            // stop de web server
-            logger.info("Stopping the web server ...")
-            embeddedServer.stop(1000, 1000)
+                return code
+            }
         }
     }
 

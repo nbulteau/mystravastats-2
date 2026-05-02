@@ -27,6 +27,8 @@ springBoot {
 repositories {
     mavenCentral()
     maven("https://repo.kotlin.link")
+    // JitPack is used to resolve the official Garmin FIT Java SDK from GitHub.
+    maven("https://jitpack.io")
 }
 
 dependencies {
@@ -45,14 +47,14 @@ dependencies {
 
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
 
-
-    implementation("io.ktor:ktor-server-netty:3.4.2")
-
     implementation("com.squareup.okhttp3:okhttp:5.3.2")
 
     implementation("io.jenetics:jpx:4.0.0")
 
-    implementation(files("libs/fit.jar"))
+    // Garmin FIT Java SDK sourced from GitHub via JitPack (replaces the vendored libs/fit.jar).
+    // All SessionMesg/RecordMesg accessors used by FITRepository are present and compatible.
+    // Newer versions available at https://github.com/garmin/fit-java-sdk/tags.
+    implementation("com.github.garmin:fit-java-sdk:21.200.0")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 

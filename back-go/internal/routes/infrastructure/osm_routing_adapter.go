@@ -1677,7 +1677,7 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreviewWithMode(
 		request.RouteType,
 		request.StrictBacktracking,
 	)
-	if !bestEffort && hasOppositeOutsideStart {
+	if !bestEffort && !shapeMode && hasOppositeOutsideStart {
 		if request.StrictBacktracking {
 			incrementRejectCount(rejectCounts, "STRICT_BACKTRACKING_OUTSIDE_START")
 		} else {
@@ -1685,7 +1685,7 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreviewWithMode(
 		}
 		return osrmRouteCandidate{}, false
 	}
-	if !bestEffort && maxAxisReuseOutsideStart > maxAxisReuseOutsideStartLimit {
+	if !bestEffort && !shapeMode && maxAxisReuseOutsideStart > maxAxisReuseOutsideStartLimit {
 		incrementRejectCount(rejectCounts, "AXIS_REUSE_OUTSIDE_START")
 		return osrmRouteCandidate{}, false
 	}
@@ -1704,7 +1704,7 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreviewWithMode(
 		maxEdgeReuseReject = 0.55
 		maxAxisReuseReject = 14
 	}
-	if !bestEffort && (backtrackingRatio > maxBacktrackingReject ||
+	if !bestEffort && !shapeMode && (backtrackingRatio > maxBacktrackingReject ||
 		corridorOverlap > maxCorridorReject ||
 		edgeReuse > maxEdgeReuseReject ||
 		maxAxisReuseCount > maxAxisReuseReject) {
@@ -1778,7 +1778,9 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreviewWithMode(
 		fmt.Sprintf("Surface fitness: %.0f%%", surfaceScore),
 		"Surface source: OSRM step classes, mode, and surface/tracktype tags when available",
 	)
-	if bestEffort {
+	if shapeMode {
+		reasons = append(reasons, "Retrace policy: art-fit first (diagnostic only)")
+	} else if bestEffort {
 		reasons = append(reasons, "Anti-backtracking: best-effort fallback")
 	} else if request.StrictBacktracking {
 		reasons = append(reasons, "Anti-backtracking: native ultra")
@@ -1825,9 +1827,9 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreviewWithMode(
 	if bestEffort {
 		effectiveScore = clampOSMScore(effectiveScore - 22.0)
 	}
-	// effectiveScore is an internal ranking score (not API score):
-	// it aggressively penalizes backtracking and bad directional fit to keep
-	// generated loops practical even in relaxed levels.
+	// effectiveScore is an internal ranking score (not API score). For classic
+	// loops it penalizes retrace heavily; Strava Art selection still sorts by
+	// shape score first and keeps retrace as a rideability signal.
 
 	return osrmRouteCandidate{
 		recommendation:      recommendation,
@@ -1940,8 +1942,9 @@ func selectCandidatesWithRelaxation(
 	selectedIDs := make(map[string]struct{}, limit)
 
 	if shapeMode {
-		// Strava Art is judged first by the drawing: try candidates in visual-fit
-		// order, then attach the strictest relaxation profile each candidate can pass.
+		// Strava Art is judged first by the drawing. Retrace can be necessary to
+		// preserve the model, so route-loop relaxation levels are diagnostics here,
+		// not hard selection gates.
 		for _, candidate := range sortedCandidates {
 			if len(selected) >= limit {
 				break
@@ -1950,20 +1953,14 @@ func selectCandidatesWithRelaxation(
 			if _, exists := selectedIDs[routeID]; exists {
 				continue
 			}
-			for _, level := range levels {
-				if !candidatePassesRelaxation(candidate, level, shapeMode, rejectCounts) {
-					continue
-				}
-				recommendation := candidate.recommendation
-				recommendation.Reasons = append(
-					recommendation.Reasons,
-					"Selection priority: art-fit first",
-					fmt.Sprintf("Selection profile: %s", level.name),
-				)
-				selected = append(selected, recommendation)
-				selectedIDs[routeID] = struct{}{}
-				break
-			}
+			recommendation := candidate.recommendation
+			recommendation.Reasons = append(
+				recommendation.Reasons,
+				"Selection priority: art-fit first",
+				"Selection profile: art-fit-diagnostic (retrace allowed)",
+			)
+			selected = append(selected, recommendation)
+			selectedIDs[routeID] = struct{}{}
 		}
 	} else {
 		// Levels are evaluated in order: strict -> balanced -> relaxed -> fallback.

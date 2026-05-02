@@ -657,7 +657,7 @@ func TestBuildShapeBestEffortRoutingStrategies_ReturnsFallbackWaypoints(t *testi
 	}
 }
 
-func TestToRouteCandidateBestEffort_KeepsHighlyRetracedShapeRoute(t *testing.T) {
+func TestToRouteCandidate_KeepsHighlyRetracedShapeRouteButRejectsClassicLoop(t *testing.T) {
 	// GIVEN
 	adapter := NewOSMRoutingAdapter()
 	start := routesDomain.Coordinates{Lat: 48.1300, Lng: -1.6300}
@@ -681,27 +681,28 @@ func TestToRouteCandidateBestEffort_KeepsHighlyRetracedShapeRoute(t *testing.T) 
 		ShapePolyline:    "[[48.13,-1.63],[48.15,-1.63],[48.13,-1.63]]",
 		Limit:            1,
 	}
-	rejectCounts := map[string]int{}
-	if _, ok := adapter.toRouteCandidate(request, route, 0, rejectCounts); ok {
-		t.Fatalf("expected normal candidate conversion to reject excessive retrace")
+	classicRequest := request
+	classicRequest.ShapePolyline = ""
+	if _, ok := adapter.toRouteCandidate(classicRequest, route, 0, map[string]int{}); ok {
+		t.Fatalf("expected classic candidate conversion to reject excessive retrace")
 	}
 
 	// WHEN
-	candidate, ok := adapter.toRouteCandidateBestEffort(request, route, 0, rejectCounts)
+	candidate, ok := adapter.toRouteCandidate(request, route, 0, map[string]int{})
 
 	// THEN
 	if !ok {
-		t.Fatalf("expected best-effort candidate conversion to keep the route")
+		t.Fatalf("expected Strava Art candidate conversion to keep the retraced route")
 	}
 	foundReason := false
 	for _, reason := range candidate.recommendation.Reasons {
-		if strings.Contains(reason, "shape best effort") {
+		if strings.Contains(reason, "Retrace policy: art-fit first") {
 			foundReason = true
 			break
 		}
 	}
 	if !foundReason {
-		t.Fatalf("expected best-effort reason, got %+v", candidate.recommendation.Reasons)
+		t.Fatalf("expected Strava Art retrace policy reason, got %+v", candidate.recommendation.Reasons)
 	}
 }
 
@@ -1322,7 +1323,7 @@ func TestSelectCandidatesWithRelaxation_PrioritizesLowerBacktracking(t *testing.
 	}
 }
 
-func TestSelectCandidatesWithRelaxation_ShapeModePrioritizesArtFitBeforeStrictness(t *testing.T) {
+func TestSelectCandidatesWithRelaxation_ShapeModePrioritizesArtFitBeforeRetracePracticality(t *testing.T) {
 	// GIVEN
 	request := application.RoutingEngineRequest{
 		StartPoint:       routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000},
@@ -1349,15 +1350,15 @@ func TestSelectCandidatesWithRelaxation_ShapeModePrioritizesArtFitBeforeStrictne
 		},
 		{
 			recommendation: routesDomain.RouteRecommendation{
-				RouteID:    "relaxed-high-art-fit",
+				RouteID:    "retraced-high-art-fit",
 				MatchScore: 78.0,
 				ShapeScore: &highShapeScore,
 			},
-			backtrackingRatio:   0.0060,
-			corridorOverlap:     0.0010,
-			edgeReuseRatio:      0.005,
-			maxAxisReuseCount:   1,
-			segmentDiversity:    0.70,
+			backtrackingRatio:   0.61,
+			corridorOverlap:     0.66,
+			edgeReuseRatio:      0.50,
+			maxAxisReuseCount:   12,
+			segmentDiversity:    0.03,
 			effectiveMatchScore: 70.0,
 		},
 	}
@@ -1370,8 +1371,8 @@ func TestSelectCandidatesWithRelaxation_ShapeModePrioritizesArtFitBeforeStrictne
 	if len(recommendations) != 1 {
 		t.Fatalf("expected 1 recommendation, got %d", len(recommendations))
 	}
-	if recommendations[0].RouteID != "relaxed-high-art-fit" {
-		t.Fatalf("expected relaxed-high-art-fit route to be selected first, got %s", recommendations[0].RouteID)
+	if recommendations[0].RouteID != "retraced-high-art-fit" {
+		t.Fatalf("expected retraced-high-art-fit route to be selected first, got %s", recommendations[0].RouteID)
 	}
 	foundArtFitReason := false
 	for _, reason := range recommendations[0].Reasons {
@@ -1385,7 +1386,7 @@ func TestSelectCandidatesWithRelaxation_ShapeModePrioritizesArtFitBeforeStrictne
 	}
 }
 
-func TestSelectCandidatesWithRelaxation_ShapeModeUsesArtFitSoftBeforeEmergency(t *testing.T) {
+func TestSelectCandidatesWithRelaxation_ShapeModeKeepsRetraceAsDiagnostic(t *testing.T) {
 	// GIVEN
 	request := application.RoutingEngineRequest{
 		StartPoint:       routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000},
@@ -1398,15 +1399,15 @@ func TestSelectCandidatesWithRelaxation_ShapeModeUsesArtFitSoftBeforeEmergency(t
 	candidates := []osrmRouteCandidate{
 		{
 			recommendation: routesDomain.RouteRecommendation{
-				RouteID:    "shape-needs-soft-art-fit",
+				RouteID:    "shape-retrace-art-fit",
 				MatchScore: 70.0,
 				ShapeScore: &shapeScore,
 			},
-			backtrackingRatio:   0.17,
-			corridorOverlap:     0.49,
-			edgeReuseRatio:      0.12,
-			maxAxisReuseCount:   2,
-			segmentDiversity:    0.70,
+			backtrackingRatio:   0.74,
+			corridorOverlap:     0.83,
+			edgeReuseRatio:      0.80,
+			maxAxisReuseCount:   18,
+			segmentDiversity:    0.01,
 			distanceDeltaRatio:  0.02,
 			effectiveMatchScore: 20.0,
 		},
@@ -1420,21 +1421,24 @@ func TestSelectCandidatesWithRelaxation_ShapeModeUsesArtFitSoftBeforeEmergency(t
 	if len(recommendations) != 1 {
 		t.Fatalf("expected 1 recommendation, got %d", len(recommendations))
 	}
-	if recommendations[0].RouteID != "shape-needs-soft-art-fit" {
-		t.Fatalf("expected shape-needs-soft-art-fit route to be selected, got %s", recommendations[0].RouteID)
+	if recommendations[0].RouteID != "shape-retrace-art-fit" {
+		t.Fatalf("expected shape-retrace-art-fit route to be selected, got %s", recommendations[0].RouteID)
 	}
 	foundArtFitReason := false
-	foundSoftProfile := false
+	foundRetraceAllowedProfile := false
 	for _, reason := range recommendations[0].Reasons {
 		if reason == "Selection priority: art-fit first" {
 			foundArtFitReason = true
 		}
-		if reason == "Selection profile: best-effort-soft (art-fit first)" {
-			foundSoftProfile = true
+		if reason == "Selection profile: art-fit-diagnostic (retrace allowed)" {
+			foundRetraceAllowedProfile = true
 		}
 	}
-	if !foundArtFitReason || !foundSoftProfile {
-		t.Fatalf("expected art-fit soft selection reasons, got %+v", recommendations[0].Reasons)
+	if !foundArtFitReason || !foundRetraceAllowedProfile {
+		t.Fatalf("expected art-fit diagnostic selection reasons, got %+v", recommendations[0].Reasons)
+	}
+	if len(rejectCounts) > 0 {
+		t.Fatalf("expected Strava Art retrace to remain diagnostic-only, got reject counts %+v", rejectCounts)
 	}
 }
 

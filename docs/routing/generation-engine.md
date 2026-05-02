@@ -16,6 +16,7 @@ Current runtime behavior:
 - Draw art is the only public route generation mode
 - distance/elevation/direction targets are not part of the Strava Art request contract
 - shape generation keeps parity between Go and Kotlin
+- Strava Art optimizes drawing resemblance first; retracing is allowed when it materially improves the match to the user model
 - parity objective between Go and Kotlin remains mandatory
 - history-profile indexing (step 1) is available behind feature flags and propagated to the routing engine request
 
@@ -90,11 +91,12 @@ Routing strategy parity (Go/Kotlin):
 - `road-first`: compact road anchors from the projected shape (better routability in sparse/complex areas)
 - best-effort shape fallbacks: simplified/envelope variants returned only when normal shape strategies cannot provide enough candidates
 
-Hard anti-backtracking rules remain owned by the routing engine:
+Retrace policy is mode-specific:
 
-- reject opposite traversal on the same axis
-- reject candidates when axis reuse exceeds hard caps
-- keep the 2 km start/finish tolerance behavior explicit
+- for classic sport loops and the internal explorer, hard anti-backtracking rules remain owned by the routing engine
+- for public Strava Art, `Art fit` wins over novelty: opposite traversal and axis reuse may be accepted when they preserve the drawing
+- Strava Art should still expose retrace/backtracking diagnostics as rideability signals, not as automatic rejection reasons
+- keep the 2 km start/finish tolerance behavior explicit for classic route-generation checks
 
 ### 4. Score each candidate
 
@@ -111,7 +113,7 @@ Shape-mode scoring is stricter than generic route scoring:
 - anchored proximity checks the route against the projected sketch in real map space,
 - ordered path similarity penalizes routes that touch similar areas in the wrong sequence,
 - centroid drift penalizes candidates shifted away from the drawing,
-- low-similarity shape-mode candidates are rejected before selection instead of being shown with a flattering `Art fit`.
+- low-similarity shape-mode candidates must not receive a flattering `Art fit`; they can still be returned as weak proposals with explicit diagnostics when they are the best road-snapped drawing match.
 
 Surface scoring signals (Go + Kotlin parity):
 
@@ -240,7 +242,8 @@ return selected + diagnostics
 ## Acceptance Targets
 
 - Strava Art generation returns a practicable road-snapped route for drawn/GPX/polyline inputs in dense-area local tests
-- anti-backtracking remains strongly constrained outside start/finish tolerance zone
+- Strava Art may return retracing routes when they better preserve the drawing, with clear rideability diagnostics
+- classic route-generation and explorer anti-backtracking checks remain strongly constrained outside the start/finish tolerance zone
 - route-type behavior remains meaningfully distinct (`Ride` vs `Gravel` vs `MTB`)
 - parity checks remain mandatory across Go/Kotlin
 

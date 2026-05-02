@@ -7,7 +7,7 @@
 - Les modes de source `STRAVA`, `FIT` et `GPX` existent dans Go et Kotlin. Leur activation reste principalement une affaire de configuration runtime et de redemarrage backend.
 - Le backend Go reste important pour le binaire local; le backend Kotlin reste la reference historique de plusieurs providers et services metier.
 - La generation de routes reste la zone la plus sensible: OSRM, anti-retrace, diagnostics, export GPX, parite Go/Kotlin.
-- L'onglet routes est en cours de repositionnement en `Strava Art` / GPS drawing studio: dessiner ou importer une forme, la snapper au reseau routier via OSRM, puis exporter un GPX exploitable.
+- L'onglet routes a ete repositionne en `Strava Art` / GPS drawing studio: dessiner ou importer une forme, la snapper au reseau routier via OSRM, puis exporter un GPX exploitable.
 - La qualite des donnees locales FIT/GPX a deja un socle de diagnostics et corrections locales. Le risque suivant est la validation reproductible: fixtures, smoke tests et comparaison avant/apres correction.
 - La couverture frontend, le contrat API partage et la parite Go/Kotlin hors routes restent les meilleurs leviers pour eviter les regressions silencieuses.
 
@@ -15,12 +15,13 @@
 
 - Garder Go et Kotlin alignes pour tout changement de generation de routes.
 - Ne jamais transformer l'historique en penalite de nouveaute: il doit rester un signal positif de corridors connus.
-- Preserver les regles anti-retrace strictes hors zone depart/arrivee.
+- Preserver les regles anti-retrace strictes hors zone depart/arrivee pour les routes sportives classiques et l'explorateur interne.
 - Garder le comportement de zone depart/arrivee 2 km explicite et teste.
 - Preserver `X-Request-Id` et les diagnostics exploitables sur les endpoints de generation.
 - Pour `Strava Art`, conserver `/routes` comme URL interne tant qu'aucune migration n'est prevue.
 - Pour `Strava Art`, rendre visibles le dessin d'origine, la route OSRM generee, les scores de ressemblance/praticabilite et les raisons de fallback.
 - Pour `Strava Art`, le score `Art fit` doit rester centre sur le respect du dessin: proximite ancree, derive du centre, ordre du trace et forme globale.
+- Pour `Strava Art`, les retours sur ses pas sont acceptables quand ils ameliorent nettement la ressemblance au modele utilisateur; l'anti-retrace devient un signal de praticabilite/diagnostic, pas un rejet dur.
 - Garder les exports GPX generes compatibles avec Strava, Garmin, Komoot et les outils GPS standards.
 - Ne pas changer silencieusement les contrats API: ajouter migration, compatibilite ou tests de contrat.
 - Toute reponse JSON issue d'un provider local doit rester serialisable: pas de `NaN`, `Inf`, sentinelle FIT brute ou tableau `null` quand le contrat expose une liste.
@@ -62,7 +63,7 @@
   - les docs de validation OSRM sont precises,
   - les scripts `manual-route-*` restent dependants d'un lancement local et d'une interpretation humaine.
   Scope:
-  - transformer les scenarios anti-retrace, direction, surface, fallback et shape tuning en smoke tests automatises,
+  - transformer les scenarios anti-retrace legacy, retrace permissif Strava Art, direction, surface, fallback et shape tuning en smoke tests automatises,
   - lancer ces checks uniquement derriere profil CI/local OSRM pour eviter de ralentir la CI standard,
   - capturer les diagnostics cles en artifact.
   Acceptance:
@@ -116,6 +117,18 @@
   Acceptance:
   - un changement de capacite backend ne laisse plus une doc contradictoire.
 
+- [ ] `TECH-P1-08` (`P1`, `M`) - Industrialiser Strava Art apres MVP.
+  Owners: `Routes`, `Back-Go`, `Back-Kotlin`, `QA`.
+  Scope:
+  - documenter le contrat routes Strava Art et les diagnostics exposes,
+  - formaliser la politique Strava Art `Art fit` d'abord: autoriser les retours sur ses pas quand ils servent le dessin,
+  - rattacher les DTO routes au contrat OpenAPI partage (`TECH-P1-01`),
+  - brancher les checks OSRM Strava Art sur les smoke tests automatisables (`TECH-P1-02`),
+  - garder Go et Kotlin alignes sur generation, propositions, exports et diagnostics.
+  Acceptance:
+  - les ecarts Go/Kotlin sur Strava Art sont detectes avant regression utilisateur,
+  - les checks route peuvent tourner en CI ou en smoke local sans donnees personnelles.
+
 ### Priorite basse
 
 - [ ] `TECH-P2-01` (`P2`, `M`) - Nettoyer la strategie d'assets frontend embarques.
@@ -162,186 +175,22 @@
   Acceptance:
   - un utilisateur sait quelles corrections appliquer, lesquelles ignorer et lesquelles peuvent changer ses statistiques.
 
-- [ ] `FUNC-P0-03` (`P0`, `XL`, `EPIC`) - GPS drawing studio / Strava Art.
-  Owners: `Product`, `Routes`, `Front`, `Back-Go`, `Back-Kotlin`, `QA`.
-  Objectif:
-  - transformer l'onglet `Routes` en atelier de creation GPS art: partir d'un dessin, d'une forme ou d'un GPX existant, produire une route praticable qui ressemble au dessin, puis exporter un GPX.
-  Positionnement produit:
-  - onglet visible `Strava Art`, URL interne `/routes` conservee,
-  - mode unique `Draw art`,
-  - plus de mode `Generate loop`,
-  - plus de cible sportive `Distance target` ou `Elevation target`,
-  - le dessin/la forme est la contrainte principale; la distance et le denivele sont des resultats affiches, pas des objectifs saisis.
-  Inspirations:
-  - RouteSketcher: dessin libre, snapping au reseau routier, import GPX editable, deplacement/rotation/scale du croquis,
-  - GPSArtify: generation orientee Strava Art, route proche de la position utilisateur, workflow simple planifier/enregistrer/partager,
-  - gps2gpx.art: conversion dessin vers GPX avec experience courte et export direct.
-  Decoupage:
-  - `FUNC-P0-03A` - Contrat API Strava Art et nettoyage legacy,
-  - `FUNC-P0-03B` - Smoke tests generation + export GPX,
-  - `FUNC-P0-03C` - UX MVP dessin/import/generation,
-  - `FUNC-P0-03D` - Resultats lisibles et diagnostics produit,
-  - `FUNC-P0-03E` - Comparaison visuelle dessin original vs route generee,
-  - `FUNC-P0-03F` - Outils de transformation du dessin,
-  - `FUNC-P0-03G` - Bibliotheque de formes et sauvegarde locale,
-  - `FUNC-P0-03H` - Exports avances et assistant de correction.
-  Acceptance epic:
-  - un utilisateur peut dessiner ou importer un GPX, lancer la generation, choisir une proposition et exporter un GPX,
-  - chaque proposition indique clairement si l'art est lisible et praticable,
-  - le GPX exporte est exploitable dans une application GPS standard,
-  - un echec de generation explique les contraintes bloqueantes ou les fallbacks.
-
-- [x] `FUNC-P0-03A` (`P0`, `M`) - Contrat API Strava Art et nettoyage legacy.
-  Owners: `Routes`, `Back-Go`, `Back-Kotlin`, `Front`.
-  Scope:
-  - onglet visible `Strava Art`, URL interne `/routes` conservee,
-  - mode unique `Draw art`,
-  - supprimer le mode public `Generate loop`,
-  - supprimer les objectifs utilisateur `Distance target` et `Elevation target`,
-  - endpoint public unique de generation: `POST /api/routes/generate/shape`,
-  - export: `GET /api/routes/{routeId}/gpx`,
-  - retirer du payload Strava Art: `distanceTargetKm`, `elevationTargetM`, `startDirection`, `generationMode`, `customWaypoints`.
-  Acceptance:
-  - Go et Kotlin exposent le meme contrat public,
-  - le store Vue n'appelle plus `/api/routes/generate/target`,
-  - les DTO de route generee ne portent plus `startDirection`,
-  - le moteur interne historique reste disponible pour l'explorateur/recommandations quand il est encore utile.
-
-- [x] `FUNC-P0-03B` (`P0`, `S`) - Smoke tests generation + export GPX.
-  Owners: `Routes`, `Back-Go`, `Back-Kotlin`, `QA`.
-  Scope:
-  - ajouter une fixture partagee `test-fixtures/routes/strava-art-smoke.json`,
-  - couvrir explicitement les formes simples `Heart`, `Circle`, `Star` et `Square`,
-  - couvrir generation shape + cache route + export GPX en Go,
-  - couvrir generation shape + export GPX en Kotlin,
-  - ajouter un smoke manuel `./scripts/manual-strava-art-smoke-check.sh` contre un backend reel avec OSRM,
-  - documenter le check dans `docs/routing/checks/strava-art-smoke.md`.
-  Acceptance:
-  - les tests Go/Kotlin lisent la meme fixture,
-  - chaque backend valide au moins un retour de route et un GPX exportable,
-  - le smoke manuel doit accepter un `Art fit` faible mais jamais une absence de route sur ces formes simples,
-  - le smoke manuel echoue clairement si generation ou export GPX casse.
-  Progress:
-  - [x] fixture et smoke manuel etendus a `Heart`, `Circle`, `Star`, `Square`; le smoke local OSRM retourne une route exportable pour les quatre formes, avec `Art fit` faible/moyen a traiter ensuite.
-
-- [ ] `FUNC-P0-03C` (`P0`, `M`) - UX MVP dessin/import/generation.
-  Owners: `Product`, `Front`, `Routes`.
-  Parcours:
-  - choisir un point de depart ou utiliser la position courante,
-  - dessiner une forme sur la carte ou importer un GPX,
-  - ajuster le dessin avant generation: annuler, effacer, repositionner, simplifier au besoin,
-  - choisir le style d'activite: ride, gravel, MTB, run, trail ou hike,
-  - snapper la forme au reseau routier OSRM,
-  - lancer la generation sans distance cible, denivele cible, direction ou mode de boucle sportive.
-  Entrees utilisateur:
-  - `shapeInputType`: `draw`, `polyline`, `gpx`, `svg`,
-  - `shapeData`: dessin, polyline encodee, GPX importe ou forme,
-  - `startPoint`: optionnel mais recommande pour ancrer l'art,
-  - `routeType`: `RIDE`, `MTB`, `GRAVEL`, `RUN`, `TRAIL`, `HIKE`,
-  - `variantCount`: nombre de propositions souhaitees.
-  Acceptance:
-  - l'utilisateur peut dessiner ou importer un GPX et lancer une generation,
-  - les controles affiches correspondent au mode unique `Draw art`,
-  - la carte affiche dessin, point de depart et routes generees sans ambiguite,
-  - les propositions Strava Art proviennent du shape mode OSRM et ne reutilisent pas d'anciennes sorties comme routes de remplacement,
-  - un candidat trop eloigne du dessin reste affichable avec un score `Art fit` faible et une raison explicite, sans score flatteur ni blocage dur.
-  Progress:
-  - [x] l'algo preserve la position geographique du dessin quand il est deja place autour du depart, au lieu d'ancrer le premier point du croquis sur le depart,
-  - [x] le snapping OSRM utilise davantage d'ancres du dessin et le score visuel penalise plus fortement derive du centre, ordre du trace et ecart de distance,
-  - [x] les formes fermees (cercle, etoile, coeur) demarrent le routage sur le contour le plus proche de l'ancre au lieu de relier le centre au contour,
-  - [x] en mode Strava Art, une faible ressemblance ne bloque plus la generation: elle degrade `Art fit` et ajoute une raison `below ideal`,
-  - [x] fallback OSRM best-effort: si les strategies dessin strictes ne produisent aucun candidat, tenter des waypoints simplifies/enveloppe et retourner une route faible confiance au lieu de bloquer,
-  - [x] strategie OSRM `simplified sketch anchors`: essayer en generation normale une version reduite du dessin pour mieux router les formes simples (cercle, etoile, carre) avant le fallback,
-  - [x] le snap OSRM ne transforme plus automatiquement le sketch visible: recentrage et scale restent des actions manuelles de transformation,
-  - [x] ranking shape mode: selectionner d'abord les candidats avec le meilleur `Art fit`, puis leur appliquer le profil de relaxation le plus strict compatible,
-  - [x] strategie OSRM `dense sketch anchors`: ajouter une tentative plus dense pour mieux suivre les formes simples avant les strategies simplifiees,
-  - [x] fallback shape mode oriente `Art fit`: avant l'`emergency-fallback`, accepter un candidat faible confiance si la route respecte mieux le dessin et annoter `Selection priority: art-fit first`,
-  - [x] strategie `segment stitched alternatives`: autoriser les virages serres Strava Art et choisir les alternatives OSRM segment par segment quand cela suit mieux le trait,
-  - [x] strategie `nearest-road trace`: pour le mode GPS drawing, snapper les points du dessin sur les ancres routables OSRM les plus proches, router chaque segment entre ancres avec OSRM et selectionner ce candidat quand il respecte nettement mieux l'art,
-  - [x] les propositions Strava Art sont triees par `Art fit` avant la limite de resultats et avant la selection initiale, cote Go, Kotlin et store Vue.
-
-- [x] `FUNC-P0-03D` (`P0`, `M`) - Resultats lisibles et diagnostics produit.
-  Owners: `Product`, `Front`, `Routes`.
-  Resultats UI:
-  - afficher un apercu carte par proposition,
-  - afficher distance, D+, duree, score `art fit`/ressemblance, score route/praticabilite,
-  - afficher les raisons principales: surface, fallback, snapping, type de route,
-  - permettre la selection d'une proposition,
-  - permettre l'export GPX de la proposition selectionnee.
-  Diagnostics UX:
-  - aucune route trouvee pour cette forme,
-  - forme trop complexe, trop courte ou trop difficile a snapper,
-  - point de depart difficile a router ou deplace vers le point routable le plus proche,
-  - candidats historiques ou non-shape ignores quand aucun shape mode OSRM ne respecte le dessin,
-  - route type fallback,
-  - relaxation anti-backtracking eventuelle,
-  - messages comprehensibles dans l'UI, diagnostics techniques conserves pour debug.
-  Acceptance:
-  - les distances, D+ et durees sont presentes comme resultats, pas comme objectifs,
-  - chaque carte de proposition explique pourquoi elle est bonne ou degradee,
-  - un echec de generation est actionnable sans lire les logs.
-  Progress:
-  - [x] les cartes de proposition Strava Art affichent des signaux produit (`Drawing-first snap`, profil de confiance, `Art fit`) et masquent les raisons techniques brutes comme `Directional alignment`, `Surface mix` ou `Surface fitness`.
-
-- [x] `FUNC-P0-03E` (`P1`, `M`) - Comparaison visuelle dessin original vs route generee.
-  Owners: `Product`, `Front`, `Routes`.
-  Scope:
-  - comparaison visuelle avant/apres entre dessin original et route OSRM,
-  - superposer dessin et route sur la carte avec styles differencies,
-  - aider a comprendre les ecarts de snapping.
-  Acceptance:
-  - l'utilisateur voit immediatement si la route conserve la forme de depart,
-  - les ecarts majeurs de ressemblance sont visibles sans ouvrir un detail technique.
-  Progress:
-  - [x] validation visuelle produit `Route follows sketch`: bon/moyen/faible avec explication courte basee sur `Art fit`.
-
-- [x] `FUNC-P0-03F` (`P1`, `M`) - Outils de transformation du dessin.
-  Owners: `Product`, `Front`.
-  Scope:
-  - deplacer, scale, rotation, recentrage autour du depart,
-  - lissage et simplification,
-  - annuler/refaire les operations de transformation.
-  Acceptance:
-  - l'utilisateur peut ajuster une forme importee/dessinee sans recommencer de zero.
-
-- [x] `FUNC-P0-03G` (`P1`, `M`) - Bibliotheque de formes et sauvegarde locale.
-  Owners: `Product`, `Front`.
-  Scope:
-  - bibliotheque locale de formes via combo: coeur, etoile, cercle, carre, triangle, losange, rectangle, hexagone.
-  - modeles sauvegardes,
-  - sauvegarde locale des creations et export PNG de l'apercu,
-  - mode freestyle pour traces non strictement snappees en parc ou terrain ouvert.
-  Acceptance:
-  - l'utilisateur peut repartir d'un modele ou reprendre une creation precedente.
-
-- [ ] `FUNC-P0-03H` (`P2`, `L`) - Exports avances et assistant de correction.
-  Owners: `Product`, `Routes`, `Front`, `Back-Go`, `Back-Kotlin`.
-  Scope:
-  - [x] generation par prompt simple,
-  - [x] import image a tracer,
-  - [x] galerie personnelle locale de templates,
-  - [ ] galerie publique de templates,
-  - [x] export TCX en plus du GPX,
-  - [ ] export FIT binaire,
-  - [x] assistant de correction: ameliorer la ressemblance, reduire distance, recuperer un echec OSRM, avec affichage proche du canvas carte,
-  - [ ] comparaison post-activite entre la route prevue et l'activite reellement enregistree.
-  Acceptance:
-  - l'utilisateur dispose d'options avancees sans alourdir le MVP.
-
-- [ ] `TECH-P1-03` (`P1`, `M`) - Industrialisation technique Strava Art.
-  Owners: `Routes`, `Back-Go`, `Back-Kotlin`, `QA`.
-  Scope:
-  - OSRM reste le moteur principal de snapping,
-  - Go et Kotlin restent alignes pour les endpoints routes et diagnostics,
-  - les diagnostics techniques restent disponibles, mais l'UI doit les traduire en signaux produit,
-  - les contrats API routes doivent converger vers OpenAPI (`TECH-P1-01`),
-  - les checks OSRM doivent devenir automatisables (`TECH-P1-02`).
-  Acceptance:
-  - les contrats Strava Art sont documentes et testables,
-  - les checks route peuvent tourner en CI/smoke local sans donnees personnelles,
-  - les ecarts Go/Kotlin sont detectes avant regression utilisateur.
-
 ### Priorite moyenne
+
+- [ ] `FUNC-P1-11` (`P1`, `M`) - Repenser l'IHM de l'onglet Strava Art.
+  Owners: `Product`, `Front`, `Routes`.
+  Constat:
+  - la vue actuelle expose les capacites du studio, mais melange preparation, dessin, transformations, bibliotheque, corrections, exports et propositions dans un flux dense,
+  - la carte doit devenir le centre de gravite de l'experience, avec les outils et diagnostics en appui contextuel.
+  Proposition:
+  - passer a un workspace carte-dominante avec barre d'outils compacte, panneau source a gauche et tiroir propositions/diagnostics/exports a droite,
+  - organiser le parcours en etats clairs: preparer le dessin, ajuster, generer, comparer, exporter,
+  - regrouper les fonctions avancees dans des sections repliables ou modes secondaires pour garder le MVP lisible,
+  - rendre la selection d'une proposition immediate sur la carte et dans la liste, avec un CTA principal adapte a l'etat courant.
+  Acceptance:
+  - un nouvel utilisateur comprend l'action suivante sans lire la documentation,
+  - la carte reste dominante sur desktop et mobile,
+  - les fonctions avancees restent accessibles sans encombrer le parcours principal.
 
 - [ ] `FUNC-P1-04` (`P1`, `M`) - Comparaison d'activite a effort similaire.
   Owners: `Product`, `Stats`, `Front`.
@@ -371,7 +220,7 @@
   Owners: `Product`, `Routes`, `Front`.
   Proposition:
   - afficher difficulte estimee, surface mix, part inconnue, confiance du profil OSRM et raisons de fallback directement sur la carte,
-  - filtrer ou trier par `plus roulant`, `plus chemin`, `moins de demi-tours`, `plus familier`,
+  - filtrer ou trier par `plus roulant`, `plus chemin`, `moins de demi-tours inutiles`, `plus familier`,
   - conserver les diagnostics techniques mais les traduire en signaux produit.
   Acceptance:
   - un utilisateur peut choisir une route sans lire les raisons brutes du moteur.

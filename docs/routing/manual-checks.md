@@ -13,7 +13,7 @@ These checks validate Strava Art route-generation behavior on real OSRM-backed r
 | Check | Script | Doc | Main acceptance |
 | --- | --- | --- | --- |
 | Strava Art smoke | `./scripts/manual-strava-art-smoke-check.sh` | [strava-art-smoke](./checks/strava-art-smoke.md) | shape generation returns a route and GPX export works |
-| Anti-retrace | Legacy target script retired | [anti-retrace](./checks/anti-retrace.md) | no opposite-axis overlap and axis reuse within limit outside the start zone |
+| Anti-retrace | Legacy target script retired | [anti-retrace](./checks/anti-retrace.md) | strict for classic explorer routes; diagnostic-only for Strava Art when retrace improves drawing fit |
 | Direction | Legacy target script retired | [direction](./checks/direction.md) | internal relaxation diagnostics remain mapped for parity |
 | Surface | Legacy target script retired | [surface](./checks/surface.md) | surface reasons are exposed and route-type fallback behavior is calibrated |
 | Fallback diagnostics | API protocol in doc | [fallback](./checks/fallback.md) | API and UI expose fallback diagnostics even when routes are returned |

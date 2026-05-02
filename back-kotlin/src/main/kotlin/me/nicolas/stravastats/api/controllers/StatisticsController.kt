@@ -11,6 +11,7 @@ import me.nicolas.stravastats.api.dto.SegmentClimbProgressionDto
 import me.nicolas.stravastats.api.dto.StatisticsDto
 import me.nicolas.stravastats.api.dto.toDto
 import me.nicolas.stravastats.domain.services.IHeartRateZoneService
+import me.nicolas.stravastats.domain.services.ISegmentProgressionService
 import me.nicolas.stravastats.domain.services.IStatisticsService
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController
 @Schema(description = "Statistics controller", name = "StatisticsController")
 class StatisticsController(
     private val statisticsService: IStatisticsService,
+    private val segmentProgressionService: ISegmentProgressionService,
     private val heartRateZoneService: IHeartRateZoneService,
 ) {
 
@@ -111,6 +113,6 @@ class StatisticsController(
         @RequestParam(required = false) targetId: Long?,
     ): SegmentClimbProgressionDto {
         val activityTypes = activityType.convertToActivityTypeSet()
-        return statisticsService.getSegmentClimbProgression(activityTypes, year, metric, targetType, targetId).toDto()
+        return segmentProgressionService.getSegmentClimbProgression(activityTypes, year, metric, targetType, targetId).toDto()
     }
 }

@@ -9,7 +9,7 @@ import me.nicolas.stravastats.api.dto.SegmentClimbAttemptDto
 import me.nicolas.stravastats.api.dto.SegmentClimbTargetSummaryDto
 import me.nicolas.stravastats.api.dto.SegmentSummaryDto
 import me.nicolas.stravastats.api.dto.toDto
-import me.nicolas.stravastats.domain.services.IStatisticsService
+import me.nicolas.stravastats.domain.services.ISegmentProgressionService
 import org.springframework.data.rest.webmvc.ResourceNotFoundException
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
@@ -23,7 +23,7 @@ import java.time.LocalDate
 @RequestMapping("/segments", produces = [MediaType.APPLICATION_JSON_VALUE])
 @Schema(description = "Segments analysis controller", name = "SegmentsController")
 class SegmentsController(
-    private val statisticsService: IStatisticsService,
+    private val segmentProgressionService: ISegmentProgressionService,
 ) {
 
     @Operation(
@@ -61,7 +61,7 @@ class SegmentsController(
         val fromDate = validateDate(from, "from")
         val toDate = validateDate(to, "to")
 
-        return statisticsService
+        return segmentProgressionService
             .listSegments(activityTypes, year, metric, query, fromDate, toDate)
             .map { segment -> segment.toDto() }
     }
@@ -79,7 +79,7 @@ class SegmentsController(
         val fromDate = validateDate(from, "from")
         val toDate = validateDate(to, "to")
 
-        return statisticsService
+        return segmentProgressionService
             .getSegmentEfforts(activityTypes, year, metric, segmentId, fromDate, toDate)
             .map { effort -> effort.toDto() }
     }
@@ -97,7 +97,7 @@ class SegmentsController(
         val fromDate = validateDate(from, "from")
         val toDate = validateDate(to, "to")
 
-        val summary = statisticsService.getSegmentSummary(activityTypes, year, metric, segmentId, fromDate, toDate)
+        val summary = segmentProgressionService.getSegmentSummary(activityTypes, year, metric, segmentId, fromDate, toDate)
             ?: throw ResourceNotFoundException("No segment efforts found for segmentId=$segmentId")
 
         return SegmentSummaryDto(

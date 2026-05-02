@@ -1845,12 +1845,6 @@ class RouteExplorerService(
         return values.firstOrNull { value -> !value.isNullOrBlank() }?.trim()
     }
 
-    private fun extractSortableDay(value: String): String? {
-        if (value.length < 10) {
-            return null
-        }
-        return runCatching { LocalDate.parse(value.substring(0, 10)).toString() }.getOrNull()
-    }
 
     private fun parseDate(value: String): Instant? {
         return runCatching { OffsetDateTime.parse(value).toInstant() }

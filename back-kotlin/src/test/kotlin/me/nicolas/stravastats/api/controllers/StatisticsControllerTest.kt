@@ -7,6 +7,7 @@ import me.nicolas.stravastats.domain.business.ActivityType
 
 import me.nicolas.stravastats.domain.services.IStatisticsService
 import me.nicolas.stravastats.domain.services.IHeartRateZoneService
+import me.nicolas.stravastats.domain.services.ISegmentProgressionService
 import me.nicolas.stravastats.domain.services.statistics.GlobalStatistic
 import me.nicolas.stravastats.domain.services.statistics.Statistic
 import org.junit.jupiter.api.Test
@@ -28,6 +29,9 @@ class StatisticsControllerTest {
 
     @MockkBean
     private lateinit var statisticsService: IStatisticsService
+
+    @MockkBean
+    private lateinit var segmentProgressionService: ISegmentProgressionService
 
     @MockkBean
     private lateinit var heartRateZoneService: IHeartRateZoneService

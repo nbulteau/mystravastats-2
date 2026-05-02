@@ -17,6 +17,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class OsmRoutingEngineAdapterShapeTest {
@@ -219,7 +220,7 @@ class OsmRoutingEngineAdapterShapeTest {
     }
 
     @Test
-    fun `shape selection prioritizes art fit before relaxation strictness`() {
+    fun `shape selection prioritizes art fit before retrace practicality`() {
         // GIVEN
         val adapter = OsmRoutingEngineAdapter()
         val request = RoutingEngineRequest(
@@ -238,8 +239,12 @@ class OsmRoutingEngineAdapterShapeTest {
                 effectiveMatchScore = 91.0,
             ),
             buildOsrmRouteCandidate(
-                recommendation = testShapeRecommendation("relaxed-high-art-fit", shapeScore = 0.82, matchScore = 78.0),
-                backtrackingRatio = 0.0060,
+                recommendation = testShapeRecommendation("retraced-high-art-fit", shapeScore = 0.82, matchScore = 78.0),
+                backtrackingRatio = 0.61,
+                corridorOverlap = 0.66,
+                edgeReuseRatio = 0.50,
+                maxAxisReuseCount = 12,
+                segmentDiversity = 0.03,
                 effectiveMatchScore = 70.0,
             ),
         )
@@ -249,15 +254,19 @@ class OsmRoutingEngineAdapterShapeTest {
 
         // THEN
         assertEquals(1, recommendations.size)
-        assertEquals("relaxed-high-art-fit", recommendations.first().routeId)
+        assertEquals("retraced-high-art-fit", recommendations.first().routeId)
         assertTrue(
             recommendations.first().reasons.contains("Selection priority: art-fit first"),
             "expected art-fit selection reason, got ${recommendations.first().reasons}"
         )
+        assertTrue(
+            recommendations.first().reasons.contains("Selection profile: art-fit-diagnostic (retrace allowed)"),
+            "expected diagnostic selection profile, got ${recommendations.first().reasons}"
+        )
     }
 
     @Test
-    fun `shape selection uses art fit soft profile before emergency fallback`() {
+    fun `shape selection keeps retrace as diagnostic`() {
         // GIVEN
         val adapter = OsmRoutingEngineAdapter()
         val request = RoutingEngineRequest(
@@ -271,28 +280,65 @@ class OsmRoutingEngineAdapterShapeTest {
         )
         val candidates = listOf(
             buildOsrmRouteCandidate(
-                recommendation = testShapeRecommendation("shape-needs-soft-art-fit", shapeScore = 0.57, matchScore = 70.0),
-                backtrackingRatio = 0.17,
-                corridorOverlap = 0.49,
-                edgeReuseRatio = 0.12,
-                maxAxisReuseCount = 2,
+                recommendation = testShapeRecommendation("shape-retrace-art-fit", shapeScore = 0.57, matchScore = 70.0),
+                backtrackingRatio = 0.74,
+                corridorOverlap = 0.83,
+                edgeReuseRatio = 0.80,
+                maxAxisReuseCount = 18,
+                segmentDiversity = 0.01,
                 effectiveMatchScore = 20.0,
             ),
         )
+        val rejectCounts = mutableMapOf<String, Int>()
 
         // WHEN
-        val recommendations = invokeSelectCandidatesWithRelaxation(adapter, request, candidates)
+        val recommendations = invokeSelectCandidatesWithRelaxation(adapter, request, candidates, rejectCounts)
 
         // THEN
         assertEquals(1, recommendations.size)
-        assertEquals("shape-needs-soft-art-fit", recommendations.first().routeId)
+        assertEquals("shape-retrace-art-fit", recommendations.first().routeId)
         assertTrue(
             recommendations.first().reasons.contains("Selection priority: art-fit first"),
             "expected art-fit selection reason, got ${recommendations.first().reasons}"
         )
         assertTrue(
-            recommendations.first().reasons.contains("Selection profile: best-effort-soft (art-fit first)"),
-            "expected art-fit soft profile, got ${recommendations.first().reasons}"
+            recommendations.first().reasons.contains("Selection profile: art-fit-diagnostic (retrace allowed)"),
+            "expected art-fit diagnostic profile, got ${recommendations.first().reasons}"
+        )
+        assertTrue(rejectCounts.isEmpty(), "expected Strava Art retrace to remain diagnostic-only, got $rejectCounts")
+    }
+
+    @Test
+    fun `shape candidate conversion keeps highly retraced route but classic loop rejects it`() {
+        // GIVEN
+        val adapter = OsmRoutingEngineAdapter()
+        val start = Coordinates(lat = 48.1300, lng = -1.6300)
+        val preview = listOf(
+            listOf(start.lat, start.lng),
+            listOf(start.lat + 0.035, start.lng),
+            listOf(start.lat, start.lng),
+            listOf(start.lat + 0.035, start.lng),
+            listOf(start.lat, start.lng),
+        )
+        val shapeRequest = RoutingEngineRequest(
+            startPoint = start,
+            distanceTargetKm = 4.0,
+            elevationTargetM = null,
+            startDirection = null,
+            routeType = "RIDE",
+            shapePolyline = "[[48.13,-1.63],[48.15,-1.63],[48.13,-1.63]]",
+            limit = 1,
+        )
+        val classicRequest = shapeRequest.copy(shapePolyline = null)
+
+        // WHEN / THEN
+        assertNull(
+            invokeToRouteCandidateFromPreview(adapter, classicRequest, preview),
+            "classic loop generation should keep rejecting excessive retrace",
+        )
+        assertNotNull(
+            invokeToRouteCandidateFromPreview(adapter, shapeRequest, preview),
+            "Strava Art should keep retraced candidates so Art fit can rank them",
         )
     }
 
@@ -514,6 +560,7 @@ class OsmRoutingEngineAdapterShapeTest {
         corridorOverlap: Double = 0.0010,
         edgeReuseRatio: Double = 0.005,
         maxAxisReuseCount: Int = 1,
+        segmentDiversity: Double = 0.70,
     ): Any {
         val candidateClass = Class.forName("me.nicolas.stravastats.domain.services.routing.OsrmRouteCandidate")
         val constructor = candidateClass.getDeclaredConstructor(
@@ -539,7 +586,7 @@ class OsmRoutingEngineAdapterShapeTest {
             edgeReuseRatio,
             maxAxisReuseCount,
             0.0,
-            0.70,
+            segmentDiversity,
             0.02,
             0.0,
             0.0,
@@ -552,6 +599,7 @@ class OsmRoutingEngineAdapterShapeTest {
         adapter: OsmRoutingEngineAdapter,
         request: RoutingEngineRequest,
         candidates: List<Any>,
+        rejectCounts: MutableMap<String, Int> = mutableMapOf(),
     ): List<RouteRecommendation> {
         val method = adapter.javaClass.getDeclaredMethod(
             "selectCandidatesWithRelaxation",
@@ -560,7 +608,47 @@ class OsmRoutingEngineAdapterShapeTest {
             MutableMap::class.java,
         )
         method.isAccessible = true
-        return method.invoke(adapter, request, candidates, mutableMapOf<String, Int>()) as List<RouteRecommendation>
+        return method.invoke(adapter, request, candidates, rejectCounts) as List<RouteRecommendation>
+    }
+
+    private fun invokeToRouteCandidateFromPreview(
+        adapter: OsmRoutingEngineAdapter,
+        request: RoutingEngineRequest,
+        preview: List<List<Double>>,
+    ): Any? {
+        val surfaceBreakdownClass =
+            Class.forName("me.nicolas.stravastats.domain.services.routing.RouteSurfaceBreakdown")
+        val constructor = surfaceBreakdownClass.getDeclaredConstructor(
+            java.lang.Double.TYPE,
+            java.lang.Double.TYPE,
+            java.lang.Double.TYPE,
+            java.lang.Double.TYPE,
+        )
+        constructor.isAccessible = true
+        val surfaceBreakdown = constructor.newInstance(0.0, 0.0, 0.0, 9000.0)
+        val method = adapter.javaClass.getDeclaredMethod(
+            "toRouteCandidateFromPreview",
+            RoutingEngineRequest::class.java,
+            List::class.java,
+            surfaceBreakdownClass,
+            java.lang.Double.TYPE,
+            java.lang.Integer.TYPE,
+            java.lang.Integer.TYPE,
+            MutableMap::class.java,
+            java.lang.Boolean.TYPE,
+        )
+        method.isAccessible = true
+        return method.invoke(
+            adapter,
+            request,
+            preview,
+            surfaceBreakdown,
+            9.0,
+            1800,
+            0,
+            mutableMapOf<String, Int>(),
+            false,
+        )
     }
 
     @Suppress("UNCHECKED_CAST")
