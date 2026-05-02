@@ -64,10 +64,11 @@ class StravaActivityProviderTest {
         }
 
         // WHEN
-        provider.loadMissingStreamsFromApi(year, activities)
+        // loadMissingStreamsFromApi now returns a new list with stream-enriched copies (stream is immutable)
+        val result = provider.loadMissingStreamsFromApi(year, activities)
 
         // THEN
-        activities.forEach { activity ->
+        result.forEach { activity ->
             assertNotNull(activity.stream)
         }
         verify(exactly = activities.size) { api.getActivityStreamFailFastOnRateLimit(any()) }

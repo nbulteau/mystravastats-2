@@ -78,8 +78,8 @@ internal class StravaRepository(stravaCache: String) : ILocalStorageProvider {
             }
             logger.info("${activities.size} activities loaded for year $year from cache")
 
-            // Load activities streams
-            loadActivitiesStreams(activities, yearActivitiesDirectory)
+            // Load activities streams (returns new list with stream-enriched copies — stream is now immutable)
+            activities = loadActivitiesStreams(activities, yearActivitiesDirectory)
         }
 
         return activities
@@ -245,17 +245,19 @@ internal class StravaRepository(stravaCache: String) : ILocalStorageProvider {
         prettyWriter.writeValue(settingsFile, settings)
     }
 
-    private fun loadActivitiesStreams(activities: List<StravaActivity>, activitiesDirectory: File) {
+    // Returns a new list where activities with an on-disk stream file are replaced by copy(stream=...)
+    private fun loadActivitiesStreams(activities: List<StravaActivity>, activitiesDirectory: File): List<StravaActivity> {
         if (activities.isEmpty()) {
-            return
+            return activities
         }
 
+        val enrichedById = java.util.concurrent.ConcurrentHashMap<Long, StravaActivity>()
         val failures = Collections.synchronizedList(mutableListOf<Pair<Long, Exception>>())
         activities.parallelStream().forEach { activity ->
             val streamFile = File(activitiesDirectory, "stream-${activity.id}")
             if (streamFile.exists()) {
                 try {
-                    activity.stream = objectMapper.readValue(streamFile, Stream::class.java)
+                    enrichedById[activity.id] = activity.copy(stream = objectMapper.readValue(streamFile, Stream::class.java))
                 } catch (exception: Exception) {
                     failures.add(activity.id to exception)
                 }
@@ -265,5 +267,7 @@ internal class StravaRepository(stravaCache: String) : ILocalStorageProvider {
         failures.forEach { (activityId, exception) ->
             logger.error("Unable to load stream from cache for activity $activityId", exception)
         }
+
+        return activities.map { activity -> enrichedById[activity.id] ?: activity }
     }
 }

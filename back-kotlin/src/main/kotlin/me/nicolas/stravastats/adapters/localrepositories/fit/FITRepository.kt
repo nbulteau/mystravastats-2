@@ -134,7 +134,7 @@ class FITRepository(fitDirectory: String) {
      */
     private fun List<RecordMesg>.buildStream(): Stream {
         // distance
-        val dataDistance = this.map { recordMesg -> recordMesg.distance.toDouble() }
+        val dataDistance = this.map { recordMesg -> recordMesg.distance?.toDouble() ?: 0.0 }
         val streamDistance = DistanceStream(
             data = dataDistance.toMutableList(),
             originalSize = dataDistance.size,
@@ -190,7 +190,7 @@ class FITRepository(fitDirectory: String) {
 
         // moving
         val dataMoving = this.map { recordMesg ->
-            recordMesg.speed > 0.0
+            (recordMesg.speed ?: 0.0F) > 0.0F
         }
         val streamMoving = if (dataMoving.isNotEmpty()) {
             MovingStream(
@@ -220,7 +220,7 @@ class FITRepository(fitDirectory: String) {
 
         // cadence
         val dataCadence = this.map { recordMesg ->
-            recordMesg.cadence.toInt()
+            recordMesg.cadence?.toInt() ?: 0
         }
         val streamCadence = if (dataCadence.isNotEmpty()) {
             CadenceStream(
@@ -235,7 +235,7 @@ class FITRepository(fitDirectory: String) {
 
         // heart rate
         val dataHeartRate = this.map { recordMesg ->
-            recordMesg.heartRate.toInt()
+            recordMesg.heartRate?.toInt() ?: 0
         }
         val streamHeartRate = if (dataHeartRate.isNotEmpty()) {
             HeartRateStream(
@@ -250,7 +250,7 @@ class FITRepository(fitDirectory: String) {
 
         // velocity smooth
         val dataVelocitySmooth = this.map { recordMesg ->
-            recordMesg.speed
+            recordMesg.speed ?: 0.0F
         }
         val streamVelocitySmooth = if (dataVelocitySmooth.isNotEmpty()) {
             SmoothVelocityStream(
@@ -265,7 +265,7 @@ class FITRepository(fitDirectory: String) {
 
         // grade smooth
         val dataGradeSmooth = this.map { recordMesg ->
-            recordMesg.grade
+            recordMesg.grade ?: 0.0F
         }
         val streamGradeSmooth = if (dataGradeSmooth.isNotEmpty()) {
             SmoothGradeStream(

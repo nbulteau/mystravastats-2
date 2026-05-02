@@ -51,28 +51,40 @@ class DetailedActivityDtoTest {
     @Test
     fun `detailed activity dto sanitizes non finite values`() {
         // GIVEN
+        @Suppress("UNCHECKED_CAST")
+        val distanceDataWithNull = listOf<Double?>(0.0, null, Double.NaN) as List<Double>
+        @Suppress("UNCHECKED_CAST")
+        val coordinateDataWithNull = listOf(
+            listOf(45.0, 6.0),
+            listOf<Double?>(null, Double.POSITIVE_INFINITY) as List<Double>,
+            listOf(Double.NaN, 6.2),
+        )
+        @Suppress("UNCHECKED_CAST")
+        val altitudeDataWithNull = listOf<Double?>(100.0, null, Double.POSITIVE_INFINITY) as List<Double>
+        @Suppress("UNCHECKED_CAST")
+        val velocityDataWithNull = listOf<Float?>(4.0f, null, Float.NaN) as List<Float>
         val stream = Stream(
             distance = DistanceStream(
-                data = listOf(0.0, Double.NaN),
-                originalSize = 2,
+                data = distanceDataWithNull,
+                originalSize = 3,
                 resolution = "high",
                 seriesType = "distance",
             ),
             time = TimeStream(
-                data = listOf(0, 10),
-                originalSize = 2,
+                data = listOf(0, 10, 20),
+                originalSize = 3,
                 resolution = "high",
                 seriesType = "time",
             ),
             latlng = LatLngStream(
-                data = listOf(listOf(45.0, 6.0), listOf(Double.NaN, Double.POSITIVE_INFINITY)),
-                originalSize = 2,
+                data = coordinateDataWithNull,
+                originalSize = 3,
                 resolution = "high",
                 seriesType = "distance",
             ),
             altitude = AltitudeStream(
-                data = listOf(100.0, Double.POSITIVE_INFINITY),
-                originalSize = 2,
+                data = altitudeDataWithNull,
+                originalSize = 3,
                 resolution = "high",
                 seriesType = "distance",
             ),
@@ -83,8 +95,8 @@ class DetailedActivityDtoTest {
                 seriesType = "distance",
             ),
             velocitySmooth = SmoothVelocityStream(
-                data = listOf(4.0f, Float.NaN),
-                originalSize = 2,
+                data = velocityDataWithNull,
+                originalSize = 3,
                 resolution = "high",
                 seriesType = "distance",
             ),
@@ -122,9 +134,12 @@ class DetailedActivityDtoTest {
         assertNull(dto.sufferScore)
         assertEquals(0.0, dto.totalDescent)
         assertEquals(0.0, dto.stream?.distance?.get(1))
+        assertEquals(0.0, dto.stream?.distance?.get(2))
         assertEquals(0.0, dto.stream?.latlng?.get(1)?.get(0))
         assertEquals(0.0, dto.stream?.latlng?.get(1)?.get(1))
         assertEquals(0.0, dto.stream?.altitude?.get(1))
+        assertEquals(0.0, dto.stream?.altitude?.get(2))
         assertEquals(0.0, dto.stream?.velocitySmooth?.get(1))
+        assertEquals(0.0, dto.stream?.velocitySmooth?.get(2))
     }
 }

@@ -6,7 +6,7 @@ Runtime configuration is centralized in the backend diagnostics payload. `GET /a
 | --- | --- | --- | --- | --- |
 | `STRAVA_CACHE_PATH` | yes | yes | `strava-cache` | Strava cache directory. |
 | `FIT_FILES_PATH` | yes | yes | unset | Selects the FIT provider when set. |
-| `GPX_FILES_PATH` | reported only | yes | unset | Selects the GPX provider in Kotlin. Go reports the value but does not support GPX files yet. |
+| `GPX_FILES_PATH` | yes | yes | unset | Selects the GPX provider when set, unless `FIT_FILES_PATH` is also set. |
 | `CORS_ALLOWED_ORIGINS` | yes | yes | `http://localhost,http://localhost:5173` | Comma-separated list of allowed browser origins. |
 | `OPEN_BROWSER` | yes | yes | `true` | Set to `false` in Docker or headless runs. |
 | `SERVER_HOST` / `HOST` | yes | no | `localhost` | Go listen host. `SERVER_HOST` wins over `HOST`. |

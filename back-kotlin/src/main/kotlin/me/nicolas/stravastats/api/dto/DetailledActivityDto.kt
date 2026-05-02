@@ -106,8 +106,8 @@ private fun Stream.sanitizedForDtoComputation(): Stream {
         distance = this.distance.copy(data = this.distance.data.finiteValues()),
         latlng = this.latlng?.copy(data = this.latlng.data.finiteCoordinateValues()),
         altitude = this.altitude?.copy(data = this.altitude.data.finiteValues()),
-        velocitySmooth = this.velocitySmooth?.copy(data = this.velocitySmooth.data.map { it.finiteOrZero() }),
-        gradeSmooth = this.gradeSmooth?.copy(data = this.gradeSmooth.data.map { it.finiteOrZero() }),
+        velocitySmooth = this.velocitySmooth?.copy(data = this.velocitySmooth.data.finiteFloatValues()),
+        gradeSmooth = this.gradeSmooth?.copy(data = this.gradeSmooth.data.finiteFloatValues()),
     )
 }
 
@@ -154,7 +154,7 @@ fun Stream.toDto(): StreamDto {
         }
         velocitySmooth.smooth().finiteValues()
     } else {
-        this.velocitySmooth.data.map { it.finiteOrZero().toDouble() }
+        this.velocitySmooth.data.finiteFloatValues().map { it.toDouble() }
     }
 
     return StreamDto(

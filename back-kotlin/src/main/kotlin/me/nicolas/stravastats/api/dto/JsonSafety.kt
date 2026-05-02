@@ -33,7 +33,11 @@ internal fun Double?.finiteOrNull(): Double? {
 }
 
 internal fun List<Double>.finiteValues(): List<Double> {
-    return this.map { it.finiteOrZero() }
+    return (this as List<*>).map { value -> (value as? Number)?.toDouble()?.finiteOrZero() ?: 0.0 }
+}
+
+internal fun List<Float>.finiteFloatValues(): List<Float> {
+    return (this as List<*>).map { value -> (value as? Number)?.toFloat()?.finiteOrZero() ?: 0f }
 }
 
 internal fun List<List<Double>>.finiteCoordinateValues(): List<List<Double>> {

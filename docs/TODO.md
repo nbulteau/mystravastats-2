@@ -9,6 +9,7 @@
 - La generation de routes reste la zone la plus sensible: OSRM, anti-retrace, diagnostics, export GPX, parite Go/Kotlin.
 - L'onglet routes a ete repositionne en `Strava Art` / GPS drawing studio: dessiner ou importer une forme, la snapper au reseau routier via OSRM, puis exporter un GPX exploitable.
 - La qualite des donnees locales FIT/GPX a deja un socle de diagnostics et corrections locales. Le risque suivant est la validation reproductible: fixtures, smoke tests et comparaison avant/apres correction.
+- Les modes source `STRAVA` / `FIT` / `GPX` ont maintenant un smoke test reproductible avec fixtures locales anonymes pour Go et Kotlin.
 - La couverture frontend, le contrat API partage et la parite Go/Kotlin hors routes restent les meilleurs leviers pour eviter les regressions silencieuses.
 
 ## Garde-fous permanents
@@ -30,20 +31,6 @@
 ## Chantiers techniques proposes
 
 ### Priorite haute
-
-- [ ] `TECH-P0-05` (`P0`, `M`) - Smoke tests automatises des modes `STRAVA` / `FIT` / `GPX`.
-  Owners: `QA`, `Back-Go`, `Back-Kotlin`, `Front`.
-  Constat:
-  - le mode source est transversal: runtime config, diagnostics, liste activites, detail activite, dashboard, cartes et data quality,
-  - les tests unitaires providers existent, mais les ruptures de parcours complet se detectent encore trop tard.
-  Scope:
-  - creer un jeu minimal de fixtures locales FIT et GPX dans `test-fixtures`,
-  - verifier pour chaque mode: `/api/health/details`, preview source, dashboard, liste activites, detail activite, maps GPX et rapport data quality,
-  - ajouter un script local unique qui lance le backend sur port temporaire et valide les endpoints critiques,
-  - verifier explicitement que les reponses JSON restent serialisables.
-  Acceptance:
-  - un changement provider se valide avec une commande reproductible,
-  - les erreurs d'encodage detail activite ou data quality sont detectees avant l'UI.
 
 - [ ] `TECH-P1-01` (`P1`, `L`) - Mettre le contrat API sous controle OpenAPI partage.
   Owners: `Back-Kotlin`, `Back-Go`, `Front`, `QA`.
@@ -250,7 +237,6 @@
 
 ## Dette visible a traiter en premier
 
-- Smoke tests source modes (`TECH-P0-05`).
 - Contrat OpenAPI partage (`TECH-P1-01`).
 - Fixtures data quality partagees (`TECH-P1-06`).
 

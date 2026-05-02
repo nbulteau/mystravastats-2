@@ -16,33 +16,21 @@ import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.interfaces.ILocalStorageProvider
 import me.nicolas.stravastats.domain.interfaces.IStravaApi
 import me.nicolas.stravastats.domain.services.ActivityHelper.filterByActivityTypes
-import me.nicolas.stravastats.domain.services.cache.CacheManifest
-import me.nicolas.stravastats.domain.services.cache.CacheManifestStore
-import me.nicolas.stravastats.domain.services.cache.WarmupMetricSummary
-import me.nicolas.stravastats.domain.services.cache.WarmupSummariesFile
-import me.nicolas.stravastats.domain.services.cache.WarmupYearSummary
 import me.nicolas.stravastats.domain.services.statistics.BestEffortCache
-import me.nicolas.stravastats.domain.services.statistics.calculateBestDistanceForTime
-import me.nicolas.stravastats.domain.services.statistics.calculateBestElevationForDistance
-import me.nicolas.stravastats.domain.services.statistics.calculateBestPowerForTime
-import me.nicolas.stravastats.domain.services.statistics.calculateBestTimeForDistance
 import me.nicolas.stravastats.domain.services.toStravaDetailedActivity
 import me.nicolas.stravastats.domain.utils.GenericCache
 import me.nicolas.stravastats.domain.utils.SoftCache
-import me.nicolas.stravastats.domain.utils.formatSeconds
 import org.slf4j.LoggerFactory
-import java.nio.file.Files
 import java.time.LocalDate
 import java.time.Instant
-import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicLong
 import kotlin.system.measureTimeMillis
 import kotlin.time.Duration.Companion.milliseconds
 
 class StravaActivityProvider(
-    // allow injection for testability; accept the interface publicly to avoid exposing internal implementation
+    // Allow injection for testability; accept the interface publicly to avoid exposing internal implementation
     localStorageProvider: ILocalStorageProvider? = null,
     private var stravaApi: IStravaApi? = null,
     stravaCache: String = "strava-cache",
@@ -55,33 +43,34 @@ class StravaActivityProvider(
 
     private val clientId: String
 
-    // keep auth info for deferred initialization
+    // Keep auth info for deferred initialization
     private val authSecret: String?
     private val useCacheAuth: Boolean?
     private val streamIdsCache: GenericCache<Int, Set<Long>> = SoftCache()
     private val startupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val backgroundRefreshStarted = AtomicBoolean(false)
-    private val warmupInProgress = AtomicBoolean(false)
-    private val rateLimitUntilMs = AtomicLong(0L)
-    private val cacheRoot = stravaCache
-    private val manifestLock = Any()
-    /** Dedicated lock object for heartRateZoneSettings to avoid using `this` as a monitor. */
-    private val heartRateSettingsLock = Any()
     /** Coroutine-safe mutex replacing @Synchronized on createStravaApiIfNeeded. */
     private val stravaApiMutex = Mutex()
-    @Volatile
-    private var cacheManifest: CacheManifest = CacheManifestStore.defaultManifest("unknown")
+    /** Dedicated lock object for heartRateZoneSettings to avoid using `this` as a monitor. */
+    private val heartRateSettingsLock = Any()
+    private val cacheRoot = stravaCache
+
+    // Extracted responsibility: rate limiting
+    private val rateLimiter = StravaRateLimiter()
+
+    // Extracted responsibility: warmup pipeline + manifest management
+    private val warmupPipeline: StravaWarmupPipeline
+
     @Volatile
     private var heartRateZoneSettings: HeartRateZoneSettings = HeartRateZoneSettings()
 
     companion object {
-        // Reload a year's cache if it is older than this duration (avoids a fixed hardcoded date)
+        // Reload a year's cache if it is older than this duration
         private val CACHE_MAX_AGE_MS: Long = TimeUnit.DAYS.toMillis(365L)
 
         /**
          * Maximum number of stream requests sent to the Strava API in parallel.
-         * Strava enforces a rate limit of 200 requests/15 min and 2 000 requests/day;
-         * keeping this low avoids exhausting the quota during backfill.
+         * Keeping this low avoids exhausting the Strava quota during backfill.
          */
         private const val MAX_CONCURRENT_STREAM_LOADS = 8
 
@@ -91,31 +80,22 @@ class StravaActivityProvider(
          */
         private const val DETAILED_BACKFILL_REQUEST_DELAY_MS = 1_500L
 
-        /**
-         * Duration to stay in cache-only mode after a Strava rate-limit response (ms).
-         * Strava resets its 15-minute window every 15 minutes, so we wait the full window
-         * before retrying any API call.
-         */
-        private const val RATE_LIMIT_COOLDOWN_MS = 15 * 60 * 1_000L
-
         /** Earliest year from which Strava activity data is considered available. */
         const val STRAVA_FIRST_YEAR = 2010
     }
 
     init {
-        // read authentication but do not perform blocking loads here
         val (id, secret, useCache) = storageProvider.readStravaAuthentication(stravaCache)
         if (id == null) {
-            // Throw instead of exiting the process to let the application decide how to handle it
             throw IllegalStateException("Strava authentication not found")
         }
 
         clientId = id
         authSecret = secret
         useCacheAuth = useCache
-        cacheManifest = CacheManifestStore.load(cacheRoot, clientId) ?: CacheManifestStore.defaultManifest(clientId)
+        warmupPipeline = StravaWarmupPipeline(cacheRoot, clientId)
 
-        // Load athlete from cache immediately if cache flag is set (this is cheap/local)
+        // Load athlete from cache immediately if cache flag is set (cheap/local)
         if (useCacheAuth == true) {
             stravaAthlete = storageProvider.loadAthleteFromCache(clientId)
         }
@@ -133,26 +113,28 @@ class StravaActivityProvider(
         storageProvider.initLocalStorageForClientId(clientId)
         stravaAthlete = storageProvider.loadAthleteFromCache(clientId)
         heartRateZoneSettings = storageProvider.loadHeartRateZoneSettings(clientId)
-        loadPersistentCacheArtifacts()
 
-        // Fast startup path: load only from local cache first.
+        // Load manifest and best-effort cache from disk
+        warmupPipeline.initialize()
+
+        // Fast startup path: load only from local cache first
         activities = loadFromLocalCache()
         logger.info("ActivityService initialized with clientId=$clientId and ${activities.size} activities (cache-first)")
 
-        // If cache mode is forced, never hit Strava API at startup.
+        // If cache mode is forced, never hit Strava API at startup
         if (useCacheAuth == true) {
             launchBackgroundWarmup("cache-only startup")
             return@coroutineScope
         }
 
-        // No credentials: keep cache-only behavior.
+        // No credentials: keep cache-only behavior
         if (authSecret == null) {
             logger.warn("No Strava credentials found; keeping cache-only startup mode")
             launchBackgroundWarmup("no-credentials startup")
             return@coroutineScope
         }
 
-        // First start (empty cache): fallback to the full bootstrap to keep a functional first run.
+        // First start (empty cache): fallback to the full bootstrap
         if (activities.isEmpty()) {
             logger.info("No activities found in cache; bootstrapping from Strava API")
             stravaAthlete = retrieveLoggedInAthlete()
@@ -169,7 +151,7 @@ class StravaActivityProvider(
     override fun getDetailedActivity(activityId: Long): StravaDetailedActivity? {
         logger.info("Get detailed activity for activity id $activityId")
 
-        // find detailed activity in cache or retrieve from Strava
+        // Find detailed activity in cache or retrieve from Strava
         val activity = getActivity(activityId)
         if (activity == null) {
             val cachedDetailed = loadDetailedActivityFromCacheAnyYear(activityId, LocalDate.now().year)
@@ -177,8 +159,7 @@ class StravaActivityProvider(
                 logger.info("Detailed activity $activityId loaded from cache without base activity metadata")
                 return cachedDetailed
             }
-            // Use Dispatchers.IO to avoid blocking the calling thread's pool (deadlock risk without an explicit dispatcher)
-            val api = if (isRateLimitActive()) null else stravaApi ?: runBlocking(Dispatchers.IO) { createStravaApiIfNeeded() }
+            val api = if (rateLimiter.isActive()) null else stravaApi ?: runBlocking(Dispatchers.IO) { createStravaApiIfNeeded() }
             if (api != null) {
                 try {
                     val detailed = api.getDetailedActivityFailFastOnRateLimit(activityId)
@@ -188,35 +169,32 @@ class StravaActivityProvider(
                         return detailed
                     }
                 } catch (exception: StravaRateLimitException) {
-                    markRateLimitActive("detailed activity $activityId", exception)
+                    rateLimiter.mark("detailed activity $activityId", exception)
                 }
             }
             return null
         }
         val year = resolveActivityYear(activity)
 
-        // load detailed activity from cache or retrieve from Strava
+        // Load detailed activity from cache or retrieve from Strava
         var stravaDetailedActivity = loadDetailedActivityFromCacheAnyYear(activityId, year)
         val cacheHit = stravaDetailedActivity != null
         var stream = storageProvider.loadActivitiesStreamsFromCache(clientId, year, activity)
-        var api: IStravaApi? = if (isRateLimitActive()) null else stravaApi
+        var api: IStravaApi? = if (rateLimiter.isActive()) null else stravaApi
         val needsApiCall = stravaDetailedActivity == null || stream == null
         if (needsApiCall && api == null) {
-            // Use Dispatchers.IO to avoid blocking the calling thread's pool (deadlock risk without an explicit dispatcher)
             api = runBlocking(Dispatchers.IO) { createStravaApiIfNeeded() }
         }
 
         if (api != null && stravaDetailedActivity == null) {
-            // It's not in local cache, retrieve from Strava
             try {
                 stravaDetailedActivity = api.getDetailedActivityFailFastOnRateLimit(activityId)
             } catch (exception: StravaRateLimitException) {
-                markRateLimitActive("detailed activity $activityId", exception)
+                rateLimiter.mark("detailed activity $activityId", exception)
             }
         }
 
         if (stravaDetailedActivity == null) {
-            // Detailed activity not found on Strava, return the activity without details
             stravaDetailedActivity = activity.toStravaDetailedActivity()
         }
 
@@ -227,15 +205,17 @@ class StravaActivityProvider(
                     storageProvider.saveActivitiesStreamsToCache(clientId, year, activity, stream)
                 }
             } catch (exception: StravaRateLimitException) {
-                markRateLimitActive("stream for activity ${activity.id}", exception)
+                rateLimiter.mark("stream for activity ${activity.id}", exception)
             }
         }
-        stravaDetailedActivity.stream = stream
+
+        // copy() preserves immutability — stream is now a val constructor parameter
+        val enrichedActivity = stravaDetailedActivity.copy(stream = stream)
         if (!cacheHit) {
-            storageProvider.saveDetailedActivityToCache(clientId, year, stravaDetailedActivity)
+            storageProvider.saveDetailedActivityToCache(clientId, year, enrichedActivity)
         }
 
-        return stravaDetailedActivity
+        return enrichedActivity
     }
 
     override fun getCachedDetailedActivity(activityId: Long): StravaDetailedActivity? {
@@ -244,9 +224,7 @@ class StravaActivityProvider(
         return loadDetailedActivityFromCacheAnyYear(activityId, year)
     }
 
-    override fun getHeartRateZoneSettings(): HeartRateZoneSettings {
-        return heartRateZoneSettings
-    }
+    override fun getHeartRateZoneSettings(): HeartRateZoneSettings = heartRateZoneSettings
 
     override fun saveHeartRateZoneSettings(settings: HeartRateZoneSettings): HeartRateZoneSettings {
         // Use a dedicated lock object instead of @Synchronized (which locks on `this`, incompatible with coroutine usage)
@@ -288,26 +266,23 @@ class StravaActivityProvider(
             val deferredActivities = (currentYear downTo STRAVA_FIRST_YEAR).map { year ->
                 async(Dispatchers.IO) {
                     try {
-                        // Check if we should load from cache or API
                         if (currentYear != year
                             && storageProvider.isLocalCacheExistForYear(clientId, year)
                             && !shouldReloadFromStravaAPI(year)) {
                             logger.info("Loading activities for $year from cache ...")
-                            val activities = storageProvider.loadActivitiesFromCache(clientId, year)
-                            loadMissingStreamsFromCache(year, activities)
-                            // now parallelized
-                            loadMissingStreamsFromApi(year, activities)
+                            val cached = storageProvider.loadActivitiesFromCache(clientId, year)
+                            val withCacheStreams = loadMissingStreamsFromCache(year, cached)
+                            loadMissingStreamsFromApi(year, withCacheStreams)
                         } else {
                             logger.info("Loading activities for $year from Strava API ...")
-                            val activities = retrieveActivitiesFromApi(year)
-                            saveActivitiesToCache(year, activities)
-                            loadMissingStreamsFromCache(year, activities)
-                            // now parallelized
-                            loadMissingStreamsFromApi(year, activities)
+                            val fromApi = retrieveActivitiesFromApi(year)
+                            saveActivitiesToCache(year, fromApi)
+                            val withCacheStreams = loadMissingStreamsFromCache(year, fromApi)
+                            loadMissingStreamsFromApi(year, withCacheStreams)
                         }
                     } catch (exception: Exception) {
                         logger.error("Error loading activities for year $year", exception)
-                        emptyList()
+                        emptyList<StravaActivity>()
                     }
                 }
             }
@@ -323,34 +298,32 @@ class StravaActivityProvider(
         return (System.currentTimeMillis() - lastModified) > CACHE_MAX_AGE_MS
     }
 
-    // Loads missing streams from the cache
-    private fun loadMissingStreamsFromCache(
-        year: Int,
-        activities: List<StravaActivity>
-    ): List<StravaActivity> {
+    // Returns a new list where activities with a cached stream are replaced by copy(stream=...)
+    private fun loadMissingStreamsFromCache(year: Int, activities: List<StravaActivity>): List<StravaActivity> {
         val cachedStreamIds = getCachedStreamIds(year)
-        activities
-            // Filter activities that do not have a stream
-            .filter { activity -> activity.stream == null && cachedStreamIds.contains(activity.id) }
-            .forEach { activity ->
+        return activities.map { activity ->
+            if (activity.stream == null && cachedStreamIds.contains(activity.id)) {
                 val stream = storageProvider.loadActivitiesStreamsFromCache(clientId, year, activity)
-                activity.stream = stream
+                if (stream != null) activity.copy(stream = stream) else activity
+            } else {
+                activity
             }
-
-        return activities
+        }
     }
 
-    // Loads missing streams from API (parallelized)
-    suspend fun loadMissingStreamsFromApi(
+    // Returns a new list where activities are replaced by stream-enriched copies fetched from the API (parallelized)
+    internal suspend fun loadMissingStreamsFromApi(
         year: Int,
-        activities: List<StravaActivity>
+        activities: List<StravaActivity>,
     ): List<StravaActivity> = coroutineScope {
-        if (isRateLimitActive()) {
+        if (rateLimiter.isActive()) {
             return@coroutineScope activities
         }
         val api = stravaApi ?: createStravaApiIfNeeded() ?: return@coroutineScope activities
         val semaphore = Semaphore(MAX_CONCURRENT_STREAM_LOADS)
         val stopRequested = AtomicBoolean(false)
+        // Thread-safe map: activity id -> stream-enriched copy
+        val enrichedById = ConcurrentHashMap<Long, StravaActivity>()
 
         val deferred = activities
             .filter { activity -> activity.stream == null }
@@ -358,42 +331,38 @@ class StravaActivityProvider(
                 async(Dispatchers.IO) {
                     semaphore.withPermit {
                         try {
-                            if (stopRequested.get() || isRateLimitActive()) {
+                            if (stopRequested.get() || rateLimiter.isActive()) {
                                 return@withPermit
                             }
                             api.getActivityStreamFailFastOnRateLimit(activity)?.let { stream ->
                                 storageProvider.saveActivitiesStreamsToCache(clientId, year, activity, stream)
-                                activity.stream = stream
+                                enrichedById[activity.id] = activity.copy(stream = stream)
                             }
                         } catch (exception: StravaRateLimitException) {
                             stopRequested.set(true)
-                            markRateLimitActive("stream backfill activity ${activity.id}", exception)
+                            rateLimiter.mark("stream backfill activity ${activity.id}", exception)
                         } catch (exception: Exception) {
                             logger.error("Error loading stream for activity ${activity.id}", exception)
                         }
                     }
-                    activity
                 }
             }
 
         deferred.awaitAll()
-        return@coroutineScope activities
+        // Return a new list replacing activities that got streams
+        return@coroutineScope activities.map { activity -> enrichedById[activity.id] ?: activity }
     }
 
     // Retrieves activities from Strava API
     private suspend fun retrieveActivitiesFromApi(year: Int, failFastOnRateLimit: Boolean = true): List<StravaActivity> {
-        if (isRateLimitActive()) {
+        if (rateLimiter.isActive()) {
             throw StravaRateLimitException("strava rate limit reached (cooldown active)")
         }
         val api = stravaApi ?: createStravaApiIfNeeded() ?: return emptyList()
         val activities = try {
-            if (failFastOnRateLimit) {
-                api.getActivitiesFailFastOnRateLimit(year)
-            } else {
-                api.getActivities(year)
-            }
+            if (failFastOnRateLimit) api.getActivitiesFailFastOnRateLimit(year) else api.getActivities(year)
         } catch (exception: StravaRateLimitException) {
-            markRateLimitActive("activities year $year", exception)
+            rateLimiter.mark("activities year $year", exception)
             throw exception
         }
         return activities.filterByActivityTypes()
@@ -412,7 +381,7 @@ class StravaActivityProvider(
 
     private suspend fun retrieveLoggedInAthlete(): StravaAthlete {
         logger.info("Load stravaAthlete with id $clientId description from Strava")
-        val api = if (isRateLimitActive()) null else stravaApi ?: createStravaApiIfNeeded()
+        val api = if (rateLimiter.isActive()) null else stravaApi ?: createStravaApiIfNeeded()
 
         return if (api != null) {
             try {
@@ -422,7 +391,7 @@ class StravaActivityProvider(
                 }
                 athlete ?: storageProvider.loadAthleteFromCache(clientId)
             } catch (exception: StravaRateLimitException) {
-                markRateLimitActive("athlete", exception)
+                rateLimiter.mark("athlete", exception)
                 storageProvider.loadAthleteFromCache(clientId)
             } catch (exception: Exception) {
                 logger.error("Unable to retrieve athlete from Strava API", exception)
@@ -434,7 +403,7 @@ class StravaActivityProvider(
     }
 
     private suspend fun createStravaApiIfNeeded(): IStravaApi? = stravaApiMutex.withLock {
-        if (isRateLimitActive()) {
+        if (rateLimiter.isActive()) {
             return@withLock null
         }
         val existing = stravaApi
@@ -448,7 +417,7 @@ class StravaActivityProvider(
             }
         } catch (exception: Exception) {
             logger.error("Failed to initialize Strava API (token fetch error): ${exception.message}", exception)
-            logger.warn("Switching to cache-only mode: activities will be loaded from cache but no API calls will be made until next restart")
+            logger.warn("Switching to cache-only mode: no API calls will be made until next restart")
             null
         }
     }
@@ -466,26 +435,30 @@ class StravaActivityProvider(
             }
 
             saveActivitiesToCache(year, refreshedActivities)
-            if (refreshedActivities.isNotEmpty()) {
-                loadMissingStreamsFromCache(year, refreshedActivities)
-                loadMissingStreamsFromApi(year, refreshedActivities)
+
+            // Enrich with streams before merging into the in-memory list
+            val activitiesWithStreams = if (refreshedActivities.isNotEmpty()) {
+                val withCacheStreams = loadMissingStreamsFromCache(year, refreshedActivities)
+                loadMissingStreamsFromApi(year, withCacheStreams)
+            } else {
+                refreshedActivities
             }
             streamIdsCache.remove(year)
 
             val existingActivities = activities
             val mergedActivities = existingActivities
                 .filterNot { activity -> resolveYearFromDateString(activity.startDateLocal) == year }
-                .plus(refreshedActivities)
+                .plus(activitiesWithStreams)
                 .sortedBy { activity -> activity.startDateLocal }
 
             activities = mergedActivities
 
-            // Invalidate only touched activities so the cache keeps unaffected entries.
+            // Invalidate touched activities from the best-effort cache
             val invalidatedActivityIds = existingActivities
                 .filter { activity -> resolveYearFromDateString(activity.startDateLocal) == year }
                 .map { activity -> activity.id }
                 .toMutableSet()
-                .apply { addAll(refreshedActivities.map { activity -> activity.id }) }
+                .apply { addAll(activitiesWithStreams.map { activity -> activity.id }) }
             val removedEntries = BestEffortCache.invalidateActivities(invalidatedActivityIds)
             if (removedEntries > 0) {
                 logger.info("Invalidated {} best-effort cache entries after year {} refresh", removedEntries, year)
@@ -493,8 +466,7 @@ class StravaActivityProvider(
 
             logger.info(
                 "Background refresh merged year {} activities ({} total activities in memory)",
-                year,
-                activities.size
+                year, activities.size,
             )
         }
 
@@ -513,19 +485,25 @@ class StravaActivityProvider(
 
         val years = activitiesByYear.keys.sortedDescending()
         for (year in years) {
-            if (isRateLimitActive()) {
+            if (rateLimiter.isActive()) {
                 logger.info("Stream backfill stopped early due to Strava rate limit")
                 return@coroutineScope
             }
             val yearActivities = activitiesByYear[year] ?: continue
-            loadMissingStreamsFromCache(year, yearActivities)
-            loadMissingStreamsFromApi(year, yearActivities)
+            val withCacheStreams = loadMissingStreamsFromCache(year, yearActivities)
+            val enrichedActivities = loadMissingStreamsFromApi(year, withCacheStreams)
             streamIdsCache.remove(year)
+
+            // Propagate stream-enriched copies back into the in-memory activities list
+            val enrichedById = enrichedActivities.filter { it.stream != null }.associateBy { it.id }
+            if (enrichedById.isNotEmpty()) {
+                activities = activities.map { activity -> enrichedById[activity.id] ?: activity }
+            }
         }
     }
 
     private suspend fun backfillMissingDetailedActivitiesInBackground(startYear: Int): Boolean = coroutineScope {
-        if (isRateLimitActive()) {
+        if (rateLimiter.isActive()) {
             logger.info("Detailed backfill skipped: Strava rate limit is active")
             return@coroutineScope true
         }
@@ -539,17 +517,13 @@ class StravaActivityProvider(
             .asSequence()
             .mapNotNull { activity ->
                 val year = resolveActivityYear(activity)
-                if (year !in STRAVA_FIRST_YEAR..startYear) {
-                    return@mapNotNull null
-                }
-                if (storageProvider.loadDetailedActivityFromCache(clientId, year, activity.id) != null) {
-                    return@mapNotNull null
-                }
+                if (year !in STRAVA_FIRST_YEAR..startYear) return@mapNotNull null
+                if (storageProvider.loadDetailedActivityFromCache(clientId, year, activity.id) != null) return@mapNotNull null
                 year to activity
             }
             .groupBy(keySelector = { (year, _) -> year }, valueTransform = { (_, activity) -> activity })
 
-        val missingCount = activitiesByYear.values.sumOf { yearActivities -> yearActivities.size }
+        val missingCount = activitiesByYear.values.sumOf { it.size }
         if (missingCount == 0) {
             logger.info("All cached activities already have detailed payloads; skipping detailed backfill")
             return@coroutineScope false
@@ -572,7 +546,7 @@ class StravaActivityProvider(
                 firstRequest = false
 
                 try {
-                    if (isRateLimitActive()) {
+                    if (rateLimiter.isActive()) {
                         return@coroutineScope true
                     }
                     val detailedActivity = api.getDetailedActivityFailFastOnRateLimit(activity.id)
@@ -582,12 +556,8 @@ class StravaActivityProvider(
                         totalLoaded += 1
                     }
                 } catch (exception: StravaRateLimitException) {
-                    markRateLimitActive("detailed backfill activity ${activity.id}", exception)
-                    logger.warn(
-                        "Detailed backfill stopped at year {} for activity {} due to Strava rate limit",
-                        year,
-                        activity.id
-                    )
+                    rateLimiter.mark("detailed backfill activity ${activity.id}", exception)
+                    logger.warn("Detailed backfill stopped at year {} for activity {} due to rate limit", year, activity.id)
                     return@coroutineScope true
                 } catch (exception: Exception) {
                     logger.error("Unable to backfill detailed activity ${activity.id}", exception)
@@ -619,12 +589,12 @@ class StravaActivityProvider(
                     logger.info("Background data refresh stopped early due to Strava rate limit")
                 } else {
                     backfillMissingStreamsInBackground()
-                    val detailedStoppedByRateLimit = backfillMissingDetailedActivitiesInBackground(currentYear)
-                    if (detailedStoppedByRateLimit) {
+                    val detailedStopped = backfillMissingDetailedActivitiesInBackground(currentYear)
+                    if (detailedStopped) {
                         logger.info("Background detailed backfill stopped early due to Strava rate limit")
                     }
                 }
-                runWarmupPipeline("post-refresh")
+                warmupPipeline.runWarmupPipeline("post-refresh", activities.toList())
 
                 logger.info("Background data refresh completed")
             } catch (exception: Exception) {
@@ -635,148 +605,13 @@ class StravaActivityProvider(
         }
     }
 
-    private fun loadPersistentCacheArtifacts() {
-        val loadedManifest = CacheManifestStore.load(cacheRoot, clientId) ?: CacheManifestStore.defaultManifest(clientId)
-        val loadedEntries = runCatching {
-            BestEffortCache.loadFromDisk(CacheManifestStore.bestEffortCachePath(cacheRoot, clientId, loadedManifest))
-        }.getOrElse { exception ->
-            logger.error("Unable to load best-effort cache from disk", exception)
-            BestEffortCache.clear()
-            0
-        }
-
-        val updatedManifest = loadedManifest.copy(
-            bestEffortCache = loadedManifest.bestEffortCache.copy(
-                entries = loadedEntries,
-                lastPersistedAt = loadedManifest.bestEffortCache.lastPersistedAt ?: Instant.now().toString(),
-            )
-        )
-
-        // Persist manifest to disk before acquiring the in-memory lock to avoid blocking threads on I/O
-        runCatching { CacheManifestStore.save(cacheRoot, updatedManifest) }
-            .onFailure { exception -> logger.error("Unable to save cache manifest", exception) }
-
-        // Only update in-memory state under lock (fast, non-blocking)
-        synchronized(manifestLock) {
-            cacheManifest = updatedManifest
-        }
-
-        logger.info("Loaded best-effort cache: {} entries", loadedEntries)
-    }
-
     private fun launchBackgroundWarmup(reason: String) {
         startupScope.launch {
-            runWarmupPipeline(reason)
-        }
-    }
-
-    private suspend fun runWarmupPipeline(reason: String) = coroutineScope {
-        if (!warmupInProgress.compareAndSet(false, true)) {
-            return@coroutineScope
-        }
-
-        try {
-            val snapshot = activities.toList()
-            if (snapshot.isEmpty()) {
-                return@coroutineScope
-            }
-
-            logger.info("Warmup started ({})", reason)
-
-            val yearSummaries = computeWarmupYearSummaries(snapshot)
-            val preparedYears = yearSummaries.map { summary -> summary.year }.sortedDescending()
-
-            var warmupPayload = WarmupSummariesFile(
-                athleteId = clientId,
-                yearSummaries = yearSummaries,
-            )
-
-            persistWarmupArtifacts(
-                payload = warmupPayload,
-                priority1 = "ready",
-                priority2 = "pending",
-                priority3 = "pending",
-                preparedYears = preparedYears,
-            )
-
-            warmupPayload = warmupPayload.copy(
-                majorBestEfforts = precomputeMajorBestEfforts(snapshot)
-            )
-            persistWarmupArtifacts(
-                payload = warmupPayload,
-                priority1 = "ready",
-                priority2 = "ready",
-                priority3 = "pending",
-                preparedYears = preparedYears,
-            )
-
-            warmupPayload = warmupPayload.copy(
-                advancedMetrics = precomputeAdvancedMetrics(snapshot)
-            )
-            persistWarmupArtifacts(
-                payload = warmupPayload,
-                priority1 = "ready",
-                priority2 = "ready",
-                priority3 = "ready",
-                preparedYears = preparedYears,
-            )
-
-            logger.info("Warmup completed ({})", reason)
-        } catch (exception: Exception) {
-            logger.error("Warmup failed ({})", reason, exception)
-        } finally {
-            warmupInProgress.set(false)
-        }
-    }
-
-    private suspend fun persistWarmupArtifacts(
-        payload: WarmupSummariesFile,
-        priority1: String,
-        priority2: String,
-        priority3: String,
-        preparedYears: List<Int>,
-    ) {
-        // 1. Snapshot current manifest state under lock (non-blocking read)
-        val manifestSnapshot = synchronized(manifestLock) { cacheManifest }
-
-        val bestEffortPath = CacheManifestStore.bestEffortCachePath(cacheRoot, clientId, manifestSnapshot)
-
-        // 2. Perform disk I/O on Dispatchers.IO — outside the synchronized block to avoid blocking threads
-        val entries = withContext(Dispatchers.IO) {
-            BestEffortCache.saveToDisk(bestEffortPath)
-        }
-
-        val updatedManifest = manifestSnapshot.copy(
-            updatedAt = Instant.now().toString(),
-            bestEffortCache = manifestSnapshot.bestEffortCache.copy(
-                entries = entries,
-                lastPersistedAt = Instant.now().toString(),
-            ),
-            warmup = manifestSnapshot.warmup.copy(
-                priority1 = priority1,
-                priority2 = priority2,
-                priority3 = priority3,
-                preparedYears = preparedYears,
-                lastRunAt = Instant.now().toString(),
-            )
-        )
-
-        withContext(Dispatchers.IO) {
-            CacheManifestStore.saveWarmupSummaries(cacheRoot, clientId, payload, updatedManifest)
-            CacheManifestStore.save(cacheRoot, updatedManifest)
-        }
-
-        // 3. Update in-memory manifest under lock (fast, non-blocking)
-        synchronized(manifestLock) {
-            cacheManifest = updatedManifest
+            warmupPipeline.runWarmupPipeline(reason, activities.toList())
         }
     }
 
     override fun getCacheDiagnostics(): Map<String, Any?> {
-        val manifestSnapshot = synchronized(manifestLock) { cacheManifest }
-        val manifestPath = CacheManifestStore.manifestPath(cacheRoot, clientId)
-        val bestEffortPath = CacheManifestStore.bestEffortCachePath(cacheRoot, clientId, manifestSnapshot)
-        val warmupPath = CacheManifestStore.warmupSummariesPath(cacheRoot, clientId, manifestSnapshot)
         val basicDiagnostics = basicCacheDiagnostics(
             provider = "strava",
             sourcePathKey = "cacheRoot",
@@ -788,222 +623,19 @@ class StravaActivityProvider(
             "athleteId" to clientId,
             "refresh" to mapOf(
                 "backgroundInProgress" to backgroundRefreshStarted.get(),
-                "warmupInProgress" to warmupInProgress.get(),
+                "warmupInProgress" to warmupPipeline.isWarmupInProgress(),
             ),
             "rateLimit" to mapOf(
-                "active" to isRateLimitActive(),
-                "untilEpochMs" to rateLimitUntilMs.get(),
+                "active" to rateLimiter.isActive(),
+                "untilEpochMs" to rateLimiter.untilEpochMs(),
             ),
-            "manifest" to mapOf(
-                "schemaVersion" to manifestSnapshot.schemaVersion,
-                "updatedAt" to manifestSnapshot.updatedAt,
-                "bestEffortCache" to mapOf(
-                    "algoVersion" to manifestSnapshot.bestEffortCache.algoVersion,
-                    "entriesPersisted" to manifestSnapshot.bestEffortCache.entries,
-                    "entriesInMemory" to BestEffortCache.size(),
-                    "file" to manifestSnapshot.bestEffortCache.file,
-                    "lastPersistedAt" to manifestSnapshot.bestEffortCache.lastPersistedAt,
-                ),
-                "warmup" to mapOf(
-                    "algoVersion" to manifestSnapshot.warmup.algoVersion,
-                    "file" to manifestSnapshot.warmup.file,
-                    "priority1" to manifestSnapshot.warmup.priority1,
-                    "priority2" to manifestSnapshot.warmup.priority2,
-                    "priority3" to manifestSnapshot.warmup.priority3,
-                    "preparedYears" to manifestSnapshot.warmup.preparedYears,
-                    "lastRunAt" to manifestSnapshot.warmup.lastRunAt,
-                ),
-            ),
-            "files" to mapOf(
-                "manifest" to fileDiagnostics(manifestPath),
-                "bestEffortCache" to fileDiagnostics(bestEffortPath),
-                "warmupSummaries" to fileDiagnostics(warmupPath),
-            ),
-        )
+        ) + warmupPipeline.diagnosticsSection()
     }
 
     override fun cacheIdentity(): ActivityProviderCacheIdentity {
         return ActivityProviderCacheIdentity(
             cacheRoot = cacheRoot,
             athleteId = clientId,
-        )
-    }
-
-    private fun fileDiagnostics(path: java.nio.file.Path): Map<String, Any?> {
-        if (!Files.exists(path)) {
-            return mapOf(
-                "path" to path.toString(),
-                "exists" to false,
-            )
-        }
-
-        return mapOf(
-            "path" to path.toString(),
-            "exists" to true,
-            "sizeBytes" to Files.size(path),
-            "lastModified" to Files.getLastModifiedTime(path).toInstant().toString(),
-        )
-    }
-
-    private fun isRateLimitActive(): Boolean {
-        val untilMs = rateLimitUntilMs.get()
-        return untilMs > System.currentTimeMillis()
-    }
-
-    private fun markRateLimitActive(source: String, throwable: Throwable? = null) {
-        val now = System.currentTimeMillis()
-        val until = now + RATE_LIMIT_COOLDOWN_MS
-        val previous = rateLimitUntilMs.getAndUpdate { current -> maxOf(current, until) }
-        if (previous > now) {
-            return
-        }
-
-        logger.warn(
-            "Strava rate limit detected ({}). Switching to immediate cache-only mode until {}",
-            source,
-            Instant.ofEpochMilli(until)
-        )
-        if (throwable != null) {
-            logger.debug("Rate limit trigger details for '{}'", source, throwable)
-        }
-    }
-
-    private fun computeWarmupYearSummaries(activities: List<StravaActivity>): List<WarmupYearSummary> {
-        val summaries = mutableMapOf<Int, MutableWarmupYearSummary>()
-        val allYears = MutableWarmupYearSummary(year = 0)
-
-        activities.forEach { activity ->
-            val year = resolveActivityYear(activity)
-            val summary = summaries.getOrPut(year) { MutableWarmupYearSummary(year = year) }
-            summary.accept(activity)
-            allYears.accept(activity)
-        }
-
-        return buildList {
-            add(allYears.toPublic())
-            addAll(summaries.values.map { summary -> summary.toPublic() })
-        }.sortedByDescending { summary -> summary.year }
-    }
-
-    private fun precomputeMajorBestEfforts(activities: List<StravaActivity>): List<WarmupMetricSummary> {
-        val rideActivities = filterActivitiesForWarmup(activities, "ride")
-        val runActivities = filterActivitiesForWarmup(activities, "run")
-
-        return buildList {
-            computeBestTimeDistanceMetric("ride", rideActivities, 1000.0)?.let { add(it) }
-            computeBestTimeDistanceMetric("ride", rideActivities, 5000.0)?.let { add(it) }
-            computeBestDistanceTimeMetric("ride", rideActivities, 20 * 60)?.let { add(it) }
-            computeBestDistanceTimeMetric("ride", rideActivities, 60 * 60)?.let { add(it) }
-            computeBestTimeDistanceMetric("run", runActivities, 1000.0)?.let { add(it) }
-            computeBestTimeDistanceMetric("run", runActivities, 5000.0)?.let { add(it) }
-            computeBestDistanceTimeMetric("run", runActivities, 20 * 60)?.let { add(it) }
-            computeBestDistanceTimeMetric("run", runActivities, 60 * 60)?.let { add(it) }
-        }
-    }
-
-    private fun precomputeAdvancedMetrics(activities: List<StravaActivity>): List<WarmupMetricSummary> {
-        val rideActivities = filterActivitiesForWarmup(activities, "ride")
-        return buildList {
-            computeBestElevationMetric("ride", rideActivities, 1000.0)?.let { add(it) }
-            computeBestElevationMetric("ride", rideActivities, 5000.0)?.let { add(it) }
-            computeBestPowerMetric("ride", rideActivities, 20 * 60)?.let { add(it) }
-            computeBestPowerMetric("ride", rideActivities, 60 * 60)?.let { add(it) }
-        }
-    }
-
-    private fun filterActivitiesForWarmup(activities: List<StravaActivity>, group: String): List<StravaActivity> {
-        return activities.filter { activity ->
-            when (group) {
-                "run" -> activity.sportType == ActivityType.Run.name || activity.sportType == ActivityType.TrailRun.name
-                "ride" -> activity.sportType == ActivityType.Ride.name
-                        || activity.sportType == ActivityType.GravelRide.name
-                        || activity.sportType == ActivityType.MountainBikeRide.name
-                        || activity.sportType == ActivityType.VirtualRide.name
-                else -> false
-            }
-        }
-    }
-
-    private fun computeBestTimeDistanceMetric(
-        group: String,
-        activities: List<StravaActivity>,
-        distance: Double,
-    ): WarmupMetricSummary? {
-        val bestEffort = activities
-            .mapNotNull { activity -> activity.calculateBestTimeForDistance(distance) }
-            .minByOrNull { effort -> effort.seconds }
-            ?: return null
-
-        return WarmupMetricSummary(
-            activityGroup = group,
-            metric = "best-time-distance",
-            target = distance.toString(),
-            value = "${bestEffort.seconds.formatSeconds()} => ${bestEffort.getFormattedSpeedWithUnits()}",
-            activityId = bestEffort.activityShort.id,
-        )
-    }
-
-    private fun computeBestDistanceTimeMetric(
-        group: String,
-        activities: List<StravaActivity>,
-        seconds: Int,
-    ): WarmupMetricSummary? {
-        val bestEffort = activities
-            .mapNotNull { activity -> activity.calculateBestDistanceForTime(seconds) }
-            .maxByOrNull { effort -> effort.distance }
-            ?: return null
-
-        val distanceLabel = if (bestEffort.distance >= 1000.0) {
-            "%.2f km".format(Locale.ENGLISH, bestEffort.distance / 1000.0)
-        } else {
-            "%.0f m".format(Locale.ENGLISH, bestEffort.distance)
-        }
-
-        return WarmupMetricSummary(
-            activityGroup = group,
-            metric = "best-distance-time",
-            target = seconds.toString(),
-            value = "$distanceLabel => ${bestEffort.getFormattedSpeedWithUnits()}",
-            activityId = bestEffort.activityShort.id,
-        )
-    }
-
-    private fun computeBestPowerMetric(
-        group: String,
-        activities: List<StravaActivity>,
-        seconds: Int,
-    ): WarmupMetricSummary? {
-        val bestEffort = activities
-            .mapNotNull { activity -> activity.calculateBestPowerForTime(seconds) }
-            .maxByOrNull { effort -> effort.distance }
-            ?: return null
-        val power = bestEffort.averagePower ?: return null
-
-        return WarmupMetricSummary(
-            activityGroup = group,
-            metric = "best-power-time",
-            target = seconds.toString(),
-            value = "$power W",
-            activityId = bestEffort.activityShort.id,
-        )
-    }
-
-    private fun computeBestElevationMetric(
-        group: String,
-        activities: List<StravaActivity>,
-        distance: Double,
-    ): WarmupMetricSummary? {
-        val bestEffort = activities
-            .mapNotNull { activity -> activity.calculateBestElevationForDistance(distance) }
-            .maxByOrNull { effort -> effort.deltaAltitude }
-            ?: return null
-
-        return WarmupMetricSummary(
-            activityGroup = group,
-            metric = "best-elevation-distance",
-            target = distance.toString(),
-            value = "${bestEffort.seconds.formatSeconds()} => ${bestEffort.getFormattedGradient()}%",
-            activityId = bestEffort.activityShort.id,
         )
     }
 
@@ -1036,36 +668,5 @@ class StravaActivityProvider(
             }
         }
         return null
-    }
-
-    /**
-     * Mutable accumulator used only inside [computeWarmupYearSummaries].
-     *
-     * Intentionally a plain class (not a data class) because:
-     * - its fields are mutable (`var`), which makes `equals`/`hashCode`/`copy` from `data class`
-     *   unreliable and misleading (two accumulators with the same counters are not semantically equal);
-     * - it is never used as a map key, in a set, or copied via `copy()`.
-     */
-    private class MutableWarmupYearSummary(
-        val year: Int,
-        var activityCount: Int = 0,
-        var totalDistanceKm: Double = 0.0,
-        var totalElevationM: Double = 0.0,
-        var elapsedSeconds: Int = 0,
-    ) {
-        fun accept(activity: StravaActivity) {
-            activityCount += 1
-            totalDistanceKm += activity.distance / 1000.0
-            totalElevationM += activity.totalElevationGain
-            elapsedSeconds += activity.elapsedTime
-        }
-
-        fun toPublic(): WarmupYearSummary = WarmupYearSummary(
-            year = year,
-            activityCount = activityCount,
-            totalDistanceKm = totalDistanceKm,
-            totalElevationM = totalElevationM,
-            elapsedSeconds = elapsedSeconds,
-        )
     }
 }

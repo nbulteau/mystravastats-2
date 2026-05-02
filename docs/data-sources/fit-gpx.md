@@ -26,13 +26,30 @@ Known limits:
 
 ## GPX
 
-Kotlin supports GPX input through:
+Both Go and Kotlin support GPX input through:
 
 ```text
 GPX_FILES_PATH
 ```
 
-The Go backend currently reports `GPX_FILES_PATH` in diagnostics but does not expose GPX activities from it.
+GPX activities use the same year-folder layout as FIT files:
+
+```text
+<GPX_FILES_PATH>/2026/example.gpx
+```
+
+GPX parsing keeps the route trace, elevation and optional extension fields such
+as heart rate, cadence and power when they are present.
+
+## Smoke Test
+
+The source-mode smoke test validates the complete critical API path for
+`STRAVA`, `FIT` and `GPX` on either backend:
+
+```shell
+node scripts/smoke-source-modes.mjs --backend go
+node scripts/smoke-source-modes.mjs --backend kotlin
+```
 
 Related docs:
 

@@ -56,7 +56,7 @@ data class StravaActivity(
     @param:JsonProperty("gear_id")
     val gearId: String? = null,
 
-    var stream: Stream? = null
+    val stream: Stream? = null,
 ) {
     val sportType: String
         get() = _sportType ?: type

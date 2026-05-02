@@ -7,7 +7,7 @@ The repository contains two backend implementations. Keep shared API behavior al
 | Strava API | yes | yes | Live synchronization and OAuth-backed refresh. |
 | Local Strava cache | yes | yes | Shared cache layout. |
 | FIT files | yes | yes | Selected with `FIT_FILES_PATH`. |
-| GPX files | reported only | yes | Selected with `GPX_FILES_PATH`; Go reports config but does not provide GPX activities yet. |
+| GPX files | yes | yes | Selected with `GPX_FILES_PATH`; `FIT_FILES_PATH` has priority when both are set. |
 | Dashboard/statistics APIs | yes | yes | Keep DTO contracts aligned when both expose the endpoint. |
 | Activity details and streams | yes | yes | Used by detailed activity, charts, efforts, and corrections. |
 | Local non-destructive corrections | yes | yes | Corrected view is the default; raw view remains available. |

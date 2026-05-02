@@ -111,5 +111,5 @@ data class StravaDetailedActivity(
     @param:JsonProperty("workout_type")
     val workoutType: Int,
 
-    var stream: Stream? = null
+    val stream: Stream? = null,
 )

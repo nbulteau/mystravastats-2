@@ -13,9 +13,8 @@ fun loadColAgnelActivity(): StravaActivity {
 
     url = Thread.currentThread().contextClassLoader.getResource("colagnel-stream.json")
     jsonFile = File(url!!.path)
-    stravaActivity.stream = objectMapper.readValue(jsonFile, Stream::class.java)
-
-    return stravaActivity
+    // stream is now a val — use copy() to return an enriched instance
+    return stravaActivity.copy(stream = objectMapper.readValue(jsonFile, Stream::class.java))
 }
 
 fun loadActivity(name: String): StravaActivity {
@@ -26,9 +25,8 @@ fun loadActivity(name: String): StravaActivity {
 
     url = Thread.currentThread().contextClassLoader.getResource("stream-$name")
     jsonFile = File(url!!.path)
-    stravaActivity.stream = objectMapper.readValue(jsonFile, Stream::class.java)
-
-    return stravaActivity
+    // stream is now a val — use copy() to return an enriched instance
+    return stravaActivity.copy(stream = objectMapper.readValue(jsonFile, Stream::class.java))
 }
 
 fun loadZwiftActivity(): StravaActivity {
@@ -39,14 +37,6 @@ fun loadZwiftActivity(): StravaActivity {
 
     url = Thread.currentThread().contextClassLoader.getResource("zwift-stream.json")
     jsonFile = File(url!!.path)
-    stravaActivity.stream = objectMapper.readValue(jsonFile, Stream::class.java)
-
-    return stravaActivity
+    // stream is now a val — use copy() to return an enriched instance
+    return stravaActivity.copy(stream = objectMapper.readValue(jsonFile, Stream::class.java))
 }
-
-
-
-
-
-
-
