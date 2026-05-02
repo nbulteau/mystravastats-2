@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1"
+     creator="mystravastats-source-mode-smoke"
+     xmlns="http://www.topografix.com/GPX/1/1"
+     xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1">
+  <metadata>
+    <name>Smoke GPX fixture</name>
+    <time>2026-01-15T07:30:00Z</time>
+  </metadata>
+  <trk>
+    <name>Smoke GPX Ride</name>
+    <type>cycling</type>
+    <trkseg>
+      <trkpt lat="48.117300" lon="-1.677800">
+        <ele>36.0</ele>
+        <time>2026-01-15T07:30:00Z</time>
+        <extensions>
+          <gpxtpx:TrackPointExtension>
+            <gpxtpx:hr>128</gpxtpx:hr>
+            <gpxtpx:cad>80</gpxtpx:cad>
+          </gpxtpx:TrackPointExtension>
+          <power>165</power>
+        </extensions>
+      </trkpt>
+      <trkpt lat="48.118100" lon="-1.674800">
+        <ele>38.0</ele>
+        <time>2026-01-15T07:31:15Z</time>
+        <extensions>
+          <gpxtpx:TrackPointExtension>
+            <gpxtpx:hr>130</gpxtpx:hr>
+            <gpxtpx:cad>82</gpxtpx:cad>
+          </gpxtpx:TrackPointExtension>
+          <power>172</power>
+        </extensions>
+      </trkpt>
+      <trkpt lat="48.119000" lon="-1.671700">
+        <ele>41.0</ele>
+        <time>2026-01-15T07:32:30Z</time>
+        <extensions>
+          <gpxtpx:TrackPointExtension>
+            <gpxtpx:hr>134</gpxtpx:hr>
+            <gpxtpx:cad>84</gpxtpx:cad>
+          </gpxtpx:TrackPointExtension>
+          <power>188</power>
+        </extensions>
+      </trkpt>
+      <trkpt lat="48.120100" lon="-1.668900">
+        <ele>43.0</ele>
+        <time>2026-01-15T07:33:45Z</time>
+        <extensions>
+          <gpxtpx:TrackPointExtension>
+            <gpxtpx:hr>140</gpxtpx:hr>
+            <gpxtpx:cad>83</gpxtpx:cad>
+          </gpxtpx:TrackPointExtension>
+          <power>205</power>
+        </extensions>
+      </trkpt>
+      <trkpt lat="48.121000" lon="-1.666200">
+        <ele>42.0</ele>
+        <time>2026-01-15T07:35:00Z</time>
+        <extensions>
+          <gpxtpx:TrackPointExtension>
+            <gpxtpx:hr>136</gpxtpx:hr>
+            <gpxtpx:cad>81</gpxtpx:cad>
+          </gpxtpx:TrackPointExtension>
+          <power>174</power>
+        </extensions>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>
