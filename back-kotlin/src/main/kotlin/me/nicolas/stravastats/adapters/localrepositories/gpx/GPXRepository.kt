@@ -8,6 +8,7 @@ import me.nicolas.stravastats.domain.business.strava.AthleteRef
 import me.nicolas.stravastats.domain.business.strava.stream.PowerStream
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.stream.*
+import me.nicolas.stravastats.domain.interfaces.IYearActivityStorageProvider
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.nio.file.Path
@@ -18,13 +19,13 @@ import java.util.*
 import kotlin.math.absoluteValue
 
 // WIP : GPXRepository
-class GPXRepository(gpxDirectory: String) {
+class GPXRepository(gpxDirectory: String) : IYearActivityStorageProvider {
 
     private val logger = LoggerFactory.getLogger(GPXRepository::class.java)
 
     private val cacheDirectory = File(gpxDirectory)
 
-    fun loadActivitiesFromCache(year: Int): List<StravaActivity> {
+    override fun loadActivitiesFromCache(year: Int): List<StravaActivity> {
 
         val yearActivitiesDirectory = File(cacheDirectory, "$year")
 

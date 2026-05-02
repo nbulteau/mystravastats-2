@@ -7,6 +7,7 @@ import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
+import me.nicolas.stravastats.domain.errors.RateLimitExceededException
 import me.nicolas.stravastats.domain.interfaces.IStravaApi
 import me.nicolas.stravastats.domain.utils.BrowserUtils.openBrowser
 import okhttp3.Headers
@@ -30,8 +31,6 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.atomic.AtomicLong
-
-internal class StravaRateLimitException(message: String) : RuntimeException(message)
 
 internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
 
@@ -506,7 +505,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
         while (attempt <= maxAttempts) {
             if (!waitForGlobalRateLimitWindow(operationName, failFastOnRateLimit)) {
                 if (failFastOnRateLimit) {
-                    throw StravaRateLimitException(
+                    throw RateLimitExceededException(
                         "strava rate limit reached (cooldown active) during '$operationName'"
                     )
                 }
@@ -526,7 +525,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
             pushGlobalRateLimit(retryDelayMs, "429 during '$operationName'")
 
             if (failFastOnRateLimit) {
-                throw StravaRateLimitException("strava rate limit reached (429) during '$operationName'")
+                throw RateLimitExceededException("strava rate limit reached (429) during '$operationName'")
             }
 
             if (retryDelayMs > MAX_BLOCKING_WAIT_MS) {

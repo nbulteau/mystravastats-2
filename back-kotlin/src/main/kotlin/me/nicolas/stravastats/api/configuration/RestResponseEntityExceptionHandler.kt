@@ -1,6 +1,8 @@
 package me.nicolas.stravastats.api.configuration
 
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
+import me.nicolas.stravastats.domain.services.routing.OsrmControlErrorCode
+import me.nicolas.stravastats.domain.services.routing.OsrmControlException
 import org.springframework.data.rest.webmvc.ResourceNotFoundException
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -15,6 +17,26 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 @ControllerAdvice
 class RestResponseEntityExceptionHandler : ResponseEntityExceptionHandler() {
+
+    @ExceptionHandler(value = [OsrmControlException::class])
+    protected fun handleOsrmControlException(
+        exception: OsrmControlException,
+        request: WebRequest?,
+    ): ResponseEntity<Any>? {
+        val status = when (exception.code) {
+            OsrmControlErrorCode.DISABLED -> HttpStatus.FORBIDDEN
+            OsrmControlErrorCode.MISCONFIGURED -> HttpStatus.CONFLICT
+            OsrmControlErrorCode.TIMEOUT -> HttpStatus.GATEWAY_TIMEOUT
+            OsrmControlErrorCode.EXECUTION_FAILED -> HttpStatus.INTERNAL_SERVER_ERROR
+        }
+        val errorResponse = ErrorResponseMessageDto(
+            message = "OSRM control failed",
+            description = exception.message,
+            code = 1,
+        )
+
+        return handleExceptionInternal(exception, errorResponse, HttpHeaders(), status, request!!)
+    }
 
     @ExceptionHandler(value = [ResourceNotFoundException::class])
     protected fun handleResourceNotFound(

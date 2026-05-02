@@ -1,9 +1,7 @@
 package me.nicolas.stravastats.domain.services.routing
 
 import me.nicolas.stravastats.domain.RuntimeConfig
-import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
-import org.springframework.web.server.ResponseStatusException
 import java.io.File
 import java.util.Locale
 import java.util.concurrent.CompletableFuture
@@ -21,6 +19,18 @@ data class OsrmControlResult(
     val composeFile: String,
     val output: String = "",
 )
+
+enum class OsrmControlErrorCode {
+    DISABLED,
+    MISCONFIGURED,
+    TIMEOUT,
+    EXECUTION_FAILED,
+}
+
+class OsrmControlException(
+    val code: OsrmControlErrorCode,
+    override val message: String,
+) : RuntimeException(message)
 
 interface IOsrmControlService {
     fun startOsrm(): OsrmControlResult
@@ -43,17 +53,20 @@ class OsrmControlService : IOsrmControlService {
         )
 
         if (!readBoolConfig("OSRM_CONTROL_ENABLED", true)) {
-            throw ResponseStatusException(
-                HttpStatus.FORBIDDEN,
+            throw OsrmControlException(
+                OsrmControlErrorCode.DISABLED,
                 "OSRM control is disabled. Set OSRM_CONTROL_ENABLED=true to allow starting OSRM from the UI.",
             )
         }
         if (!composeFile.isFile) {
-            throw ResponseStatusException(HttpStatus.CONFLICT, "OSRM compose file not found: ${composeFile.absolutePath}")
+            throw OsrmControlException(
+                OsrmControlErrorCode.MISCONFIGURED,
+                "OSRM compose file not found: ${composeFile.absolutePath}"
+            )
         }
         if (dockerBin == null) {
-            throw ResponseStatusException(
-                HttpStatus.CONFLICT,
+            throw OsrmControlException(
+                OsrmControlErrorCode.MISCONFIGURED,
                 "Docker CLI not found. Install Docker Desktop or set OSRM_CONTROL_DOCKER_BIN.",
             )
         }
@@ -70,8 +83,8 @@ class OsrmControlService : IOsrmControlService {
         val completed = process.waitFor(timeoutMs.toLong(), TimeUnit.MILLISECONDS)
         if (!completed) {
             process.destroyForcibly()
-            throw ResponseStatusException(
-                HttpStatus.GATEWAY_TIMEOUT,
+            throw OsrmControlException(
+                OsrmControlErrorCode.TIMEOUT,
                 "OSRM start command timed out after ${timeoutMs}ms.",
             )
         }
@@ -83,7 +96,7 @@ class OsrmControlService : IOsrmControlService {
             } else {
                 "OSRM start command failed with exit code ${process.exitValue()}. Output: $output"
             }
-            throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, detail)
+            throw OsrmControlException(OsrmControlErrorCode.EXECUTION_FAILED, detail)
         }
 
         return unavailable.copy(

@@ -5,16 +5,15 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
-import me.nicolas.stravastats.adapters.localrepositories.strava.StravaRepository
-import me.nicolas.stravastats.adapters.strava.StravaApi
-import me.nicolas.stravastats.adapters.strava.StravaRateLimitException
 import me.nicolas.stravastats.domain.business.HeartRateZoneSettings
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
+import me.nicolas.stravastats.domain.errors.RateLimitExceededException
 import me.nicolas.stravastats.domain.interfaces.ILocalStorageProvider
 import me.nicolas.stravastats.domain.interfaces.IStravaApi
+import me.nicolas.stravastats.domain.interfaces.IStravaApiFactory
 import me.nicolas.stravastats.domain.services.ActivityHelper.filterByActivityTypes
 import me.nicolas.stravastats.domain.services.statistics.BestEffortCache
 import me.nicolas.stravastats.domain.services.toStravaDetailedActivity
@@ -30,14 +29,12 @@ import kotlin.system.measureTimeMillis
 import kotlin.time.Duration.Companion.milliseconds
 
 class StravaActivityProvider(
-    // Allow injection for testability; accept the interface publicly to avoid exposing internal implementation
-    localStorageProvider: ILocalStorageProvider? = null,
+    private val storageProvider: ILocalStorageProvider,
+    private val stravaApiFactory: IStravaApiFactory,
     private var stravaApi: IStravaApi? = null,
     stravaCache: String = "strava-cache",
 ) : AbstractActivityProvider(), AutoCloseable {
 
-    // Internally keep a concrete reference (default to StravaRepository when none injected)
-    private val storageProvider: ILocalStorageProvider = localStorageProvider ?: StravaRepository(stravaCache)
 
     private val logger = LoggerFactory.getLogger(StravaActivityProvider::class.java)
 
@@ -168,7 +165,7 @@ class StravaActivityProvider(
                         storageProvider.saveDetailedActivityToCache(clientId, year, detailed)
                         return detailed
                     }
-                } catch (exception: StravaRateLimitException) {
+                } catch (exception: RateLimitExceededException) {
                     rateLimiter.mark("detailed activity $activityId", exception)
                 }
             }
@@ -189,7 +186,7 @@ class StravaActivityProvider(
         if (api != null && stravaDetailedActivity == null) {
             try {
                 stravaDetailedActivity = api.getDetailedActivityFailFastOnRateLimit(activityId)
-            } catch (exception: StravaRateLimitException) {
+            } catch (exception: RateLimitExceededException) {
                 rateLimiter.mark("detailed activity $activityId", exception)
             }
         }
@@ -204,7 +201,7 @@ class StravaActivityProvider(
                 if (stream != null) {
                     storageProvider.saveActivitiesStreamsToCache(clientId, year, activity, stream)
                 }
-            } catch (exception: StravaRateLimitException) {
+            } catch (exception: RateLimitExceededException) {
                 rateLimiter.mark("stream for activity ${activity.id}", exception)
             }
         }
@@ -338,7 +335,7 @@ class StravaActivityProvider(
                                 storageProvider.saveActivitiesStreamsToCache(clientId, year, activity, stream)
                                 enrichedById[activity.id] = activity.copy(stream = stream)
                             }
-                        } catch (exception: StravaRateLimitException) {
+                        } catch (exception: RateLimitExceededException) {
                             stopRequested.set(true)
                             rateLimiter.mark("stream backfill activity ${activity.id}", exception)
                         } catch (exception: Exception) {
@@ -356,12 +353,12 @@ class StravaActivityProvider(
     // Retrieves activities from Strava API
     private suspend fun retrieveActivitiesFromApi(year: Int, failFastOnRateLimit: Boolean = true): List<StravaActivity> {
         if (rateLimiter.isActive()) {
-            throw StravaRateLimitException("strava rate limit reached (cooldown active)")
+            throw RateLimitExceededException("strava rate limit reached (cooldown active)")
         }
         val api = stravaApi ?: createStravaApiIfNeeded() ?: return emptyList()
         val activities = try {
             if (failFastOnRateLimit) api.getActivitiesFailFastOnRateLimit(year) else api.getActivities(year)
-        } catch (exception: StravaRateLimitException) {
+        } catch (exception: RateLimitExceededException) {
             rateLimiter.mark("activities year $year", exception)
             throw exception
         }
@@ -390,7 +387,7 @@ class StravaActivityProvider(
                     storageProvider.saveAthleteToCache(clientId, athlete)
                 }
                 athlete ?: storageProvider.loadAthleteFromCache(clientId)
-            } catch (exception: StravaRateLimitException) {
+            } catch (exception: RateLimitExceededException) {
                 rateLimiter.mark("athlete", exception)
                 storageProvider.loadAthleteFromCache(clientId)
             } catch (exception: Exception) {
@@ -412,7 +409,7 @@ class StravaActivityProvider(
         }
         val secret = authSecret ?: return@withLock null
         try {
-            StravaApi(clientId, secret).also { created ->
+            stravaApiFactory.create(clientId, secret).also { created ->
                 stravaApi = created
             }
         } catch (exception: Exception) {
@@ -426,7 +423,7 @@ class StravaActivityProvider(
         for (year in startYear downTo STRAVA_FIRST_YEAR) {
             val refreshedActivities = try {
                 retrieveActivitiesFromApi(year, failFastOnRateLimit = true)
-            } catch (_: StravaRateLimitException) {
+            } catch (_: RateLimitExceededException) {
                 logger.warn("Background refresh stopped at year {} due to Strava rate limit", year)
                 return true
             } catch (exception: Exception) {
@@ -555,7 +552,7 @@ class StravaActivityProvider(
                         loadedForYear += 1
                         totalLoaded += 1
                     }
-                } catch (exception: StravaRateLimitException) {
+                } catch (exception: RateLimitExceededException) {
                     rateLimiter.mark("detailed backfill activity ${activity.id}", exception)
                     logger.warn("Detailed backfill stopped at year {} for activity {} due to rate limit", year, activity.id)
                     return@coroutineScope true

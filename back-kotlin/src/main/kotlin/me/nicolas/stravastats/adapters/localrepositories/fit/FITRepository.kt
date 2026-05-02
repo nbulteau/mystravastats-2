@@ -5,6 +5,7 @@ import me.nicolas.stravastats.domain.business.strava.AthleteRef
 import me.nicolas.stravastats.domain.business.strava.stream.PowerStream
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.stream.*
+import me.nicolas.stravastats.domain.interfaces.IYearActivityStorageProvider
 import me.nicolas.stravastats.domain.utils.inDateTimeFormatter
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -14,7 +15,7 @@ import java.time.ZoneOffset
 import java.util.*
 import kotlin.math.absoluteValue
 
-class FITRepository(fitDirectory: String) {
+class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
 
     private val logger = LoggerFactory.getLogger(FITRepository::class.java)
 
@@ -22,7 +23,7 @@ class FITRepository(fitDirectory: String) {
 
     private val fitDecoder = FitDecoder()
 
-    fun loadActivitiesFromCache(year: Int): List<StravaActivity> {
+    override fun loadActivitiesFromCache(year: Int): List<StravaActivity> {
 
         val yearActivitiesDirectory = File(cacheDirectory, "$year")
         val fitFiles = yearActivitiesDirectory.listFiles { file ->

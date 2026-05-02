@@ -1,8 +1,5 @@
 package me.nicolas.stravastats.domain.services
 
-import me.nicolas.stravastats.adapters.localrepositories.fit.FITRepository
-import me.nicolas.stravastats.adapters.localrepositories.gpx.GPXRepository
-import me.nicolas.stravastats.adapters.localrepositories.strava.StravaRepository
 import me.nicolas.stravastats.domain.RuntimeConfig
 import me.nicolas.stravastats.domain.business.SourceMode
 import me.nicolas.stravastats.domain.business.SourceModeEnvironmentVariable
@@ -11,6 +8,7 @@ import me.nicolas.stravastats.domain.business.SourceModePreviewError
 import me.nicolas.stravastats.domain.business.SourceModePreviewRequest
 import me.nicolas.stravastats.domain.business.SourceModeYearPreview
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
+import me.nicolas.stravastats.domain.interfaces.ISourcePreviewRepositoryFactory
 import org.springframework.stereotype.Service
 import java.io.File
 import java.util.Locale
@@ -20,15 +18,21 @@ interface ISourceModeService {
 }
 
 @Service
-class SourceModeService : ISourceModeService {
+class SourceModeService(
+    private val repositoryFactory: ISourcePreviewRepositoryFactory,
+) : ISourceModeService {
     override fun preview(request: SourceModePreviewRequest): SourceModePreview {
         val mode = normalizeMode(request.mode)
         val path = request.path.trim().ifEmpty { configuredPath(mode) }
 
         return enrichActivation(when (mode) {
             SourceMode.STRAVA -> previewStrava(path)
-            SourceMode.FIT -> previewLocal(mode, "FIT_FILES_PATH", "fit", path) { FITRepository(path).loadActivitiesFromCache(it) }
-            SourceMode.GPX -> previewLocal(mode, "GPX_FILES_PATH", "gpx", path) { GPXRepository(path).loadActivitiesFromCache(it) }
+            SourceMode.FIT -> previewLocal(mode, "FIT_FILES_PATH", "fit", path) {
+                repositoryFactory.createFitRepository(path).loadActivitiesFromCache(it)
+            }
+            SourceMode.GPX -> previewLocal(mode, "GPX_FILES_PATH", "gpx", path) {
+                repositoryFactory.createGpxRepository(path).loadActivitiesFromCache(it)
+            }
         })
     }
 
@@ -260,7 +264,7 @@ class SourceModeService : ISourceModeService {
             )
         }
 
-        val repository = StravaRepository(path)
+        val repository = repositoryFactory.createStravaRepository(path)
         val (clientId, _, useCache) = repository.readStravaAuthentication(path)
         if (clientId.isNullOrBlank()) {
             return SourceModePreview(

@@ -2,6 +2,9 @@ package me.nicolas.stravastats.domain.services
 
 import me.nicolas.stravastats.domain.business.SourceMode
 import me.nicolas.stravastats.domain.business.SourceModePreviewRequest
+import me.nicolas.stravastats.domain.interfaces.ILocalStorageProvider
+import me.nicolas.stravastats.domain.interfaces.ISourcePreviewRepositoryFactory
+import me.nicolas.stravastats.domain.interfaces.IYearActivityStorageProvider
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -17,10 +20,21 @@ class SourceModeServiceTest {
     private lateinit var tempDir: Path
 
     private val runtimeKeys = listOf("STRAVA_CACHE_PATH", "FIT_FILES_PATH", "GPX_FILES_PATH")
+    private lateinit var repositoryFactory: ISourcePreviewRepositoryFactory
 
     @BeforeEach
     fun setUp() {
         runtimeKeys.forEach { key -> System.setProperty(key, "") }
+        repositoryFactory = object : ISourcePreviewRepositoryFactory {
+            override fun createFitRepository(path: String): IYearActivityStorageProvider =
+                me.nicolas.stravastats.adapters.localrepositories.fit.FITRepository(path)
+
+            override fun createGpxRepository(path: String): IYearActivityStorageProvider =
+                me.nicolas.stravastats.adapters.localrepositories.gpx.GPXRepository(path)
+
+            override fun createStravaRepository(path: String): ILocalStorageProvider =
+                me.nicolas.stravastats.adapters.localrepositories.strava.StravaRepository(path)
+        }
     }
 
     @AfterEach
@@ -52,7 +66,7 @@ class SourceModeServiceTest {
   </trk>
 </gpx>""",
         )
-        val service = SourceModeService()
+        val service = SourceModeService(repositoryFactory)
 
         // WHEN
         val preview = service.preview(SourceModePreviewRequest(mode = "GPX", path = tempDir.toString()))
@@ -77,7 +91,7 @@ class SourceModeServiceTest {
     @Test
     fun `preview reports missing local source path`() {
         // GIVEN
-        val service = SourceModeService()
+        val service = SourceModeService(repositoryFactory)
 
         // WHEN
         val preview = service.preview(SourceModePreviewRequest(mode = "FIT", path = ""))

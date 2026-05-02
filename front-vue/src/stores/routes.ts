@@ -46,15 +46,38 @@ interface FitShapeToStartOptions {
   maxRadiusKm?: number;
 }
 
+export const BUILT_IN_SHAPE_TEMPLATE_GROUPS = [
+  {
+    id: "basic",
+    label: "Basic",
+    templates: [
+      { key: "heart", label: "Heart", icon: "fa-solid fa-heart" },
+      { key: "star", label: "Star", icon: "fa-solid fa-star" },
+      { key: "circle", label: "Circle", icon: "fa-solid fa-circle" },
+      { key: "square", label: "Square", icon: "fa-solid fa-square" },
+      { key: "triangle", label: "Triangle", icon: "fa-solid fa-play" },
+      { key: "diamond", label: "Diamond", icon: "fa-solid fa-diamond" },
+      { key: "rectangle", label: "Rectangle", icon: "fa-solid fa-tablet-screen-button" },
+      { key: "hexagon", label: "Hexagon", icon: "fa-solid fa-stop" },
+    ],
+  },
+  {
+    id: "fun",
+    label: "Fun",
+    templates: [
+      { key: "kite", label: "Kite", icon: "fa-solid fa-paper-plane" },
+      { key: "cap", label: "Cap", icon: "fa-solid fa-hat-cowboy" },
+      { key: "rocket", label: "Rocket", icon: "fa-solid fa-rocket" },
+      { key: "crown", label: "Crown", icon: "fa-solid fa-crown" },
+      { key: "fish", label: "Fish", icon: "fa-solid fa-fish" },
+      { key: "bolt", label: "Bolt", icon: "fa-solid fa-bolt" },
+      { key: "quequette", label: "Quequette", icon: "fa-solid fa-face-grin-squint" },
+    ],
+  },
+] as const;
+
 export type BuiltInShapeTemplateKey =
-  | "heart"
-  | "star"
-  | "circle"
-  | "square"
-  | "triangle"
-  | "diamond"
-  | "rectangle"
-  | "hexagon";
+  typeof BUILT_IN_SHAPE_TEMPLATE_GROUPS[number]["templates"][number]["key"];
 
 export interface SavedShapeTemplate {
   id: string;
@@ -302,6 +325,142 @@ function buildHexagonTemplate(): number[][] {
   return points;
 }
 
+function ellipseArcPoints(
+  centerX: number,
+  centerY: number,
+  radiusX: number,
+  radiusY: number,
+  startAngle: number,
+  endAngle: number,
+  steps: number,
+): number[][] {
+  const points: number[][] = [];
+  for (let index = 0; index <= steps; index += 1) {
+    const angle = startAngle + (((endAngle - startAngle) * index) / steps);
+    points.push([
+      centerX + (Math.cos(angle) * radiusX),
+      centerY + (Math.sin(angle) * radiusY),
+    ]);
+  }
+  return points;
+}
+
+function buildKiteTemplate(): number[][] {
+  return [
+    [0, 1],
+    [0.72, 0.1],
+    [0, -0.72],
+    [-0.72, 0.1],
+    [0, 1],
+    [0, -0.72],
+    [0.16, -0.98],
+    [-0.16, -1.18],
+    [0.16, -1.38],
+    [-0.08, -1.58],
+  ];
+}
+
+function buildCapTemplate(): number[][] {
+  const crown = ellipseArcPoints(0, -0.08, 0.74, 0.64, Math.PI, 0, 18);
+  return [
+    [-1.1, -0.34],
+    [-0.78, -0.22],
+    ...crown,
+    [0.86, -0.24],
+    [1.22, -0.28],
+    [1.02, -0.48],
+    [-1.18, -0.48],
+    [-1.1, -0.34],
+  ];
+}
+
+function buildRocketTemplate(): number[][] {
+  return [
+    [0, 1],
+    [0.36, 0.72],
+    [0.48, 0.1],
+    [0.3, -0.52],
+    [0.74, -0.95],
+    [0.28, -0.84],
+    [0.12, -1.16],
+    [0, -0.9],
+    [-0.12, -1.16],
+    [-0.28, -0.84],
+    [-0.74, -0.95],
+    [-0.3, -0.52],
+    [-0.48, 0.1],
+    [-0.36, 0.72],
+    [0, 1],
+  ];
+}
+
+function buildCrownTemplate(): number[][] {
+  return [
+    [-1, -0.62],
+    [-1, 0.08],
+    [-0.66, -0.06],
+    [-0.46, 0.74],
+    [-0.16, 0.08],
+    [0, 0.9],
+    [0.16, 0.08],
+    [0.46, 0.74],
+    [0.66, -0.06],
+    [1, 0.08],
+    [1, -0.62],
+    [-1, -0.62],
+  ];
+}
+
+function buildFishTemplate(): number[][] {
+  return [
+    [-1, 0],
+    [-0.58, 0.44],
+    [0.08, 0.58],
+    [0.78, 0.28],
+    [1, 0],
+    [0.78, -0.28],
+    [0.08, -0.58],
+    [-0.58, -0.44],
+    [-1, 0],
+    [-1.42, 0.44],
+    [-1.42, -0.44],
+    [-1, 0],
+  ];
+}
+
+function buildBoltTemplate(): number[][] {
+  return [
+    [-0.28, 1],
+    [0.74, 1],
+    [0.2, 0.18],
+    [0.72, 0.18],
+    [-0.18, -1],
+    [0, -0.2],
+    [-0.56, -0.2],
+    [-0.28, 1],
+  ];
+}
+
+function buildQuequetteTemplate(): number[][] {
+  const tip = ellipseArcPoints(0, 0.68, 0.32, 0.24, 0, Math.PI, 14);
+  return [
+    ...tip,
+    [-0.32, -0.34],
+    [-0.58, -0.36],
+    [-0.72, -0.6],
+    [-0.56, -0.84],
+    [-0.24, -0.82],
+    [-0.02, -0.58],
+    [0.02, -0.58],
+    [0.24, -0.82],
+    [0.56, -0.84],
+    [0.72, -0.6],
+    [0.58, -0.36],
+    [0.32, -0.34],
+    [0.32, 0.68],
+  ];
+}
+
 function buildTemplatePoints(template: BuiltInShapeTemplateKey): number[][] {
   switch (template) {
     case "heart":
@@ -320,6 +479,20 @@ function buildTemplatePoints(template: BuiltInShapeTemplateKey): number[][] {
       return buildRectangleTemplate();
     case "hexagon":
       return buildHexagonTemplate();
+    case "kite":
+      return buildKiteTemplate();
+    case "cap":
+      return buildCapTemplate();
+    case "rocket":
+      return buildRocketTemplate();
+    case "crown":
+      return buildCrownTemplate();
+    case "fish":
+      return buildFishTemplate();
+    case "bolt":
+      return buildBoltTemplate();
+    case "quequette":
+      return buildQuequetteTemplate();
     default:
       return buildCircleTemplate();
   }

@@ -1,20 +1,22 @@
 package me.nicolas.stravastats.domain.services.activityproviders
 
 import kotlinx.coroutines.runBlocking
-import me.nicolas.stravastats.adapters.localrepositories.gpx.GPXRepository
-import me.nicolas.stravastats.adapters.srtm.SRTMProvider
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
+import me.nicolas.stravastats.domain.interfaces.ISRTMProvider
+import me.nicolas.stravastats.domain.interfaces.IYearActivityStorageProvider
 import me.nicolas.stravastats.domain.services.toStravaDetailedActivity
 import org.slf4j.LoggerFactory
 import java.time.LocalDate
 import kotlin.system.measureTimeMillis
 
-class GpxActivityProvider(private val gpxCache: String, private val srtmProvider: SRTMProvider) : AbstractActivityProvider() {
+class GpxActivityProvider(
+    private val gpxCache: String,
+    private val srtmProvider: ISRTMProvider,
+    private val localStorageProvider: IYearActivityStorageProvider,
+) : AbstractActivityProvider() {
     private val logger = LoggerFactory.getLogger(GpxActivityProvider::class.java)
-
-    private val localStorageProvider = GPXRepository(gpxCache)
 
     init {
         logger.info("Initialize GPX stravaActivity provider ...")

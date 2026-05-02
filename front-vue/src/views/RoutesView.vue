@@ -4,7 +4,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useContextStore } from "@/stores/context";
 import { useRoutesStore } from "@/stores/routes";
-import type { BuiltInShapeTemplateKey } from "@/stores/routes";
+import { BUILT_IN_SHAPE_TEMPLATE_GROUPS, type BuiltInShapeTemplateKey } from "@/stores/routes";
 import { useUiStore } from "@/stores/ui";
 import { ToastTypeEnum } from "@/models/toast.model";
 import type { GeneratedRoute, RouteGenerationDiagnostic, RouteType } from "@/models/route-recommendation.model";
@@ -48,16 +48,13 @@ const productGenerationDiagnostics = computed(() =>
   detailedGenerationDiagnostics.value.map((diagnostic) => presentDiagnostic(diagnostic)),
 );
 const canTransformShape = computed(() => routesStore.canTransformShape);
-const builtInShapeTemplates: Array<{ key: BuiltInShapeTemplateKey; label: string }> = [
-  { key: "heart", label: "Heart" },
-  { key: "star", label: "Star" },
-  { key: "circle", label: "Circle" },
-  { key: "square", label: "Square" },
-  { key: "triangle", label: "Triangle" },
-  { key: "diamond", label: "Diamond" },
-  { key: "rectangle", label: "Rectangle" },
-  { key: "hexagon", label: "Hexagon" },
-];
+const builtInShapeTemplateGroups = BUILT_IN_SHAPE_TEMPLATE_GROUPS;
+const builtInShapeTemplateLabels = new Map<BuiltInShapeTemplateKey, string>();
+builtInShapeTemplateGroups.forEach((group) => {
+  group.templates.forEach((template) => {
+    builtInShapeTemplateLabels.set(template.key, template.label);
+  });
+});
 interface CorrectionSuggestion {
   id: string;
   title: string;
@@ -1183,10 +1180,11 @@ function currentTemplateCenter(): { lat: number; lng: number } {
 }
 
 function applyShapeTemplate(template: BuiltInShapeTemplateKey) {
+  selectedShapeTemplate.value = template;
   const loaded = routesStore.applyBuiltInShapeTemplate(template, currentTemplateCenter());
   if (loaded) {
     redrawMapLayers({ fitBounds: true });
-    showToast(`${template} sketch loaded`);
+    showToast(`${builtInShapeTemplateLabels.get(template) ?? template} sketch loaded`);
   }
 }
 
@@ -1691,30 +1689,28 @@ onBeforeUnmount(() => {
             <span>Templates and imports</span>
             <strong>{{ routesStore.savedShapeTemplateCount }} saved</strong>
           </summary>
-          <div class="routes-template-row">
-            <label class="routes-field routes-field--compact">
-              <span>Simple shape</span>
-              <select
-                v-model="selectedShapeTemplate"
-                class="form-select form-select-sm"
-              >
-                <option
-                  v-for="template in builtInShapeTemplates"
-                  :key="template.key"
-                  :value="template.key"
-                >
-                  {{ template.label }}
-                </option>
-              </select>
-            </label>
-            <button
-              type="button"
-              class="btn btn-outline-secondary btn-sm"
-              @click="applyShapeTemplate(selectedShapeTemplate)"
+          <div class="routes-template-panel">
+            <div
+              v-for="group in builtInShapeTemplateGroups"
+              :key="group.id"
+              class="routes-template-group"
             >
-              <i class="fa-solid fa-shapes" aria-hidden="true" />
-              Load
-            </button>
+              <span class="routes-template-group-title">{{ group.label }}</span>
+              <div class="routes-template-grid">
+                <button
+                  v-for="template in group.templates"
+                  :key="template.key"
+                  type="button"
+                  class="routes-template-button"
+                  :class="{ 'routes-template-button--active': selectedShapeTemplate === template.key }"
+                  :aria-pressed="selectedShapeTemplate === template.key"
+                  @click="applyShapeTemplate(template.key)"
+                >
+                  <i :class="template.icon" aria-hidden="true" />
+                  <span>{{ template.label }}</span>
+                </button>
+              </div>
+            </div>
           </div>
           <div class="routes-image-row">
             <input
@@ -2554,7 +2550,6 @@ onBeforeUnmount(() => {
   font-weight: 700;
 }
 
-.routes-template-row,
 .routes-image-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -2562,7 +2557,71 @@ onBeforeUnmount(() => {
   align-items: end;
 }
 
-.routes-template-row .btn,
+.routes-template-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.routes-template-group {
+  display: grid;
+  gap: 6px;
+}
+
+.routes-template-group-title {
+  color: #4d566a;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.routes-template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+  gap: 6px;
+}
+
+.routes-template-button {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 42px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  border: 1px solid #d9e2ef;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.1;
+  padding: 7px 8px;
+  text-align: left;
+}
+
+.routes-template-button:hover {
+  border-color: #8fb4d8;
+  background: #f4f8fc;
+}
+
+.routes-template-button--active {
+  border-color: #2563eb;
+  background: #eaf2ff;
+  color: #163f8f;
+}
+
+.routes-template-button i {
+  flex: 0 0 16px;
+  color: #0f766e;
+  text-align: center;
+}
+
+.routes-template-button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .routes-image-row .btn,
 .routes-save-row .btn,
 .routes-saved-item .btn,

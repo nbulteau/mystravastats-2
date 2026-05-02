@@ -5,12 +5,12 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
-import me.nicolas.stravastats.adapters.strava.StravaRateLimitException
 import me.nicolas.stravastats.domain.business.strava.AthleteRef
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.stream.DistanceStream
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.business.strava.stream.TimeStream
+import me.nicolas.stravastats.domain.errors.RateLimitExceededException
 import me.nicolas.stravastats.domain.interfaces.ILocalStorageProvider
 import me.nicolas.stravastats.domain.interfaces.IStravaApi
 import me.nicolas.stravastats.domain.services.toStravaDetailedActivity
@@ -31,7 +31,11 @@ class StravaActivityProviderTest {
 
         coEvery { repository.readStravaAuthentication(any()) } returns Triple("12345", "secret", false)
 
-        val provider = StravaActivityProvider(localStorageProvider = repository, stravaApi = api)
+        val provider = StravaActivityProvider(
+            storageProvider = repository,
+            stravaApiFactory = { _, _ -> api },
+            stravaApi = api,
+        )
 
         val activities = (1L..3L).map { id ->
             StravaActivity(
@@ -87,9 +91,13 @@ class StravaActivityProviderTest {
             detailedCache = thirdArg()
         }
         every { repository.loadActivitiesStreamsFromCache(any(), any(), any()) } returns null
-        every { api.getDetailedActivityFailFastOnRateLimit(any()) } throws StravaRateLimitException("429")
+        every { api.getDetailedActivityFailFastOnRateLimit(any()) } throws RateLimitExceededException("429")
 
-        val provider = StravaActivityProvider(localStorageProvider = repository, stravaApi = api)
+        val provider = StravaActivityProvider(
+            storageProvider = repository,
+            stravaApiFactory = { _, _ -> api },
+            stravaApi = api,
+        )
         val activity = StravaActivity(
             id = 42L,
             name = "test-42",
@@ -159,7 +167,11 @@ class StravaActivityProviderTest {
 
         every { repository.loadDetailedActivityFromCache(any(), any(), cachedActivityId) } returns cachedDetailed
 
-        val provider = StravaActivityProvider(localStorageProvider = repository, stravaApi = api)
+        val provider = StravaActivityProvider(
+            storageProvider = repository,
+            stravaApiFactory = { _, _ -> api },
+            stravaApi = api,
+        )
 
         // WHEN
         val detailed = provider.getDetailedActivity(cachedActivityId)
@@ -204,7 +216,11 @@ class StravaActivityProviderTest {
         ).toStravaDetailedActivity()
         every { api.getDetailedActivityFailFastOnRateLimit(activityId) } returns fromApi
 
-        val provider = StravaActivityProvider(localStorageProvider = repository, stravaApi = api)
+        val provider = StravaActivityProvider(
+            storageProvider = repository,
+            stravaApiFactory = { _, _ -> api },
+            stravaApi = api,
+        )
 
         // WHEN
         val firstCall = provider.getDetailedActivity(activityId)

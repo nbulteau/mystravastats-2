@@ -165,11 +165,14 @@ internal class StravaRepository(stravaCache: String) : ILocalStorageProvider {
             return emptySet()
         }
 
-        return Files.walk(yearActivitiesDirectory.toPath())
-            .filter { Files.isRegularFile(it) }
-            .filter { it.name.startsWith("stream-") }
-            .map { it.name.substringAfter("stream-").toLong() }
-            .toList().toSet()
+        return Files.walk(yearActivitiesDirectory.toPath()).use { paths ->
+            paths
+                .filter { Files.isRegularFile(it) }
+                .filter { it.name.startsWith("stream-") }
+                .map { it.name.substringAfter("stream-").toLong() }
+                .toList()
+                .toSet()
+        }
     }
 
     /**

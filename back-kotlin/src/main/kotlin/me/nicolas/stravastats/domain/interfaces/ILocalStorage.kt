@@ -6,6 +6,12 @@ import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.business.HeartRateZoneSettings
 
+interface ISourcePreviewRepositoryFactory {
+    fun createFitRepository(path: String): IYearActivityStorageProvider
+    fun createGpxRepository(path: String): IYearActivityStorageProvider
+    fun createStravaRepository(path: String): ILocalStorageProvider
+}
+
 interface ILocalStorageProvider {
 
     fun initLocalStorageForClientId(clientId: String)

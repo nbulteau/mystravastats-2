@@ -2,8 +2,15 @@ package me.nicolas.stravastats.api.configuration
 
 import jakarta.annotation.PreDestroy
 import kotlinx.coroutines.runBlocking
+import me.nicolas.stravastats.adapters.localrepositories.fit.FITRepository
+import me.nicolas.stravastats.adapters.localrepositories.gpx.GPXRepository
+import me.nicolas.stravastats.adapters.localrepositories.strava.StravaRepository
 import me.nicolas.stravastats.adapters.srtm.SRTMProvider
+import me.nicolas.stravastats.adapters.strava.StravaApi
 import me.nicolas.stravastats.domain.RuntimeConfig
+import me.nicolas.stravastats.domain.interfaces.ILocalStorageProvider
+import me.nicolas.stravastats.domain.interfaces.ISourcePreviewRepositoryFactory
+import me.nicolas.stravastats.domain.interfaces.IYearActivityStorageProvider
 import me.nicolas.stravastats.domain.services.activityproviders.FitActivityProvider
 import me.nicolas.stravastats.domain.services.activityproviders.GpxActivityProvider
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
@@ -25,6 +32,17 @@ class ActivityProviderConfig {
     private var createdProvider: AutoCloseable? = null
 
     @Bean
+    fun sourcePreviewRepositoryFactory(): ISourcePreviewRepositoryFactory {
+        return object : ISourcePreviewRepositoryFactory {
+            override fun createFitRepository(path: String): IYearActivityStorageProvider = FITRepository(path)
+
+            override fun createGpxRepository(path: String): IYearActivityStorageProvider = GPXRepository(path)
+
+            override fun createStravaRepository(path: String): ILocalStorageProvider = StravaRepository(path)
+        }
+    }
+
+    @Bean
     fun activityProvider(): IActivityProvider {
         val stravaCache: String? = RuntimeConfig.readConfigValue("STRAVA_CACHE_PATH")
         val fitCache: String? = RuntimeConfig.readConfigValue("FIT_FILES_PATH")
@@ -35,11 +53,13 @@ class ActivityProviderConfig {
         val activityProvider = if (fitCache == null && gpxCache == null) {
             logger.info("Using Strava Activity Provider")
 
-            val provider = if (stravaCache == null) {
-                StravaActivityProvider()
-            } else {
-                StravaActivityProvider(stravaCache = stravaCache)
-            }
+            val resolvedStravaCache = stravaCache ?: "strava-cache"
+            val provider = StravaActivityProvider(
+                storageProvider = StravaRepository(resolvedStravaCache),
+                stravaApiFactory = { clientId, clientSecret -> StravaApi(clientId, clientSecret) },
+                stravaApi = null,
+                stravaCache = resolvedStravaCache,
+            )
 
             // Initialize activity provider (suspend function) in a controlled blocking context
             try {
@@ -59,10 +79,10 @@ class ActivityProviderConfig {
 
             if (fitCache != null) {
                 logger.info("Using FIT Activity Provider")
-                FitActivityProvider(fitCache, srtmProvider)
+                FitActivityProvider(fitCache, srtmProvider, FITRepository(fitCache))
             } else if (gpxCache != null) {
                 logger.info("Using GPX Activity Provider")
-                GpxActivityProvider(gpxCache, srtmProvider)
+                GpxActivityProvider(gpxCache, srtmProvider, GPXRepository(gpxCache))
             } else {
                 logger.error("No cache provided")
                 throw IllegalArgumentException("No cache provided")

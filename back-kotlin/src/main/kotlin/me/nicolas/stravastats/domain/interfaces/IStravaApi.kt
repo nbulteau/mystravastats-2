@@ -5,6 +5,11 @@ import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
 
+fun interface IStravaApiFactory {
+    fun create(clientId: String, clientSecret: String): IStravaApi
+}
+
+
 interface IStravaApi {
     fun retrieveLoggedInAthlete(): StravaAthlete?
 

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
-import { useRoutesStore, type BuiltInShapeTemplateKey } from "@/stores/routes";
+import { BUILT_IN_SHAPE_TEMPLATE_GROUPS, useRoutesStore, type BuiltInShapeTemplateKey } from "@/stores/routes";
 import { requestJson } from "@/stores/api";
 import type { GeneratedRoute } from "@/models/route-recommendation.model";
 
@@ -257,9 +257,13 @@ describe("routes store", () => {
     expect(tcx).toContain("<Trackpoint>");
   });
 
-  it("loads every simple built-in shape template", () => {
+  it("loads every built-in shape template", () => {
     const store = useRoutesStore();
-    const templates: BuiltInShapeTemplateKey[] = [
+    const templates: BuiltInShapeTemplateKey[] = BUILT_IN_SHAPE_TEMPLATE_GROUPS.flatMap((group) =>
+      group.templates.map((template) => template.key)
+    );
+
+    expect(templates).toEqual([
       "heart",
       "star",
       "circle",
@@ -268,7 +272,14 @@ describe("routes store", () => {
       "diamond",
       "rectangle",
       "hexagon",
-    ];
+      "kite",
+      "cap",
+      "rocket",
+      "crown",
+      "fish",
+      "bolt",
+      "quequette",
+    ]);
 
     templates.forEach((template) => {
       store.clearShape();
