@@ -7,7 +7,7 @@ import TooltipHint from "@/components/TooltipHint.vue";
 import { ToastTypeEnum } from "@/models/toast.model";
 import type { DataQualityCorrection, DataQualityCorrectionPreview, DataQualityIssue, DataQualitySummary } from "@/models/data-quality.model";
 import type { HealthRecord } from "@/models/health.model";
-import type { SourceMode } from "@/models/source-mode.model";
+import type { SourceMode, StravaOAuthStatus } from "@/models/source-mode.model";
 import { RouterLink } from "vue-router";
 
 const contextStore = useContextStore();
@@ -16,6 +16,11 @@ const uiStore = useUiStore();
 const showRawPayload = ref(false);
 const sourceModePathEdited = ref(false);
 const sourceModeInitialized = ref(false);
+const sourceModeAutoPreviewStarted = ref(false);
+const stravaClientIdInput = ref("");
+const stravaClientSecretInput = ref("");
+const stravaUseCacheInput = ref(false);
+const stravaEnrollmentInProgress = ref(false);
 const qualityActionActivityId = ref<number | null>(null);
 const qualityActionIssueId = ref<string | null>(null);
 const qualityBatchActionInProgress = ref(false);
@@ -280,6 +285,108 @@ const runtimeConfigItems = computed<Array<{ label: string; value: string; monosp
 const sourceModePreview = computed(() => diagnosticsStore.sourceModePreview);
 const activeSourceMode = computed(() => normalizeSourceMode(textValue(runtimeData.value.provider) || textValue(root.value.provider)));
 const sourceModeConfigKey = computed(() => configKeyForSourceMode(selectedSourceMode.value));
+const stravaOAuth = computed<StravaOAuthStatus | null>(() => selectedSourceMode.value === "STRAVA" ? sourceModePreview.value?.stravaOAuth ?? null : null);
+const stravaSettingsHref = computed(() => stravaOAuth.value?.settingsUrl || "https://www.strava.com/settings/api");
+const stravaEnrollmentCommand = computed(() => stravaOAuth.value?.setupCommand || stravaSetupCommand(sourceModePath.value));
+const stravaEnrollmentActionLabel = computed(() => {
+  if (stravaEnrollmentInProgress.value) return stravaUseCacheInput.value ? "Saving" : "Starting";
+  return stravaUseCacheInput.value ? "Save cache mode" : "Start OAuth";
+});
+const stravaEnrollmentStatusLabel = computed(() => {
+  const status = stravaOAuth.value?.status;
+  if (!sourceModePreview.value) return "Preview needed";
+  if (status === "ready" || status === "ready_unverified_scopes") return "Ready";
+  if (status === "cache_only") return "Cache only";
+  if (status === "refreshable") return "Refreshable";
+  if (status === "scope_incomplete") return "Scopes missing";
+  if (status === "token_unreadable" || status === "token_incomplete" || status === "token_expired") return "Token issue";
+  if (status === "needs_token") return "OAuth needed";
+  return "Credentials needed";
+});
+const stravaEnrollmentStatusClass = computed(() => {
+  const status = stravaOAuth.value?.status;
+  if (status === "ready" || status === "ready_unverified_scopes" || status === "cache_only") return "status-chip status-chip--up";
+  if (status === "refreshable" || status === "needs_token" || status === "scope_incomplete") return "status-chip status-chip--warn";
+  if (status === "token_unreadable" || status === "token_incomplete" || status === "token_expired") return "status-chip status-chip--down";
+  return "status-chip status-chip--neutral";
+});
+const stravaRequiredFields = computed(() => [
+  { label: "Client ID", value: stravaOAuth.value?.clientIdPresent ? "Present" : "Required" },
+  { label: "Client Secret", value: stravaOAuth.value?.clientSecretPresent ? "Present" : "Required" },
+  { label: "Authorization Callback Domain", value: stravaOAuth.value?.callbackDomain || "127.0.0.1" },
+]);
+const stravaClientIdPlaceholder = computed(() => stravaOAuth.value?.clientIdPresent ? "Reuse saved Client ID" : "Client ID");
+const stravaClientSecretPlaceholder = computed(() => stravaOAuth.value?.clientSecretPresent ? "Reuse saved Client Secret" : "Client Secret");
+const stravaSavedCredentialsHint = computed(() => {
+  const status = stravaOAuth.value;
+  if (!sourceModePreview.value) return "Run Preview to inspect an existing .strava before starting OAuth.";
+  if (status?.credentialsPresent) return "Existing .strava credentials will be reused when these fields are empty.";
+  if (status?.credentialsFilePresent) return "A .strava file exists, but at least one credential is missing.";
+  return "No .strava credentials detected yet.";
+});
+const stravaSavedCredentialsHintClass = computed(() => {
+  const status = stravaOAuth.value;
+  if (status?.credentialsPresent) return "strava-saved-hint strava-saved-hint--ready";
+  if (status?.credentialsFilePresent) return "strava-saved-hint strava-saved-hint--warn";
+  return "strava-saved-hint";
+});
+const canStartStravaEnrollment = computed(() => {
+  if (stravaEnrollmentInProgress.value || selectedSourceMode.value !== "STRAVA") return false;
+  if (!sourceModePath.value.trim()) return false;
+  const hasSavedCredentials = stravaOAuth.value?.credentialsPresent ?? false;
+  if (stravaUseCacheInput.value) {
+    return stravaClientIdInput.value.trim() !== "" || stravaOAuth.value?.clientIdPresent === true;
+  }
+  return hasSavedCredentials || (stravaClientIdInput.value.trim() !== "" && stravaClientSecretInput.value.trim() !== "");
+});
+const stravaEnrollmentSteps = computed<Array<{ key: string; title: string; detail: string; state: "complete" | "current" | "warn" | "pending"; icon: string }>>(() => {
+  const status = stravaOAuth.value;
+  const preview = sourceModePreview.value;
+  const credentialsReady = status?.credentialsPresent ?? false;
+  const tokenReady = status !== null && ["ready", "ready_unverified_scopes", "refreshable", "cache_only"].includes(status.status);
+  const tokenWarn = status !== null && ["needs_token", "scope_incomplete"].includes(status.status);
+  const tokenDown = status !== null && ["token_unreadable", "token_incomplete", "token_expired"].includes(status.status);
+  return [
+    {
+      key: "app",
+      title: "Strava app",
+      detail: credentialsReady ? "Client credentials are available locally." : "Create the app and set the callback domain.",
+      state: credentialsReady ? "complete" : "current",
+      icon: "fa-solid fa-id-card",
+    },
+    {
+      key: "credentials",
+      title: ".strava",
+      detail: status?.credentialsFile || "Run the setup assistant to write the credentials file.",
+      state: credentialsReady ? "complete" : status?.credentialsFilePresent ? "warn" : "pending",
+      icon: "fa-solid fa-key",
+    },
+    {
+      key: "oauth",
+      title: "OAuth token",
+      detail: status?.message || "Preview the Strava cache to inspect OAuth readiness.",
+      state: tokenReady ? "complete" : tokenDown ? "warn" : tokenWarn ? "current" : "pending",
+      icon: "fa-solid fa-shield-halved",
+    },
+    {
+      key: "activate",
+      title: "Active source",
+      detail: preview?.active ? "Backend is already using this Strava cache." : preview?.restartNeeded ? "Restart with the generated command." : "Preview the source, then verify active mode.",
+      state: preview?.active ? "complete" : preview ? "warn" : "pending",
+      icon: "fa-solid fa-circle-check",
+    },
+  ];
+});
+const stravaOAuthFacts = computed<Array<{ label: string; value: string; tone?: "warn" | "down" }>>(() => {
+  const status = stravaOAuth.value;
+  if (!status) return [];
+  return [
+    { label: "Credentials", value: status.credentialsPresent ? "Ready" : "Missing", tone: status.credentialsPresent ? undefined : "warn" },
+    { label: "Token", value: tokenStatusLabel(status), tone: tokenTone(status) },
+    { label: "Scopes", value: scopesStatusLabel(status), tone: status.missingScopes.length > 0 ? "warn" : undefined },
+    { label: "Athlete", value: status.athleteName || status.athleteId || "n/a" },
+  ];
+});
 const sourceModePathLabel = computed(() => {
   if (selectedSourceMode.value === "STRAVA") return "Cache path";
   return `${selectedSourceMode.value} directory`;
@@ -287,6 +394,7 @@ const sourceModePathLabel = computed(() => {
 const sourceModeStatusLabel = computed(() => {
   const preview = sourceModePreview.value;
   if (diagnosticsStore.sourceModePreviewError) return "Unavailable";
+  if (diagnosticsStore.isPreviewingSourceMode) return "Checking";
   if (!preview) return "Not checked";
   if (preview.active) return "Active";
   if (!preview.supported || preview.errors.length > 0 || !preview.readable || !preview.validStructure) return "Needs attention";
@@ -389,6 +497,21 @@ watch(
     }
   },
   { immediate: true },
+);
+
+watch(
+  [() => diagnosticsStore.hasHealth, sourceModePath, selectedSourceMode],
+  () => {
+    if (!diagnosticsStore.hasHealth || !sourceModeInitialized.value || sourceModeAutoPreviewStarted.value) {
+      return;
+    }
+    if (!sourceModePath.value.trim()) {
+      return;
+    }
+    sourceModeAutoPreviewStarted.value = true;
+    void previewSourceMode(true);
+  },
+  { immediate: true, flush: "post" },
 );
 
 function asRecord(value: unknown): HealthRecord {
@@ -572,6 +695,44 @@ function defaultSourceModePath(mode: SourceMode): string {
     return textValue(root.value.gpxDirectory) || textValue(runtimeData.value.gpxFilesPath) || "";
   }
   return textValue(root.value.cacheRoot) || textValue(runtimeData.value.stravaCachePath) || "strava-cache";
+}
+
+function stravaSetupCommand(path: string): string {
+  const trimmedPath = path.trim();
+  if (!trimmedPath) return "node scripts/setup-strava-oauth.mjs";
+  return `node scripts/setup-strava-oauth.mjs --cache ${shellQuote(trimmedPath)}`;
+}
+
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, "'\\''")}'`;
+}
+
+function tokenStatusLabel(status: StravaOAuthStatus): string {
+  if (status.cacheOnly) return "Cache only";
+  if (!status.tokenPresent) return "Missing";
+  if (!status.tokenReadable) return "Unreadable";
+  if (!status.accessTokenPresent || !status.refreshTokenPresent) return "Incomplete";
+  if (status.tokenExpired && status.refreshTokenPresent) return "Refreshable";
+  if (status.tokenExpired) return "Expired";
+  return status.tokenExpiresAt ? `Until ${formatDateTime(status.tokenExpiresAt)}` : "Present";
+}
+
+function tokenTone(status: StravaOAuthStatus): "warn" | "down" | undefined {
+  if (status.cacheOnly) return undefined;
+  if (!status.tokenPresent || status.tokenExpired) return "warn";
+  if (!status.tokenReadable || !status.accessTokenPresent || !status.refreshTokenPresent) return "down";
+  return undefined;
+}
+
+function scopesStatusLabel(status: StravaOAuthStatus): string {
+  if (status.cacheOnly) return "n/a";
+  if (!status.scopesVerified) return "Not recorded";
+  if (status.missingScopes.length > 0) return `Missing ${status.missingScopes.join(", ")}`;
+  return status.grantedScopes.join(", ");
+}
+
+function stravaStepClass(state: "complete" | "current" | "warn" | "pending"): string {
+  return `strava-step strava-step--${state}`;
 }
 
 function selectSourceMode(mode: SourceMode) {
@@ -884,25 +1045,96 @@ async function copySourceModeCommand() {
   }
 }
 
-async function previewSourceMode() {
+async function copyStravaEnrollmentCommand() {
+  if (!stravaEnrollmentCommand.value) {
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(stravaEnrollmentCommand.value);
+    uiStore.showToast({
+      id: `strava-enrollment-command-copy-${Date.now()}`,
+      type: ToastTypeEnum.NORMAL,
+      message: "Strava setup command copied.",
+      timeout: 2400,
+    });
+  } catch {
+    uiStore.showToast({
+      id: `strava-enrollment-command-copy-failed-${Date.now()}`,
+      type: ToastTypeEnum.WARN,
+      message: "Unable to copy Strava setup command.",
+      timeout: 3200,
+    });
+  }
+}
+
+async function startStravaEnrollment() {
+  let popup: Window | null = null;
+  if (!stravaUseCacheInput.value) {
+    popup = window.open("about:blank", "mystravastats-strava-oauth");
+  }
+  stravaEnrollmentInProgress.value = true;
+  try {
+    const result = await diagnosticsStore.startStravaOAuthEnrollment({
+      path: sourceModePath.value,
+      clientId: stravaClientIdInput.value,
+      clientSecret: stravaClientSecretInput.value,
+      useCache: stravaUseCacheInput.value,
+    });
+    if (result.authorizeUrl) {
+      if (popup) {
+        popup.location.href = result.authorizeUrl;
+      } else {
+        window.open(result.authorizeUrl, "_blank", "noreferrer");
+      }
+    } else if (popup) {
+      popup.close();
+    }
+    stravaClientSecretInput.value = "";
+    await previewSourceMode(true);
+    uiStore.showToast({
+      id: `strava-enrollment-start-${Date.now()}`,
+      type: ToastTypeEnum.NORMAL,
+      message: result.message,
+      timeout: 3200,
+    });
+  } catch (error) {
+    if (popup) {
+      popup.close();
+    }
+    uiStore.showToast({
+      id: `strava-enrollment-start-failed-${Date.now()}`,
+      type: ToastTypeEnum.WARN,
+      message: error instanceof Error ? error.message : "Unable to start Strava OAuth.",
+      timeout: 4200,
+    });
+  } finally {
+    stravaEnrollmentInProgress.value = false;
+  }
+}
+
+async function previewSourceMode(silent = false) {
   try {
     const preview = await diagnosticsStore.previewSourceMode({
       mode: selectedSourceMode.value,
       path: sourceModePath.value,
     });
-    uiStore.showToast({
-      id: `source-mode-preview-${Date.now()}`,
-      type: preview.errors.length > 0 ? ToastTypeEnum.WARN : ToastTypeEnum.NORMAL,
-      message: preview.errors.length > 0 ? "Data source needs attention." : "Data source checked.",
-      timeout: 2800,
-    });
+    if (!silent) {
+      uiStore.showToast({
+        id: `source-mode-preview-${Date.now()}`,
+        type: preview.errors.length > 0 ? ToastTypeEnum.WARN : ToastTypeEnum.NORMAL,
+        message: preview.errors.length > 0 ? "Data source needs attention." : "Data source checked.",
+        timeout: 2800,
+      });
+    }
   } catch {
-    uiStore.showToast({
-      id: `source-mode-preview-failed-${Date.now()}`,
-      type: ToastTypeEnum.WARN,
-      message: diagnosticsStore.sourceModePreviewError || "Unable to preview data source.",
-      timeout: 3600,
-    });
+    if (!silent) {
+      uiStore.showToast({
+        id: `source-mode-preview-failed-${Date.now()}`,
+        type: ToastTypeEnum.WARN,
+        message: diagnosticsStore.sourceModePreviewError || "Unable to preview data source.",
+        timeout: 3600,
+      });
+    }
   }
 }
 </script>
@@ -1041,12 +1273,131 @@ async function previewSourceMode() {
                 type="button"
                 class="btn btn-primary"
                 :disabled="diagnosticsStore.isPreviewingSourceMode"
-                @click="previewSourceMode"
+                @click="() => previewSourceMode()"
               >
                 <i class="fa-solid fa-magnifying-glass" aria-hidden="true" />
                 {{ diagnosticsStore.isPreviewingSourceMode ? "Checking" : "Preview" }}
               </button>
               <span class="source-config-key monospace">{{ sourceModeConfigKey }}</span>
+            </div>
+            <div
+              v-if="selectedSourceMode === 'STRAVA'"
+              class="strava-guide"
+            >
+              <div class="strava-guide-heading">
+                <div>
+                  <strong>Connect Strava</strong>
+                  <span :class="stravaEnrollmentStatusClass">{{ stravaEnrollmentStatusLabel }}</span>
+                </div>
+                <a
+                  class="btn btn-outline-secondary btn-sm"
+                  :href="stravaSettingsHref"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <i class="fa-brands fa-strava" aria-hidden="true" />
+                  Settings API
+                </a>
+              </div>
+              <div class="strava-required-grid">
+                <div
+                  v-for="field in stravaRequiredFields"
+                  :key="field.label"
+                  class="strava-required-item"
+                >
+                  <span>{{ field.label }}</span>
+                  <strong>{{ field.value }}</strong>
+                </div>
+              </div>
+              <div class="strava-enrollment-form">
+                <label>
+                  <span>Client ID</span>
+                  <input
+                    v-model="stravaClientIdInput"
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    class="form-control"
+                    :placeholder="stravaClientIdPlaceholder"
+                  >
+                </label>
+                <label>
+                  <span>Client Secret</span>
+                  <input
+                    v-model="stravaClientSecretInput"
+                    type="password"
+                    autocomplete="off"
+                    class="form-control"
+                    :placeholder="stravaClientSecretPlaceholder"
+                  >
+                </label>
+                <label class="strava-cache-toggle">
+                  <input
+                    v-model="stravaUseCacheInput"
+                    type="checkbox"
+                  >
+                  <span>Cache only</span>
+                </label>
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  :disabled="!canStartStravaEnrollment"
+                  @click="startStravaEnrollment"
+                >
+                  <i
+                    :class="stravaUseCacheInput ? 'fa-solid fa-floppy-disk' : 'fa-brands fa-strava'"
+                    aria-hidden="true"
+                  />
+                  {{ stravaEnrollmentActionLabel }}
+                </button>
+              </div>
+              <p :class="stravaSavedCredentialsHintClass">
+                <i class="fa-solid fa-circle-info" aria-hidden="true" />
+                {{ stravaSavedCredentialsHint }}
+              </p>
+              <div class="strava-steps">
+                <div
+                  v-for="step in stravaEnrollmentSteps"
+                  :key="step.key"
+                  :class="stravaStepClass(step.state)"
+                >
+                  <i :class="step.icon" aria-hidden="true" />
+                  <span>
+                    <strong>{{ step.title }}</strong>
+                    <small>{{ step.detail }}</small>
+                  </span>
+                </div>
+              </div>
+              <div
+                v-if="stravaOAuthFacts.length > 0"
+                class="strava-oauth-facts"
+              >
+                <div
+                  v-for="fact in stravaOAuthFacts"
+                  :key="fact.label"
+                  :class="['strava-oauth-fact', fact.tone === 'warn' ? 'strava-oauth-fact--warn' : '', fact.tone === 'down' ? 'strava-oauth-fact--down' : '']"
+                >
+                  <span>{{ fact.label }}</span>
+                  <strong>{{ fact.value }}</strong>
+                </div>
+              </div>
+              <div class="source-command strava-command">
+                <code>{{ stravaEnrollmentCommand }}</code>
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  @click="copyStravaEnrollmentCommand"
+                >
+                  <i class="fa-solid fa-copy" aria-hidden="true" />
+                  Copy
+                </button>
+              </div>
+              <p
+                v-if="stravaOAuth?.tokenError"
+                class="source-mode-error"
+              >
+                {{ stravaOAuth.tokenError }}
+              </p>
             </div>
             <div class="source-activation">
               <div class="source-activation-summary">
@@ -1951,12 +2302,13 @@ dd {
 
 .source-mode-layout {
   display: grid;
-  grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.15fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
 }
 
 .source-mode-form,
 .source-mode-preview {
+  grid-column: 1 / -1;
   min-width: 0;
 }
 
@@ -2017,6 +2369,225 @@ dd {
   border-radius: 8px;
   background: #fafbfe;
   padding: 7px 9px;
+}
+
+.strava-guide {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  border: 1px solid #d7e1ee;
+  border-radius: 8px;
+  background: #fbfcff;
+  padding: 10px;
+}
+
+.strava-guide-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.strava-guide-heading > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.strava-guide-heading strong {
+  font-size: 0.92rem;
+}
+
+.strava-guide-heading .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.strava-required-grid,
+.strava-oauth-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.strava-enrollment-form {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.85fr) minmax(220px, 1fr) auto auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.strava-enrollment-form label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  margin: 0;
+}
+
+.strava-enrollment-form label > span {
+  color: var(--ms-text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.strava-enrollment-form .strava-cache-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  border: 1px solid #c8d2e1;
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: #ffffff;
+  white-space: nowrap;
+}
+
+.strava-cache-toggle input {
+  margin: 0;
+}
+
+.strava-enrollment-form .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  white-space: nowrap;
+}
+
+.strava-saved-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  margin: 0;
+  border: 1px solid #d7e1ee;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ms-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 7px 9px;
+}
+
+.strava-saved-hint--ready {
+  border-color: #b8e5c8;
+  background: #f1fbf5;
+  color: #23713b;
+}
+
+.strava-saved-hint--warn {
+  border-color: #f6db9a;
+  background: #fff8e5;
+  color: #7a5b15;
+}
+
+.strava-required-item,
+.strava-oauth-fact {
+  min-width: 0;
+  border: 1px solid #e5e7ee;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 8px 9px;
+}
+
+.strava-oauth-fact--warn {
+  border-color: #f3d17e;
+  background: #fff8e3;
+}
+
+.strava-oauth-fact--down {
+  border-color: #efa4a4;
+  background: #fff0f0;
+}
+
+.strava-required-item span,
+.strava-oauth-fact span {
+  display: block;
+  color: var(--ms-text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.strava-required-item strong,
+.strava-oauth-fact strong {
+  display: block;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.strava-steps {
+  display: grid;
+  gap: 7px;
+}
+
+.strava-step {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  border: 1px solid #e5e7ee;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 8px 9px;
+}
+
+.strava-step i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #eef4fb;
+  color: #31506f;
+}
+
+.strava-step strong,
+.strava-step small {
+  display: block;
+}
+
+.strava-step small {
+  margin-top: 2px;
+  color: var(--ms-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.strava-step--complete {
+  border-color: #99d6b0;
+  background: #f3fbf5;
+}
+
+.strava-step--complete i {
+  background: #dff4e6;
+  color: #176a37;
+}
+
+.strava-step--current,
+.strava-step--warn {
+  border-color: #f3d17e;
+  background: #fffaf0;
+}
+
+.strava-step--current i,
+.strava-step--warn i {
+  background: #fff0bf;
+  color: #805d05;
+}
+
+.strava-step--pending {
+  color: var(--ms-text-muted);
+}
+
+.strava-command {
+  margin-top: 0;
 }
 
 .source-activation {
@@ -2712,8 +3283,16 @@ dd {
   .source-activation-summary,
   .source-env-row,
   .source-command,
-  .source-preview-metrics {
+  .source-preview-metrics,
+  .strava-required-grid,
+  .strava-oauth-facts,
+  .strava-enrollment-form {
     grid-template-columns: 1fr;
+  }
+
+  .strava-guide-heading {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .degraded-item {

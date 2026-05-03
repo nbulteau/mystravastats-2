@@ -17,7 +17,8 @@ Strava still requires creating the API application manually from:
 https://www.strava.com/settings/api
 ```
 
-After that one manual step, MyStravaStats can automate the local OAuth flow:
+After that one manual step, MyStravaStats can automate the local OAuth flow from
+`Diagnostics` > `Data Source` > `Connect Strava`, or from the CLI:
 
 ```shell
 node scripts/setup-strava-oauth.mjs

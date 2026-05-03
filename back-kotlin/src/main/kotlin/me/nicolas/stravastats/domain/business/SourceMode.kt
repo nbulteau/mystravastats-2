@@ -11,6 +11,25 @@ data class SourceModePreviewRequest(
     val path: String = "",
 )
 
+data class StravaOAuthStartRequest(
+    val path: String = "",
+    val clientId: String = "",
+    val clientSecret: String = "",
+    val useCache: Boolean = false,
+)
+
+data class StravaOAuthStartResult(
+    val status: String,
+    val message: String,
+    val authorizeUrl: String = "",
+    val settingsUrl: String,
+    val callbackDomain: String,
+    val oauthCallbackUrl: String,
+    val credentialsFile: String,
+    val tokenFile: String,
+    val cacheOnly: Boolean,
+)
+
 data class SourceModeYearPreview(
     val year: String,
     val fileCount: Int,
@@ -27,6 +46,35 @@ data class SourceModeEnvironmentVariable(
     val key: String,
     val value: String,
     val required: Boolean,
+)
+
+data class StravaOAuthStatus(
+    val status: String,
+    val message: String,
+    val settingsUrl: String,
+    val callbackDomain: String,
+    val oauthCallbackUrl: String,
+    val setupCommand: String,
+    val credentialsFile: String,
+    val tokenFile: String,
+    val credentialsFilePresent: Boolean,
+    val credentialsPresent: Boolean,
+    val clientIdPresent: Boolean,
+    val clientSecretPresent: Boolean,
+    val cacheOnly: Boolean,
+    val tokenPresent: Boolean,
+    val tokenReadable: Boolean,
+    val accessTokenPresent: Boolean,
+    val refreshTokenPresent: Boolean,
+    val tokenExpired: Boolean,
+    val tokenExpiresAt: String,
+    val athleteId: String,
+    val athleteName: String,
+    val scopesVerified: Boolean,
+    val grantedScopes: List<String>,
+    val requiredScopes: List<String>,
+    val missingScopes: List<String>,
+    val tokenError: String,
 )
 
 data class SourceModePreview(
@@ -50,4 +98,5 @@ data class SourceModePreview(
     val environment: List<SourceModeEnvironmentVariable> = emptyList(),
     val errors: List<SourceModePreviewError>,
     val recommendations: List<String>,
+    val stravaOAuth: StravaOAuthStatus? = null,
 )

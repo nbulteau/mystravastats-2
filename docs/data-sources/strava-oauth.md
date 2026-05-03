@@ -27,7 +27,19 @@ For local onboarding, set `Authorization Callback Domain` to:
 If you use the legacy backend OAuth flow directly, `localhost` is also supported
 by the existing backend default.
 
-## 2. Recommended Assistant
+## 2. Recommended UI Flow
+
+Open `Diagnostics`, select `Strava` in `Data Source`, then use `Connect Strava`.
+The app writes `.strava`, opens the Strava authorization URL and receives the
+callback on the backend endpoint:
+
+```text
+http://127.0.0.1:8080/api/source-modes/strava/oauth/callback
+```
+
+If your backend runs on another port, the returned OAuth URL uses that port.
+
+## 3. CLI Assistant
 
 From the repository root:
 
@@ -52,7 +64,7 @@ Use a non-default cache directory with:
 node scripts/setup-strava-oauth.mjs --cache /your/custom/cache
 ```
 
-## 3. Locate The Cache Directory
+## 4. Locate The Cache Directory
 
 By default, MyStravaStats uses:
 
@@ -62,7 +74,7 @@ strava-cache
 
 If `STRAVA_CACHE_PATH` is defined, the application uses that directory instead.
 
-## 4. Create `.strava`
+## 5. Create `.strava`
 
 Inside the cache directory, create:
 
@@ -76,7 +88,7 @@ With a custom cache path:
 /your/custom/cache/.strava
 ```
 
-## 5. Configure Credentials
+## 6. Configure Credentials
 
 Typical `.strava` content:
 

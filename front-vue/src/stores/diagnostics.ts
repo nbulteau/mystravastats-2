@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { requestJson } from "@/stores/api";
 import type { DataQualityCorrectionPreview, DataQualityReport } from "@/models/data-quality.model";
 import type { HealthDetailsPayload } from "@/models/health.model";
-import type { SourceModePreview, SourceModePreviewRequest } from "@/models/source-mode.model";
+import type { SourceModePreview, SourceModePreviewRequest, StravaOAuthStartRequest, StravaOAuthStartResult } from "@/models/source-mode.model";
 
 interface OsrmControlResult {
   status: string;
@@ -105,6 +105,16 @@ export const useDiagnosticsStore = defineStore("diagnostics", {
       } finally {
         this.isPreviewingSourceMode = false;
       }
+    },
+    async startStravaOAuthEnrollment(request: StravaOAuthStartRequest): Promise<StravaOAuthStartResult> {
+      return requestJson<StravaOAuthStartResult>("/api/source-modes/strava/oauth/start", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
+      });
     },
     async excludeActivityFromStats(activityId: number, reason?: string): Promise<DataQualityReport> {
       const report = await requestJson<DataQualityReport>(`/api/data-quality/exclusions/${activityId}`, {
@@ -225,5 +235,6 @@ function normalizeSourceModePreview(preview: SourceModePreview): SourceModePrevi
     environment: preview.environment ?? [],
     errors: preview.errors ?? [],
     recommendations: preview.recommendations ?? [],
+    stravaOAuth: preview.stravaOAuth ?? null,
   };
 }

@@ -22,6 +22,8 @@ var routes = Routes{
 	{Name: "PostDataQualityCorrection", Method: "POST", Pattern: "/api/data-quality/corrections/{issueId}", HandlerFunc: postDataQualityCorrection},
 	{Name: "DeleteDataQualityCorrection", Method: "DELETE", Pattern: "/api/data-quality/corrections/{correctionId}", HandlerFunc: deleteDataQualityCorrection},
 	{Name: "PostSourceModePreview", Method: "POST", Pattern: "/api/source-modes/preview", HandlerFunc: postSourceModePreview},
+	{Name: "PostStravaOAuthStart", Method: "POST", Pattern: "/api/source-modes/strava/oauth/start", HandlerFunc: postStravaOAuthStart},
+	{Name: "GetStravaOAuthCallback", Method: "GET", Pattern: "/api/source-modes/strava/oauth/callback", HandlerFunc: getStravaOAuthCallback},
 	{Name: "GetAthlete", Method: "GET", Pattern: "/api/athletes/me", HandlerFunc: getAthlete},
 	{Name: "GetAthleteHeartRateZones", Method: "GET", Pattern: "/api/athletes/me/heart-rate-zones", HandlerFunc: getAthleteHeartRateZones},
 	{Name: "PutAthleteHeartRateZones", Method: "PUT", Pattern: "/api/athletes/me/heart-rate-zones", HandlerFunc: putAthleteHeartRateZones},

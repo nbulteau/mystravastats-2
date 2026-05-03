@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import "bootstrap/scss/bootstrap.scss";
+import { computed } from "vue";
 import HeaderBar from "@/components/HeaderBar.vue";
 import { RouterLink, useRoute } from "vue-router";
 import { useUiStore } from "@/stores/ui";
@@ -10,6 +11,7 @@ const uiStore = useUiStore();
 const route = useRoute();
 
 const isCurrent = (name: string) => route.name === name;
+const usesWideLayout = computed(() => route.name === "diagnostics");
 
 const navItems = [
   { id: "dashboard-tab", name: "dashboard", controls: "dashboard-tab-pane", to: "/dashboard", label: "Dashboard" },
@@ -30,43 +32,42 @@ const navItems = [
   <div class="app-frame">
     <div v-if="contextStore.currentView !== 'activity'">
       <HeaderBar class="fixed-top app-header" />
-      <nav class="navbar container app-tabs-shell">
-      <ul
-        id="myTab"
+      <nav :class="['navbar', usesWideLayout ? 'container-fluid' : 'container', 'app-tabs-shell']">
+        <ul
+          id="myTab"
           class="nav nav-tabs app-tabs"
-        role="tablist"
-      >
-        <li
-          v-for="item in navItems"
-          :key="item.name"
-          class="nav-item"
-          role="presentation"
+          role="tablist"
         >
-          <RouterLink
-            :id="item.id"
-            class="nav-link"
-            :class="{ active: isCurrent(item.name) }"
-            role="tab"
-            :aria-controls="item.controls"
-            :aria-selected="isCurrent(item.name)"
-            :to="item.to"
+          <li
+            v-for="item in navItems"
+            :key="item.name"
+            class="nav-item"
+            role="presentation"
           >
-            {{ item.label }}
-            <span
-              v-if="'beta' in item && item.beta"
-              class="tab-beta"
+            <RouterLink
+              :id="item.id"
+              class="nav-link"
+              :class="{ active: isCurrent(item.name) }"
+              role="tab"
+              :aria-controls="item.controls"
+              :aria-selected="isCurrent(item.name)"
+              :to="item.to"
             >
-              beta
-            </span>
-          </RouterLink>
-        </li>
-      </ul>
-    </nav>
+              {{ item.label }}
+              <span
+                v-if="'beta' in item && item.beta"
+                class="tab-beta"
+              >
+                beta
+              </span>
+            </RouterLink>
+          </li>
+        </ul>
+      </nav>
     </div>
 
     <div
-      class="container app-main"
-      :class="{ 'app-main--activity': contextStore.currentView === 'activity' }"
+      :class="[usesWideLayout ? 'container-fluid' : 'container', 'app-main', { 'app-main--activity': contextStore.currentView === 'activity' }]"
     >
       <main
         class="app-content"

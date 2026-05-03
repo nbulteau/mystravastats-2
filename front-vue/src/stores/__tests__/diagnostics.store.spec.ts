@@ -125,8 +125,8 @@ describe("diagnostics store", () => {
       },
       body: JSON.stringify({ mode: "GPX", path: "/data/gpx" }),
     });
-    expect(preview).toEqual(payload);
-    expect(store.sourceModePreview).toEqual(payload);
+    expect(preview).toEqual({ ...payload, stravaOAuth: null });
+    expect(store.sourceModePreview).toEqual({ ...payload, stravaOAuth: null });
     expect(store.sourceModePreviewError).toBeNull();
   });
 
@@ -160,5 +160,44 @@ describe("diagnostics store", () => {
     expect(preview.environment).toEqual([]);
     expect(preview.errors).toEqual([]);
     expect(preview.recommendations).toEqual([]);
+    expect(preview.stravaOAuth).toBeNull();
+  });
+
+  it("starts Strava OAuth enrollment", async () => {
+    const payload = {
+      status: "oauth_started",
+      message: "Open Strava authorization to finish OAuth.",
+      authorizeUrl: "https://www.strava.com/oauth/authorize?client_id=12345",
+      settingsUrl: "https://www.strava.com/settings/api",
+      callbackDomain: "127.0.0.1",
+      oauthCallbackUrl: "http://127.0.0.1:8080/api/source-modes/strava/oauth/callback",
+      credentialsFile: "/tmp/strava/.strava",
+      tokenFile: "/tmp/strava/.strava-token.json",
+      cacheOnly: false,
+    };
+    vi.mocked(requestJson).mockResolvedValue(payload);
+    const store = useDiagnosticsStore();
+
+    const result = await store.startStravaOAuthEnrollment({
+      path: "/tmp/strava",
+      clientId: "12345",
+      clientSecret: "secret",
+      useCache: false,
+    });
+
+    expect(requestJson).toHaveBeenCalledWith("/api/source-modes/strava/oauth/start", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        path: "/tmp/strava",
+        clientId: "12345",
+        clientSecret: "secret",
+        useCache: false,
+      }),
+    });
+    expect(result).toEqual(payload);
   });
 });

@@ -33,7 +33,7 @@
 
 ### Priorite haute
 
-- [ ] `TECH-P1-09` (`P1`, `M`) - Industrialiser l'enrolement Strava OAuth.
+- [x] `TECH-P1-09` (`P1`, `M`) - Industrialiser l'enrolement Strava OAuth.
   Owners: `Back-Go`, `Back-Kotlin`, `Front`, `Docs`.
   Constat:
   - la creation de l'application Strava reste manuelle via `https://www.strava.com/settings/api`,
@@ -54,7 +54,9 @@
   - fait: `scripts/setup-strava-oauth.mjs` cree `.strava`, lance OAuth, valide `/api/v3/athlete` et sauvegarde `.strava-token.json`,
   - fait: Go et Kotlin reutilisent/refreshent `.strava-token.json` et ajoutent une verification `state`,
   - fait: `/api/source-modes/preview` signale deja l'absence ou la presence du token OAuth dans ses recommandations,
-  - reste: statut OAuth structure (scopes, expiration, athlete) et parcours UI `Connecter Strava`.
+  - fait: `/api/source-modes/preview` expose un statut OAuth structure (credentials, token, expiration, athlete, scopes),
+  - fait: Diagnostics / Source modes affiche le parcours guide `Connect Strava`,
+  - fait: Diagnostics peut maintenant ecrire `.strava`, ouvrir l'autorisation Strava et recevoir le callback backend pour sauvegarder `.strava-token.json`.
 
 - [ ] `TECH-P1-01` (`P1`, `L`) - Mettre le contrat API sous controle OpenAPI partage.
   Owners: `Back-Kotlin`, `Back-Go`, `Front`, `QA`.
@@ -168,7 +170,7 @@
 
 ### Priorite haute
 
-- [ ] `FUNC-P0-03` (`P0`, `M`) - Parcours d'enrolement Strava guide.
+- [x] `FUNC-P0-03` (`P0`, `M`) - Parcours d'enrolement Strava guide.
   Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
   Proposition:
   - ajouter dans Diagnostics / Source modes un parcours `Connecter Strava` qui guide l'utilisateur jusqu'a `settings/api`, puis reprend la main pour OAuth,
@@ -180,7 +182,9 @@
   - les erreurs courantes (`clientSecret` faux, callback domain, port occupe, scope refuse) deviennent actionnables dans l'UI.
   Avancement 2026-05-03:
   - premiere tranche livree en CLI/docs/backend,
-  - prochaine tranche: brancher le parcours dans Diagnostics / Source modes avec un endpoint d'etat OAuth non bloquant.
+  - fait: Diagnostics / Source modes contient le guide `Connect Strava`, le lien `settings/api`, les champs attendus, la commande d'assistant copiables et les etapes de verification,
+  - fait: la preview Strava remonte un statut OAuth non bloquant: `.strava`, token, refresh token, expiration, athlete et scopes,
+  - fait: l'UI peut demarrer l'OAuth local via le backend et sauvegarder le token apres callback Strava.
 
 - [ ] `FUNC-P0-01` (`P0`, `M`) - Parcours d'import local guide.
   Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
@@ -276,7 +280,6 @@
 
 ## Dette visible a traiter en premier
 
-- Enrolement Strava OAuth (`TECH-P1-09`, `FUNC-P0-03`).
 - Contrat OpenAPI partage (`TECH-P1-01`).
 - Fixtures data quality partagees (`TECH-P1-06`).
 

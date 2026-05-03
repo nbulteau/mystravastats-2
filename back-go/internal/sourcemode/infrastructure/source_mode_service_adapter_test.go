@@ -3,7 +3,10 @@ package infrastructure
 import (
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
+	"time"
 
 	"mystravastats/internal/shared/domain/business"
 )
@@ -47,6 +50,48 @@ func TestPreviewSourceMode_GPXValidatesYearFoldersAndFields(t *testing.T) {
 	}
 	if len(preview.Environment) == 0 || preview.Environment[0].Key != "GPX_FILES_PATH" || preview.Environment[0].Value != root {
 		t.Fatalf("expected GPX environment activation, got %#v", preview.Environment)
+	}
+}
+
+func TestPreviewSourceMode_StravaReportsOAuthEnrollmentStatus(t *testing.T) {
+	// GIVEN
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, ".strava"), []byte("clientId=12345\nclientSecret=secret\nuseCache=false\n"), 0o600); err != nil {
+		t.Fatalf("failed to write .strava: %v", err)
+	}
+	token := `{
+  "access_token": "access",
+  "refresh_token": "refresh",
+  "expires_at": ` + strconv.FormatInt(time.Now().Add(time.Hour).Unix(), 10) + `,
+  "scope": "read_all,activity:read_all,profile:read_all",
+  "athlete": { "id": 42, "firstname": "Ada", "lastname": "Lovelace" }
+}`
+	if err := os.WriteFile(filepath.Join(root, ".strava-token.json"), []byte(token), 0o600); err != nil {
+		t.Fatalf("failed to write token: %v", err)
+	}
+	adapter := NewSourceModeServiceAdapter()
+
+	// WHEN
+	preview := adapter.PreviewSourceMode(business.SourceModePreviewRequest{
+		Mode: "STRAVA",
+		Path: root,
+	})
+
+	// THEN
+	if preview.StravaOAuth == nil {
+		t.Fatal("expected Strava OAuth status")
+	}
+	if preview.StravaOAuth.Status != "ready" {
+		t.Fatalf("expected ready OAuth status, got %#v", preview.StravaOAuth)
+	}
+	if !preview.StravaOAuth.CredentialsPresent || !preview.StravaOAuth.TokenPresent || !preview.StravaOAuth.TokenReadable {
+		t.Fatalf("expected credentials and token to be detected, got %#v", preview.StravaOAuth)
+	}
+	if preview.StravaOAuth.AthleteID != "42" || preview.StravaOAuth.AthleteName != "Ada Lovelace" {
+		t.Fatalf("expected athlete metadata, got %#v", preview.StravaOAuth)
+	}
+	if !strings.Contains(preview.StravaOAuth.SetupCommand, "setup-strava-oauth.mjs") {
+		t.Fatalf("expected setup command, got %q", preview.StravaOAuth.SetupCommand)
 	}
 }
 

@@ -80,7 +80,7 @@ async function main() {
     openUrl(authorizeUrl);
   }
 
-  const code = await codePromise;
+  const { code, scope } = await codePromise;
   const token = await exchangeCode({ clientId, clientSecret, code });
   const athlete = await validateAthlete(token.access_token);
   const tokenPath = resolve(cacheDir, ".strava-token.json");
@@ -91,7 +91,7 @@ async function main() {
     refresh_token: token.refresh_token,
     expires_at: token.expires_at,
     expires_in: token.expires_in,
-    scope: token.scope,
+    scope: token.scope ?? scope,
     athlete,
     created_at: new Date().toISOString(),
   });
@@ -180,6 +180,11 @@ function buildAuthorizeUrl({ clientId, redirectUri, state }) {
   return url.toString();
 }
 
+function missingRequiredScopes(scope) {
+  const granted = new Set(String(scope || DEFAULT_SCOPE).split(",").map((value) => value.trim()).filter(Boolean));
+  return DEFAULT_SCOPE.split(",").filter((required) => !granted.has(required));
+}
+
 function waitForOAuthCode({ port, state }) {
   return new Promise((resolveCode, rejectCode) => {
     let settled = false;
@@ -199,6 +204,7 @@ function waitForOAuthCode({ port, state }) {
         const returnedState = requestUrl.searchParams.get("state") ?? "";
         const error = requestUrl.searchParams.get("error") ?? "";
         const code = requestUrl.searchParams.get("code") ?? "";
+        const scope = requestUrl.searchParams.get("scope") ?? "";
 
         if (returnedState !== state) {
           throw new Error("OAuth state mismatch. Please retry the setup.");
@@ -209,10 +215,14 @@ function waitForOAuthCode({ port, state }) {
         if (!code) {
           throw new Error("Strava OAuth callback did not include an authorization code.");
         }
+        const missingScopes = missingRequiredScopes(scope);
+        if (missingScopes.length > 0) {
+          throw new Error(`Strava OAuth is missing required scope(s): ${missingScopes.join(", ")}`);
+        }
 
         response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
         response.end("<h1>Access granted</h1><p>You can close this window.</p>");
-        settle(resolveCode, code);
+        settle(resolveCode, { code, scope: scope || DEFAULT_SCOPE });
       } catch (error) {
         response.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
         response.end(error instanceof Error ? error.message : String(error));

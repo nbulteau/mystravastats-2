@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
+import java.time.Instant
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -106,6 +107,83 @@ class SourceModeServiceTest {
         assertEquals(SourceMode.STRAVA, preview.activeMode)
         assertEquals("", preview.activationCommand)
         assertEquals("FIT_FILES_PATH", preview.environment.first().key)
+    }
+
+    @Test
+    fun `preview reports Strava OAuth enrollment status`() {
+        // GIVEN
+        Files.writeString(tempDir.resolve(".strava"), "clientId=12345\nclientSecret=secret\nuseCache=false\n")
+        Files.writeString(
+            tempDir.resolve(".strava-token.json"),
+            """
+            {
+              "access_token": "access",
+              "refresh_token": "refresh",
+              "expires_at": ${Instant.now().plusSeconds(3600).epochSecond},
+              "scope": "read_all,activity:read_all,profile:read_all",
+              "athlete": { "id": 42, "firstname": "Ada", "lastname": "Lovelace" }
+            }
+            """.trimIndent(),
+        )
+        val service = SourceModeService(repositoryFactory)
+
+        // WHEN
+        val preview = service.preview(SourceModePreviewRequest(mode = "STRAVA", path = tempDir.toString()))
+
+        // THEN
+        val oauth = requireNotNull(preview.stravaOAuth)
+        assertEquals("ready", oauth.status)
+        assertTrue(oauth.credentialsPresent)
+        assertTrue(oauth.tokenPresent)
+        assertTrue(oauth.tokenReadable)
+        assertEquals("42", oauth.athleteId)
+        assertEquals("Ada Lovelace", oauth.athleteName)
+        assertTrue(oauth.setupCommand.contains("setup-strava-oauth.mjs"))
+    }
+
+    @Test
+    fun `starts Strava OAuth enrollment and writes credentials`() {
+        // GIVEN
+        val service = SourceModeService(repositoryFactory)
+
+        // WHEN
+        val result = service.startStravaOAuth(
+            me.nicolas.stravastats.domain.business.StravaOAuthStartRequest(
+                path = tempDir.toString(),
+                clientId = "12345",
+                clientSecret = "secret",
+                useCache = false,
+            ),
+        )
+
+        // THEN
+        assertEquals("oauth_started", result.status)
+        assertTrue(result.authorizeUrl.contains("state="))
+        assertTrue(result.authorizeUrl.contains("client_id=12345"))
+        val credentials = Files.readString(tempDir.resolve(".strava"))
+        assertTrue(credentials.contains("clientId=12345"))
+        assertTrue(credentials.contains("useCache=false"))
+    }
+
+    @Test
+    fun `starts Strava cache-only enrollment without OAuth URL`() {
+        // GIVEN
+        val service = SourceModeService(repositoryFactory)
+
+        // WHEN
+        val result = service.startStravaOAuth(
+            me.nicolas.stravastats.domain.business.StravaOAuthStartRequest(
+                path = tempDir.toString(),
+                clientId = "12345",
+                useCache = true,
+            ),
+        )
+
+        // THEN
+        assertEquals("cache_only", result.status)
+        assertEquals("", result.authorizeUrl)
+        assertTrue(result.cacheOnly)
+        assertTrue(Files.readString(tempDir.resolve(".strava")).contains("useCache=true"))
     }
 
     private fun writeGpx(year: String, name: String, content: String) {

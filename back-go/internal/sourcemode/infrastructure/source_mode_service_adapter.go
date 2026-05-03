@@ -1,12 +1,14 @@
 package infrastructure
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"mystravastats/internal/helpers"
 	"mystravastats/internal/platform/runtimeconfig"
@@ -18,6 +20,9 @@ import (
 )
 
 const maxPreviewErrors = 8
+const stravaSettingsURL = "https://www.strava.com/settings/api"
+
+var requiredStravaScopes = []string{"read_all", "activity:read_all", "profile:read_all"}
 
 type SourceModeServiceAdapter struct{}
 
@@ -211,6 +216,7 @@ func previewStravaSourceMode(path string) business.SourceModePreview {
 		Configured:    configured,
 		RestartNeeded: activeSourceMode() != business.SourceModeStrava || strings.TrimSpace(configuredPath) != path,
 	}
+	preview.StravaOAuth = inspectStravaOAuth(path, "", "", false)
 
 	info, err := os.Stat(path)
 	if err != nil {
@@ -225,7 +231,8 @@ func previewStravaSourceMode(path string) business.SourceModePreview {
 	preview.Readable = true
 
 	repository := localrepository.NewStravaRepository(path)
-	clientID, _, useCache := repository.ReadStravaAuthentication(path)
+	clientID, clientSecret, useCache := repository.ReadStravaAuthentication(path)
+	preview.StravaOAuth = inspectStravaOAuth(path, clientID, clientSecret, useCache)
 	if clientID == "" {
 		preview.Errors = append(preview.Errors, business.SourceModePreviewError{
 			Path:    filepath.Join(path, ".strava"),
@@ -250,6 +257,166 @@ func previewStravaSourceMode(path string) business.SourceModePreview {
 		preview.Recommendations = append(preview.Recommendations, "Restart the backend after changing STRAVA_CACHE_PATH or switching source mode.")
 	}
 	return preview
+}
+
+type stravaOAuthTokenFile struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresAt    int64  `json:"expires_at"`
+	Scope        string `json:"scope"`
+	Athlete      struct {
+		ID        int64  `json:"id"`
+		Username  string `json:"username"`
+		FirstName string `json:"firstname"`
+		LastName  string `json:"lastname"`
+	} `json:"athlete"`
+}
+
+func inspectStravaOAuth(path string, clientID string, clientSecret string, useCache bool) *business.StravaOAuthStatus {
+	trimmedPath := strings.TrimSpace(path)
+	credentialsFile := filepath.Join(trimmedPath, ".strava")
+	tokenFile := filepath.Join(trimmedPath, ".strava-token.json")
+	status := &business.StravaOAuthStatus{
+		Status:              "needs_credentials",
+		SettingsURL:         stravaSettingsURL,
+		CallbackDomain:      "127.0.0.1",
+		OAuthCallbackURL:    "http://127.0.0.1:8090/exchange_token",
+		SetupCommand:        stravaSetupCommand(trimmedPath),
+		CredentialsFile:     credentialsFile,
+		TokenFile:           tokenFile,
+		ClientIDPresent:     strings.TrimSpace(clientID) != "",
+		ClientSecretPresent: strings.TrimSpace(clientSecret) != "",
+		CacheOnly:           useCache,
+		RequiredScopes:      append([]string(nil), requiredStravaScopes...),
+		GrantedScopes:       []string{},
+		MissingScopes:       []string{},
+	}
+	status.CredentialsPresent = status.ClientIDPresent && status.ClientSecretPresent
+	if _, err := os.Stat(credentialsFile); err == nil {
+		status.CredentialsFilePresent = true
+	}
+
+	if !status.CredentialsPresent || !status.ClientIDPresent || !status.ClientSecretPresent {
+		status.Message = "Create a Strava app, then run the local setup assistant with Client ID and Client Secret."
+		return status
+	}
+	if useCache {
+		status.Status = "cache_only"
+		status.Message = "Strava cache-only mode is enabled; OAuth token is not required until live refresh is re-enabled."
+		return status
+	}
+
+	status.TokenPresent = true
+	tokenPayload, err := readStravaOAuthToken(tokenFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			status.TokenPresent = false
+			status.Status = "needs_token"
+			status.Message = "Credentials are present; run the OAuth assistant to create .strava-token.json."
+			return status
+		}
+		status.Status = "token_unreadable"
+		status.TokenError = err.Error()
+		status.Message = "The OAuth token file exists but cannot be read."
+		return status
+	}
+
+	status.TokenReadable = true
+	status.AccessTokenPresent = strings.TrimSpace(tokenPayload.AccessToken) != ""
+	status.RefreshTokenPresent = strings.TrimSpace(tokenPayload.RefreshToken) != ""
+	status.TokenExpired = tokenPayload.ExpiresAt > 0 && time.Unix(tokenPayload.ExpiresAt, 0).Before(time.Now().Add(2*time.Minute))
+	if tokenPayload.ExpiresAt > 0 {
+		status.TokenExpiresAt = time.Unix(tokenPayload.ExpiresAt, 0).UTC().Format(time.RFC3339)
+	}
+	if tokenPayload.Athlete.ID > 0 {
+		status.AthleteID = strconv.FormatInt(tokenPayload.Athlete.ID, 10)
+	}
+	status.AthleteName = athleteDisplayName(tokenPayload.Athlete.Username, tokenPayload.Athlete.FirstName, tokenPayload.Athlete.LastName)
+	status.GrantedScopes = splitStravaScopes(tokenPayload.Scope)
+	status.ScopesVerified = len(status.GrantedScopes) > 0
+	if status.ScopesVerified {
+		status.MissingScopes = missingStravaScopes(status.GrantedScopes, requiredStravaScopes)
+	}
+
+	status.Status, status.Message = stravaOAuthStatusMessage(status)
+	return status
+}
+
+func readStravaOAuthToken(path string) (stravaOAuthTokenFile, error) {
+	var token stravaOAuthTokenFile
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return token, err
+	}
+	if err := json.Unmarshal(data, &token); err != nil {
+		return token, err
+	}
+	return token, nil
+}
+
+func stravaSetupCommand(path string) string {
+	if strings.TrimSpace(path) == "" {
+		return "node scripts/setup-strava-oauth.mjs"
+	}
+	return fmt.Sprintf("node scripts/setup-strava-oauth.mjs --cache %s", shellQuote(path))
+}
+
+func splitStravaScopes(scope string) []string {
+	fields := strings.FieldsFunc(scope, func(r rune) bool { return r == ',' || r == ' ' || r == '\t' || r == '\n' })
+	scopes := make([]string, 0, len(fields))
+	seen := map[string]bool{}
+	for _, field := range fields {
+		normalized := strings.TrimSpace(field)
+		if normalized == "" || seen[normalized] {
+			continue
+		}
+		seen[normalized] = true
+		scopes = append(scopes, normalized)
+	}
+	sort.Strings(scopes)
+	return scopes
+}
+
+func missingStravaScopes(granted []string, required []string) []string {
+	grantedSet := map[string]bool{}
+	for _, scope := range granted {
+		grantedSet[scope] = true
+	}
+	missing := make([]string, 0)
+	for _, scope := range required {
+		if !grantedSet[scope] {
+			missing = append(missing, scope)
+		}
+	}
+	return missing
+}
+
+func athleteDisplayName(username string, firstName string, lastName string) string {
+	parts := []string{strings.TrimSpace(firstName), strings.TrimSpace(lastName)}
+	fullName := strings.TrimSpace(strings.Join(parts, " "))
+	if fullName != "" {
+		return fullName
+	}
+	return strings.TrimSpace(username)
+}
+
+func stravaOAuthStatusMessage(status *business.StravaOAuthStatus) (string, string) {
+	if !status.AccessTokenPresent || !status.RefreshTokenPresent {
+		return "token_incomplete", "The token file is incomplete; run the OAuth assistant again."
+	}
+	if len(status.MissingScopes) > 0 {
+		return "scope_incomplete", "The token is missing Strava scopes; run the OAuth assistant and accept every requested permission."
+	}
+	if status.TokenExpired {
+		if status.RefreshTokenPresent {
+			return "refreshable", "The access token is expired, but the backend can refresh it on next live Strava call."
+		}
+		return "token_expired", "The access token is expired and no refresh token is available."
+	}
+	if !status.ScopesVerified {
+		return "ready_unverified_scopes", "OAuth token is available; scopes are not recorded in the token file."
+	}
+	return "ready", "Strava credentials and OAuth token are ready."
 }
 
 func decodeFITPreviewActivity(filePath string, athleteID int64, _ int) (*strava.Activity, error) {
