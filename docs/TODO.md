@@ -226,15 +226,6 @@
   - les bornes debut/fin restent stables sur des profils irreguliers,
   - Go et Kotlin restent alignes via tests ou fixtures partagees.
 
-- [ ] `FUNC-P1-05` (`P1`, `M`) - Enrichir Routes avec difficulte et lisibilite terrain.
-  Owners: `Product`, `Routes`, `Front`.
-  Proposition:
-  - afficher difficulte estimee, surface mix, part inconnue, confiance du profil OSRM et raisons de fallback directement sur la carte,
-  - filtrer ou trier par `plus roulant`, `plus chemin`, `moins de demi-tours inutiles`, `plus familier`,
-  - conserver les diagnostics techniques mais les traduire en signaux produit.
-  Acceptance:
-  - un utilisateur peut choisir une route sans lire les raisons brutes du moteur.
-
 - [ ] `FUNC-P1-11` (`P1`, `S`) - Etudier https://themechanic.bike/fr pour enrichir l'onglet Gear.
   Owners: `Product`, `Front`, `Stats`.
   Proposition:
