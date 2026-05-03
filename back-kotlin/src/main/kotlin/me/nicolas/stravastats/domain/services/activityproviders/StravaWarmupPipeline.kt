@@ -98,7 +98,7 @@ internal class StravaWarmupPipeline(
             logger.info("Warmup started ({})", reason)
 
             val yearSummaries = computeWarmupYearSummaries(activities)
-            val preparedYears = yearSummaries.map { it.year }.sortedDescending()
+            val preparedYears = extractPreparedYears(yearSummaries)
 
             var payload = WarmupSummariesFile(athleteId = clientId, yearSummaries = yearSummaries)
             persistWarmupArtifacts(payload, "ready", "pending", "pending", preparedYears)
@@ -142,7 +142,7 @@ internal class StravaWarmupPipeline(
                     "priority1" to snap.warmup.priority1,
                     "priority2" to snap.warmup.priority2,
                     "priority3" to snap.warmup.priority3,
-                    "preparedYears" to snap.warmup.preparedYears,
+                    "preparedYears" to normalizePreparedYears(snap.warmup.preparedYears),
                     "lastRunAt" to snap.warmup.lastRunAt,
                 ),
             ),
@@ -293,3 +293,11 @@ internal class StravaWarmupPipeline(
     }
 }
 
+internal fun extractPreparedYears(yearSummaries: List<WarmupYearSummary>): List<Int> =
+    normalizePreparedYears(yearSummaries.map { it.year })
+
+internal fun normalizePreparedYears(years: List<Int>): List<Int> =
+    years
+        .filter { it > 0 }
+        .distinct()
+        .sortedDescending()

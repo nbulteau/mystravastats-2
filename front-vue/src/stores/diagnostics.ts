@@ -139,12 +139,22 @@ export const useDiagnosticsStore = defineStore("diagnostics", {
       return this.dataQualityReport;
     },
     async previewSafeCorrections(): Promise<DataQualityCorrectionPreview> {
-      return requestJson<DataQualityCorrectionPreview>("/api/data-quality/corrections/safe/preview", {
+      const preview = await requestJson<DataQualityCorrectionPreview>("/api/data-quality/corrections/safe/preview", {
         method: "GET",
         headers: {
           Accept: "application/json",
         },
       });
+      return normalizeDataQualityCorrectionPreview(preview);
+    },
+    async previewCorrection(issueId: string): Promise<DataQualityCorrectionPreview> {
+      const preview = await requestJson<DataQualityCorrectionPreview>(`/api/data-quality/corrections/preview/${encodeURIComponent(issueId)}`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+      return normalizeDataQualityCorrectionPreview(preview);
     },
     async applySafeCorrections(): Promise<DataQualityReport> {
       const report = await requestJson<DataQualityReport>("/api/data-quality/corrections/safe", {
@@ -221,6 +231,33 @@ function normalizeDataQualityReport(report: DataQualityReport): DataQualityRepor
       byCategory: summary.byCategory ?? {},
       topIssues: summary.topIssues ?? [],
     },
+  };
+}
+
+function normalizeDataQualityCorrectionPreview(preview: DataQualityCorrectionPreview): DataQualityCorrectionPreview {
+  return {
+    ...preview,
+    summary: {
+      safeCorrectionCount: preview.summary?.safeCorrectionCount ?? 0,
+      manualReviewCount: preview.summary?.manualReviewCount ?? 0,
+      unsupportedIssueCount: preview.summary?.unsupportedIssueCount ?? 0,
+      activityCount: preview.summary?.activityCount ?? 0,
+      distanceDeltaMeters: preview.summary?.distanceDeltaMeters ?? 0,
+      elevationDeltaMeters: preview.summary?.elevationDeltaMeters ?? 0,
+      modifiedFields: preview.summary?.modifiedFields ?? [],
+      potentiallyImpactsRecords: preview.summary?.potentiallyImpactsRecords ?? false,
+    },
+    corrections: (preview.corrections ?? []).map((correction) => ({
+      ...correction,
+      pointIndexes: correction.pointIndexes ?? [],
+      modifiedFields: correction.modifiedFields ?? [],
+      impact: correction.impact ?? {
+        distanceDeltaMeters: 0,
+        elevationDeltaMeters: 0,
+      },
+    })),
+    warnings: preview.warnings ?? [],
+    blockingReasons: preview.blockingReasons ?? [],
   };
 }
 

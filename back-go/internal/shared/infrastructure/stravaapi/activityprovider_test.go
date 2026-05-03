@@ -202,6 +202,49 @@ func TestRateLimitCircuitBreaker(t *testing.T) {
 	}
 }
 
+func TestExtractPreparedYearsExcludesAllYearsBucket(t *testing.T) {
+	// GIVEN
+	summaries := []warmupYearSummary{
+		{Year: 0, ActivityCount: 3},
+		{Year: 2024, ActivityCount: 1},
+		{Year: 2026, ActivityCount: 2},
+		{Year: 2024, ActivityCount: 1},
+	}
+
+	// WHEN
+	years := extractPreparedYears(summaries)
+
+	// THEN
+	expected := []int{2026, 2024}
+	if len(years) != len(expected) {
+		t.Fatalf("expected %v, got %v", expected, years)
+	}
+	for index := range expected {
+		if years[index] != expected[index] {
+			t.Fatalf("expected %v, got %v", expected, years)
+		}
+	}
+}
+
+func TestNormalizePreparedYearsExcludesAllYearsBucket(t *testing.T) {
+	// GIVEN
+	manifestYears := []int{0, 2024, 2026, 2024}
+
+	// WHEN
+	years := normalizePreparedYears(manifestYears)
+
+	// THEN
+	expected := []int{2026, 2024}
+	if len(years) != len(expected) {
+		t.Fatalf("expected %v, got %v", expected, years)
+	}
+	for index := range expected {
+		if years[index] != expected[index] {
+			t.Fatalf("expected %v, got %v", expected, years)
+		}
+	}
+}
+
 func TestGetDetailedActivity_SkipsStravaCallWhenRateLimitAlreadyActive(t *testing.T) {
 	// GIVEN
 	var calls int32

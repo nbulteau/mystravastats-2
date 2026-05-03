@@ -16,7 +16,7 @@ const uiStore = useUiStore();
 const showRawPayload = ref(false);
 const sourceModePathEdited = ref(false);
 const sourceModeInitialized = ref(false);
-const sourceModeAutoPreviewStarted = ref(false);
+const lastSourceModeAutoPreviewKey = ref("");
 const stravaClientIdInput = ref("");
 const stravaClientSecretInput = ref("");
 const stravaUseCacheInput = ref(false);
@@ -24,6 +24,15 @@ const stravaEnrollmentInProgress = ref(false);
 const qualityActionActivityId = ref<number | null>(null);
 const qualityActionIssueId = ref<string | null>(null);
 const qualityBatchActionInProgress = ref(false);
+const dataQualitySeverityFilter = ref("all");
+const dataQualityActivityFilter = ref("");
+const dataQualityFieldFilter = ref("all");
+const dataQualityImpactFilter = ref("all");
+const dataQualityActionFilter = ref("all");
+const selectedQualityIssueId = ref<string | null>(null);
+const issueCorrectionPreview = ref<DataQualityCorrectionPreview | null>(null);
+const issueCorrectionPreviewLoading = ref(false);
+const issueCorrectionPreviewError = ref("");
 const safeCorrectionPreview = ref<DataQualityCorrectionPreview | null>(null);
 const showSafeCorrectionPreview = ref(false);
 const showAllDataQualityIssues = ref(false);
@@ -35,6 +44,10 @@ const sourceModeOptions: Array<{ mode: SourceMode; label: string; icon: string }
   { mode: "FIT", label: "FIT", icon: "fa-solid fa-file-lines" },
   { mode: "GPX", label: "GPX", icon: "fa-solid fa-route" },
 ];
+type GuideFactTone = "warn" | "up" | "down" | "neutral";
+type GuideFact = { label: string; value: string; tone?: GuideFactTone; monospace?: boolean };
+type GuideStepState = "complete" | "current" | "warn" | "pending";
+type GuideStep = { key: string; title: string; detail: string; state: GuideStepState; icon: string };
 
 onMounted(() => contextStore.updateCurrentView("diagnostics"));
 
@@ -65,23 +78,113 @@ const activeDataQualityCorrections = computed(() => dataQualityCorrections.value
 const previewedSafeCorrections = computed(() => safeCorrectionPreview.value?.corrections.slice(0, 8) ?? []);
 const safeCorrectionPreviewOverflowCount = computed(() => Math.max((safeCorrectionPreview.value?.corrections.length ?? 0) - previewedSafeCorrections.value.length, 0));
 const hasFullDataQualityReport = computed(() => diagnosticsStore.dataQualityReport !== null);
+const dataQualityFieldOptions = computed(() => {
+  const fields = new Map<string, string>();
+  for (const issue of dataQualityIssues.value) {
+    const value = issue.field || issue.category;
+    if (!value) continue;
+    fields.set(value, `${formatSourceField(value)} · ${formatDataQualityCategory(issue.category)}`);
+  }
+  return Array.from(fields.entries())
+    .map(([value, label]) => ({ value, label }))
+    .sort((left, right) => left.label.localeCompare(right.label));
+});
+const dataQualityActionGroups = computed(() => {
+  const groups = [
+    { key: "safe", label: "Safe fixes", icon: "fa-solid fa-wand-magic-sparkles", count: 0 },
+    { key: "manual", label: "Manual review", icon: "fa-solid fa-hand", count: 0 },
+    { key: "unsupported", label: "Unsupported", icon: "fa-solid fa-ban", count: 0 },
+  ];
+  for (const issue of dataQualityIssues.value) {
+    const group = groups.find((item) => item.key === dataQualityActionForIssue(issue));
+    if (group) group.count += 1;
+  }
+  return groups;
+});
+const hasDataQualityFilters = computed(() =>
+  dataQualitySeverityFilter.value !== "all"
+  || dataQualityActivityFilter.value.trim() !== ""
+  || dataQualityFieldFilter.value !== "all"
+  || dataQualityImpactFilter.value !== "all"
+  || dataQualityActionFilter.value !== "all",
+);
+const filteredDataQualityIssues = computed(() => dataQualityIssues.value.filter((issue) => {
+  if (dataQualitySeverityFilter.value !== "all" && issue.severity !== dataQualitySeverityFilter.value) {
+    return false;
+  }
+  const activityQuery = dataQualityActivityFilter.value.trim().toLowerCase();
+  if (activityQuery) {
+    const haystack = [
+      issue.activityName,
+      issue.activityId,
+      issue.activityType,
+      issue.year,
+      issue.filePath,
+    ].filter(Boolean).join(" ").toLowerCase();
+    if (!haystack.includes(activityQuery)) return false;
+  }
+  if (dataQualityFieldFilter.value !== "all" && issue.field !== dataQualityFieldFilter.value && issue.category !== dataQualityFieldFilter.value) {
+    return false;
+  }
+  if (dataQualityActionFilter.value !== "all" && dataQualityActionForIssue(issue) !== dataQualityActionFilter.value) {
+    return false;
+  }
+  if (dataQualityImpactFilter.value !== "all" && !dataQualityImpactTokens(issue).includes(dataQualityImpactFilter.value)) {
+    return false;
+  }
+  return true;
+}));
 const displayedDataQualityIssues = computed(() => {
   if (showAllDataQualityIssues.value) {
-    return dataQualityIssues.value;
+    return filteredDataQualityIssues.value;
   }
-  return dataQualityIssues.value.slice(0, dataQualityPreviewLimit);
+  return filteredDataQualityIssues.value.slice(0, dataQualityPreviewLimit);
 });
 const dataQualityIssueListLabel = computed(() => {
   const visible = displayedDataQualityIssues.value.length;
+  const filtered = filteredDataQualityIssues.value.length;
   const total = hasFullDataQualityReport.value
     ? dataQualityIssues.value.length
     : dataQualitySummary.value?.issueCount ?? dataQualityIssues.value.length;
-  if (total <= visible) {
+  if (total === filtered && total <= visible) {
     return `${formatInteger(visible)} issues`;
   }
-  return `Showing ${formatInteger(visible)} of ${formatInteger(total)} issues`;
+  if (filtered <= visible) {
+    return `${formatInteger(filtered)} filtered of ${formatInteger(total)} issues`;
+  }
+  return `Showing ${formatInteger(visible)} of ${formatInteger(filtered)} filtered issues`;
 });
-const canToggleDataQualityIssues = computed(() => hasFullDataQualityReport.value && dataQualityIssues.value.length > dataQualityPreviewLimit);
+const canToggleDataQualityIssues = computed(() => hasFullDataQualityReport.value && filteredDataQualityIssues.value.length > dataQualityPreviewLimit);
+const issueCorrection = computed(() => issueCorrectionPreview.value?.corrections[0] ?? null);
+const issueCorrectionImpactStats = computed(() => {
+  const impact = issueCorrection.value?.impact;
+  return [
+    {
+      label: "Distance",
+      before: formatDistanceMeters(impact?.distanceMetersBefore),
+      after: formatDistanceMeters(impact?.distanceMetersAfter),
+      delta: formatSignedDistance(impact?.distanceDeltaMeters),
+    },
+    {
+      label: "D+",
+      before: formatMeters(impact?.elevationMetersBefore),
+      after: formatMeters(impact?.elevationMetersAfter),
+      delta: formatSignedMeters(impact?.elevationDeltaMeters),
+    },
+    {
+      label: "Max speed",
+      before: formatSpeed(impact?.maxSpeedBefore),
+      after: formatSpeed(impact?.maxSpeedAfter),
+      delta: formatSignedSpeedDelta(impact?.maxSpeedBefore, impact?.maxSpeedAfter),
+    },
+    {
+      label: "Records",
+      before: "n/a",
+      after: "n/a",
+      delta: issueCorrectionPreview.value?.summary.potentiallyImpactsRecords ? "May change" : "No signal",
+    },
+  ];
+});
 const dataQualityStatusLabel = computed(() => {
   const status = dataQualitySummary.value?.status ?? "not_applicable";
   if (status === "ok") return "OK";
@@ -422,6 +525,151 @@ const sourceModePreviewStats = computed<Array<{ label: string; value: string; to
     { label: "Restart", value: preview.restartNeeded ? "Required" : "No", tone: preview.restartNeeded ? "warn" : "neutral" },
   ];
 });
+const localSourceGuideTitle = computed(() => `Import ${selectedSourceMode.value}`);
+const localSourceGuideCopy = computed(() => {
+  if (selectedSourceMode.value === "FIT") return "Local FIT files grouped by year.";
+  if (selectedSourceMode.value === "GPX") return "Local GPX files grouped by year.";
+  return "";
+});
+const localSourceGuideFacts = computed<GuideFact[]>(() => {
+  const preview = sourceModePreview.value;
+  if (!preview) {
+    return [
+      { label: "Path", value: sourceModePath.value.trim() ? "Set" : "Required", tone: sourceModePath.value.trim() ? undefined : "warn" },
+      { label: "Config", value: sourceModeConfigKey.value, monospace: true },
+      { label: "Verification", value: diagnosticsStore.isPreviewingSourceMode ? "Checking" : "Preview first", tone: "warn" },
+    ];
+  }
+  return [
+    { label: "Activities", value: formatInteger(preview.activityCount), tone: preview.activityCount > 0 ? "up" : "warn" },
+    { label: "Years", value: preview.years.length > 0 ? preview.years.map((year) => year.year).join(", ") : "n/a", tone: preview.years.length > 0 ? undefined : "warn" },
+    { label: "Files", value: `${formatInteger(preview.validFileCount)}/${formatInteger(preview.fileCount)}`, tone: preview.validFileCount > 0 ? "up" : "warn" },
+    { label: "Invalid", value: formatInteger(preview.invalidFileCount), tone: preview.invalidFileCount > 0 ? "warn" : undefined },
+  ];
+});
+const localSourceGuideNextAction = computed(() => {
+  const preview = sourceModePreview.value;
+  if (!sourceModePath.value.trim()) return `Select a ${selectedSourceMode.value} directory to inspect.`;
+  if (diagnosticsStore.isPreviewingSourceMode) return "Checking the selected directory.";
+  if (!preview) return "Run Preview to inspect files and prepare the activation command.";
+  if (preview.errors.length > 0) return preview.errors[0]?.message ?? "Fix the reported source issue.";
+  if (!preview.readable) return "Choose a readable directory.";
+  if (!preview.validStructure) return "Fix the directory structure before activating this source.";
+  if (preview.invalidFileCount > 0) return "Remove or fix invalid files before relying on this source.";
+  if (preview.restartNeeded) return "Restart with the generated command, then verify active mode.";
+  if (preview.active) return `${selectedSourceMode.value} is active and ready.`;
+  return "Preview is ready; verify active mode before switching workflows.";
+});
+const localSourceGuideNextActionClass = computed(() => {
+  const preview = sourceModePreview.value;
+  if (preview?.active) return "source-guide-next source-guide-next--ready";
+  if (preview && preview.errors.length === 0 && preview.readable && preview.validStructure && preview.invalidFileCount === 0) return "source-guide-next source-guide-next--ready";
+  if (diagnosticsStore.isPreviewingSourceMode) return "source-guide-next";
+  return "source-guide-next source-guide-next--warn";
+});
+const localSourceGuideSteps = computed<GuideStep[]>(() => {
+  const preview = sourceModePreview.value;
+  const hasPath = sourceModePath.value.trim().length > 0;
+  const sourceLabel = selectedSourceMode.value;
+  return [
+    {
+      key: "folder",
+      title: `${sourceLabel} directory`,
+      detail: hasPath ? sourceModePath.value : "Directory path is required.",
+      state: preview?.readable ? "complete" : hasPath ? "pending" : "current",
+      icon: "fa-solid fa-folder-open",
+    },
+    {
+      key: "files",
+      title: "Files",
+      detail: preview ? `${formatInteger(preview.validFileCount)} valid file(s), ${formatInteger(preview.invalidFileCount)} invalid.` : "Preview files before activation.",
+      state: preview ? preview.errors.length > 0 || !preview.validStructure || preview.validFileCount === 0 ? "warn" : "complete" : "pending",
+      icon: "fa-solid fa-file-lines",
+    },
+    {
+      key: "restart",
+      title: "Runtime config",
+      detail: preview?.active ? "Backend is already using this source." : preview?.restartNeeded ? "Activation command is ready." : "Preview prepares the restart command.",
+      state: preview?.active ? "complete" : preview?.restartNeeded ? "current" : preview ? "complete" : "pending",
+      icon: "fa-solid fa-terminal",
+    },
+    {
+      key: "verify",
+      title: "Active source",
+      detail: preview?.active ? "Active mode verified." : "Restart if needed, then verify active mode.",
+      state: preview?.active ? "complete" : preview ? "current" : "pending",
+      icon: "fa-solid fa-circle-check",
+    },
+  ];
+});
+const dataQualityProviderMode = computed<SourceMode | null>(() => {
+  const provider = dataQualitySummary.value?.provider?.trim();
+  return provider ? normalizeSourceMode(provider) : null;
+});
+const selectedLocalSourceIsActive = computed(() => selectedSourceMode.value !== "STRAVA" && activeSourceMode.value === selectedSourceMode.value);
+const dataQualityMatchesSelectedSource = computed(() => {
+  if (!selectedLocalSourceIsActive.value) return false;
+  return dataQualityProviderMode.value === null || dataQualityProviderMode.value === selectedSourceMode.value;
+});
+const localSourceQualityStatusLabel = computed(() => {
+  if (!selectedLocalSourceIsActive.value) return "After restart";
+  const status = dataQualitySummary.value?.status ?? "not_applicable";
+  if (status === "not_applicable") return "Not checked";
+  return dataQualityStatusLabel.value;
+});
+const localSourceQualityStatusClass = computed(() => {
+  if (!selectedLocalSourceIsActive.value) return "status-chip status-chip--neutral";
+  const status = dataQualitySummary.value?.status ?? "not_applicable";
+  if (status === "not_applicable") return "status-chip status-chip--neutral";
+  return dataQualityStatusClass.value;
+});
+const localSourceQualityCopy = computed(() => {
+  const preview = sourceModePreview.value;
+  const summary = dataQualitySummary.value;
+  if (!selectedLocalSourceIsActive.value) {
+    if (preview?.restartNeeded) return `Restart with ${sourceModeConfigKey.value} to run data quality on this import.`;
+    return `Data quality will attach here once ${selectedSourceMode.value} is the active source.`;
+  }
+  if (!dataQualityMatchesSelectedSource.value || !summary || summary.status === "not_applicable") {
+    return "Refresh diagnostics after activation to load local data quality checks.";
+  }
+  if (summary.issueCount <= 0) {
+    return `No local data quality issue detected for the active ${selectedSourceMode.value} source.`;
+  }
+  return `${formatInteger(summary.issueCount)} issue(s) affect ${formatInteger(summary.impactedActivities)} activity(ies); review them before trusting records.`;
+});
+const localSourceQualityFacts = computed<GuideFact[]>(() => {
+  const summary = dataQualitySummary.value;
+  if (!selectedLocalSourceIsActive.value) {
+    return [
+      { label: "Quality", value: "Pending" },
+      { label: "Current", value: formatProvider(activeSourceMode.value), tone: activeSourceMode.value === "STRAVA" ? "neutral" : "warn" },
+      { label: "Target", value: selectedSourceMode.value, tone: "up" },
+      { label: "Next", value: sourceModePreview.value?.restartNeeded ? "Restart" : "Preview", tone: "warn" },
+    ];
+  }
+  if (!dataQualityMatchesSelectedSource.value || !summary || summary.status === "not_applicable") {
+    return [
+      { label: "Quality", value: "Not checked", tone: "warn" },
+      { label: "Active", value: selectedSourceMode.value, tone: "up" },
+      { label: "Issues", value: "n/a" },
+      { label: "Next", value: "Refresh", tone: "warn" },
+    ];
+  }
+  const statusTone = summary.status === "critical" ? "down" : summary.issueCount > 0 ? "warn" : "up";
+  return [
+    { label: "Issues", value: formatInteger(summary.issueCount), tone: statusTone },
+    { label: "Affected", value: formatInteger(summary.impactedActivities), tone: summary.impactedActivities > 0 ? "warn" : "up" },
+    { label: "Safe fixes", value: formatInteger(summary.safeCorrectionCount ?? 0), tone: (summary.safeCorrectionCount ?? 0) > 0 ? "warn" : undefined },
+    { label: "Manual", value: formatInteger(summary.manualReviewCount ?? 0), tone: (summary.manualReviewCount ?? 0) > 0 ? "warn" : undefined },
+  ];
+});
+const localSourceQualityCategories = computed(() => dataQualityMatchesSelectedSource.value ? dataQualityCategories.value.slice(0, 4) : []);
+const localSourceQualityTopIssues = computed(() => dataQualityMatchesSelectedSource.value ? dataQualityIssues.value.slice(0, 3) : []);
+const localSourceQualityOverflowCount = computed(() => Math.max(dataQualityIssues.value.length - localSourceQualityTopIssues.value.length, 0));
+const localSourceQualityCanFix = computed(() =>
+  dataQualityMatchesSelectedSource.value && (dataQualitySummary.value?.safeCorrectionCount ?? 0) > 0,
+);
 const sourceModeActivationCommand = computed(() => sourceModePreview.value?.activationCommand ?? "");
 const sourceModeActivationSummary = computed<Array<{ label: string; value: string; tone?: "warn" | "up" }>>(() => {
   const preview = sourceModePreview.value;
@@ -502,13 +750,17 @@ watch(
 watch(
   [() => diagnosticsStore.hasHealth, sourceModePath, selectedSourceMode],
   () => {
-    if (!diagnosticsStore.hasHealth || !sourceModeInitialized.value || sourceModeAutoPreviewStarted.value) {
+    if (!diagnosticsStore.hasHealth || !sourceModeInitialized.value || sourceModePathEdited.value) {
       return;
     }
     if (!sourceModePath.value.trim()) {
       return;
     }
-    sourceModeAutoPreviewStarted.value = true;
+    const previewKey = `${selectedSourceMode.value}:${sourceModePath.value.trim()}`;
+    if (lastSourceModeAutoPreviewKey.value === previewKey) {
+      return;
+    }
+    lastSourceModeAutoPreviewKey.value = previewKey;
     void previewSourceMode(true);
   },
   { immediate: true, flush: "post" },
@@ -651,16 +903,38 @@ function formatInteger(value: number | null): string {
   return new Intl.NumberFormat().format(value);
 }
 
+function formatMeters(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "n/a";
+  return `${value.toFixed(0)} m`;
+}
+
 function formatSignedMeters(value: number | null | undefined): string {
   if (value === null || value === undefined) return "n/a";
   const sign = value > 0 ? "+" : "";
   return `${sign}${value.toFixed(0)} m`;
 }
 
+function formatDistanceMeters(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "n/a";
+  return `${(value / 1000).toFixed(2)} km`;
+}
+
 function formatSignedDistance(value: number | null | undefined): string {
   if (value === null || value === undefined) return "n/a";
   const sign = value > 0 ? "+" : "";
   return `${sign}${(value / 1000).toFixed(2)} km`;
+}
+
+function formatSpeed(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "n/a";
+  return `${(value * 3.6).toFixed(1)} km/h`;
+}
+
+function formatSignedSpeedDelta(before: number | null | undefined, after: number | null | undefined): string {
+  if (before === null || before === undefined || after === null || after === undefined) return "n/a";
+  const delta = (after - before) * 3.6;
+  const sign = delta > 0 ? "+" : "";
+  return `${sign}${delta.toFixed(1)} km/h`;
 }
 
 function statusClass(status: string): string {
@@ -735,15 +1009,25 @@ function stravaStepClass(state: "complete" | "current" | "warn" | "pending"): st
   return `strava-step strava-step--${state}`;
 }
 
+function sourceGuideStepClass(state: "complete" | "current" | "warn" | "pending"): string {
+  return `source-guide-step source-guide-step--${state}`;
+}
+
+function sourceGuideFactClass(fact: GuideFact): string {
+  return fact.tone && fact.tone !== "neutral" ? `source-guide-fact source-guide-fact--${fact.tone}` : "source-guide-fact";
+}
+
 function selectSourceMode(mode: SourceMode) {
   selectedSourceMode.value = mode;
   sourceModePathEdited.value = false;
   sourceModePath.value = defaultSourceModePath(mode);
+  lastSourceModeAutoPreviewKey.value = "";
   clearSourceModePreview();
 }
 
 function markSourceModePathEdited() {
   sourceModePathEdited.value = true;
+  lastSourceModeAutoPreviewKey.value = "";
   clearSourceModePreview();
 }
 
@@ -831,6 +1115,83 @@ function dataQualityStatClass(tone: string): string {
   return "quality-metric";
 }
 
+function dataQualityActionForIssue(issue: DataQualityIssue): string {
+  if (issue.correction?.available && issue.correction.safety === "safe") return "safe";
+  if (issue.correction?.available && issue.correction.safety === "manual") return "manual";
+  return "unsupported";
+}
+
+function dataQualityActionLabel(issue: DataQualityIssue): string {
+  const action = dataQualityActionForIssue(issue);
+  if (action === "safe") return "Safe local fix";
+  if (action === "manual") return "Manual review";
+  return "Unsupported";
+}
+
+function dataQualityImpactTokens(issue: DataQualityIssue): string[] {
+  const text = `${issue.category} ${issue.field} ${issue.message}`.toLowerCase();
+  const tokens = new Set<string>();
+  if (issue.severity === "critical" || issue.severity === "warning") {
+    tokens.add("records");
+  }
+  if (text.includes("distance") || text.includes("gps") || text.includes("latlng")) {
+    tokens.add("distance");
+  }
+  if (text.includes("elevation") || text.includes("altitude")) {
+    tokens.add("elevation");
+  }
+  if (text.includes("speed") || text.includes("time") || text.includes("moving")) {
+    tokens.add("speed");
+  }
+  if (text.includes("stream") || text.includes("heart") || text.includes("power") || text.includes("watts") || text.includes("cadence")) {
+    tokens.add("sensor");
+  }
+  if (tokens.size === 0) {
+    tokens.add("records");
+  }
+  return Array.from(tokens);
+}
+
+function formatDataQualityImpactToken(value: string): string {
+  const labels: Record<string, string> = {
+    records: "Records",
+    distance: "Distance",
+    elevation: "D+",
+    speed: "Speed",
+    sensor: "Sensor",
+  };
+  return labels[value] || value;
+}
+
+function clearDataQualityFilters() {
+  dataQualitySeverityFilter.value = "all";
+  dataQualityActivityFilter.value = "";
+  dataQualityFieldFilter.value = "all";
+  dataQualityImpactFilter.value = "all";
+  dataQualityActionFilter.value = "all";
+  showAllDataQualityIssues.value = false;
+}
+
+async function previewIssueCorrection(issue: DataQualityIssue) {
+  selectedQualityIssueId.value = issue.id;
+  issueCorrectionPreview.value = null;
+  issueCorrectionPreviewError.value = "";
+  issueCorrectionPreviewLoading.value = true;
+  try {
+    issueCorrectionPreview.value = await diagnosticsStore.previewCorrection(issue.id);
+  } catch (error) {
+    issueCorrectionPreviewError.value = error instanceof Error ? error.message : "Unable to preview correction impact.";
+  } finally {
+    issueCorrectionPreviewLoading.value = false;
+  }
+}
+
+function closeIssueCorrectionPreview() {
+  selectedQualityIssueId.value = null;
+  issueCorrectionPreview.value = null;
+  issueCorrectionPreviewError.value = "";
+}
+
 async function toggleStatsExclusion(issue: DataQualityIssue) {
   if (!issue.activityId) {
     return;
@@ -873,6 +1234,7 @@ async function applyIssueCorrection(issue: DataQualityIssue) {
   qualityActionIssueId.value = issue.id;
   try {
     await diagnosticsStore.applyCorrection(issue.id);
+    closeIssueCorrectionPreview();
     uiStore.showToast({
       id: `quality-fix-${Date.now()}`,
       type: ToastTypeEnum.NORMAL,
@@ -1399,6 +1761,113 @@ async function previewSourceMode(silent = false) {
                 {{ stravaOAuth.tokenError }}
               </p>
             </div>
+            <div
+              v-if="selectedSourceMode !== 'STRAVA'"
+              class="source-guide"
+            >
+              <div class="source-guide-heading">
+                <div>
+                  <strong>{{ localSourceGuideTitle }}</strong>
+                  <span :class="sourceModeStatusClass">{{ sourceModeStatusLabel }}</span>
+                </div>
+                <span class="source-config-key monospace">{{ sourceModeConfigKey }}</span>
+              </div>
+              <p class="source-guide-copy">
+                {{ localSourceGuideCopy }}
+              </p>
+              <div class="source-guide-facts">
+                <div
+                  v-for="fact in localSourceGuideFacts"
+                  :key="fact.label"
+                  :class="sourceGuideFactClass(fact)"
+                >
+                  <span>{{ fact.label }}</span>
+                  <strong :class="{ monospace: fact.monospace }">{{ fact.value }}</strong>
+                </div>
+              </div>
+              <p :class="localSourceGuideNextActionClass">
+                <i class="fa-solid fa-circle-info" aria-hidden="true" />
+                {{ localSourceGuideNextAction }}
+              </p>
+              <div class="source-guide-steps">
+                <div
+                  v-for="step in localSourceGuideSteps"
+                  :key="step.key"
+                  :class="sourceGuideStepClass(step.state)"
+                >
+                  <i :class="step.icon" aria-hidden="true" />
+                  <span>
+                    <strong>{{ step.title }}</strong>
+                    <small>{{ step.detail }}</small>
+                  </span>
+                </div>
+              </div>
+              <div class="source-guide-quality">
+                <div class="source-guide-quality-heading">
+                  <div>
+                    <strong>Data quality</strong>
+                    <span :class="localSourceQualityStatusClass">{{ localSourceQualityStatusLabel }}</span>
+                  </div>
+                  <button
+                    v-if="localSourceQualityCanFix"
+                    type="button"
+                    class="btn btn-sm btn-primary"
+                    :disabled="qualityBatchActionInProgress"
+                    @click="applySafeCorrections"
+                  >
+                    <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true" />
+                    Fix safe issues
+                  </button>
+                </div>
+                <p class="source-guide-quality-copy">
+                  {{ localSourceQualityCopy }}
+                </p>
+                <div class="source-guide-quality-facts">
+                  <div
+                    v-for="fact in localSourceQualityFacts"
+                    :key="fact.label"
+                    :class="sourceGuideFactClass(fact)"
+                  >
+                    <span>{{ fact.label }}</span>
+                    <strong :class="{ monospace: fact.monospace }">{{ fact.value }}</strong>
+                  </div>
+                </div>
+                <div
+                  v-if="localSourceQualityCategories.length > 0"
+                  class="source-guide-quality-categories"
+                >
+                  <span
+                    v-for="item in localSourceQualityCategories"
+                    :key="item.category"
+                    class="quality-category"
+                    :title="dataQualityCategoryTooltip(item.category)"
+                  >
+                    {{ formatDataQualityCategory(item.category) }} · {{ item.count }}
+                    <TooltipHint :text="dataQualityCategoryTooltip(item.category)" />
+                  </span>
+                </div>
+                <div
+                  v-if="localSourceQualityTopIssues.length > 0"
+                  class="source-guide-quality-issues"
+                >
+                  <div
+                    v-for="issue in localSourceQualityTopIssues"
+                    :key="issue.id"
+                    class="source-guide-quality-issue"
+                  >
+                    <span :class="dataQualitySeverityClass(issue.severity)">{{ issue.severity }}</span>
+                    <strong>{{ formatDataQualityCategory(issue.category) }}</strong>
+                    <small>{{ [issue.activityName || issue.activityId, issue.message].filter(Boolean).join(" · ") }}</small>
+                  </div>
+                  <small
+                    v-if="localSourceQualityOverflowCount > 0"
+                    class="source-guide-quality-overflow"
+                  >
+                    +{{ formatInteger(localSourceQualityOverflowCount) }} more in Data Quality.
+                  </small>
+                </div>
+              </div>
+            </div>
             <div class="source-activation">
               <div class="source-activation-summary">
                 <div
@@ -1576,6 +2045,87 @@ async function previewSourceMode(silent = false) {
 
           <div
             v-if="dataQualityIssues.length > 0"
+            class="quality-triage"
+          >
+            <div class="quality-action-groups">
+              <button
+                v-for="group in dataQualityActionGroups"
+                :key="group.key"
+                type="button"
+                :class="['quality-action-group', { 'quality-action-group--active': dataQualityActionFilter === group.key }]"
+                @click="dataQualityActionFilter = dataQualityActionFilter === group.key ? 'all' : group.key"
+              >
+                <i :class="group.icon" aria-hidden="true" />
+                <span>{{ group.label }}</span>
+                <strong>{{ formatInteger(group.count) }}</strong>
+              </button>
+            </div>
+            <div class="quality-filters">
+              <label>
+                <span>Severity</span>
+                <select
+                  v-model="dataQualitySeverityFilter"
+                  class="form-control"
+                >
+                  <option value="all">All severities</option>
+                  <option value="critical">Critical</option>
+                  <option value="warning">Warning</option>
+                  <option value="info">Info</option>
+                </select>
+              </label>
+              <label>
+                <span>Activity</span>
+                <input
+                  v-model="dataQualityActivityFilter"
+                  type="search"
+                  class="form-control"
+                  placeholder="Name or ID"
+                >
+              </label>
+              <label>
+                <span>Field</span>
+                <select
+                  v-model="dataQualityFieldFilter"
+                  class="form-control"
+                >
+                  <option value="all">All fields</option>
+                  <option
+                    v-for="field in dataQualityFieldOptions"
+                    :key="field.value"
+                    :value="field.value"
+                  >
+                    {{ field.label }}
+                  </option>
+                </select>
+              </label>
+              <label>
+                <span>Impact</span>
+                <select
+                  v-model="dataQualityImpactFilter"
+                  class="form-control"
+                >
+                  <option value="all">All impacts</option>
+                  <option value="records">Records</option>
+                  <option value="distance">Distance</option>
+                  <option value="elevation">D+</option>
+                  <option value="speed">Speed</option>
+                  <option value="sensor">Sensor data</option>
+                </select>
+              </label>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary"
+                :disabled="!hasDataQualityFilters"
+                @click="clearDataQualityFilters"
+              >
+                <i class="fa-solid fa-filter-circle-xmark" aria-hidden="true" />
+                Clear
+              </button>
+            </div>
+          </div>
+
+          <div
+            v-if="filteredDataQualityIssues.length > 0"
             class="quality-table"
           >
             <div class="quality-table-toolbar">
@@ -1612,74 +2162,190 @@ async function previewSourceMode(silent = false) {
               <span>Severity</span>
               <span>Activity</span>
               <span>Problem</span>
-              <span>Value</span>
+              <span>Field</span>
+              <span>Impact</span>
               <span>Action</span>
             </div>
-            <div
+            <template
               v-for="issue in displayedDataQualityIssues"
               :key="issue.id"
-              class="quality-row"
             >
-              <span :class="dataQualitySeverityClass(issue.severity)">{{ issue.severity }}</span>
-              <span>
-                <RouterLink
-                  v-if="issue.activityId"
-                  :to="`/activities/${issue.activityId}`"
-                  class="quality-activity-link"
+              <div class="quality-row">
+                <span :class="dataQualitySeverityClass(issue.severity)">{{ issue.severity }}</span>
+                <span>
+                  <RouterLink
+                    v-if="issue.activityId"
+                    :to="`/activities/${issue.activityId}`"
+                    class="quality-activity-link"
+                  >
+                    {{ issue.activityName || issue.activityId }}
+                  </RouterLink>
+                  <span v-else>{{ issue.activityName || "n/a" }}</span>
+                  <small>{{ [issue.activityType, issue.year].filter(Boolean).join(" · ") }}</small>
+                </span>
+                <span>
+                  <strong class="quality-problem-label">
+                    {{ formatDataQualityCategory(issue.category) }}
+                    <TooltipHint :text="dataQualityCategoryTooltip(issue.category)" />
+                  </strong>
+                  <small>{{ issue.message }}</small>
+                  <small
+                    v-if="issue.correction?.available"
+                    :class="['quality-correction-chip', `quality-correction-chip--${issue.correction.safety}`]"
+                  >
+                    {{ dataQualityActionLabel(issue) }}
+                  </small>
+                </span>
+                <span>
+                  <strong class="monospace">{{ formatSourceField(issue.field) }}</strong>
+                  <small>{{ issue.rawValue || issue.field }}</small>
+                </span>
+                <span class="quality-impact-cell">
+                  <small
+                    v-for="token in dataQualityImpactTokens(issue)"
+                    :key="token"
+                    :class="['quality-impact-chip', `quality-impact-chip--${token}`]"
+                  >
+                    {{ formatDataQualityImpactToken(token) }}
+                  </small>
+                </span>
+                <span class="quality-action-cell">
+                  <button
+                    v-if="issue.correction?.available"
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    :disabled="issueCorrectionPreviewLoading && selectedQualityIssueId === issue.id"
+                    @click="previewIssueCorrection(issue)"
+                  >
+                    <i class="fa-solid fa-eye" aria-hidden="true" />
+                    Review
+                  </button>
+                  <button
+                    v-if="issue.correction?.available && issue.correction.safety === 'safe'"
+                    type="button"
+                    class="btn btn-sm btn-outline-primary"
+                    :disabled="qualityActionIssueId === issue.id"
+                    @click="applyIssueCorrection(issue)"
+                  >
+                    <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true" />
+                    Fix
+                  </button>
+                  <button
+                    v-if="issue.activityId"
+                    type="button"
+                    :class="['btn btn-sm', issue.excludedFromStats ? 'btn-outline-secondary' : 'btn-outline-danger']"
+                    :disabled="qualityActionActivityId === issue.activityId"
+                    @click="toggleStatsExclusion(issue)"
+                  >
+                    <i
+                      :class="issue.excludedFromStats ? 'fa-solid fa-rotate-left' : 'fa-solid fa-ban'"
+                      aria-hidden="true"
+                    />
+                    {{ issue.excludedFromStats ? "Include" : "Exclude" }}
+                  </button>
+                  <small v-if="issue.excludedFromStats">Excluded from stats</small>
+                  <small
+                    v-else-if="issue.correction?.available && issue.correction.safety === 'manual'"
+                    class="quality-manual-note"
+                  >
+                    {{ issue.correction.description || "Manual review required" }}
+                  </small>
+                  <small v-else>{{ issue.suggestion || "Review source" }}</small>
+                </span>
+              </div>
+              <div
+                v-if="selectedQualityIssueId === issue.id"
+                class="quality-row-preview"
+              >
+                <div class="quality-row-preview-heading">
+                  <div>
+                    <strong>{{ issue.activityName || issue.activityId || "Selected issue" }}</strong>
+                    <small>{{ issue.message }}</small>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    @click="closeIssueCorrectionPreview"
+                  >
+                    <i class="fa-solid fa-xmark" aria-hidden="true" />
+                    Close
+                  </button>
+                </div>
+                <p
+                  v-if="issueCorrectionPreviewLoading"
+                  class="quality-preview-inline-state"
                 >
-                  {{ issue.activityName || issue.activityId }}
-                </RouterLink>
-                <span v-else>{{ issue.activityName || "n/a" }}</span>
-                <small>{{ [issue.activityType, issue.year].filter(Boolean).join(" · ") }}</small>
-              </span>
-              <span>
-                <strong class="quality-problem-label">
-                  {{ formatDataQualityCategory(issue.category) }}
-                  <TooltipHint :text="dataQualityCategoryTooltip(issue.category)" />
-                </strong>
-                <small>{{ issue.message }}</small>
-                <small
-                  v-if="issue.correction?.available"
-                  :class="['quality-correction-chip', `quality-correction-chip--${issue.correction.safety}`]"
+                  Loading correction impact.
+                </p>
+                <p
+                  v-else-if="issueCorrectionPreviewError"
+                  class="quality-preview-inline-state quality-preview-inline-state--warn"
                 >
-                  {{ issue.correction.safety === "safe" ? "Safe local fix" : "Manual review" }}
-                </small>
-              </span>
-              <span class="monospace">{{ issue.rawValue || issue.field }}</span>
-              <span class="quality-action-cell">
-                <button
-                  v-if="issue.correction?.available && issue.correction.safety === 'safe'"
-                  type="button"
-                  class="btn btn-sm btn-outline-primary"
-                  :disabled="qualityActionIssueId === issue.id"
-                  @click="applyIssueCorrection(issue)"
-                >
-                  <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true" />
-                  Fix
-                </button>
-                <button
-                  v-if="issue.activityId"
-                  type="button"
-                  :class="['btn btn-sm', issue.excludedFromStats ? 'btn-outline-secondary' : 'btn-outline-danger']"
-                  :disabled="qualityActionActivityId === issue.activityId"
-                  @click="toggleStatsExclusion(issue)"
-                >
-                  <i
-                    :class="issue.excludedFromStats ? 'fa-solid fa-rotate-left' : 'fa-solid fa-ban'"
-                    aria-hidden="true"
-                  />
-                  {{ issue.excludedFromStats ? "Include" : "Exclude" }}
-                </button>
-                <small v-if="issue.excludedFromStats">Excluded from stats</small>
-                <small
-                  v-else-if="issue.correction?.available && issue.correction.safety === 'manual'"
-                  class="quality-manual-note"
-                >
-                  {{ issue.correction.description || "Manual review required" }}
-                </small>
-                <small v-else>{{ issue.suggestion || "Review source" }}</small>
-              </span>
-            </div>
+                  {{ issueCorrectionPreviewError }}
+                </p>
+                <template v-else-if="issueCorrectionPreview">
+                  <div class="quality-impact-grid">
+                    <div
+                      v-for="stat in issueCorrectionImpactStats"
+                      :key="stat.label"
+                    >
+                      <span>{{ stat.label }}</span>
+                      <strong>{{ stat.delta }}</strong>
+                      <small>{{ stat.before }} → {{ stat.after }}</small>
+                    </div>
+                  </div>
+                  <div
+                    v-if="issueCorrection"
+                    class="quality-preview-fields"
+                  >
+                    <span>{{ dataQualityActionLabel(issue) }}</span>
+                    <span>{{ correctionLabel(issueCorrection.type) }}</span>
+                    <span
+                      v-for="field in issueCorrection.modifiedFields"
+                      :key="field"
+                    >
+                      {{ formatSourceField(field) }}
+                    </span>
+                  </div>
+                  <div
+                    v-if="issueCorrectionPreview.warnings.length > 0 || issueCorrectionPreview.blockingReasons.length > 0"
+                    class="quality-preview-review"
+                  >
+                    <span
+                      v-for="warning in issueCorrectionPreview.warnings"
+                      :key="`warning-${warning}`"
+                    >
+                      {{ warning }}
+                    </span>
+                    <span
+                      v-for="reason in issueCorrectionPreview.blockingReasons"
+                      :key="`blocking-${reason}`"
+                    >
+                      {{ reason }}
+                    </span>
+                  </div>
+                  <div class="quality-preview-actions">
+                    <button
+                      v-if="issueCorrection?.safety === 'safe'"
+                      type="button"
+                      class="btn btn-sm btn-primary"
+                      :disabled="qualityActionIssueId === issue.id"
+                      @click="applyIssueCorrection(issue)"
+                    >
+                      <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true" />
+                      Apply safe fix
+                    </button>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+
+          <div
+            v-if="dataQualityIssues.length > 0 && filteredDataQualityIssues.length === 0"
+            class="quality-empty"
+          >
+            No issue matches the current triage filters.
           </div>
 
           <div
@@ -2371,7 +3037,8 @@ dd {
   padding: 7px 9px;
 }
 
-.strava-guide {
+.strava-guide,
+.source-guide {
   display: grid;
   gap: 10px;
   margin-top: 12px;
@@ -2381,14 +3048,16 @@ dd {
   padding: 10px;
 }
 
-.strava-guide-heading {
+.strava-guide-heading,
+.source-guide-heading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
 }
 
-.strava-guide-heading > div {
+.strava-guide-heading > div,
+.source-guide-heading > div {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -2396,7 +3065,8 @@ dd {
   min-width: 0;
 }
 
-.strava-guide-heading strong {
+.strava-guide-heading strong,
+.source-guide-heading strong {
   font-size: 0.92rem;
 }
 
@@ -2405,6 +3075,156 @@ dd {
   align-items: center;
   gap: 6px;
   white-space: nowrap;
+}
+
+.source-guide-copy {
+  margin: 0;
+  color: var(--ms-text-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.source-guide-facts,
+.source-guide-quality-facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.source-guide-fact {
+  min-width: 0;
+  border: 1px solid #e5e7ee;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 8px 9px;
+}
+
+.source-guide-fact--up {
+  border-color: #b8e5c8;
+  background: #f1fbf5;
+}
+
+.source-guide-fact--warn {
+  border-color: #f3d17e;
+  background: #fff8e3;
+}
+
+.source-guide-fact--down {
+  border-color: #efa4a4;
+  background: #fff0f0;
+}
+
+.source-guide-fact span {
+  display: block;
+  color: var(--ms-text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.source-guide-fact strong {
+  display: block;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.source-guide-next {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  margin: 0;
+  border: 1px solid #d7e1ee;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ms-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 7px 9px;
+}
+
+.source-guide-next--ready {
+  border-color: #b8e5c8;
+  background: #f1fbf5;
+  color: #23713b;
+}
+
+.source-guide-next--warn {
+  border-color: #f6db9a;
+  background: #fff8e5;
+  color: #7a5b15;
+}
+
+.source-guide-quality {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid #e5e7ee;
+  padding-top: 10px;
+}
+
+.source-guide-quality-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.source-guide-quality-heading > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.source-guide-quality-heading strong {
+  font-size: 0.9rem;
+}
+
+.source-guide-quality-heading .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.source-guide-quality-copy {
+  margin: 0;
+  color: var(--ms-text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.source-guide-quality-categories {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.source-guide-quality-issues {
+  display: grid;
+  gap: 6px;
+}
+
+.source-guide-quality-issue {
+  display: grid;
+  grid-template-columns: auto minmax(100px, 0.3fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.source-guide-quality-issue strong,
+.source-guide-quality-issue small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.source-guide-quality-issue small,
+.source-guide-quality-overflow {
+  color: var(--ms-text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
 }
 
 .strava-required-grid,
@@ -2520,12 +3340,14 @@ dd {
   overflow-wrap: anywhere;
 }
 
-.strava-steps {
+.strava-steps,
+.source-guide-steps {
   display: grid;
   gap: 7px;
 }
 
-.strava-step {
+.strava-step,
+.source-guide-step {
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr);
   gap: 8px;
@@ -2536,7 +3358,8 @@ dd {
   padding: 8px 9px;
 }
 
-.strava-step i {
+.strava-step i,
+.source-guide-step i {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2548,11 +3371,14 @@ dd {
 }
 
 .strava-step strong,
-.strava-step small {
+.strava-step small,
+.source-guide-step strong,
+.source-guide-step small {
   display: block;
 }
 
-.strava-step small {
+.strava-step small,
+.source-guide-step small {
   margin-top: 2px;
   color: var(--ms-text-muted);
   font-size: 0.78rem;
@@ -2560,29 +3386,36 @@ dd {
   overflow-wrap: anywhere;
 }
 
-.strava-step--complete {
+.strava-step--complete,
+.source-guide-step--complete {
   border-color: #99d6b0;
   background: #f3fbf5;
 }
 
-.strava-step--complete i {
+.strava-step--complete i,
+.source-guide-step--complete i {
   background: #dff4e6;
   color: #176a37;
 }
 
 .strava-step--current,
-.strava-step--warn {
+.strava-step--warn,
+.source-guide-step--current,
+.source-guide-step--warn {
   border-color: #f3d17e;
   background: #fffaf0;
 }
 
 .strava-step--current i,
-.strava-step--warn i {
+.strava-step--warn i,
+.source-guide-step--current i,
+.source-guide-step--warn i {
   background: #fff0bf;
   color: #805d05;
 }
 
-.strava-step--pending {
+.strava-step--pending,
+.source-guide-step--pending {
   color: var(--ms-text-muted);
 }
 
@@ -2860,6 +3693,85 @@ dd {
   align-items: center;
 }
 
+.quality-triage {
+  display: grid;
+  gap: 10px;
+}
+
+.quality-action-groups {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.quality-action-group {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid #d7e1ee;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ms-text);
+  padding: 9px 10px;
+  text-align: left;
+}
+
+.quality-action-group i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #eef4fb;
+  color: #31506f;
+}
+
+.quality-action-group span,
+.quality-action-group strong {
+  overflow-wrap: anywhere;
+}
+
+.quality-action-group span {
+  font-weight: 800;
+}
+
+.quality-action-group--active {
+  border-color: var(--ms-primary);
+  background: #eef4ff;
+  color: #244fbd;
+}
+
+.quality-filters {
+  display: grid;
+  grid-template-columns: 0.8fr minmax(160px, 1fr) minmax(180px, 1.2fr) 0.8fr auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.quality-filters label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  margin: 0;
+}
+
+.quality-filters label > span {
+  color: var(--ms-text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.quality-filters .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+}
+
 .quality-table {
   display: grid;
   gap: 1px;
@@ -2908,9 +3820,9 @@ dd {
 
 .quality-row {
   display: grid;
-  grid-template-columns: minmax(88px, 0.55fr) minmax(180px, 1.1fr) minmax(240px, 1.5fr) minmax(110px, 0.8fr) minmax(220px, 1.3fr);
+  grid-template-columns: minmax(88px, 0.5fr) minmax(170px, 1fr) minmax(220px, 1.35fr) minmax(110px, 0.65fr) minmax(130px, 0.8fr) minmax(230px, 1.35fr);
   gap: 10px;
-  min-width: 900px;
+  min-width: 1080px;
   padding: 9px 10px;
   background: #ffffff;
 }
@@ -3005,6 +3917,41 @@ dd {
   gap: 4px;
 }
 
+.quality-impact-cell {
+  display: flex;
+  align-content: start;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.quality-impact-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  border: 1px solid #c8d2e1;
+  border-radius: 999px;
+  background: #eef4fb;
+  color: #31506f;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.quality-impact-chip--records {
+  border-color: #f3d17e;
+  background: #fff8e3;
+  color: #805d05;
+}
+
+.quality-impact-chip--distance,
+.quality-impact-chip--elevation,
+.quality-impact-chip--speed {
+  border-color: #b7c9f7;
+  background: #f0f5ff;
+  color: #244fbd;
+}
+
 .quality-action-cell .btn {
   display: inline-flex;
   align-items: center;
@@ -3015,6 +3962,83 @@ dd {
 
 .quality-manual-note {
   max-width: 220px;
+}
+
+.quality-row-preview {
+  display: grid;
+  gap: 10px;
+  min-width: 1080px;
+  border-top: 1px solid #e5e7ee;
+  background: #fbfcff;
+  padding: 12px;
+}
+
+.quality-row-preview-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.quality-row-preview-heading strong,
+.quality-row-preview-heading small {
+  display: block;
+}
+
+.quality-row-preview-heading small,
+.quality-preview-inline-state {
+  color: var(--ms-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.quality-row-preview-heading .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.quality-preview-inline-state {
+  margin: 0;
+}
+
+.quality-preview-inline-state--warn {
+  color: #9b1c1c;
+}
+
+.quality-impact-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.quality-impact-grid div {
+  min-width: 0;
+  border: 1px solid #e5e7ee;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 9px;
+}
+
+.quality-impact-grid span {
+  display: block;
+  color: var(--ms-text-muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.quality-impact-grid strong,
+.quality-impact-grid small {
+  display: block;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.quality-impact-grid small {
+  color: var(--ms-text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
 }
 
 .quality-corrections {
@@ -3278,19 +4302,27 @@ dd {
   .warmup-steps,
   .runtime-config-grid,
   .quality-metrics,
+  .quality-action-groups,
+  .quality-filters,
+  .quality-impact-grid,
   .quality-preview-stats,
   .source-mode-layout,
   .source-activation-summary,
   .source-env-row,
   .source-command,
   .source-preview-metrics,
+  .source-guide-facts,
+  .source-guide-quality-facts,
+  .source-guide-quality-issue,
   .strava-required-grid,
   .strava-oauth-facts,
   .strava-enrollment-form {
     grid-template-columns: 1fr;
   }
 
-  .strava-guide-heading {
+  .strava-guide-heading,
+  .source-guide-heading,
+  .source-guide-quality-heading {
     align-items: stretch;
     flex-direction: column;
   }

@@ -166,10 +166,26 @@ func extractPreparedYears(summaries []warmupYearSummary) []int {
 	for _, summary := range summaries {
 		years = append(years, summary.Year)
 	}
-	sort.Slice(years, func(i, j int) bool {
-		return years[i] > years[j]
+	return normalizePreparedYears(years)
+}
+
+func normalizePreparedYears(years []int) []int {
+	cleanYears := make([]int, 0, len(years))
+	seen := make(map[int]struct{}, len(years))
+	for _, year := range years {
+		if year <= 0 {
+			continue
+		}
+		if _, ok := seen[year]; ok {
+			continue
+		}
+		seen[year] = struct{}{}
+		cleanYears = append(cleanYears, year)
+	}
+	sort.Slice(cleanYears, func(i, j int) bool {
+		return cleanYears[i] > cleanYears[j]
 	})
-	return years
+	return cleanYears
 }
 
 func (provider *StravaActivityProvider) precomputeMajorBestEfforts(activities []*strava.Activity) []warmupMetricSummary {

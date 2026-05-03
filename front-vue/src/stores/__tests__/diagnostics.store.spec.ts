@@ -200,4 +200,60 @@ describe("diagnostics store", () => {
     });
     expect(result).toEqual(payload);
   });
+
+  it("previews one data quality correction impact", async () => {
+    const payload = {
+      generatedAt: "2026-05-03T12:00:00Z",
+      mode: "single",
+      summary: {
+        safeCorrectionCount: 1,
+        manualReviewCount: 0,
+        unsupportedIssueCount: 0,
+        activityCount: 1,
+        distanceDeltaMeters: -12,
+        elevationDeltaMeters: 4,
+        modifiedFields: ["distance", "total_elevation_gain"],
+        potentiallyImpactsRecords: true,
+      },
+      corrections: [{
+        id: "correction-1",
+        issueId: "issue-1",
+        source: "FIT",
+        activityId: 42,
+        type: "RECALCULATE_FROM_STREAM",
+        safety: "safe",
+        status: "active",
+        pointIndexes: null,
+        modifiedFields: null,
+        impact: {
+          distanceMetersBefore: 1000,
+          distanceMetersAfter: 988,
+          elevationMetersBefore: 120,
+          elevationMetersAfter: 124,
+          maxSpeedBefore: 12,
+          maxSpeedAfter: 11,
+          distanceDeltaMeters: -12,
+          elevationDeltaMeters: 4,
+        },
+      }],
+      warnings: null,
+      blockingReasons: null,
+    };
+    vi.mocked(requestJson).mockResolvedValue(payload);
+    const store = useDiagnosticsStore();
+
+    const preview = await store.previewCorrection("issue-1");
+
+    expect(requestJson).toHaveBeenCalledWith("/api/data-quality/corrections/preview/issue-1", {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(preview.corrections[0].pointIndexes).toEqual([]);
+    expect(preview.corrections[0].modifiedFields).toEqual([]);
+    expect(preview.warnings).toEqual([]);
+    expect(preview.blockingReasons).toEqual([]);
+    expect(preview.summary.potentiallyImpactsRecords).toBe(true);
+  });
 });

@@ -51,7 +51,7 @@ func (provider *StravaActivityProvider) CacheDiagnostics() map[string]any {
 				"priority1":     manifest.Warmup.Priority1,
 				"priority2":     manifest.Warmup.Priority2,
 				"priority3":     manifest.Warmup.Priority3,
-				"preparedYears": manifest.Warmup.PreparedYears,
+				"preparedYears": normalizePreparedYears(manifest.Warmup.PreparedYears),
 				"lastRunAt":     manifest.Warmup.LastRunAt,
 			},
 		},

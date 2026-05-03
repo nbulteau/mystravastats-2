@@ -33,31 +33,6 @@
 
 ### Priorite haute
 
-- [x] `TECH-P1-09` (`P1`, `M`) - Industrialiser l'enrolement Strava OAuth.
-  Owners: `Back-Go`, `Back-Kotlin`, `Front`, `Docs`.
-  Constat:
-  - la creation de l'application Strava reste manuelle via `https://www.strava.com/settings/api`,
-  - l'API Strava expose OAuth et les donnees athletes/activities/routes, mais pas d'endpoint public pour creer ou administrer une application developpeur,
-  - MyStravaStats peut automatiser tout l'apres-creation: ecriture `.strava`, ouverture OAuth, callback local, validation des scopes, refresh token et diagnostics.
-  Scope:
-  - documenter clairement la limite: app Strava manuelle, OAuth local automatisable,
-  - fournir un assistant local pour creer `.strava`, lancer OAuth et sauvegarder `.strava-token.json`,
-  - durcir OAuth avec `state`, callback local explicite et refresh token persistant,
-  - exposer dans les diagnostics/source modes un statut lisible: credentials presents, token present, scopes acceptes, cache utilisable,
-  - garder les secrets hors logs et hors git.
-  Acceptance:
-  - un utilisateur ne saisit `clientId`/`clientSecret` qu'une fois apres creation de l'app Strava,
-  - les lancements suivants reutilisent ou refreshent le token sans rouvrir OAuth tant que l'autorisation reste valide,
-  - la documentation ne laisse plus croire que la creation de l'app Strava est automatisable par API.
-  Avancement 2026-05-03:
-  - fait: README racine, docs OAuth et troubleshooting clarifient la limite Strava,
-  - fait: `scripts/setup-strava-oauth.mjs` cree `.strava`, lance OAuth, valide `/api/v3/athlete` et sauvegarde `.strava-token.json`,
-  - fait: Go et Kotlin reutilisent/refreshent `.strava-token.json` et ajoutent une verification `state`,
-  - fait: `/api/source-modes/preview` signale deja l'absence ou la presence du token OAuth dans ses recommandations,
-  - fait: `/api/source-modes/preview` expose un statut OAuth structure (credentials, token, expiration, athlete, scopes),
-  - fait: Diagnostics / Source modes affiche le parcours guide `Connect Strava`,
-  - fait: Diagnostics peut maintenant ecrire `.strava`, ouvrir l'autorisation Strava et recevoir le callback backend pour sauvegarder `.strava-token.json`.
-
 - [ ] `TECH-P1-01` (`P1`, `L`) - Mettre le contrat API sous controle OpenAPI partage.
   Owners: `Back-Kotlin`, `Back-Go`, `Front`, `QA`.
   Constat:
@@ -69,19 +44,6 @@
   - ajouter des tests de conformite Go/Kotlin sur les DTO sensibles (`routes`, `statistics`, `dashboard`, `activities`, `source modes`, `data quality`, `gear analysis`, `annual goals`).
   Acceptance:
   - une divergence de champ ou d'enum casse la CI avant d'arriver dans l'UI.
-
-- [ ] `TECH-P1-02` (`P1`, `M`) - Automatiser les checks routes aujourd'hui manuels.
-  Owners: `QA`, `Back-Go`, `Back-Kotlin`, `Front`.
-  Constat:
-  - les docs de validation OSRM sont precises,
-  - les scripts `manual-route-*` restent dependants d'un lancement local et d'une interpretation humaine.
-  Scope:
-  - transformer les scenarios anti-retrace legacy, retrace permissif Strava Art, direction, surface, fallback et shape tuning en smoke tests automatises,
-  - lancer ces checks uniquement derriere profil CI/local OSRM pour eviter de ralentir la CI standard,
-  - capturer les diagnostics cles en artifact.
-  Acceptance:
-  - un changement route peut etre valide avec une commande unique,
-  - les cas terrain critiques restent reproductibles.
 
 - [ ] `TECH-P1-06` (`P1`, `M`) - Stabiliser les fixtures de qualite de donnees locales.
   Owners: `QA`, `Back-Go`, `Back-Kotlin`.
@@ -168,42 +130,6 @@
 
 ## Chantiers fonctionnels proposes
 
-### Priorite haute
-
-- [x] `FUNC-P0-03` (`P0`, `M`) - Parcours d'enrolement Strava guide.
-  Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
-  Proposition:
-  - ajouter dans Diagnostics / Source modes un parcours `Connecter Strava` qui guide l'utilisateur jusqu'a `settings/api`, puis reprend la main pour OAuth,
-  - afficher les champs attendus de l'app Strava: `Client ID`, `Client Secret`, `Authorization Callback Domain`,
-  - verifier `.strava`, le cache, le token, les scopes et le mode actif sans demander a l'utilisateur de lire les logs,
-  - proposer une relance OAuth quand le token est absent, expire, revoque ou incomplet.
-  Acceptance:
-  - un nouvel utilisateur comprend l'etape manuelle Strava et termine l'enrolement depuis l'application,
-  - les erreurs courantes (`clientSecret` faux, callback domain, port occupe, scope refuse) deviennent actionnables dans l'UI.
-  Avancement 2026-05-03:
-  - premiere tranche livree en CLI/docs/backend,
-  - fait: Diagnostics / Source modes contient le guide `Connect Strava`, le lien `settings/api`, les champs attendus, la commande d'assistant copiables et les etapes de verification,
-  - fait: la preview Strava remonte un statut OAuth non bloquant: `.strava`, token, refresh token, expiration, athlete et scopes,
-  - fait: l'UI peut demarrer l'OAuth local via le backend et sauvegarder le token apres callback Strava.
-
-- [ ] `FUNC-P0-01` (`P0`, `M`) - Parcours d'import local guide.
-  Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
-  Proposition:
-  - transformer la preview source mode en parcours complet: verifier dossier, expliquer champs manquants, proposer commande de lancement, puis verifier le mode actif apres redemarrage,
-  - afficher un recap utilisable avant de quitter le mode courant: activites trouvees, annees, erreurs bloquantes, qualite des donnees et prochaines actions,
-  - rendre les differences STRAVA/FIT/GPX comprensibles sans lire la config runtime.
-  Acceptance:
-  - un utilisateur peut passer d'une source Strava a un dossier FIT/GPX local sans deviner les variables d'environnement.
-
-- [ ] `FUNC-P0-02` (`P0`, `M`) - Triage data quality centre utilisateur.
-  Owners: `Product`, `Front`, `Stats`.
-  Proposition:
-  - ajouter une file de revue des problemes data quality avec filtre par severite, activite, champ et impact,
-  - afficher les differences avant/apres correction sur distance, D+, vitesse max et records potentiellement impactes,
-  - grouper les actions sures, manuelles et non supportees.
-  Acceptance:
-  - un utilisateur sait quelles corrections appliquer, lesquelles ignorer et lesquelles peuvent changer ses statistiques.
-
 ### Priorite moyenne
 
 - [ ] `FUNC-P1-04` (`P1`, `M`) - Comparaison d'activite a effort similaire.
@@ -259,15 +185,6 @@
   - annotations manuelles locales.
   Acceptance:
   - lecture rapide de la regularite et des trous d'entrainement.
-
-- [ ] `FUNC-P2-04` (`P2`, `S`) - Notes locales d'activite.
-  Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
-  Proposition:
-  - ajouter tags, notes libres et ressenti local sur une activite,
-  - conserver ces donnees dans le cache local sans ecriture Strava,
-  - afficher les notes dans detail activite, recherche et exports.
-  Acceptance:
-  - l'application peut enrichir les activites locales ou Strava sans modifier la source d'origine.
 
 - [ ] `FUNC-P2-05` (`P2`, `M`) - Sauvegarde et exports portables des donnees locales.
   Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
