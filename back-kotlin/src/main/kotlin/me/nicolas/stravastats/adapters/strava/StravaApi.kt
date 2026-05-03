@@ -23,16 +23,20 @@ import tools.jackson.databind.DeserializationFeature
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.KotlinModule
 import tools.jackson.module.kotlin.readValue
+import java.io.File
 import java.net.*
+import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.util.UUID
 import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.math.roundToLong
 
-internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
+internal class StravaApi(clientId: String, clientSecret: String, stravaCache: String? = null) : IStravaApi {
 
     companion object {
         private const val QUOTA_EXCEED_LIMIT =
@@ -42,6 +46,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
         private const val RATE_LIMIT_EXHAUSTED_COOLDOWN_MS = 60_000L
         private const val RATE_LIMIT_WINDOW_BUFFER_MS = 1_000L
         private const val MAX_BLOCKING_WAIT_MS = 30_000L
+        private const val TOKEN_REFRESH_BUFFER_SECONDS = 3_600L
     }
 
     private val logger: Logger = LoggerFactory.getLogger(StravaApi::class.java)
@@ -57,6 +62,7 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
 
     private var accessToken: String? = null
     private val globalRateLimitUntilMs = AtomicLong(0L)
+    private val tokenFile: File? = stravaCache?.let { File(it, ".strava-token.json") }
 
     private fun setAccessToken(accessToken: String) {
         this.accessToken = accessToken
@@ -331,11 +337,19 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
     }
 
     private fun setAccessToken(clientId: String, clientSecret: String) {
+        if (usePersistedTokenIfAvailable(clientId, clientSecret)) {
+            logger.info("Reused persisted Strava OAuth token")
+            return
+        }
+
         val redirectPort = 8090
         val redirectUri = "http://localhost:$redirectPort/exchange_token"
+        val state = UUID.randomUUID().toString()
         val url =
-            "https://www.strava.com/api/v3/oauth/authorize?client_id=$clientId&response_type=code" +
-                "&redirect_uri=$redirectUri&approval_prompt=auto&scope=read_all,activity:read_all,profile:read_all"
+            "${properties.url}/oauth/authorize?client_id=${encodeQueryParam(clientId)}&response_type=code" +
+                "&redirect_uri=${encodeQueryParam(redirectUri)}&approval_prompt=auto" +
+                "&scope=${encodeQueryParam("read_all,activity:read_all,profile:read_all")}" +
+                "&state=${encodeQueryParam(state)}"
         openBrowser(url)
 
         println()
@@ -344,9 +358,11 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
         println()
 
         logger.info("Waiting for your agreement to allow MyStravaStats to access to your Strava data ...")
-        val authorizationCode = receiveOAuthCallback(redirectPort)
+        val authorizationCode = receiveOAuthCallback(redirectPort, state)
         logger.info("Access granted - exchanging authorization code for access token.")
-        setAccessToken(getAccessToken(clientId, clientSecret, authorizationCode))
+        val tokenPayload = getAccessToken(clientId, clientSecret, authorizationCode)
+        persistToken(tokenPayload)
+        setAccessToken(tokenPayload.accessTokenOrThrow())
     }
 
     /**
@@ -357,9 +373,9 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
      * This replaces the previously embedded Ktor server and requires no additional
      * HTTP-server dependency.
      */
-    private fun receiveOAuthCallback(port: Int): String {
+    private fun receiveOAuthCallback(port: Int, expectedState: String): String {
         // 5-minute timeout: if the user does not authorise in time, we fail loudly.
-        ServerSocket(port).use { serverSocket ->
+        ServerSocket(port, 1, InetAddress.getLoopbackAddress()).use { serverSocket ->
             serverSocket.soTimeout = 5 * 60 * 1_000
             serverSocket.accept().use { socket ->
                 // Only the first line of the HTTP request is needed:
@@ -367,11 +383,18 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
                 val requestLine = socket.getInputStream().bufferedReader().readLine()
                     ?: throw RuntimeException("Empty HTTP request received on OAuth callback port $port")
 
-                // Extract the "code" parameter value from the query string.
-                val code = requestLine
-                    .substringAfter("code=", "")
-                    .substringBefore("&")
-                    .substringBefore(" ")
+                val requestTarget = requestLine.substringAfter("GET ", "").substringBefore(" ")
+                val query = URI(requestTarget).rawQuery.orEmpty()
+                val params = parseQueryParams(query)
+
+                if (params["state"] != expectedState) {
+                    throw RuntimeException("OAuth state mismatch. Please retry Strava authorization.")
+                }
+                params["error"]?.takeIf { it.isNotBlank() }?.let { error ->
+                    throw RuntimeException("Strava OAuth failed: $error")
+                }
+
+                val code = params["code"].orEmpty()
 
                 if (code.isBlank()) {
                     throw RuntimeException("No authorization code in OAuth callback. Request line: $requestLine")
@@ -442,11 +465,34 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
         </html>
     """.trimIndent()
 
-    private fun getAccessToken(clientId: String, clientSecret: String, authorizationCode: String): String {
+    private fun getAccessToken(clientId: String, clientSecret: String, authorizationCode: String): Map<String, Any?> {
+        return requestToken(
+            mapOf(
+                "client_id" to clientId,
+                "client_secret" to clientSecret,
+                "code" to authorizationCode,
+                "grant_type" to "authorization_code",
+            )
+        )
+    }
 
+    private fun refreshAccessToken(clientId: String, clientSecret: String, refreshToken: String): Map<String, Any?> {
+        return requestToken(
+            mapOf(
+                "client_id" to clientId,
+                "client_secret" to clientSecret,
+                "grant_type" to "refresh_token",
+                "refresh_token" to refreshToken,
+            )
+        )
+    }
+
+    private fun requestToken(payloadValues: Map<String, String>): Map<String, Any?> {
         val url = "${properties.url}/api/v3/oauth/token"
 
-        val payload = "client_id=$clientId&client_secret=$clientSecret&code=$authorizationCode&grant_type=authorization_code"
+        val payload = payloadValues.entries.joinToString("&") { (key, value) ->
+            "${encodeQueryParam(key)}=${encodeQueryParam(value)}"
+        }
         val body = payload.toRequestBody("application/x-www-form-urlencoded".toMediaType())
 
         var lastException: Exception? = null
@@ -462,11 +508,8 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
                     try {
                         if (response.code == 200) {
                             val tokenPayload: Map<String, Any?> = objectMapper.readValue(responseBody)
-                            val accessToken = tokenPayload["access_token"]?.toString().orEmpty()
-                            if (accessToken.isBlank()) {
-                                throw RuntimeException("Missing access_token in Strava response")
-                            }
-                            return accessToken
+                            tokenPayload.accessTokenOrThrow()
+                            return tokenPayload
                         } else {
                             throw RuntimeException("Something was wrong with Strava API for url $url (status=${response.code})")
                         }
@@ -486,6 +529,89 @@ internal class StravaApi(clientId: String, clientSecret: String) : IStravaApi {
         }
 
         throw RuntimeException("Failed to get token after $maxAttempts attempts: ${lastException?.message}", lastException)
+    }
+
+    private fun usePersistedTokenIfAvailable(clientId: String, clientSecret: String): Boolean {
+        val file = tokenFile ?: return false
+        if (!file.exists()) {
+            return false
+        }
+
+        return try {
+            val tokenPayload: Map<String, Any?> = objectMapper.readValue(file)
+            val accessToken = tokenPayload["access_token"]?.toString().orEmpty()
+            val expiresAt = tokenPayload["expires_at"].asLong()
+            val now = Instant.now().epochSecond
+
+            if (accessToken.isNotBlank() && expiresAt > now + TOKEN_REFRESH_BUFFER_SECONDS) {
+                setAccessToken(accessToken)
+                true
+            } else {
+                val refreshToken = tokenPayload["refresh_token"]?.toString().orEmpty()
+                if (refreshToken.isBlank()) {
+                    false
+                } else {
+                    val refreshedToken = refreshAccessToken(clientId, clientSecret, refreshToken)
+                    persistToken(refreshedToken)
+                    setAccessToken(refreshedToken.accessTokenOrThrow())
+                    true
+                }
+            }
+        } catch (exception: Exception) {
+            logger.warn("Unable to use persisted Strava OAuth token: ${exception.message}")
+            false
+        }
+    }
+
+    private fun persistToken(tokenPayload: Map<String, Any?>) {
+        val file = tokenFile ?: return
+        try {
+            file.parentFile?.mkdirs()
+            val persisted = tokenPayload + ("created_at" to Instant.now().toString())
+            objectMapper.writeValue(file, persisted)
+            file.setReadable(false, false)
+            file.setReadable(true, true)
+            file.setWritable(false, false)
+            file.setWritable(true, true)
+            file.setExecutable(false, false)
+        } catch (exception: Exception) {
+            throw RuntimeException("Unable to persist Strava OAuth token to ${file.absolutePath}", exception)
+        }
+    }
+
+    private fun Map<String, Any?>.accessTokenOrThrow(): String {
+        val accessToken = this["access_token"]?.toString().orEmpty()
+        if (accessToken.isBlank()) {
+            throw RuntimeException("Missing access_token in Strava response")
+        }
+        return accessToken
+    }
+
+    private fun Any?.asLong(): Long {
+        return when (this) {
+            is Number -> this.toDouble().roundToLong()
+            is String -> this.toLongOrNull() ?: 0L
+            else -> 0L
+        }
+    }
+
+    private fun parseQueryParams(query: String): Map<String, String> {
+        if (query.isBlank()) {
+            return emptyMap()
+        }
+        return query.split("&")
+            .filter { it.isNotBlank() }
+            .mapNotNull { pair ->
+                val key = pair.substringBefore("=", "")
+                if (key.isBlank()) return@mapNotNull null
+                val value = pair.substringAfter("=", "")
+                URLDecoder.decode(key, StandardCharsets.UTF_8) to URLDecoder.decode(value, StandardCharsets.UTF_8)
+            }
+            .toMap()
+    }
+
+    private fun encodeQueryParam(value: String): String {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8)
     }
 
     private fun buildRequestHeaders() =

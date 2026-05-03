@@ -1,7 +1,9 @@
 # Ignore strava dowload directory
 strava-cache/.strava
+strava-cache/.strava-token.json
 strava-*/
 .strava
+.strava-token.json
 
 # Ignore public directory
 public/

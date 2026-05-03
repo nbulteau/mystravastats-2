@@ -50,6 +50,18 @@ func getYearParam(request *http.Request) (*int, error) {
 	return &y, nil
 }
 
+func parseActivityRequestParams(request *http.Request) (*int, []business.ActivityType, error) {
+	year, err := getYearParam(request)
+	if err != nil {
+		return nil, nil, err
+	}
+	activityTypes, err := getActivityTypeParam(request)
+	if err != nil {
+		return nil, nil, err
+	}
+	return year, activityTypes, nil
+}
+
 func getPeriodParam(request *http.Request) (business.Period, error) {
 	periodParam := request.URL.Query().Get("period")
 	if periodParam == "" {

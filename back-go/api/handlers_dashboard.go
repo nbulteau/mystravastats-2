@@ -18,7 +18,7 @@ import (
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/dashboard [get]
 func getDashboard(writer http.ResponseWriter, request *http.Request) {
-	activityTypes, err := getActivityTypeParam(request)
+	_, activityTypes, err := parseActivityRequestParams(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
@@ -44,7 +44,7 @@ func getDashboard(writer http.ResponseWriter, request *http.Request) {
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/dashboard/cumulative-data-per-year [get]
 func getDashboardCumulativeDataByYear(writer http.ResponseWriter, request *http.Request) {
-	activityTypes, err := getActivityTypeParam(request)
+	_, activityTypes, err := parseActivityRequestParams(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
@@ -73,7 +73,7 @@ func getDashboardCumulativeDataByYear(writer http.ResponseWriter, request *http.
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/dashboard/activity-heatmap [get]
 func getDashboardActivityHeatmap(writer http.ResponseWriter, request *http.Request) {
-	activityTypes, err := getActivityTypeParam(request)
+	_, activityTypes, err := parseActivityRequestParams(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
@@ -97,7 +97,7 @@ func getDashboardActivityHeatmap(writer http.ResponseWriter, request *http.Reque
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/dashboard/eddington-number [get]
 func getDashboardEddingtonNumber(writer http.ResponseWriter, request *http.Request) {
-	activityTypes, err := getActivityTypeParam(request)
+	_, activityTypes, err := parseActivityRequestParams(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
@@ -127,18 +127,13 @@ func getDashboardEddingtonNumber(writer http.ResponseWriter, request *http.Reque
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/dashboard/annual-goals [get]
 func getDashboardAnnualGoals(writer http.ResponseWriter, request *http.Request) {
-	year, err := getYearParam(request)
+	year, activityTypes, err := parseActivityRequestParams(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
 	if year == nil {
 		writeBadRequest(writer, "Invalid request parameters", "year is required")
-		return
-	}
-	activityTypes, err := getActivityTypeParam(request)
-	if err != nil {
-		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
 
@@ -163,18 +158,13 @@ func getDashboardAnnualGoals(writer http.ResponseWriter, request *http.Request) 
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/dashboard/annual-goals [put]
 func putDashboardAnnualGoals(writer http.ResponseWriter, request *http.Request) {
-	year, err := getYearParam(request)
+	year, activityTypes, err := parseActivityRequestParams(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
 	if year == nil {
 		writeBadRequest(writer, "Invalid request parameters", "year is required")
-		return
-	}
-	activityTypes, err := getActivityTypeParam(request)
-	if err != nil {
-		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
 

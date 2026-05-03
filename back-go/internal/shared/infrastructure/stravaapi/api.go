@@ -2,6 +2,8 @@ package stravaapi
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +13,8 @@ import (
 	"mystravastats/internal/shared/domain/strava"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -26,15 +30,25 @@ type StravaApi struct {
 	clientId     string
 	clientSecret string
 	accessToken  string
+	tokenStore   string
 	properties   StravaProperties
 	httpClient   *http.Client
 }
 
 type Token struct {
-	AccessToken string `json:"access_token"`
+	TokenType    string         `json:"token_type,omitempty"`
+	AccessToken  string         `json:"access_token"`
+	RefreshToken string         `json:"refresh_token,omitempty"`
+	ExpiresAt    int64          `json:"expires_at,omitempty"`
+	ExpiresIn    int64          `json:"expires_in,omitempty"`
+	Scope        string         `json:"scope,omitempty"`
+	Athlete      map[string]any `json:"athlete,omitempty"`
+	CreatedAt    string         `json:"created_at,omitempty"`
 }
 
 var ErrStravaRateLimitReached = errors.New("strava rate limit reached (429)")
+
+const tokenRefreshBuffer = time.Hour
 
 func IsRateLimitError(err error) bool {
 	if err == nil {
@@ -48,6 +62,14 @@ func IsRateLimitError(err error) bool {
 }
 
 func NewStravaApi(clientId, clientSecret string) *StravaApi {
+	return newStravaApi(clientId, clientSecret, "")
+}
+
+func NewStravaApiWithTokenStore(clientId, clientSecret, tokenStore string) *StravaApi {
+	return newStravaApi(clientId, clientSecret, tokenStore)
+}
+
+func newStravaApi(clientId, clientSecret, tokenStore string) *StravaApi {
 	properties := StravaProperties{
 		PageSize: 200,
 		URL:      "https://www.strava.com",
@@ -55,6 +77,7 @@ func NewStravaApi(clientId, clientSecret string) *StravaApi {
 	api := &StravaApi{
 		clientId:     clientId,
 		clientSecret: clientSecret,
+		tokenStore:   strings.TrimSpace(tokenStore),
 		properties:   properties,
 		httpClient:   &http.Client{},
 	}
@@ -69,7 +92,19 @@ func NewStravaApi(clientId, clientSecret string) *StravaApi {
 }
 
 func (api *StravaApi) setAccessToken(clientId, clientSecret string) error {
-	authURL := fmt.Sprintf("%s/api/v3/oauth/authorize?client_id=%s&response_type=code&redirect_uri=http://localhost:8090/exchange_token&approval_prompt=auto&scope=read_all,activity:read_all,profile:read_all", api.properties.URL, clientId)
+	if usedToken, err := api.usePersistedTokenIfAvailable(clientId, clientSecret); usedToken {
+		log.Printf("Reused persisted Strava OAuth token")
+		return nil
+	} else if err != nil {
+		log.Printf("Unable to use persisted Strava OAuth token: %v", err)
+	}
+
+	state, err := newOAuthState()
+	if err != nil {
+		return err
+	}
+	redirectURI := "http://localhost:8090/exchange_token"
+	authURL := api.authorizationURL(clientId, redirectURI, state)
 	fmt.Println("To grant MyStravaStats to read your Strava activities data: copy paste this URL in a browser")
 	fmt.Println(authURL)
 
@@ -78,33 +113,19 @@ func (api *StravaApi) setAccessToken(clientId, clientSecret string) error {
 	var tokenReady sync.Once
 	mux := http.NewServeMux()
 	server := &http.Server{
-		Addr:    ":8090",
+		Addr:    "localhost:8090",
 		Handler: mux,
 	}
 
 	// Create a channel to communicate errors
 	errorChan := make(chan error, 1)
-
-	// Start a local server to handle the OAuth callback
-	mux.HandleFunc("/exchange_token", func(w http.ResponseWriter, r *http.Request) {
-		code := r.URL.Query().Get("code")
-		token, err := api.getToken(clientId, clientSecret, code)
+	finish := func(err error) {
 		if err != nil {
-			errorChan <- err
-			_, _ = fmt.Fprint(w, buildResponseHtml(clientId))
-			tokenReady.Do(func() {
-				close(tokenChan)
-			})
-			go func() {
-				shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				defer cancel()
-				_ = server.Shutdown(shutdownCtx)
-			}()
-			return
+			select {
+			case errorChan <- err:
+			default:
+			}
 		}
-		api.accessToken = token.AccessToken
-		_, _ = fmt.Fprint(w, buildResponseHtml(clientId))
-
 		tokenReady.Do(func() {
 			close(tokenChan)
 		})
@@ -113,12 +134,45 @@ func (api *StravaApi) setAccessToken(clientId, clientSecret string) error {
 			defer cancel()
 			_ = server.Shutdown(shutdownCtx)
 		}()
+	}
+
+	// Start a local server to handle the OAuth callback
+	mux.HandleFunc("/exchange_token", func(w http.ResponseWriter, r *http.Request) {
+		if returnedState := r.URL.Query().Get("state"); returnedState != state {
+			http.Error(w, "OAuth state mismatch. Please retry Strava authorization.", http.StatusBadRequest)
+			finish(fmt.Errorf("oauth state mismatch"))
+			return
+		}
+		if oauthError := r.URL.Query().Get("error"); oauthError != "" {
+			http.Error(w, "Strava OAuth failed: "+oauthError, http.StatusBadRequest)
+			finish(fmt.Errorf("strava oauth failed: %s", oauthError))
+			return
+		}
+		code := r.URL.Query().Get("code")
+		if code == "" {
+			http.Error(w, "Strava OAuth callback did not include an authorization code.", http.StatusBadRequest)
+			finish(fmt.Errorf("missing authorization code in oauth callback"))
+			return
+		}
+		token, err := api.getToken(clientId, clientSecret, code)
+		if err != nil {
+			http.Error(w, "Unable to exchange Strava authorization code.", http.StatusBadGateway)
+			finish(err)
+			return
+		}
+		if err := api.applyToken(token); err != nil {
+			http.Error(w, "Unable to store Strava token.", http.StatusBadGateway)
+			finish(err)
+			return
+		}
+		_, _ = fmt.Fprint(w, buildResponseHtml(clientId))
+		finish(nil)
 	})
 
 	go func() {
 		err := server.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("Failed to start local server: %v", err)
+			finish(fmt.Errorf("failed to start local OAuth callback server: %w", err))
 		}
 	}()
 
@@ -138,13 +192,39 @@ func (api *StravaApi) setAccessToken(clientId, clientSecret string) error {
 	return nil
 }
 
+func (api *StravaApi) authorizationURL(clientId, redirectURI, state string) string {
+	values := url.Values{}
+	values.Set("client_id", clientId)
+	values.Set("response_type", "code")
+	values.Set("redirect_uri", redirectURI)
+	values.Set("approval_prompt", "auto")
+	values.Set("scope", "read_all,activity:read_all,profile:read_all")
+	values.Set("state", state)
+	return fmt.Sprintf("%s/oauth/authorize?%s", api.properties.URL, values.Encode())
+}
+
 func (api *StravaApi) getToken(clientId, clientSecret, authorizationCode string) (Token, error) {
-	tokenURL := fmt.Sprintf("%s/api/v3/oauth/token", api.properties.URL)
 	payload := url.Values{}
 	payload.Set("client_id", clientId)
 	payload.Set("client_secret", clientSecret)
 	payload.Set("code", authorizationCode)
 	payload.Set("grant_type", "authorization_code")
+
+	return api.postTokenForm(payload)
+}
+
+func (api *StravaApi) refreshToken(clientId, clientSecret, refreshToken string) (Token, error) {
+	payload := url.Values{}
+	payload.Set("client_id", clientId)
+	payload.Set("client_secret", clientSecret)
+	payload.Set("grant_type", "refresh_token")
+	payload.Set("refresh_token", refreshToken)
+
+	return api.postTokenForm(payload)
+}
+
+func (api *StravaApi) postTokenForm(payload url.Values) (Token, error) {
+	tokenURL := fmt.Sprintf("%s/oauth/token", api.properties.URL)
 
 	// Use form-encoded payload and add timeout
 	client := *api.httpClient
@@ -182,6 +262,12 @@ func (api *StravaApi) getToken(clientId, clientSecret, authorizationCode string)
 		}
 	}(resp.Body)
 
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		limited := io.LimitReader(resp.Body, 4096)
+		body, _ := io.ReadAll(limited)
+		return Token{}, fmt.Errorf("strava token request failed: %d - %s", resp.StatusCode, string(body))
+	}
+
 	var token Token
 	decodeErr := json.NewDecoder(resp.Body).Decode(&token)
 	if decodeErr != nil {
@@ -189,6 +275,93 @@ func (api *StravaApi) getToken(clientId, clientSecret, authorizationCode string)
 	}
 
 	return token, nil
+}
+
+func (api *StravaApi) usePersistedTokenIfAvailable(clientId, clientSecret string) (bool, error) {
+	if api.tokenStore == "" {
+		return false, nil
+	}
+
+	token, err := api.loadPersistedToken()
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	if token.AccessToken != "" && token.ExpiresAt > time.Now().Add(tokenRefreshBuffer).Unix() {
+		api.accessToken = token.AccessToken
+		return true, nil
+	}
+
+	if token.RefreshToken == "" {
+		return false, nil
+	}
+
+	refreshedToken, err := api.refreshToken(clientId, clientSecret, token.RefreshToken)
+	if err != nil {
+		return false, err
+	}
+	if err := api.applyToken(refreshedToken); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (api *StravaApi) loadPersistedToken() (Token, error) {
+	data, err := os.ReadFile(api.tokenStore)
+	if err != nil {
+		return Token{}, err
+	}
+	var token Token
+	if err := json.Unmarshal(data, &token); err != nil {
+		return Token{}, err
+	}
+	return token, nil
+}
+
+func (api *StravaApi) applyToken(token Token) error {
+	if token.AccessToken == "" {
+		return fmt.Errorf("missing access_token in Strava response")
+	}
+	api.accessToken = token.AccessToken
+	if token.CreatedAt == "" {
+		token.CreatedAt = time.Now().UTC().Format(time.RFC3339)
+	}
+	if api.tokenStore != "" && token.RefreshToken != "" {
+		if err := api.saveToken(token); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (api *StravaApi) saveToken(token Token) error {
+	if api.tokenStore == "" {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(api.tokenStore), 0o700); err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(token, "", "  ")
+	if err != nil {
+		return err
+	}
+	data = append(data, '\n')
+	if err := os.WriteFile(api.tokenStore, data, 0o600); err != nil {
+		return err
+	}
+	return os.Chmod(api.tokenStore, 0o600)
+}
+
+func newOAuthState() (string, error) {
+	bytes := make([]byte, 24)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", fmt.Errorf("unable to generate oauth state: %w", err)
+	}
+	return hex.EncodeToString(bytes), nil
 }
 
 func (api *StravaApi) RetrieveLoggedInAthlete() (*strava.Athlete, error) {

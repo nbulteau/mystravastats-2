@@ -26,12 +26,7 @@ import (
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/activities [get]
 func getActivitiesByActivityType(writer http.ResponseWriter, request *http.Request) {
-	year, err := getYearParam(request)
-	if err != nil {
-		writeBadRequest(writer, "Invalid request parameters", err.Error())
-		return
-	}
-	activityTypes, err := getActivityTypeParam(request)
+	year, activityTypes, err := parseActivityRequestParams(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
@@ -101,12 +96,7 @@ func getDetailedActivity(writer http.ResponseWriter, request *http.Request) {
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/activities/csv [get]
 func getExportCSV(writer http.ResponseWriter, request *http.Request) {
-	year, err := getYearParam(request)
-	if err != nil {
-		writeBadRequest(writer, "Invalid request parameters", err.Error())
-		return
-	}
-	activityTypes, err := getActivityTypeParam(request)
+	year, activityTypes, err := parseActivityRequestParams(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
@@ -135,12 +125,7 @@ func getExportCSV(writer http.ResponseWriter, request *http.Request) {
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/maps/gpx [get]
 func getMapsGPX(writer http.ResponseWriter, request *http.Request) {
-	year, err := getYearParam(request)
-	if err != nil {
-		writeBadRequest(writer, "Invalid request parameters", err.Error())
-		return
-	}
-	activityTypes, err := getActivityTypeParam(request)
+	year, activityTypes, err := parseActivityRequestParams(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
@@ -165,12 +150,7 @@ func getMapsGPX(writer http.ResponseWriter, request *http.Request) {
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/maps/passages [get]
 func getMapPassages(writer http.ResponseWriter, request *http.Request) {
-	year, err := getYearParam(request)
-	if err != nil {
-		writeBadRequest(writer, "Invalid request parameters", err.Error())
-		return
-	}
-	activityTypes, err := getActivityTypeParam(request)
+	year, activityTypes, err := parseActivityRequestParams(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return

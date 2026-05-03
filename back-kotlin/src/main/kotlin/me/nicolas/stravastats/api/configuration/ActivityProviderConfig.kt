@@ -56,7 +56,7 @@ class ActivityProviderConfig {
             val resolvedStravaCache = stravaCache ?: "strava-cache"
             val provider = StravaActivityProvider(
                 storageProvider = StravaRepository(resolvedStravaCache),
-                stravaApiFactory = { clientId, clientSecret -> StravaApi(clientId, clientSecret) },
+                stravaApiFactory = { clientId, clientSecret -> StravaApi(clientId, clientSecret, resolvedStravaCache) },
                 stravaApi = null,
                 stravaCache = resolvedStravaCache,
             )
@@ -101,4 +101,3 @@ class ActivityProviderConfig {
         createdProvider?.close()
     }
 }
-

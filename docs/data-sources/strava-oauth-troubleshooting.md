@@ -17,6 +17,7 @@ What to do:
 
 Check:
 - the callback port is not already used by another process
+- the Strava application `Authorization Callback Domain` matches the local flow (`127.0.0.1` for the setup assistant, `localhost` for the legacy backend default)
 - no browser extension or local security tool is blocking the redirect
 - Docker or the local application is really running
 
@@ -44,6 +45,18 @@ What to check:
 - the values were copied exactly from the Strava API settings page
 - there are no extra spaces around the values
 - the file uses `key=value` lines
+
+## Problem: OAuth keeps reopening on every launch
+
+What it usually means:
+- `.strava-token.json` is missing, unreadable or expired without a refresh token
+- Strava returned a new refresh token but the application could not save it
+- the app was revoked from Strava settings
+
+What to do:
+- run `node scripts/setup-strava-oauth.mjs`
+- verify the cache directory is writable
+- keep `.strava-token.json` private and outside git
 
 ## Problem: `useCache=true` but data is incomplete
 
@@ -99,6 +112,7 @@ Before looking deeper, verify:
 - Docker is installed and running
 - the app is really running
 - `.strava` exists in the correct directory
+- `.strava-token.json` exists after a successful OAuth setup
 - `clientId` and `clientSecret` are correct
 - `useCache` matches the behavior you expect
 - the OAuth URL can be opened manually

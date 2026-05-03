@@ -18,12 +18,7 @@ import (
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/statistics [get]
 func getStatisticsByActivityType(writer http.ResponseWriter, request *http.Request) {
-	year, err := getYearParam(request)
-	if err != nil {
-		writeBadRequest(writer, "Invalid request parameters", err.Error())
-		return
-	}
-	activityTypes, err := getActivityTypeParam(request)
+	year, activityTypes, err := parseActivityRequestParams(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
@@ -54,12 +49,7 @@ func getStatisticsByActivityType(writer http.ResponseWriter, request *http.Reque
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/statistics/personal-records-timeline [get]
 func getPersonalRecordsTimelineByActivityType(writer http.ResponseWriter, request *http.Request) {
-	year, err := getYearParam(request)
-	if err != nil {
-		writeBadRequest(writer, "Invalid request parameters", err.Error())
-		return
-	}
-	activityTypes, err := getActivityTypeParam(request)
+	year, activityTypes, err := parseActivityRequestParams(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
@@ -79,12 +69,7 @@ func getPersonalRecordsTimelineByActivityType(writer http.ResponseWriter, reques
 }
 
 func getHeartRateZoneAnalysisByActivityType(writer http.ResponseWriter, request *http.Request) {
-	year, err := getYearParam(request)
-	if err != nil {
-		writeBadRequest(writer, "Invalid request parameters", err.Error())
-		return
-	}
-	activityTypes, err := getActivityTypeParam(request)
+	year, activityTypes, err := parseActivityRequestParams(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
@@ -114,12 +99,7 @@ func getHeartRateZoneAnalysisByActivityType(writer http.ResponseWriter, request 
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/statistics/segment-climb-progression [get]
 func getSegmentClimbProgressionByActivityType(writer http.ResponseWriter, request *http.Request) {
-	year, err := getYearParam(request)
-	if err != nil {
-		writeBadRequest(writer, "Invalid request parameters", err.Error())
-		return
-	}
-	activityTypes, err := getActivityTypeParam(request)
+	year, activityTypes, err := parseActivityRequestParams(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
@@ -142,12 +122,7 @@ func getSegmentClimbProgressionByActivityType(writer http.ResponseWriter, reques
 }
 
 func getSegmentsByActivityType(writer http.ResponseWriter, request *http.Request) {
-	year, err := getYearParam(request)
-	if err != nil {
-		writeBadRequest(writer, "Invalid request parameters", err.Error())
-		return
-	}
-	activityTypes, err := getActivityTypeParam(request)
+	year, activityTypes, err := parseActivityRequestParams(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
@@ -183,12 +158,7 @@ func getSegmentEffortsByActivityType(writer http.ResponseWriter, request *http.R
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
-	year, err := getYearParam(request)
-	if err != nil {
-		writeBadRequest(writer, "Invalid request parameters", err.Error())
-		return
-	}
-	activityTypes, err := getActivityTypeParam(request)
+	year, activityTypes, err := parseActivityRequestParams(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
@@ -223,12 +193,7 @@ func getSegmentSummaryByActivityType(writer http.ResponseWriter, request *http.R
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
-	year, err := getYearParam(request)
-	if err != nil {
-		writeBadRequest(writer, "Invalid request parameters", err.Error())
-		return
-	}
-	activityTypes, err := getActivityTypeParam(request)
+	year, activityTypes, err := parseActivityRequestParams(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return

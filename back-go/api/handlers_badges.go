@@ -19,12 +19,7 @@ import (
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/badges [get]
 func getBadges(writer http.ResponseWriter, request *http.Request) {
-	year, err := getYearParam(request)
-	if err != nil {
-		writeBadRequest(writer, "Invalid request parameters", err.Error())
-		return
-	}
-	activityTypes, err := getActivityTypeParam(request)
+	year, activityTypes, err := parseActivityRequestParams(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return

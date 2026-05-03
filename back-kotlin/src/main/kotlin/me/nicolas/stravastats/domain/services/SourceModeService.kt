@@ -303,6 +303,13 @@ class SourceModeService(
             .sortedByDescending { it.year }
         val recommendations = mutableListOf<String>()
         if (useCache == true) recommendations.add("Strava cache-only mode is enabled.")
+        if (useCache != true) {
+            if (File(directory, ".strava-token.json").exists()) {
+                recommendations.add("Strava OAuth token is available for refresh.")
+            } else {
+                recommendations.add("Run node scripts/setup-strava-oauth.mjs to create .strava-token.json before live Strava refresh.")
+            }
+        }
         if (restartNeeded) recommendations.add("Restart the backend after changing STRAVA_CACHE_PATH or switching source mode.")
 
         return SourceModePreview(

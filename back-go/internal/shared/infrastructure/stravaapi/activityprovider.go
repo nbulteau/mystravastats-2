@@ -8,6 +8,7 @@ import (
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
 	"mystravastats/internal/shared/infrastructure/localrepository"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strconv"
@@ -58,15 +59,14 @@ func NewStravaActivityProvider(stravaCache string, serverPort string) *StravaAct
 FATAL: Strava authentication not found!
 
 Configuration required:
-1. Create strava-cache/auth.json with structure:
-{
-  "clientId": "YOUR_CLIENT_ID",
-  "clientSecret": "YOUR_CLIENT_SECRET"
-}
+1. Create strava-cache/.strava with:
+clientId=YOUR_CLIENT_ID
+clientSecret=YOUR_CLIENT_SECRET
+useCache=false
 
 2. Get credentials from: https://www.strava.com/settings/api
 
-3. Run: go run main.go
+3. Or run: node scripts/setup-strava-oauth.mjs
 `)
 	}
 
@@ -686,7 +686,11 @@ func (provider *StravaActivityProvider) ensureStravaAPI() *StravaApi {
 		return nil
 	}
 
-	stravaApi := NewStravaApi(provider.clientId, provider.clientSecret)
+	stravaApi := NewStravaApiWithTokenStore(
+		provider.clientId,
+		provider.clientSecret,
+		filepath.Join(provider.cacheRoot, ".strava-token.json"),
+	)
 	if stravaApi == nil {
 		// Token fetch failed, switch to cache-only mode
 		log.Printf("Failed to initialize Strava API (token fetch error)")

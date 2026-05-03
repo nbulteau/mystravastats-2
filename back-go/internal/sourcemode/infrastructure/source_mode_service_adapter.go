@@ -241,6 +241,10 @@ func previewStravaSourceMode(path string) business.SourceModePreview {
 	preview.ValidFileCount = preview.FileCount
 	if useCache {
 		preview.Recommendations = append(preview.Recommendations, "Strava cache-only mode is enabled.")
+	} else if _, err := os.Stat(filepath.Join(path, ".strava-token.json")); err == nil {
+		preview.Recommendations = append(preview.Recommendations, "Strava OAuth token is available for refresh.")
+	} else {
+		preview.Recommendations = append(preview.Recommendations, "Run node scripts/setup-strava-oauth.mjs to create .strava-token.json before live Strava refresh.")
 	}
 	if preview.RestartNeeded {
 		preview.Recommendations = append(preview.Recommendations, "Restart the backend after changing STRAVA_CACHE_PATH or switching source mode.")

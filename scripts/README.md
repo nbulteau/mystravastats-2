@@ -1,5 +1,21 @@
 # Scripts
 
+## setup-strava-oauth.mjs
+
+Guide the local Strava enrollment after the Strava developer application has
+been created manually on `https://www.strava.com/settings/api`.
+
+Usage from the repository root:
+
+```shell
+node scripts/setup-strava-oauth.mjs
+node scripts/setup-strava-oauth.mjs --cache /absolute/path/to/strava-cache
+```
+
+The script writes `.strava`, opens the Strava OAuth authorization page, receives
+the local callback, validates `/api/v3/athlete` and stores `.strava-token.json`
+for later refresh-token reuse.
+
 ## smoke-source-modes.mjs
 
 Launch a backend on temporary ports and validate the critical source-mode

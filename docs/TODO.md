@@ -33,6 +33,29 @@
 
 ### Priorite haute
 
+- [ ] `TECH-P1-09` (`P1`, `M`) - Industrialiser l'enrolement Strava OAuth.
+  Owners: `Back-Go`, `Back-Kotlin`, `Front`, `Docs`.
+  Constat:
+  - la creation de l'application Strava reste manuelle via `https://www.strava.com/settings/api`,
+  - l'API Strava expose OAuth et les donnees athletes/activities/routes, mais pas d'endpoint public pour creer ou administrer une application developpeur,
+  - MyStravaStats peut automatiser tout l'apres-creation: ecriture `.strava`, ouverture OAuth, callback local, validation des scopes, refresh token et diagnostics.
+  Scope:
+  - documenter clairement la limite: app Strava manuelle, OAuth local automatisable,
+  - fournir un assistant local pour creer `.strava`, lancer OAuth et sauvegarder `.strava-token.json`,
+  - durcir OAuth avec `state`, callback local explicite et refresh token persistant,
+  - exposer dans les diagnostics/source modes un statut lisible: credentials presents, token present, scopes acceptes, cache utilisable,
+  - garder les secrets hors logs et hors git.
+  Acceptance:
+  - un utilisateur ne saisit `clientId`/`clientSecret` qu'une fois apres creation de l'app Strava,
+  - les lancements suivants reutilisent ou refreshent le token sans rouvrir OAuth tant que l'autorisation reste valide,
+  - la documentation ne laisse plus croire que la creation de l'app Strava est automatisable par API.
+  Avancement 2026-05-03:
+  - fait: README racine, docs OAuth et troubleshooting clarifient la limite Strava,
+  - fait: `scripts/setup-strava-oauth.mjs` cree `.strava`, lance OAuth, valide `/api/v3/athlete` et sauvegarde `.strava-token.json`,
+  - fait: Go et Kotlin reutilisent/refreshent `.strava-token.json` et ajoutent une verification `state`,
+  - fait: `/api/source-modes/preview` signale deja l'absence ou la presence du token OAuth dans ses recommandations,
+  - reste: statut OAuth structure (scopes, expiration, athlete) et parcours UI `Connecter Strava`.
+
 - [ ] `TECH-P1-01` (`P1`, `L`) - Mettre le contrat API sous controle OpenAPI partage.
   Owners: `Back-Kotlin`, `Back-Go`, `Front`, `QA`.
   Constat:
@@ -145,6 +168,20 @@
 
 ### Priorite haute
 
+- [ ] `FUNC-P0-03` (`P0`, `M`) - Parcours d'enrolement Strava guide.
+  Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
+  Proposition:
+  - ajouter dans Diagnostics / Source modes un parcours `Connecter Strava` qui guide l'utilisateur jusqu'a `settings/api`, puis reprend la main pour OAuth,
+  - afficher les champs attendus de l'app Strava: `Client ID`, `Client Secret`, `Authorization Callback Domain`,
+  - verifier `.strava`, le cache, le token, les scopes et le mode actif sans demander a l'utilisateur de lire les logs,
+  - proposer une relance OAuth quand le token est absent, expire, revoque ou incomplet.
+  Acceptance:
+  - un nouvel utilisateur comprend l'etape manuelle Strava et termine l'enrolement depuis l'application,
+  - les erreurs courantes (`clientSecret` faux, callback domain, port occupe, scope refuse) deviennent actionnables dans l'UI.
+  Avancement 2026-05-03:
+  - premiere tranche livree en CLI/docs/backend,
+  - prochaine tranche: brancher le parcours dans Diagnostics / Source modes avec un endpoint d'etat OAuth non bloquant.
+
 - [ ] `FUNC-P0-01` (`P0`, `M`) - Parcours d'import local guide.
   Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
   Proposition:
@@ -198,6 +235,16 @@
   Acceptance:
   - un utilisateur peut choisir une route sans lire les raisons brutes du moteur.
 
+- [ ] `FUNC-P1-11` (`P1`, `S`) - Etudier https://themechanic.bike/fr pour enrichir l'onglet Gear.
+  Owners: `Product`, `Front`, `Stats`.
+  Proposition:
+  - analyser les fonctionnalites et l'UX de themechanic.bike (suivi composants, alertes maintenance, historique de remplacement, kilomegage par piece),
+  - identifier les concepts transposables dans l'onglet Gear sans dependance a un service tiers,
+  - proposer un backlog de sous-taches issue de cette analyse.
+  Acceptance:
+  - un compte-rendu d'analyse documente les inspirations retenues et ecartees,
+  - les taches retenues sont ajoutees au TODO sous `FUNC-P1-10` ou remplacent sa proposition si chevauchement.
+
 - [ ] `FUNC-P1-10` (`P1`, `M`) - Previsions de maintenance materiel.
   Owners: `Product`, `Front`, `Stats`.
   Proposition:
@@ -238,6 +285,7 @@
 
 ## Dette visible a traiter en premier
 
+- Enrolement Strava OAuth (`TECH-P1-09`, `FUNC-P0-03`).
 - Contrat OpenAPI partage (`TECH-P1-01`).
 - Fixtures data quality partagees (`TECH-P1-06`).
 

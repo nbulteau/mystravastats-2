@@ -18,18 +18,13 @@ import (
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/charts/distance-by-period [get]
 func getChartsDistanceByPeriod(writer http.ResponseWriter, request *http.Request) {
-	year, err := getYearParam(request)
+	year, activityTypes, err := parseActivityRequestParams(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
 	if year == nil {
 		writeBadRequest(writer, "Invalid request parameters", "year is required")
-		return
-	}
-	activityTypes, err := getActivityTypeParam(request)
-	if err != nil {
-		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
 	period, err := getPeriodParam(request)
@@ -58,18 +53,13 @@ func getChartsDistanceByPeriod(writer http.ResponseWriter, request *http.Request
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/charts/elevation-by-period [get]
 func getChartsElevationByPeriod(writer http.ResponseWriter, request *http.Request) {
-	year, err := getYearParam(request)
+	year, activityTypes, err := parseActivityRequestParams(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
 	if year == nil {
 		writeBadRequest(writer, "Invalid request parameters", "year is required")
-		return
-	}
-	activityTypes, err := getActivityTypeParam(request)
-	if err != nil {
-		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
 	period, err := getPeriodParam(request)
@@ -98,18 +88,13 @@ func getChartsElevationByPeriod(writer http.ResponseWriter, request *http.Reques
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/charts/average-speed-by-period [get]
 func getChartsAverageSpeedByPeriod(writer http.ResponseWriter, request *http.Request) {
-	year, err := getYearParam(request)
+	year, activityTypes, err := parseActivityRequestParams(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
 	if year == nil {
 		writeBadRequest(writer, "Invalid request parameters", "year is required")
-		return
-	}
-	activityTypes, err := getActivityTypeParam(request)
-	if err != nil {
-		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
 	period, err := getPeriodParam(request)
@@ -138,18 +123,13 @@ func getChartsAverageSpeedByPeriod(writer http.ResponseWriter, request *http.Req
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/charts/average-cadence-by-period [get]
 func getChartsAverageCadenceByPeriod(writer http.ResponseWriter, request *http.Request) {
-	year, err := getYearParam(request)
+	year, activityTypes, err := parseActivityRequestParams(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
 	if year == nil {
 		writeBadRequest(writer, "Invalid request parameters", "year is required")
-		return
-	}
-	activityTypes, err := getActivityTypeParam(request)
-	if err != nil {
-		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
 	period, err := getPeriodParam(request)
