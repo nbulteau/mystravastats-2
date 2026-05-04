@@ -867,7 +867,7 @@ func BuildActivityEfforts(activity *strava.DetailedActivity) []business.Activity
 			IdxStart:      s.StartIndex,
 			IdxEnd:        s.EndIndex,
 			AveragePower:  nil,
-			Label:         fmt.Sprintf("Slope %.1d - max %.1f %%", index, s.MaxGrade),
+			Label:         fmt.Sprintf("Climb %d - %.1f km - D+ %.0f m - max %.1f%%", index+1, s.Distance/1000, math.Max(0, s.EndAltitude-s.StartAltitude), s.MaxGrade),
 			ActivityShort: business.ActivityShort{
 				Id:   activity.Id,
 				Name: activity.Name,

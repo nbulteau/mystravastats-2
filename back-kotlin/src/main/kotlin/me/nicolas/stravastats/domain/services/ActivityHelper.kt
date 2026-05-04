@@ -83,7 +83,12 @@ object ActivityHelper {
                 idxStart = slope.startIndex,
                 idxEnd = slope.endIndex,
                 averagePower = 0,
-                label = "Slope: $index - max gradient ${String.format("%.1f", slope.maxGrade)} %",
+                label = "Climb ${index + 1} - %.1f km - D+ %.0f m - max %.1f%%".format(
+                    Locale.ENGLISH,
+                    slope.distance / 1000,
+                    maxOf(0.0, slope.endAltitude - slope.startAltitude),
+                    slope.maxGrade,
+                ),
                 activityShort = ActivityShort(id = this.id, name = this.name, type = this.sportType)
             )
         }

@@ -64,6 +64,38 @@ class ActivityHelperDetailedSegmentsTest {
         assertTrue(effort.deltaAltitude > 0.0)
     }
 
+    @Test
+    fun `buildActivityEfforts labels detected climbs explicitly`() {
+        // GIVEN
+        val stream = StatisticsFixtures.defaultStream(
+            distances = listOf(
+                0.0, 100.0, 200.0, 300.0, 400.0, 500.0, 600.0, 700.0, 800.0, 900.0,
+                1000.0, 1100.0, 1200.0, 1300.0, 1400.0, 1500.0, 1600.0, 1700.0, 1800.0,
+            ),
+            times = listOf(
+                0, 40, 80, 120, 160, 200, 240, 280, 320, 360,
+                400, 440, 480, 520, 560, 600, 640, 680, 720,
+            ),
+            altitudes = listOf(
+                100.0, 106.0, 112.0, 118.0, 124.0, 126.0, 125.0, 127.0, 133.0, 139.0,
+                145.0, 151.0, 157.0, 163.0, 169.0, 175.0, 181.0, 187.0, 193.0,
+            ),
+        )
+        val activity = StatisticsFixtures.syntheticRideActivity(id = 78L, stream = stream)
+            .toStravaDetailedActivity()
+            .copy(stream = stream, segmentEfforts = emptyList())
+
+        // WHEN
+        val climb = with(ActivityHelper) { activity.buildActivityEfforts() }
+            .firstOrNull { effort -> effort.label.startsWith("Climb 1 -") }
+
+        // THEN
+        assertNotNull(climb)
+        assertTrue(!climb!!.label.contains("Slope"))
+        assertTrue(climb.label.contains("D+"))
+        assertTrue(climb.deltaAltitude > 0.0)
+    }
+
     private fun buildSyntheticDetailedActivity(): StravaDetailedActivity {
         val stream = StatisticsFixtures.defaultStream(
             distances = listOf(0.0, 100.0, 200.0, 300.0, 400.0, 500.0, 600.0),

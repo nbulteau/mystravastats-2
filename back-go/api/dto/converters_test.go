@@ -39,6 +39,46 @@ func TestBuildActivityEfforts_NilStream(t *testing.T) {
 	}
 }
 
+func TestBuildActivityEfforts_LabelsDetectedClimbs(t *testing.T) {
+	// GIVEN
+	detailedActivity := &strava.DetailedActivity{
+		Id:   43,
+		Name: "Irregular climb",
+		Type: "Ride",
+		Stream: &strava.Stream{
+			Distance: strava.DistanceStream{Data: []float64{
+				0, 100, 200, 300, 400, 500, 600, 700, 800, 900,
+				1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800,
+			}},
+			Time: strava.TimeStream{Data: []int{
+				0, 40, 80, 120, 160, 200, 240, 280, 320, 360,
+				400, 440, 480, 520, 560, 600, 640, 680, 720,
+			}},
+			Altitude: &strava.AltitudeStream{Data: []float64{
+				100, 106, 112, 118, 124, 126, 125, 127, 133, 139,
+				145, 151, 157, 163, 169, 175, 181, 187, 193,
+			}},
+		},
+	}
+
+	// WHEN
+	efforts := BuildActivityEfforts(detailedActivity)
+
+	// THEN
+	for _, effort := range efforts {
+		if strings.HasPrefix(effort.Label, "Climb 1 -") {
+			if !strings.Contains(effort.Label, "D+") || strings.Contains(effort.Label, "Slope") {
+				t.Fatalf("expected explicit climb label, got %q", effort.Label)
+			}
+			if effort.DeltaAltitude <= 0 {
+				t.Fatalf("expected climb effort to have positive elevation, got %.1f", effort.DeltaAltitude)
+			}
+			return
+		}
+	}
+	t.Fatalf("expected generated climb effort, got %#v", efforts)
+}
+
 func TestBuildActivityEfforts_DirectionAwareSegmentLabels(t *testing.T) {
 	// GIVEN
 	segmentName := "MURAILLE DE CHINE <Alpe d'Huez>"

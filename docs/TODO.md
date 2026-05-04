@@ -141,21 +141,6 @@
   Acceptance:
   - une activite donne immediatement du contexte par rapport aux sorties comparables.
 
-- [ ] `FUNC-P1-09` (`P1`, `M`) - Detecteur d'ascensions avec hysteresis.
-  Owners: `Product`, `Stats`, `Back-Go`, `Back-Kotlin`, `Front`.
-  Constat:
-  - le detecteur actuel de `Slope` segmente les montees par changements locaux de pente,
-  - les ascensions irregulieres peuvent etre trop fragmentees ou mal bornees dans le detail activite.
-  Proposition:
-  - basculer vers une detection d'ascensions soutenues avec seuil de demarrage et seuil de sortie distincts,
-  - utiliser une pente lissee sur fenetre de distance, idealement `grade_smooth` quand disponible,
-  - fusionner les faux-plats courts au milieu d'une meme montee,
-  - garder l'affichage principal centre sur les ascensions, avec libelles et tooltips plus explicites que `Slope`.
-  Acceptance:
-  - les montees affichees dans le detail activite sont moins fragmentees,
-  - les bornes debut/fin restent stables sur des profils irreguliers,
-  - Go et Kotlin restent alignes via tests ou fixtures partagees.
-
 - [ ] `FUNC-P1-11` (`P1`, `S`) - Etudier https://themechanic.bike/fr pour enrichir l'onglet Gear.
   Owners: `Product`, `Front`, `Stats`.
   Proposition:

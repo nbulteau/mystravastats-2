@@ -455,8 +455,7 @@ const buildRadioOptions = () => {
   if (activity.value?.activityEfforts) {
     radioOptions.value = activity.value?.activityEfforts.map((effort) => {
       return {
-        label:
-          effort.label.length > 20 ? effort.label.substring(0, 20) + "..." : effort.label,
+        label: effort.label,
         value: effort.id,
         description: effort?.description ?? "",
       };
@@ -1254,6 +1253,11 @@ watch([showPowerCurve, activity], () => {
 }
 
 .radio-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-weight: 600;
   text-align: left;
   cursor: pointer;
