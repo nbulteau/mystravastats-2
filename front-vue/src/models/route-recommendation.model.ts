@@ -11,7 +11,8 @@ export type RouteType =
 export type ShapeInputType =
   | "draw"
   | "polyline"
-  | "gpx";
+  | "gpx"
+  | "svg";
 
 export interface RouteCoordinate {
   lat: number;

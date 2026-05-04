@@ -1,0 +1,240 @@
+openapi: 3.0.3
+info:
+  title: MyStravaStats Strava Art Routes Contract
+  version: "2026-05-04"
+  description: Shared contract fragment for public Strava Art route generation in Go and Kotlin.
+paths:
+  /api/routes/generate/shape:
+    post:
+      tags:
+        - routes
+      summary: Generate Strava Art routes from a drawn or imported shape.
+      description: >
+        Snaps a user-provided artwork shape to routable roads. Returned proposals
+        are OSRM-generated shape-mode routes; historical activities must not be
+        substituted as public Strava Art proposals.
+      parameters:
+        - name: activityType
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Optional activity type filter. When omitted, route generation uses the shared route-generation defaults.
+        - name: year
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Optional cached activity year used only for internal context and diagnostics.
+        - name: X-Request-Id
+          in: header
+          required: false
+          schema:
+            type: string
+          description: Request id propagated back in the response header and failure diagnostics.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateShapeRoutesRequest"
+      responses:
+        "200":
+          description: Generated routes response. Empty routes with diagnostics is a valid non-error response when no road match exists.
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: Propagated or generated route request id.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateRoutesResponse"
+        "400":
+          description: Invalid request parameters or payload.
+        "500":
+          description: Unexpected backend error.
+  /api/routes/{routeId}/gpx:
+    get:
+      tags:
+        - routes
+      summary: Export a generated Strava Art route as GPX.
+      parameters:
+        - name: routeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: GPX track for the generated route.
+          content:
+            application/gpx+xml:
+              schema:
+                type: string
+        "404":
+          description: Generated route id is not present in the short-lived generated route cache.
+components:
+  schemas:
+    GenerateShapeRoutesRequest:
+      type: object
+      required:
+        - shapeInputType
+        - shapeData
+      properties:
+        shapeInputType:
+          type: string
+          enum: [draw, polyline, gpx, svg]
+        shapeData:
+          type: string
+          minLength: 1
+          description: Raw drawn coordinates, encoded polyline, GPX XML, or SVG payload.
+        startPoint:
+          $ref: "#/components/schemas/RouteStartPoint"
+        routeType:
+          type: string
+          enum: [RIDE, MTB, GRAVEL, RUN, TRAIL, HIKE]
+          default: RIDE
+        variantCount:
+          type: integer
+          minimum: 1
+          maximum: 24
+          default: 2
+    RouteStartPoint:
+      type: object
+      required: [lat, lng]
+      properties:
+        lat:
+          type: number
+          minimum: -90
+          maximum: 90
+        lng:
+          type: number
+          minimum: -180
+          maximum: 180
+    GenerateRoutesResponse:
+      type: object
+      required:
+        - routes
+      properties:
+        routes:
+          type: array
+          items:
+            $ref: "#/components/schemas/GeneratedRoute"
+        diagnostics:
+          type: array
+          items:
+            $ref: "#/components/schemas/RouteGenerationDiagnostic"
+    GeneratedRoute:
+      type: object
+      required:
+        - routeId
+        - title
+        - variantType
+        - distanceKm
+        - elevationGainM
+        - durationSec
+        - estimatedDurationSec
+        - score
+        - reasons
+        - previewLatLng
+        - isRoadGraphGenerated
+      properties:
+        routeId:
+          type: string
+        title:
+          type: string
+        variantType:
+          type: string
+          description: SHAPE_MATCH or ROAD_GRAPH for public Strava Art proposals.
+        routeType:
+          type: string
+          nullable: true
+        distanceKm:
+          type: number
+        elevationGainM:
+          type: number
+        durationSec:
+          type: integer
+        estimatedDurationSec:
+          type: integer
+        score:
+          $ref: "#/components/schemas/RouteGenerationScore"
+        reasons:
+          type: array
+          items:
+            type: string
+        previewLatLng:
+          type: array
+          items:
+            type: array
+            minItems: 2
+            maxItems: 2
+            items:
+              type: number
+        start:
+          $ref: "#/components/schemas/RouteCoordinate"
+        end:
+          $ref: "#/components/schemas/RouteCoordinate"
+        activityId:
+          type: integer
+          format: int64
+          nullable: true
+        isRoadGraphGenerated:
+          type: boolean
+    RouteCoordinate:
+      type: object
+      required: [lat, lng]
+      properties:
+        lat:
+          type: number
+        lng:
+          type: number
+    RouteGenerationScore:
+      type: object
+      required:
+        - global
+        - distance
+        - elevation
+        - duration
+        - direction
+        - shape
+        - roadFitness
+      properties:
+        global:
+          type: number
+        distance:
+          type: number
+        elevation:
+          type: number
+        duration:
+          type: number
+        direction:
+          type: number
+        shape:
+          type: number
+          description: User-facing Art fit score in the 0..100 range.
+        roadFitness:
+          type: number
+    RouteGenerationDiagnostic:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum:
+            - NO_CANDIDATE
+            - NON_SHAPE_CANDIDATES_IGNORED
+            - FAILURE_SUMMARY
+            - DIRECTION_RELAXED
+            - DIRECTION_BEST_EFFORT
+            - BACKTRACKING_RELAXED
+            - ART_FIT_RETRACE_ALLOWED
+            - ROUTE_TYPE_FALLBACK
+            - START_POINT_SNAPPED
+            - ENGINE_FALLBACK_LEGACY
+            - ENGINE_CACHE_FALLBACK
+            - SELECTION_RELAXED
+            - EMERGENCY_FALLBACK
+        message:
+          type: string

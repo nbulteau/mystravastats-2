@@ -92,18 +92,6 @@
   Acceptance:
   - un changement de capacite backend ne laisse plus une doc contradictoire.
 
-- [ ] `TECH-P1-08` (`P1`, `M`) - Industrialiser Strava Art apres MVP.
-  Owners: `Routes`, `Back-Go`, `Back-Kotlin`, `QA`.
-  Scope:
-  - documenter le contrat routes Strava Art et les diagnostics exposes,
-  - formaliser la politique Strava Art `Art fit` d'abord: autoriser les retours sur ses pas quand ils servent le dessin,
-  - rattacher les DTO routes au contrat OpenAPI partage (`TECH-P1-01`),
-  - brancher les checks OSRM Strava Art sur les smoke tests automatisables (`TECH-P1-02`),
-  - garder Go et Kotlin alignes sur generation, propositions, exports et diagnostics.
-  Acceptance:
-  - les ecarts Go/Kotlin sur Strava Art sont detectes avant regression utilisateur,
-  - les checks route peuvent tourner en CI ou en smoke local sans donnees personnelles.
-
 ### Priorite basse
 
 - [ ] `TECH-P2-01` (`P2`, `M`) - Nettoyer la strategie d'assets frontend embarques.

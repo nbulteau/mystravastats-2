@@ -16,8 +16,10 @@ This check validates the public MVP flow against a running backend:
 ## Quick run
 
 ```bash
-./scripts/manual-strava-art-smoke-check.sh
+./scripts/smoke-strava-art.sh
 ```
+
+The legacy `manual-strava-art-smoke-check.sh` script is still the underlying protocol runner. Use `smoke-strava-art.sh` for automated/local smoke jobs.
 
 ## Useful overrides
 
@@ -44,3 +46,14 @@ To run a different smoke matrix, point `FIXTURE_PATH` to a JSON file with a
   is a regression for these simple shapes.
 - The summary prints the selected shape strategy, selection profile, route
   reasons, and top route scores so ranking regressions are visible.
+
+## Docker smoke wiring
+
+When a Docker stack has access to prepared OSRM data, run:
+
+```bash
+RUN_STRAVA_ART_SMOKE=1 ./scripts/smoke-docker-compose.sh go
+RUN_STRAVA_ART_SMOKE=1 ./scripts/smoke-docker-compose.sh kotlin
+```
+
+This reuses the same fixture matrix through the frontend `/api` proxy.

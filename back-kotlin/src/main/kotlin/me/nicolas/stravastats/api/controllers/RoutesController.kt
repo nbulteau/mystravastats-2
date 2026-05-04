@@ -355,6 +355,10 @@ class RoutesController(
                         code = "DIRECTION_BEST_EFFORT",
                         message = "Directional constraints were softened to preserve route availability.",
                     )
+                    normalized.startsWith("Selection profile: art-fit-diagnostic") -> appendOnce(
+                        code = "ART_FIT_RETRACE_ALLOWED",
+                        message = "Strava Art selected drawing fit first; retrace is reported as rideability context.",
+                    )
                     normalized.contains("Selection profile: emergency-fallback") -> appendOnce(
                         code = "EMERGENCY_FALLBACK",
                         message = "Emergency fallback selected the best available generated route.",

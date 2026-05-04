@@ -28,6 +28,7 @@ This directory is organized by intent: start here, then jump to the page matchin
 
 - [OSRM Setup](./routing/osrm-setup.md)
 - [Route Generation Engine](./routing/generation-engine.md) - Strava Art / Draw art route generation.
+- [Strava Art Route Contract](./routing/strava-art-contract.md) - public Strava Art API contract and diagnostics.
 - [Manual Route Checks](./routing/manual-checks.md)
 
 ## Reference

@@ -11,6 +11,8 @@ Covered endpoints:
 - `POST /api/routes/generate/shape`
 - `GET /api/routes/{routeId}/gpx`
 
+Public API details are pinned in the [Strava Art route contract](./strava-art-contract.md) and the OpenAPI fragment at [`../api/strava-art-routes.openapi.yaml`](../api/strava-art-routes.openapi.yaml).
+
 Current runtime behavior:
 
 - Draw art is the only public route generation mode
@@ -148,6 +150,7 @@ Scores:
 
 Examples of success diagnostics:
 
+- `ART_FIT_RETRACE_ALLOWED`
 - `DIRECTION_RELAXED`
 - `DIRECTION_BEST_EFFORT`
 - `BACKTRACKING_RELAXED`
@@ -251,5 +254,6 @@ return selected + diagnostics
 ## Related Docs
 
 - [OSRM Setup](./osrm-setup.md)
+- [Strava Art Route Contract](./strava-art-contract.md)
 - [Manual Route Checks](./manual-checks.md)
 - [Main project doc](../README.md)

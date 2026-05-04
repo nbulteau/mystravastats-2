@@ -24,6 +24,17 @@
       ]
     },
     {
+      "name": "art_fit_retrace_allowed",
+      "reasons": [
+        "Selection priority: art-fit first",
+        "Selection profile: art-fit-diagnostic (retrace allowed)",
+        "Retrace policy: art-fit first (diagnostic only)"
+      ],
+      "expectedCodes": [
+        "ART_FIT_RETRACE_ALLOWED"
+      ]
+    },
+    {
       "name": "emergency_fallback",
       "reasons": [
         "Selection profile: emergency-fallback (constraints fully relaxed)"

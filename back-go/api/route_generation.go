@@ -278,6 +278,8 @@ func buildSuccessfulGenerationDiagnostics(routes []dto.GeneratedRouteDto) []dto.
 				appendOnce("SELECTION_RELAXED", "Selection constraints were softened to preserve route availability.")
 			case strings.HasPrefix(normalized, "Selection profile: directional-best-effort"):
 				appendOnce("DIRECTION_BEST_EFFORT", "Directional constraints were softened to preserve route availability.")
+			case strings.HasPrefix(normalized, "Selection profile: art-fit-diagnostic"):
+				appendOnce("ART_FIT_RETRACE_ALLOWED", "Strava Art selected drawing fit first; retrace is reported as rideability context.")
 			case strings.Contains(normalized, "Selection profile: emergency-fallback"):
 				appendOnce("EMERGENCY_FALLBACK", "Emergency fallback selected the best available generated route.")
 			case normalized == "Generation fallback: historical route cache":

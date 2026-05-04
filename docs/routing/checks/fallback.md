@@ -49,5 +49,6 @@ START_LNG=-1.587309
   - `START_POINT_SNAPPED`
   - `SELECTION_RELAXED`
   - `EMERGENCY_FALLBACK`
+- Strava Art routes may also include `ART_FIT_RETRACE_ALLOWED` when drawing resemblance wins and retrace is only rideability context.
 - In the UI, a warning toast appears when such fallback diagnostics are returned.
 - In the UI, diagnostics are visible under the generation panel even when routes are present.

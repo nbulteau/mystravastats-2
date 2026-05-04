@@ -729,6 +729,8 @@ function diagnosticTitle(code: string): string {
       return "Backup routing used";
     case "BACKTRACKING_RELAXED":
       return "Overlap rule softened";
+    case "ART_FIT_RETRACE_ALLOWED":
+      return "Drawing kept first";
     case "DIRECTION_RELAXED":
     case "DIRECTION_BEST_EFFORT":
       return "Heading softened";
@@ -759,6 +761,8 @@ function diagnosticMessage(diagnostic: RouteGenerationDiagnostic): string {
       return "A backup routing strategy was used to keep a proposal available.";
     case "BACKTRACKING_RELAXED":
       return "Some overlap was allowed to preserve the artwork.";
+    case "ART_FIT_RETRACE_ALLOWED":
+      return "The drawing match won; overlap is shown as rideability context instead of blocking the route.";
     case "DIRECTION_RELAXED":
     case "DIRECTION_BEST_EFFORT":
       return "The internal heading preference was softened to keep the route available.";
@@ -790,6 +794,9 @@ function diagnosticIcon(code: string): string {
   }
   if (code === "ROUTE_TYPE_FALLBACK") {
     return "fa-solid fa-route";
+  }
+  if (code === "ART_FIT_RETRACE_ALLOWED") {
+    return "fa-solid fa-pen-nib";
   }
   if (code.includes("FALLBACK")) {
     return "fa-solid fa-life-ring";
