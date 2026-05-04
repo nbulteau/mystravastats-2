@@ -132,15 +132,6 @@
 
 ### Priorite moyenne
 
-- [ ] `FUNC-P1-04` (`P1`, `M`) - Comparaison d'activite a effort similaire.
-  Owners: `Product`, `Stats`, `Front`.
-  Proposition:
-  - dans le detail activite, comparer avec les sorties proches en distance/D+/sport/saison,
-  - afficher ecarts de vitesse, frequence cardiaque, puissance, cadence et segments communs,
-  - indiquer si la sortie est atypique.
-  Acceptance:
-  - une activite donne immediatement du contexte par rapport aux sorties comparables.
-
 - [ ] `FUNC-P1-11` (`P1`, `S`) - Etudier https://themechanic.bike/fr pour enrichir l'onglet Gear.
   Owners: `Product`, `Front`, `Stats`.
   Proposition:

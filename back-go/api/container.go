@@ -34,6 +34,7 @@ import (
 
 type container struct {
 	getDetailedActivityUseCase               *activitiesApp.GetDetailedActivityUseCase
+	getActivityComparisonUseCase             *activitiesApp.GetActivityComparisonUseCase
 	listActivitiesUseCase                    *activitiesApp.ListActivitiesUseCase
 	exportActivitiesCSVUseCase               *activitiesApp.ExportActivitiesCSVUseCase
 	getMapsGPXUseCase                        *activitiesApp.GetMapsGPXUseCase
@@ -100,6 +101,7 @@ func getContainer() *container {
 		sourceModeReader := sourceModeInfra.NewSourceModeServiceAdapter()
 		sharedContainer = &container{
 			getDetailedActivityUseCase:               activitiesApp.NewGetDetailedActivityUseCase(detailedActivityReader),
+			getActivityComparisonUseCase:             activitiesApp.NewGetActivityComparisonUseCase(detailedActivityReader),
 			listActivitiesUseCase:                    activitiesApp.NewListActivitiesUseCase(detailedActivityReader),
 			exportActivitiesCSVUseCase:               activitiesApp.NewExportActivitiesCSVUseCase(detailedActivityReader),
 			getMapsGPXUseCase:                        activitiesApp.NewGetMapsGPXUseCase(detailedActivityReader),

@@ -15,6 +15,8 @@ interface IActivityService {
 
     fun getDetailedActivity(activityId: Long, corrected: Boolean = true): StravaDetailedActivity?
 
+    fun getActivityComparison(activity: StravaDetailedActivity): ActivityComparison?
+
     fun getActivitiesByActivityTypeAndYear(activityTypes: Set<ActivityType>, year: Int?): List<StravaActivity>
 
     fun exportCSV(activityTypes: Set<ActivityType>, year: Int?): String
@@ -69,5 +71,9 @@ internal class ActivityService(
         } else {
             activity
         }
+    }
+
+    override fun getActivityComparison(activity: StravaDetailedActivity): ActivityComparison? {
+        return buildActivityComparison(activity, activityProvider)
     }
 }

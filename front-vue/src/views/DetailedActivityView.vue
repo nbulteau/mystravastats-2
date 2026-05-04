@@ -78,6 +78,100 @@
       </section>
 
       <section
+        v-if="activityComparison"
+        class="detail-card detail-comparison"
+      >
+        <header class="detail-card__header">
+          <div>
+            <h2>Similar effort</h2>
+            <p class="detail-comparison__subtitle">{{ comparisonScopeLabel }}</p>
+          </div>
+          <span
+            class="detail-comparison__status"
+            :class="comparisonStatusClass"
+          >
+            {{ activityComparison.label }}
+          </span>
+        </header>
+
+        <div
+          v-if="activityComparison.criteria.sampleSize > 0"
+          class="detail-comparison__metrics"
+        >
+          <div
+            v-for="row in comparisonMetricRows"
+            :key="row.label"
+            class="detail-comparison__metric"
+          >
+            <span class="detail-comparison__metric-label">{{ row.label }}</span>
+            <strong>{{ row.current }}</strong>
+            <small>
+              Ref {{ row.baseline }}
+              <span :class="row.deltaClass">{{ row.delta }}</span>
+            </small>
+          </div>
+        </div>
+
+        <div
+          v-if="activityComparison.criteria.sampleSize > 0"
+          class="detail-comparison__body"
+        >
+          <div class="detail-comparison__table-wrap">
+            <h3>Closest activities</h3>
+            <table class="detail-comparison__table">
+              <thead>
+                <tr>
+                  <th>Activity</th>
+                  <th>Distance</th>
+                  <th>D+</th>
+                  <th>Speed</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="similar in activityComparison.similarActivities"
+                  :key="similar.id"
+                >
+                  <td>
+                    <RouterLink :to="`/activity/${similar.id}`">
+                      {{ similar.name }}
+                    </RouterLink>
+                    <small>{{ formatComparisonDate(similar.date) }}</small>
+                  </td>
+                  <td>{{ (similar.distance / 1000).toFixed(1) }} km</td>
+                  <td>{{ Math.round(similar.elevationGain) }} m</td>
+                  <td>{{ formatSpeedWithUnit(similar.averageSpeed, activity?.type ?? "Ride") }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="detail-comparison__segments">
+            <h3>Common segments</h3>
+            <ul v-if="activityComparison.commonSegments.length > 0">
+              <li
+                v-for="segment in activityComparison.commonSegments"
+                :key="segment.id"
+              >
+                <strong>{{ segment.name }}</strong>
+                <span>{{ segment.matchCount }} match{{ segment.matchCount > 1 ? "es" : "" }}</span>
+              </li>
+            </ul>
+            <p v-else class="detail-comparison__empty">
+              No cached common segments.
+            </p>
+          </div>
+        </div>
+
+        <p
+          v-else
+          class="detail-comparison__empty"
+        >
+          No similar activity found for this season and sport.
+        </p>
+      </section>
+
+      <section
         v-if="highlights.length > 0"
         class="detail-highlights"
       >
@@ -448,6 +542,147 @@ const highlights = computed<HighlightItem[]>(() => {
 
   return result;
 });
+
+const activityComparison = computed(() => activity.value?.activityComparison ?? null);
+
+const comparisonScopeLabel = computed(() => {
+  const comparison = activityComparison.value;
+  if (!comparison) {
+    return "";
+  }
+  const sample = comparison.criteria.sampleSize;
+  return `${sample} similar ${comparison.criteria.activityType} activit${sample === 1 ? "y" : "ies"} in ${comparison.criteria.year}`;
+});
+
+const comparisonStatusClass = computed(() => {
+  const status = activityComparison.value?.status ?? "insufficient-data";
+  return `detail-comparison__status--${status}`;
+});
+
+type ComparisonMetricRow = {
+  label: string;
+  current: string;
+  baseline: string;
+  delta: string;
+  deltaClass: string;
+};
+
+const comparisonMetricRows = computed<ComparisonMetricRow[]>(() => {
+  const currentActivity = activity.value;
+  const comparison = activityComparison.value;
+  if (!currentActivity || !comparison || comparison.criteria.sampleSize === 0) {
+    return [];
+  }
+
+  const baseline = comparison.baseline;
+  const deltas = comparison.deltas;
+  const rows: ComparisonMetricRow[] = [
+    {
+      label: "Speed",
+      current: formatSpeedWithUnit(currentActivity.averageSpeed, currentActivity.type),
+      baseline: formatSpeedWithUnit(baseline.averageSpeed, currentActivity.type),
+      delta: formatSignedSpeed(deltas.averageSpeed),
+      deltaClass: comparisonDeltaClass(deltas.averageSpeed, true),
+    },
+    {
+      label: "Moving time",
+      current: formatTime(currentActivity.movingTime),
+      baseline: formatTime(baseline.movingTime),
+      delta: formatSignedTime(deltas.movingTime),
+      deltaClass: comparisonDeltaClass(deltas.movingTime, false),
+    },
+    {
+      label: "Distance",
+      current: `${(currentActivity.distance / 1000).toFixed(1)} km`,
+      baseline: `${(baseline.distance / 1000).toFixed(1)} km`,
+      delta: formatSignedDistance(deltas.distance),
+      deltaClass: comparisonDeltaClass(-Math.abs(deltas.distance), true),
+    },
+    {
+      label: "Elevation",
+      current: `${Math.round(currentActivity.totalElevationGain)} m`,
+      baseline: `${Math.round(baseline.elevationGain)} m`,
+      delta: formatSignedMeters(deltas.elevationGain),
+      deltaClass: comparisonDeltaClass(-Math.abs(deltas.elevationGain), true),
+    },
+  ];
+
+  if (currentActivity.averageHeartrate > 0 || baseline.averageHeartrate > 0) {
+    rows.push({
+      label: "Avg HR",
+      current: `${Math.round(currentActivity.averageHeartrate)} bpm`,
+      baseline: `${Math.round(baseline.averageHeartrate)} bpm`,
+      delta: formatSignedNumber(deltas.averageHeartrate, " bpm", 0),
+      deltaClass: comparisonDeltaClass(deltas.averageHeartrate, false),
+    });
+  }
+
+  if (currentActivity.averageWatts > 0 || baseline.averageWatts > 0) {
+    rows.push({
+      label: "Power",
+      current: `${Math.round(currentActivity.averageWatts)} W`,
+      baseline: `${Math.round(baseline.averageWatts)} W`,
+      delta: formatSignedNumber(deltas.averageWatts, " W", 0),
+      deltaClass: comparisonDeltaClass(deltas.averageWatts, true),
+    });
+  }
+
+  if (currentActivity.averageCadence > 0 || baseline.averageCadence > 0) {
+    rows.push({
+      label: "Cadence",
+      current: `${Math.round(currentActivity.averageCadence)} rpm`,
+      baseline: `${Math.round(baseline.averageCadence)} rpm`,
+      delta: formatSignedNumber(deltas.averageCadence, " rpm", 0),
+      deltaClass: comparisonDeltaClass(deltas.averageCadence, true),
+    });
+  }
+
+  return rows;
+});
+
+function comparisonDeltaClass(value: number, positiveIsGood: boolean): string {
+  if (Math.abs(value) < 0.0001) {
+    return "detail-comparison__delta detail-comparison__delta--flat";
+  }
+  const isGood = positiveIsGood ? value > 0 : value < 0;
+  return `detail-comparison__delta ${isGood ? "detail-comparison__delta--good" : "detail-comparison__delta--warn"}`;
+}
+
+function formatSignedNumber(value: number, suffix: string, digits = 1): string {
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toFixed(digits)}${suffix}`;
+}
+
+function formatSignedDistance(value: number): string {
+  return formatSignedNumber(value / 1000, " km", 1);
+}
+
+function formatSignedMeters(value: number): string {
+  return formatSignedNumber(value, " m", 0);
+}
+
+function formatSignedSpeed(value: number): string {
+  return formatSignedNumber(value * 3.6, " km/h", 1);
+}
+
+function formatSignedTime(value: number): string {
+  const sign = value > 0 ? "+" : value < 0 ? "-" : "";
+  return `${sign}${formatTime(Math.abs(value))}`;
+}
+
+function formatComparisonDate(value: string): string {
+  if (!value) {
+    return "";
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value.substring(0, 10);
+  }
+  return parsed.toLocaleDateString(undefined, {
+    day: "2-digit",
+    month: "short",
+  });
+}
 
 // Icon options
 
@@ -1138,6 +1373,181 @@ watch([showPowerCurve, activity], () => {
   font-size: 0.78rem;
 }
 
+.detail-comparison {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.detail-comparison__subtitle {
+  margin: 3px 0 0;
+  color: var(--ms-text-muted);
+  font-size: 0.78rem;
+}
+
+.detail-comparison__status {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--ms-border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.detail-comparison__status--faster,
+.detail-comparison__status--typical {
+  color: #166534;
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.detail-comparison__status--slower,
+.detail-comparison__status--atypical {
+  color: #92400e;
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.detail-comparison__metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.detail-comparison__metric {
+  border-top: 1px solid var(--ms-border);
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.detail-comparison__metric-label {
+  color: var(--ms-text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.detail-comparison__metric strong {
+  color: var(--ms-text);
+}
+
+.detail-comparison__metric small {
+  color: var(--ms-text-muted);
+}
+
+.detail-comparison__delta {
+  margin-left: 4px;
+  font-weight: 800;
+}
+
+.detail-comparison__delta--good {
+  color: #15803d;
+}
+
+.detail-comparison__delta--warn {
+  color: #b45309;
+}
+
+.detail-comparison__delta--flat {
+  color: #64748b;
+}
+
+.detail-comparison__body {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.detail-comparison__table-wrap,
+.detail-comparison__segments {
+  min-width: 0;
+}
+
+.detail-comparison__table-wrap {
+  overflow-x: auto;
+}
+
+.detail-comparison__body h3 {
+  margin: 0 0 6px;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.detail-comparison__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.detail-comparison__table th,
+.detail-comparison__table td {
+  border-top: 1px solid var(--ms-border);
+  padding: 6px 5px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.detail-comparison__table th {
+  color: var(--ms-text-muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.detail-comparison__table a {
+  color: var(--ms-text);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.detail-comparison__table small {
+  display: block;
+  color: var(--ms-text-muted);
+  font-size: 0.72rem;
+}
+
+.detail-comparison__segments ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail-comparison__segments li {
+  border-top: 1px solid var(--ms-border);
+  padding-top: 6px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.detail-comparison__segments strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-comparison__segments span,
+.detail-comparison__empty {
+  color: var(--ms-text-muted);
+  font-size: 0.78rem;
+}
+
+.detail-comparison__empty {
+  margin: 0;
+}
+
 .detail-map-layout {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
@@ -1366,7 +1776,8 @@ watch([showPowerCurve, activity], () => {
 }
 
 @media (max-width: 980px) {
-  .detail-map-layout {
+  .detail-map-layout,
+  .detail-comparison__body {
     grid-template-columns: 1fr;
   }
 
@@ -1388,6 +1799,14 @@ watch([showPowerCurve, activity], () => {
   .detail-hero__actions {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .detail-comparison__status {
+    align-self: flex-start;
+  }
+
+  .detail-comparison__table {
+    min-width: 520px;
   }
 }
 </style>

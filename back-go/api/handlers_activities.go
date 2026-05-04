@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"mystravastats/api/dto"
+	activitiesApp "mystravastats/internal/activities/application"
 	activitiesDomain "mystravastats/internal/activities/domain"
 	"mystravastats/internal/shared/domain/strava"
 	"net/http"
@@ -78,9 +79,78 @@ func getDetailedActivity(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	detailedActivityDto := dto.ToDetailedActivityDto(detailedActivity)
+	if getContainer().getActivityComparisonUseCase != nil {
+		detailedActivityDto.ActivityComparison = toActivityComparisonDto(
+			getContainer().getActivityComparisonUseCase.Execute(detailedActivity),
+		)
+	}
 	if err := writeJSON(writer, http.StatusOK, detailedActivityDto); err != nil {
 		log.Printf("failed to write detailed activity response: %v", err)
 		writeInternalServerError(writer, "Failed to encode detailed activity response")
+	}
+}
+
+func toActivityComparisonDto(comparison *activitiesApp.ActivityComparison) *dto.ActivityComparisonDto {
+	if comparison == nil {
+		return nil
+	}
+	similarActivities := make([]dto.ActivityComparisonActivityDto, 0, len(comparison.SimilarActivities))
+	for _, activity := range comparison.SimilarActivities {
+		similarActivities = append(similarActivities, dto.ActivityComparisonActivityDto{
+			ID:               activity.ID,
+			Name:             activity.Name,
+			Date:             activity.Date,
+			Distance:         activity.Distance,
+			ElevationGain:    activity.ElevationGain,
+			MovingTime:       activity.MovingTime,
+			AverageSpeed:     activity.AverageSpeed,
+			AverageHeartrate: activity.AverageHeartrate,
+			AverageWatts:     activity.AverageWatts,
+			AverageCadence:   activity.AverageCadence,
+			SimilarityScore:  activity.SimilarityScore,
+		})
+	}
+
+	commonSegments := make([]dto.ActivityComparisonSegmentDto, 0, len(comparison.CommonSegments))
+	for _, segment := range comparison.CommonSegments {
+		commonSegments = append(commonSegments, dto.ActivityComparisonSegmentDto{
+			ID:            segment.ID,
+			Name:          segment.Name,
+			MatchCount:    segment.MatchCount,
+			ActivityIDs:   append([]int64(nil), segment.ActivityIDs...),
+			ActivityNames: append([]string(nil), segment.ActivityNames...),
+		})
+	}
+
+	return &dto.ActivityComparisonDto{
+		Status: comparison.Status,
+		Label:  comparison.Label,
+		Criteria: dto.ActivityComparisonCriteriaDto{
+			ActivityType: comparison.Criteria.ActivityType,
+			Year:         comparison.Criteria.Year,
+			SampleSize:   comparison.Criteria.SampleSize,
+		},
+		Baseline: dto.ActivityComparisonBaselineDto{
+			Distance:         comparison.Baseline.Distance,
+			ElevationGain:    comparison.Baseline.ElevationGain,
+			MovingTime:       comparison.Baseline.MovingTime,
+			AverageSpeed:     comparison.Baseline.AverageSpeed,
+			AverageHeartrate: comparison.Baseline.AverageHeartrate,
+			AverageWatts:     comparison.Baseline.AverageWatts,
+			AverageCadence:   comparison.Baseline.AverageCadence,
+		},
+		Deltas: dto.ActivityComparisonDeltasDto{
+			Distance:         comparison.Deltas.Distance,
+			ElevationGain:    comparison.Deltas.ElevationGain,
+			MovingTime:       comparison.Deltas.MovingTime,
+			AverageSpeed:     comparison.Deltas.AverageSpeed,
+			AverageSpeedPct:  comparison.Deltas.AverageSpeedPct,
+			AverageHeartrate: comparison.Deltas.AverageHeartrate,
+			AverageWatts:     comparison.Deltas.AverageWatts,
+			AverageCadence:   comparison.Deltas.AverageCadence,
+		},
+		SimilarActivities: similarActivities,
+		CommonSegments:    commonSegments,
 	}
 }
 

@@ -119,7 +119,8 @@ class ActivitiesController(
         @PathVariable activityId: Long,
         @RequestParam(required = false) version: String?,
     ): DetailedActivityDto {
-        return (activityService.getDetailedActivity(activityId, corrected = version != "raw")
-            ?: throw ResourceNotFoundException("StravaActivity id $activityId not found")).toDto()
+        val activity = activityService.getDetailedActivity(activityId, corrected = version != "raw")
+            ?: throw ResourceNotFoundException("StravaActivity id $activityId not found")
+        return activity.toDto(activityService.getActivityComparison(activity))
     }
 }

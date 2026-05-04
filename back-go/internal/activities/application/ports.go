@@ -49,6 +49,12 @@ type ActivitiesReader interface {
 	FindActivitiesByYearAndTypes(year *int, activityTypes ...business.ActivityType) []*strava.Activity
 }
 
+// ActivityComparisonReader provides summary activities and cached details for similar-effort comparisons.
+type ActivityComparisonReader interface {
+	FindActivitiesByYearAndTypes(year *int, activityTypes ...business.ActivityType) []*strava.Activity
+	FindCachedDetailedActivityByID(activityID int64) *strava.DetailedActivity
+}
+
 // ActivitiesCSVExporter is an outbound port used by CSV export use cases.
 // Infrastructure adapters implement this interface.
 type ActivitiesCSVExporter interface {

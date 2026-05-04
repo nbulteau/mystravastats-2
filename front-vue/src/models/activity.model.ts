@@ -59,6 +59,66 @@ export interface DetailedActivity {
     weightedAverageWatts: number;
     stream: Stream;
     activityEfforts: ActivityEffort[];
+    activityComparison?: ActivityComparison | null;
+}
+
+export interface ActivityComparison {
+    status: "insufficient-data" | "typical" | "faster" | "slower" | "atypical" | string;
+    label: string;
+    criteria: ActivityComparisonCriteria;
+    baseline: ActivityComparisonBaseline;
+    deltas: ActivityComparisonDeltas;
+    similarActivities: ActivityComparisonActivity[];
+    commonSegments: ActivityComparisonSegment[];
+}
+
+export interface ActivityComparisonCriteria {
+    activityType: string;
+    year: number;
+    sampleSize: number;
+}
+
+export interface ActivityComparisonBaseline {
+    distance: number;
+    elevationGain: number;
+    movingTime: number;
+    averageSpeed: number;
+    averageHeartrate: number;
+    averageWatts: number;
+    averageCadence: number;
+}
+
+export interface ActivityComparisonDeltas {
+    distance: number;
+    elevationGain: number;
+    movingTime: number;
+    averageSpeed: number;
+    averageSpeedPct: number;
+    averageHeartrate: number;
+    averageWatts: number;
+    averageCadence: number;
+}
+
+export interface ActivityComparisonActivity {
+    id: number;
+    name: string;
+    date: string;
+    distance: number;
+    elevationGain: number;
+    movingTime: number;
+    averageSpeed: number;
+    averageHeartrate: number;
+    averageWatts: number;
+    averageCadence: number;
+    similarityScore: number;
+}
+
+export interface ActivityComparisonSegment {
+    id: number;
+    name: string;
+    matchCount: number;
+    activityIds: number[];
+    activityNames: string[];
 }
 
 export interface ActivityShort {

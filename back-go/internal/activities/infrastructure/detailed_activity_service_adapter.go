@@ -34,6 +34,14 @@ func (adapter *DetailedActivityServiceAdapter) FindRawDetailedActivityByID(activ
 	return detailedActivity, nil
 }
 
+func (adapter *DetailedActivityServiceAdapter) FindCachedDetailedActivityByID(activityID int64) *strava.DetailedActivity {
+	detailedActivity := activityprovider.Get().GetCachedDetailedActivity(activityID)
+	if detailedActivity == nil {
+		return nil
+	}
+	return dataqualityInfra.ApplyCurrentProviderCorrectionsToDetailedActivity(detailedActivity)
+}
+
 func (adapter *DetailedActivityServiceAdapter) FindActivitiesByYearAndTypes(year *int, activityTypes ...business.ActivityType) []*strava.Activity {
 	return dataqualityInfra.ApplyCurrentProviderCorrections(activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...))
 }

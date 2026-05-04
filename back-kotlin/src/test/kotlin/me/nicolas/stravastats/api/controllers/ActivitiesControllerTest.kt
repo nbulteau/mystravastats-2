@@ -4,7 +4,12 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import me.nicolas.stravastats.TestHelper
 import me.nicolas.stravastats.domain.business.ActivityType
+import me.nicolas.stravastats.domain.services.ActivityComparison
+import me.nicolas.stravastats.domain.services.ActivityComparisonBaseline
+import me.nicolas.stravastats.domain.services.ActivityComparisonCriteria
+import me.nicolas.stravastats.domain.services.ActivityComparisonDeltas
 import me.nicolas.stravastats.domain.services.IActivityService
+import me.nicolas.stravastats.domain.services.toStravaDetailedActivity
 import org.hamcrest.Matchers.startsWith
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -100,5 +105,49 @@ class ActivitiesControllerTest {
             .andExpect(content().contentTypeCompatibleWith("text/csv"))
             .andExpect(header().string("Content-Disposition", "attachment; filename=\"activities-all-years.csv\""))
             .andExpect(content().string(csvContent))
+    }
+
+    @Test
+    fun `get detailed activity exposes comparison when available`() {
+        // GIVEN
+        val activity = TestHelper.stravaActivity.toStravaDetailedActivity()
+        val comparison = ActivityComparison(
+            status = "typical",
+            label = "In line with similar activities",
+            criteria = ActivityComparisonCriteria(activityType = "Run", year = 2023, sampleSize = 2),
+            baseline = ActivityComparisonBaseline(
+                distance = 10_100.0,
+                elevationGain = 90.0,
+                movingTime = 3_600,
+                averageSpeed = 5.4,
+                averageHeartrate = 145.0,
+                averageWatts = 180.0,
+                averageCadence = 82.0,
+            ),
+            deltas = ActivityComparisonDeltas(
+                distance = -100.0,
+                elevationGain = 10.0,
+                movingTime = -100,
+                averageSpeed = 0.1,
+                averageSpeedPct = 1.8,
+                averageHeartrate = 5.0,
+                averageWatts = 20.0,
+                averageCadence = -2.0,
+            ),
+            similarActivities = emptyList(),
+            commonSegments = emptyList(),
+        )
+        every { activityService.getDetailedActivity(activity.id, corrected = true) } returns activity
+        every { activityService.getActivityComparison(activity) } returns comparison
+
+        // WHEN
+        mockMvc.perform(
+            get("/api/activities/${activity.id}")
+                .accept(MediaType.APPLICATION_JSON)
+        )
+            // THEN
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.activityComparison.status").value("typical"))
+            .andExpect(jsonPath("$.activityComparison.criteria.sampleSize").value(2))
     }
 }

@@ -1,7 +1,9 @@
 package me.nicolas.stravastats.api.dto
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import io.swagger.v3.oas.annotations.media.Schema
 import me.nicolas.stravastats.domain.business.ActivityEffort
+import me.nicolas.stravastats.domain.services.ActivityComparison
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.services.ActivityHelper.buildActivityEfforts
@@ -63,9 +65,71 @@ data class DetailedActivityDto(
     val type: String,
     @param:Schema(description = "Weighted average power output in watts during this activity. Rides only.")
     val weightedAverageWatts: Int,
+    @param:Schema(description = "Similar effort comparison for this activity.")
+    @field:JsonInclude(JsonInclude.Include.NON_NULL)
+    val activityComparison: ActivityComparisonDto? = null,
 )
 
-fun StravaDetailedActivity.toDto(): DetailedActivityDto {
+data class ActivityComparisonDto(
+    val status: String,
+    val label: String,
+    val criteria: ActivityComparisonCriteriaDto,
+    val baseline: ActivityComparisonBaselineDto,
+    val deltas: ActivityComparisonDeltasDto,
+    val similarActivities: List<ActivityComparisonActivityDto>,
+    val commonSegments: List<ActivityComparisonSegmentDto>,
+)
+
+data class ActivityComparisonCriteriaDto(
+    val activityType: String,
+    val year: Int,
+    val sampleSize: Int,
+)
+
+data class ActivityComparisonBaselineDto(
+    val distance: Double,
+    val elevationGain: Double,
+    val movingTime: Int,
+    val averageSpeed: Double,
+    val averageHeartrate: Double,
+    val averageWatts: Double,
+    val averageCadence: Double,
+)
+
+data class ActivityComparisonDeltasDto(
+    val distance: Double,
+    val elevationGain: Double,
+    val movingTime: Int,
+    val averageSpeed: Double,
+    val averageSpeedPct: Double,
+    val averageHeartrate: Double,
+    val averageWatts: Double,
+    val averageCadence: Double,
+)
+
+data class ActivityComparisonActivityDto(
+    val id: Long,
+    val name: String,
+    val date: String,
+    val distance: Double,
+    val elevationGain: Double,
+    val movingTime: Int,
+    val averageSpeed: Double,
+    val averageHeartrate: Double,
+    val averageWatts: Double,
+    val averageCadence: Double,
+    val similarityScore: Double,
+)
+
+data class ActivityComparisonSegmentDto(
+    val id: Long,
+    val name: String,
+    val matchCount: Int,
+    val activityIds: List<Long>,
+    val activityNames: List<String>,
+)
+
+fun StravaDetailedActivity.toDto(activityComparison: ActivityComparison? = null): DetailedActivityDto {
 
     val activityForDto = this.copy(stream = this.stream?.sanitizedForDtoComputation())
     val activityEfforts = activityForDto.buildActivityEfforts()
@@ -98,8 +162,63 @@ fun StravaDetailedActivity.toDto(): DetailedActivityDto {
         type = activityForDto.type,
         weightedAverageWatts = activityForDto.weightedAverageWatts,
         stream = activityForDto.stream?.toDto(),
+        activityComparison = activityComparison?.toDto(),
     )
 }
+
+private fun ActivityComparison.toDto(): ActivityComparisonDto =
+    ActivityComparisonDto(
+        status = status,
+        label = label,
+        criteria = ActivityComparisonCriteriaDto(
+            activityType = criteria.activityType,
+            year = criteria.year,
+            sampleSize = criteria.sampleSize,
+        ),
+        baseline = ActivityComparisonBaselineDto(
+            distance = baseline.distance,
+            elevationGain = baseline.elevationGain,
+            movingTime = baseline.movingTime,
+            averageSpeed = baseline.averageSpeed,
+            averageHeartrate = baseline.averageHeartrate,
+            averageWatts = baseline.averageWatts,
+            averageCadence = baseline.averageCadence,
+        ),
+        deltas = ActivityComparisonDeltasDto(
+            distance = deltas.distance,
+            elevationGain = deltas.elevationGain,
+            movingTime = deltas.movingTime,
+            averageSpeed = deltas.averageSpeed,
+            averageSpeedPct = deltas.averageSpeedPct,
+            averageHeartrate = deltas.averageHeartrate,
+            averageWatts = deltas.averageWatts,
+            averageCadence = deltas.averageCadence,
+        ),
+        similarActivities = similarActivities.map { activity ->
+            ActivityComparisonActivityDto(
+                id = activity.id,
+                name = activity.name,
+                date = activity.date,
+                distance = activity.distance,
+                elevationGain = activity.elevationGain,
+                movingTime = activity.movingTime,
+                averageSpeed = activity.averageSpeed,
+                averageHeartrate = activity.averageHeartrate,
+                averageWatts = activity.averageWatts,
+                averageCadence = activity.averageCadence,
+                similarityScore = activity.similarityScore,
+            )
+        },
+        commonSegments = commonSegments.map { segment ->
+            ActivityComparisonSegmentDto(
+                id = segment.id,
+                name = segment.name,
+                matchCount = segment.matchCount,
+                activityIds = segment.activityIds,
+                activityNames = segment.activityNames,
+            )
+        },
+    )
 
 private fun Stream.sanitizedForDtoComputation(): Stream {
     return this.copy(
