@@ -1,0 +1,317 @@
+{
+  "cases": [
+    {
+      "source": "fit",
+      "summary": {
+        "status": "critical",
+        "issueCount": 11,
+        "impactedActivities": 5,
+        "excludedActivities": 0,
+        "correctionCount": 0,
+        "safeCorrectionCount": 2,
+        "manualReviewCount": 3,
+        "bySeverity": {
+          "critical": 1,
+          "info": 2,
+          "warning": 8
+        },
+        "byCategory": {
+          "ALTITUDE_SPIKE": 1,
+          "GPS_GLITCH": 1,
+          "INVALID_VALUE": 3,
+          "MISSING_STREAM": 1,
+          "MISSING_STREAM_FIELD": 3,
+          "STREAM_DATA_COVERAGE": 2
+        }
+      },
+      "issues": [
+        {
+          "id": "fit-9102-MISSING_STREAM-stream",
+          "activityId": 9102,
+          "severity": "warning",
+          "category": "MISSING_STREAM",
+          "field": "stream",
+          "correctionAvailable": false
+        },
+        {
+          "id": "fit-9103-MISSING_STREAM_FIELD-stream-altitude",
+          "activityId": 9103,
+          "severity": "warning",
+          "category": "MISSING_STREAM_FIELD",
+          "field": "stream.altitude",
+          "correctionAvailable": false
+        },
+        {
+          "id": "fit-9103-MISSING_STREAM_FIELD-stream-distance",
+          "activityId": 9103,
+          "severity": "critical",
+          "category": "MISSING_STREAM_FIELD",
+          "field": "stream.distance",
+          "correctionAvailable": false
+        },
+        {
+          "id": "fit-9103-MISSING_STREAM_FIELD-stream-latlng",
+          "activityId": 9103,
+          "severity": "warning",
+          "category": "MISSING_STREAM_FIELD",
+          "field": "stream.latlng",
+          "correctionAvailable": false
+        },
+        {
+          "id": "fit-9104-ALTITUDE_SPIKE-stream-altitude",
+          "activityId": 9104,
+          "severity": "warning",
+          "category": "ALTITUDE_SPIKE",
+          "field": "stream.altitude",
+          "correctionAvailable": true,
+          "correctionSafety": "safe",
+          "correctionType": "SMOOTH_ALTITUDE_SPIKE"
+        },
+        {
+          "id": "fit-9104-GPS_GLITCH-stream-latlng",
+          "activityId": 9104,
+          "severity": "warning",
+          "category": "GPS_GLITCH",
+          "field": "stream.latlng",
+          "correctionAvailable": true,
+          "correctionSafety": "safe",
+          "correctionType": "REMOVE_GPS_POINT"
+        },
+        {
+          "id": "fit-9105-INVALID_VALUE-average_speed",
+          "activityId": 9105,
+          "severity": "warning",
+          "category": "INVALID_VALUE",
+          "field": "average_speed",
+          "correctionAvailable": true,
+          "correctionSafety": "manual",
+          "correctionType": "RECALCULATE_FROM_STREAM"
+        },
+        {
+          "id": "fit-9105-INVALID_VALUE-average_speed",
+          "activityId": 9105,
+          "severity": "warning",
+          "category": "INVALID_VALUE",
+          "field": "average_speed",
+          "correctionAvailable": true,
+          "correctionSafety": "manual",
+          "correctionType": "RECALCULATE_FROM_STREAM"
+        },
+        {
+          "id": "fit-9105-INVALID_VALUE-max_speed",
+          "activityId": 9105,
+          "severity": "warning",
+          "category": "INVALID_VALUE",
+          "field": "max_speed",
+          "correctionAvailable": true,
+          "correctionSafety": "manual",
+          "correctionType": "RECALCULATE_FROM_STREAM"
+        },
+        {
+          "id": "fit-9106-STREAM_DATA_COVERAGE-stream-heartrate",
+          "activityId": 9106,
+          "severity": "info",
+          "category": "STREAM_DATA_COVERAGE",
+          "field": "stream.heartrate",
+          "correctionAvailable": false
+        },
+        {
+          "id": "fit-9106-STREAM_DATA_COVERAGE-stream-watts",
+          "activityId": 9106,
+          "severity": "info",
+          "category": "STREAM_DATA_COVERAGE",
+          "field": "stream.watts",
+          "correctionAvailable": false
+        }
+      ],
+      "safeCorrectionPreview": {
+        "summary": {
+          "safeCorrectionCount": 2,
+          "manualReviewCount": 3,
+          "unsupportedIssueCount": 6,
+          "activityCount": 1,
+          "distanceDeltaMeters": -988.881,
+          "elevationDeltaMeters": -498,
+          "modifiedFields": [
+            "average_speed",
+            "distance",
+            "elev_high",
+            "max_speed",
+            "stream.altitude",
+            "stream.distance",
+            "stream.latlng",
+            "stream.velocitySmooth",
+            "total_elevation_gain"
+          ],
+          "potentiallyImpactsRecords": true
+        },
+        "corrections": [
+          {
+            "id": "fit-9104-altitude_spike-stream-altitude-smooth_altitude_spike",
+            "issueId": "fit-9104-ALTITUDE_SPIKE-stream-altitude",
+            "activityId": 9104,
+            "type": "SMOOTH_ALTITUDE_SPIKE",
+            "safety": "safe",
+            "pointIndexes": [
+              1
+            ],
+            "modifiedFields": [
+              "stream.altitude",
+              "total_elevation_gain",
+              "elev_high"
+            ],
+            "impact": {
+              "distanceMetersBefore": 1000,
+              "distanceMetersAfter": 1000,
+              "elevationMetersBefore": 250,
+              "elevationMetersAfter": 1,
+              "maxSpeedBefore": 8,
+              "maxSpeedAfter": 8,
+              "distanceDeltaMeters": 0,
+              "elevationDeltaMeters": -249
+            }
+          },
+          {
+            "id": "fit-9104-gps_glitch-stream-latlng-remove_gps_point",
+            "issueId": "fit-9104-GPS_GLITCH-stream-latlng",
+            "activityId": 9104,
+            "type": "REMOVE_GPS_POINT",
+            "safety": "safe",
+            "pointIndexes": [
+              1
+            ],
+            "modifiedFields": [
+              "stream.latlng",
+              "stream.distance",
+              "stream.velocitySmooth",
+              "distance",
+              "average_speed",
+              "max_speed"
+            ],
+            "impact": {
+              "distanceMetersBefore": 1000,
+              "distanceMetersAfter": 11.119,
+              "elevationMetersBefore": 250,
+              "elevationMetersAfter": 1,
+              "maxSpeedBefore": 8,
+              "maxSpeedAfter": 1.112,
+              "distanceDeltaMeters": -988.881,
+              "elevationDeltaMeters": -249
+            }
+          }
+        ]
+      }
+    },
+    {
+      "source": "gpx",
+      "summary": {
+        "status": "critical",
+        "issueCount": 5,
+        "impactedActivities": 3,
+        "excludedActivities": 0,
+        "correctionCount": 0,
+        "safeCorrectionCount": 1,
+        "manualReviewCount": 0,
+        "bySeverity": {
+          "critical": 1,
+          "info": 0,
+          "warning": 4
+        },
+        "byCategory": {
+          "INCONSISTENT_TIME": 1,
+          "INVALID_VALUE": 1,
+          "MISSING_STREAM": 1,
+          "MISSING_STREAM_FIELD": 2
+        }
+      },
+      "issues": [
+        {
+          "id": "gpx-9201-MISSING_STREAM_FIELD-stream-altitude",
+          "activityId": 9201,
+          "severity": "warning",
+          "category": "MISSING_STREAM_FIELD",
+          "field": "stream.altitude",
+          "correctionAvailable": false
+        },
+        {
+          "id": "gpx-9201-MISSING_STREAM_FIELD-stream-latlng",
+          "activityId": 9201,
+          "severity": "warning",
+          "category": "MISSING_STREAM_FIELD",
+          "field": "stream.latlng",
+          "correctionAvailable": false
+        },
+        {
+          "id": "gpx-9202-MISSING_STREAM-stream",
+          "activityId": 9202,
+          "severity": "warning",
+          "category": "MISSING_STREAM",
+          "field": "stream",
+          "correctionAvailable": false
+        },
+        {
+          "id": "gpx-9203-INCONSISTENT_TIME-moving_time",
+          "activityId": 9203,
+          "severity": "warning",
+          "category": "INCONSISTENT_TIME",
+          "field": "moving_time",
+          "correctionAvailable": false
+        },
+        {
+          "id": "gpx-9203-INVALID_VALUE-distance",
+          "activityId": 9203,
+          "severity": "critical",
+          "category": "INVALID_VALUE",
+          "field": "distance",
+          "correctionAvailable": true,
+          "correctionSafety": "safe",
+          "correctionType": "RECALCULATE_FROM_STREAM"
+        }
+      ],
+      "safeCorrectionPreview": {
+        "summary": {
+          "safeCorrectionCount": 1,
+          "manualReviewCount": 0,
+          "unsupportedIssueCount": 4,
+          "activityCount": 1,
+          "distanceDeltaMeters": 2223.899,
+          "elevationDeltaMeters": 0,
+          "modifiedFields": [
+            "average_speed",
+            "distance",
+            "max_speed",
+            "stream.distance",
+            "stream.velocitySmooth"
+          ],
+          "potentiallyImpactsRecords": true
+        },
+        "corrections": [
+          {
+            "id": "gpx-9203-motion-stream-recalculate_from_stream",
+            "issueId": "gpx-9203-INVALID_VALUE-distance",
+            "activityId": 9203,
+            "type": "RECALCULATE_FROM_STREAM",
+            "safety": "safe",
+            "modifiedFields": [
+              "stream.distance",
+              "distance",
+              "average_speed",
+              "stream.velocitySmooth",
+              "max_speed"
+            ],
+            "impact": {
+              "distanceMetersBefore": 0,
+              "distanceMetersAfter": 2223.899,
+              "elevationMetersBefore": 30,
+              "elevationMetersAfter": 30,
+              "maxSpeedBefore": 8,
+              "maxSpeedAfter": 1.235,
+              "distanceDeltaMeters": 2223.899,
+              "elevationDeltaMeters": 0
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

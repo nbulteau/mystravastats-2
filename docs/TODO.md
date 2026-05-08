@@ -1,6 +1,6 @@
 # TODO list
 
-## Etat des lieux au 2026-04-28
+## Etat des lieux au 2026-05-08
 
 - Monorepo avec trois surfaces principales: `front-vue`, `back-go`, `back-kotlin`.
 - Le frontend Vue 3 couvre dashboard, objectifs annuels, diagnostics, source modes, data quality, charts, heatmap, statistiques, badges, activites, detail activite, segments, carte, materiel et routes.
@@ -8,9 +8,9 @@
 - Le backend Go reste important pour le binaire local; le backend Kotlin reste la reference historique de plusieurs providers et services metier.
 - La generation de routes reste la zone la plus sensible: OSRM, anti-retrace, diagnostics, export GPX, parite Go/Kotlin.
 - L'onglet routes a ete repositionne en `Strava Art` / GPS drawing studio: dessiner ou importer une forme, la snapper au reseau routier via OSRM, puis exporter un GPX exploitable.
-- La qualite des donnees locales FIT/GPX a deja un socle de diagnostics et corrections locales. Le risque suivant est la validation reproductible: fixtures, smoke tests et comparaison avant/apres correction.
-- Les modes source `STRAVA` / `FIT` / `GPX` ont maintenant un smoke test reproductible avec fixtures locales anonymes pour Go et Kotlin.
-- La couverture frontend, le contrat API partage et la parite Go/Kotlin hors routes restent les meilleurs leviers pour eviter les regressions silencieuses.
+- La qualite des donnees locales FIT/GPX dispose maintenant d'un corpus partage et de tests miroir Go/Kotlin sur les anomalies principales: valeurs invalides, streams incomplets, GPS aberrant, altitude spike, corrections proposees et impacts avant/apres correction.
+- Les modes source `STRAVA` / `FIT` / `GPX` ont un smoke test reproductible avec fixtures locales anonymes pour Go et Kotlin.
+- Les risques ouverts les plus visibles sont le contrat API non partage, les parcours frontend peu couverts, la parite Go/Kotlin hors routes/data quality et la fraicheur des indicateurs apres synchronisation.
 
 ## Garde-fous permanents
 
@@ -28,6 +28,7 @@
 - Ne pas changer silencieusement les contrats API: ajouter migration, compatibilite ou tests de contrat.
 - Toute reponse JSON issue d'un provider local doit rester serialisable: pas de `NaN`, `Inf`, sentinelle FIT brute ou tableau `null` quand le contrat expose une liste.
 - Toute correction locale doit rester reversible et explicite dans les diagnostics.
+- Toute evolution data quality doit mettre a jour les fixtures partagees et le snapshot attendu si le diagnostic change volontairement.
 
 ## Chantiers techniques proposes
 
@@ -45,17 +46,17 @@
   Acceptance:
   - une divergence de champ ou d'enum casse la CI avant d'arriver dans l'UI.
 
-- [ ] `TECH-P1-06` (`P1`, `M`) - Stabiliser les fixtures de qualite de donnees locales.
-  Owners: `QA`, `Back-Go`, `Back-Kotlin`.
+- [ ] `TECH-P1-08` (`P1`, `M`) - Rendre observable la fraicheur des donnees apres synchronisation.
+  Owners: `Back-Go`, `Back-Kotlin`, `Front`, `QA`.
   Constat:
-  - les diagnostics et corrections data quality existent,
-  - il manque un corpus partage qui couvre valeurs invalides, streams incomplets, GPS aberrant, altitude spike et fichiers locaux limites.
+  - l'application peut importer de nouvelles activites au demarrage,
+  - les indicateurs derives comme l'Eddington number, le dashboard ou les statistiques peuvent rester percus comme obsoletes si l'UI ou les caches ne signalent pas clairement leur version de donnees.
   Scope:
-  - ajouter fixtures FIT/GPX anonymisees et petites,
-  - comparer les rapports data quality Go/Kotlin sur les categories, severites, champs et corrections proposees,
-  - ajouter un snapshot lisible des impacts avant/apres correction.
+  - exposer une version ou generation de donnees dans `/api/health/details` ou un endpoint equivalent,
+  - invalider explicitement les stores frontend quand une synchronisation modifie le corpus d'activites,
+  - ajouter un smoke test couvrant import activite -> recalcul statistiques -> UI actualisee.
   Acceptance:
-  - une evolution de parsing local ou de correction casse un test quand elle change le diagnostic attendu.
+  - apres import d'une activite, les indicateurs derives visibles se mettent a jour sans reload manuel ambigu.
 
 ### Priorite moyenne
 
@@ -74,11 +75,12 @@
 - [ ] `TECH-P1-05` (`P1`, `L`) - Reduire le risque de divergence Go/Kotlin hors routes.
   Owners: `Back-Go`, `Back-Kotlin`, `QA`.
   Scope:
-  - ajouter des fixtures partagees pour statistiques, badges, dashboard, heatmap, objectifs annuels, source modes, data quality, gear analysis et activites detaillees,
+  - ajouter des fixtures partagees pour statistiques, badges, dashboard, heatmap, objectifs annuels, source modes, gear analysis, segments et activites detaillees,
+  - garder `test-fixtures/data-quality` comme reference pour les diagnostics/corrections locales deja stabilises,
   - comparer au minimum les champs agreges et les cas limites de dates/streams manquants,
   - documenter les divergences acceptees quand une fonctionnalite n'existe que dans un backend.
   Acceptance:
-  - la parite critique n'est plus limitee au moteur routes.
+  - la parite critique n'est plus limitee au moteur routes et a la data quality.
 
 - [ ] `TECH-P1-07` (`P1`, `S`) - Eviter la derive des docs de capacites backend.
   Owners: `Docs`, `Back-Go`, `Back-Kotlin`.
@@ -120,6 +122,24 @@
 
 ### Priorite moyenne
 
+- [ ] `FUNC-P1-12` (`P1`, `M`) - Centre de fraicheur et synchronisation.
+  Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
+  Proposition:
+  - afficher la derniere synchronisation, le nombre d'activites importees, les erreurs provider et la generation de donnees courante,
+  - ajouter une action de rafraichissement explicite quand le backend le permet,
+  - signaler les vues qui affichent encore des donnees calculees avant la derniere synchronisation.
+  Acceptance:
+  - l'utilisateur sait si les statistiques visibles incluent les activites nouvellement importees.
+
+- [ ] `FUNC-P1-13` (`P1`, `M`) - Assistant de revue data quality.
+  Owners: `Product`, `Front`, `Stats`.
+  Proposition:
+  - regrouper les anomalies locales par activite, severite, champ et impact statistique,
+  - montrer l'effet avant/apres des corrections proposees avant validation,
+  - permettre une validation explicite et reversible des corrections sures.
+  Acceptance:
+  - la data quality devient un workflow de decision, pas seulement un rapport technique.
+
 - [ ] `FUNC-P1-11` (`P1`, `S`) - Etudier https://themechanic.bike/fr pour enrichir l'onglet Gear.
   Owners: `Product`, `Front`, `Stats`.
   Proposition:
@@ -159,10 +179,20 @@
   Acceptance:
   - les donnees ajoutees par l'application restent portables hors application.
 
+- [ ] `FUNC-P2-06` (`P2`, `M`) - Bibliotheque de projets `Strava Art`.
+  Owners: `Product`, `Front`, `Routes`.
+  Proposition:
+  - sauvegarder dessins, imports, routes OSRM generees, exports GPX et scores associes,
+  - comparer plusieurs variantes d'un meme dessin,
+  - permettre de reprendre un projet sans redessiner depuis zero.
+  Acceptance:
+  - `Strava Art` devient un atelier reutilisable plutot qu'un outil one-shot.
+
 ## Dette visible a traiter en premier
 
 - Contrat OpenAPI partage (`TECH-P1-01`).
-- Fixtures data quality partagees (`TECH-P1-06`).
+- Fraicheur des donnees apres synchronisation (`TECH-P1-08`).
+- Couverture frontend des parcours critiques (`TECH-P1-03`).
 
 ## Verification conseillee selon le type de changement
 
