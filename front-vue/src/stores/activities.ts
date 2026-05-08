@@ -14,6 +14,9 @@ export const useActivitiesStore = defineStore("activities", {
     currentFiltersKey(): string {
       return useContextStore().currentFiltersKey;
     },
+    invalidateCache() {
+      this.activitiesByKey = {};
+    },
     async fetchActivities() {
       const contextStore = useContextStore();
       const url = buildFilteredApiUrl("activities", contextStore.currentActivityType, contextStore.currentYear);

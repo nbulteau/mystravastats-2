@@ -3,6 +3,7 @@ import './assets/main.css'
 import {createApp} from 'vue'
 import {createPinia} from 'pinia'
 import { useAthleteStore } from "@/stores/athlete";
+import { useBackendRefreshStore } from "@/stores/backend-refresh";
 import mitt from 'mitt';
 import Highcharts from 'highcharts';
 
@@ -153,6 +154,10 @@ const bootstrap = async (): Promise<void> => {
     const athleteStore = useAthleteStore(pinia);
     athleteStore.fetchAthlete().catch((err: unknown) => {
         console.error('Failed to load athlete profile:', err);
+    });
+    const backendRefreshStore = useBackendRefreshStore(pinia);
+    backendRefreshStore.watchStartupActivityRefresh().catch((err: unknown) => {
+        console.error('Failed to watch backend activity refresh:', err);
     });
 
     const app = createApp(App);

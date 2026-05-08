@@ -86,6 +86,9 @@ export const useChartsStore = defineStore("charts", {
       this.heartRateZoneAnalysis = entry.heartRateZoneAnalysis;
       this.error = null;
     },
+    invalidateCache() {
+      this.chartsByKey = {};
+    },
     async fetchDistanceByMonths() {
       const contextStore = useContextStore();
       const url =

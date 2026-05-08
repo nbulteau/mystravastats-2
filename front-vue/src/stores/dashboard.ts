@@ -104,6 +104,10 @@ export const useDashboardStore = defineStore("dashboard", {
       this.dashboardData = entry.dashboardData;
       this.annualGoals = entry.annualGoals;
     },
+    invalidateCache() {
+      this.dashboardByKey = {};
+      this.heatmapByKey = {};
+    },
     async fetchCumulativeDataPerYear() {
       const contextStore = useContextStore();
       const url = buildFilteredApiUrl(

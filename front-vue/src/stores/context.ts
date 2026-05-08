@@ -34,44 +34,62 @@ export const useContextStore = defineStore("context", {
     currentFiltersKey: (state) => `${state.currentActivityType}__${state.currentYear}`,
   },
   actions: {
-    async refreshCurrentViewData() {
+    invalidateActivityDerivedCaches() {
+      useActivitiesStore().invalidateCache();
+      useBadgesStore().invalidateCache();
+      useChartsStore().invalidateCache();
+      useDashboardStore().invalidateCache();
+      useGearAnalysisStore().invalidateCache();
+      useMapStore().invalidateCache();
+      useSegmentsStore().invalidateCache();
+      useStatisticsStore().invalidateCache();
+    },
+    async refreshCurrentViewData(force = false) {
       switch (this.currentView) {
         case "statistics":
-          await useStatisticsStore().ensureLoaded();
+          await useStatisticsStore().ensureLoaded(force);
           break;
         case "gear":
-          await useGearAnalysisStore().ensureLoaded();
+          await useGearAnalysisStore().ensureLoaded(force);
           break;
         case "activities":
-          await useActivitiesStore().ensureLoaded();
+          await useActivitiesStore().ensureLoaded(force);
           break;
         case "map":
-          await useMapStore().ensureLoaded();
+          await useMapStore().ensureLoaded(force);
           break;
         case "charts":
-          await useChartsStore().ensureLoaded();
+          await useChartsStore().ensureLoaded(force);
           break;
         case "segments":
-          await useSegmentsStore().ensureLoaded();
+          await useSegmentsStore().ensureLoaded(force);
           break;
         case "diagnostics":
-          await useDiagnosticsStore().ensureLoaded();
+          if (force) {
+            await useDiagnosticsStore().refreshDiagnostics();
+          } else {
+            await useDiagnosticsStore().ensureLoaded();
+          }
           break;
         case "routes":
           await useRoutesStore().ensureLoaded();
           break;
         case "dashboard":
-          await useDashboardStore().ensureDashboardLoaded();
+          await useDashboardStore().ensureDashboardLoaded(force);
           break;
         case "heatmap":
-          await useDashboardStore().ensureHeatmapLoaded();
+          await useDashboardStore().ensureHeatmapLoaded(force);
           break;
         case "badges":
-          await useBadgesStore().ensureLoaded();
+          await useBadgesStore().ensureLoaded(force);
           break;
         case "activity":
           break;
       }
+    },
+    async refreshAfterActivityDataChanged() {
+      this.invalidateActivityDerivedCaches();
+      await this.refreshCurrentViewData(true);
     },
     async updateCurrentYear(currentYear: string) {
       if (this.currentYear === currentYear) {

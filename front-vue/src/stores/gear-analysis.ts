@@ -20,6 +20,9 @@ export const useGearAnalysisStore = defineStore("gearAnalysis", {
     currentFiltersKey(): string {
       return useContextStore().currentFiltersKey;
     },
+    invalidateCache() {
+      this.analysisByKey = {};
+    },
     async fetchGearAnalysis() {
       const contextStore = useContextStore();
       const url = buildFilteredApiUrl("gear-analysis", contextStore.currentActivityType, contextStore.currentYear);

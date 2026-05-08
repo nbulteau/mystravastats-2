@@ -33,6 +33,10 @@ export const useMapStore = defineStore("map", {
     clearViewportForCurrentFilters() {
       delete this.viewportByKey[this.currentFiltersKey()];
     },
+    invalidateCache() {
+      this.mapTracksByKey = {};
+      this.mapPassagesByKey = {};
+    },
     async fetchGPXCoordinates() {
       const contextStore = useContextStore();
       const tracksUrl = buildFilteredApiUrl("maps/gpx", contextStore.currentActivityType, contextStore.currentYear);

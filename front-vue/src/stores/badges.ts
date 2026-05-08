@@ -26,6 +26,9 @@ export const useBadgesStore = defineStore("badges", {
       this.generalBadgesCheckResults = entry.generalBadgesCheckResults;
       this.famousClimbBadgesCheckResults = entry.famousClimbBadgesCheckResults;
     },
+    invalidateCache() {
+      this.badgesByKey = {};
+    },
     async fetchBadges() {
       const contextStore = useContextStore();
       const url = buildFilteredApiUrl("badges", contextStore.currentActivityType, contextStore.currentYear);
