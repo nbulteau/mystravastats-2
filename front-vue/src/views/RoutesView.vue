@@ -50,11 +50,15 @@ const productGenerationDiagnostics = computed(() =>
 const canTransformShape = computed(() => routesStore.canTransformShape);
 const builtInShapeTemplateGroups = BUILT_IN_SHAPE_TEMPLATE_GROUPS;
 const builtInShapeTemplateLabels = new Map<BuiltInShapeTemplateKey, string>();
+const builtInShapeTemplateIcons = new Map<BuiltInShapeTemplateKey, string>();
 builtInShapeTemplateGroups.forEach((group) => {
   group.templates.forEach((template) => {
     builtInShapeTemplateLabels.set(template.key, template.label);
+    builtInShapeTemplateIcons.set(template.key, template.icon);
   });
 });
+const selectedShapeTemplateLabel = computed(() => builtInShapeTemplateLabels.get(selectedShapeTemplate.value) ?? "Choose shape");
+const selectedShapeTemplateIcon = computed(() => builtInShapeTemplateIcons.get(selectedShapeTemplate.value) ?? "fa-solid fa-shapes");
 interface CorrectionSuggestion {
   id: string;
   title: string;
@@ -196,48 +200,6 @@ const generateRouteButtonLabel = computed(() => {
     return "Generating art...";
   }
   return "Snap artwork to roads";
-});
-const primaryActionLabel = computed(() => {
-  if (routesStore.isLoading) {
-    return "Generating...";
-  }
-  if (routesStore.shapePoints.length < 2) {
-    return routesStore.isDrawingShape ? "Stop drawing" : "Draw";
-  }
-  if (!routesStore.startPoint) {
-    return isLocating.value ? "Locating..." : "Set start";
-  }
-  if (!routesStore.hasRoutes) {
-    return "Generate";
-  }
-  return isExporting.value ? "Exporting..." : "Export GPX";
-});
-const primaryActionIcon = computed(() => {
-  if (routesStore.shapePoints.length < 2) {
-    return "fa-solid fa-pen-nib";
-  }
-  if (!routesStore.startPoint) {
-    return "fa-solid fa-location-crosshairs";
-  }
-  if (!routesStore.hasRoutes) {
-    return "fa-solid fa-route";
-  }
-  return "fa-solid fa-download";
-});
-const primaryActionDisabled = computed(() => {
-  if (routesStore.isLoading || isExporting.value) {
-    return true;
-  }
-  if (routesStore.shapePoints.length < 2) {
-    return false;
-  }
-  if (!routesStore.startPoint) {
-    return isLocating.value;
-  }
-  if (!routesStore.hasRoutes) {
-    return !canGenerate.value;
-  }
-  return !selectedRoute.value;
 });
 const workspaceStage = computed(() => {
   if (routesStore.shapePoints.length < 2) {
@@ -1469,22 +1431,6 @@ async function generateRoutes() {
   }
 }
 
-async function runPrimaryAction() {
-  if (routesStore.shapePoints.length < 2) {
-    routesStore.toggleShapeDrawing();
-    return;
-  }
-  if (!routesStore.startPoint) {
-    await useMyLocation();
-    return;
-  }
-  if (!routesStore.hasRoutes) {
-    await generateRoutes();
-    return;
-  }
-  await exportSelectedRoute();
-}
-
 function pickRoute(routeId: string) {
   routesStore.setSelectedRoute(routeId);
   redrawMapLayers({ fitBounds: true });
@@ -1503,13 +1449,6 @@ async function exportRoute(route: GeneratedRoute) {
   } finally {
     isExporting.value = false;
   }
-}
-
-async function exportSelectedRoute() {
-  if (!selectedRoute.value) {
-    return;
-  }
-  await exportRoute(selectedRoute.value);
 }
 
 watch(
@@ -1585,15 +1524,6 @@ onBeforeUnmount(() => {
           <strong>Source</strong>
           <span>{{ workspaceStage }}</span>
         </div>
-        <button
-          type="button"
-          class="btn btn-outline-primary routes-location-btn"
-          :disabled="isLocating"
-          @click="useMyLocation"
-        >
-          <i class="fa-solid fa-location-crosshairs" aria-hidden="true" />
-          {{ isLocating ? "Locating..." : "Use my location" }}
-        </button>
 
         <label class="routes-field">
           <span>Activity style</span>
@@ -1633,14 +1563,6 @@ onBeforeUnmount(() => {
             <strong>Artwork sketch</strong>
             <span>{{ routesStore.shapePoints.length }} point(s)</span>
           </div>
-          <button
-            type="button"
-            class="btn btn-outline-secondary"
-            @click="routesStore.toggleShapeDrawing"
-          >
-            <i class="fa-solid fa-pen-nib" aria-hidden="true" />
-            {{ routesStore.isDrawingShape ? "Stop drawing" : "Draw sketch" }}
-          </button>
           <button
             type="button"
             class="btn btn-outline-secondary"
@@ -1690,160 +1612,169 @@ onBeforeUnmount(() => {
 
         <details
           class="routes-library-tools"
-          open
         >
           <summary>
-            <span>Templates and imports</span>
-            <strong>{{ routesStore.savedShapeTemplateCount }} saved</strong>
+            <span class="routes-library-combo-main">
+              <span class="routes-library-combo-icon">
+                <i :class="selectedShapeTemplateIcon" aria-hidden="true" />
+              </span>
+              <span>
+                <strong>Templates and imports</strong>
+                <small>{{ selectedShapeTemplateLabel }} - {{ routesStore.savedShapeTemplateCount }} saved</small>
+              </span>
+            </span>
+            <i class="fa-solid fa-chevron-down routes-library-combo-arrow" aria-hidden="true" />
           </summary>
-          <div class="routes-template-panel">
-            <div
-              v-for="group in builtInShapeTemplateGroups"
-              :key="group.id"
-              class="routes-template-group"
-            >
-              <span class="routes-template-group-title">{{ group.label }}</span>
-              <div class="routes-template-grid">
-                <button
-                  v-for="template in group.templates"
-                  :key="template.key"
-                  type="button"
-                  class="routes-template-button"
-                  :class="{ 'routes-template-button--active': selectedShapeTemplate === template.key }"
-                  :aria-pressed="selectedShapeTemplate === template.key"
-                  @click="applyShapeTemplate(template.key)"
-                >
-                  <i :class="template.icon" aria-hidden="true" />
-                  <span>{{ template.label }}</span>
-                </button>
+          <div class="routes-library-combo-panel">
+            <div class="routes-template-panel">
+              <div
+                v-for="group in builtInShapeTemplateGroups"
+                :key="group.id"
+                class="routes-template-group"
+              >
+                <span class="routes-template-group-title">{{ group.label }}</span>
+                <div class="routes-template-grid">
+                  <button
+                    v-for="template in group.templates"
+                    :key="template.key"
+                    type="button"
+                    class="routes-template-button"
+                    :class="{ 'routes-template-button--active': selectedShapeTemplate === template.key }"
+                    :aria-pressed="selectedShapeTemplate === template.key"
+                    @click="applyShapeTemplate(template.key)"
+                  >
+                    <i :class="template.icon" aria-hidden="true" />
+                    <span>{{ template.label }}</span>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="routes-image-row">
-            <input
-              ref="traceImageFileInput"
-              type="file"
-              class="routes-gpx-input"
-              accept="image/png,image/jpeg,image/webp,image/svg+xml"
-              @change="onTraceImageSelected"
-            >
-            <button
-              type="button"
-              class="btn btn-outline-secondary btn-sm"
-              @click="openTraceImagePicker"
-            >
-              <i class="fa-solid fa-image" aria-hidden="true" />
-              Import image
-            </button>
-            <button
-              type="button"
-              class="btn btn-outline-danger btn-sm"
-              :disabled="!traceImageUrl"
-              @click="clearTraceImage"
-            >
-              <i class="fa-solid fa-eye-slash" aria-hidden="true" />
-              Clear
-            </button>
-          </div>
-          <small
-            v-if="traceImageName"
-            class="routes-hint"
-          >
-            {{ traceImageName }}
-          </small>
-          <div class="routes-save-template">
-            <span>Save sketch template</span>
-            <div class="routes-save-row">
+            <div class="routes-image-row">
               <input
-                v-model="saveShapeName"
-                type="text"
-                maxlength="48"
-                class="form-control form-control-sm"
-                placeholder="Template name"
-                @keydown.enter.prevent="saveCurrentShapeTemplate"
+                ref="traceImageFileInput"
+                type="file"
+                class="routes-gpx-input"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                @change="onTraceImageSelected"
               >
-              <button
-                type="button"
-                class="btn btn-outline-primary btn-sm"
-                :disabled="!canTransformShape"
-                @click="saveCurrentShapeTemplate"
-              >
-                <i class="fa-solid fa-floppy-disk" aria-hidden="true" />
-                Save template
-              </button>
-            </div>
-          </div>
-          <div
-            v-if="routesStore.savedShapeTemplates.length > 0"
-            class="routes-saved-list"
-          >
-            <div
-              v-for="template in routesStore.savedShapeTemplates"
-              :key="template.id"
-              class="routes-saved-item"
-            >
               <button
                 type="button"
                 class="btn btn-outline-secondary btn-sm"
-                @click="loadSavedShapeTemplate(template.id)"
+                @click="openTraceImagePicker"
               >
-                <i class="fa-solid fa-folder-open" aria-hidden="true" />
-                {{ template.name }}
+                <i class="fa-solid fa-image" aria-hidden="true" />
+                Import image
               </button>
               <button
                 type="button"
                 class="btn btn-outline-danger btn-sm"
-                :aria-label="`Delete ${template.name}`"
-                @click="deleteSavedShapeTemplate(template.id)"
+                :disabled="!traceImageUrl"
+                @click="clearTraceImage"
               >
-                <i class="fa-solid fa-trash" aria-hidden="true" />
+                <i class="fa-solid fa-eye-slash" aria-hidden="true" />
+                Clear
               </button>
             </div>
-          </div>
-          <label class="routes-freestyle-toggle">
-            <input
-              type="checkbox"
-              :checked="routesStore.freestyleMode"
-              @change="toggleFreestyleMode"
+            <small
+              v-if="traceImageName"
+              class="routes-hint"
             >
-            <span>Freestyle exports</span>
-          </label>
-          <div class="routes-export-row">
-            <button
-              type="button"
-              class="btn btn-outline-primary btn-sm"
-              :disabled="!routesStore.freestyleMode || !canTransformShape"
-              @click="exportSketchGpx"
+              {{ traceImageName }}
+            </small>
+            <div class="routes-save-template">
+              <span>Save sketch template</span>
+              <div class="routes-save-row">
+                <input
+                  v-model="saveShapeName"
+                  type="text"
+                  maxlength="48"
+                  class="form-control form-control-sm"
+                  placeholder="Template name"
+                  @keydown.enter.prevent="saveCurrentShapeTemplate"
+                >
+                <button
+                  type="button"
+                  class="btn btn-outline-primary btn-sm"
+                  :disabled="!canTransformShape"
+                  @click="saveCurrentShapeTemplate"
+                >
+                  <i class="fa-solid fa-floppy-disk" aria-hidden="true" />
+                  Save template
+                </button>
+              </div>
+            </div>
+            <div
+              v-if="routesStore.savedShapeTemplates.length > 0"
+              class="routes-saved-list"
             >
-              <i class="fa-solid fa-file-export" aria-hidden="true" />
-              GPX
-            </button>
-            <button
-              type="button"
-              class="btn btn-outline-primary btn-sm"
-              :disabled="!routesStore.freestyleMode || !canTransformShape"
-              @click="exportSketchTcx"
-            >
-              <i class="fa-solid fa-file-export" aria-hidden="true" />
-              TCX
-            </button>
-            <button
-              type="button"
-              class="btn btn-outline-primary btn-sm"
-              :disabled="!canTransformShape"
-              @click="exportSketchPng"
-            >
-              <i class="fa-solid fa-image" aria-hidden="true" />
-              PNG
-            </button>
-            <button
-              type="button"
-              class="btn btn-outline-secondary btn-sm"
-              disabled
-              title="FIT export needs a binary FIT encoder"
-            >
-              FIT
-            </button>
+              <div
+                v-for="template in routesStore.savedShapeTemplates"
+                :key="template.id"
+                class="routes-saved-item"
+              >
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  @click="loadSavedShapeTemplate(template.id)"
+                >
+                  <i class="fa-solid fa-folder-open" aria-hidden="true" />
+                  {{ template.name }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-danger btn-sm"
+                  :aria-label="`Delete ${template.name}`"
+                  @click="deleteSavedShapeTemplate(template.id)"
+                >
+                  <i class="fa-solid fa-trash" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+            <label class="routes-freestyle-toggle">
+              <input
+                type="checkbox"
+                :checked="routesStore.freestyleMode"
+                @change="toggleFreestyleMode"
+              >
+              <span>Freestyle exports</span>
+            </label>
+            <div class="routes-export-row">
+              <button
+                type="button"
+                class="btn btn-outline-primary btn-sm"
+                :disabled="!routesStore.freestyleMode || !canTransformShape"
+                @click="exportSketchGpx"
+              >
+                <i class="fa-solid fa-file-export" aria-hidden="true" />
+                GPX
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-primary btn-sm"
+                :disabled="!routesStore.freestyleMode || !canTransformShape"
+                @click="exportSketchTcx"
+              >
+                <i class="fa-solid fa-file-export" aria-hidden="true" />
+                TCX
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-primary btn-sm"
+                :disabled="!canTransformShape"
+                @click="exportSketchPng"
+              >
+                <i class="fa-solid fa-image" aria-hidden="true" />
+                PNG
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-secondary btn-sm"
+                disabled
+                title="FIT export needs a binary FIT encoder"
+              >
+                FIT
+              </button>
+            </div>
           </div>
         </details>
 
@@ -1858,16 +1789,24 @@ onBeforeUnmount(() => {
           <div class="routes-map-actions">
             <button
               type="button"
-              class="btn btn-primary btn-sm routes-map-generate-btn"
-              :disabled="primaryActionDisabled"
-              @click="runPrimaryAction"
+              class="btn btn-outline-secondary btn-sm"
+              @click="routesStore.toggleShapeDrawing"
             >
-              <i :class="primaryActionIcon" aria-hidden="true" />
-              {{ primaryActionLabel }}
+              <i class="fa-solid fa-pen-nib" aria-hidden="true" />
+              {{ routesStore.isDrawingShape ? "Stop drawing" : "Draw" }}
             </button>
             <button
               type="button"
               class="btn btn-outline-primary btn-sm"
+              :disabled="isLocating"
+              @click="useMyLocation"
+            >
+              <i class="fa-solid fa-location-crosshairs" aria-hidden="true" />
+              {{ isLocating ? "Locating..." : "Use my location" }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary btn-sm routes-map-generate-btn"
               :disabled="routesStore.isLoading || !canGenerate"
               @click="generateRoutes"
             >
@@ -2444,10 +2383,6 @@ onBeforeUnmount(() => {
   padding: 4px 8px;
 }
 
-.routes-location-btn {
-  width: 100%;
-}
-
 .routes-field {
   display: flex;
   flex-direction: column;
@@ -2516,9 +2451,7 @@ onBeforeUnmount(() => {
 }
 
 .routes-library-tools {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: block;
   border-top: 1px solid #e5ebf4;
   padding-top: 10px;
 }
@@ -2528,20 +2461,85 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
+  min-height: 46px;
+  border: 1px solid #d9e2ef;
+  border-radius: 8px;
+  background: #f8fbff;
   color: #4d566a;
   cursor: pointer;
   font-size: 0.85rem;
   font-weight: 800;
   list-style: none;
+  padding: 8px 10px;
 }
 
 .routes-library-tools summary::-webkit-details-marker {
   display: none;
 }
 
+.routes-library-tools summary:hover {
+  border-color: #8fb4d8;
+  background: #f4f8fc;
+}
+
 .routes-library-tools summary strong {
+  display: block;
+  color: #303746;
+  font-size: 0.84rem;
+  line-height: 1.15;
+}
+
+.routes-library-tools summary small {
+  display: block;
   color: #6f7687;
   font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.routes-library-combo-main {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.routes-library-combo-main > span:last-child {
+  min-width: 0;
+}
+
+.routes-library-combo-icon {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cfe0f7;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f766e;
+}
+
+.routes-library-combo-arrow {
+  color: #6f7687;
+  transition: transform 0.16s ease;
+}
+
+.routes-library-tools[open] .routes-library-combo-arrow {
+  transform: rotate(180deg);
+}
+
+.routes-library-combo-panel {
+  display: grid;
+  gap: 8px;
+  max-height: min(58vh, 520px);
+  margin-top: 8px;
+  overflow: auto;
+  border: 1px solid #e5ebf4;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 9px;
 }
 
 .routes-library-tools-head {
