@@ -6,12 +6,14 @@ import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.Coordinates
 import me.nicolas.stravastats.domain.business.RouteExplorerRequest
 import me.nicolas.stravastats.domain.business.RouteExplorerResult
+import me.nicolas.stravastats.domain.business.RouteGenerationDiagnostic
 import me.nicolas.stravastats.domain.business.RouteRecommendation
 import me.nicolas.stravastats.domain.business.RouteVariantType
 import me.nicolas.stravastats.domain.business.ShapeRemixRecommendation
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import me.nicolas.stravastats.domain.services.routing.RoutingEnginePort
+import me.nicolas.stravastats.domain.services.routing.RoutingEngineDiagnosticException
 import me.nicolas.stravastats.domain.services.routing.RoutingHistoryProfile
 import me.nicolas.stravastats.domain.services.routing.RoutingEngineRequest
 import me.nicolas.stravastats.domain.services.routing.buildRoutingHistoryProfile
@@ -44,6 +46,11 @@ class RouteExplorerService(
     activityProvider: IActivityProvider,
     private val routingEngine: RoutingEnginePort,
 ) : IRouteExplorerService, AbstractStravaService(activityProvider) {
+
+    private data class EngineShapeResult(
+        val routes: List<RouteRecommendation>,
+        val diagnostics: List<RouteGenerationDiagnostic> = emptyList(),
+    )
 
     companion object {
         private const val DEFAULT_ROUTE_LIMIT = 5
@@ -84,8 +91,9 @@ class RouteExplorerService(
                 variants = emptyList(),
                 seasonal = emptyList(),
                 roadGraphLoops = generatedWithoutCache,
-                shapeMatches = generatedShapeWithoutCache,
+                shapeMatches = generatedShapeWithoutCache.routes,
                 shapeRemixes = emptyList(),
+                diagnostics = generatedShapeWithoutCache.diagnostics,
             )
         }
 
@@ -169,7 +177,7 @@ class RouteExplorerService(
             historyProfile = historyProfile,
         )
         val shapeMatches = mergeRouteRecommendations(
-            primary = shapeMatchesFromEngine,
+            primary = shapeMatchesFromEngine.routes,
             secondary = shapeMatchesFromCache,
             limit = limit,
         )
@@ -186,6 +194,7 @@ class RouteExplorerService(
             roadGraphLoops = roadGraphLoops,
             shapeMatches = shapeMatches,
             shapeRemixes = remixes,
+            diagnostics = shapeMatchesFromEngine.diagnostics,
         )
     }
 
@@ -236,11 +245,11 @@ class RouteExplorerService(
         limit: Int,
         historyBiasEnabled: Boolean,
         historyProfile: RoutingHistoryProfile?,
-    ): List<RouteRecommendation> {
+    ): EngineShapeResult {
         val start = request.startPoint
         val shapePolyline = request.shapePolyline?.trim()
         if (start == null || shapePolyline.isNullOrBlank() || limit <= 0) {
-            return emptyList()
+            return EngineShapeResult(routes = emptyList())
         }
         return runCatching {
             routingEngine.generateShapeLoops(
@@ -261,7 +270,19 @@ class RouteExplorerService(
                     historyProfile = historyProfile,
                 )
             )
-        }.getOrElse { emptyList() }
+        }.fold(
+            onSuccess = { routes -> EngineShapeResult(routes = routes) },
+            onFailure = { error ->
+                if (error is RoutingEngineDiagnosticException) {
+                    EngineShapeResult(
+                        routes = emptyList(),
+                        diagnostics = listOf(RouteGenerationDiagnostic(code = error.code, message = error.message)),
+                    )
+                } else {
+                    EngineShapeResult(routes = emptyList())
+                }
+            },
+        )
     }
 
     private fun isHistoryBiasEnabled(): Boolean {

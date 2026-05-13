@@ -19,6 +19,7 @@ import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.Coordinates
 import me.nicolas.stravastats.domain.business.RouteExplorerRequest
 import me.nicolas.stravastats.domain.business.RouteExplorerResult
+import me.nicolas.stravastats.domain.business.RouteGenerationDiagnostic
 import me.nicolas.stravastats.domain.business.RouteRecommendation
 import me.nicolas.stravastats.domain.business.RouteVariantType
 import me.nicolas.stravastats.domain.business.ShapeRemixRecommendation
@@ -178,6 +179,7 @@ class RoutesController(
             shapeFilter = shapeFilter,
             requestId = requestId,
             ignoredCandidateCount = countIgnoredShapeGenerationCandidates(result),
+            engineDiagnostics = result.diagnostics,
         )
         cacheGeneratedRoutes(routes)
         logRouteGenerationSummary(
@@ -422,16 +424,24 @@ class RoutesController(
         shapeFilter: String?,
         requestId: String,
         ignoredCandidateCount: Int,
+        engineDiagnostics: List<RouteGenerationDiagnostic>,
     ): List<RouteGenerationDiagnosticDto> {
         if (routes.isNotEmpty()) {
             return buildSuccessfulGenerationDiagnostics(routes)
         }
 
-        val diagnostics = mutableListOf(
-            RouteGenerationDiagnosticDto(
-                code = "NO_CANDIDATE",
-                message = "No route candidate matched the provided shape.",
-            )
+        val diagnostics = engineDiagnostics.mapNotNull { diagnostic ->
+            val code = diagnostic.code.trim()
+            val message = diagnostic.message.trim()
+            if (code.isBlank() || message.isBlank()) {
+                null
+            } else {
+                RouteGenerationDiagnosticDto(code = code, message = message)
+            }
+        }.toMutableList()
+        diagnostics += RouteGenerationDiagnosticDto(
+            code = "NO_CANDIDATE",
+            message = "No route candidate matched the provided shape.",
         )
         if (ignoredCandidateCount > 0) {
             diagnostics += RouteGenerationDiagnosticDto(
@@ -728,27 +738,7 @@ class RoutesController(
 
     private fun inferShapeFromCoordinates(points: List<List<Double>>): String {
         if (points.size < 2) {
-            return "POINT_TO_POINT"
-        }
-        val start = Coordinates(points.first()[0], points.first()[1])
-        val end = Coordinates(points.last()[0], points.last()[1])
-        val startEndDistance = haversineDistanceMeters(start, end)
-        var pathDistance = 0.0
-        var maxFromStart = 0.0
-        for (index in 1 until points.size) {
-            val previous = Coordinates(points[index - 1][0], points[index - 1][1])
-            val next = Coordinates(points[index][0], points[index][1])
-            val segment = haversineDistanceMeters(previous, next)
-            pathDistance += segment
-            val startDistance = haversineDistanceMeters(start, next)
-            maxFromStart = max(maxFromStart, startDistance)
-        }
-        val loopThreshold = max(350.0, pathDistance * 0.08)
-        if (startEndDistance <= loopThreshold) {
-            return "LOOP"
-        }
-        if (maxFromStart > 0.0 && startEndDistance <= max(220.0, maxFromStart * 0.18)) {
-            return "OUT_AND_BACK"
+            return ""
         }
         return "POINT_TO_POINT"
     }

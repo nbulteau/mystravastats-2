@@ -16,6 +16,7 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -59,7 +60,7 @@ class OsmRoutingEngineAdapterShapeTest {
     }
 
     @Test
-    fun `build shape road first waypoints returns anchored loop`() {
+    fun `build shape road first waypoints returns ordered shape`() {
         // GIVEN
         val adapter = OsmRoutingEngineAdapter()
         val start = Coordinates(lat = 48.13000, lng = -1.63000)
@@ -78,7 +79,7 @@ class OsmRoutingEngineAdapterShapeTest {
         // THEN
         assertTrue(waypoints.size >= 3)
         assertEquals(start, waypoints.first())
-        assertEquals(start, waypoints.last())
+        assertEquals(shape.last(), waypoints.last())
         assertTrue(waypoints.size <= shapeFirstWaypoints.size + 1)
     }
 
@@ -155,6 +156,30 @@ class OsmRoutingEngineAdapterShapeTest {
     }
 
     @Test
+    fun `open shape waypoints do not force loop closure`() {
+        // GIVEN
+        val adapter = OsmRoutingEngineAdapter()
+        val start = Coordinates(lat = 48.1300, lng = -1.6300)
+        val shape = listOf(
+            start,
+            Coordinates(lat = 48.1380, lng = -1.6220),
+            Coordinates(lat = 48.1460, lng = -1.6140),
+            Coordinates(lat = 48.1540, lng = -1.6060),
+        )
+
+        // WHEN
+        val waypoints = invokeBuildShapeDenseWaypoints(adapter, start, shape)
+
+        // THEN
+        assertTrue(waypoints.size >= 3)
+        assertTrue(haversineDistanceMeters(waypoints.last(), shape.last()) < 80.0)
+        assertTrue(
+            haversineDistanceMeters(waypoints.last(), start) > 1000.0,
+            "open shape should not close back to start"
+        )
+    }
+
+    @Test
     fun `nearest road trace routes between snapped anchors`() {
         // GIVEN
         val routeCalls = AtomicInteger(0)
@@ -205,10 +230,187 @@ class OsmRoutingEngineAdapterShapeTest {
             // THEN
             assertNotNull(route)
             val coordinates = invokeOsrmRouteCoordinates(route)
-            assertEquals(3, routeCalls.get(), "expected one OSRM route call per snapped segment")
+            assertEquals(2, routeCalls.get(), "expected one OSRM route call per snapped segment")
             assertTrue(coordinates.size > shape.size + 1, "expected routed geometry points beyond snapped anchors")
             assertEquals(shape.first().lng, coordinates.first()[0], 0.000001)
             assertEquals(shape.first().lat, coordinates.first()[1], 0.000001)
+        } finally {
+            if (previousBaseUrl == null) {
+                System.clearProperty("OSM_ROUTING_BASE_URL")
+            } else {
+                System.setProperty("OSM_ROUTING_BASE_URL", previousBaseUrl)
+            }
+            server.stop(0)
+        }
+    }
+
+    @Test
+    fun `map matched trace uses OSRM match service`() {
+        // GIVEN
+        val matchCalls = AtomicInteger(0)
+        val server = HttpServer.create(InetSocketAddress(0), 0)
+        server.createContext("/") { exchange ->
+            val path = exchange.requestURI.rawPath
+            when {
+                path.startsWith("/match/v1/cycling/") -> {
+                    matchCalls.incrementAndGet()
+                    exchange.writeJson(
+                        200,
+                        """{"code":"Ok","matchings":[{"distance":300.0,"duration":50.0,"geometry":{"type":"LineString","coordinates":[[-1.630000,48.130000],[-1.620000,48.135000],[-1.610000,48.140000]]},"legs":[{"steps":[{"distance":300.0,"mode":"cycling"}]}]}]}"""
+                    )
+                }
+                else -> exchange.writeJson(404, """{"code":"NotFound"}""")
+            }
+        }
+        server.start()
+        val previousBaseUrl = System.getProperty("OSM_ROUTING_BASE_URL")
+        System.setProperty("OSM_ROUTING_BASE_URL", "http://127.0.0.1:${server.address.port}")
+
+        try {
+            val adapter = OsmRoutingEngineAdapter()
+            val shape = listOf(
+                Coordinates(lat = 48.1300, lng = -1.6300),
+                Coordinates(lat = 48.1350, lng = -1.6200),
+                Coordinates(lat = 48.1400, lng = -1.6100),
+            )
+
+            // WHEN
+            val routes = invokeFetchShapeMapMatchedRoutes(adapter, "cycling", shape)
+
+            // THEN
+            assertEquals(1, matchCalls.get(), "expected one OSRM match call")
+            assertEquals(1, routes.size, "expected one map-matched route")
+            assertEquals(3, invokeOsrmRouteCoordinates(routes.first()).size)
+        } finally {
+            if (previousBaseUrl == null) {
+                System.clearProperty("OSM_ROUTING_BASE_URL")
+            } else {
+                System.setProperty("OSM_ROUTING_BASE_URL", previousBaseUrl)
+            }
+            server.stop(0)
+        }
+    }
+
+    @Test
+    fun `shape generation prefers map matched trace over orthogonal route`() {
+        // GIVEN
+        val server = HttpServer.create(InetSocketAddress(0), 0)
+        server.createContext("/") { exchange ->
+            val path = exchange.requestURI.rawPath
+            when {
+                path.startsWith("/nearest/v1/cycling/") -> {
+                    val rawCoordinate = path.removePrefix("/nearest/v1/cycling/").urlDecoded()
+                    val (lng, lat) = parseOsrmTestCoordinate(rawCoordinate)
+                    exchange.writeJson(
+                        200,
+                        """{"code":"Ok","waypoints":[{"location":[${lng.osrmTestFormat()},${lat.osrmTestFormat()}],"distance":4.0}]}"""
+                    )
+                }
+                path.startsWith("/match/v1/cycling/") -> exchange.writeJson(
+                    200,
+                    """{"code":"Ok","matchings":[{"distance":2100.0,"duration":360.0,"geometry":{"type":"LineString","coordinates":[[-1.680000,48.110000],[-1.675000,48.108500],[-1.670000,48.107000],[-1.665000,48.105500],[-1.660000,48.104000]]},"legs":[{"steps":[{"distance":2100.0,"mode":"cycling"}]}]}]}"""
+                )
+                path.startsWith("/route/v1/cycling/") -> exchange.writeJson(
+                    200,
+                    """{"code":"Ok","routes":[{"distance":2600.0,"duration":430.0,"geometry":{"type":"LineString","coordinates":[[-1.680000,48.110000],[-1.660000,48.110000],[-1.660000,48.104000]]},"legs":[{"steps":[{"distance":2600.0,"mode":"cycling"}]}]}]}"""
+                )
+                else -> exchange.writeJson(404, """{"code":"NotFound"}""")
+            }
+        }
+        server.start()
+        val previousBaseUrl = System.getProperty("OSM_ROUTING_BASE_URL")
+        System.setProperty("OSM_ROUTING_BASE_URL", "http://127.0.0.1:${server.address.port}")
+
+        try {
+            val adapter = OsmRoutingEngineAdapter()
+            val request = RoutingEngineRequest(
+                startPoint = Coordinates(lat = 48.1100, lng = -1.6800),
+                distanceTargetKm = 0.0,
+                elevationTargetM = null,
+                startDirection = null,
+                routeType = "RIDE",
+                shapePolyline = """
+                    [
+                      [48.1100,-1.6800],
+                      [48.1085,-1.6750],
+                      [48.1070,-1.6700],
+                      [48.1055,-1.6650],
+                      [48.1040,-1.6600]
+                    ]
+                """.trimIndent(),
+                limit = 1,
+            )
+
+            // WHEN
+            val routes = adapter.generateShapeLoops(request)
+
+            // THEN
+            assertEquals(1, routes.size)
+            assertTrue(
+                routes.first().reasons.contains("Shape mode: map-matched trace"),
+                "expected map-matched trace to win, reasons=${routes.first().reasons}"
+            )
+        } finally {
+            if (previousBaseUrl == null) {
+                System.clearProperty("OSM_ROUTING_BASE_URL")
+            } else {
+                System.setProperty("OSM_ROUTING_BASE_URL", previousBaseUrl)
+            }
+            server.stop(0)
+        }
+    }
+
+    @Test
+    fun `shape generation reports diagnostic when artwork is outside OSRM coverage`() {
+        // GIVEN
+        val routeCalls = AtomicInteger(0)
+        val server = HttpServer.create(InetSocketAddress(0), 0)
+        server.createContext("/") { exchange ->
+            val path = exchange.requestURI.rawPath
+            when {
+                path.startsWith("/nearest/v1/cycling/") -> exchange.writeJson(
+                    200,
+                    """{"code":"Ok","waypoints":[{"location":[-1.002666,48.361754],"distance":253073.6}]}"""
+                )
+                path.startsWith("/route/v1/cycling/") -> {
+                    routeCalls.incrementAndGet()
+                    exchange.writeJson(200, """{"code":"Ok","routes":[]}""")
+                }
+                else -> exchange.writeJson(404, """{"code":"NotFound"}""")
+            }
+        }
+        server.start()
+        val previousBaseUrl = System.getProperty("OSM_ROUTING_BASE_URL")
+        System.setProperty("OSM_ROUTING_BASE_URL", "http://127.0.0.1:${server.address.port}")
+
+        try {
+            val adapter = OsmRoutingEngineAdapter()
+            val request = RoutingEngineRequest(
+                startPoint = Coordinates(lat = 48.8567, lng = 2.3508),
+                distanceTargetKm = 0.0,
+                elevationTargetM = null,
+                startDirection = null,
+                routeType = "RIDE",
+                shapePolyline = """
+                    [
+                      [48.8658,2.3450],
+                      [48.8666,2.3480],
+                      [48.8668,2.3520],
+                      [48.8658,2.3450]
+                    ]
+                """.trimIndent(),
+                limit = 2,
+            )
+
+            // WHEN
+            val error = assertFailsWith<RoutingEngineDiagnosticException> {
+                adapter.generateShapeLoops(request)
+            }
+
+            // THEN
+            assertEquals("OSRM_COVERAGE_MISMATCH", error.code)
+            assertTrue(error.message.contains("253.1 km"), "expected coverage distance in diagnostic, got ${error.message}")
+            assertEquals(0, routeCalls.get(), "coverage preflight should avoid route calls")
         } finally {
             if (previousBaseUrl == null) {
                 System.clearProperty("OSM_ROUTING_BASE_URL")
@@ -382,7 +584,7 @@ class OsmRoutingEngineAdapterShapeTest {
     }
 
     @Test
-    fun `prepare shape for routing rotates closed sketch to nearest contour point`() {
+    fun `prepare shape for routing preserves closed sketch order`() {
         // GIVEN
         val adapter = OsmRoutingEngineAdapter()
         val start = Coordinates(lat = 48.1300, lng = -1.6300)
@@ -393,6 +595,7 @@ class OsmRoutingEngineAdapterShapeTest {
 
         // THEN
         assertEquals(shape.size, routed.size)
+        assertEquals(shape.first(), routed.first())
         val firstPointDistance = haversineDistanceMeters(start, routed.first())
         assertTrue(firstPointDistance > 900.0, "routing should start on the drawn contour, got ${firstPointDistance}m")
         val closureDistance = haversineDistanceMeters(routed.first(), routed.last())
@@ -400,7 +603,7 @@ class OsmRoutingEngineAdapterShapeTest {
     }
 
     @Test
-    fun `closed shape routing variants offer flexible contour starts`() {
+    fun `shape routing variants offer automatic pose transforms`() {
         // GIVEN
         val adapter = OsmRoutingEngineAdapter()
         val start = Coordinates(lat = 48.1300, lng = -1.6300)
@@ -410,18 +613,26 @@ class OsmRoutingEngineAdapterShapeTest {
         val variants = invokeBuildShapeRoutingVariants(adapter, shape, start)
 
         // THEN
-        assertTrue(variants.size >= 4, "expected several contour-start variants, got ${variants.size}")
+        assertTrue(variants.size >= 4, "expected several pose variants, got ${variants.size}")
         val anchors = mutableSetOf<String>()
+        val labels = mutableSetOf<String>()
         variants.forEach { variant ->
+            labels += variant.javaClass.getDeclaredField("label")
+                .apply { isAccessible = true }
+                .get(variant) as String
             val points = variant.javaClass.getDeclaredField("shape")
                 .apply { isAccessible = true }
                 .get(variant) as List<Coordinates>
-            assertTrue(points.size >= 3, "variant should keep closed shape points")
+            assertEquals(shape.size, points.size, "variant should preserve shape point count")
             val closureDistance = haversineDistanceMeters(points.first(), points.last())
             assertTrue(closureDistance < 120.0, "variant should close the loop")
             anchors += coordinateTestKey(points.first())
         }
-        assertTrue(anchors.size >= 4, "expected at least 4 distinct contour anchors, got ${anchors.size}")
+        assertTrue(anchors.size >= 4, "expected at least 4 distinct transformed anchors, got ${anchors.size}")
+        listOf("scale 0.55x", "scale 0.70x", "rotate -12 deg", "rotate 12 deg").forEach { expectedLabel ->
+            assertTrue(labels.contains(expectedLabel), "expected automatic pose variant $expectedLabel, got $labels")
+        }
+        assertTrue(labels.any { it.startsWith("shift south ") }, "expected south micro-translation variant, got $labels")
     }
 
     @Test
@@ -535,7 +746,7 @@ class OsmRoutingEngineAdapterShapeTest {
     }
 
     @Test
-    fun `shape similarity score ignores contour start for closed sketch`() {
+    fun `shape similarity score keeps ordered start for closed sketch`() {
         // GIVEN
         val adapter = OsmRoutingEngineAdapter()
         val shape = testStarLatLng(48.1300, -1.6300, 1000.0, 420.0)
@@ -545,7 +756,7 @@ class OsmRoutingEngineAdapterShapeTest {
         val score = invokeShapeSimilarityScore(adapter, rotatedRoute, shape)
 
         // THEN
-        assertTrue(score > 0.94, "closed sketch score should be contour-start invariant, got $score")
+        assertTrue(score < 0.90, "closed sketch score should respect the drawn point order, got $score")
     }
 
     @Test
@@ -567,6 +778,42 @@ class OsmRoutingEngineAdapterShapeTest {
 
         // THEN
         assertTrue(score < 0.56, "zigzag route should fail shape-first similarity floor, got $score")
+    }
+
+    @Test
+    fun `shape similarity score prefers route near drawn diagonal`() {
+        // GIVEN
+        val adapter = OsmRoutingEngineAdapter()
+        val shape = listOf(
+            listOf(48.1100, -1.6800),
+            listOf(48.1085, -1.6750),
+            listOf(48.1070, -1.6700),
+            listOf(48.1055, -1.6650),
+            listOf(48.1040, -1.6600),
+        )
+        val closeRoute = listOf(
+            listOf(48.1100, -1.6800),
+            listOf(48.1084, -1.6752),
+            listOf(48.1069, -1.6701),
+            listOf(48.1054, -1.6649),
+            listOf(48.1040, -1.6600),
+        )
+        val orthogonalDetour = listOf(
+            listOf(48.1100, -1.6800),
+            listOf(48.1100, -1.6600),
+            listOf(48.1040, -1.6600),
+        )
+
+        // WHEN
+        val closeScore = invokeShapeSimilarityScore(adapter, closeRoute, shape)
+        val detourScore = invokeShapeSimilarityScore(adapter, orthogonalDetour, shape)
+
+        // THEN
+        assertTrue(closeScore > 0.90, "close route should score high, got $closeScore")
+        assertTrue(
+            detourScore < closeScore - 0.20,
+            "orthogonal detour should be clearly worse, close=$closeScore detour=$detourScore"
+        )
     }
 
     private fun testShapeRecommendation(routeId: String, shapeScore: Double, matchScore: Double): RouteRecommendation {
@@ -723,6 +970,21 @@ class OsmRoutingEngineAdapterShapeTest {
     ): List<Coordinates> {
         val method = adapter.javaClass.getDeclaredMethod(
             "buildShapeLoopWaypoints",
+            Coordinates::class.java,
+            List::class.java,
+        )
+        method.isAccessible = true
+        return method.invoke(adapter, start, shape) as List<Coordinates>
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun invokeBuildShapeDenseWaypoints(
+        adapter: OsmRoutingEngineAdapter,
+        start: Coordinates,
+        shape: List<Coordinates>,
+    ): List<Coordinates> {
+        val method = adapter.javaClass.getDeclaredMethod(
+            "buildShapeDenseWaypoints",
             Coordinates::class.java,
             List::class.java,
         )
@@ -899,6 +1161,21 @@ class OsmRoutingEngineAdapterShapeTest {
         )
         method.isAccessible = true
         return method.invoke(adapter, profile, shape)
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun invokeFetchShapeMapMatchedRoutes(
+        adapter: OsmRoutingEngineAdapter,
+        profile: String,
+        shape: List<Coordinates>,
+    ): List<Any> {
+        val method = adapter.javaClass.getDeclaredMethod(
+            "fetchShapeMapMatchedRoutes",
+            String::class.java,
+            List::class.java,
+        )
+        method.isAccessible = true
+        return method.invoke(adapter, profile, shape) as List<Any>
     }
 
     @Suppress("UNCHECKED_CAST")

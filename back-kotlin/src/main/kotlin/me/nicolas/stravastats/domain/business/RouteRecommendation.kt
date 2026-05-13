@@ -50,6 +50,11 @@ data class ShapeRemixRecommendation(
     val experimental: Boolean,
 )
 
+data class RouteGenerationDiagnostic(
+    val code: String,
+    val message: String,
+)
+
 data class RouteExplorerRequest(
     val distanceTargetKm: Double?,
     val elevationTargetM: Double?,
@@ -76,4 +81,5 @@ data class RouteExplorerResult(
     val roadGraphLoops: List<RouteRecommendation>,
     val shapeMatches: List<RouteRecommendation>,
     val shapeRemixes: List<ShapeRemixRecommendation>,
+    val diagnostics: List<RouteGenerationDiagnostic> = emptyList(),
 )

@@ -143,6 +143,7 @@ func buildShapeGeneratedRoutesResponse(
 		shapeFilter,
 		requestID,
 		countIgnoredShapeGenerationCandidates(result),
+		result.Diagnostics,
 	)
 	return dto.GenerateRoutesResponseDto{
 		Routes:      routes,
@@ -206,17 +207,28 @@ func buildShapeGenerationDiagnostics(
 	shapeFilter string,
 	requestID string,
 	ignoredCandidateCount int,
+	engineDiagnostics []routesDomain.RouteGenerationDiagnostic,
 ) []dto.RouteGenerationDiagnosticDto {
 	if len(routes) > 0 {
 		return buildSuccessfulGenerationDiagnostics(routes)
 	}
 
-	diagnostics := []dto.RouteGenerationDiagnosticDto{
-		{
-			Code:    "NO_CANDIDATE",
-			Message: "No route candidate matched the provided shape.",
-		},
+	diagnostics := make([]dto.RouteGenerationDiagnosticDto, 0, len(engineDiagnostics)+3)
+	for _, diagnostic := range engineDiagnostics {
+		code := strings.TrimSpace(diagnostic.Code)
+		message := strings.TrimSpace(diagnostic.Message)
+		if code == "" || message == "" {
+			continue
+		}
+		diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
+			Code:    code,
+			Message: message,
+		})
 	}
+	diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
+		Code:    "NO_CANDIDATE",
+		Message: "No route candidate matched the provided shape.",
+	})
 	if ignoredCandidateCount > 0 {
 		diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
 			Code:    "NON_SHAPE_CANDIDATES_IGNORED",
@@ -574,29 +586,6 @@ func sanitizePolylineCoordinates(points [][]float64) [][]float64 {
 func inferShapeFromCoordinates(points [][]float64) string {
 	if len(points) < 2 {
 		return ""
-	}
-	start := routesDomain.Coordinates{Lat: points[0][0], Lng: points[0][1]}
-	end := routesDomain.Coordinates{Lat: points[len(points)-1][0], Lng: points[len(points)-1][1]}
-	startEndDistance := haversineDistanceMeters(start, end)
-	pathDistance := 0.0
-	maxFromStart := 0.0
-	for index := 1; index < len(points); index++ {
-		prev := routesDomain.Coordinates{Lat: points[index-1][0], Lng: points[index-1][1]}
-		next := routesDomain.Coordinates{Lat: points[index][0], Lng: points[index][1]}
-		segment := haversineDistanceMeters(prev, next)
-		pathDistance += segment
-		startDistance := haversineDistanceMeters(start, next)
-		if startDistance > maxFromStart {
-			maxFromStart = startDistance
-		}
-	}
-
-	loopThreshold := math.Max(350.0, pathDistance*0.08)
-	if startEndDistance <= loopThreshold {
-		return "LOOP"
-	}
-	if maxFromStart > 0 && startEndDistance <= math.Max(220.0, maxFromStart*0.18) {
-		return "OUT_AND_BACK"
 	}
 	return "POINT_TO_POINT"
 }

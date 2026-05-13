@@ -30,6 +30,11 @@ data class RoutingHistoryProfile(
     val latestActivityEpochMs: Long,
 )
 
+class RoutingEngineDiagnosticException(
+    val code: String,
+    override val message: String,
+) : RuntimeException(message)
+
 interface RoutingEnginePort {
     fun generateTargetLoops(request: RoutingEngineRequest): List<RouteRecommendation>
     fun generateShapeLoops(request: RoutingEngineRequest): List<RouteRecommendation>

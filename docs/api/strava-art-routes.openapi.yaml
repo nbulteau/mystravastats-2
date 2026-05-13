@@ -224,6 +224,8 @@ components:
           type: string
           enum:
             - NO_CANDIDATE
+            - OSRM_COVERAGE_MISMATCH
+            - OSRM_COVERAGE_UNAVAILABLE
             - NON_SHAPE_CANDIDATES_IGNORED
             - FAILURE_SUMMARY
             - DIRECTION_RELAXED

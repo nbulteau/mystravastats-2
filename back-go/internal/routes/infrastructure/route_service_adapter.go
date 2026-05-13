@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	"errors"
 	"strings"
 	"time"
 
@@ -98,6 +99,8 @@ func (adapter *RouteServiceAdapter) FindRouteExplorerByYearAndTypes(
 		generatedShapeLoops, err := adapter.routingEngine.GenerateShapeLoops(engineRequest)
 		if err == nil && len(generatedShapeLoops) > 0 {
 			result.ShapeMatches = generatedShapeLoops
+		} else if diagnostic, ok := routingDiagnosticFromError(err); ok {
+			result.Diagnostics = append(result.Diagnostics, diagnostic)
 		}
 		return result
 	}
@@ -122,4 +125,15 @@ func (adapter *RouteServiceAdapter) FindRouteExplorerByYearAndTypes(
 	}
 	result.RoadGraphLoops = generatedLoops
 	return result
+}
+
+func routingDiagnosticFromError(err error) (routesDomain.RouteGenerationDiagnostic, bool) {
+	if err == nil {
+		return routesDomain.RouteGenerationDiagnostic{}, false
+	}
+	var diagnosticError *routingDiagnosticError
+	if errors.As(err, &diagnosticError) {
+		return diagnosticError.Diagnostic(), true
+	}
+	return routesDomain.RouteGenerationDiagnostic{}, false
 }

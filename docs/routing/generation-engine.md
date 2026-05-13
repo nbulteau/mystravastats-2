@@ -17,6 +17,7 @@ Current runtime behavior:
 
 - Draw art is the only public route generation mode
 - distance/elevation/direction targets are not part of the Strava Art request contract
+- public Strava Art treats every sketch/import as an ordered point-to-point polyline, even when the drawing visually closes on itself
 - shape generation keeps parity between Go and Kotlin
 - Strava Art optimizes drawing resemblance first; retracing is allowed when it materially improves the match to the user model
 - parity objective between Go and Kotlin remains mandatory
@@ -69,8 +70,19 @@ The numeric columns still describe the internal route explorer and routing engin
 ### 2. Parse and infer shape
 
 - parse drawn JSON coordinates, wrapped coordinate objects, encoded polylines, or GPX points
-- infer shape family (`LOOP`, `OUT_AND_BACK`, `POINT_TO_POINT`) when coordinates are available
+- force the public shape filter to `POINT_TO_POINT`; loop/out-and-back inference remains an internal explorer concept, not a Strava Art product mode
 - keep the raw shape payload so both backends can project/snap the same input
+
+### 2b. Search drawing pose
+
+Before routing, the engine builds a small deterministic set of ordered drawing poses:
+
+- original projected pose
+- scale probes around the drawing center (`0.55x`, `0.70x`, `0.85x`, `1.15x`, `1.30x`)
+- rotation probes around the drawing center (`±12°`, `±24°`, `±36°`)
+- small north/east/south/west translation probes based on drawing radius
+
+Each pose keeps the same point order and point count. The first pose variants are also eligible for trace-first strategies (`map-matched trace`, `nearest-road trace`, `segment stitched alternatives`) and best-effort fallbacks while the result set is underfilled, so a bad primary placement does not block the whole sketch without turning every drawing into an unbounded OSRM search. Pose transforms are generation probes only: final `Art fit` is always scored against the visible original sketch. Candidates generated from transformed poses carry a `Shape transform:*` reason so the UI can explain why a route was selected.
 
 ### 3. Snap artwork to roads
 
@@ -83,15 +95,19 @@ The shape endpoint asks the route explorer for shape-aware candidates:
 
 Public `POST /api/routes/generate/shape` responses are stricter than the internal explorer result: they only return OSRM candidates generated from the drawing (`Shape mode:*`). If the strict strategies fail, shape-mode best-effort strategies may still return a low-confidence OSRM route with a weak `Art fit` and explicit fallback reasons; historical activities are not substituted as Strava Art proposals.
 
+Before the expensive routing pass, the engine checks OSRM coverage by snapping the start point and sampled artwork points with `/nearest`. If the nearest routable point is more than 5 km away, generation stops with `OSRM_COVERAGE_MISMATCH`. This prevents misleading zero-distance OSRM routes when the local extract covers another region than the map area being drawn.
+
 Routing strategy parity (Go/Kotlin):
 
-- `nearest-road trace`: snap sampled drawing points to their nearest OSRM-routable anchors, route each anchor-to-anchor segment with OSRM, then stitch the routed geometries; this is the preferred GPS drawing strategy when it stays close enough to the road graph
-- `segment stitched alternatives`: route each drawing segment with OSRM alternatives and stitch the best segment matches together
+- `map-matched trace`: call OSRM `/match` on sampled drawing points with increasing radiuses, so OSRM can choose the road sequence that best explains the drawn trace before generic shortest-path routing takes over
+- `nearest-road trace`: snap sampled drawing points to their nearest OSRM-routable anchors, route each anchor-to-anchor segment with OSRM, then stitch the routed geometries; this is the preferred GPS drawing strategy when it stays close enough to the road graph and is tried on prioritized pose variants
+- `high-fidelity stitched trace`: for the primary pose, sample the drawing by distance with denser anchors, route each segment with OSRM alternatives, and stitch the best segment matches together
+- `segment stitched alternatives`: route each drawing segment with OSRM alternatives and stitch the best segment matches together; this also runs on prioritized pose variants
 - `dense sketch anchors`: denser projected shape waypoints for simple forms that need more contour fidelity
 - `map sketch waypoints`: projected shape waypoints (high geometry fidelity)
 - `simplified sketch anchors`: reduced projected shape waypoints for better routability
 - `road-first`: compact road anchors from the projected shape (better routability in sparse/complex areas)
-- best-effort shape fallbacks: simplified/envelope variants returned only when normal shape strategies cannot provide enough candidates
+- best-effort shape fallbacks: simplified/envelope variants returned only when normal shape strategies cannot provide enough candidates, evaluated across prioritized pose variants
 
 Retrace policy is mode-specific:
 
@@ -113,7 +129,8 @@ Shape-mode scoring is stricter than generic route scoring:
 
 - contour similarity after normalization checks the overall form,
 - anchored proximity checks the route against the projected sketch in real map space,
-- ordered path similarity penalizes routes that touch similar areas in the wrong sequence,
+- corridor fit penalizes the real lateral distance between the routed geometry and the user pointille, which prevents a large orthogonal shortcut from beating a road that visibly follows the drawing,
+- ordered path similarity penalizes routes that touch similar areas in the wrong sequence; closed drawings are still scored as ordered point-to-point polylines, not contour-start-invariant loops,
 - centroid drift penalizes candidates shifted away from the drawing,
 - low-similarity shape-mode candidates must not receive a flattering `Art fit`; they can still be returned as weak proposals with explicit diagnostics when they are the best road-snapped drawing match.
 
@@ -164,14 +181,14 @@ Examples of success diagnostics:
 
 - accepts `draw|polyline|gpx|svg`
 - keeps raw shape payload for shape projection/routing
-- infers shape family (`LOOP`, `OUT_AND_BACK`, `POINT_TO_POINT`) when coordinates are available
+- public Strava Art shape requests are forced to `POINT_TO_POINT`; classic/internal route explorer shape inference may still classify historical routes as `LOOP` or `OUT_AND_BACK`
 - coordinate parsing supports:
   - JSON array of `[lat, lng]`
   - wrapped JSON fields (`points`, `coordinates`, `latLng`)
   - encoded polyline string
   - GPX points (`trkpt`, `rtept`, `wpt`) when payload is GPX XML
 - strategy scoring includes an adaptive low-similarity drift penalty (`road-first` stricter than shape-first strategies) so highly off-shape routes are naturally deprioritized
-- closed sketches are generated from several contour anchors and scored with a contour-start invariant ordered score: the requested start point is only a placement hint, not a reason to prefer a visibly worse drawing
+- closed-looking sketches remain ordered polylines: no automatic contour-start rotation is applied, and no synthetic return-to-start waypoint is added unless the user drew/imported that final point
 - shape candidates are scored, deduplicated by geometry, then selected by `Art fit` first before the strictest compatible relaxation profile is attached
 - the `nearest-road trace` strategy is explicit about its trade-off: it preserves the drawing order with nearby routable anchors, but the exported geometry always comes from OSRM-routed segments instead of straight lines between anchors
 - if no strict/balanced/relaxed shape candidate survives, an `Art fit` oriented soft fallback is tried before the absolute emergency fallback
@@ -218,20 +235,23 @@ Behavior:
 normalize(request)
 profile = profileFromRouteType(routeType)
 shape = parseShape(shapeInputType, shapeData)
-shapeFamily = inferShapeFamily(shape)
+shapeFamily = POINT_TO_POINT
 
-explorerCandidates = shapeMatches(shape, profile)
-explorerCandidates += roadGraphShapeRoutes(shape, profile)
+poses = orderedPoseVariants(shape, scales, rotations, translations)
+explorerCandidates = shapeMatches(poses, profile)
+explorerCandidates += roadGraphShapeRoutes(poses, profile)
 explorerCandidates += closestHistoricalRoutes(shapeFamily, profile)
 explorerCandidates += shapeRemixes(shape, profile)
 
 publicCandidates = onlyOSRMShapeMode(explorerCandidates)
+publicCandidates += mapMatchedTrace(shape, profile)
 publicCandidates += nearestRoadTrace(shape, profile)
+publicCandidates += highFidelityStitchedTrace(shape, profile)
 publicCandidates += stitchedSegmentAlternatives(shape, profile)
 
 for candidate in publicCandidates:
   computeMetrics(candidate)
-  computeScores(candidate)
+  computeScores(candidate, includesRealCorridorDistance)
 
 publicCandidates = dedupeByGeometry(publicCandidates)
 candidates = sortByArtFitThenRouteQuality(publicCandidates)

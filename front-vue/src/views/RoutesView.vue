@@ -120,10 +120,11 @@ const correctionSuggestions = computed<CorrectionSuggestion[]>(() => {
     });
   }
   if (generationDiagnostics.value.some((diagnostic) => diagnostic.code === "NO_CANDIDATE" || diagnostic.code === "FAILURE_SUMMARY")) {
+    const coverageMismatch = generationDiagnostics.value.some((diagnostic) => diagnostic.code === "OSRM_COVERAGE_MISMATCH");
     suggestions.push({
       id: "no-candidate",
-      title: "Recover generation",
-      message: "Simplify the shape, then generate again.",
+      title: coverageMismatch ? "Check OSRM coverage" : "Recover generation",
+      message: coverageMismatch ? "Use map data covering this area, or move the artwork into the covered region." : "Simplify the shape, then generate again.",
       icon: "fa-solid fa-triangle-exclamation",
       action: "simplify",
     });
@@ -644,6 +645,11 @@ function highlightedRouteReasons(route: GeneratedRoute): string[] {
     highlights.push("Routing: fallback kept an exportable route.");
   }
 
+  const shapeTransform = routeReasonPayload(route, "Shape transform:");
+  if (shapeTransform) {
+    highlights.push(`Transform: ${shapeTransform}.`);
+  }
+
   if (profile.startsWith("strict")) {
     highlights.push("Confidence: strict candidate selected.");
   } else if (profile.startsWith("art-fit-diagnostic")) {
@@ -675,6 +681,10 @@ function routeTitle(route: GeneratedRoute, index: number): string {
 
 function diagnosticTitle(code: string): string {
   switch (code) {
+    case "OSRM_COVERAGE_MISMATCH":
+      return "OSRM coverage mismatch";
+    case "OSRM_COVERAGE_UNAVAILABLE":
+      return "OSRM coverage unavailable";
     case "NO_CANDIDATE":
       return "No road match";
     case "FAILURE_SUMMARY":
@@ -707,6 +717,10 @@ function diagnosticTitle(code: string): string {
 
 function diagnosticMessage(diagnostic: RouteGenerationDiagnostic): string {
   switch (diagnostic.code) {
+    case "OSRM_COVERAGE_MISMATCH":
+      return diagnostic.message;
+    case "OSRM_COVERAGE_UNAVAILABLE":
+      return diagnostic.message;
     case "NO_CANDIDATE":
       return "The sketch could not be matched to routable roads.";
     case "FAILURE_SUMMARY":
@@ -738,7 +752,7 @@ function diagnosticMessage(diagnostic: RouteGenerationDiagnostic): string {
 }
 
 function diagnosticTone(code: string): PresentedDiagnostic["tone"] {
-  if (code === "NO_CANDIDATE" || code === "FAILURE_SUMMARY") {
+  if (code === "NO_CANDIDATE" || code === "FAILURE_SUMMARY" || code.startsWith("OSRM_COVERAGE_")) {
     return "error";
   }
   if (nonBlockingGenerationDiagnosticCodes.has(code)) {
@@ -748,7 +762,7 @@ function diagnosticTone(code: string): PresentedDiagnostic["tone"] {
 }
 
 function diagnosticIcon(code: string): string {
-  if (code === "NO_CANDIDATE" || code === "FAILURE_SUMMARY") {
+  if (code === "NO_CANDIDATE" || code === "FAILURE_SUMMARY" || code.startsWith("OSRM_COVERAGE_")) {
     return "fa-solid fa-triangle-exclamation";
   }
   if (code === "START_POINT_SNAPPED") {

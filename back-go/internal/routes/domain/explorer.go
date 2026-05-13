@@ -54,6 +54,11 @@ type ShapeRemixRecommendation struct {
 	Experimental   bool
 }
 
+type RouteGenerationDiagnostic struct {
+	Code    string
+	Message string
+}
+
 type RouteExplorerRequest struct {
 	DistanceTargetKm    *float64
 	ElevationTargetM    *float64
@@ -80,4 +85,5 @@ type RouteExplorerResult struct {
 	RoadGraphLoops []RouteRecommendation
 	ShapeMatches   []RouteRecommendation
 	ShapeRemixes   []ShapeRemixRecommendation
+	Diagnostics    []RouteGenerationDiagnostic
 }

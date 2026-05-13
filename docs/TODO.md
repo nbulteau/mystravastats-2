@@ -22,7 +22,8 @@
 - Pour `Strava Art`, conserver `/routes` comme URL interne tant qu'aucune migration n'est prevue.
 - Pour `Strava Art`, rendre visibles le dessin d'origine, la route OSRM generee, les scores de ressemblance/praticabilite et les raisons de fallback.
 - Pour `Strava Art`, le score `Art fit` doit rester centre sur le respect du dessin: proximite ancree, derive du centre, ordre du trace et forme globale.
-- Pour `Strava Art`, le point de depart est un indice de placement, pas une contrainte produit forte: pour une forme fermee, generation et scoring doivent rester flexibles sur le point de depart du contour.
+- Pour `Strava Art`, le trace utilisateur est toujours une polyligne point-a-point ordonnee: meme une forme visuellement fermee ne doit pas etre reinterpretee en boucle sportive, retour depart ou contour a point de depart flexible.
+- Pour `Strava Art`, le moteur peut tester des poses automatiques du dessin (echelle, rotation, micro-translation) pour trouver une route OSRM plus fidele, mais les diagnostics doivent exposer la transformation retenue.
 - Pour `Strava Art`, les retours sur ses pas sont acceptables quand ils ameliorent nettement la ressemblance au modele utilisateur; l'anti-retrace devient un signal de praticabilite/diagnostic, pas un rejet dur.
 - Garder les exports GPX generes compatibles avec Strava, Garmin, Komoot et les outils GPS standards.
 - Ne pas changer silencieusement les contrats API: ajouter migration, compatibilite ou tests de contrat.
@@ -121,6 +122,23 @@
 ## Chantiers fonctionnels proposes
 
 ### Priorite moyenne
+
+- [x] `FUNC-P1-14` (`P1`, `M`) - Ameliorer la fidelite visuelle du routage `Strava Art`.
+  Owners: `Routes`, `Back-Go`, `Back-Kotlin`, `Front`.
+  Fait:
+  - le filtre public `Strava Art` force desormais `POINT_TO_POINT` pour les dessins/imports routables,
+  - le moteur respecte l'ordre des points dessines au lieu de chercher un depart de contour pour les formes fermees,
+  - les waypoints de shape ne ferment plus artificiellement la route; ils suivent le dernier point du dessin,
+  - Go et Kotlin generent des variantes de pose du dessin par echelle, rotation et micro-translation avant routage OSRM,
+  - les variantes de pose prioritaires passent aussi par `nearest-road trace`, `segment stitched alternatives` et les fallbacks best-effort, au lieu de reserver ces secours a la pose primaire,
+  - un preflight de couverture OSRM detecte les dessins hors extract local et remonte `OSRM_COVERAGE_MISMATCH` au lieu de rejeter tardivement des routes de distance nulle,
+  - les dessins couverts par OSRM passent maintenant par une strategie `map-matched trace`, un stitching haute fidelite plus dense sur la pose primaire et un score `Art fit` penalise par la distance reelle route-pointille,
+  - les variantes de pose ne changent plus la cible de scoring: `Art fit` reste mesure contre le pointille violet visible,
+  - les raisons de proposition exposent `Shape transform:*`, et l'UI les remonte dans les highlights.
+  Acceptance:
+  - une forme fermee Strava Art reste traitee comme polyligne ordonnee,
+  - les routes exportees restent issues de segments OSRM,
+  - les tests cibles Go/Kotlin couvrent point-a-point, pose automatique, absence de fermeture forcee et preference pour les routes plus proches du trace dessine.
 
 - [ ] `FUNC-P1-12` (`P1`, `M`) - Centre de fraicheur et synchronisation.
   Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.

@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	"errors"
 	"math"
 	"mystravastats/internal/routes/application"
 	routesDomain "mystravastats/internal/routes/domain"
@@ -331,7 +332,7 @@ func TestParseShapePolylineCoordinates_ExtractsTrackPointsFromGPX(t *testing.T) 
 	}
 }
 
-func TestBuildShapeRoadFirstWaypoints_ReturnsAnchoredLoopWithFarAnchors(t *testing.T) {
+func TestBuildShapeRoadFirstWaypoints_ReturnsOrderedShapeWithFarAnchors(t *testing.T) {
 	// GIVEN
 	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}
 	shape := []routesDomain.Coordinates{
@@ -352,8 +353,9 @@ func TestBuildShapeRoadFirstWaypoints_ReturnsAnchoredLoopWithFarAnchors(t *testi
 	}
 	first := roadFirstWaypoints[0]
 	last := roadFirstWaypoints[len(roadFirstWaypoints)-1]
-	if first.Lat != start.Lat || first.Lng != start.Lng || last.Lat != start.Lat || last.Lng != start.Lng {
-		t.Fatalf("expected loop anchored to start, first=%+v last=%+v start=%+v", first, last, start)
+	shapeEnd := shape[len(shape)-1]
+	if first.Lat != start.Lat || first.Lng != start.Lng || last.Lat != shapeEnd.Lat || last.Lng != shapeEnd.Lng {
+		t.Fatalf("expected ordered shape from start to drawing end, first=%+v last=%+v start=%+v end=%+v", first, last, start, shapeEnd)
 	}
 	if len(roadFirstWaypoints) > len(shapeFirstWaypoints)+1 {
 		t.Fatalf("expected road-first waypoints to stay compact, road-first=%d shape-first=%d", len(roadFirstWaypoints), len(shapeFirstWaypoints))
@@ -432,6 +434,33 @@ func TestBuildShapeStitchedWaypoints_ReturnsCompactAnchoredLoop(t *testing.T) {
 	last := stitchedWaypoints[len(stitchedWaypoints)-1]
 	if haversineDistanceMeters(first.Lat, first.Lng, last.Lat, last.Lng) > 120.0 {
 		t.Fatalf("expected stitched waypoints to close the loop, first=%+v last=%+v", first, last)
+	}
+}
+
+func TestBuildShapeWaypoints_OpenShapeDoesNotForceLoopClosure(t *testing.T) {
+	// GIVEN
+	start := routesDomain.Coordinates{Lat: 48.1300, Lng: -1.6300}
+	shape := []routesDomain.Coordinates{
+		start,
+		{Lat: 48.1380, Lng: -1.6220},
+		{Lat: 48.1460, Lng: -1.6140},
+		{Lat: 48.1540, Lng: -1.6060},
+	}
+
+	// WHEN
+	waypoints := buildShapeDenseWaypoints(start, shape)
+
+	// THEN
+	if len(waypoints) < 3 {
+		t.Fatalf("expected open shape to keep enough waypoints, got %d", len(waypoints))
+	}
+	end := shape[len(shape)-1]
+	last := waypoints[len(waypoints)-1]
+	if haversineDistanceMeters(last.Lat, last.Lng, end.Lat, end.Lng) > 80.0 {
+		t.Fatalf("expected last waypoint to follow drawing end, last=%+v end=%+v", last, end)
+	}
+	if haversineDistanceMeters(last.Lat, last.Lng, start.Lat, start.Lng) < 1000.0 {
+		t.Fatalf("expected open shape not to close back to start, last=%+v start=%+v", last, start)
 	}
 }
 
@@ -519,7 +548,7 @@ func TestFetchOSRMNearestRoadTraceRoute_RoutesBetweenSnappedAnchors(t *testing.T
 	if !ok {
 		t.Fatalf("expected nearest-road trace route to be valid")
 	}
-	if routeCalls != 3 {
+	if routeCalls != 2 {
 		t.Fatalf("expected one OSRM route call per snapped segment, got %d", routeCalls)
 	}
 	if route.Distance <= 0 || route.Duration <= 0 {
@@ -530,6 +559,192 @@ func TestFetchOSRMNearestRoadTraceRoute_RoutesBetweenSnappedAnchors(t *testing.T
 	}
 	if route.Geometry.Coordinates[0][0] != shape[0].Lng || route.Geometry.Coordinates[0][1] != shape[0].Lat {
 		t.Fatalf("expected OSRM lon/lat coordinates, got %+v", route.Geometry.Coordinates[0])
+	}
+}
+
+func TestFetchOSRMShapeMapMatchedRoutes_UsesMatchServiceTrace(t *testing.T) {
+	// GIVEN
+	matchCalls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		switch {
+		case strings.HasPrefix(request.URL.Path, "/match/v1/cycling/"):
+			matchCalls++
+			writeOSRMTestJSON(response, http.StatusOK, `{"code":"Ok","matchings":[{"distance":300.0,"duration":50.0,"geometry":{"type":"LineString","coordinates":[[-1.630000,48.130000],[-1.620000,48.135000],[-1.610000,48.140000]]},"legs":[{"steps":[{"distance":300.0,"mode":"cycling"}]}]}]}`)
+		default:
+			writeOSRMTestJSON(response, http.StatusNotFound, `{"code":"NotFound"}`)
+		}
+	}))
+	defer server.Close()
+
+	adapter := &OSMRoutingAdapter{
+		baseURL: server.URL,
+		client:  server.Client(),
+	}
+	shape := []routesDomain.Coordinates{
+		{Lat: 48.1300, Lng: -1.6300},
+		{Lat: 48.1350, Lng: -1.6200},
+		{Lat: 48.1400, Lng: -1.6100},
+	}
+
+	// WHEN
+	routes, err := adapter.fetchOSRMShapeMapMatchedRoutes("cycling", shape)
+
+	// THEN
+	if err != nil {
+		t.Fatalf("expected map-match route, got error %v", err)
+	}
+	if matchCalls != 1 {
+		t.Fatalf("expected one OSRM match call, got %d", matchCalls)
+	}
+	if len(routes) != 1 {
+		t.Fatalf("expected one map-matched route, got %d", len(routes))
+	}
+	if len(routes[0].Geometry.Coordinates) != 3 {
+		t.Fatalf("expected map-matched geometry to be decoded")
+	}
+}
+
+func TestGenerateShapeLoops_PrefersMapMatchedTraceOverOrthogonalRoute(t *testing.T) {
+	// GIVEN
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		switch {
+		case strings.HasPrefix(request.URL.Path, "/nearest/v1/cycling/"):
+			rawCoordinate := strings.TrimPrefix(request.URL.Path, "/nearest/v1/cycling/")
+			lng, lat := parseOSRMTestCoordinate(t, rawCoordinate)
+			writeOSRMTestJSON(response, http.StatusOK, `{"code":"Ok","waypoints":[{"location":[`+
+				formatOSRMTestFloat(lng)+`,`+formatOSRMTestFloat(lat)+`],"distance":4.0}]}`)
+		case strings.HasPrefix(request.URL.Path, "/match/v1/cycling/"):
+			writeOSRMTestJSON(response, http.StatusOK, `{"code":"Ok","matchings":[{"distance":2100.0,"duration":360.0,"geometry":{"type":"LineString","coordinates":[[-1.680000,48.110000],[-1.675000,48.108500],[-1.670000,48.107000],[-1.665000,48.105500],[-1.660000,48.104000]]},"legs":[{"steps":[{"distance":2100.0,"mode":"cycling"}]}]}]}`)
+		case strings.HasPrefix(request.URL.Path, "/route/v1/cycling/"):
+			writeOSRMTestJSON(response, http.StatusOK, `{"code":"Ok","routes":[{"distance":2600.0,"duration":430.0,"geometry":{"type":"LineString","coordinates":[[-1.680000,48.110000],[-1.660000,48.110000],[-1.660000,48.104000]]},"legs":[{"steps":[{"distance":2600.0,"mode":"cycling"}]}]}]}`)
+		default:
+			writeOSRMTestJSON(response, http.StatusNotFound, `{"code":"NotFound"}`)
+		}
+	}))
+	defer server.Close()
+
+	adapter := &OSMRoutingAdapter{
+		enabled: true,
+		baseURL: server.URL,
+		client:  server.Client(),
+	}
+	request := application.RoutingEngineRequest{
+		StartPoint:       routesDomain.Coordinates{Lat: 48.1100, Lng: -1.6800},
+		DistanceTargetKm: 0,
+		RouteType:        "RIDE",
+		Limit:            1,
+		ShapePolyline: `[
+			[48.1100,-1.6800],
+			[48.1085,-1.6750],
+			[48.1070,-1.6700],
+			[48.1055,-1.6650],
+			[48.1040,-1.6600]
+		]`,
+	}
+
+	// WHEN
+	routes, err := adapter.GenerateShapeLoops(request)
+
+	// THEN
+	if err != nil {
+		t.Fatalf("expected shape route, got error %v", err)
+	}
+	if len(routes) != 1 {
+		t.Fatalf("expected one generated route, got %d", len(routes))
+	}
+	if !containsString(routes[0].Reasons, "Shape mode: map-matched trace") {
+		t.Fatalf("expected map-matched trace to win, reasons=%v", routes[0].Reasons)
+	}
+}
+
+func TestShapeSimilarityScore_PrefersRouteNearDrawnDiagonal(t *testing.T) {
+	// GIVEN
+	shape := [][]float64{
+		{48.1100, -1.6800},
+		{48.1085, -1.6750},
+		{48.1070, -1.6700},
+		{48.1055, -1.6650},
+		{48.1040, -1.6600},
+	}
+	closeRoute := [][]float64{
+		{48.1100, -1.6800},
+		{48.1084, -1.6752},
+		{48.1069, -1.6701},
+		{48.1054, -1.6649},
+		{48.1040, -1.6600},
+	}
+	orthogonalDetour := [][]float64{
+		{48.1100, -1.6800},
+		{48.1100, -1.6600},
+		{48.1040, -1.6600},
+	}
+
+	// WHEN
+	closeScore := shapeSimilarityScore(closeRoute, shape)
+	detourScore := shapeSimilarityScore(orthogonalDetour, shape)
+
+	// THEN
+	if closeScore < 0.90 {
+		t.Fatalf("expected close route to score high, got %.3f", closeScore)
+	}
+	if detourScore >= closeScore-0.20 {
+		t.Fatalf("expected orthogonal detour to be clearly worse, close=%.3f detour=%.3f", closeScore, detourScore)
+	}
+}
+
+func TestGenerateShapeLoops_WhenArtworkOutsideOSRMCoverage_ReturnsDiagnostic(t *testing.T) {
+	// GIVEN
+	routeCalls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		switch {
+		case strings.HasPrefix(request.URL.Path, "/nearest/v1/cycling/"):
+			writeOSRMTestJSON(response, http.StatusOK, `{"code":"Ok","waypoints":[{"location":[-1.002666,48.361754],"distance":253073.6}]}`)
+		case strings.HasPrefix(request.URL.Path, "/route/v1/cycling/"):
+			routeCalls++
+			writeOSRMTestJSON(response, http.StatusOK, `{"code":"Ok","routes":[]}`)
+		default:
+			writeOSRMTestJSON(response, http.StatusNotFound, `{"code":"NotFound"}`)
+		}
+	}))
+	defer server.Close()
+
+	adapter := &OSMRoutingAdapter{
+		enabled: true,
+		baseURL: server.URL,
+		client:  server.Client(),
+	}
+	request := application.RoutingEngineRequest{
+		StartPoint: routesDomain.Coordinates{Lat: 48.8567, Lng: 2.3508},
+		RouteType:  "RIDE",
+		Limit:      2,
+		ShapePolyline: `[
+			[48.8658,2.3450],
+			[48.8666,2.3480],
+			[48.8668,2.3520],
+			[48.8658,2.3450]
+		]`,
+	}
+
+	// WHEN
+	routes, err := adapter.GenerateShapeLoops(request)
+
+	// THEN
+	if len(routes) != 0 {
+		t.Fatalf("expected no route outside OSRM coverage, got %d", len(routes))
+	}
+	var diagnosticError *routingDiagnosticError
+	if !errors.As(err, &diagnosticError) {
+		t.Fatalf("expected routing diagnostic error, got %v", err)
+	}
+	diagnostic := diagnosticError.Diagnostic()
+	if diagnostic.Code != "OSRM_COVERAGE_MISMATCH" {
+		t.Fatalf("expected OSRM coverage diagnostic, got %+v", diagnostic)
+	}
+	if !strings.Contains(diagnostic.Message, "253.1 km") {
+		t.Fatalf("expected coverage distance in diagnostic, got %q", diagnostic.Message)
+	}
+	if routeCalls != 0 {
+		t.Fatalf("expected coverage preflight to avoid route calls, got %d", routeCalls)
 	}
 }
 
@@ -605,7 +820,7 @@ func TestProjectShapePolylineToStart_RecentersRemoteShapeByCenter(t *testing.T) 
 	}
 }
 
-func TestPrepareShapeForRouting_RotatesClosedShapeToNearestContourPoint(t *testing.T) {
+func TestPrepareShapeForRouting_PreservesClosedShapeOrder(t *testing.T) {
 	// GIVEN
 	start := routesDomain.Coordinates{Lat: 48.1300, Lng: -1.6300}
 	shape := coordinatesFromLatLng(testCircleLatLng(start.Lat, start.Lng, 1000.0, 72))
@@ -616,6 +831,9 @@ func TestPrepareShapeForRouting_RotatesClosedShapeToNearestContourPoint(t *testi
 	// THEN
 	if len(routed) != len(shape) {
 		t.Fatalf("expected routed shape to preserve point count, got %d vs %d", len(routed), len(shape))
+	}
+	if routed[0].Lat != shape[0].Lat || routed[0].Lng != shape[0].Lng {
+		t.Fatalf("expected routing to preserve first drawn point, got %+v vs %+v", routed[0], shape[0])
 	}
 	firstPointDistance := haversineDistanceMeters(start.Lat, start.Lng, routed[0].Lat, routed[0].Lng)
 	if firstPointDistance < 900.0 {
@@ -632,7 +850,7 @@ func TestPrepareShapeForRouting_RotatesClosedShapeToNearestContourPoint(t *testi
 	}
 }
 
-func TestBuildShapeRoutingVariants_ClosedShapeOffersFlexibleContourStarts(t *testing.T) {
+func TestBuildShapeRoutingVariants_OffersAutomaticPoseVariants(t *testing.T) {
 	// GIVEN
 	start := routesDomain.Coordinates{Lat: 48.1300, Lng: -1.6300}
 	shape := coordinatesFromLatLng(testStarLatLng(start.Lat, start.Lng, 1000.0, 420.0))
@@ -642,12 +860,14 @@ func TestBuildShapeRoutingVariants_ClosedShapeOffersFlexibleContourStarts(t *tes
 
 	// THEN
 	if len(variants) < 4 {
-		t.Fatalf("expected several contour-start variants, got %d", len(variants))
+		t.Fatalf("expected several pose variants, got %d", len(variants))
 	}
 	anchors := map[string]struct{}{}
+	labels := map[string]struct{}{}
 	for _, variant := range variants {
-		if len(variant.shape) < 3 {
-			t.Fatalf("expected variant to keep closed shape points, got %d", len(variant.shape))
+		labels[variant.label] = struct{}{}
+		if len(variant.shape) != len(shape) {
+			t.Fatalf("expected variant to preserve point count, got %d vs %d", len(variant.shape), len(shape))
 		}
 		first := variant.shape[0]
 		last := variant.shape[len(variant.shape)-1]
@@ -657,7 +877,29 @@ func TestBuildShapeRoutingVariants_ClosedShapeOffersFlexibleContourStarts(t *tes
 		anchors[coordinateTestKey(first)] = struct{}{}
 	}
 	if len(anchors) < 4 {
-		t.Fatalf("expected at least 4 distinct contour anchors, got %d", len(anchors))
+		t.Fatalf("expected at least 4 distinct transformed anchors, got %d", len(anchors))
+	}
+	for _, expectedLabel := range []string{"scale 0.55x", "scale 0.70x", "rotate -12 deg", "rotate 12 deg"} {
+		if _, exists := labels[expectedLabel]; !exists {
+			t.Fatalf("expected automatic pose variant %q, got labels=%v", expectedLabel, labels)
+		}
+	}
+	hasSouthShift := false
+	for label := range labels {
+		if strings.HasPrefix(label, "shift south ") {
+			hasSouthShift = true
+			break
+		}
+	}
+	if !hasSouthShift {
+		t.Fatalf("expected south micro-translation variant, got labels=%v", labels)
+	}
+	if maxShapeTraceVariants < 4 || maxShapeBestEffortVariants < 4 {
+		t.Fatalf(
+			"expected robust Strava Art fallbacks to cover transformed poses, trace=%d bestEffort=%d",
+			maxShapeTraceVariants,
+			maxShapeBestEffortVariants,
+		)
 	}
 }
 
@@ -821,7 +1063,7 @@ func TestShapeSimilarityScore_PenalizesAnchoredShapeDrift(t *testing.T) {
 	}
 }
 
-func TestShapeSimilarityScore_ClosedSketchIgnoresContourStart(t *testing.T) {
+func TestShapeSimilarityScore_ClosedSketchRespectsDrawnStart(t *testing.T) {
 	// GIVEN
 	shape := testStarLatLng(48.1300, -1.6300, 1000.0, 420.0)
 	rotatedRoute := rotateClosedLatLng(shape, 3)
@@ -830,8 +1072,8 @@ func TestShapeSimilarityScore_ClosedSketchIgnoresContourStart(t *testing.T) {
 	score := shapeSimilarityScore(rotatedRoute, shape)
 
 	// THEN
-	if score < 0.94 {
-		t.Fatalf("expected contour-start invariant shape score, got %.3f", score)
+	if score > 0.90 {
+		t.Fatalf("expected ordered point-to-point shape score to penalize shifted contour start, got %.3f", score)
 	}
 }
 
@@ -1796,4 +2038,13 @@ func TestSelectCandidatesWithRelaxation_PrioritizesHigherHistoryReuseWhenMetrics
 	if recommendations[0].RouteID != "high-history" {
 		t.Fatalf("expected high-history route first, got %s", recommendations[0].RouteID)
 	}
+}
+
+func containsString(values []string, expected string) bool {
+	for _, value := range values {
+		if value == expected {
+			return true
+		}
+	}
+	return false
 }

@@ -46,6 +46,7 @@ Strava Art does not accept public distance, elevation, duration, or direction ta
 
 - `variantType` is `SHAPE_MATCH` or `ROAD_GRAPH`.
 - `reasons` must contain a `Shape mode:*` reason.
+- Known generated shape modes include `map-matched trace`, `nearest-road trace`, `high-fidelity stitched trace`, `segment stitched alternatives`, dense/simplified sketch anchors, road-first anchors, and best-effort fallbacks.
 - historical activity candidates and remixes are not returned as public Strava Art proposals.
 - ordering is `score.shape` first, then `score.global`, `score.roadFitness`, shorter distance, then stable `routeId`.
 
@@ -61,6 +62,8 @@ Strava Art does not accept public distance, elevation, duration, or direction ta
 
 Strava Art is optimized for drawing resemblance before sport-loop novelty.
 
+- `score.shape` includes real map-space corridor fit: a route that visibly stays nearer to the dashed drawing should outrank a faster orthogonal path when both are routable.
+- Automatic pose transforms may generate candidates, but `score.shape` is measured against the visible input sketch, not against the transformed probe.
 - Retracing or opposite traversal is allowed when it preserves the user model.
 - Retrace remains visible through route reasons and diagnostics as rideability context.
 - Classic route explorer and sport-loop generation keep strict anti-retrace checks outside the start/finish zone.
@@ -71,6 +74,8 @@ Strava Art is optimized for drawing resemblance before sport-loop novelty.
 Failure diagnostics:
 
 - `NO_CANDIDATE`: no generated shape-mode route matched.
+- `OSRM_COVERAGE_MISMATCH`: the local OSRM extract does not cover the drawn map area.
+- `OSRM_COVERAGE_UNAVAILABLE`: OSRM nearest-road lookup failed during coverage preflight.
 - `NON_SHAPE_CANDIDATES_IGNORED`: historical/internal candidates existed but were intentionally not returned.
 - `FAILURE_SUMMARY`: compact failure summary with route type, inferred shape, input type, and request id.
 
