@@ -82,7 +82,10 @@ function normalizeGearAnalysis(analysis: GearAnalysis): GearAnalysis {
       ...item,
       totalDistance: item.totalDistance ?? item.distance ?? 0,
       maintenanceTasks: item.maintenanceTasks ?? [],
-      maintenanceHistory: item.maintenanceHistory ?? [],
+      maintenanceHistory: (item.maintenanceHistory ?? []).map((record) => ({
+        ...record,
+        action: record.action ?? "SERVICE",
+      })),
       monthlyDistance: item.monthlyDistance ?? [],
     })),
     unassigned: analysis.unassigned ?? emptyGearAnalysis().unassigned,

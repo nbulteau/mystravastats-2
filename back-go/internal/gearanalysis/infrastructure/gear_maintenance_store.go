@@ -51,6 +51,7 @@ func saveCurrentProviderGearMaintenanceRecord(request business.GearMaintenanceRe
 		GearName:       gearName,
 		Component:      normalized.Component,
 		ComponentLabel: gearMaintenanceComponentLabel(normalized.Component),
+		Action:         normalized.Action,
 		Operation:      normalized.Operation,
 		Date:           normalized.Date,
 		Distance:       roundGearValue(normalized.Distance),
@@ -128,6 +129,7 @@ func normalizeGearMaintenanceRequest(request business.GearMaintenanceRecordReque
 	normalized := business.GearMaintenanceRecordRequest{
 		GearID:    strings.TrimSpace(request.GearID),
 		Component: normalizeGearMaintenanceComponent(request.Component),
+		Action:    normalizeGearMaintenanceAction(request.Action, request.Operation),
 		Operation: strings.TrimSpace(request.Operation),
 		Date:      strings.TrimSpace(request.Date),
 		Distance:  request.Distance,
@@ -140,7 +142,7 @@ func normalizeGearMaintenanceRequest(request business.GearMaintenanceRecordReque
 		return normalized, fmt.Errorf("component is required")
 	}
 	if normalized.Operation == "" {
-		normalized.Operation = fmt.Sprintf("%s serviced", gearMaintenanceComponentLabel(normalized.Component))
+		normalized.Operation = defaultGearMaintenanceOperation(normalized.Component, normalized.Action)
 	}
 	if len(normalized.Date) >= 10 {
 		normalized.Date = normalized.Date[:10]
@@ -165,7 +167,11 @@ func normalizeGearMaintenanceRecords(records []business.GearMaintenanceRecord) [
 		}
 		record.GearName = strings.TrimSpace(record.GearName)
 		record.ComponentLabel = gearMaintenanceComponentLabel(record.Component)
+		record.Action = normalizeGearMaintenanceAction(record.Action, record.Operation)
 		record.Operation = strings.TrimSpace(record.Operation)
+		if record.Operation == "" {
+			record.Operation = defaultGearMaintenanceOperation(record.Component, record.Action)
+		}
 		record.Date = strings.TrimSpace(record.Date)
 		if len(record.Date) >= 10 {
 			record.Date = record.Date[:10]
@@ -184,6 +190,28 @@ func normalizeGearMaintenanceRecords(records []business.GearMaintenanceRecord) [
 		return normalized[i].GearID < normalized[j].GearID
 	})
 	return normalized
+}
+
+func normalizeGearMaintenanceAction(action string, operation string) string {
+	switch gearMaintenanceComponentKey(action) {
+	case "REPLACEMENT", "REPLACE", "REPLACED", "CHANGE", "CHANGED":
+		return business.GearMaintenanceActionReplacement
+	case "SERVICE", "SERVICED", "MAINTENANCE":
+		return business.GearMaintenanceActionService
+	}
+
+	operationKey := strings.ToLower(strings.TrimSpace(operation))
+	if strings.Contains(operationKey, "replac") || strings.Contains(operationKey, "chang") {
+		return business.GearMaintenanceActionReplacement
+	}
+	return business.GearMaintenanceActionService
+}
+
+func defaultGearMaintenanceOperation(component string, action string) string {
+	if action == business.GearMaintenanceActionReplacement {
+		return fmt.Sprintf("%s replaced", gearMaintenanceComponentLabel(component))
+	}
+	return fmt.Sprintf("%s serviced", gearMaintenanceComponentLabel(component))
 }
 
 func normalizeGearMaintenanceComponent(value string) string {

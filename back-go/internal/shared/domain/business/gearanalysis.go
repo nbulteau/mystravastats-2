@@ -64,6 +64,7 @@ type GearMaintenanceRecord struct {
 	GearName       string  `json:"gearName"`
 	Component      string  `json:"component"`
 	ComponentLabel string  `json:"componentLabel"`
+	Action         string  `json:"action"`
 	Operation      string  `json:"operation"`
 	Date           string  `json:"date"`
 	Distance       float64 `json:"distance"`
@@ -75,11 +76,17 @@ type GearMaintenanceRecord struct {
 type GearMaintenanceRecordRequest struct {
 	GearID    string  `json:"gearId"`
 	Component string  `json:"component"`
+	Action    string  `json:"action,omitempty"`
 	Operation string  `json:"operation"`
 	Date      string  `json:"date"`
 	Distance  float64 `json:"distance"`
 	Note      string  `json:"note,omitempty"`
 }
+
+const (
+	GearMaintenanceActionService     = "SERVICE"
+	GearMaintenanceActionReplacement = "REPLACEMENT"
+)
 
 type GearMaintenanceTask struct {
 	Component         string                 `json:"component"`

@@ -56,6 +56,7 @@ type GearMaintenanceRecordDto struct {
 	GearName       string  `json:"gearName"`
 	Component      string  `json:"component"`
 	ComponentLabel string  `json:"componentLabel"`
+	Action         string  `json:"action"`
 	Operation      string  `json:"operation"`
 	Date           string  `json:"date"`
 	Distance       float64 `json:"distance"`
@@ -67,6 +68,7 @@ type GearMaintenanceRecordDto struct {
 type GearMaintenanceRecordRequestDto struct {
 	GearID    string  `json:"gearId"`
 	Component string  `json:"component"`
+	Action    string  `json:"action,omitempty"`
 	Operation string  `json:"operation"`
 	Date      string  `json:"date"`
 	Distance  float64 `json:"distance"`

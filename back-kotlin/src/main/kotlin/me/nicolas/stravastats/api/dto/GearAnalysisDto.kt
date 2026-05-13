@@ -65,6 +65,7 @@ data class GearMaintenanceRecordDto(
     val gearName: String,
     val component: String,
     val componentLabel: String,
+    val action: String,
     val operation: String,
     val date: String,
     val distance: Double,
@@ -76,6 +77,7 @@ data class GearMaintenanceRecordDto(
 data class GearMaintenanceRecordRequestDto(
     val gearId: String = "",
     val component: String = "",
+    val action: String = "",
     val operation: String = "",
     val date: String = "",
     val distance: Double = 0.0,
@@ -164,6 +166,7 @@ fun GearMaintenanceRecord.toDto(): GearMaintenanceRecordDto {
         gearName = gearName,
         component = component,
         componentLabel = componentLabel,
+        action = action,
         operation = operation,
         date = date,
         distance = distance,
@@ -194,6 +197,7 @@ fun GearMaintenanceRecordRequestDto.toDomain(): GearMaintenanceRecordRequest {
     return GearMaintenanceRecordRequest(
         gearId = gearId,
         component = component,
+        action = action,
         operation = operation,
         date = date,
         distance = distance,

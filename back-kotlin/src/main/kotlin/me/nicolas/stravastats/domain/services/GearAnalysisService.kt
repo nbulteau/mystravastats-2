@@ -8,6 +8,7 @@ import me.nicolas.stravastats.domain.business.GearAnalysisItem
 import me.nicolas.stravastats.domain.business.GearAnalysisPeriodPoint
 import me.nicolas.stravastats.domain.business.GearAnalysisSummary
 import me.nicolas.stravastats.domain.business.GearKind
+import me.nicolas.stravastats.domain.business.GearMaintenanceAction
 import me.nicolas.stravastats.domain.business.GearMaintenanceRecord
 import me.nicolas.stravastats.domain.business.GearMaintenanceRecordRequest
 import me.nicolas.stravastats.domain.business.GearMaintenanceTask
@@ -63,7 +64,8 @@ internal class GearAnalysisService(
             gearName = gearName,
             component = normalized.component,
             componentLabel = gearMaintenanceComponentLabel(normalized.component),
-            operation = normalized.operation.ifBlank { "${gearMaintenanceComponentLabel(normalized.component)} serviced" },
+            action = normalized.action,
+            operation = normalized.operation.ifBlank { defaultGearMaintenanceOperation(normalized.component, normalized.action) },
             date = normalized.date,
             distance = normalized.distance.roundGearValue(),
             note = normalized.note?.trim()?.takeIf { it.isNotBlank() },
@@ -305,6 +307,9 @@ private val bikeMaintenanceRules = listOf(
     GearMaintenanceRule(component = "TIRE_REAR", label = "Rear tire", intervalDistance = 3500.0 * 1000.0),
     GearMaintenanceRule(component = "TUBELESS_FRONT", label = "Front tubeless sealant", intervalMonths = 4),
     GearMaintenanceRule(component = "TUBELESS_REAR", label = "Rear tubeless sealant", intervalMonths = 4),
+    GearMaintenanceRule(component = "VALVE_CORE_FRONT", label = "Front valve core", intervalMonths = 12),
+    GearMaintenanceRule(component = "VALVE_CORE_REAR", label = "Rear valve core", intervalMonths = 12),
+    GearMaintenanceRule(component = "WHEEL_TRUING", label = "Wheel truing", intervalDistance = 3000.0 * 1000.0),
     GearMaintenanceRule(component = "BOTTOM_BRACKET", label = "Bottom bracket", intervalDistance = 8000.0 * 1000.0),
     GearMaintenanceRule(component = "BEARINGS", label = "Bearings", intervalDistance = 6000.0 * 1000.0),
     GearMaintenanceRule(component = "DRIVETRAIN", label = "Drivetrain", intervalDistance = 5000.0 * 1000.0),
@@ -467,11 +472,32 @@ private fun GearMaintenanceRecordRequest.normalize(): GearMaintenanceRecordReque
     return GearMaintenanceRecordRequest(
         gearId = gearId.trim(),
         component = normalizedComponent,
+        action = normalizeGearMaintenanceAction(action, operation),
         operation = operation.trim(),
         date = normalizedDate,
         distance = distance,
         note = note?.trim(),
     )
+}
+
+private fun normalizeGearMaintenanceAction(action: String, operation: String): String {
+    return when (gearMaintenanceComponentKey(action)) {
+        "REPLACEMENT", "REPLACE", "REPLACED", "CHANGE", "CHANGED" -> GearMaintenanceAction.REPLACEMENT.name
+        "SERVICE", "SERVICED", "MAINTENANCE" -> GearMaintenanceAction.SERVICE.name
+        else -> {
+            val operationKey = operation.trim().lowercase(Locale.ROOT)
+            if (operationKey.contains("replac") || operationKey.contains("chang")) {
+                GearMaintenanceAction.REPLACEMENT.name
+            } else {
+                GearMaintenanceAction.SERVICE.name
+            }
+        }
+    }
+}
+
+private fun defaultGearMaintenanceOperation(component: String, action: String): String {
+    val verb = if (action == GearMaintenanceAction.REPLACEMENT.name) "replaced" else "serviced"
+    return "${gearMaintenanceComponentLabel(component)} $verb"
 }
 
 private fun normalizeGearMaintenanceComponent(value: String): String {
@@ -639,7 +665,10 @@ private object GearMaintenanceStorage {
                 gearName = record.gearName.trim(),
                 component = component,
                 componentLabel = gearMaintenanceComponentLabel(component),
-                operation = record.operation.trim(),
+                action = normalizeGearMaintenanceAction(record.action, record.operation),
+                operation = record.operation.trim().ifBlank {
+                    defaultGearMaintenanceOperation(component, normalizeGearMaintenanceAction(record.action, record.operation))
+                },
                 date = record.date.trim().take(10),
                 distance = record.distance.roundGearValue(),
                 note = record.note?.trim()?.takeIf { it.isNotBlank() },

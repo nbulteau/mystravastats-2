@@ -167,23 +167,6 @@
   Acceptance:
   - la data quality devient un workflow de decision, pas seulement un rapport technique.
 
-- [ ] `FUNC-P1-10` (`P1`, `M`) - Previsions de maintenance materiel.
-  Owners: `Product`, `Front`, `Stats`.
-  Inspiration: [analyse The Bike Mechanic](reference/gear-maintenance-inspiration-themechanic.md).
-  Proposition:
-  - afficher en tete de l'onglet Gear un tableau de priorite des taches `overdue` / `due` / `soon`, trie par severite et distance/temps restant,
-  - expliquer chaque alerte par ses preuves: dernier entretien, odometre au service, distance/temps depuis service, prochaine echeance et regle appliquee,
-  - projeter les prochaines maintenances selon le volume mensuel recent du materiel, la distance totale, le composant et l'historique local,
-  - regrouper les composants par familles lisibles: transmission, freinage, roues/pneus, suspension, roulements,
-  - rendre les roues/pneus plus explicites: pneu avant/arriere, preventif tubeless avant/arriere, obus de valve et voile de roue,
-  - distinguer `service` et `remplacement`: un remplacement clot l'ancien cycle et demarre un nouveau cycle au kilometrage courant,
-  - ajouter ensuite un inventaire local leger de pieces de rechange, consommable lors d'un remplacement,
-  - signaler les limites de prediction quand la couverture d'affectation materiel est faible ou quand le filtre d'annee masque le kilometrage total.
-  Acceptance:
-  - la vue materiel devient proactive et pas seulement descriptive,
-  - le prochain geste de maintenance est visible sans ouvrir chaque velo,
-  - les predictions restent locales, explicables et sans dependance a un service tiers.
-
 ### Priorite basse
 
 - [ ] `FUNC-P2-02` (`P2`, `M`) - Calendrier d'entrainement unifie.

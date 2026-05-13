@@ -5,6 +5,7 @@ import type {
   GearAnalysisItem,
   GearAnalysisPeriodPoint,
   GearKind,
+  GearMaintenanceAction,
   GearMaintenanceRecord,
   GearMaintenanceRecordRequest,
   GearMaintenanceTask,
@@ -14,9 +15,15 @@ import { useGearAnalysisStore } from "@/stores/gear-analysis";
 import { useUiStore } from "@/stores/ui";
 import { ToastTypeEnum } from "@/models/toast.model";
 import TooltipHint from "@/components/TooltipHint.vue";
+import {
+  buildMaintenancePriorityItems,
+  buildMaintenanceProjection,
+  maintenanceOperationForAction,
+} from "@/utils/gear-maintenance";
 
 type KindFilter = "ALL" | GearKind | "RETIRED";
 type SortMode = "distance" | "lastUsed" | "elevationGain" | "activities";
+type MaintenanceFamilyKey = "TRANSMISSION" | "BRAKING" | "WHEELS_TIRES" | "SUSPENSION" | "BEARINGS" | "OTHER";
 
 const contextStore = useContextStore();
 const gearAnalysisStore = useGearAnalysisStore();
@@ -29,6 +36,7 @@ const deletingMaintenanceRecordId = ref<string | null>(null);
 const expandedMaintenanceByGearId = reactive<Record<string, boolean>>({});
 const maintenanceForm = reactive({
   component: "Chain",
+  action: "SERVICE" as GearMaintenanceAction,
   operation: "",
   date: todayInputValue(),
   distanceKm: "",
@@ -79,6 +87,39 @@ const maintenanceComponentDescriptions: Record<string, string> = {
   SHOCK_SERVICE: "Rear suspension shock service interval.",
 };
 
+const maintenanceFamilyOrder: MaintenanceFamilyKey[] = ["TRANSMISSION", "BRAKING", "WHEELS_TIRES", "SUSPENSION", "BEARINGS", "OTHER"];
+const maintenanceFamilyLabels: Record<MaintenanceFamilyKey, string> = {
+  TRANSMISSION: "Transmission",
+  BRAKING: "Braking",
+  WHEELS_TIRES: "Wheels & tires",
+  SUSPENSION: "Suspension",
+  BEARINGS: "Bearings",
+  OTHER: "Other",
+};
+
+const maintenanceFamilyByComponent: Record<string, MaintenanceFamilyKey> = {
+  CHAIN: "TRANSMISSION",
+  CASSETTE: "TRANSMISSION",
+  CHAINRING: "TRANSMISSION",
+  DERAILLEUR_HANGER: "TRANSMISSION",
+  DRIVETRAIN: "TRANSMISSION",
+  BRAKE_PADS_FRONT: "BRAKING",
+  BRAKE_PADS_REAR: "BRAKING",
+  BRAKE_BLEED: "BRAKING",
+  TIRE_FRONT: "WHEELS_TIRES",
+  TIRE_REAR: "WHEELS_TIRES",
+  TIRES: "WHEELS_TIRES",
+  TUBELESS_FRONT: "WHEELS_TIRES",
+  TUBELESS_REAR: "WHEELS_TIRES",
+  VALVE_CORE_FRONT: "WHEELS_TIRES",
+  VALVE_CORE_REAR: "WHEELS_TIRES",
+  WHEEL_TRUING: "WHEELS_TIRES",
+  FORK_SERVICE: "SUSPENSION",
+  SHOCK_SERVICE: "SUSPENSION",
+  BOTTOM_BRACKET: "BEARINGS",
+  BEARINGS: "BEARINGS",
+};
+
 onMounted(() => contextStore.updateCurrentView("gear"));
 
 const analysis = computed(() => gearAnalysisStore.analysis);
@@ -88,6 +129,7 @@ const error = computed(() => gearAnalysisStore.error);
 const maintenanceDueCount = computed(() =>
   analysis.value.items.reduce((sum, item) => sum + item.maintenanceTasks.filter((task) => task.status === "DUE" || task.status === "OVERDUE").length, 0),
 );
+const maintenancePriorityItems = computed(() => buildMaintenancePriorityItems(analysis.value.items));
 const coveragePercent = computed(() => {
   const total = analysis.value.coverage.totalActivities;
   if (total <= 0) return 0;
@@ -187,15 +229,77 @@ function maintenanceIntervalLabel(task: GearMaintenanceTask): string {
   return parts.length > 0 ? parts.join(" / ") : "-";
 }
 
-function maintenanceProgressLabel(task: GearMaintenanceTask): string {
-  if (!task.lastMaintenance) return "No local record yet";
+function maintenanceActionLabel(action?: GearMaintenanceAction | string | null): string {
+  return action === "REPLACEMENT" ? "Replacement" : "Service";
+}
+
+function maintenanceEvidenceLabel(task: GearMaintenanceTask): string {
+  if (!task.lastMaintenance) {
+    return `No local record · rule ${maintenanceIntervalLabel(task)}`;
+  }
+  const action = maintenanceActionLabel(task.lastMaintenance.action).toLowerCase();
+  const parts = [
+    `Last ${action} ${formatDate(task.lastMaintenance.date)}`,
+    `odometer ${formatDistance(task.lastMaintenance.distance)}`,
+  ];
   if (task.intervalDistance > 0) {
-    return `${formatDistance(task.distanceSince)} since service`;
+    parts.push(`${formatDistance(task.distanceSince)} since`);
+    parts.push(`next ${formatDistance(task.nextDueDistance)}`);
   }
   if (task.intervalMonths > 0) {
-    return `${task.monthsSince} months since service`;
+    parts.push(`${task.monthsSince} months since`);
   }
-  return `Last done ${formatDate(task.lastMaintenance.date)}`;
+  parts.push(`rule ${maintenanceIntervalLabel(task)}`);
+  return parts.join(" · ");
+}
+
+function maintenancePredictionLabel(item: GearAnalysisItem, task: GearMaintenanceTask): string {
+  const projection = buildMaintenanceProjection(item, task);
+  if (projection.status === "DUE_NOW") return "Due now";
+  if (!task.lastMaintenance) return "Needs first record";
+  if (projection.status !== "PROJECTED" || !projection.dueDate) return "No projection";
+  return `Due around ${formatDate(projection.dueDate)}`;
+}
+
+function maintenancePredictionDetail(item: GearAnalysisItem, task: GearMaintenanceTask): string {
+  if (!task.lastMaintenance) return "Log a first service or replacement to start the lifecycle.";
+  const projection = buildMaintenanceProjection(item, task);
+  const details: string[] = [];
+  if (projection.monthsUntilDue !== null) {
+    details.push(projection.monthsUntilDue === 1 ? "about 1 calendar month" : `about ${projection.monthsUntilDue} calendar months`);
+  }
+  if (task.intervalDistance > 0) {
+    details.push(projection.recentMonthlyAverageDistance > 0
+      ? `${formatDistance(projection.recentMonthlyAverageDistance)}/calendar month over last ${projection.calendarMonthCount} months`
+      : `No distance over last ${projection.calendarMonthCount} calendar months`);
+  }
+  if (task.intervalMonths > 0) {
+    details.push(`${task.monthsRemaining} calendar months left`);
+  }
+  const warning = maintenancePredictionWarning(projection.recentActiveMonths);
+  if (warning) details.push(warning);
+  return details.join(" · ") || "Projection based on the local maintenance rule.";
+}
+
+function maintenancePredictionWarning(recentActiveMonths: number): string {
+  if (currentYear.value !== "All years") return "Year filter limits date estimate";
+  if (coveragePercent.value < 80) return "Gear coverage is low";
+  if (recentActiveMonths < 3) return "Limited recent calendar history";
+  return "";
+}
+
+function maintenanceTaskFamily(task: GearMaintenanceTask): MaintenanceFamilyKey {
+  return maintenanceFamilyByComponent[task.component] ?? "OTHER";
+}
+
+function groupedMaintenanceTasks(item: GearAnalysisItem): Array<{ key: MaintenanceFamilyKey; label: string; tasks: GearMaintenanceTask[] }> {
+  return maintenanceFamilyOrder
+    .map((key) => ({
+      key,
+      label: maintenanceFamilyLabels[key],
+      tasks: item.maintenanceTasks.filter((task) => maintenanceTaskFamily(task) === key),
+    }))
+    .filter((group) => group.tasks.length > 0);
 }
 
 function maintenanceHistoryLabel(record: GearMaintenanceRecord): string {
@@ -218,11 +322,12 @@ function todayInputValue(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function openMaintenanceForm(item: GearAnalysisItem, task?: GearMaintenanceTask) {
+function openMaintenanceForm(item: GearAnalysisItem, task?: GearMaintenanceTask, action: GearMaintenanceAction = "SERVICE") {
   expandedMaintenanceByGearId[item.id] = true;
   maintenanceFormGearId.value = item.id;
   maintenanceForm.component = task?.componentLabel ?? "Chain";
-  maintenanceForm.operation = task ? `${task.componentLabel} serviced` : "";
+  maintenanceForm.action = action;
+  maintenanceForm.operation = task ? maintenanceOperationForAction(task.componentLabel, action) : "";
   maintenanceForm.date = todayInputValue();
   maintenanceForm.distanceKm = (gearOdometerDistance(item) / 1000).toFixed(0);
   maintenanceForm.note = "";
@@ -237,7 +342,8 @@ function buildMaintenanceRequest(item: GearAnalysisItem): GearMaintenanceRecordR
   return {
     gearId: item.id,
     component: maintenanceForm.component,
-    operation: maintenanceForm.operation.trim() || `${maintenanceComponentLabel(maintenanceForm.component)} serviced`,
+    action: maintenanceForm.action,
+    operation: maintenanceForm.operation.trim() || maintenanceOperationForAction(maintenanceComponentLabel(maintenanceForm.component), maintenanceForm.action),
     date: maintenanceForm.date,
     distance: Number.isFinite(distanceKm) ? distanceKm * 1000 : gearOdometerDistance(item),
     note: maintenanceForm.note.trim() || null,
@@ -267,13 +373,14 @@ async function saveMaintenanceRecord(item: GearAnalysisItem) {
   }
 }
 
-async function markMaintenanceDone(item: GearAnalysisItem, task: GearMaintenanceTask) {
+async function markMaintenanceDone(item: GearAnalysisItem, task: GearMaintenanceTask, action: GearMaintenanceAction = "SERVICE") {
   savingMaintenanceGearId.value = item.id;
   try {
     await gearAnalysisStore.saveMaintenanceRecord({
       gearId: item.id,
       component: task.component,
-      operation: `${task.componentLabel} serviced`,
+      action,
+      operation: maintenanceOperationForAction(task.componentLabel, action),
       date: todayInputValue(),
       distance: gearOdometerDistance(item),
       note: null,
@@ -281,7 +388,7 @@ async function markMaintenanceDone(item: GearAnalysisItem, task: GearMaintenance
     uiStore.showToast({
       id: `gear-maintenance-done-${Date.now()}`,
       type: ToastTypeEnum.NORMAL,
-      message: "Maintenance marked as done.",
+      message: action === "REPLACEMENT" ? "Replacement saved." : "Maintenance marked as done.",
       timeout: 2600,
     });
   } catch (error) {
@@ -385,6 +492,53 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
         <span class="summary-label">Maintenance</span>
         <strong>{{ maintenanceDueCount }}</strong>
         <span class="summary-detail">due items</span>
+      </div>
+    </section>
+
+    <section class="maintenance-priority-board">
+      <div class="maintenance-priority-heading">
+        <div>
+          <span>Maintenance priority</span>
+          <strong>{{ maintenancePriorityItems.length ? `${maintenancePriorityItems.length} active alerts` : "All clear" }}</strong>
+        </div>
+        <small>{{ coveragePercent }}% gear coverage</small>
+      </div>
+      <div v-if="maintenancePriorityItems.length" class="maintenance-priority-list">
+        <div
+          v-for="{ item, task } in maintenancePriorityItems"
+          :key="`priority-${item.id}-${task.component}`"
+          class="maintenance-priority-row"
+        >
+          <span :class="maintenanceTaskClass(task)">{{ task.status }}</span>
+          <div class="maintenance-priority-main">
+            <strong>{{ item.name }} · {{ task.componentLabel }}</strong>
+            <small>{{ maintenanceEvidenceLabel(task) }}</small>
+            <small>{{ maintenancePredictionLabel(item, task) }} · {{ maintenancePredictionDetail(item, task) }}</small>
+          </div>
+          <div class="maintenance-priority-actions">
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-primary"
+              :disabled="savingMaintenanceGearId === item.id"
+              @click="markMaintenanceDone(item, task, 'SERVICE')"
+            >
+              <i class="fa-solid fa-check" aria-hidden="true" />
+              Service
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary"
+              :disabled="savingMaintenanceGearId === item.id"
+              @click="markMaintenanceDone(item, task, 'REPLACEMENT')"
+            >
+              <i class="fa-solid fa-rotate" aria-hidden="true" />
+              Replace
+            </button>
+          </div>
+        </div>
+      </div>
+      <div v-else class="maintenance-priority-empty">
+        No overdue, due or soon bike maintenance.
       </div>
     </section>
 
@@ -507,33 +661,57 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
             </div>
 
             <div v-if="isMaintenanceExpanded(item.id)" class="maintenance-body">
-              <div v-if="item.maintenanceTasks.length" class="maintenance-task-list">
-                <div
-                  v-for="task in item.maintenanceTasks"
-                  :key="`${item.id}-${task.component}`"
-                  class="maintenance-task"
+              <div v-if="item.maintenanceTasks.length" class="maintenance-family-list">
+                <section
+                  v-for="group in groupedMaintenanceTasks(item)"
+                  :key="`${item.id}-${group.key}`"
+                  class="maintenance-family-group"
                 >
-                  <span :class="maintenanceTaskClass(task)">{{ task.status }}</span>
-                  <div>
-                    <strong class="maintenance-component-title">
-                      {{ task.componentLabel }}
-                      <TooltipHint
-                        v-if="maintenanceComponentDescription(task.component)"
-                        :text="maintenanceComponentDescription(task.component)"
-                      />
-                    </strong>
-                    <small>{{ task.statusLabel }} · {{ maintenanceProgressLabel(task) }} · interval {{ maintenanceIntervalLabel(task) }}</small>
+                  <header class="maintenance-family-heading">
+                    <span>{{ group.label }}</span>
+                    <strong>{{ group.tasks.length }}</strong>
+                  </header>
+                  <div class="maintenance-task-list">
+                    <div
+                      v-for="task in group.tasks"
+                      :key="`${item.id}-${task.component}`"
+                      class="maintenance-task"
+                    >
+                      <span :class="maintenanceTaskClass(task)">{{ task.status }}</span>
+                      <div>
+                        <strong class="maintenance-component-title">
+                          {{ task.componentLabel }}
+                          <TooltipHint
+                            v-if="maintenanceComponentDescription(task.component)"
+                            :text="maintenanceComponentDescription(task.component)"
+                          />
+                        </strong>
+                        <small>{{ task.statusLabel }} · {{ maintenanceEvidenceLabel(task) }}</small>
+                        <small>{{ maintenancePredictionLabel(item, task) }} · {{ maintenancePredictionDetail(item, task) }}</small>
+                      </div>
+                      <div class="maintenance-task-actions">
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-primary"
+                          :disabled="savingMaintenanceGearId === item.id"
+                          @click="markMaintenanceDone(item, task, 'SERVICE')"
+                        >
+                          <i class="fa-solid fa-check" aria-hidden="true" />
+                          Service
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-secondary"
+                          :disabled="savingMaintenanceGearId === item.id"
+                          @click="markMaintenanceDone(item, task, 'REPLACEMENT')"
+                        >
+                          <i class="fa-solid fa-rotate" aria-hidden="true" />
+                          Replace
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-outline-primary"
-                    :disabled="savingMaintenanceGearId === item.id"
-                    @click="markMaintenanceDone(item, task)"
-                  >
-                    <i class="fa-solid fa-check" aria-hidden="true" />
-                    Mark as done
-                  </button>
-                </div>
+                </section>
               </div>
 
               <div class="maintenance-body-toolbar">
@@ -541,15 +719,26 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
                   <strong>Local service log</strong>
                   <small>Free-form component, date, odometer and note for this bike.</small>
                 </div>
-                <button
-                  type="button"
-                  class="btn btn-sm btn-outline-primary"
-                  :disabled="savingMaintenanceGearId === item.id"
-                  @click="openMaintenanceForm(item)"
-                >
-                  <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true" />
-                  Add service record
-                </button>
+                <div class="maintenance-body-toolbar__actions">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-primary"
+                    :disabled="savingMaintenanceGearId === item.id"
+                    @click="openMaintenanceForm(item, undefined, 'SERVICE')"
+                  >
+                    <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true" />
+                    Add service record
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    :disabled="savingMaintenanceGearId === item.id"
+                    @click="openMaintenanceForm(item, undefined, 'REPLACEMENT')"
+                  >
+                    <i class="fa-solid fa-rotate" aria-hidden="true" />
+                    Add replacement
+                  </button>
+                </div>
               </div>
 
               <form
@@ -580,6 +769,16 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
                       :value="component.label"
                     />
                   </datalist>
+                </label>
+                <label>
+                  <span>Action</span>
+                  <select
+                    v-model="maintenanceForm.action"
+                    class="form-select form-select-sm"
+                  >
+                    <option value="SERVICE">Service</option>
+                    <option value="REPLACEMENT">Replacement</option>
+                  </select>
                 </label>
                 <label>
                   <span>Operation</span>
@@ -645,7 +844,7 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
                 >
                   <div>
                     <strong>{{ record.operation }}</strong>
-                    <small>{{ record.componentLabel }} · {{ maintenanceHistoryLabel(record) }}</small>
+                    <small>{{ maintenanceActionLabel(record.action) }} · {{ record.componentLabel }} · {{ maintenanceHistoryLabel(record) }}</small>
                     <small v-if="record.note">{{ record.note }}</small>
                   </div>
                   <button
@@ -750,6 +949,90 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
 .summary-detail {
   display: block;
   margin-top: 2px;
+}
+
+.maintenance-priority-board {
+  border: 1px solid var(--ms-border);
+  border-radius: 8px;
+  background: #ffffff;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.maintenance-priority-heading {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.maintenance-priority-heading span,
+.maintenance-family-heading span {
+  color: var(--ms-text-muted);
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.maintenance-priority-heading strong {
+  color: var(--ms-text);
+  display: block;
+  font-size: 1rem;
+}
+
+.maintenance-priority-heading small,
+.maintenance-priority-empty {
+  color: var(--ms-text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.maintenance-priority-list,
+.maintenance-family-list {
+  display: grid;
+  gap: 6px;
+}
+
+.maintenance-priority-row {
+  align-items: center;
+  background: #fafbfe;
+  border: 1px solid #edf0f4;
+  border-radius: 6px;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px;
+}
+
+.maintenance-priority-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.maintenance-priority-main strong {
+  color: var(--ms-text);
+  display: block;
+  font-size: 0.88rem;
+}
+
+.maintenance-priority-main small {
+  color: var(--ms-text-muted);
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.maintenance-priority-actions,
+.maintenance-task-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
 }
 
 .gear-toolbar {
@@ -951,6 +1234,7 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
 .maintenance-heading .btn,
 .maintenance-body-toolbar .btn,
 .maintenance-task .btn,
+.maintenance-priority-row .btn,
 .maintenance-history-row .btn {
   align-items: center;
   display: inline-flex;
@@ -960,10 +1244,29 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
 }
 
 .maintenance-task-list,
+.maintenance-family-group,
 .maintenance-body,
 .maintenance-history {
   display: grid;
   gap: 1px;
+}
+
+.maintenance-family-group {
+  gap: 5px;
+}
+
+.maintenance-family-heading {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+
+.maintenance-family-heading strong {
+  color: var(--ms-text-muted);
+  font-size: 0.76rem;
+  font-weight: 800;
 }
 
 .maintenance-body {
@@ -979,6 +1282,14 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
   gap: 10px;
   justify-content: space-between;
   padding: 8px;
+}
+
+.maintenance-body-toolbar__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
 }
 
 .maintenance-body-toolbar strong {
@@ -1067,7 +1378,7 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
   border-radius: 8px;
   display: grid;
   gap: 8px;
-  grid-template-columns: minmax(150px, 1fr) minmax(180px, 1.2fr) minmax(130px, 0.8fr) minmax(110px, 0.7fr) minmax(160px, 1fr) auto;
+  grid-template-columns: minmax(150px, 1fr) minmax(120px, 0.75fr) minmax(180px, 1.2fr) minmax(130px, 0.8fr) minmax(110px, 0.7fr) minmax(160px, 1fr) auto;
   padding: 10px;
 }
 
@@ -1206,13 +1517,17 @@ function monthlyPointTitle(point: GearAnalysisPeriodPoint): string {
 
   .maintenance-heading,
   .maintenance-body-toolbar,
+  .maintenance-priority-row,
   .maintenance-task,
   .maintenance-history-row {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .maintenance-heading__actions {
+  .maintenance-heading__actions,
+  .maintenance-body-toolbar__actions,
+  .maintenance-priority-actions,
+  .maintenance-task-actions {
     justify-content: flex-start;
   }
 

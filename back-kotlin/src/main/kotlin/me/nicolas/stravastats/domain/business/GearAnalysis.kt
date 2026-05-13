@@ -62,6 +62,7 @@ data class GearMaintenanceRecord(
     val gearName: String,
     val component: String,
     val componentLabel: String,
+    val action: String = GearMaintenanceAction.SERVICE.name,
     val operation: String,
     val date: String,
     val distance: Double,
@@ -73,11 +74,17 @@ data class GearMaintenanceRecord(
 data class GearMaintenanceRecordRequest(
     val gearId: String = "",
     val component: String = "",
+    val action: String = "",
     val operation: String = "",
     val date: String = "",
     val distance: Double = 0.0,
     val note: String? = null,
 )
+
+enum class GearMaintenanceAction {
+    SERVICE,
+    REPLACEMENT,
+}
 
 data class GearMaintenanceTask(
     val component: String,

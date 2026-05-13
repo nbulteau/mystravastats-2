@@ -205,11 +205,51 @@ class GearAnalysisServiceTest {
         )
 
         assertEquals("b123", record.gearId)
-        assertEquals("REAR_VALVE_CORE", record.component)
-        assertEquals("Rear Valve Core", record.componentLabel)
-        assertEquals("Rear Valve Core serviced", record.operation)
+        assertEquals("VALVE_CORE_REAR", record.component)
+        assertEquals("Rear valve core", record.componentLabel)
+        assertEquals("SERVICE", record.action)
+        assertEquals("Rear valve core serviced", record.operation)
         assertEquals("2026-04-27", record.date)
         assertEquals("slow leak", record.note)
+    }
+
+    @Test
+    fun `saveMaintenanceRecord distinguishes replacement action`() {
+        val athlete = StravaAthlete(
+            id = 42L,
+            bikes = listOf(
+                Bike(
+                    id = "b123",
+                    name = "Gravel Bike",
+                    nickname = null,
+                    retired = false,
+                    convertedDistance = 0.0,
+                    distance = 0,
+                    primary = true,
+                    resourceState = 2,
+                )
+            ),
+        )
+        every { activityProvider.athlete() } returns athlete
+        every { activityProvider.cacheIdentity() } returns ActivityProviderCacheIdentity(
+            cacheRoot = tempDir.toString(),
+            athleteId = "athlete-1",
+        )
+
+        val record = gearAnalysisService.saveMaintenanceRecord(
+            GearMaintenanceRecordRequest(
+                gearId = "b123",
+                component = "Chain",
+                action = "replacement",
+                operation = "",
+                date = "2026-04-27",
+                distance = 3603000.0,
+            )
+        )
+
+        assertEquals("CHAIN", record.component)
+        assertEquals("REPLACEMENT", record.action)
+        assertEquals("Chain replaced", record.operation)
     }
 
     private fun gearAnalysisActivity(

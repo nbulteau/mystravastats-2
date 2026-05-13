@@ -2,6 +2,7 @@ import type { ActivityShort } from "@/models/activity.model";
 
 export type GearKind = "BIKE" | "SHOE" | "UNKNOWN";
 export type GearMaintenanceStatus = "OK" | "SOON" | "DUE" | "OVERDUE";
+export type GearMaintenanceAction = "SERVICE" | "REPLACEMENT";
 
 export interface GearAnalysis {
   items: GearAnalysisItem[];
@@ -54,6 +55,7 @@ export interface GearMaintenanceRecord {
   gearName: string;
   component: string;
   componentLabel: string;
+  action: GearMaintenanceAction;
   operation: string;
   date: string;
   distance: number;
@@ -65,6 +67,7 @@ export interface GearMaintenanceRecord {
 export interface GearMaintenanceRecordRequest {
   gearId: string;
   component: string;
+  action?: GearMaintenanceAction;
   operation: string;
   date: string;
   distance: number;

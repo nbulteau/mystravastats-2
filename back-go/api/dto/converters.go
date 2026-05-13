@@ -551,6 +551,7 @@ func ToGearMaintenanceRecordDto(record business.GearMaintenanceRecord) GearMaint
 		GearName:       record.GearName,
 		Component:      record.Component,
 		ComponentLabel: record.ComponentLabel,
+		Action:         record.Action,
 		Operation:      record.Operation,
 		Date:           record.Date,
 		Distance:       record.Distance,
@@ -586,6 +587,7 @@ func ToGearMaintenanceRecordRequest(request GearMaintenanceRecordRequestDto) bus
 	return business.GearMaintenanceRecordRequest{
 		GearID:    request.GearID,
 		Component: request.Component,
+		Action:    request.Action,
 		Operation: request.Operation,
 		Date:      request.Date,
 		Distance:  request.Distance,
