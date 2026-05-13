@@ -31,6 +31,17 @@ type generateShapeRoutesPayload struct {
 	VariantCount   *int                    `json:"variantCount,omitempty"`
 }
 
+type editGeneratedRoutePayload struct {
+	RouteType     string                   `json:"routeType"`
+	ControlPoints []routeStartPointPayload `json:"controlPoints"`
+}
+
+type editGeneratedRouteResponse struct {
+	Route         *dto.GeneratedRouteDto             `json:"route,omitempty"`
+	ControlPoints []routeStartPointPayload           `json:"controlPoints,omitempty"`
+	Diagnostics   []dto.RouteGenerationDiagnosticDto `json:"diagnostics,omitempty"`
+}
+
 // Payload validation
 
 func validateGenerateShapeRoutesPayload(payload generateShapeRoutesPayload) error {
@@ -51,6 +62,18 @@ func validateGenerateShapeRoutesPayload(payload generateShapeRoutesPayload) erro
 	}
 	if payload.VariantCount != nil && (*payload.VariantCount < 1 || *payload.VariantCount > maxGeneratedVariantCount) {
 		return fmt.Errorf("variantCount must be between 1 and %d", maxGeneratedVariantCount)
+	}
+	return nil
+}
+
+func validateEditGeneratedRoutePayload(payload editGeneratedRoutePayload) error {
+	if len(payload.ControlPoints) < 2 {
+		return fmt.Errorf("controlPoints must contain at least 2 points")
+	}
+	for index, point := range payload.ControlPoints {
+		if !isValidLatLng(point.Lat, point.Lng) {
+			return fmt.Errorf("controlPoints[%d] has invalid coordinates", index)
+		}
 	}
 	return nil
 }

@@ -45,6 +45,8 @@ const (
 	maxShapeBestEffortVariants  = 8
 	shapeCoverageSamplePoints   = 6
 	shapeCoverageMaxSnapMeters  = 5000.0
+	editControlSnapMaxMeters    = 900.0
+	editMinControlSpacingMeters = 15.0
 	defaultOSRMProfileFilePath  = "./osm/region.osrm.profile"
 	fallbackOSRMProfilePath     = "../osm/region.osrm.profile"
 )
@@ -1654,6 +1656,169 @@ func (adapter *OSMRoutingAdapter) fetchOSRMNearestRoadTraceRoute(
 	return routes[0], true
 }
 
+func (adapter *OSMRoutingAdapter) EditRoute(
+	request application.RoutingEngineEditRequest,
+) (application.RoutingEngineEditResult, error) {
+	result := application.RoutingEngineEditResult{
+		Diagnostics: []routesDomain.RouteGenerationDiagnostic{},
+	}
+	if !adapter.enabled || adapter.baseURL == "" {
+		result.Diagnostics = append(result.Diagnostics, routesDomain.RouteGenerationDiagnostic{
+			Code:    "EDIT_ENGINE_UNAVAILABLE",
+			Message: "OSRM route editing is disabled or misconfigured.",
+		})
+		return result, nil
+	}
+	if len(request.ControlPoints) < 2 {
+		result.Diagnostics = append(result.Diagnostics, routesDomain.RouteGenerationDiagnostic{
+			Code:    "EDIT_CONTROL_POINTS_TOO_FEW",
+			Message: "At least two control points are required to edit a Strava Art route.",
+		})
+		return result, nil
+	}
+
+	profile := adapter.profileForRouteType(request.RouteType)
+	snappedControlPoints := make([]routesDomain.Coordinates, 0, len(request.ControlPoints))
+	maxSnapDistanceMeters := 0.0
+	for index, point := range request.ControlPoints {
+		snappedPoint, snapDistanceMeters, ok := adapter.snapToNearestRoutablePoint(profile, point)
+		if !ok {
+			result.Diagnostics = append(result.Diagnostics, routesDomain.RouteGenerationDiagnostic{
+				Code:    "EDIT_POINT_NOT_ROUTABLE",
+				Message: fmt.Sprintf("Control point %d could not be matched to a routable OSRM road.", index+1),
+			})
+			return result, nil
+		}
+		if snapDistanceMeters > editControlSnapMaxMeters {
+			result.Diagnostics = append(result.Diagnostics, routesDomain.RouteGenerationDiagnostic{
+				Code: "EDIT_POINT_OUT_OF_COVERAGE",
+				Message: fmt.Sprintf(
+					"Control point %d is %.0fm from the nearest routable OSRM road, above the %.0fm edit limit.",
+					index+1,
+					snapDistanceMeters,
+					editControlSnapMaxMeters,
+				),
+			})
+			return result, nil
+		}
+		if len(snappedControlPoints) > 0 {
+			previous := snappedControlPoints[len(snappedControlPoints)-1]
+			if haversineDistanceMeters(previous.Lat, previous.Lng, snappedPoint.Lat, snappedPoint.Lng) < editMinControlSpacingMeters {
+				continue
+			}
+		}
+		snappedControlPoints = append(snappedControlPoints, snappedPoint)
+		maxSnapDistanceMeters = math.Max(maxSnapDistanceMeters, snapDistanceMeters)
+	}
+	result.ControlPoints = snappedControlPoints
+	if len(snappedControlPoints) < 2 {
+		result.Diagnostics = append(result.Diagnostics, routesDomain.RouteGenerationDiagnostic{
+			Code:    "EDIT_CONTROL_POINTS_TOO_FEW",
+			Message: "Control points collapsed to fewer than two routable OSRM points after snapping.",
+		})
+		return result, nil
+	}
+
+	segments := make([]osrmRoute, 0, len(snappedControlPoints)-1)
+	for index := 0; index < len(snappedControlPoints)-1; index++ {
+		segmentWaypoints := []routesDomain.Coordinates{snappedControlPoints[index], snappedControlPoints[index+1]}
+		routes, err := adapter.fetchOSRMRoutesForShape(profile, segmentWaypoints)
+		if err != nil || len(routes) == 0 {
+			message := fmt.Sprintf("Edited segment %d could not be routed by OSRM.", index+1)
+			if err != nil {
+				message = fmt.Sprintf("%s %s", message, err.Error())
+			}
+			result.Diagnostics = append(result.Diagnostics, routesDomain.RouteGenerationDiagnostic{
+				Code:    "EDIT_SEGMENT_NO_ROUTE",
+				Message: message,
+			})
+			return result, nil
+		}
+		segment, ok := chooseBestShapeSegmentRoute(routes, coordinatesToLatLngPoints(segmentWaypoints))
+		if !ok {
+			result.Diagnostics = append(result.Diagnostics, routesDomain.RouteGenerationDiagnostic{
+				Code:    "EDIT_SEGMENT_NO_ROUTE",
+				Message: fmt.Sprintf("Edited segment %d returned no valid OSRM geometry.", index+1),
+			})
+			return result, nil
+		}
+		segments = append(segments, segment)
+	}
+
+	stitched, ok := stitchOSRMRoutes(segments)
+	if !ok {
+		result.Diagnostics = append(result.Diagnostics, routesDomain.RouteGenerationDiagnostic{
+			Code:    "EDIT_SEGMENT_NO_ROUTE",
+			Message: "Edited OSRM segments could not be stitched into a valid point-to-point route.",
+		})
+		return result, nil
+	}
+	points, ok := osrmRouteToPreviewPoints(stitched)
+	if !ok {
+		result.Diagnostics = append(result.Diagnostics, routesDomain.RouteGenerationDiagnostic{
+			Code:    "EDIT_SEGMENT_NO_ROUTE",
+			Message: "Edited OSRM route returned invalid geometry.",
+		})
+		return result, nil
+	}
+
+	distanceKm := stitched.Distance / 1000.0
+	durationSec := int(math.Round(stitched.Duration))
+	if durationSec <= 0 {
+		durationSec = int(math.Round(distanceKm * 180.0))
+	}
+	start := &routesDomain.Coordinates{Lat: points[0][0], Lng: points[0][1]}
+	end := &routesDomain.Coordinates{Lat: points[len(points)-1][0], Lng: points[len(points)-1][1]}
+	surfaceBreakdown := computeSurfaceBreakdown(stitched)
+	surfaceScore := surfaceMatchScore(request.RouteType, surfaceBreakdown)
+	shapeScore := 1.0
+	matchScore := clampOSMScore(92.0 - math.Min(maxSnapDistanceMeters/30.0, 18.0) + (surfaceScore-70.0)*0.08)
+	routeID := generatedEditedOSMRouteID(points, request.RouteID)
+	reasons := []string{
+		"Generated with OSM road graph (OSRM)",
+		"Shape mode: edited OSRM control route",
+		"Edit mode: magnetized control points",
+		fmt.Sprintf("Control points: %d", len(snappedControlPoints)),
+		fmt.Sprintf("Max control snap: %.0fm", maxSnapDistanceMeters),
+		fmt.Sprintf("Surface mix: %s", formatSurfaceBreakdown(surfaceBreakdown)),
+		fmt.Sprintf("Surface fitness: %.0f%%", surfaceScore),
+		"Retrace policy: art-fit first (diagnostic only)",
+	}
+	if strings.TrimSpace(request.RouteID) != "" {
+		reasons = append(reasons, fmt.Sprintf("Edited from route: %s", strings.TrimSpace(request.RouteID)))
+	}
+
+	result.Recommendation = routesDomain.RouteRecommendation{
+		RouteID: routeID,
+		Activity: business.ActivityShort{
+			Id:   0,
+			Name: "Edited Strava Art route",
+			Type: activityTypeFromRouteType(request.RouteType),
+		},
+		ActivityDate:   time.Now().UTC().Format(time.RFC3339),
+		DistanceKm:     distanceKm,
+		ElevationGainM: math.Max(0.0, distanceKm*8.0),
+		DurationSec:    durationSec,
+		IsLoop:         false,
+		Start:          start,
+		End:            end,
+		StartArea:      formatStartArea(start),
+		Season:         seasonFromDate(time.Now().UTC()),
+		VariantType:    routesDomain.RouteVariantShape,
+		MatchScore:     matchScore,
+		Reasons:        reasons,
+		PreviewLatLng:  points,
+		Shape:          nil,
+		ShapeScore:     &shapeScore,
+		Experimental:   false,
+	}
+	result.Diagnostics = append(result.Diagnostics, routesDomain.RouteGenerationDiagnostic{
+		Code:    "EDIT_ROUTE_UPDATED",
+		Message: "Edited route was snapped and rerouted on the OSRM road graph.",
+	})
+	return result, nil
+}
+
 func (adapter *OSMRoutingAdapter) validateShapeWithinOSRMCoverage(
 	profile string,
 	start routesDomain.Coordinates,
@@ -2968,6 +3133,22 @@ func generatedOSMRouteID(points [][]float64, start routesDomain.Coordinates, ind
 		_, _ = hasher.Write([]byte(fmt.Sprintf("%.5f,%.5f|", point[0], point[1])))
 	}
 	return fmt.Sprintf("generated-osm-%x", hasher.Sum64())
+}
+
+func generatedEditedOSMRouteID(points [][]float64, sourceRouteID string) string {
+	hasher := fnv.New64a()
+	_, _ = hasher.Write([]byte("edit|"))
+	_, _ = hasher.Write([]byte(strings.TrimSpace(sourceRouteID)))
+	_, _ = hasher.Write([]byte("|"))
+	step := 1
+	if len(points) > 40 {
+		step = int(math.Ceil(float64(len(points)) / 40.0))
+	}
+	for i := 0; i < len(points); i += step {
+		point := points[i]
+		_, _ = hasher.Write([]byte(fmt.Sprintf("%.5f,%.5f|", point[0], point[1])))
+	}
+	return fmt.Sprintf("edited-osm-%x", hasher.Sum64())
 }
 
 func parseShapePolylineCoordinates(raw string) []routesDomain.Coordinates {

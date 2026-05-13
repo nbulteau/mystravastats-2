@@ -6,6 +6,8 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
+import me.nicolas.stravastats.api.dto.EditGeneratedRouteRequestDto
+import me.nicolas.stravastats.api.dto.EditGeneratedRouteResponseDto
 import me.nicolas.stravastats.api.dto.GenerateRoutesResponseDto
 import me.nicolas.stravastats.api.dto.GenerateShapeRoutesRequestDto
 import me.nicolas.stravastats.api.dto.GeneratedRouteDto
@@ -24,6 +26,8 @@ import me.nicolas.stravastats.domain.business.RouteRecommendation
 import me.nicolas.stravastats.domain.business.RouteVariantType
 import me.nicolas.stravastats.domain.business.ShapeRemixRecommendation
 import me.nicolas.stravastats.domain.services.IRouteExplorerService
+import me.nicolas.stravastats.domain.services.routing.RoutingEngineEditRequest
+import me.nicolas.stravastats.domain.services.routing.RoutingEnginePort
 import org.slf4j.LoggerFactory
 import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
@@ -58,6 +62,7 @@ import kotlin.math.sqrt
 @Schema(description = "Routes explorer controller", name = "RoutesController")
 class RoutesController(
     private val routeExplorerService: IRouteExplorerService,
+    private val routingEngine: RoutingEnginePort? = null,
 ) {
 
     companion object {
@@ -198,6 +203,43 @@ class RoutesController(
         )
     }
 
+    @PostMapping("/{routeId}/edit")
+    fun editGeneratedRoute(
+        @PathVariable routeId: String,
+        @RequestBody payload: EditGeneratedRouteRequestDto,
+        @RequestHeader(name = REQUEST_ID_HEADER, required = false) requestIdHeader: String?,
+        response: HttpServletResponse,
+    ): EditGeneratedRouteResponseDto {
+        val requestId = resolveRouteRequestId(requestIdHeader)
+        response.setHeader(REQUEST_ID_HEADER, requestId)
+        val sourceRouteId = routeId.trim()
+        if (sourceRouteId.isBlank()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "routeId is required")
+        }
+        validateEditRoutePayload(payload)
+        val routeType = normalizeRouteType(payload.routeType)
+        val engine = routingEngine
+            ?: throw ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "OSRM route editing is not available")
+        val editResult = engine.editRoute(
+            RoutingEngineEditRequest(
+                routeId = sourceRouteId,
+                routeType = routeType,
+                controlPoints = payload.controlPoints.map { point -> point.toCoordinates() },
+            ),
+        )
+        val route = editResult.recommendation?.let { recommendation ->
+            recommendation.toGeneratedRouteDto(buildGeneratedRouteScore(recommendation), routeType)
+        }
+        if (route != null) {
+            cacheGeneratedRoutes(listOf(route))
+        }
+        return EditGeneratedRouteResponseDto(
+            route = route,
+            controlPoints = editResult.controlPoints.map { point -> RouteStartPointDto(lat = point.lat, lng = point.lng) },
+            diagnostics = editResult.diagnostics.toDiagnosticDtos(),
+        )
+    }
+
     @GetMapping("/recommendations/gpx", produces = ["application/gpx+xml"])
     fun getRouteRecommendationGpx(
         @RequestParam(required = true) activityType: String,
@@ -290,6 +332,17 @@ class RoutesController(
         payload.variantCount?.let { value ->
             if (value !in 1..MAX_VARIANT_COUNT) {
                 throw ResponseStatusException(HttpStatus.BAD_REQUEST, "variantCount must be between 1 and $MAX_VARIANT_COUNT")
+            }
+        }
+    }
+
+    private fun validateEditRoutePayload(payload: EditGeneratedRouteRequestDto) {
+        if (payload.controlPoints.size < 2) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "controlPoints must contain at least 2 points")
+        }
+        payload.controlPoints.forEachIndexed { index, point ->
+            if (!isValidLatLng(point.lat, point.lng)) {
+                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "controlPoints[$index] has invalid coordinates")
             }
         }
     }
@@ -768,6 +821,18 @@ class RoutesController(
         lat = lat,
         lng = lng,
     )
+
+    private fun List<RouteGenerationDiagnostic>.toDiagnosticDtos(): List<RouteGenerationDiagnosticDto> {
+        return mapNotNull { diagnostic ->
+            val code = diagnostic.code.trim()
+            val message = diagnostic.message.trim()
+            if (code.isBlank() || message.isBlank()) {
+                null
+            } else {
+                RouteGenerationDiagnosticDto(code = code, message = message)
+            }
+        }
+    }
 
     private fun RouteRecommendation.toGeneratedRouteDto(
         score: RouteGenerationScoreDto,

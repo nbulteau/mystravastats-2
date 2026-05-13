@@ -4,6 +4,7 @@ import me.nicolas.stravastats.domain.RuntimeConfig
 import me.nicolas.stravastats.domain.business.ActivityShort
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.Coordinates
+import me.nicolas.stravastats.domain.business.RouteGenerationDiagnostic
 import me.nicolas.stravastats.domain.business.RouteRecommendation
 import me.nicolas.stravastats.domain.business.RouteVariantType
 import org.slf4j.LoggerFactory
@@ -55,6 +56,8 @@ private const val MAX_SHAPE_TRACE_VARIANTS = 8
 private const val MAX_SHAPE_BEST_EFFORT_VARIANTS = 8
 private const val SHAPE_COVERAGE_SAMPLE_POINTS = 6
 private const val SHAPE_COVERAGE_MAX_SNAP_METERS = 5000.0
+private const val EDIT_CONTROL_SNAP_MAX_METERS = 900.0
+private const val EDIT_MIN_CONTROL_SPACING_METERS = 15.0
 private const val DEFAULT_EXTRACT_PROFILE_FILE = "./osm/region.osrm.profile"
 private const val FALLBACK_EXTRACT_PROFILE_FILE = "../osm/region.osrm.profile"
 
@@ -1580,6 +1583,195 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         return fetchShapeSegmentStitchedRoutes(profile, snapped).firstOrNull()
     }
 
+    override fun editRoute(request: RoutingEngineEditRequest): RoutingEngineEditResult {
+        if (!enabled || baseUrl.isBlank()) {
+            return RoutingEngineEditResult(
+                diagnostics = listOf(
+                    RouteGenerationDiagnostic(
+                        code = "EDIT_ENGINE_UNAVAILABLE",
+                        message = "OSRM route editing is disabled or misconfigured.",
+                    ),
+                ),
+            )
+        }
+        if (request.controlPoints.size < 2) {
+            return RoutingEngineEditResult(
+                diagnostics = listOf(
+                    RouteGenerationDiagnostic(
+                        code = "EDIT_CONTROL_POINTS_TOO_FEW",
+                        message = "At least two control points are required to edit a Strava Art route.",
+                    ),
+                ),
+            )
+        }
+
+        val profile = profileForRouteType(request.routeType)
+        val snappedControlPoints = mutableListOf<Coordinates>()
+        var maxSnapDistanceMeters = 0.0
+        request.controlPoints.forEachIndexed { index, point ->
+            val snapped = snapToNearestRoutablePoint(profile, point)
+                ?: return RoutingEngineEditResult(
+                    controlPoints = snappedControlPoints,
+                    diagnostics = listOf(
+                        RouteGenerationDiagnostic(
+                            code = "EDIT_POINT_NOT_ROUTABLE",
+                            message = "Control point ${index + 1} could not be matched to a routable OSRM road.",
+                        ),
+                    ),
+                )
+            val (snappedPoint, snapDistanceMeters) = snapped
+            if (snapDistanceMeters > EDIT_CONTROL_SNAP_MAX_METERS) {
+                return RoutingEngineEditResult(
+                    controlPoints = snappedControlPoints,
+                    diagnostics = listOf(
+                        RouteGenerationDiagnostic(
+                            code = "EDIT_POINT_OUT_OF_COVERAGE",
+                            message = "Control point ${index + 1} is ${snapDistanceMeters.roundToInt()}m from the nearest routable OSRM road, " +
+                                "above the ${EDIT_CONTROL_SNAP_MAX_METERS.roundToInt()}m edit limit.",
+                        ),
+                    ),
+                )
+            }
+            if (
+                snappedControlPoints.isNotEmpty() &&
+                haversineDistanceMeters(
+                    snappedControlPoints.last().lat,
+                    snappedControlPoints.last().lng,
+                    snappedPoint.lat,
+                    snappedPoint.lng,
+                ) < EDIT_MIN_CONTROL_SPACING_METERS
+            ) {
+                return@forEachIndexed
+            }
+            snappedControlPoints += snappedPoint
+            maxSnapDistanceMeters = max(maxSnapDistanceMeters, snapDistanceMeters)
+        }
+        if (snappedControlPoints.size < 2) {
+            return RoutingEngineEditResult(
+                controlPoints = snappedControlPoints,
+                diagnostics = listOf(
+                    RouteGenerationDiagnostic(
+                        code = "EDIT_CONTROL_POINTS_TOO_FEW",
+                        message = "Control points collapsed to fewer than two routable OSRM points after snapping.",
+                    ),
+                ),
+            )
+        }
+
+        val segments = mutableListOf<OsrmRoute>()
+        for (index in 0 until snappedControlPoints.lastIndex) {
+            val segmentWaypoints = listOf(snappedControlPoints[index], snappedControlPoints[index + 1])
+            val routes = try {
+                fetchRoutes(profile, segmentWaypoints, continueStraight = false)
+            } catch (error: Exception) {
+                if (error is InterruptedException) {
+                    Thread.currentThread().interrupt()
+                }
+                return RoutingEngineEditResult(
+                    controlPoints = snappedControlPoints,
+                    diagnostics = listOf(
+                        RouteGenerationDiagnostic(
+                            code = "EDIT_SEGMENT_NO_ROUTE",
+                            message = "Edited segment ${index + 1} could not be routed by OSRM. ${error.message}",
+                        ),
+                    ),
+                )
+            }
+            val segment = chooseBestShapeSegmentRoute(
+                routes = routes,
+                targetSegment = coordinatesToLatLng(segmentWaypoints),
+            ) ?: return RoutingEngineEditResult(
+                controlPoints = snappedControlPoints,
+                diagnostics = listOf(
+                    RouteGenerationDiagnostic(
+                        code = "EDIT_SEGMENT_NO_ROUTE",
+                        message = "Edited segment ${index + 1} returned no valid OSRM geometry.",
+                    ),
+                ),
+            )
+            segments += segment
+        }
+
+        val stitched = runCatching { stitchOsrmRoutes(segments) }.getOrElse {
+            return RoutingEngineEditResult(
+                controlPoints = snappedControlPoints,
+                diagnostics = listOf(
+                    RouteGenerationDiagnostic(
+                        code = "EDIT_SEGMENT_NO_ROUTE",
+                        message = "Edited OSRM segments could not be stitched into a valid point-to-point route.",
+                    ),
+                ),
+            )
+        }
+        val preview = osrmRouteToPreviewPoints(stitched)
+        if (preview.size < 2) {
+            return RoutingEngineEditResult(
+                controlPoints = snappedControlPoints,
+                diagnostics = listOf(
+                    RouteGenerationDiagnostic(
+                        code = "EDIT_SEGMENT_NO_ROUTE",
+                        message = "Edited OSRM route returned invalid geometry.",
+                    ),
+                ),
+            )
+        }
+
+        val distanceKm = stitched.distance / 1000.0
+        val durationSec = stitched.duration.roundToInt().coerceAtLeast((distanceKm * 180.0).roundToInt())
+        val start = Coordinates(lat = preview.first()[0], lng = preview.first()[1])
+        val end = Coordinates(lat = preview.last()[0], lng = preview.last()[1])
+        val surfaceBreakdown = computeSurfaceBreakdown(stitched)
+        val surfaceScore = surfaceMatchScore(request.routeType, surfaceBreakdown)
+        val matchScore = clampScore(92.0 - min(maxSnapDistanceMeters / 30.0, 18.0) + (surfaceScore - 70.0) * 0.08)
+        val reasons = buildList {
+            add("Generated with OSM road graph (OSRM)")
+            add("Shape mode: edited OSRM control route")
+            add("Edit mode: magnetized control points")
+            add("Control points: ${snappedControlPoints.size}")
+            add("Max control snap: ${maxSnapDistanceMeters.roundToInt()}m")
+            add("Surface mix: ${formatSurfaceBreakdown(surfaceBreakdown)}")
+            add("Surface fitness: ${surfaceScore.roundToInt()}%")
+            add("Retrace policy: art-fit first (diagnostic only)")
+            request.routeId.trim().takeIf { value -> value.isNotBlank() }?.let { sourceRouteId ->
+                add("Edited from route: $sourceRouteId")
+            }
+        }
+        val recommendation = RouteRecommendation(
+            routeId = generatedEditedRouteId(preview, request.routeId),
+            activity = ActivityShort(
+                id = 0,
+                name = "Edited Strava Art route",
+                type = activityTypeFromRouteType(request.routeType),
+            ),
+            activityDate = DateTimeFormatter.ISO_INSTANT.format(Instant.now()),
+            distanceKm = distanceKm,
+            elevationGainM = max(0.0, distanceKm * 8.0),
+            durationSec = durationSec,
+            isLoop = false,
+            start = start,
+            end = end,
+            startArea = "%.4f, %.4f".format(Locale.US, start.lat, start.lng),
+            season = seasonFromDate(Instant.now()),
+            variantType = RouteVariantType.SHAPE_MATCH,
+            matchScore = matchScore,
+            reasons = reasons,
+            previewLatLng = preview,
+            shape = null,
+            shapeScore = 1.0,
+            experimental = false,
+        )
+        return RoutingEngineEditResult(
+            recommendation = recommendation,
+            controlPoints = snappedControlPoints,
+            diagnostics = listOf(
+                RouteGenerationDiagnostic(
+                    code = "EDIT_ROUTE_UPDATED",
+                    message = "Edited route was snapped and rerouted on the OSRM road graph.",
+                ),
+            ),
+        )
+    }
+
     private fun validateShapeWithinOsrmCoverage(
         profile: String,
         start: Coordinates,
@@ -2454,6 +2646,19 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             }
         }
         return "generated-osm-${signature.hashCode().toUInt().toString(16)}"
+    }
+
+    private fun generatedEditedRouteId(points: List<List<Double>>, sourceRouteId: String): String {
+        val step = if (points.size > 40) max(1, points.size / 40) else 1
+        val signature = buildString {
+            append("edit|")
+            append(sourceRouteId.trim())
+            append("|")
+            points.indices.step(step).forEach { idx ->
+                append("%.5f,%.5f|".format(Locale.US, points[idx][0], points[idx][1]))
+            }
+        }
+        return "edited-osm-${signature.hashCode().toUInt().toString(16)}"
     }
 
     private fun parseShapePolylineCoordinates(raw: String): List<Coordinates> {

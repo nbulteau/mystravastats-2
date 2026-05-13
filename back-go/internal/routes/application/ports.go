@@ -43,10 +43,23 @@ type RoutingHistoryProfile struct {
 	LatestActivityEpochMs int64
 }
 
+type RoutingEngineEditRequest struct {
+	RouteID       string
+	RouteType     string
+	ControlPoints []routesDomain.Coordinates
+}
+
+type RoutingEngineEditResult struct {
+	Recommendation routesDomain.RouteRecommendation
+	ControlPoints  []routesDomain.Coordinates
+	Diagnostics    []routesDomain.RouteGenerationDiagnostic
+}
+
 // RoutingEnginePort is an outbound port for external routing engines
 // (OSRM, GraphHopper, ...).
 type RoutingEnginePort interface {
 	GenerateTargetLoops(request RoutingEngineRequest) ([]routesDomain.RouteRecommendation, error)
 	GenerateShapeLoops(request RoutingEngineRequest) ([]routesDomain.RouteRecommendation, error)
+	EditRoute(request RoutingEngineEditRequest) (RoutingEngineEditResult, error)
 	HealthDetails() map[string]any
 }

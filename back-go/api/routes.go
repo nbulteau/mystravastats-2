@@ -43,6 +43,7 @@ var routes = Routes{
 	{Name: "GetRouteRecommendationsByActivityType", Method: "GET", Pattern: "/api/routes/recommendations", HandlerFunc: getRouteRecommendationsByActivityType},
 	{Name: "GetRouteRecommendationGpxByActivityType", Method: "GET", Pattern: "/api/routes/recommendations/gpx", HandlerFunc: getRouteRecommendationGPXByActivityType},
 	{Name: "GenerateShapeRoutesByActivityType", Method: "POST", Pattern: "/api/routes/generate/shape", HandlerFunc: generateShapeRoutesByActivityType},
+	{Name: "EditGeneratedRoute", Method: "POST", Pattern: "/api/routes/{routeId}/edit", HandlerFunc: editGeneratedRouteByID},
 	{Name: "GetGeneratedRouteGpx", Method: "GET", Pattern: "/api/routes/{routeId}/gpx", HandlerFunc: getGeneratedRouteGPXByID},
 	{Name: "PostOSRMStart", Method: "POST", Pattern: "/api/routing/osrm/start", HandlerFunc: postOSRMStart},
 	{Name: "GetMapsGPX", Method: "GET", Pattern: "/api/maps/gpx", HandlerFunc: getMapsGPX},

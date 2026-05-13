@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"mystravastats/api/dto"
+	routesApp "mystravastats/internal/routes/application"
 	routesDomain "mystravastats/internal/routes/domain"
 	"mystravastats/internal/shared/domain/business"
 	"net/http"
@@ -134,6 +135,57 @@ func generateShapeRoutesByActivityType(writer http.ResponseWriter, request *http
 	}
 }
 
+func editGeneratedRouteByID(writer http.ResponseWriter, request *http.Request) {
+	requestID := resolveRouteGenerationRequestID(request)
+	writer.Header().Set("X-Request-Id", requestID)
+	routeID := strings.TrimSpace(mux.Vars(request)["routeId"])
+	if routeID == "" {
+		writeBadRequest(writer, "Invalid request parameters", "routeId is required")
+		return
+	}
+
+	payload, err := parseEditGeneratedRoutePayload(request)
+	if err != nil {
+		writeBadRequest(writer, "Invalid request body", err.Error())
+		return
+	}
+	if err := validateEditGeneratedRoutePayload(payload); err != nil {
+		writeBadRequest(writer, "Invalid request body", err.Error())
+		return
+	}
+
+	routeType := normalizeGenerateRouteType(payload.RouteType)
+	controlPoints := make([]routesDomain.Coordinates, 0, len(payload.ControlPoints))
+	for _, point := range payload.ControlPoints {
+		controlPoints = append(controlPoints, routesDomain.Coordinates{Lat: point.Lat, Lng: point.Lng})
+	}
+	editResult, err := getContainer().routingEngine.EditRoute(routesApp.RoutingEngineEditRequest{
+		RouteID:       routeID,
+		RouteType:     routeType,
+		ControlPoints: controlPoints,
+	})
+	if err != nil {
+		writeInternalServerError(writer, "Failed to edit generated route")
+		return
+	}
+
+	response := editGeneratedRouteResponse{
+		ControlPoints: routeStartPointPayloadsFromCoordinates(editResult.ControlPoints),
+		Diagnostics:   routeGenerationDiagnosticsToDto(editResult.Diagnostics),
+	}
+	if strings.TrimSpace(editResult.Recommendation.RouteID) != "" && len(editResult.Recommendation.PreviewLatLng) >= 2 {
+		score := buildGeneratedRouteScore(editResult.Recommendation)
+		route := dto.ToGeneratedRouteDto(editResult.Recommendation, score, routeType)
+		cacheGeneratedRoutes([]dto.GeneratedRouteDto{route})
+		response.Route = &route
+	}
+
+	if err := writeJSON(writer, http.StatusOK, response); err != nil {
+		log.Printf("failed to write edited generated route response: %v", err)
+		writeInternalServerError(writer, "Failed to encode edited route response")
+	}
+}
+
 func getGeneratedRouteGPXByID(writer http.ResponseWriter, request *http.Request) {
 	routeID := strings.TrimSpace(mux.Vars(request)["routeId"])
 	if routeID == "" {
@@ -174,6 +226,42 @@ func parseGenerateShapeRoutesPayload(request *http.Request) (generateShapeRoutes
 		return generateShapeRoutesPayload{}, fmt.Errorf("shape payload is invalid")
 	}
 	return payload, nil
+}
+
+func parseEditGeneratedRoutePayload(request *http.Request) (editGeneratedRoutePayload, error) {
+	defer func() { _ = request.Body.Close() }()
+	var payload editGeneratedRoutePayload
+	if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+		return editGeneratedRoutePayload{}, fmt.Errorf("route edit payload is invalid")
+	}
+	return payload, nil
+}
+
+func routeStartPointPayloadsFromCoordinates(points []routesDomain.Coordinates) []routeStartPointPayload {
+	if len(points) == 0 {
+		return nil
+	}
+	result := make([]routeStartPointPayload, 0, len(points))
+	for _, point := range points {
+		result = append(result, routeStartPointPayload{Lat: point.Lat, Lng: point.Lng})
+	}
+	return result
+}
+
+func routeGenerationDiagnosticsToDto(diagnostics []routesDomain.RouteGenerationDiagnostic) []dto.RouteGenerationDiagnosticDto {
+	if len(diagnostics) == 0 {
+		return nil
+	}
+	result := make([]dto.RouteGenerationDiagnosticDto, 0, len(diagnostics))
+	for _, diagnostic := range diagnostics {
+		code := strings.TrimSpace(diagnostic.Code)
+		message := strings.TrimSpace(diagnostic.Message)
+		if code == "" || message == "" {
+			continue
+		}
+		result = append(result, dto.RouteGenerationDiagnosticDto{Code: code, Message: message})
+	}
+	return result
 }
 
 // parseRouteGenerationFilters extracts year and activity types for route generation endpoints.

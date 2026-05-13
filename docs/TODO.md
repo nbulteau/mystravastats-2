@@ -123,22 +123,31 @@
 
 ### Priorite moyenne
 
-- [x] `FUNC-P1-14` (`P1`, `M`) - Ameliorer la fidelite visuelle du routage `Strava Art`.
-  Owners: `Routes`, `Back-Go`, `Back-Kotlin`, `Front`.
-  Fait:
-  - le filtre public `Strava Art` force desormais `POINT_TO_POINT` pour les dessins/imports routables,
-  - le moteur respecte l'ordre des points dessines au lieu de chercher un depart de contour pour les formes fermees,
-  - les waypoints de shape ne ferment plus artificiellement la route; ils suivent le dernier point du dessin,
-  - Go et Kotlin generent des variantes de pose du dessin par echelle, rotation et micro-translation avant routage OSRM,
-  - les variantes de pose prioritaires passent aussi par `nearest-road trace`, `segment stitched alternatives` et les fallbacks best-effort, au lieu de reserver ces secours a la pose primaire,
-  - un preflight de couverture OSRM detecte les dessins hors extract local et remonte `OSRM_COVERAGE_MISMATCH` au lieu de rejeter tardivement des routes de distance nulle,
-  - les dessins couverts par OSRM passent maintenant par une strategie `map-matched trace`, un stitching haute fidelite plus dense sur la pose primaire et un score `Art fit` penalise par la distance reelle route-pointille,
-  - les variantes de pose ne changent plus la cible de scoring: `Art fit` reste mesure contre le pointille violet visible,
-  - les raisons de proposition exposent `Shape transform:*`, et l'UI les remonte dans les highlights.
+- [ ] `FUNC-P1-15` (`P1`, `L`) - Edition aimantee des routes generees `Strava Art`.
+  Owners: `Product`, `Front`, `Routes`, `Back-Go`, `Back-Kotlin`.
+  Statut: MVP implemente; validation produit avec un OSRM local actif a faire.
+  Proposition:
+  - apres generation d'une proposition, permettre de modifier la route directement sur la carte sans repasser par un dessin libre,
+  - afficher des points de controle/de passage de la route generee, deplacables par l'utilisateur,
+  - garder chaque modification aimantee au reseau OSRM: un point deplace est d'abord snappe a une route routable, puis les segments voisins sont recalcules via OSRM,
+  - ne jamais ecrire de geometrie hors route dans la route finale ou dans le GPX exporte,
+  - distinguer visuellement le dessin original, la route generee et la route editee,
+  - permettre au minimum: deplacer un point, inserer un point sur un segment, supprimer un point de controle, annuler/refaire, revenir a la proposition initiale,
+  - conserver l'ordre point-a-point du trace Strava Art: l'edition ajuste le chemin OSRM entre points ordonnes, elle ne transforme pas la route en boucle sportive,
+  - remonter des diagnostics explicites quand un segment edite ne peut pas etre route par OSRM (`EDIT_SEGMENT_NO_ROUTE`, couverture insuffisante, point non routable),
+  - garder Go et Kotlin alignes sur les endpoints/DTO d'edition et les regles de snap.
   Acceptance:
-  - une forme fermee Strava Art reste traitee comme polyligne ordonnee,
-  - les routes exportees restent issues de segments OSRM,
-  - les tests cibles Go/Kotlin couvrent point-a-point, pose automatique, absence de fermeture forcee et preference pour les routes plus proches du trace dessine.
+  - un utilisateur peut corriger localement une route orange qui s'eloigne du pointille violet sans redessiner toute la forme,
+  - chaque segment edite reste issu du reseau OSRM et l'export GPX reprend la route editee,
+  - l'UI montre clairement les parties modifiees et conserve une action de reset vers la route generee,
+  - les tests Go/Kotlin couvrent snap de point, reroutage de segment, echec OSRM explicite et preservation de l'ordre point-a-point.
+  Fait:
+  - contrat `POST /api/routes/{routeId}/edit` ajoute en Go et Kotlin,
+  - chaque point de controle est snappe via OSRM nearest puis chaque segment adjacent est recalcule via OSRM route,
+  - la route editee est retournee comme nouvelle proposition OSRM et mise en cache pour l'export GPX,
+  - l'UI expose le mode edit, points de controle, deplacement, insertion, suppression, undo/redo et reset,
+  - diagnostics explicites d'edition ajoutes et presentes dans `Strava Art`,
+  - tests Go/Kotlin ajoutes sur succes d'edition et segment OSRM impossible.
 
 - [ ] `FUNC-P1-12` (`P1`, `M`) - Centre de fraicheur et synchronisation.
   Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.

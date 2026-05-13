@@ -748,6 +748,126 @@ func TestGenerateShapeLoops_WhenArtworkOutsideOSRMCoverage_ReturnsDiagnostic(t *
 	}
 }
 
+func TestEditRoute_SnapsControlPointsAndRoutesOrderedSegments(t *testing.T) {
+	// GIVEN
+	routeCalls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		switch {
+		case strings.HasPrefix(request.URL.Path, "/nearest/v1/cycling/"):
+			rawCoordinate := strings.TrimPrefix(request.URL.Path, "/nearest/v1/cycling/")
+			lng, lat := parseOSRMTestCoordinate(t, rawCoordinate)
+			writeOSRMTestJSON(response, http.StatusOK, `{"code":"Ok","waypoints":[{"location":[`+
+				formatOSRMTestFloat(lng)+`,`+formatOSRMTestFloat(lat)+`],"distance":6.0}]}`)
+		case strings.HasPrefix(request.URL.Path, "/route/v1/cycling/"):
+			routeCalls++
+			rawCoordinates := strings.TrimPrefix(request.URL.Path, "/route/v1/cycling/")
+			parts := strings.Split(rawCoordinates, ";")
+			if len(parts) != 2 {
+				t.Fatalf("expected two segment coordinates, got %q", rawCoordinates)
+			}
+			startLng, startLat := parseOSRMTestCoordinate(t, parts[0])
+			endLng, endLat := parseOSRMTestCoordinate(t, parts[1])
+			midLng := (startLng + endLng) / 2
+			midLat := (startLat + endLat) / 2
+			writeOSRMTestJSON(response, http.StatusOK, `{"code":"Ok","routes":[{"distance":1200.0,"duration":240.0,"geometry":{"type":"LineString","coordinates":[[`+
+				formatOSRMTestFloat(startLng)+`,`+formatOSRMTestFloat(startLat)+`],[`+
+				formatOSRMTestFloat(midLng)+`,`+formatOSRMTestFloat(midLat)+`],[`+
+				formatOSRMTestFloat(endLng)+`,`+formatOSRMTestFloat(endLat)+`]]},"legs":[{"steps":[{"distance":1200.0,"mode":"cycling"}]}]}]}`)
+		default:
+			writeOSRMTestJSON(response, http.StatusNotFound, `{"code":"NotFound"}`)
+		}
+	}))
+	defer server.Close()
+
+	adapter := &OSMRoutingAdapter{
+		enabled: true,
+		baseURL: server.URL,
+		client:  server.Client(),
+	}
+
+	// WHEN
+	result, err := adapter.EditRoute(application.RoutingEngineEditRequest{
+		RouteID:   "generated-osm-source",
+		RouteType: "RIDE",
+		ControlPoints: []routesDomain.Coordinates{
+			{Lat: 48.1100, Lng: -1.6800},
+			{Lat: 48.1080, Lng: -1.6700},
+			{Lat: 48.1040, Lng: -1.6600},
+		},
+	})
+
+	// THEN
+	if err != nil {
+		t.Fatalf("expected route edit, got error %v", err)
+	}
+	if result.Recommendation.RouteID == "" || !strings.HasPrefix(result.Recommendation.RouteID, "edited-osm-") {
+		t.Fatalf("expected edited route id, got %q", result.Recommendation.RouteID)
+	}
+	if result.Recommendation.IsLoop {
+		t.Fatalf("expected edited Strava Art route to remain point-to-point")
+	}
+	if result.Recommendation.VariantType != routesDomain.RouteVariantShape {
+		t.Fatalf("expected shape variant, got %s", result.Recommendation.VariantType)
+	}
+	if len(result.ControlPoints) != 3 {
+		t.Fatalf("expected three snapped control points, got %d", len(result.ControlPoints))
+	}
+	if routeCalls != 2 {
+		t.Fatalf("expected one OSRM route call per edited segment, got %d", routeCalls)
+	}
+	if !containsString(result.Recommendation.Reasons, "Edit mode: magnetized control points") {
+		t.Fatalf("expected edit reason, got %v", result.Recommendation.Reasons)
+	}
+	if len(result.Diagnostics) != 1 || result.Diagnostics[0].Code != "EDIT_ROUTE_UPDATED" {
+		t.Fatalf("expected edit success diagnostic, got %+v", result.Diagnostics)
+	}
+}
+
+func TestEditRoute_WhenSegmentCannotRoute_ReturnsDiagnostic(t *testing.T) {
+	// GIVEN
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		switch {
+		case strings.HasPrefix(request.URL.Path, "/nearest/v1/cycling/"):
+			rawCoordinate := strings.TrimPrefix(request.URL.Path, "/nearest/v1/cycling/")
+			lng, lat := parseOSRMTestCoordinate(t, rawCoordinate)
+			writeOSRMTestJSON(response, http.StatusOK, `{"code":"Ok","waypoints":[{"location":[`+
+				formatOSRMTestFloat(lng)+`,`+formatOSRMTestFloat(lat)+`],"distance":4.0}]}`)
+		case strings.HasPrefix(request.URL.Path, "/route/v1/cycling/"):
+			writeOSRMTestJSON(response, http.StatusOK, `{"code":"NoRoute","message":"no route between edited controls","routes":[]}`)
+		default:
+			writeOSRMTestJSON(response, http.StatusNotFound, `{"code":"NotFound"}`)
+		}
+	}))
+	defer server.Close()
+
+	adapter := &OSMRoutingAdapter{
+		enabled: true,
+		baseURL: server.URL,
+		client:  server.Client(),
+	}
+
+	// WHEN
+	result, err := adapter.EditRoute(application.RoutingEngineEditRequest{
+		RouteID:   "generated-osm-source",
+		RouteType: "RIDE",
+		ControlPoints: []routesDomain.Coordinates{
+			{Lat: 48.1100, Lng: -1.6800},
+			{Lat: 48.1040, Lng: -1.6600},
+		},
+	})
+
+	// THEN
+	if err != nil {
+		t.Fatalf("expected diagnostic result, got error %v", err)
+	}
+	if result.Recommendation.RouteID != "" {
+		t.Fatalf("expected no edited recommendation, got %+v", result.Recommendation)
+	}
+	if len(result.Diagnostics) != 1 || result.Diagnostics[0].Code != "EDIT_SEGMENT_NO_ROUTE" {
+		t.Fatalf("expected segment diagnostic, got %+v", result.Diagnostics)
+	}
+}
+
 func writeOSRMTestJSON(response http.ResponseWriter, status int, body string) {
 	response.Header().Set("Content-Type", "application/json")
 	response.WriteHeader(status)

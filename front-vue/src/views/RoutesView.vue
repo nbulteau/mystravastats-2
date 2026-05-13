@@ -21,6 +21,8 @@ const startMarker = ref<L.CircleMarker>();
 const shapePolylineLayer = ref<L.Polyline>();
 const selectedRouteOutlineLayer = ref<L.Polyline>();
 const selectedRouteLayer = ref<L.Polyline>();
+const routeEditGuideLayer = ref<L.Polyline>();
+const routeEditMarkerLayers = ref<L.Marker[]>([]);
 const traceImageLayer = ref<L.ImageOverlay>();
 const gpxFileInput = ref<HTMLInputElement | null>(null);
 const traceImageFileInput = ref<HTMLInputElement | null>(null);
@@ -34,6 +36,7 @@ const isExporting = ref(false);
 const isLocating = ref(false);
 
 const selectedRoute = computed(() => routesStore.selectedRoute);
+const routeEditMode = computed(() => routesStore.isRouteEditMode);
 const generationDiagnostics = computed(() => routesStore.generationDiagnostics);
 const failureSummaryDiagnostic = computed(() =>
   generationDiagnostics.value.find((diagnostic) => diagnostic.code === "FAILURE_SUMMARY") ?? null,
@@ -464,6 +467,9 @@ function scoreBandClass(value: number | undefined): string {
 
 function routeSourceLabel(route: GeneratedRoute): string {
   const shapeMode = routeShapeMode(route);
+  if (shapeMode === "edited osrm control route") {
+    return "Edited OSRM route";
+  }
   if (shapeMode === "nearest-road trace") {
     return "Drawing-first road snap";
   }
@@ -530,6 +536,13 @@ function routeProductBadges(route: GeneratedRoute): RouteBadge[] {
     badges.push({
       id: "mode-nearest",
       label: "Drawing-first snap",
+      tone: "strong",
+      icon: "fa-solid fa-magnet",
+    });
+  } else if (shapeMode === "edited osrm control route") {
+    badges.push({
+      id: "mode-edited",
+      label: "Edited on roads",
       tone: "strong",
       icon: "fa-solid fa-magnet",
     });
@@ -609,6 +622,9 @@ function routeProductBadges(route: GeneratedRoute): RouteBadge[] {
 function routeProductSummary(route: GeneratedRoute): string {
   const shapeMode = routeShapeMode(route);
   const profile = routeSelectionProfile(route);
+  if (shapeMode === "edited osrm control route") {
+    return "Manual correction snapped to OSRM roads.";
+  }
   if (shapeMode === "nearest-road trace") {
     return "Sketch order preserved on nearby routable roads.";
   }
@@ -639,6 +655,8 @@ function highlightedRouteReasons(route: GeneratedRoute): string[] {
 
   if (hasRouteReason(route, "Shape trace snap:")) {
     highlights.push("Road snap: nearest anchors, routed by OSRM.");
+  } else if (shapeMode === "edited osrm control route") {
+    highlights.push("Edit: control points snapped and rerouted by OSRM.");
   } else if (shapeMode === "segment stitched alternatives") {
     highlights.push("Routing: alternatives chosen per sketch segment.");
   } else if (shapeMode.includes("fallback")) {
@@ -710,6 +728,15 @@ function diagnosticTitle(code: string): string {
       return "Selection softened";
     case "EMERGENCY_FALLBACK":
       return "Best available route";
+    case "EDIT_ROUTE_UPDATED":
+      return "Route edited";
+    case "EDIT_POINT_NOT_ROUTABLE":
+    case "EDIT_POINT_OUT_OF_COVERAGE":
+      return "Control point blocked";
+    case "EDIT_SEGMENT_NO_ROUTE":
+      return "Segment blocked";
+    case "EDIT_CONTROL_POINTS_TOO_FEW":
+      return "More controls needed";
     default:
       return code.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (match) => match.toUpperCase());
   }
@@ -746,13 +773,28 @@ function diagnosticMessage(diagnostic: RouteGenerationDiagnostic): string {
       return "Selection rules were softened to return a usable proposal.";
     case "EMERGENCY_FALLBACK":
       return "The best available generated route was selected despite weak matching.";
+    case "EDIT_ROUTE_UPDATED":
+      return "The edited route stays snapped to OSRM roads.";
+    case "EDIT_POINT_NOT_ROUTABLE":
+    case "EDIT_POINT_OUT_OF_COVERAGE":
+    case "EDIT_SEGMENT_NO_ROUTE":
+    case "EDIT_CONTROL_POINTS_TOO_FEW":
+      return diagnostic.message;
     default:
       return diagnostic.message;
   }
 }
 
 function diagnosticTone(code: string): PresentedDiagnostic["tone"] {
-  if (code === "NO_CANDIDATE" || code === "FAILURE_SUMMARY" || code.startsWith("OSRM_COVERAGE_")) {
+  if (
+    code === "NO_CANDIDATE"
+    || code === "FAILURE_SUMMARY"
+    || code.startsWith("OSRM_COVERAGE_")
+    || code === "EDIT_POINT_NOT_ROUTABLE"
+    || code === "EDIT_POINT_OUT_OF_COVERAGE"
+    || code === "EDIT_SEGMENT_NO_ROUTE"
+    || code === "EDIT_CONTROL_POINTS_TOO_FEW"
+  ) {
     return "error";
   }
   if (nonBlockingGenerationDiagnosticCodes.has(code)) {
@@ -762,8 +804,19 @@ function diagnosticTone(code: string): PresentedDiagnostic["tone"] {
 }
 
 function diagnosticIcon(code: string): string {
-  if (code === "NO_CANDIDATE" || code === "FAILURE_SUMMARY" || code.startsWith("OSRM_COVERAGE_")) {
+  if (
+    code === "NO_CANDIDATE"
+    || code === "FAILURE_SUMMARY"
+    || code.startsWith("OSRM_COVERAGE_")
+    || code === "EDIT_POINT_NOT_ROUTABLE"
+    || code === "EDIT_POINT_OUT_OF_COVERAGE"
+    || code === "EDIT_SEGMENT_NO_ROUTE"
+    || code === "EDIT_CONTROL_POINTS_TOO_FEW"
+  ) {
     return "fa-solid fa-triangle-exclamation";
+  }
+  if (code === "EDIT_ROUTE_UPDATED") {
+    return "fa-solid fa-magnet";
   }
   if (code === "START_POINT_SNAPPED") {
     return "fa-solid fa-location-dot";
@@ -929,6 +982,9 @@ function initMap() {
   }).addTo(map.value);
 
   map.value.on("click", (event: L.LeafletMouseEvent) => {
+    if (routesStore.isRouteEditMode) {
+      return;
+    }
     if (routesStore.mode === "SHAPE" && routesStore.isDrawingShape) {
       routesStore.addShapePoint(event.latlng.lat, event.latlng.lng);
       redrawMapLayers({ fitBounds: false });
@@ -988,7 +1044,134 @@ function collectAllMapPoints(): L.LatLng[] {
       points.push(L.latLng(point[0], point[1]));
     }
   });
+  routesStore.routeEditControlPoints.forEach((point) => {
+    if (point.length >= 2) {
+      points.push(L.latLng(point[0], point[1]));
+    }
+  });
   return points;
+}
+
+function clearRouteEditLayers() {
+  if (routeEditGuideLayer.value) {
+    routeEditGuideLayer.value.remove();
+    routeEditGuideLayer.value = undefined;
+  }
+  routeEditMarkerLayers.value.forEach((marker) => marker.remove());
+  routeEditMarkerLayers.value = [];
+}
+
+function routeEditMarkerIcon(index: number, isEndpoint: boolean): L.DivIcon {
+  return L.divIcon({
+    className: `routes-edit-marker${isEndpoint ? " routes-edit-marker--endpoint" : ""}`,
+    html: `<span>${index + 1}</span>`,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+  });
+}
+
+function distanceToSegment(point: L.Point, start: L.Point, end: L.Point): number {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  if (dx === 0 && dy === 0) {
+    return point.distanceTo(start);
+  }
+  const ratio = Math.max(0, Math.min(1, ((point.x - start.x) * dx + (point.y - start.y) * dy) / (dx * dx + dy * dy)));
+  return point.distanceTo(L.point(start.x + ratio * dx, start.y + ratio * dy));
+}
+
+function nearestRouteEditSegmentIndex(latlng: L.LatLng): number | undefined {
+  if (!map.value || routesStore.routeEditControlPoints.length < 2) {
+    return undefined;
+  }
+  const clickPoint = map.value.latLngToLayerPoint(latlng);
+  let bestIndex = 0;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (let index = 0; index < routesStore.routeEditControlPoints.length - 1; index += 1) {
+    const start = routesStore.routeEditControlPoints[index];
+    const end = routesStore.routeEditControlPoints[index + 1];
+    const segmentDistance = distanceToSegment(
+      clickPoint,
+      map.value.latLngToLayerPoint(L.latLng(start[0], start[1])),
+      map.value.latLngToLayerPoint(L.latLng(end[0], end[1])),
+    );
+    if (segmentDistance < bestDistance) {
+      bestDistance = segmentDistance;
+      bestIndex = index;
+    }
+  }
+  return bestIndex;
+}
+
+async function moveRouteEditControlPoint(index: number, latlng: L.LatLng) {
+  try {
+    await routesStore.moveRouteEditControlPoint(index, latlng.lat, latlng.lng);
+    redrawMapLayers({ fitBounds: false });
+  } catch (error) {
+    showToast("Unable to reroute the edited segment", ToastTypeEnum.ERROR, 4200);
+    console.error(error);
+    redrawMapLayers({ fitBounds: false });
+  }
+}
+
+async function insertRouteEditControlPoint(latlng: L.LatLng, afterIndex?: number) {
+  try {
+    await routesStore.insertRouteEditControlPoint(latlng.lat, latlng.lng, afterIndex);
+    redrawMapLayers({ fitBounds: false });
+  } catch (error) {
+    showToast("Unable to insert this control point", ToastTypeEnum.ERROR, 4200);
+    console.error(error);
+    redrawMapLayers({ fitBounds: false });
+  }
+}
+
+async function removeRouteEditControlPoint(index: number) {
+  try {
+    await routesStore.removeRouteEditControlPoint(index);
+    redrawMapLayers({ fitBounds: false });
+  } catch (error) {
+    showToast("Unable to remove this control point", ToastTypeEnum.ERROR, 4200);
+    console.error(error);
+    redrawMapLayers({ fitBounds: false });
+  }
+}
+
+function renderRouteEditLayers() {
+  if (!map.value || !routesStore.isRouteEditMode || routesStore.routeEditControlPoints.length < 2) {
+    return;
+  }
+  const controlLatLngs = routesStore.routeEditControlPoints.map((point) => L.latLng(point[0], point[1]));
+  routeEditGuideLayer.value = L.polyline(controlLatLngs, {
+    color: "#00a8a8",
+    weight: 3,
+    dashArray: "3 8",
+    opacity: 0.9,
+  }).addTo(map.value);
+  routeEditGuideLayer.value.bindTooltip("Edit controls", { direction: "top" });
+
+  routesStore.routeEditControlPoints.forEach((point, index) => {
+    const isEndpoint = index === 0 || index === routesStore.routeEditControlPoints.length - 1;
+    const marker = L.marker([point[0], point[1]], {
+      draggable: true,
+      icon: routeEditMarkerIcon(index, isEndpoint),
+      keyboard: true,
+      title: `Control point ${index + 1}`,
+    }).addTo(map.value as L.Map);
+    marker.on("dragend", () => {
+      void moveRouteEditControlPoint(index, marker.getLatLng());
+    });
+    marker.on("contextmenu", (event: L.LeafletMouseEvent) => {
+      event.originalEvent.preventDefault();
+      event.originalEvent.stopPropagation();
+      void removeRouteEditControlPoint(index);
+    });
+    marker.on("dblclick", (event: L.LeafletMouseEvent) => {
+      event.originalEvent.preventDefault();
+      event.originalEvent.stopPropagation();
+      void removeRouteEditControlPoint(index);
+    });
+    routeEditMarkerLayers.value.push(marker);
+  });
 }
 
 function redrawMapLayers(options: { fitBounds?: boolean } = {}) {
@@ -996,6 +1179,7 @@ function redrawMapLayers(options: { fitBounds?: boolean } = {}) {
     return;
   }
 
+  clearRouteEditLayers();
   if (startMarker.value) {
     startMarker.value.remove();
     startMarker.value = undefined;
@@ -1031,6 +1215,13 @@ function redrawMapLayers(options: { fitBounds?: boolean } = {}) {
         opacity: 0.95,
       }).addTo(map.value);
       selectedRouteLayer.value.bindTooltip("Generated route", { direction: "top" });
+      if (routesStore.isRouteEditMode) {
+        selectedRouteLayer.value.on("click", (event: L.LeafletMouseEvent) => {
+          event.originalEvent.preventDefault();
+          event.originalEvent.stopPropagation();
+          void insertRouteEditControlPoint(event.latlng, nearestRouteEditSegmentIndex(event.latlng));
+        });
+      }
     }
   }
 
@@ -1055,6 +1246,8 @@ function redrawMapLayers(options: { fitBounds?: boolean } = {}) {
     }).addTo(map.value);
     startMarker.value.bindTooltip("Start point", { direction: "top" });
   }
+
+  renderRouteEditLayers();
 
   const allPoints = collectAllMapPoints();
   if (options.fitBounds !== false && allPoints.length > 0) {
@@ -1465,8 +1658,55 @@ async function exportRoute(route: GeneratedRoute) {
   }
 }
 
+function beginRouteEdit(route: GeneratedRoute) {
+  routesStore.setSelectedRoute(route.routeId);
+  if (!routesStore.beginRouteEdit()) {
+    showToast("This proposal cannot be edited on OSRM roads", ToastTypeEnum.ERROR, 4200);
+    return;
+  }
+  redrawMapLayers({ fitBounds: false });
+}
+
+function stopRouteEdit() {
+  routesStore.stopRouteEdit();
+  redrawMapLayers({ fitBounds: false });
+}
+
+async function resetRouteEdit() {
+  if (!routesStore.resetRouteEditControls()) {
+    return;
+  }
+  try {
+    await routesStore.applyRouteEdit();
+    redrawMapLayers({ fitBounds: false });
+  } catch (error) {
+    showToast("Unable to reset the edited route", ToastTypeEnum.ERROR, 4200);
+    console.error(error);
+  }
+}
+
+async function undoRouteEdit() {
+  try {
+    await routesStore.undoRouteEdit();
+    redrawMapLayers({ fitBounds: false });
+  } catch (error) {
+    showToast("Unable to undo this edit", ToastTypeEnum.ERROR, 4200);
+    console.error(error);
+  }
+}
+
+async function redoRouteEdit() {
+  try {
+    await routesStore.redoRouteEdit();
+    redrawMapLayers({ fitBounds: false });
+  } catch (error) {
+    showToast("Unable to redo this edit", ToastTypeEnum.ERROR, 4200);
+    console.error(error);
+  }
+}
+
 watch(
-  () => [routesStore.startPoint, routesStore.shapePoints, selectedRoute.value?.routeId],
+  () => [routesStore.startPoint, routesStore.shapePoints, selectedRoute.value?.routeId, routesStore.isRouteEditMode, routesStore.routeEditControlPoints],
   () => redrawMapLayers({ fitBounds: false }),
   { deep: true },
 );
@@ -1977,6 +2217,13 @@ onBeforeUnmount(() => {
             <span aria-hidden="true" />
             Generated route
           </span>
+          <span
+            v-if="routeEditMode"
+            class="routes-layer-key routes-layer-key--edit"
+          >
+            <span aria-hidden="true" />
+            Edit controls
+          </span>
         </div>
         </div>
         <div class="routes-assistant-tools routes-assistant-tools--map">
@@ -2178,6 +2425,26 @@ onBeforeUnmount(() => {
               Select
             </button>
             <button
+              v-if="routeEditMode && selectedRoute?.routeId === route.routeId"
+              type="button"
+              class="btn btn-outline-primary btn-sm"
+              :disabled="routesStore.isRouteEditLoading"
+              @click.stop="stopRouteEdit"
+            >
+              <i class="fa-solid fa-check" aria-hidden="true" />
+              Done
+            </button>
+            <button
+              v-else
+              type="button"
+              class="btn btn-outline-primary btn-sm"
+              :disabled="!route.isRoadGraphGenerated || routesStore.isRouteEditLoading"
+              @click.stop="beginRouteEdit(route)"
+            >
+              <i class="fa-solid fa-magnet" aria-hidden="true" />
+              Edit
+            </button>
+            <button
               type="button"
               class="btn btn-primary btn-sm"
               :disabled="isExporting"
@@ -2185,6 +2452,38 @@ onBeforeUnmount(() => {
             >
               <i class="fa-solid fa-download" aria-hidden="true" />
               GPX
+            </button>
+          </div>
+          <div
+            v-if="routeEditMode && selectedRoute?.routeId === route.routeId"
+            class="route-edit-actions"
+          >
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              :disabled="!routesStore.canUndoRouteEdit || routesStore.isRouteEditLoading"
+              title="Undo route edit"
+              @click.stop="undoRouteEdit"
+            >
+              <i class="fa-solid fa-rotate-left" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              :disabled="!routesStore.canRedoRouteEdit || routesStore.isRouteEditLoading"
+              title="Redo route edit"
+              @click.stop="redoRouteEdit"
+            >
+              <i class="fa-solid fa-rotate-right" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              :disabled="routesStore.isRouteEditLoading"
+              title="Reset to generated route"
+              @click.stop="resetRouteEdit"
+            >
+              <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true" />
             </button>
           </div>
         </article>
@@ -2938,6 +3237,32 @@ onBeforeUnmount(() => {
   color: #fc4c02;
 }
 
+.routes-layer-key--edit {
+  color: #008f8f;
+}
+
+.routes-layer-key--edit > span {
+  border-top-style: dotted;
+}
+
+:deep(.routes-edit-marker) {
+  display: grid;
+  place-items: center;
+  border: 2px solid #007d7d;
+  border-radius: 999px;
+  background: #e9ffff;
+  color: #005f5f;
+  box-shadow: 0 3px 10px rgba(0, 74, 74, 0.22);
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+:deep(.routes-edit-marker--endpoint) {
+  border-color: #fc4c02;
+  background: #fff3ed;
+  color: #b43700;
+}
+
 .routes-comparison {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3280,16 +3605,23 @@ onBeforeUnmount(() => {
 
 .route-card-actions {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-top: auto;
 }
 
-.route-card-actions .btn {
+.route-card-actions .btn,
+.route-edit-actions .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
+}
+
+.route-edit-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(38px, 1fr));
+  gap: 8px;
 }
 
 .routes-empty {

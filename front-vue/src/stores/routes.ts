@@ -1,8 +1,10 @@
 import { defineStore } from "pinia";
 import { requestJson } from "@/stores/api";
 import {
+  type EditGeneratedRouteResponse,
   type GenerateRoutesResponse,
   type GeneratedRoute,
+  type RouteCoordinate,
   type RouteMode,
   type RouteType,
   type RouteGenerationDiagnostic,
@@ -13,6 +15,8 @@ const DEFAULT_VARIANT_COUNT = 4;
 const GEOMETRY_SIGNATURE_PRECISION = 5;
 const GEOMETRY_SIGNATURE_MAX_POINTS = 80;
 const SHAPE_TRANSFORM_HISTORY_LIMIT = 25;
+const ROUTE_EDIT_CONTROL_POINT_LIMIT = 14;
+const ROUTE_EDIT_HISTORY_LIMIT = 25;
 const SAVED_SHAPES_STORAGE_KEY = "mystravastats:strava-art:saved-shapes";
 const DEFAULT_TEMPLATE_CENTER = { lat: 45.1885, lng: 5.7245 };
 
@@ -89,6 +93,52 @@ export interface SavedShapeTemplate {
 
 function cloneShapePoints(points: number[][]): number[][] {
   return points.map((point) => [point[0], point[1]]);
+}
+
+function routeCoordinatesToPoints(coordinates: RouteCoordinate[] = []): number[][] {
+  return coordinates
+    .filter((point) =>
+      Number.isFinite(point.lat)
+      && Number.isFinite(point.lng)
+      && point.lat >= -90
+      && point.lat <= 90
+      && point.lng >= -180
+      && point.lng <= 180
+    )
+    .map((point) => [point.lat, point.lng]);
+}
+
+function pointsToRouteCoordinates(points: number[][]): RouteCoordinate[] {
+  return sanitizeShapePoints(points).map((point) => ({ lat: point[0], lng: point[1] }));
+}
+
+function sampleRouteControlPoints(points: number[][], limit = ROUTE_EDIT_CONTROL_POINT_LIMIT): number[][] {
+  const sanitized = sanitizeShapePoints(points);
+  if (sanitized.length <= limit) {
+    return cloneShapePoints(sanitized);
+  }
+  const sampled: number[][] = [];
+  const lastIndex = sanitized.length - 1;
+  for (let index = 0; index < limit; index += 1) {
+    const sourceIndex = Math.round((index / (limit - 1)) * lastIndex);
+    const point = sanitized[sourceIndex];
+    if (!point) {
+      continue;
+    }
+    const previous = sampled[sampled.length - 1];
+    if (!previous || previous[0] !== point[0] || previous[1] !== point[1]) {
+      sampled.push([point[0], point[1]]);
+    }
+  }
+  const lastPoint = sanitized[lastIndex];
+  const sampledLastPoint = sampled[sampled.length - 1];
+  if (
+    lastPoint
+    && (!sampledLastPoint || sampledLastPoint[0] !== lastPoint[0] || sampledLastPoint[1] !== lastPoint[1])
+  ) {
+    sampled.push([lastPoint[0], lastPoint[1]]);
+  }
+  return sampled;
 }
 
 function sanitizeShapePoints(points: number[][]): number[][] {
@@ -556,6 +606,12 @@ export const useRoutesStore = defineStore("routes", {
     routes: [] as GeneratedRoute[],
     generationDiagnostics: [] as RouteGenerationDiagnostic[],
     selectedRouteId: "" as string,
+    isRouteEditMode: false,
+    isRouteEditLoading: false,
+    routeEditSourceRouteId: "" as string,
+    routeEditControlPoints: [] as number[][],
+    routeEditUndoStack: [] as number[][][],
+    routeEditRedoStack: [] as number[][][],
     isLoading: false,
     routingHealthStatus: "unknown" as RoutingHealthStatus,
     routingEngineName: "OSRM" as string,
@@ -585,6 +641,16 @@ export const useRoutesStore = defineStore("routes", {
     },
     canRedoShapeTransform(state): boolean {
       return state.shapeTransformRedoStack.length > 0;
+    },
+    canEditSelectedRoute(state): boolean {
+      const route = state.routes.find((candidate) => candidate.routeId === state.selectedRouteId);
+      return Boolean(route && route.previewLatLng.length >= 2 && route.isRoadGraphGenerated);
+    },
+    canUndoRouteEdit(state): boolean {
+      return state.routeEditUndoStack.length > 0;
+    },
+    canRedoRouteEdit(state): boolean {
+      return state.routeEditRedoStack.length > 0;
     },
     savedShapeTemplateCount(state): number {
       return state.savedShapeTemplates.length;
@@ -1111,11 +1177,147 @@ export const useRoutesStore = defineStore("routes", {
     },
     setSelectedRoute(routeId: string) {
       this.selectedRouteId = routeId;
+      if (this.isRouteEditMode && routeId !== this.routeEditSourceRouteId) {
+        this.stopRouteEdit();
+      }
     },
     resetRoutes() {
       this.routes = [];
       this.generationDiagnostics = [];
       this.selectedRouteId = "";
+      this.stopRouteEdit();
+    },
+    beginRouteEdit(): boolean {
+      const route = this.selectedRoute;
+      if (!route || route.previewLatLng.length < 2 || !route.isRoadGraphGenerated) {
+        return false;
+      }
+      this.isRouteEditMode = true;
+      this.routeEditSourceRouteId = route.routeId;
+      this.routeEditControlPoints = sampleRouteControlPoints(route.previewLatLng);
+      this.routeEditUndoStack = [];
+      this.routeEditRedoStack = [];
+      return this.routeEditControlPoints.length >= 2;
+    },
+    stopRouteEdit() {
+      this.isRouteEditMode = false;
+      this.isRouteEditLoading = false;
+      this.routeEditSourceRouteId = "";
+      this.routeEditControlPoints = [];
+      this.routeEditUndoStack = [];
+      this.routeEditRedoStack = [];
+    },
+    resetRouteEditControls(): boolean {
+      const route = this.routes.find((candidate) => candidate.routeId === this.routeEditSourceRouteId) ?? this.selectedRoute;
+      if (!route || route.previewLatLng.length < 2) {
+        return false;
+      }
+      this.pushRouteEditHistory();
+      this.routeEditControlPoints = sampleRouteControlPoints(route.previewLatLng);
+      return true;
+    },
+    pushRouteEditHistory() {
+      if (this.routeEditControlPoints.length < 2) {
+        return;
+      }
+      this.routeEditUndoStack.push(cloneShapePoints(this.routeEditControlPoints));
+      if (this.routeEditUndoStack.length > ROUTE_EDIT_HISTORY_LIMIT) {
+        this.routeEditUndoStack.shift();
+      }
+      this.routeEditRedoStack = [];
+    },
+    async moveRouteEditControlPoint(index: number, lat: number, lng: number) {
+      if (!this.isRouteEditMode || index < 0 || index >= this.routeEditControlPoints.length) {
+        return;
+      }
+      this.pushRouteEditHistory();
+      this.routeEditControlPoints[index] = [lat, lng];
+      await this.applyRouteEdit();
+    },
+    async insertRouteEditControlPoint(lat: number, lng: number, afterIndex?: number) {
+      if (!this.isRouteEditMode || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+        return;
+      }
+      const insertIndex = typeof afterIndex === "number"
+        ? Math.min(Math.max(afterIndex + 1, 1), this.routeEditControlPoints.length)
+        : Math.max(1, this.routeEditControlPoints.length - 1);
+      this.pushRouteEditHistory();
+      this.routeEditControlPoints.splice(insertIndex, 0, [lat, lng]);
+      await this.applyRouteEdit();
+    },
+    async removeRouteEditControlPoint(index: number) {
+      if (!this.isRouteEditMode || this.routeEditControlPoints.length <= 2 || index <= 0 || index >= this.routeEditControlPoints.length - 1) {
+        return;
+      }
+      this.pushRouteEditHistory();
+      this.routeEditControlPoints.splice(index, 1);
+      await this.applyRouteEdit();
+    },
+    async undoRouteEdit() {
+      const previous = this.routeEditUndoStack[this.routeEditUndoStack.length - 1];
+      if (!previous) {
+        return;
+      }
+      this.routeEditUndoStack = this.routeEditUndoStack.slice(0, -1);
+      this.routeEditRedoStack.push(cloneShapePoints(this.routeEditControlPoints));
+      this.routeEditControlPoints = cloneShapePoints(previous);
+      await this.applyRouteEdit(false);
+    },
+    async redoRouteEdit() {
+      const next = this.routeEditRedoStack[this.routeEditRedoStack.length - 1];
+      if (!next) {
+        return;
+      }
+      this.routeEditRedoStack = this.routeEditRedoStack.slice(0, -1);
+      this.routeEditUndoStack.push(cloneShapePoints(this.routeEditControlPoints));
+      this.routeEditControlPoints = cloneShapePoints(next);
+      await this.applyRouteEdit(false);
+    },
+    async applyRouteEdit(updateHistory = false) {
+      if (!this.isRouteEditMode || this.routeEditControlPoints.length < 2) {
+        return;
+      }
+      if (updateHistory) {
+        this.pushRouteEditHistory();
+      }
+      const sourceRouteId = this.routeEditSourceRouteId || this.selectedRouteId;
+      if (!sourceRouteId) {
+        throw new Error("routeId is required");
+      }
+      this.isRouteEditLoading = true;
+      try {
+        const payload = {
+          routeType: this.routeType,
+          controlPoints: pointsToRouteCoordinates(this.routeEditControlPoints),
+        };
+        const data = await requestJson<EditGeneratedRouteResponse>(
+          `/api/routes/${encodeURIComponent(sourceRouteId)}/edit`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify(payload),
+          },
+        );
+        this.generationDiagnostics = data.diagnostics ?? [];
+        const snappedPoints = routeCoordinatesToPoints(data.controlPoints);
+        if (snappedPoints.length >= 2) {
+          this.routeEditControlPoints = snappedPoints;
+        }
+        if (data.route) {
+          const existingIndex = this.routes.findIndex((route) => route.routeId === data.route?.routeId);
+          if (existingIndex >= 0) {
+            this.routes.splice(existingIndex, 1, data.route);
+          } else {
+            this.routes.unshift(data.route);
+          }
+          this.selectedRouteId = data.route.routeId;
+        }
+      } finally {
+        this.isRouteEditLoading = false;
+      }
     },
     buildGenerationUrl(path: string): string {
       // Route generation is now decoupled from header activity/year filters.
@@ -1250,6 +1452,7 @@ export const useRoutesStore = defineStore("routes", {
       this.routes = this.sortRoutesForStravaArt(this.dedupeRoutesByGeometry(data.routes ?? []));
       this.generationDiagnostics = data.diagnostics ?? [];
       this.selectedRouteId = this.routes[0]?.routeId ?? "";
+      this.stopRouteEdit();
     },
     async exportRouteGpx(routeId: string) {
       const response = await fetch(`/api/routes/${encodeURIComponent(routeId)}/gpx`, {

@@ -113,6 +113,17 @@ data class GenerateShapeRoutesRequestDto(
     val variantCount: Int?,
 )
 
+data class EditGeneratedRouteRequestDto(
+    val routeType: String?,
+    val controlPoints: List<RouteStartPointDto> = emptyList(),
+)
+
+data class EditGeneratedRouteResponseDto(
+    val route: GeneratedRouteDto?,
+    val controlPoints: List<RouteStartPointDto> = emptyList(),
+    val diagnostics: List<RouteGenerationDiagnosticDto> = emptyList(),
+)
+
 fun RouteExplorerResult.toDto(): RouteExplorerResultDto {
     return RouteExplorerResultDto(
         closestLoops = closestLoops.map { recommendation -> recommendation.toDto() },

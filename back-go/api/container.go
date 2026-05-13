@@ -47,6 +47,7 @@ type container struct {
 	listSegmentEffortsUseCase                *segmentsApp.ListSegmentEffortsUseCase
 	getSegmentSummaryUseCase                 *segmentsApp.GetSegmentSummaryUseCase
 	getRouteExplorerUseCase                  *routesApp.GetRouteExplorerUseCase
+	routingEngine                            routesApp.RoutingEnginePort
 	getHeartRateZoneSettingsUseCase          *heartrateApp.GetHeartRateZoneSettingsUseCase
 	updateHeartRateZoneSettingsUseCase       *heartrateApp.UpdateHeartRateZoneSettingsUseCase
 	getHeartRateZoneAnalysisUseCase          *heartrateApp.GetHeartRateZoneAnalysisUseCase
@@ -114,6 +115,7 @@ func getContainer() *container {
 			listSegmentEffortsUseCase:                segmentsApp.NewListSegmentEffortsUseCase(segmentsReader),
 			getSegmentSummaryUseCase:                 segmentsApp.NewGetSegmentSummaryUseCase(segmentsReader),
 			getRouteExplorerUseCase:                  routesApp.NewGetRouteExplorerUseCase(routesReader),
+			routingEngine:                            routingEngine,
 			getHeartRateZoneSettingsUseCase:          heartrateApp.NewGetHeartRateZoneSettingsUseCase(heartRateReader),
 			updateHeartRateZoneSettingsUseCase:       heartrateApp.NewUpdateHeartRateZoneSettingsUseCase(heartRateReader),
 			getHeartRateZoneAnalysisUseCase:          heartrateApp.NewGetHeartRateZoneAnalysisUseCase(heartRateReader),

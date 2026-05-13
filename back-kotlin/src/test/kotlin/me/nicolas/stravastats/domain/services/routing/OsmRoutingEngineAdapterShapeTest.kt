@@ -245,6 +245,132 @@ class OsmRoutingEngineAdapterShapeTest {
     }
 
     @Test
+    fun `edit route snaps controls and routes ordered segments`() {
+        // GIVEN
+        val routeCalls = AtomicInteger(0)
+        val server = HttpServer.create(InetSocketAddress(0), 0)
+        server.createContext("/") { exchange ->
+            val path = exchange.requestURI.rawPath
+            when {
+                path.startsWith("/nearest/v1/cycling/") -> {
+                    val rawCoordinate = path.removePrefix("/nearest/v1/cycling/").urlDecoded()
+                    val (lng, lat) = parseOsrmTestCoordinate(rawCoordinate)
+                    exchange.writeJson(
+                        200,
+                        """{"code":"Ok","waypoints":[{"location":[${lng.osrmTestFormat()},${lat.osrmTestFormat()}],"distance":6.0}]}"""
+                    )
+                }
+                path.startsWith("/route/v1/cycling/") -> {
+                    routeCalls.incrementAndGet()
+                    val rawCoordinates = path.removePrefix("/route/v1/cycling/").urlDecoded()
+                    val parts = rawCoordinates.split(";")
+                    assertEquals(2, parts.size, "expected two segment coordinates")
+                    val (startLng, startLat) = parseOsrmTestCoordinate(parts[0])
+                    val (endLng, endLat) = parseOsrmTestCoordinate(parts[1])
+                    val midLng = (startLng + endLng) / 2.0
+                    val midLat = (startLat + endLat) / 2.0
+                    exchange.writeJson(
+                        200,
+                        """{"code":"Ok","routes":[{"distance":1200.0,"duration":240.0,"geometry":{"type":"LineString","coordinates":[[${startLng.osrmTestFormat()},${startLat.osrmTestFormat()}],[${midLng.osrmTestFormat()},${midLat.osrmTestFormat()}],[${endLng.osrmTestFormat()},${endLat.osrmTestFormat()}]]},"legs":[{"steps":[{"distance":1200.0,"mode":"cycling"}]}]}]}"""
+                    )
+                }
+                else -> exchange.writeJson(404, """{"code":"NotFound"}""")
+            }
+        }
+        server.start()
+        val previousBaseUrl = System.getProperty("OSM_ROUTING_BASE_URL")
+        System.setProperty("OSM_ROUTING_BASE_URL", "http://127.0.0.1:${server.address.port}")
+
+        try {
+            val adapter = OsmRoutingEngineAdapter()
+
+            // WHEN
+            val result = adapter.editRoute(
+                RoutingEngineEditRequest(
+                    routeId = "generated-osm-source",
+                    routeType = "RIDE",
+                    controlPoints = listOf(
+                        Coordinates(lat = 48.1100, lng = -1.6800),
+                        Coordinates(lat = 48.1080, lng = -1.6700),
+                        Coordinates(lat = 48.1040, lng = -1.6600),
+                    ),
+                ),
+            )
+
+            // THEN
+            val route = assertNotNull(result.recommendation)
+            assertTrue(route.routeId.startsWith("edited-osm-"))
+            assertEquals(false, route.isLoop, "edited Strava Art route must stay point-to-point")
+            assertEquals(RouteVariantType.SHAPE_MATCH, route.variantType)
+            assertEquals(3, result.controlPoints.size)
+            assertEquals(2, routeCalls.get(), "expected one OSRM route call per edited segment")
+            assertTrue(route.reasons.contains("Edit mode: magnetized control points"))
+            assertEquals(listOf("EDIT_ROUTE_UPDATED"), result.diagnostics.map { diagnostic -> diagnostic.code })
+        } finally {
+            if (previousBaseUrl == null) {
+                System.clearProperty("OSM_ROUTING_BASE_URL")
+            } else {
+                System.setProperty("OSM_ROUTING_BASE_URL", previousBaseUrl)
+            }
+            server.stop(0)
+        }
+    }
+
+    @Test
+    fun `edit route returns explicit diagnostic when segment cannot route`() {
+        // GIVEN
+        val server = HttpServer.create(InetSocketAddress(0), 0)
+        server.createContext("/") { exchange ->
+            val path = exchange.requestURI.rawPath
+            when {
+                path.startsWith("/nearest/v1/cycling/") -> {
+                    val rawCoordinate = path.removePrefix("/nearest/v1/cycling/").urlDecoded()
+                    val (lng, lat) = parseOsrmTestCoordinate(rawCoordinate)
+                    exchange.writeJson(
+                        200,
+                        """{"code":"Ok","waypoints":[{"location":[${lng.osrmTestFormat()},${lat.osrmTestFormat()}],"distance":4.0}]}"""
+                    )
+                }
+                path.startsWith("/route/v1/cycling/") -> exchange.writeJson(
+                    200,
+                    """{"code":"NoRoute","message":"no route between edited controls","routes":[]}"""
+                )
+                else -> exchange.writeJson(404, """{"code":"NotFound"}""")
+            }
+        }
+        server.start()
+        val previousBaseUrl = System.getProperty("OSM_ROUTING_BASE_URL")
+        System.setProperty("OSM_ROUTING_BASE_URL", "http://127.0.0.1:${server.address.port}")
+
+        try {
+            val adapter = OsmRoutingEngineAdapter()
+
+            // WHEN
+            val result = adapter.editRoute(
+                RoutingEngineEditRequest(
+                    routeId = "generated-osm-source",
+                    routeType = "RIDE",
+                    controlPoints = listOf(
+                        Coordinates(lat = 48.1100, lng = -1.6800),
+                        Coordinates(lat = 48.1040, lng = -1.6600),
+                    ),
+                ),
+            )
+
+            // THEN
+            assertNull(result.recommendation)
+            assertEquals(listOf("EDIT_SEGMENT_NO_ROUTE"), result.diagnostics.map { diagnostic -> diagnostic.code })
+        } finally {
+            if (previousBaseUrl == null) {
+                System.clearProperty("OSM_ROUTING_BASE_URL")
+            } else {
+                System.setProperty("OSM_ROUTING_BASE_URL", previousBaseUrl)
+            }
+            server.stop(0)
+        }
+    }
+
+    @Test
     fun `map matched trace uses OSRM match service`() {
         // GIVEN
         val matchCalls = AtomicInteger(0)

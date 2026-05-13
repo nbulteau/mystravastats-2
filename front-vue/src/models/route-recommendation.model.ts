@@ -52,6 +52,17 @@ export interface GenerateRoutesResponse {
   diagnostics?: RouteGenerationDiagnostic[];
 }
 
+export interface EditGeneratedRouteRequest {
+  routeType?: RouteType;
+  controlPoints: RouteCoordinate[];
+}
+
+export interface EditGeneratedRouteResponse {
+  route?: GeneratedRoute;
+  controlPoints?: RouteCoordinate[];
+  diagnostics?: RouteGenerationDiagnostic[];
+}
+
 export interface RouteGenerationDiagnostic {
   code: string;
   message: string;
