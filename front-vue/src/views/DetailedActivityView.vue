@@ -86,89 +86,110 @@
             <h2>Similar effort</h2>
             <p class="detail-comparison__subtitle">{{ comparisonScopeLabel }}</p>
           </div>
-          <span
-            class="detail-comparison__status"
-            :class="comparisonStatusClass"
-          >
-            {{ activityComparison.label }}
-          </span>
+          <div class="detail-card__header-actions">
+            <span
+              class="detail-comparison__status"
+              :class="comparisonStatusClass"
+            >
+              {{ activityComparison.label }}
+            </span>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary detail-collapse-toggle"
+              :aria-expanded="similarEffortExpanded"
+              aria-controls="similar-effort-panel"
+              @click="similarEffortExpanded = !similarEffortExpanded"
+            >
+              <i
+                :class="similarEffortExpanded ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'"
+                aria-hidden="true"
+              />
+              {{ similarEffortExpanded ? "Hide" : "Show" }}
+            </button>
+          </div>
         </header>
 
         <div
-          v-if="activityComparison.criteria.sampleSize > 0"
-          class="detail-comparison__metrics"
+          v-if="similarEffortExpanded"
+          id="similar-effort-panel"
+          class="detail-comparison__collapsible"
         >
           <div
-            v-for="row in comparisonMetricRows"
-            :key="row.label"
-            class="detail-comparison__metric"
+            v-if="activityComparison.criteria.sampleSize > 0"
+            class="detail-comparison__metrics"
           >
-            <span class="detail-comparison__metric-label">{{ row.label }}</span>
-            <strong>{{ row.current }}</strong>
-            <small>
-              Ref {{ row.baseline }}
-              <span :class="row.deltaClass">{{ row.delta }}</span>
-            </small>
+            <div
+              v-for="row in comparisonMetricRows"
+              :key="row.label"
+              class="detail-comparison__metric"
+            >
+              <span class="detail-comparison__metric-label">{{ row.label }}</span>
+              <strong>{{ row.current }}</strong>
+              <small>
+                Ref {{ row.baseline }}
+                <span :class="row.deltaClass">{{ row.delta }}</span>
+              </small>
+            </div>
           </div>
-        </div>
 
-        <div
-          v-if="activityComparison.criteria.sampleSize > 0"
-          class="detail-comparison__body"
-        >
-          <div class="detail-comparison__table-wrap">
-            <h3>Closest activities</h3>
-            <table class="detail-comparison__table">
-              <thead>
-                <tr>
-                  <th>Activity</th>
-                  <th>Distance</th>
-                  <th>D+</th>
-                  <th>Speed</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="similar in activityComparison.similarActivities"
-                  :key="similar.id"
+          <div
+            v-if="activityComparison.criteria.sampleSize > 0"
+            class="detail-comparison__body"
+          >
+            <div class="detail-comparison__table-wrap">
+              <h3>Closest activities</h3>
+              <table class="detail-comparison__table">
+                <thead>
+                  <tr>
+                    <th>Activity</th>
+                    <th>Distance</th>
+                    <th>D+</th>
+                    <th>Speed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="similar in activityComparison.similarActivities"
+                    :key="similar.id"
+                  >
+                    <td>
+                      <RouterLink :to="`/activity/${similar.id}`">
+                        {{ similar.name }}
+                      </RouterLink>
+                      <small>{{ formatComparisonDate(similar.date) }}</small>
+                    </td>
+                    <td>{{ (similar.distance / 1000).toFixed(1) }} km</td>
+                    <td>{{ Math.round(similar.elevationGain) }} m</td>
+                    <td>{{ formatSpeedWithUnit(similar.averageSpeed, activity?.type ?? "Ride") }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="detail-comparison__segments">
+              <h3>Common segments</h3>
+              <ul v-if="activityComparison.commonSegments.length > 0">
+                <li
+                  v-for="segment in activityComparison.commonSegments"
+                  :key="segment.id"
                 >
-                  <td>
-                    <RouterLink :to="`/activity/${similar.id}`">
-                      {{ similar.name }}
-                    </RouterLink>
-                    <small>{{ formatComparisonDate(similar.date) }}</small>
-                  </td>
-                  <td>{{ (similar.distance / 1000).toFixed(1) }} km</td>
-                  <td>{{ Math.round(similar.elevationGain) }} m</td>
-                  <td>{{ formatSpeedWithUnit(similar.averageSpeed, activity?.type ?? "Ride") }}</td>
-                </tr>
-              </tbody>
-            </table>
+                  <strong>{{ segment.name }}</strong>
+                  <span>{{ segment.matchCount }} match{{ segment.matchCount > 1 ? "es" : "" }}</span>
+                </li>
+              </ul>
+              <p v-else class="detail-comparison__empty">
+                No cached common segments.
+              </p>
+            </div>
           </div>
 
-          <div class="detail-comparison__segments">
-            <h3>Common segments</h3>
-            <ul v-if="activityComparison.commonSegments.length > 0">
-              <li
-                v-for="segment in activityComparison.commonSegments"
-                :key="segment.id"
-              >
-                <strong>{{ segment.name }}</strong>
-                <span>{{ segment.matchCount }} match{{ segment.matchCount > 1 ? "es" : "" }}</span>
-              </li>
-            </ul>
-            <p v-else class="detail-comparison__empty">
-              No cached common segments.
-            </p>
-          </div>
+          <p
+            v-else
+            class="detail-comparison__empty"
+          >
+            No similar activity found for this season and sport.
+          </p>
         </div>
-
-        <p
-          v-else
-          class="detail-comparison__empty"
-        >
-          No similar activity found for this season and sport.
-        </p>
       </section>
 
       <section
@@ -356,6 +377,7 @@ const activity = ref<DetailedActivity | null>(null);
 const activityVersion = ref<"corrected" | "raw">("corrected");
 const loadError = ref<string | null>(null);
 const loadWarning = ref<string | null>(null);
+const similarEffortExpanded = ref(false);
 
 const map = ref<L.Map>();
 const mapContainerRef = ref<HTMLElement | null>(null);
@@ -715,6 +737,7 @@ async function fetchDetailedActivity(id: string, version: "corrected" | "raw" = 
   const detailed = (await response.json()) as DetailedActivity;
   activity.value = detailed;
   activityVersion.value = version;
+  similarEffortExpanded.value = false;
   loadError.value = null;
   loadWarning.value = getDetailedActivityWarning(detailed);
 }
@@ -1409,6 +1432,18 @@ watch([showPowerCurve, activity], () => {
   color: #92400e;
   border-color: #fde68a;
   background: #fffbeb;
+}
+
+.detail-collapse-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.detail-comparison__collapsible {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .detail-comparison__metrics {
