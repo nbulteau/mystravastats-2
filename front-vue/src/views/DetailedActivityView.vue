@@ -574,6 +574,11 @@ import {
   computeHeartRateZoneDistribution,
   resolveHeartRateZoneSettings,
 } from "@/utils/heart-rate-zones";
+import {
+  resolveManualFtpForDate,
+  type AthletePerformanceSettings,
+  type ResolvedManualFtp,
+} from "@/models/athlete-performance-settings.model";
 import { ErrorService } from "@/services/error.service";
 import type { Options, SeriesAreaOptions, SeriesLineOptions } from "highcharts";
 import Highcharts from "highcharts";
@@ -681,6 +686,8 @@ type RouteEffortOption = {
   idxStart: number;
   idxEnd: number;
   deltaAltitude?: number | null;
+  elevationGain?: number | null;
+  elevationLoss?: number | null;
   averagePower?: number | null;
   averageHeartrate?: number | null;
   averageCadence?: number | null;
@@ -693,6 +700,8 @@ type RouteEffortDescriptionInput = {
   distance: number;
   seconds: number;
   deltaAltitude?: number | null;
+  elevationGain?: number | null;
+  elevationLoss?: number | null;
   averagePower?: number | null;
   grade?: number | null;
 };
@@ -724,6 +733,8 @@ const computedEffortOptions = computed<RouteEffortOption[]>(() => {
     idxStart: effort.idxStart,
     idxEnd: effort.idxEnd,
     deltaAltitude: effort.deltaAltitude,
+    elevationGain: effort.elevationGain,
+    elevationLoss: effort.elevationLoss,
     averagePower: effort.averagePower,
     badges: [],
     source: "computed",
@@ -824,15 +835,13 @@ const selectedEffortSummary = computed<SelectedEffortSummary | null>(() => {
 
   const distanceInKm = effort.distance > 0 ? effort.distance / 1000 : 0;
   const speed = effort.seconds > 0 ? effort.distance / effort.seconds : 0;
-  const deltaAltitude = effort.deltaAltitude ?? 0;
-  const gradient = effort.grade ?? (effort.distance > 0 ? (deltaAltitude / effort.distance) * 100 : 0);
-  const elevationPrefix = deltaAltitude >= 0 ? "D+" : "D-";
+  const gradient = resolveEffortGradient(effort) ?? 0;
   return {
     duration: formatTime(effort.seconds),
     distance: `${distanceInKm.toFixed(2)} km`,
     speed: formatSpeedWithUnit(speed, effectiveActivityType.value),
     gradient: `Grade ${gradient.toFixed(1)}%`,
-    elevation: `${elevationPrefix} ${Math.abs(Math.round(deltaAltitude))} m`,
+    elevation: resolveEffortElevationLabel(effort) ?? "D+ 0 m",
     power: effort.averagePower && effort.averagePower > 0
       ? `Power ${Math.round(effort.averagePower)} W`
       : undefined,
@@ -942,6 +951,22 @@ type DetailMetricRow = {
 };
 
 const cadenceUnit = computed(() => effectiveActivityType.value.endsWith("Run") ? "spm" : "rpm");
+
+type PowerAnalysis = {
+  averagePower: number | null;
+  maxPower: number | null;
+  best20MinutePower: number | null;
+  best60MinutePower: number | null;
+  normalizedPower: number | null;
+  ftp: number | null;
+  ftpSource: string | null;
+  ftpSourceKind: "manual" | "strava" | "estimated" | null;
+  weightKg: number | null;
+  weightSource: string | null;
+  intensityFactor: number | null;
+  trainingStressScore: number | null;
+  workKilojoules: number | null;
+};
 
 const summaryRows = computed<DetailMetricRow[]>(() => {
   const currentActivity = activity.value;
@@ -1100,6 +1125,15 @@ function buildVersionDifferenceRows(
   return rows;
 }
 
+const powerAnalysis = computed<PowerAnalysis>(() =>
+  buildPowerAnalysis(
+    activity.value,
+    athleteStore.athleteFtp,
+    athleteStore.athleteWeight,
+    athleteStore.performanceSettings,
+  )
+);
+
 const powerRows = computed<DetailMetricRow[]>(() => {
   const currentActivity = activity.value;
   if (!currentActivity) {
@@ -1107,17 +1141,63 @@ const powerRows = computed<DetailMetricRow[]>(() => {
   }
 
   const rows: DetailMetricRow[] = [];
-  if (currentActivity.averageWatts > 0) {
-    rows.push({ label: "Average power", value: `${Math.round(currentActivity.averageWatts)} W` });
+  const analysis = powerAnalysis.value;
+
+  if (analysis.averagePower !== null) {
+    rows.push({
+      label: "Average power",
+      value: `${Math.round(analysis.averagePower)} W`,
+      hint: hasPowerData.value ? "Power stream average" : undefined,
+    });
   }
-  if (currentActivity.weightedAverageWatts > 0) {
-    rows.push({ label: "Weighted avg power", value: `${Math.round(currentActivity.weightedAverageWatts)} W` });
+  if (analysis.averagePower !== null && analysis.weightKg !== null) {
+    rows.push({
+      label: "Average W/kg",
+      value: `${(analysis.averagePower / analysis.weightKg).toFixed(2)} W/kg`,
+      hint: analysis.weightSource ?? undefined,
+    });
   }
-  if (currentActivity.maxWatts > 0) {
-    rows.push({ label: "Max power", value: `${Math.round(currentActivity.maxWatts)} W` });
+  if (analysis.maxPower !== null) {
+    rows.push({ label: "Max power", value: `${Math.round(analysis.maxPower)} W` });
   }
-  if (currentActivity.kilojoules > 0) {
-    rows.push({ label: "Work", value: `${Math.round(currentActivity.kilojoules)} kJ` });
+  if (analysis.best20MinutePower !== null) {
+    rows.push({ label: "Max avg power (20 min)", value: `${Math.round(analysis.best20MinutePower)} W` });
+  }
+  if (analysis.normalizedPower !== null) {
+    rows.push({
+      label: "Normalized Power (NP)",
+      value: `${Math.round(analysis.normalizedPower)} W`,
+      hint: "30 s rolling average, 4th-power weighted",
+    });
+  } else if (currentActivity.weightedAverageWatts > 0) {
+    rows.push({
+      label: "Weighted avg power",
+      value: `${Math.round(currentActivity.weightedAverageWatts)} W`,
+      hint: "Provided by Strava",
+    });
+  }
+  if (analysis.intensityFactor !== null) {
+    rows.push({ label: "Intensity Factor (IF)", value: analysis.intensityFactor.toFixed(3) });
+  }
+  if (analysis.trainingStressScore !== null) {
+    rows.push({ label: "Training Stress Score (TSS)", value: analysis.trainingStressScore.toFixed(1) });
+  }
+  if (analysis.ftp !== null) {
+    rows.push({
+      label: analysis.ftpSourceKind === "estimated" ? "Estimated FTP" : "FTP setting",
+      value: `${Math.round(analysis.ftp)} W`,
+      hint: analysis.ftpSource ?? undefined,
+    });
+  }
+  if (analysis.ftp !== null && analysis.weightKg !== null) {
+    rows.push({
+      label: "FTP / kg",
+      value: `${(analysis.ftp / analysis.weightKg).toFixed(2)} W/kg`,
+      hint: analysis.weightSource ?? undefined,
+    });
+  }
+  if (analysis.workKilojoules !== null) {
+    rows.push({ label: "Work", value: `${Math.round(analysis.workKilojoules)} kJ` });
   }
   if ((currentActivity.calories ?? 0) > 0) {
     rows.push({ label: "Calories", value: `${Math.round(currentActivity.calories ?? 0)} kcal` });
@@ -1144,7 +1224,7 @@ const bestPowerRows = computed<DetailMetricRow[]>(() => {
     { label: "30 s", seconds: 30 },
     { label: "1 min", seconds: 60 },
     { label: "5 min", seconds: 5 * 60 },
-    { label: "20 min", seconds: 20 * 60 },
+    { label: "60 min", seconds: 60 * 60 },
   ]
     .map(({ label, seconds }) => {
       const value = bestAveragePower(watts, seconds);
@@ -1152,6 +1232,177 @@ const bestPowerRows = computed<DetailMetricRow[]>(() => {
     })
     .filter((row): row is DetailMetricRow => row !== null);
 });
+
+function buildPowerAnalysis(
+  currentActivity: DetailedActivity | null,
+  athleteFtp: number,
+  athleteWeight: number,
+  performanceSettings: AthletePerformanceSettings,
+): PowerAnalysis {
+  if (!currentActivity) {
+    return emptyPowerAnalysis();
+  }
+
+  const watts = sanitizePowerSamples(currentActivity.stream?.watts ?? []);
+  const durationSeconds = resolvePowerDurationSeconds(currentActivity);
+  const averagePower = watts.length > 0
+    ? watts.reduce((sum, value) => sum + value, 0) / watts.length
+    : currentActivity.averageWatts > 0
+      ? currentActivity.averageWatts
+      : null;
+  const maxPower = watts.length > 0
+    ? Math.max(...watts)
+    : currentActivity.maxWatts > 0
+      ? currentActivity.maxWatts
+      : null;
+  const best20MinutePower = bestAveragePower(watts, 20 * 60);
+  const best60MinutePower = bestAveragePower(watts, 60 * 60);
+  const normalizedPower = normalizedPowerFromWatts(watts);
+  const manualFtp = resolveManualFtpForDate(
+    performanceSettings,
+    currentActivity.startDateLocal || currentActivity.startDate,
+  );
+  const ftpDetails = resolveFtpDetails(manualFtp, athleteFtp, best60MinutePower, best20MinutePower);
+  const weightDetails = resolveWeightDetails(performanceSettings.weightKg, athleteWeight);
+  const intensityFactor =
+    normalizedPower !== null && ftpDetails.ftp !== null
+      ? normalizedPower / ftpDetails.ftp
+      : null;
+  const trainingStressScore =
+    normalizedPower !== null &&
+    intensityFactor !== null &&
+    ftpDetails.ftp !== null &&
+    durationSeconds > 0
+      ? (durationSeconds * normalizedPower * intensityFactor) / (ftpDetails.ftp * 3600) * 100
+      : null;
+  const workKilojoules = currentActivity.kilojoules > 0
+    ? currentActivity.kilojoules
+    : averagePower !== null && durationSeconds > 0
+      ? (averagePower * durationSeconds) / 1000
+      : null;
+
+  return {
+    averagePower,
+    maxPower,
+    best20MinutePower,
+    best60MinutePower,
+    normalizedPower,
+    ftp: ftpDetails.ftp,
+    ftpSource: ftpDetails.source,
+    ftpSourceKind: ftpDetails.sourceKind,
+    weightKg: weightDetails.weightKg,
+    weightSource: weightDetails.source,
+    intensityFactor,
+    trainingStressScore,
+    workKilojoules,
+  };
+}
+
+function emptyPowerAnalysis(): PowerAnalysis {
+  return {
+    averagePower: null,
+    maxPower: null,
+    best20MinutePower: null,
+    best60MinutePower: null,
+    normalizedPower: null,
+    ftp: null,
+    ftpSource: null,
+    ftpSourceKind: null,
+    weightKg: null,
+    weightSource: null,
+    intensityFactor: null,
+    trainingStressScore: null,
+    workKilojoules: null,
+  };
+}
+
+function sanitizePowerSamples(watts: number[]): number[] {
+  return watts.map((value) => Number.isFinite(value) && value > 0 ? value : 0);
+}
+
+function normalizedPowerFromWatts(watts: number[]): number | null {
+  if (watts.length < 30) {
+    return null;
+  }
+
+  const rollingAverages = rollingAverage(watts, 30);
+  if (!rollingAverages.length) {
+    return null;
+  }
+
+  const fourthPowerAverage = rollingAverages.reduce(
+    (sum, value) => sum + Math.pow(value, 4),
+    0,
+  ) / rollingAverages.length;
+
+  return Math.pow(fourthPowerAverage, 0.25);
+}
+
+function rollingAverage(values: number[], windowSize: number): number[] {
+  if (windowSize <= 0 || values.length < windowSize) {
+    return [];
+  }
+
+  const result: number[] = [];
+  let windowSum = 0;
+  for (let index = 0; index < values.length; index += 1) {
+    windowSum += values[index] ?? 0;
+    if (index >= windowSize) {
+      windowSum -= values[index - windowSize] ?? 0;
+    }
+    if (index >= windowSize - 1) {
+      result.push(windowSum / windowSize);
+    }
+  }
+  return result;
+}
+
+function resolveFtpDetails(
+  manualFtp: ResolvedManualFtp | null,
+  athleteFtp: number,
+  best60MinutePower: number | null,
+  best20MinutePower: number | null,
+): { ftp: number | null; source: string | null; sourceKind: "manual" | "strava" | "estimated" | null } {
+  if (manualFtp !== null && manualFtp.ftp > 0) {
+    return {
+      ftp: manualFtp.ftp,
+      source: `Manual setting since ${manualFtp.effectiveFrom}`,
+      sourceKind: "manual",
+    };
+  }
+  if (Number.isFinite(athleteFtp) && athleteFtp > 0) {
+    return { ftp: athleteFtp, source: "Strava athlete profile", sourceKind: "strava" };
+  }
+  if (best60MinutePower !== null && best60MinutePower > 0) {
+    return { ftp: best60MinutePower, source: "Estimated from best 60 min power", sourceKind: "estimated" };
+  }
+  if (best20MinutePower !== null && best20MinutePower > 0) {
+    return { ftp: best20MinutePower * 0.95, source: "Estimated as 95% of best 20 min power", sourceKind: "estimated" };
+  }
+  return { ftp: null, source: null, sourceKind: null };
+}
+
+function resolveWeightDetails(
+  manualWeightKg: number | null | undefined,
+  athleteWeight: number,
+): { weightKg: number | null; source: string | null } {
+  if (typeof manualWeightKg === "number" && Number.isFinite(manualWeightKg) && manualWeightKg > 0) {
+    return { weightKg: manualWeightKg, source: "Manual weight setting" };
+  }
+  if (Number.isFinite(athleteWeight) && athleteWeight > 0) {
+    return { weightKg: athleteWeight, source: "Strava athlete profile" };
+  }
+  return { weightKg: null, source: null };
+}
+
+function resolvePowerDurationSeconds(currentActivity: DetailedActivity): number {
+  const time = currentActivity.stream?.time ?? [];
+  const lastTime = time.length > 0 ? time[time.length - 1] : null;
+  if (lastTime !== null && Number.isFinite(lastTime) && lastTime > 0) {
+    return lastTime;
+  }
+  return currentActivity.elapsedTime > 0 ? currentActivity.elapsedTime : currentActivity.movingTime;
+}
 
 const resolvedHeartRateSettings = computed(() => {
   return (
@@ -1494,20 +1745,15 @@ function formatRouteEffortDescription(effort: RouteEffortDescriptionInput): stri
     parts.push(formatSpeedWithUnit(effort.distance / effort.seconds, effectiveActivityType.value));
   }
 
-  const gradient = effort.grade ?? (
-    effort.deltaAltitude !== null &&
-    effort.deltaAltitude !== undefined &&
-    effort.distance > 0
-      ? (effort.deltaAltitude / effort.distance) * 100
-      : null
-  );
+  const gradient = resolveEffortGradient(effort);
 
   if (gradient !== null && Number.isFinite(gradient)) {
     parts.push(`Grade ${gradient.toFixed(1)}%`);
   }
 
-  if (effort.deltaAltitude !== null && effort.deltaAltitude !== undefined && Number.isFinite(effort.deltaAltitude)) {
-    parts.push(`${effort.deltaAltitude >= 0 ? "D+" : "D-"} ${Math.abs(Math.round(effort.deltaAltitude))} m`);
+  const elevationLabel = resolveEffortElevationLabel(effort);
+  if (elevationLabel) {
+    parts.push(elevationLabel);
   }
 
   if (effort.averagePower && effort.averagePower > 0) {
@@ -1515,6 +1761,63 @@ function formatRouteEffortDescription(effort: RouteEffortDescriptionInput): stri
   }
 
   return parts.join(" · ");
+}
+
+function resolveEffortGradient(effort: RouteEffortDescriptionInput): number | null {
+  const explicitGrade = finiteNumberOrNull(effort.grade);
+  if (explicitGrade !== null) {
+    return explicitGrade;
+  }
+
+  if (effort.distance <= 0) {
+    return null;
+  }
+
+  const deltaAltitude = finiteNumberOrNull(effort.deltaAltitude);
+  const netGradient = deltaAltitude !== null ? (deltaAltitude / effort.distance) * 100 : null;
+  if (netGradient !== null && Math.abs(netGradient) >= 0.05) {
+    return netGradient;
+  }
+
+  const elevationGain = finiteNumberOrNull(effort.elevationGain);
+  const elevationLoss = finiteNumberOrNull(effort.elevationLoss);
+  if (elevationGain !== null || elevationLoss !== null) {
+    const gain = elevationGain ?? 0;
+    const loss = elevationLoss ?? 0;
+    if (gain >= loss && gain >= 0.5) {
+      return (gain / effort.distance) * 100;
+    }
+    if (loss > gain && loss >= 0.5) {
+      return -(loss / effort.distance) * 100;
+    }
+  }
+
+  return netGradient;
+}
+
+function resolveEffortElevationLabel(effort: RouteEffortDescriptionInput): string | null {
+  const elevationGain = finiteNumberOrNull(effort.elevationGain);
+  const elevationLoss = finiteNumberOrNull(effort.elevationLoss);
+  const elevationParts: string[] = [];
+  if (elevationGain !== null && elevationGain >= 0.5) {
+    elevationParts.push(`D+ ${Math.round(elevationGain)} m`);
+  }
+  if (elevationLoss !== null && elevationLoss >= 0.5) {
+    elevationParts.push(`D- ${Math.round(elevationLoss)} m`);
+  }
+  if (elevationParts.length > 0) {
+    return elevationParts.join(" · ");
+  }
+
+  const deltaAltitude = finiteNumberOrNull(effort.deltaAltitude);
+  if (deltaAltitude === null) {
+    return null;
+  }
+  return `${deltaAltitude >= 0 ? "D+" : "D-"} ${Math.abs(Math.round(deltaAltitude))} m`;
+}
+
+function finiteNumberOrNull(value: number | null | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 async function fetchDetailedActivity(id: string, version: "corrected" | "raw" = activityVersion.value) {
@@ -2119,6 +2422,8 @@ onMounted(async () => {
   initMap();
   try {
     await Promise.allSettled([
+      athleteStore.fetchAthlete(),
+      athleteStore.fetchPerformanceSettings(),
       athleteStore.fetchHeartRateZoneSettings(),
       statisticsStore.fetchHeartRateZoneAnalysis(),
     ]);

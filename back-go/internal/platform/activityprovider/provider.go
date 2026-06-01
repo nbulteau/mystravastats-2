@@ -27,6 +27,8 @@ type ActivityProvider interface {
 	GetAthlete() strava.Athlete
 	GetHeartRateZoneSettings() business.HeartRateZoneSettings
 	SaveHeartRateZoneSettings(settings business.HeartRateZoneSettings) business.HeartRateZoneSettings
+	GetPerformanceSettings() business.AthletePerformanceSettings
+	SavePerformanceSettings(settings business.AthletePerformanceSettings) business.AthletePerformanceSettings
 	CacheDiagnostics() map[string]any
 	ClientID() string
 	CacheRootPath() string

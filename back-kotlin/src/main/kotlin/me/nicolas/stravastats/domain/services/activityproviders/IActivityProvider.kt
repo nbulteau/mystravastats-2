@@ -1,6 +1,7 @@
 package me.nicolas.stravastats.domain.services.activityproviders
 
 import me.nicolas.stravastats.domain.business.ActivityType
+import me.nicolas.stravastats.domain.business.AthletePerformanceSettings
 import me.nicolas.stravastats.domain.business.HeartRateZoneSettings
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
@@ -36,6 +37,10 @@ interface IActivityProvider {
     fun getHeartRateZoneSettings(): HeartRateZoneSettings = HeartRateZoneSettings()
 
     fun saveHeartRateZoneSettings(settings: HeartRateZoneSettings): HeartRateZoneSettings = settings
+
+    fun getPerformanceSettings(): AthletePerformanceSettings = AthletePerformanceSettings()
+
+    fun savePerformanceSettings(settings: AthletePerformanceSettings): AthletePerformanceSettings = settings
 
     fun getCacheDiagnostics(): Map<String, Any?> = mapOf(
         "available" to false,

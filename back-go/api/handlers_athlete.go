@@ -25,6 +25,38 @@ func getAthlete(writer http.ResponseWriter, _ *http.Request) {
 	}
 }
 
+func getAthletePerformanceSettings(writer http.ResponseWriter, _ *http.Request) {
+	settings := getContainer().getPerformanceSettingsUseCase.Execute()
+	settingsDto := dto.ToAthletePerformanceSettingsDto(settings)
+	if err := writeJSON(writer, http.StatusOK, settingsDto); err != nil {
+		log.Printf("failed to write performance settings response: %v", err)
+		writeInternalServerError(writer, "Failed to encode performance settings response")
+	}
+}
+
+func putAthletePerformanceSettings(writer http.ResponseWriter, request *http.Request) {
+	defer func(Body io.ReadCloser) {
+		if err := Body.Close(); err != nil {
+			log.Printf("failed to close request body: %v", err)
+		}
+	}(request.Body)
+
+	var settingsDto dto.AthletePerformanceSettingsDto
+	if err := json.NewDecoder(request.Body).Decode(&settingsDto); err != nil {
+		writeBadRequest(writer, "Invalid request body", "performance settings payload is invalid")
+		return
+	}
+
+	settings := dto.ToAthletePerformanceSettings(settingsDto)
+	updatedSettings := getContainer().updatePerformanceSettingsUseCase.Execute(settings)
+	updatedSettingsDto := dto.ToAthletePerformanceSettingsDto(updatedSettings)
+
+	if err := writeJSON(writer, http.StatusOK, updatedSettingsDto); err != nil {
+		log.Printf("failed to write updated performance settings response: %v", err)
+		writeInternalServerError(writer, "Failed to encode updated performance settings response")
+	}
+}
+
 func getAthleteHeartRateZones(writer http.ResponseWriter, _ *http.Request) {
 	settings := getContainer().getHeartRateZoneSettingsUseCase.Execute()
 	settingsDto := dto.ToHeartRateZoneSettingsDto(settings)

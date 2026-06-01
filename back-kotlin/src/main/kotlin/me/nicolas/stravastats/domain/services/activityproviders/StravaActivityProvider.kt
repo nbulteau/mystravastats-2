@@ -5,8 +5,9 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
-import me.nicolas.stravastats.domain.business.HeartRateZoneSettings
+import me.nicolas.stravastats.domain.business.AthletePerformanceSettings
 import me.nicolas.stravastats.domain.business.ActivityType
+import me.nicolas.stravastats.domain.business.HeartRateZoneSettings
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
@@ -50,6 +51,7 @@ class StravaActivityProvider(
     private val stravaApiMutex = Mutex()
     /** Dedicated lock object for heartRateZoneSettings to avoid using `this` as a monitor. */
     private val heartRateSettingsLock = Any()
+    private val performanceSettingsLock = Any()
     private val cacheRoot = stravaCache
 
     // Extracted responsibility: rate limiting
@@ -60,6 +62,9 @@ class StravaActivityProvider(
 
     @Volatile
     private var heartRateZoneSettings: HeartRateZoneSettings = HeartRateZoneSettings()
+
+    @Volatile
+    private var performanceSettings: AthletePerformanceSettings = AthletePerformanceSettings()
 
     companion object {
         // Reload a year's cache if it is older than this duration
@@ -110,6 +115,7 @@ class StravaActivityProvider(
         storageProvider.initLocalStorageForClientId(clientId)
         stravaAthlete = storageProvider.loadAthleteFromCache(clientId)
         heartRateZoneSettings = storageProvider.loadHeartRateZoneSettings(clientId)
+        performanceSettings = storageProvider.loadPerformanceSettings(clientId)
 
         // Load manifest and best-effort cache from disk
         warmupPipeline.initialize()
@@ -238,6 +244,16 @@ class StravaActivityProvider(
             heartRateZoneSettings = settings
             storageProvider.saveHeartRateZoneSettings(clientId, settings)
             return heartRateZoneSettings
+        }
+    }
+
+    override fun getPerformanceSettings(): AthletePerformanceSettings = performanceSettings
+
+    override fun savePerformanceSettings(settings: AthletePerformanceSettings): AthletePerformanceSettings {
+        synchronized(performanceSettingsLock) {
+            performanceSettings = settings
+            storageProvider.savePerformanceSettings(clientId, settings)
+            return performanceSettings
         }
     }
 

@@ -327,6 +327,47 @@ func (repo *StravaRepository) SaveHeartRateZoneSettings(clientId string, setting
 	}
 }
 
+func (repo *StravaRepository) LoadPerformanceSettings(clientId string) business.AthletePerformanceSettings {
+	activitiesDirectory := filepath.Join(repo.cacheDirectory, fmt.Sprintf("strava-%s", clientId))
+	settingsFile := filepath.Join(activitiesDirectory, fmt.Sprintf("performance-settings-%s.json", clientId))
+	if _, err := os.Stat(settingsFile); os.IsNotExist(err) {
+		return business.AthletePerformanceSettings{}
+	}
+
+	data, err := os.ReadFile(settingsFile)
+	if err != nil {
+		log.Printf("Failed to read performance settings file '%s': %v", settingsFile, err)
+		return business.AthletePerformanceSettings{}
+	}
+
+	var settings business.AthletePerformanceSettings
+	if err := json.Unmarshal(data, &settings); err != nil {
+		log.Printf("Failed to unmarshal performance settings from '%s': %v", settingsFile, err)
+		return business.AthletePerformanceSettings{}
+	}
+
+	return settings
+}
+
+func (repo *StravaRepository) SavePerformanceSettings(clientId string, settings business.AthletePerformanceSettings) {
+	activitiesDirectory := filepath.Join(repo.cacheDirectory, fmt.Sprintf("strava-%s", clientId))
+	if err := os.MkdirAll(activitiesDirectory, secureDir); err != nil {
+		log.Printf("Failed to create secure performance settings directory '%s': %v", activitiesDirectory, err)
+		return
+	}
+
+	settingsFile := filepath.Join(activitiesDirectory, fmt.Sprintf("performance-settings-%s.json", clientId))
+	data, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		log.Printf("Failed to marshal performance settings for clientId=%s: %v", clientId, err)
+		return
+	}
+
+	if err := os.WriteFile(settingsFile, data, secureFileMode); err != nil {
+		log.Printf("Failed to write performance settings file '%s': %v", settingsFile, err)
+	}
+}
+
 type annualGoalsCacheFile struct {
 	Goals map[string]business.AnnualGoalTargets `json:"goals"`
 }

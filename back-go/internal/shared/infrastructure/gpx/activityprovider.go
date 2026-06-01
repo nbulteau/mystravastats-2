@@ -31,6 +31,7 @@ type GPXActivityProvider struct {
 	activityByID          map[int64]*strava.Activity
 	filteredActivities    map[string][]*strava.Activity
 	heartRateZoneSettings business.HeartRateZoneSettings
+	performanceSettings   business.AthletePerformanceSettings
 	localStorageProvider  *localrepository.StravaRepository
 	dataMutex             sync.RWMutex
 	cacheMutex            sync.RWMutex
@@ -59,6 +60,7 @@ func NewGPXActivityProvider(gpxDirectory string) *GPXActivityProvider {
 			Firstname: &firstName,
 		},
 		heartRateZoneSettings: localStorageProvider.LoadHeartRateZoneSettings(clientID),
+		performanceSettings:   localStorageProvider.LoadPerformanceSettings(clientID),
 	}
 
 	loadedActivities := provider.loadActivitiesFromGPXDirectory()
@@ -136,6 +138,22 @@ func (provider *GPXActivityProvider) SaveHeartRateZoneSettings(settings business
 	provider.dataMutex.Unlock()
 
 	provider.localStorageProvider.SaveHeartRateZoneSettings(provider.clientID, settings)
+	return settings
+}
+
+func (provider *GPXActivityProvider) GetPerformanceSettings() business.AthletePerformanceSettings {
+	provider.dataMutex.RLock()
+	defer provider.dataMutex.RUnlock()
+
+	return provider.performanceSettings
+}
+
+func (provider *GPXActivityProvider) SavePerformanceSettings(settings business.AthletePerformanceSettings) business.AthletePerformanceSettings {
+	provider.dataMutex.Lock()
+	provider.performanceSettings = settings
+	provider.dataMutex.Unlock()
+
+	provider.localStorageProvider.SavePerformanceSettings(provider.clientID, settings)
 	return settings
 }
 

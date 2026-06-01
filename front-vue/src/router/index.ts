@@ -58,6 +58,11 @@ const router: Router = createRouter({
       component: () => import('@/views/DiagnosticsView.vue'),
     },
     {
+      path: '/settings',
+      name: 'settings',
+      component: () => import('@/views/SettingsView.vue'),
+    },
+    {
       path: '/badges',
       name: 'badges',
       component: () => import('@/views/BadgesView.vue'),

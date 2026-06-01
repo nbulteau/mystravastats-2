@@ -124,6 +124,8 @@ type ActivityEffortDto struct {
 	Distance      float64  `json:"distance"`
 	Seconds       int      `json:"seconds"`
 	DeltaAltitude float64  `json:"deltaAltitude"`
+	ElevationGain *float64 `json:"elevationGain,omitempty"`
+	ElevationLoss *float64 `json:"elevationLoss,omitempty"`
 	IdxStart      int      `json:"idxStart"`
 	IdxEnd        int      `json:"idxEnd"`
 	AveragePower  *float64 `json:"averagePower"`

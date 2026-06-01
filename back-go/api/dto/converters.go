@@ -281,6 +281,8 @@ func toActivityEffortsDto(efforts []business.ActivityEffort) []ActivityEffortDto
 			Distance:      finiteFloat64(effort.Distance),
 			Seconds:       effort.Seconds,
 			DeltaAltitude: finiteFloat64(effort.DeltaAltitude),
+			ElevationGain: finiteFloat64Ptr(effort.ElevationGain),
+			ElevationLoss: finiteFloat64Ptr(effort.ElevationLoss),
 			IdxStart:      effort.IdxStart,
 			IdxEnd:        effort.IdxEnd,
 			AveragePower:  finiteFloat64Ptr(effort.AveragePower),
@@ -440,6 +442,10 @@ func finiteFloat64Ptr(value *float64) *float64 {
 	return &sanitized
 }
 
+func ptrFloat64(value float64) *float64 {
+	return finiteFloat64Ptr(&value)
+}
+
 func finiteEffortPower(effort *business.ActivityEffort) int {
 	return finiteInt(finiteEffortPowerValue(effort))
 }
@@ -512,6 +518,7 @@ func ToAthleteDto(athlete strava.Athlete) AthleteDto {
 		DatePreference:        getStringValue(athlete.DatePreference),
 		FollowerCount:         getIntValue(athlete.FollowerCount),
 		FriendCount:           getIntValue(athlete.FriendCount),
+		FTP:                   getIntValueFromAny(athlete.Ftp),
 		MeasurementPreference: getStringValue(athlete.MeasurementPreference),
 		MutualFriendCount:     getIntValue(athlete.MutualFriendCount),
 		Weight:                getIntValueFromFloat(athlete.Weight),
@@ -760,6 +767,34 @@ func ToHeartRateZoneSettings(dto HeartRateZoneSettingsDto) business.HeartRateZon
 	}
 }
 
+func ToAthletePerformanceSettingsDto(settings business.AthletePerformanceSettings) AthletePerformanceSettingsDto {
+	history := make([]AthleteFtpSettingDto, len(settings.FtpHistory))
+	for i, entry := range settings.FtpHistory {
+		history[i] = AthleteFtpSettingDto{
+			EffectiveFrom: entry.EffectiveFrom,
+			Ftp:           entry.Ftp,
+		}
+	}
+	return AthletePerformanceSettingsDto{
+		FtpHistory: history,
+		WeightKg:   settings.WeightKg,
+	}
+}
+
+func ToAthletePerformanceSettings(dto AthletePerformanceSettingsDto) business.AthletePerformanceSettings {
+	history := make([]business.AthleteFtpSetting, len(dto.FtpHistory))
+	for i, entry := range dto.FtpHistory {
+		history[i] = business.AthleteFtpSetting{
+			EffectiveFrom: entry.EffectiveFrom,
+			Ftp:           entry.Ftp,
+		}
+	}
+	return business.AthletePerformanceSettings{
+		FtpHistory: history,
+		WeightKg:   dto.WeightKg,
+	}
+}
+
 func ToHeartRateZoneAnalysisDto(analysis business.HeartRateZoneAnalysis) HeartRateZoneAnalysisDto {
 	distributions := make([]HeartRateZoneDistributionDto, len(analysis.Zones))
 	for i, zone := range analysis.Zones {
@@ -914,6 +949,28 @@ func getIntValueFromFloat(value *float64) int {
 	return 0
 }
 
+func getIntValueFromAny(value *any) int {
+	if value == nil || *value == nil {
+		return 0
+	}
+	switch typed := (*value).(type) {
+	case int:
+		return typed
+	case int64:
+		return int(typed)
+	case float64:
+		if isFiniteNumber(typed) && typed > 0 {
+			return int(math.Round(typed))
+		}
+	case string:
+		parsed, err := strconv.ParseFloat(strings.TrimSpace(typed), 64)
+		if err == nil && isFiniteNumber(parsed) && parsed > 0 {
+			return int(math.Round(parsed))
+		}
+	}
+	return 0
+}
+
 func BuildActivityEfforts(activity *strava.DetailedActivity) []business.ActivityEffort {
 	if activity == nil || activity.Stream == nil {
 		return []business.ActivityEffort{}
@@ -936,6 +993,8 @@ func BuildActivityEfforts(activity *strava.DetailedActivity) []business.Activity
 			Distance:      s.Distance,
 			Seconds:       s.Duration,
 			DeltaAltitude: s.EndAltitude - s.StartAltitude,
+			ElevationGain: ptrFloat64(math.Max(0, s.EndAltitude-s.StartAltitude)),
+			ElevationLoss: ptrFloat64(math.Max(0, s.StartAltitude-s.EndAltitude)),
 			IdxStart:      s.StartIndex,
 			IdxEnd:        s.EndIndex,
 			AveragePower:  nil,
@@ -1043,6 +1102,8 @@ func toActivityEffort(effort *strava.SegmentEffort, activity *strava.DetailedAct
 		Distance:      effort.Distance,
 		Seconds:       effort.ElapsedTime,
 		DeltaAltitude: deltaAltitude,
+		ElevationGain: ptrFloat64(math.Max(0, deltaAltitude)),
+		ElevationLoss: ptrFloat64(math.Max(0, -deltaAltitude)),
 		IdxStart:      effort.StartIndex,
 		IdxEnd:        effort.EndIndex,
 		AveragePower:  &effort.AverageWatts,

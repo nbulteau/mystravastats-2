@@ -36,6 +36,7 @@ type FITActivityProvider struct {
 	activityByID          map[int64]*strava.Activity
 	filteredActivities    map[string][]*strava.Activity
 	heartRateZoneSettings business.HeartRateZoneSettings
+	performanceSettings   business.AthletePerformanceSettings
 	localStorageProvider  *localrepository.StravaRepository
 	dataMutex             sync.RWMutex
 	cacheMutex            sync.RWMutex
@@ -64,6 +65,7 @@ func NewFITActivityProvider(fitDirectory string) *FITActivityProvider {
 			Firstname: &firstName,
 		},
 		heartRateZoneSettings: localStorageProvider.LoadHeartRateZoneSettings(clientID),
+		performanceSettings:   localStorageProvider.LoadPerformanceSettings(clientID),
 	}
 
 	loadedActivities := provider.loadActivitiesFromFITDirectory()
@@ -141,6 +143,22 @@ func (provider *FITActivityProvider) SaveHeartRateZoneSettings(settings business
 	provider.dataMutex.Unlock()
 
 	provider.localStorageProvider.SaveHeartRateZoneSettings(provider.clientID, settings)
+	return settings
+}
+
+func (provider *FITActivityProvider) GetPerformanceSettings() business.AthletePerformanceSettings {
+	provider.dataMutex.RLock()
+	defer provider.dataMutex.RUnlock()
+
+	return provider.performanceSettings
+}
+
+func (provider *FITActivityProvider) SavePerformanceSettings(settings business.AthletePerformanceSettings) business.AthletePerformanceSettings {
+	provider.dataMutex.Lock()
+	provider.performanceSettings = settings
+	provider.dataMutex.Unlock()
+
+	provider.localStorageProvider.SavePerformanceSettings(provider.clientID, settings)
 	return settings
 }
 

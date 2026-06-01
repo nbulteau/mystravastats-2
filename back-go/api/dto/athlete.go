@@ -23,7 +23,18 @@ type AthleteDto struct {
 	DatePreference        string    `json:"date_preference,omitempty"`
 	FollowerCount         int       `json:"follower_count,omitempty"`
 	FriendCount           int       `json:"friend_count,omitempty"`
+	FTP                   int       `json:"ftp,omitempty"`
 	MeasurementPreference string    `json:"measurement_preference,omitempty"`
 	MutualFriendCount     int       `json:"mutual_friend_count,omitempty"`
 	Weight                int       `json:"weight,omitempty"`
+}
+
+type AthleteFtpSettingDto struct {
+	EffectiveFrom string `json:"effectiveFrom"`
+	Ftp           int    `json:"ftp"`
+}
+
+type AthletePerformanceSettingsDto struct {
+	FtpHistory []AthleteFtpSettingDto `json:"ftpHistory"`
+	WeightKg   *float64               `json:"weightKg,omitempty"`
 }

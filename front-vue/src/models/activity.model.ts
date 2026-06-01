@@ -139,6 +139,8 @@ export interface ActivityEffort {
     distance: number;
     seconds: number;
     deltaAltitude: number;
+    elevationGain?: number | null;
+    elevationLoss?: number | null;
     idxStart: number;
     idxEnd: number;
     averagePower: number | null;

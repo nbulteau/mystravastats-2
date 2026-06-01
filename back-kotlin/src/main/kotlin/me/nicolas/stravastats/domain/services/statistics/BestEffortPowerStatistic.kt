@@ -48,7 +48,7 @@ fun StravaDetailedActivity.calculateBestPowerForTime(seconds: Int): ActivityEffo
     return if (stream == null || stream?.altitude == null) {
         null
     } else {
-        BestEffortCache.getOrCompute(this.id, "best-power-time", seconds.toString(), this.stream!!) {
+        BestEffortCache.getOrCompute(this.id, "best-power-time-v2", seconds.toString(), this.stream!!) {
             activityEffort(this.id, this.name, this.type, this.stream!!, seconds)
         }
     }
@@ -60,7 +60,7 @@ fun StravaActivity.calculateBestPowerForTime(seconds: Int): ActivityEffort? {
     return if (stream == null || stream?.altitude == null) {
         null
     } else {
-        BestEffortCache.getOrCompute(this.id, "best-power-time", seconds.toString(), this.stream!!) {
+        BestEffortCache.getOrCompute(this.id, "best-power-time-v2", seconds.toString(), this.stream!!) {
             activityEffort(this.id, this.name, this.type, this.stream!!, seconds)
         }
     }
@@ -77,7 +77,7 @@ private fun activityEffort(
     stream: Stream,
     seconds: Int
 ): ActivityEffort? {
-    val altitudes = stream.altitude?.data
+    val altitudes = stream.altitude?.data ?: emptyList()
 
     stream.watts?.data ?: return null
 
@@ -93,10 +93,11 @@ private fun activityEffort(
     val streamDataSize = distances.size
 
     var currentPower = 0
+    val elevationPrefix = ElevationGainLossPrefix.from(altitudes, streamDataSize)
 
     do {
         val totalDistance = distances[idxEnd] - distances[idxStart]
-        val totalAltitude = if (altitudes?.isNotEmpty() == true) {
+        val totalAltitude = if (altitudes.isNotEmpty()) {
             altitudes[idxEnd] - altitudes[idxStart]
         } else {
             0.0
@@ -112,6 +113,7 @@ private fun activityEffort(
             if (currentPower > maxPower) {
                 maxPower = currentPower
                 val averagePower = currentPower / (idxEnd - idxStart + 1)
+                val elevation = elevationPrefix.between(idxStart, idxEnd)
                 bestEffort = ActivityEffort(
                     totalDistance, seconds, totalAltitude, idxStart, idxEnd, averagePower,
                     label = "Best power for ${seconds.formatSeconds()}",
@@ -119,7 +121,9 @@ private fun activityEffort(
                         id = id,
                         name = name,
                         type = type
-                    )
+                    ),
+                    elevationGain = elevation?.gain,
+                    elevationLoss = elevation?.loss,
                 )
             }
             currentPower -= nonNullWatts[idxStart]

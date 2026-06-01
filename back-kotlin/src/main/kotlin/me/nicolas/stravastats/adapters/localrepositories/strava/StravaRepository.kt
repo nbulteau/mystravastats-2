@@ -1,6 +1,7 @@
 package me.nicolas.stravastats.adapters.localrepositories.strava
 
 
+import me.nicolas.stravastats.domain.business.AthletePerformanceSettings
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
@@ -244,6 +245,29 @@ internal class StravaRepository(stravaCache: String) : ILocalStorageProvider {
         val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
         activitiesDirectory.mkdirs()
         val settingsFile = File(activitiesDirectory, "heart-rate-zones-$clientId.json")
+
+        prettyWriter.writeValue(settingsFile, settings)
+    }
+
+    override fun loadPerformanceSettings(clientId: String): AthletePerformanceSettings {
+        val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
+        val settingsFile = File(activitiesDirectory, "performance-settings-$clientId.json")
+        if (!settingsFile.exists()) {
+            return AthletePerformanceSettings()
+        }
+
+        return runCatching {
+            objectMapper.readValue(settingsFile, AthletePerformanceSettings::class.java)
+        }.getOrElse { exception ->
+            logger.error("Unable to read performance settings from ${settingsFile.absolutePath}", exception)
+            AthletePerformanceSettings()
+        }
+    }
+
+    override fun savePerformanceSettings(clientId: String, settings: AthletePerformanceSettings) {
+        val activitiesDirectory = File(cacheDirectory, "strava-$clientId")
+        activitiesDirectory.mkdirs()
+        val settingsFile = File(activitiesDirectory, "performance-settings-$clientId.json")
 
         prettyWriter.writeValue(settingsFile, settings)
     }

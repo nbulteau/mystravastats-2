@@ -26,6 +26,46 @@ func TestToAthleteDto_NilDates(t *testing.T) {
 	}
 }
 
+func TestToAthleteDto_MapsFTP(t *testing.T) {
+	ftp := any(250.0)
+	athlete := strava.Athlete{
+		Id:  123,
+		Ftp: &ftp,
+	}
+
+	dto := ToAthleteDto(athlete)
+
+	if dto.FTP != 250 {
+		t.Fatalf("expected FTP=250, got %d", dto.FTP)
+	}
+}
+
+func TestAthletePerformanceSettingsConverters_RoundTrip(t *testing.T) {
+	weight := 72.5
+	settings := business.AthletePerformanceSettings{
+		WeightKg: &weight,
+		FtpHistory: []business.AthleteFtpSetting{
+			{EffectiveFrom: "2026-01-01", Ftp: 160},
+		},
+	}
+
+	dto := ToAthletePerformanceSettingsDto(settings)
+	if dto.WeightKg == nil || *dto.WeightKg != weight {
+		t.Fatalf("expected weightKg=%f, got %+v", weight, dto.WeightKg)
+	}
+	if len(dto.FtpHistory) != 1 || dto.FtpHistory[0].Ftp != 160 {
+		t.Fatalf("unexpected DTO history: %+v", dto.FtpHistory)
+	}
+
+	roundTrip := ToAthletePerformanceSettings(dto)
+	if roundTrip.WeightKg == nil || *roundTrip.WeightKg != weight {
+		t.Fatalf("expected round-trip weightKg=%f, got %+v", weight, roundTrip.WeightKg)
+	}
+	if len(roundTrip.FtpHistory) != 1 || roundTrip.FtpHistory[0].EffectiveFrom != "2026-01-01" {
+		t.Fatalf("unexpected round-trip history: %+v", roundTrip.FtpHistory)
+	}
+}
+
 func TestBuildActivityEfforts_NilStream(t *testing.T) {
 	// GIVEN
 	detailedActivity := &strava.DetailedActivity{Id: 42, Stream: nil}

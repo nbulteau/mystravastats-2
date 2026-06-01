@@ -15,7 +15,9 @@ class ActivityEffort(
     val idxEnd: Int,
     val averagePower: Int? = null,
     val label: String,
-    val activityShort: ActivityShort
+    val activityShort: ActivityShort,
+    val elevationGain: Double? = null,
+    val elevationLoss: Double? = null,
 ) {
     fun getFormattedSpeedWithUnits(): String {
         val speed = getFormatedSpeed()
@@ -57,4 +59,3 @@ class ActivityEffort(
             "<li>Power: ${if (averagePower != null) getFormattedPower() else "Not available"}</li>" +
             "</ul>"
 }
-

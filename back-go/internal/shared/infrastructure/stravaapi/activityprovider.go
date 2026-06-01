@@ -28,6 +28,7 @@ type StravaActivityProvider struct {
 	activityByID          map[int64]*strava.Activity
 	filteredActivities    map[string][]*strava.Activity
 	heartRateZoneSettings business.HeartRateZoneSettings
+	performanceSettings   business.AthletePerformanceSettings
 	cacheMutex            sync.RWMutex
 	dataMutex             sync.RWMutex
 	apiMutex              sync.Mutex
@@ -80,6 +81,7 @@ useCache=false
 	provider.useCacheAuth = useCache
 	provider.localStorageProvider.InitLocalStorageForClientId(id)
 	provider.heartRateZoneSettings = provider.localStorageProvider.LoadHeartRateZoneSettings(id)
+	provider.performanceSettings = provider.localStorageProvider.LoadPerformanceSettings(id)
 	provider.cacheManifest = defaultCacheManifest(id)
 	provider.loadPersistentCacheArtifacts()
 
@@ -583,6 +585,22 @@ func (provider *StravaActivityProvider) SaveHeartRateZoneSettings(settings busin
 	provider.dataMutex.Unlock()
 
 	provider.localStorageProvider.SaveHeartRateZoneSettings(provider.clientId, settings)
+	return settings
+}
+
+func (provider *StravaActivityProvider) GetPerformanceSettings() business.AthletePerformanceSettings {
+	provider.dataMutex.RLock()
+	defer provider.dataMutex.RUnlock()
+
+	return provider.performanceSettings
+}
+
+func (provider *StravaActivityProvider) SavePerformanceSettings(settings business.AthletePerformanceSettings) business.AthletePerformanceSettings {
+	provider.dataMutex.Lock()
+	provider.performanceSettings = settings
+	provider.dataMutex.Unlock()
+
+	provider.localStorageProvider.SavePerformanceSettings(provider.clientId, settings)
 	return settings
 }
 

@@ -5,6 +5,7 @@ import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.business.HeartRateZoneSettings
+import me.nicolas.stravastats.domain.business.AthletePerformanceSettings
 
 interface ISourcePreviewRepositoryFactory {
     fun createFitRepository(path: String): IYearActivityStorageProvider
@@ -45,4 +46,8 @@ interface ILocalStorageProvider {
     fun loadHeartRateZoneSettings(clientId: String): HeartRateZoneSettings = HeartRateZoneSettings()
 
     fun saveHeartRateZoneSettings(clientId: String, settings: HeartRateZoneSettings) {}
+
+    fun loadPerformanceSettings(clientId: String): AthletePerformanceSettings = AthletePerformanceSettings()
+
+    fun savePerformanceSettings(clientId: String, settings: AthletePerformanceSettings) {}
 }

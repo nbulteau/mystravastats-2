@@ -76,7 +76,7 @@ func BestPowerForTime(activity strava.Activity, seconds int) *business.ActivityE
 	}
 	return getOrComputeBestEffort(
 		activity.Id,
-		"best-power-time",
+		"best-power-time-v2",
 		effortSecondsTarget(seconds),
 		activity.Stream,
 		func() *business.ActivityEffort {
@@ -102,6 +102,7 @@ func bestPowerForTimeForTime(id int64, name, activityType string, stream *strava
 	streamDataSize := len(distances.Data)
 
 	currentPower := 0.0
+	elevationPrefix := newElevationGainLossPrefix((*altitudes).Data, streamDataSize)
 
 	for idxEnd < streamDataSize {
 		totalDistance := distances.Data[idxEnd] - distances.Data[idxStart]
@@ -119,10 +120,13 @@ func bestPowerForTimeForTime(id int64, name, activityType string, stream *strava
 			if currentPower > maxPower {
 				maxPower = currentPower
 				averagePower := averagePower(nonNullWatts, idxStart, idxEnd)
+				elevationGain, elevationLoss := elevationPrefix.betweenPtrs(idxStart, idxEnd)
 				bestEffort = &business.ActivityEffort{
 					Distance:      totalDistance,
 					Seconds:       seconds,
 					DeltaAltitude: totalAltitude,
+					ElevationGain: elevationGain,
+					ElevationLoss: elevationLoss,
 					IdxStart:      idxStart,
 					IdxEnd:        idxEnd,
 					AveragePower:  averagePower,

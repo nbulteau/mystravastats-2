@@ -65,7 +65,7 @@ func BestElevationEffort(activity strava.Activity, distance float64) *business.A
 	}
 	return getOrComputeBestEffort(
 		activity.Id,
-		"best-elevation-distance",
+		"best-elevation-distance-v2",
 		effortDistanceTarget(distance),
 		activity.Stream,
 		func() *business.ActivityEffort {
@@ -99,6 +99,7 @@ func BestElevationForDistance(id int64, name, activityType string, stream *strav
 	if streamDataSize < 2 {
 		return nil
 	}
+	elevationPrefix := newElevationGainLossPrefix(altitudes.Data, streamDataSize)
 
 	for idxEnd < streamDataSize {
 		totalDistance := distances.Data[idxEnd] - distances.Data[idxStart]
@@ -111,10 +112,13 @@ func BestElevationForDistance(id int64, name, activityType string, stream *strav
 			if totalAltitude > bestElevation {
 				bestElevation = totalAltitude
 				averagePower := averagePower(nonNullWatts, idxStart, idxEnd)
+				elevationGain, elevationLoss := elevationPrefix.betweenPtrs(idxStart, idxEnd)
 				bestEffort = &business.ActivityEffort{
 					Distance:      distance,
 					Seconds:       totalTime,
 					DeltaAltitude: bestElevation,
+					ElevationGain: elevationGain,
+					ElevationLoss: elevationLoss,
 					IdxStart:      idxStart,
 					IdxEnd:        idxEnd,
 					AveragePower:  averagePower,

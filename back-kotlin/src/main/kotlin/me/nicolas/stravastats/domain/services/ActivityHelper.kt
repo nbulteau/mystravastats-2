@@ -89,7 +89,9 @@ object ActivityHelper {
                     maxOf(0.0, slope.endAltitude - slope.startAltitude),
                     slope.maxGrade,
                 ),
-                activityShort = ActivityShort(id = this.id, name = this.name, type = this.sportType)
+                activityShort = ActivityShort(id = this.id, name = this.name, type = this.sportType),
+                elevationGain = maxOf(0.0, slope.endAltitude - slope.startAltitude),
+                elevationLoss = maxOf(0.0, slope.startAltitude - slope.endAltitude),
             )
         }
 
@@ -255,7 +257,9 @@ private fun StravaSegmentEffort.toActivityEffort(activity: StravaDetailedActivit
             id = this.id,
             name = label,
             type = this.segment.activityType
-        )
+        ),
+        elevationGain = maxOf(0.0, deltaAltitude),
+        elevationLoss = maxOf(0.0, -deltaAltitude),
     )
 }
 

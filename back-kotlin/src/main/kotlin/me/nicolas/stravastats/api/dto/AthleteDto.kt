@@ -49,6 +49,8 @@ data class AthleteDto(
     val followerCount: Int?,
     @param:JsonProperty("friend_count")
     val friendCount: Int?,
+    @param:JsonProperty("ftp")
+    val ftp: Int?,
     @param:JsonProperty("measurement_preference")
     val measurementPreference: String?,
     @param:JsonProperty("mutual_friend_count")
@@ -78,7 +80,14 @@ fun StravaAthlete.toDto() = AthleteDto(
     datePreference = this.datePreference,
     followerCount = this.followerCount,
     friendCount = this.friendCount,
+    ftp = this.ftp.toFtpInt(),
     measurementPreference = this.measurementPreference,
     mutualFriendCount = this.mutualFriendCount,
     weight = this.weight
 )
+
+private fun Any?.toFtpInt(): Int? = when (this) {
+    is Number -> this.toDouble().takeIf { it.isFinite() && it > 0.0 }?.let { kotlin.math.round(it).toInt() }
+    is String -> this.trim().toDoubleOrNull()?.takeIf { it.isFinite() && it > 0.0 }?.let { kotlin.math.round(it).toInt() }
+    else -> null
+}

@@ -210,5 +210,13 @@ func cloneActivityEffort(source *business.ActivityEffort) *business.ActivityEffo
 		value := *source.AveragePower
 		cloned.AveragePower = &value
 	}
+	if source.ElevationGain != nil {
+		value := *source.ElevationGain
+		cloned.ElevationGain = &value
+	}
+	if source.ElevationLoss != nil {
+		value := *source.ElevationLoss
+		cloned.ElevationLoss = &value
+	}
 	return &cloned
 }

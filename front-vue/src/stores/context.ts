@@ -22,7 +22,8 @@ export type AppView =
   | "diagnostics"
   | "charts"
   | "dashboard"
-  | "heatmap";
+  | "heatmap"
+  | "settings";
 
 export const useContextStore = defineStore("context", {
   state: () => ({
@@ -82,6 +83,8 @@ export const useContextStore = defineStore("context", {
           break;
         case "badges":
           await useBadgesStore().ensureLoaded(force);
+          break;
+        case "settings":
           break;
         case "activity":
           break;

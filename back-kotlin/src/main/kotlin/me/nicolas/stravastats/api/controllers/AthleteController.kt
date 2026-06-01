@@ -5,10 +5,12 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import me.nicolas.stravastats.api.dto.AthleteDto
+import me.nicolas.stravastats.api.dto.AthletePerformanceSettingsDto
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
 import me.nicolas.stravastats.api.dto.HeartRateZoneSettingsDto
 import me.nicolas.stravastats.api.dto.toDto
 import me.nicolas.stravastats.api.dto.toDomain
+import me.nicolas.stravastats.domain.services.IAthletePerformanceSettingsService
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import me.nicolas.stravastats.domain.services.IHeartRateZoneService
 import org.springframework.http.MediaType
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController
 class AthleteController(
     private val stravaProxy: IActivityProvider,
     private val heartRateZoneService: IHeartRateZoneService,
+    private val performanceSettingsService: IAthletePerformanceSettingsService,
 ) {
     @Operation(
         description = "Get the authenticated user",
@@ -53,6 +56,16 @@ class AthleteController(
         return stravaProxy.athlete().toDto()
     }
 
+    @GetMapping("/me/performance-settings")
+    fun getPerformanceSettings(): AthletePerformanceSettingsDto {
+        return performanceSettingsService.getSettings().toDto()
+    }
+
+    @PutMapping("/me/performance-settings")
+    fun updatePerformanceSettings(@RequestBody settings: AthletePerformanceSettingsDto): AthletePerformanceSettingsDto {
+        return performanceSettingsService.updateSettings(settings.toDomain()).toDto()
+    }
+
     @GetMapping("/me/heart-rate-zones")
     fun getHeartRateZoneSettings(): HeartRateZoneSettingsDto {
         return heartRateZoneService.getSettings().toDto()
@@ -63,4 +76,3 @@ class AthleteController(
         return heartRateZoneService.updateSettings(settings.toDomain()).toDto()
     }
 }
-

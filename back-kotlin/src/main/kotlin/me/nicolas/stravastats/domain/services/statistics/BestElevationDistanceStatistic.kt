@@ -32,7 +32,7 @@ fun StravaActivity.calculateBestElevationForDistance(distance: Double): Activity
     return if (stream == null || stream?.altitude == null) {
         null
     } else {
-        BestEffortCache.getOrCompute(this.id, "best-elevation-distance", distance.toString(), this.stream!!) {
+        BestEffortCache.getOrCompute(this.id, "best-elevation-distance-v2", distance.toString(), this.stream!!) {
             activityEffort(this.id, this.name, this.type, this.stream!!, distance)
         }
     }
@@ -44,7 +44,7 @@ fun StravaDetailedActivity.calculateBestElevationForDistance(distance: Double): 
     return if (stream == null || stream?.altitude == null) {
         null
     } else {
-        BestEffortCache.getOrCompute(this.id, "best-elevation-distance", distance.toString(), this.stream!!) {
+        BestEffortCache.getOrCompute(this.id, "best-elevation-distance-v2", distance.toString(), this.stream!!) {
             activityEffort(this.id, this.name, this.type, this.stream!!, distance)
         }
     }
@@ -79,6 +79,7 @@ private fun activityEffort(
     }
 
     val streamDataSize = stream.distance.originalSize
+    val elevationPrefix = ElevationGainLossPrefix.from(altitudes, streamDataSize)
 
     do {
         val totalDistance = distances[idxEnd] - distances[idxStart]
@@ -98,6 +99,7 @@ private fun activityEffort(
                     val sampleCount = idxEnd - idxStart + 1
                     if (sampleCount == 0) null else (prefix[idxEnd + 1] - prefix[idxStart]) / sampleCount
                 }
+                val elevation = elevationPrefix.between(idxStart, idxEnd)
                 bestEffort = ActivityEffort(
                     distance, totalTime, bestElevation, idxStart, idxEnd, averagePower,
                     label = "Best gradient for ${distance.toInt()}m",
@@ -105,7 +107,9 @@ private fun activityEffort(
                         id = id,
                         name = name,
                         type = type
-                    )
+                    ),
+                    elevationGain = elevation?.gain,
+                    elevationLoss = elevation?.loss,
                 )
             }
             ++idxStart

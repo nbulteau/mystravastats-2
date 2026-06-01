@@ -10,6 +10,8 @@ type ActivityEffort struct {
 	Distance      float64
 	Seconds       int
 	DeltaAltitude float64
+	ElevationGain *float64
+	ElevationLoss *float64
 	IdxStart      int
 	IdxEnd        int
 	AveragePower  *float64

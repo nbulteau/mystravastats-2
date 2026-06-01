@@ -67,6 +67,38 @@ func TestBestDistanceForTime_WithSyntheticStream(t *testing.T) {
 	if effort.Seconds != 20 {
 		t.Fatalf("unexpected duration: got %d, want 20", effort.Seconds)
 	}
+	if effort.ElevationGain == nil || math.Abs(*effort.ElevationGain-15) > 1e-6 {
+		t.Fatalf("unexpected elevation gain: got %v, want 15", effort.ElevationGain)
+	}
+	if effort.ElevationLoss == nil || math.Abs(*effort.ElevationLoss) > 1e-6 {
+		t.Fatalf("unexpected elevation loss: got %v, want 0", effort.ElevationLoss)
+	}
+}
+
+func TestBestDistanceForTime_ComputesCumulativeElevationWhenNetDeltaIsZero(t *testing.T) {
+	// GIVEN
+	stream := syntheticStream(
+		[]float64{0, 100, 200, 300, 400},
+		[]int{0, 10, 20, 30, 40},
+		[]float64{100, 120, 100, 125, 100},
+	)
+
+	// WHEN
+	effort := BestDistanceForTime(1, "Rolling ride", "Ride", stream, 40)
+
+	// THEN
+	if effort == nil {
+		t.Fatalf("expected effort, got nil")
+	}
+	if math.Abs(effort.DeltaAltitude) > 1e-6 {
+		t.Fatalf("unexpected net altitude delta: got %.2f, want 0", effort.DeltaAltitude)
+	}
+	if effort.ElevationGain == nil || math.Abs(*effort.ElevationGain-45) > 1e-6 {
+		t.Fatalf("unexpected elevation gain: got %v, want 45", effort.ElevationGain)
+	}
+	if effort.ElevationLoss == nil || math.Abs(*effort.ElevationLoss-45) > 1e-6 {
+		t.Fatalf("unexpected elevation loss: got %v, want 45", effort.ElevationLoss)
+	}
 }
 
 func TestBestDistanceEffort_ReturnsNilWhenAltitudeDataIsEmpty(t *testing.T) {

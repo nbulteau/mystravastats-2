@@ -28,6 +28,31 @@ class BestEffortTimeStatisticTest {
         assertEquals(200.0, actualEffort.distance, 1e-6)
         assertEquals(20, actualEffort.seconds)
         assertEquals(15.0, actualEffort.deltaAltitude, 1e-6)
+        assertEquals(15.0, actualEffort.elevationGain ?: -1.0, 1e-6)
+        assertEquals(0.0, actualEffort.elevationLoss ?: -1.0, 1e-6)
+    }
+
+    @Test
+    fun `calculateBestDistanceForTime keeps cumulative elevation when net delta is zero`() {
+        // GIVEN
+        val activity = StatisticsFixtures.syntheticRideActivity(
+            id = 16,
+            stream = StatisticsFixtures.defaultStream(
+                distances = listOf(0.0, 100.0, 200.0, 300.0, 400.0),
+                times = listOf(0, 10, 20, 30, 40),
+                altitudes = listOf(100.0, 120.0, 100.0, 125.0, 100.0),
+            )
+        )
+
+        // WHEN
+        val effort = activity.calculateBestDistanceForTime(seconds = 40)
+
+        // THEN
+        assertNotNull(effort)
+        val actualEffort = effort!!
+        assertEquals(0.0, actualEffort.deltaAltitude, 1e-6)
+        assertEquals(45.0, actualEffort.elevationGain ?: -1.0, 1e-6)
+        assertEquals(45.0, actualEffort.elevationLoss ?: -1.0, 1e-6)
     }
 
     @Test

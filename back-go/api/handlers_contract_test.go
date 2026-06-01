@@ -11,6 +11,7 @@ import (
 
 	domainStatistics "mystravastats/domain/statistics"
 	activitiesApp "mystravastats/internal/activities/application"
+	athleteApp "mystravastats/internal/athlete/application"
 	chartsApp "mystravastats/internal/charts/application"
 	dashboardApp "mystravastats/internal/dashboard/application"
 	dashboardDomain "mystravastats/internal/dashboard/domain"
@@ -141,6 +142,24 @@ type contractStatisticsReaderStub struct {
 
 func (stub *contractStatisticsReaderStub) FindStatisticsByYearAndTypes(_ *int, _ ...business.ActivityType) []domainStatistics.Statistic {
 	return stub.statistics
+}
+
+type contractAthleteReaderStub struct {
+	athlete             strava.Athlete
+	performanceSettings business.AthletePerformanceSettings
+}
+
+func (stub *contractAthleteReaderStub) FindAthlete() strava.Athlete {
+	return stub.athlete
+}
+
+func (stub *contractAthleteReaderStub) FindPerformanceSettings() business.AthletePerformanceSettings {
+	return stub.performanceSettings
+}
+
+func (stub *contractAthleteReaderStub) SavePerformanceSettings(settings business.AthletePerformanceSettings) business.AthletePerformanceSettings {
+	stub.performanceSettings = settings
+	return settings
 }
 
 type contractPersonalRecordsTimelineReaderStub struct {
@@ -302,6 +321,77 @@ func TestGetHealthDetails_Returns200AndBody(t *testing.T) {
 	}
 	if response["status"] != "ok" {
 		t.Fatalf("expected status=ok, got %+v", response)
+	}
+}
+
+func TestGetAthletePerformanceSettings_Returns200AndBody(t *testing.T) {
+	// GIVEN
+	ftp := 160
+	setTestContainer(t, &container{
+		getPerformanceSettingsUseCase: athleteApp.NewGetPerformanceSettingsUseCase(&contractAthleteReaderStub{
+			performanceSettings: business.AthletePerformanceSettings{
+				FtpHistory: []business.AthleteFtpSetting{
+					{EffectiveFrom: "2026-01-01", Ftp: ftp},
+				},
+			},
+		}),
+	})
+
+	request := httptest.NewRequest(http.MethodGet, "/api/athletes/me/performance-settings", nil)
+	recorder := httptest.NewRecorder()
+
+	getAthletePerformanceSettings(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", recorder.Code)
+	}
+
+	var response map[string]any
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode JSON response: %v", err)
+	}
+	history, ok := response["ftpHistory"].([]any)
+	if !ok || len(history) != 1 {
+		t.Fatalf("expected one FTP history entry, got %+v", response["ftpHistory"])
+	}
+	entry := history[0].(map[string]any)
+	if got := entry["ftp"]; got != float64(ftp) {
+		t.Fatalf("expected ftp=%d, got %+v", ftp, got)
+	}
+}
+
+func TestPutAthletePerformanceSettings_NormalizesAndReturns200(t *testing.T) {
+	// GIVEN
+	setTestContainer(t, &container{
+		updatePerformanceSettingsUseCase: athleteApp.NewUpdatePerformanceSettingsUseCase(&contractAthleteReaderStub{}),
+	})
+
+	request := httptest.NewRequest(http.MethodPut, "/api/athletes/me/performance-settings", strings.NewReader(`{
+	  "ftpHistory": [
+	    {"effectiveFrom": "2026-05-01", "ftp": 160},
+	    {"effectiveFrom": "bad-date", "ftp": 999}
+	  ],
+	  "weightKg": 72.5
+	}`))
+	request.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	putAthletePerformanceSettings(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", recorder.Code)
+	}
+
+	var response map[string]any
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode JSON response: %v", err)
+	}
+	if got := response["weightKg"]; got != 72.5 {
+		t.Fatalf("expected weightKg=72.5, got %+v", got)
+	}
+	history, ok := response["ftpHistory"].([]any)
+	if !ok || len(history) != 1 {
+		t.Fatalf("expected one normalized FTP history entry, got %+v", response["ftpHistory"])
 	}
 }
 
