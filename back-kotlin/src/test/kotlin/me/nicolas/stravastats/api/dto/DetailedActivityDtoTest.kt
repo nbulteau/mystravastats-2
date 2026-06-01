@@ -3,7 +3,13 @@ package me.nicolas.stravastats.api.dto
 import me.nicolas.stravastats.TestHelper
 import me.nicolas.stravastats.domain.business.ActivityEffort
 import me.nicolas.stravastats.domain.business.ActivityShort
+import me.nicolas.stravastats.domain.business.strava.Achievement
+import me.nicolas.stravastats.domain.business.strava.MetaActivity
+import me.nicolas.stravastats.domain.business.strava.MetaAthlete
+import me.nicolas.stravastats.domain.business.strava.Segment
+import me.nicolas.stravastats.domain.business.strava.StravaSegmentEffort
 import me.nicolas.stravastats.domain.business.strava.stream.AltitudeStream
+import me.nicolas.stravastats.domain.business.strava.stream.CadenceStream
 import me.nicolas.stravastats.domain.business.strava.stream.DistanceStream
 import me.nicolas.stravastats.domain.business.strava.stream.LatLngStream
 import me.nicolas.stravastats.domain.business.strava.stream.PowerStream
@@ -46,6 +52,39 @@ class DetailedActivityDtoTest {
 
         // THEN
         assertNotEquals(firstDto.id, secondDto.id)
+    }
+
+    @Test
+    fun `detailed activity dto exposes Strava segment efforts`() {
+        // GIVEN
+        val activity = TestHelper.stravaActivity
+            .toStravaDetailedActivity()
+            .copy(
+                type = "Ride",
+                sportType = "GravelRide",
+                segmentEfforts = listOf(
+                    stravaSegmentEffort(
+                        id = 1001,
+                        name = "Local sprint",
+                        segmentName = "Local sprint segment",
+                    )
+                )
+            )
+
+        // WHEN
+        val dto = activity.toDto()
+
+        // THEN
+        assertEquals(1, dto.stravaSegmentEfforts.size)
+        assertEquals("Ride", dto.type)
+        assertEquals("GravelRide", dto.sportType)
+        val effort = dto.stravaSegmentEfforts.first()
+        assertEquals("Local sprint", effort.name)
+        assertEquals("Local sprint segment", effort.segment.name)
+        assertEquals(10, effort.startIndex)
+        assertEquals(85, effort.endIndex)
+        assertEquals(315.7, effort.averageWatts)
+        assertEquals(2, effort.prRank)
     }
 
     @Test
@@ -94,6 +133,12 @@ class DetailedActivityDtoTest {
                 resolution = "high",
                 seriesType = "distance",
             ),
+            cadence = CadenceStream(
+                data = listOf(82, 84, 86),
+                originalSize = 3,
+                resolution = "high",
+                seriesType = "distance",
+            ),
             velocitySmooth = SmoothVelocityStream(
                 data = velocityDataWithNull,
                 originalSize = 3,
@@ -139,7 +184,58 @@ class DetailedActivityDtoTest {
         assertEquals(0.0, dto.stream?.latlng?.get(1)?.get(1))
         assertEquals(0.0, dto.stream?.altitude?.get(1))
         assertEquals(0.0, dto.stream?.altitude?.get(2))
+        assertEquals(listOf(82, 84, 86), dto.stream?.cadence)
         assertEquals(0.0, dto.stream?.velocitySmooth?.get(1))
         assertEquals(0.0, dto.stream?.velocitySmooth?.get(2))
     }
+
+    private fun stravaSegmentEffort(
+        id: Long,
+        name: String,
+        segmentName: String,
+    ): StravaSegmentEffort =
+        StravaSegmentEffort(
+            achievements = emptyList<Achievement>(),
+            activity = MetaActivity(1),
+            athlete = MetaAthlete(1),
+            averageCadence = 82.0,
+            averageHeartRate = 165.0,
+            averageWatts = 315.7,
+            deviceWatts = true,
+            distance = 520.5,
+            elapsedTime = 75,
+            endIndex = 85,
+            hidden = false,
+            id = id,
+            komRank = null,
+            maxHeartRate = 172.0,
+            movingTime = 74,
+            name = name,
+            prRank = 2,
+            resourceState = 2,
+            segment = Segment(
+                activityType = "Ride",
+                averageGrade = 4.2,
+                city = null,
+                climbCategory = 0,
+                country = null,
+                distance = 520.5,
+                elevationHigh = 120.0,
+                elevationLow = 98.0,
+                endLatLng = emptyList(),
+                hazardous = false,
+                id = id,
+                maximumGrade = 8.0,
+                name = segmentName,
+                isPrivate = false,
+                resourceState = 2,
+                starred = true,
+                startLatLng = emptyList(),
+                state = null,
+            ),
+            startDate = "2026-05-31T07:14:44Z",
+            startDateLocal = "2026-05-31T09:14:44Z",
+            startIndex = 10,
+            visibility = null,
+        )
 }

@@ -211,6 +211,7 @@ func ToDetailedActivityDto(detailedActivity *strava.DetailedActivity) DetailedAc
 		MovingTime:           detailedActivity.MovingTime,
 		Name:                 detailedActivity.Name,
 		ActivityEfforts:      toActivityEffortsDto(activityEfforts),
+		StravaSegmentEfforts: toStravaSegmentEffortsDto(detailedActivity.SegmentEfforts),
 		StartDate:            parseTime(detailedActivity.StartDate),
 		StartDateLocal:       parseTime(detailedActivity.StartDateLocal),
 		StartLatlng:          finiteFloat64Slice(detailedActivity.StartLatLng),
@@ -219,6 +220,7 @@ func ToDetailedActivityDto(detailedActivity *strava.DetailedActivity) DetailedAc
 		TotalDescent:         finiteFloat64(calculateTotalDescent(detailedActivity.Stream)),
 		TotalElevationGain:   finiteInt(detailedActivity.TotalElevationGain),
 		Type:                 detailedActivity.Type,
+		SportType:            firstNonEmpty(detailedActivity.SportType, detailedActivity.Type),
 		WeightedAverageWatts: detailedActivity.WeightedAverageWatts,
 	}
 }
@@ -288,6 +290,58 @@ func toActivityEffortsDto(efforts []business.ActivityEffort) []ActivityEffortDto
 	return effortsDto
 }
 
+func toStravaSegmentEffortsDto(efforts []strava.SegmentEffort) []StravaSegmentEffortDto {
+	effortsDto := make([]StravaSegmentEffortDto, 0, len(efforts))
+	for _, effort := range efforts {
+		effortsDto = append(effortsDto, StravaSegmentEffortDto{
+			AverageCadence:   finiteFloat64(effort.AverageCadence),
+			AverageHeartRate: finiteFloat64(effort.AverageHeartRate),
+			AverageWatts:     finiteFloat64(effort.AverageWatts),
+			DeviceWatts:      effort.DeviceWatts,
+			Distance:         finiteFloat64(effort.Distance),
+			ElapsedTime:      effort.ElapsedTime,
+			EndIndex:         effort.EndIndex,
+			Hidden:           effort.Hidden,
+			ID:               effort.Id,
+			KomRank:          effort.KomRank,
+			MaxHeartRate:     finiteFloat64(effort.MaxHeartRate),
+			MovingTime:       effort.MovingTime,
+			Name:             effort.Name,
+			PrRank:           effort.PrRank,
+			ResourceState:    effort.ResourceState,
+			Segment:          toStravaSegmentDto(effort.Segment),
+			StartDate:        effort.StartDate,
+			StartDateLocal:   effort.StartDateLocal,
+			StartIndex:       effort.StartIndex,
+			Visibility:       effort.Visibility,
+		})
+	}
+	return effortsDto
+}
+
+func toStravaSegmentDto(segment strava.Segment) StravaSegmentDto {
+	return StravaSegmentDto{
+		ActivityType:  segment.ActivityType,
+		AverageGrade:  finiteFloat64(segment.AverageGrade),
+		City:          segment.City,
+		ClimbCategory: segment.ClimbCategory,
+		Country:       segment.Country,
+		Distance:      finiteFloat64(segment.Distance),
+		ElevationHigh: finiteFloat64(segment.ElevationHigh),
+		ElevationLow:  finiteFloat64(segment.ElevationLow),
+		EndLatLng:     finiteFloat64Slice(segment.EndLatLng),
+		Hazardous:     segment.Hazardous,
+		ID:            segment.Id,
+		MaximumGrade:  finiteFloat64(segment.MaximumGrade),
+		Name:          segment.Name,
+		IsPrivate:     segment.IsPrivate,
+		ResourceState: segment.ResourceState,
+		Starred:       segment.Starred,
+		StartLatLng:   finiteFloat64Slice(segment.StartLatLng),
+		State:         segment.State,
+	}
+}
+
 func toStreamDto(stream *strava.Stream) *StreamDto {
 	if stream == nil {
 		return nil
@@ -333,11 +387,18 @@ func toStreamDto(stream *strava.Stream) *StreamDto {
 		copy(heartrate, stream.HeartRate.Data)
 	}
 
+	var cadence []int
+	if stream.Cadence != nil {
+		cadence = make([]int, len(stream.Cadence.Data))
+		copy(cadence, stream.Cadence.Data)
+	}
+
 	return &StreamDto{
 		Distance:       finiteFloat64Slice(stream.Distance.Data),
 		Time:           stream.Time.Data,
 		Latlng:         latlng,
 		Heartrate:      heartrate,
+		Cadence:        cadence,
 		Moving:         moving,
 		Altitude:       altitude,
 		Watts:          watts,
@@ -410,6 +471,15 @@ func finiteFloat64Grid(values [][]float64) [][]float64 {
 		sanitized[index] = finiteFloat64Slice(row)
 	}
 	return sanitized
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func parseTime(value string) time.Time {

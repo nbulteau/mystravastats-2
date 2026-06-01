@@ -42,6 +42,26 @@ export function formatSpeed(speed: number, activityType: string): string {
     }
   }
 
+export function formatActivityTypeLabel(activityType: string | null | undefined): string {
+    const value = activityType?.trim();
+    if (!value) return "Activity";
+
+    const labels: Record<string, string> = {
+        AlpineSki: "Alpine Ski",
+        Commute: "Commute",
+        GravelRide: "Gravel Ride",
+        Hike: "Hike",
+        MountainBikeRide: "Mountain Bike Ride",
+        Ride: "Ride",
+        Run: "Run",
+        TrailRun: "Trail Run",
+        VirtualRide: "Virtual Ride",
+        Walk: "Walk",
+    };
+
+    return labels[value] ?? value.replace(/([a-z])([A-Z])/g, "$1 $2");
+}
+
 /**
  * Format seconds to minutes and seconds
  */

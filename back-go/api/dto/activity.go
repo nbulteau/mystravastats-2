@@ -27,34 +27,36 @@ type ActivityDto struct {
 }
 
 type DetailedActivityDto struct {
-	AverageCadence       int                    `json:"averageCadence"`
-	AverageHeartrate     int                    `json:"averageHeartrate"`
-	AverageWatts         int                    `json:"averageWatts"`
-	AverageSpeed         float32                `json:"averageSpeed"`
-	Calories             float64                `json:"calories"`
-	Commute              bool                   `json:"commute"`
-	DeviceWatts          bool                   `json:"deviceWatts"`
-	Distance             float64                `json:"distance"`
-	ElapsedTime          int                    `json:"elapsedTime"`
-	ElevHigh             float64                `json:"elevHigh"`
-	ID                   int64                  `json:"id"`
-	Kilojoules           float64                `json:"kilojoules"`
-	MaxHeartrate         int                    `json:"maxHeartrate"`
-	MaxSpeed             float32                `json:"maxSpeed"`
-	MaxWatts             int                    `json:"maxWatts"`
-	MovingTime           int                    `json:"movingTime"`
-	Name                 string                 `json:"name"`
-	ActivityEfforts      []ActivityEffortDto    `json:"activityEfforts"`
-	ActivityComparison   *ActivityComparisonDto `json:"activityComparison,omitempty"`
-	StartDate            time.Time              `json:"startDate"`
-	StartDateLocal       time.Time              `json:"startDateLocal"`
-	StartLatlng          []float64              `json:"startLatlng"`
-	Stream               *StreamDto             `json:"stream"`
-	SufferScore          *float64               `json:"sufferScore"`
-	TotalDescent         float64                `json:"totalDescent"`
-	TotalElevationGain   int                    `json:"totalElevationGain"`
-	Type                 string                 `json:"type"`
-	WeightedAverageWatts int                    `json:"weightedAverageWatts"`
+	AverageCadence       int                      `json:"averageCadence"`
+	AverageHeartrate     int                      `json:"averageHeartrate"`
+	AverageWatts         int                      `json:"averageWatts"`
+	AverageSpeed         float32                  `json:"averageSpeed"`
+	Calories             float64                  `json:"calories"`
+	Commute              bool                     `json:"commute"`
+	DeviceWatts          bool                     `json:"deviceWatts"`
+	Distance             float64                  `json:"distance"`
+	ElapsedTime          int                      `json:"elapsedTime"`
+	ElevHigh             float64                  `json:"elevHigh"`
+	ID                   int64                    `json:"id"`
+	Kilojoules           float64                  `json:"kilojoules"`
+	MaxHeartrate         int                      `json:"maxHeartrate"`
+	MaxSpeed             float32                  `json:"maxSpeed"`
+	MaxWatts             int                      `json:"maxWatts"`
+	MovingTime           int                      `json:"movingTime"`
+	Name                 string                   `json:"name"`
+	ActivityEfforts      []ActivityEffortDto      `json:"activityEfforts"`
+	StravaSegmentEfforts []StravaSegmentEffortDto `json:"stravaSegmentEfforts"`
+	ActivityComparison   *ActivityComparisonDto   `json:"activityComparison,omitempty"`
+	StartDate            time.Time                `json:"startDate"`
+	StartDateLocal       time.Time                `json:"startDateLocal"`
+	StartLatlng          []float64                `json:"startLatlng"`
+	Stream               *StreamDto               `json:"stream"`
+	SufferScore          *float64                 `json:"sufferScore"`
+	TotalDescent         float64                  `json:"totalDescent"`
+	TotalElevationGain   int                      `json:"totalElevationGain"`
+	Type                 string                   `json:"type"`
+	SportType            string                   `json:"sportType"`
+	WeightedAverageWatts int                      `json:"weightedAverageWatts"`
 }
 
 type ActivityComparisonDto struct {
@@ -128,11 +130,56 @@ type ActivityEffortDto struct {
 	Description   string   `json:"description"`
 }
 
+type StravaSegmentEffortDto struct {
+	AverageCadence   float64          `json:"averageCadence"`
+	AverageHeartRate float64          `json:"averageHeartRate"`
+	AverageWatts     float64          `json:"averageWatts"`
+	DeviceWatts      bool             `json:"deviceWatts"`
+	Distance         float64          `json:"distance"`
+	ElapsedTime      int              `json:"elapsedTime"`
+	EndIndex         int              `json:"endIndex"`
+	Hidden           bool             `json:"hidden"`
+	ID               int64            `json:"id"`
+	KomRank          *int             `json:"komRank,omitempty"`
+	MaxHeartRate     float64          `json:"maxHeartRate"`
+	MovingTime       int              `json:"movingTime"`
+	Name             string           `json:"name"`
+	PrRank           *int             `json:"prRank,omitempty"`
+	ResourceState    int              `json:"resourceState"`
+	Segment          StravaSegmentDto `json:"segment"`
+	StartDate        string           `json:"startDate"`
+	StartDateLocal   string           `json:"startDateLocal"`
+	StartIndex       int              `json:"startIndex"`
+	Visibility       *string          `json:"visibility,omitempty"`
+}
+
+type StravaSegmentDto struct {
+	ActivityType  string    `json:"activityType"`
+	AverageGrade  float64   `json:"averageGrade"`
+	City          *string   `json:"city,omitempty"`
+	ClimbCategory int       `json:"climbCategory"`
+	Country       *string   `json:"country,omitempty"`
+	Distance      float64   `json:"distance"`
+	ElevationHigh float64   `json:"elevationHigh"`
+	ElevationLow  float64   `json:"elevationLow"`
+	EndLatLng     []float64 `json:"endLatLng"`
+	Hazardous     bool      `json:"hazardous"`
+	ID            int64     `json:"id"`
+	MaximumGrade  float64   `json:"maximumGrade"`
+	Name          string    `json:"name"`
+	IsPrivate     bool      `json:"isPrivate"`
+	ResourceState int       `json:"resourceState"`
+	Starred       bool      `json:"starred"`
+	StartLatLng   []float64 `json:"startLatLng"`
+	State         *string   `json:"state,omitempty"`
+}
+
 type StreamDto struct {
 	Distance       []float64   `json:"distance"`
 	Time           []int       `json:"time"`
 	Latlng         [][]float64 `json:"latlng,omitempty"`
 	Heartrate      []int       `json:"heartrate,omitempty"`
+	Cadence        []int       `json:"cadence,omitempty"`
 	Moving         []bool      `json:"moving,omitempty"`
 	Altitude       []float64   `json:"altitude,omitempty"`
 	Watts          []float64   `json:"watts,omitempty"`

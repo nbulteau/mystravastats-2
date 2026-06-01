@@ -27,6 +27,7 @@ export interface Stream {
     distance: number[];
     time: number[];
     heartrate: number[] | null;
+    cadence: number[] | null;
     moving: boolean[] | null;
     altitude: number[] | null;
     latlng: number[][] | null;
@@ -48,6 +49,7 @@ export interface DetailedActivity {
     id: number;
     kilojoules: number;
     maxSpeed: number;
+    maxWatts: number;
     movingTime: number;
     name: string;
     startDate: string;
@@ -56,10 +58,14 @@ export interface DetailedActivity {
     totalDescent: number;
     totalElevationGain: number;
     type: string;
+    sportType: string;
     weightedAverageWatts: number;
     stream: Stream;
     activityEfforts: ActivityEffort[];
+    stravaSegmentEfforts: StravaSegmentEffort[];
     activityComparison?: ActivityComparison | null;
+    calories?: number;
+    sufferScore?: number | null;
 }
 
 export interface ActivityComparison {
@@ -137,4 +143,48 @@ export interface ActivityEffort {
     idxEnd: number;
     averagePower: number | null;
     description: string;
+}
+
+export interface StravaSegmentEffort {
+    averageCadence: number;
+    averageHeartRate: number;
+    averageWatts: number;
+    deviceWatts: boolean;
+    distance: number;
+    elapsedTime: number;
+    endIndex: number;
+    hidden: boolean;
+    id: number;
+    komRank?: number | null;
+    maxHeartRate: number;
+    movingTime: number;
+    name: string;
+    prRank?: number | null;
+    resourceState: number;
+    segment: StravaSegment;
+    startDate: string;
+    startDateLocal: string;
+    startIndex: number;
+    visibility?: string | null;
+}
+
+export interface StravaSegment {
+    activityType: string;
+    averageGrade: number;
+    city?: string | null;
+    climbCategory: number;
+    country?: string | null;
+    distance: number;
+    elevationHigh: number;
+    elevationLow: number;
+    endLatLng: number[];
+    hazardous: boolean;
+    id: number;
+    maximumGrade: number;
+    name: string;
+    isPrivate: boolean;
+    resourceState: number;
+    starred: boolean;
+    startLatLng: number[];
+    state?: string | null;
 }

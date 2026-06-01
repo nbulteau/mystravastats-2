@@ -233,4 +233,73 @@ class StravaActivityProviderTest {
         verify(exactly = 1) { api.getDetailedActivityFailFastOnRateLimit(activityId) }
         verify(exactly = 1) { repository.saveDetailedActivityToCache(any(), 2022, any()) }
     }
+
+    @Test
+    fun `getDetailedActivity enriches cached detailed activity with summary sport type`() {
+        // GIVEN
+        val repository = mockk<ILocalStorageProvider>(relaxed = true)
+        val api = mockk<IStravaApi>(relaxed = true)
+        coEvery { repository.readStravaAuthentication(any()) } returns Triple("12345", "secret", false)
+
+        val activityId = 18725457442L
+        val cachedDetailed = StravaActivity(
+            id = activityId,
+            name = "cached-detail",
+            startDate = "2026-05-31T07:14:44Z",
+            athlete = AthleteRef(1),
+            averageSpeed = 0.0,
+            commute = false,
+            distance = 1000.0,
+            elapsedTime = 300,
+            elevHigh = 0.0,
+            maxSpeed = 0.0f,
+            movingTime = 290,
+            startDateLocal = "2026-05-31T09:14:44Z",
+            startLatlng = null,
+            totalElevationGain = 10.0,
+            type = "Ride",
+            uploadId = 12345L,
+        ).toStravaDetailedActivity().copy(sportType = "Ride")
+
+        every { repository.loadDetailedActivityFromCache(any(), any(), activityId) } returns cachedDetailed
+        every { repository.loadActivitiesStreamsFromCache(any(), any(), any()) } returns null
+
+        val provider = StravaActivityProvider(
+            storageProvider = repository,
+            stravaApiFactory = { _, _ -> api },
+            stravaApi = api,
+        )
+        val activity = StravaActivity(
+            id = activityId,
+            name = "Sortie Gravel avec Clement",
+            startDate = "2026-05-31T07:14:44Z",
+            athlete = AthleteRef(1),
+            averageSpeed = 0.0,
+            commute = false,
+            distance = 1000.0,
+            elapsedTime = 300,
+            elevHigh = 0.0,
+            maxSpeed = 0.0f,
+            movingTime = 290,
+            startDateLocal = "2026-05-31T09:14:44Z",
+            startLatlng = null,
+            totalElevationGain = 10.0,
+            type = "Ride",
+            _sportType = "GravelRide",
+            uploadId = 12345L,
+        )
+        val activitiesProp = AbstractActivityProvider::class.memberProperties
+            .filterIsInstance<KMutableProperty<*>>()
+            .first { it.name == "activities" }
+        activitiesProp.isAccessible = true
+        activitiesProp.setter.call(provider, listOf(activity))
+
+        // WHEN
+        val detailed = provider.getDetailedActivity(activityId)
+
+        // THEN
+        assertNotNull(detailed, "Expected cached detailed activity")
+        assertEquals("Ride", detailed!!.type)
+        assertEquals("GravelRide", detailed.sportType)
+    }
 }

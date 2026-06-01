@@ -47,6 +47,8 @@ data class DetailedActivityDto(
     val name: String,
     @param:Schema(description = "List of activity efforts.")
     val activityEfforts: List<ActivityEffortDto>,
+    @param:Schema(description = "List of Strava segment efforts for this activity.")
+    val stravaSegmentEfforts: List<SegmentEffortDto>,
     @param:Schema(description = "The time at which the activity was started.")
     val startDate: String,
     @param:Schema(description = "The time at which the activity was started in the local timezone.")
@@ -63,6 +65,8 @@ data class DetailedActivityDto(
     val totalElevationGain: Int,
     @param:Schema(description = "Activity type")
     val type: String,
+    @param:Schema(description = "Specific sport type when Strava provides one.")
+    val sportType: String,
     @param:Schema(description = "Weighted average power output in watts during this activity. Rides only.")
     val weightedAverageWatts: Int,
     @param:Schema(description = "Similar effort comparison for this activity.")
@@ -153,6 +157,7 @@ fun StravaDetailedActivity.toDto(activityComparison: ActivityComparison? = null)
         movingTime = activityForDto.movingTime,
         name = activityForDto.name,
         activityEfforts = activityEfforts.map { activityEffort -> activityEffort.toDto() },
+        stravaSegmentEfforts = activityForDto.segmentEfforts.map { segmentEffort -> segmentEffort.toDto() },
         startDate = activityForDto.startDate,
         startDateLocal = activityForDto.startDateLocal,
         startLatlng = activityForDto.startLatLng.finiteValues(),
@@ -160,6 +165,7 @@ fun StravaDetailedActivity.toDto(activityComparison: ActivityComparison? = null)
         totalDescent = activityForDto.elevLow.finiteOrZero(),
         totalElevationGain = activityForDto.totalElevationGain,
         type = activityForDto.type,
+        sportType = activityForDto.sportType.ifBlank { activityForDto.type },
         weightedAverageWatts = activityForDto.weightedAverageWatts,
         stream = activityForDto.stream?.toDto(),
         activityComparison = activityComparison?.toDto(),
@@ -235,6 +241,7 @@ data class StreamDto(
     val time: List<Int>,
     val latlng: List<List<Double>>? = null,
     val heartrate: List<Int>? = null,
+    val cadence: List<Int>? = null,
     val moving: List<Boolean>? = null,
     val altitude: List<Double>? = null,
     val watts: List<Int?>? = null,
@@ -281,6 +288,7 @@ fun Stream.toDto(): StreamDto {
         time = this.time.data,
         latlng = this.latlng.data.finiteCoordinateValues(),
         heartrate = this.heartrate?.data,
+        cadence = this.cadence?.data,
         moving = this.moving?.data,
         altitude = this.altitude?.data?.finiteValues(),
         watts = this.watts?.data,

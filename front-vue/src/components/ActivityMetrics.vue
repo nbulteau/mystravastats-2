@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { DetailedActivity } from '@/models/activity.model';
 import { computed } from 'vue';
-import { formatSpeedWithUnit, formatTime } from "@/utils/formatters";
+import { formatActivityTypeLabel, formatSpeedWithUnit, formatTime } from "@/utils/formatters";
 import { useAthleteStore } from "@/stores/athlete";
 import { useStatisticsStore } from "@/stores/statistics";
 import TooltipHint from "@/components/TooltipHint.vue";
@@ -18,8 +18,11 @@ const props = defineProps<{
 const athleteStore = useAthleteStore();
 const statisticsStore = useStatisticsStore();
 
+const effectiveActivityType = computed(() => props.activity.sportType || props.activity.type || "Ride");
+const activityTypeLabel = computed(() => formatActivityTypeLabel(effectiveActivityType.value));
+
 const cadenceUnit = computed(() => {
-  if (props.activity.type?.endsWith("Run")) return "spm";
+  if (effectiveActivityType.value.endsWith("Run")) return "spm";
   return "rpm";
 });
 
@@ -27,7 +30,7 @@ const averageCadenceDisplay = computed(() => {
   const cadence = props.activity.averageCadence ?? 0;
   if (cadence <= 0) return null;
 
-  if (props.activity.type?.endsWith("Run")) {
+  if (effectiveActivityType.value.endsWith("Run")) {
     return cadence * 2;
   }
 
@@ -58,9 +61,9 @@ const activityHeartRateZones = computed(() => {
 <template>
   <div id="activity-details-container">
     <div id="activity-details">
-      <h3>Basic Information</h3>
+      <h3>Activity Summary</h3>
       <ul>
-        <li><strong>Type:</strong> {{ activity.type }}</li>
+        <li><strong>Sport:</strong> {{ activityTypeLabel }}</li>
         <li>
           <strong>Date:</strong>
           {{
@@ -96,14 +99,14 @@ const activityHeartRateZones = computed(() => {
             Average Speed:
             <TooltipHint :text="getMetricTooltip('Average Speed') ?? ''" />
           </strong>
-          {{ formatSpeedWithUnit(activity.averageSpeed ?? 0, activity.type ?? "Ride") }}
+          {{ formatSpeedWithUnit(activity.averageSpeed ?? 0, effectiveActivityType) }}
         </li>
         <li>
           <strong>
             Max Speed:
             <TooltipHint :text="getMetricTooltip('Max Speed') ?? ''" />
           </strong>
-          {{ formatSpeedWithUnit(activity.maxSpeed ?? 0, activity.type ?? "Ride") }}
+          {{ formatSpeedWithUnit(activity.maxSpeed ?? 0, effectiveActivityType) }}
         </li>
         <li v-if="averageCadenceDisplay !== null">
           <strong>

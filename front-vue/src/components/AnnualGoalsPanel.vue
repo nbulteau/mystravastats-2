@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, watch } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import type {
   AnnualGoalMetric,
   AnnualGoalProgress,
@@ -53,6 +53,7 @@ const targetInputs = reactive<Record<AnnualGoalMetric, string>>({
   ACTIVE_DAYS: "",
   EDDINGTON: "",
 });
+const isExpanded = ref(false);
 
 const isYearSelected = computed(() => props.selectedYear !== "All years");
 
@@ -247,40 +248,60 @@ function progressWidth(row: AnnualGoalProgress): string {
           {{ selectedYear }} · {{ activityType.split("_").join(" + ") }}
         </p>
       </div>
-      <button
-        type="button"
-        class="btn btn-primary btn-sm annual-goals__save"
-        :disabled="!isYearSelected || saving"
-        @click="saveGoals"
-      >
-        {{ saving ? "Enregistrement..." : "Enregistrer" }}
-      </button>
+      <div class="annual-goals__actions">
+        <button
+          type="button"
+          class="btn btn-outline-secondary btn-sm annual-goals__toggle"
+          :aria-expanded="isExpanded"
+          aria-controls="annual-goals-content"
+          @click="isExpanded = !isExpanded"
+        >
+          <i
+            :class="isExpanded ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'"
+            aria-hidden="true"
+          />
+          {{ isExpanded ? "Masquer" : "Afficher" }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary btn-sm annual-goals__save"
+          :disabled="!isYearSelected || saving"
+          @click="saveGoals"
+        >
+          {{ saving ? "Enregistrement..." : "Enregistrer" }}
+        </button>
+      </div>
     </div>
 
     <div
-      v-if="!isYearSelected"
-      class="chart-empty annual-goals__empty"
+      v-if="isExpanded"
+      id="annual-goals-content"
+      class="annual-goals__content"
     >
-      Choisis une année pour suivre des objectifs annuels.
-    </div>
-
-    <div v-else>
       <div
-        v-if="error"
-        class="annual-goals__error"
+        v-if="!isYearSelected"
+        class="chart-empty annual-goals__empty"
       >
-        {{ error }}
+        Choisis une année pour suivre des objectifs annuels.
       </div>
 
-      <div class="annual-goals__table">
-        <div class="annual-goals__row annual-goals__row--head">
-          <span>Objectif</span>
-          <span>Réalisé</span>
-          <span>Cible</span>
-          <span>Projection</span>
-          <span>Rythme</span>
-          <span>Statut</span>
+      <div v-else>
+        <div
+          v-if="error"
+          class="annual-goals__error"
+        >
+          {{ error }}
         </div>
+
+        <div class="annual-goals__table">
+          <div class="annual-goals__row annual-goals__row--head">
+            <span>Objectif</span>
+            <span>Réalisé</span>
+            <span>Cible</span>
+            <span>Projection</span>
+            <span>Rythme</span>
+            <span>Statut</span>
+          </div>
 
         <div
           v-for="row in rows"
@@ -353,6 +374,7 @@ function progressWidth(row: AnnualGoalProgress): string {
             </span>
           </div>
         </div>
+        </div>
       </div>
     </div>
   </section>
@@ -377,9 +399,26 @@ function progressWidth(row: AnnualGoalProgress): string {
   font-size: 0.82rem;
 }
 
+.annual-goals__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.annual-goals__toggle,
 .annual-goals__save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   min-width: 112px;
   white-space: nowrap;
+}
+
+.annual-goals__content {
+  display: grid;
+  gap: 10px;
 }
 
 .annual-goals__empty {
@@ -582,6 +621,11 @@ function progressWidth(row: AnnualGoalProgress): string {
   }
 
   .annual-goals__save {
+    width: 100%;
+  }
+
+  .annual-goals__actions,
+  .annual-goals__toggle {
     width: 100%;
   }
 

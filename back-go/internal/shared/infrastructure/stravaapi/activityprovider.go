@@ -190,6 +190,8 @@ func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *s
 		stravaDetailedActivity = activity.ToStravaDetailedActivity()
 	}
 
+	stravaDetailedActivity = enrichDetailedActivityFromSummary(stravaDetailedActivity, activity)
+
 	if api != nil && stream == nil {
 		stream, err := api.GetActivityStream(*activity)
 		if err == nil && stream != nil {
@@ -204,6 +206,25 @@ func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *s
 	}
 
 	return stravaDetailedActivity
+}
+
+func enrichDetailedActivityFromSummary(detailedActivity *strava.DetailedActivity, activity *strava.Activity) *strava.DetailedActivity {
+	if detailedActivity == nil || activity == nil {
+		return detailedActivity
+	}
+
+	enriched := *detailedActivity
+	if strings.TrimSpace(enriched.Type) == "" {
+		enriched.Type = activity.Type
+	}
+	if sportType := strings.TrimSpace(activity.SportType); sportType != "" {
+		enriched.SportType = sportType
+	} else if strings.TrimSpace(enriched.SportType) == "" {
+		enriched.SportType = activity.Type
+	}
+	enriched.Commute = activity.Commute
+
+	return &enriched
 }
 
 func (provider *StravaActivityProvider) GetCachedDetailedActivity(activityId int64) *strava.DetailedActivity {

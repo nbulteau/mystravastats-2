@@ -325,6 +325,63 @@ func TestToDetailedActivityDto_SanitizesNonFiniteValues(t *testing.T) {
 	}
 }
 
+func TestToDetailedActivityDto_ExposesStravaSegmentEfforts(t *testing.T) {
+	// GIVEN
+	prRank := 2
+	detailedActivity := &strava.DetailedActivity{
+		Id:        54,
+		Name:      "Segment detail",
+		Type:      "Ride",
+		SportType: "GravelRide",
+		SegmentEfforts: []strava.SegmentEffort{
+			{
+				Id:               1001,
+				Name:             "Local sprint",
+				Distance:         520.5,
+				ElapsedTime:      75,
+				MovingTime:       74,
+				StartIndex:       10,
+				EndIndex:         85,
+				AverageWatts:     315.7,
+				AverageHeartRate: 165,
+				DeviceWatts:      true,
+				PrRank:           &prRank,
+				Segment: strava.Segment{
+					Id:            9001,
+					Name:          "Local sprint segment",
+					ActivityType:  "Ride",
+					AverageGrade:  4.2,
+					Distance:      520.5,
+					ElevationHigh: 120,
+					ElevationLow:  98,
+					Starred:       true,
+				},
+			},
+		},
+	}
+
+	// WHEN
+	dto := ToDetailedActivityDto(detailedActivity)
+
+	// THEN
+	if len(dto.StravaSegmentEfforts) != 1 {
+		t.Fatalf("expected one Strava segment effort, got %d", len(dto.StravaSegmentEfforts))
+	}
+	if dto.Type != "Ride" || dto.SportType != "GravelRide" {
+		t.Fatalf("expected type and sport type to be mapped, got type=%q sportType=%q", dto.Type, dto.SportType)
+	}
+	effort := dto.StravaSegmentEfforts[0]
+	if effort.Name != "Local sprint" || effort.Segment.Name != "Local sprint segment" {
+		t.Fatalf("expected segment names to be mapped, got %#v", effort)
+	}
+	if effort.StartIndex != 10 || effort.EndIndex != 85 {
+		t.Fatalf("expected stream indexes to be mapped, got start=%d end=%d", effort.StartIndex, effort.EndIndex)
+	}
+	if effort.AverageWatts != 315.7 || !effort.DeviceWatts || effort.PrRank == nil || *effort.PrRank != 2 {
+		t.Fatalf("expected power and rank fields to be mapped, got %#v", effort)
+	}
+}
+
 func TestToStreamDto_MapsValues(t *testing.T) {
 	// GIVEN
 	stream := &strava.Stream{
@@ -336,6 +393,7 @@ func TestToStreamDto_MapsValues(t *testing.T) {
 		}},
 		Moving:         &strava.MovingStream{Data: []bool{true, false}},
 		Altitude:       &strava.AltitudeStream{Data: []float64{100.5, 101.5}},
+		Cadence:        &strava.CadenceStream{Data: []int{82, 84}},
 		Watts:          &strava.PowerStream{Data: []float64{210.0, 220.0}},
 		VelocitySmooth: &strava.SmoothVelocityStream{Data: []float64{8.5, 8.8}},
 	}
@@ -358,6 +416,10 @@ func TestToStreamDto_MapsValues(t *testing.T) {
 
 	if dto.Watts[0] != 210.0 || dto.Watts[1] != 220.0 {
 		t.Fatalf("unexpected watts values: %.1f %.1f", dto.Watts[0], dto.Watts[1])
+	}
+
+	if dto.Cadence[0] != 82 || dto.Cadence[1] != 84 {
+		t.Fatalf("unexpected cadence values: %d %d", dto.Cadence[0], dto.Cadence[1])
 	}
 
 	if dto.VelocitySmooth[0] != 8.5 || dto.VelocitySmooth[1] != 8.8 {

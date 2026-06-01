@@ -371,6 +371,50 @@ func TestGetDetailedActivity_PersistsFallbackDetailedToDiskCache(t *testing.T) {
 	}
 }
 
+func TestGetDetailedActivity_EnrichesCachedDetailedWithSummarySportType(t *testing.T) {
+	// GIVEN
+	cacheDir := t.TempDir()
+	repo := localrepository.NewStravaRepository(cacheDir)
+	clientID := "123"
+	repo.InitLocalStorageForClientId(clientID)
+
+	activityID := int64(18725457442)
+	activityYear := 2026
+	repo.SaveDetailedActivityToCache(clientID, activityYear, strava.DetailedActivity{
+		Id:   activityID,
+		Name: "cached detail without sport type",
+		Type: "Ride",
+	})
+
+	provider := &StravaActivityProvider{
+		clientId:             clientID,
+		localStorageProvider: repo,
+		activities: []*strava.Activity{
+			{
+				Id:             activityID,
+				Name:           "Sortie Gravel avec Clement",
+				StartDateLocal: "2026-05-31T09:14:44Z",
+				StartDate:      "2026-05-31T07:14:44Z",
+				Type:           "Ride",
+				SportType:      "GravelRide",
+				UploadId:       1,
+			},
+		},
+	}
+	provider.indexActivities()
+
+	// WHEN
+	detailed := provider.GetDetailedActivity(activityID)
+
+	// THEN
+	if detailed == nil {
+		t.Fatal("expected cached detailed activity")
+	}
+	if detailed.Type != "Ride" || detailed.SportType != "GravelRide" {
+		t.Fatalf("expected enriched type Ride and sport type GravelRide, got type=%q sportType=%q", detailed.Type, detailed.SportType)
+	}
+}
+
 func TestGetDetailedActivity_PersistsDetailedFetchedWithoutBaseActivity(t *testing.T) {
 	// GIVEN
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

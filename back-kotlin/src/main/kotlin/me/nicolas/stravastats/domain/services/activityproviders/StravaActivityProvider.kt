@@ -207,13 +207,22 @@ class StravaActivityProvider(
         }
 
         // copy() preserves immutability — stream is now a val constructor parameter
-        val enrichedActivity = stravaDetailedActivity.copy(stream = stream)
+        val enrichedActivity = stravaDetailedActivity
+            .withSummaryMetadata(activity)
+            .copy(stream = stream)
         if (!cacheHit) {
             storageProvider.saveDetailedActivityToCache(clientId, year, enrichedActivity)
         }
 
         return enrichedActivity
     }
+
+    private fun StravaDetailedActivity.withSummaryMetadata(activity: StravaActivity): StravaDetailedActivity =
+        copy(
+            type = type.ifBlank { activity.type },
+            sportType = activity.sportType.ifBlank { sportType.ifBlank { activity.type } },
+            commute = activity.commute,
+        )
 
     override fun getCachedDetailedActivity(activityId: Long): StravaDetailedActivity? {
         val activity = getActivity(activityId) ?: return null

@@ -219,7 +219,7 @@ fun StravaActivity.toStravaDetailedActivity(): StravaDetailedActivity {
         segmentEfforts = listOf(),
         segmentLeaderboardOptOut = false,
         splitsMetric = listOf(),
-        sportType = this.type,
+        sportType = this.sportType,
         startDate = this.startDate,
         startDateLocal = this.startDateLocal,
         startLatLng = this.startLatlng ?: listOf(),

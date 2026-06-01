@@ -42,6 +42,8 @@
             <button
               type="button"
               :class="['btn btn-sm', activityVersion === 'corrected' ? 'btn-primary' : 'btn-outline-secondary']"
+              :disabled="!canSelectCorrectedVersion"
+              :title="canSelectCorrectedVersion ? 'Show corrected data' : 'No correction applied'"
               @click="switchActivityVersion('corrected')"
             >
               Corrected
@@ -78,12 +80,155 @@
       </section>
 
       <section
+        v-if="activity"
+        class="detail-insight-grid"
+      >
+        <article class="detail-card detail-panel">
+          <header class="detail-panel__header">
+            <h2>Activity Summary</h2>
+          </header>
+          <dl class="detail-metric-list">
+            <div
+              v-for="row in summaryRows"
+              :key="row.label"
+              class="detail-metric-row"
+            >
+              <dt>{{ row.label }}</dt>
+              <dd>
+                <strong>{{ row.value }}</strong>
+                <small v-if="row.hint">{{ row.hint }}</small>
+              </dd>
+            </div>
+          </dl>
+        </article>
+
+        <article class="detail-card detail-panel">
+          <header class="detail-panel__header">
+            <h2>Data & Source</h2>
+          </header>
+          <dl class="detail-metric-list">
+            <div
+              v-for="row in dataSourceRows"
+              :key="row.label"
+              class="detail-metric-row"
+              :class="row.tone ? `detail-metric-row--${row.tone}` : undefined"
+            >
+              <dt>{{ row.label }}</dt>
+              <dd>
+                <strong>{{ row.value }}</strong>
+                <small v-if="row.hint">{{ row.hint }}</small>
+              </dd>
+            </div>
+          </dl>
+          <div
+            v-if="versionDifferenceRows.length > 0"
+            class="detail-version-diff"
+          >
+            <h3>Differences vs {{ comparisonVersionLabel }}</h3>
+            <ul>
+              <li
+                v-for="row in versionDifferenceRows"
+                :key="row.label"
+              >
+                <span>{{ row.label }}</span>
+                <strong>{{ row.value }}</strong>
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <article class="detail-card detail-panel">
+          <header class="detail-panel__header">
+            <h2>Power</h2>
+          </header>
+          <template v-if="powerRows.length > 0 || bestPowerRows.length > 0">
+            <dl class="detail-metric-list">
+              <div
+                v-for="row in powerRows"
+                :key="row.label"
+                class="detail-metric-row"
+              >
+                <dt>{{ row.label }}</dt>
+                <dd>
+                  <strong>{{ row.value }}</strong>
+                  <small v-if="row.hint">{{ row.hint }}</small>
+                </dd>
+              </div>
+            </dl>
+            <div
+              v-if="bestPowerRows.length > 0"
+              class="detail-best-grid"
+            >
+              <div
+                v-for="row in bestPowerRows"
+                :key="row.label"
+                class="detail-best-grid__item"
+              >
+                <span>{{ row.label }}</span>
+                <strong>{{ row.value }}</strong>
+              </div>
+            </div>
+          </template>
+          <p
+            v-else
+            class="detail-empty-state"
+          >
+            No usable power data.
+          </p>
+        </article>
+
+        <article class="detail-card detail-panel">
+          <header class="detail-panel__header">
+            <h2>Heart Rate</h2>
+          </header>
+          <dl
+            v-if="heartRateRows.length > 0"
+            class="detail-metric-list"
+          >
+            <div
+              v-for="row in heartRateRows"
+              :key="row.label"
+              class="detail-metric-row"
+            >
+              <dt>{{ row.label }}</dt>
+              <dd>
+                <strong>{{ row.value }}</strong>
+                <small v-if="row.hint">{{ row.hint }}</small>
+              </dd>
+            </div>
+          </dl>
+          <div
+            v-if="activityHeartRateZones"
+            class="detail-zone-bars"
+          >
+            <div
+              v-for="zone in activityHeartRateZones.zones"
+              :key="zone.zone"
+              class="detail-zone-bar"
+            >
+              <span>{{ zone.zone }}</span>
+              <div>
+                <i :style="{ width: `${zone.percentage}%` }" />
+              </div>
+              <strong>{{ zone.percentage.toFixed(0) }}%</strong>
+            </div>
+          </div>
+          <p
+            v-if="heartRateRows.length === 0 && !activityHeartRateZones"
+            class="detail-empty-state"
+          >
+            No heart rate data available.
+          </p>
+        </article>
+      </section>
+
+      <section
         v-if="activityComparison"
         class="detail-card detail-comparison"
       >
         <header class="detail-card__header">
           <div>
-            <h2>Similar effort</h2>
+            <h2>Similar Effort</h2>
             <p class="detail-comparison__subtitle">{{ comparisonScopeLabel }}</p>
           </div>
           <div class="detail-card__header-actions">
@@ -91,7 +236,7 @@
               class="detail-comparison__status"
               :class="comparisonStatusClass"
             >
-              {{ activityComparison.label }}
+              {{ activityComparisonDisplayLabel }}
             </span>
             <button
               type="button"
@@ -137,7 +282,7 @@
             class="detail-comparison__body"
           >
             <div class="detail-comparison__table-wrap">
-              <h3>Closest activities</h3>
+              <h3>Closest Activities</h3>
               <table class="detail-comparison__table">
                 <thead>
                   <tr>
@@ -160,14 +305,14 @@
                     </td>
                     <td>{{ (similar.distance / 1000).toFixed(1) }} km</td>
                     <td>{{ Math.round(similar.elevationGain) }} m</td>
-                    <td>{{ formatSpeedWithUnit(similar.averageSpeed, activity?.type ?? "Ride") }}</td>
+                    <td>{{ formatSpeedWithUnit(similar.averageSpeed, effectiveActivityType) }}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
             <div class="detail-comparison__segments">
-              <h3>Common segments</h3>
+              <h3>Common Segments</h3>
               <ul v-if="activityComparison.commonSegments.length > 0">
                 <li
                   v-for="segment in activityComparison.commonSegments"
@@ -210,7 +355,7 @@
       <section class="detail-map-layout">
         <article class="detail-card detail-card--map">
           <header class="detail-card__header">
-            <h2>Route map</h2>
+            <h2>Route Map</h2>
           </header>
           <div id="map-container" ref="mapContainerRef" class="detail-map" />
         </article>
@@ -237,33 +382,104 @@
               <span>{{ selectedEffortSummary.speed }}</span>
               <span>{{ selectedEffortSummary.gradient }}</span>
               <span>{{ selectedEffortSummary.elevation }}</span>
+              <span v-if="selectedEffortSummary.power">{{ selectedEffortSummary.power }}</span>
             </div>
           </div>
+          <div class="detail-effort-tabs" role="tablist" aria-label="Effort source">
+            <button
+              type="button"
+              :class="['detail-effort-tab', { 'detail-effort-tab--active': effortPanelTab === 'computed' }]"
+              role="tab"
+              :aria-selected="effortPanelTab === 'computed'"
+              @click="effortPanelTab = 'computed'"
+            >
+              Efforts
+              <span>{{ computedEffortOptions.length }}</span>
+            </button>
+            <button
+              type="button"
+              :class="['detail-effort-tab', { 'detail-effort-tab--active': effortPanelTab === 'strava' }]"
+              role="tab"
+              :aria-selected="effortPanelTab === 'strava'"
+              @click="effortPanelTab = 'strava'"
+            >
+              Segments Strava
+              <span>{{ stravaSegmentOptions.length }}</span>
+            </button>
+          </div>
+          <div
+            v-if="effortPanelTab === 'strava'"
+            class="detail-effort-filters"
+          >
+            <label>
+              <span>Search</span>
+              <input
+                v-model="segmentSearch"
+                type="search"
+                placeholder="Segment name"
+              >
+            </label>
+            <label>
+              <span>Filter</span>
+              <select v-model="segmentFilter">
+                <option value="all">All</option>
+                <option value="pr">PR only</option>
+                <option value="starred">Starred</option>
+                <option value="climbs">Climbs</option>
+                <option value="descents">Descents</option>
+              </select>
+            </label>
+            <label>
+              <span>Sort</span>
+              <select v-model="segmentSort">
+                <option value="default">Strava order</option>
+                <option value="name">Name</option>
+                <option value="duration">Duration</option>
+                <option value="power">Power</option>
+                <option value="grade">Grade</option>
+              </select>
+            </label>
+          </div>
           <div id="radio-container" class="radio-scroll-container">
-            <form>
+            <form v-if="visibleEffortOptions.length > 0">
               <div
-                v-for="option in radioOptions"
-                :key="option.value"
+                v-for="option in visibleEffortOptions"
+                :key="option.id"
                 class="effort-option"
-                :class="{ 'effort-option--active': selectedOption === option.value }"
+                :class="{ 'effort-option--active': selectedOption === option.id }"
               >
                 <input
-                  :id="option.value"
+                  :id="option.id"
                   v-model="selectedOption"
                   type="radio"
-                  :value="option.value"
+                  :value="option.id"
                   class="radio-input"
-                  @click="handleRadioClick(option.value)"
+                  @click="handleRouteEffortClick(option.id)"
                 >
                 <label
                   ref="radioLabels"
-                  :for="option.value"
+                  :for="option.id"
                   class="radio-label"
-                  :class="{ 'radio-label--active': selectedOption === option.value }"
+                  :class="{ 'radio-label--active': selectedOption === option.id }"
                   :title="option.description"
-                >{{ option.label }}</label>
+                >
+                  <span>{{ option.label }}</span>
+                  <small>{{ option.description }}</small>
+                  <span
+                    v-if="option.badges.length"
+                    class="effort-option__badges"
+                  >
+                    <span
+                      v-for="badge in option.badges"
+                      :key="badge"
+                    >{{ badge }}</span>
+                  </span>
+                </label>
               </div>
             </form>
+            <p v-else class="detail-empty-state">
+              No {{ effortPanelTab === "strava" ? "Strava segment" : "computed effort" }} available.
+            </p>
           </div>
         </aside>
       </section>
@@ -275,11 +491,47 @@
             <span v-if="selectedEffort" class="detail-chip detail-chip--active">
               {{ selectedEffort.label }}
             </span>
-            <div v-if="hasPowerData" class="switch-container">
-              <switch-button
-                v-model="showPowerCurve"
-                button-text="Show Power curve"
-              />
+            <div class="detail-chart-controls" aria-label="Profile series">
+              <label :class="{ 'detail-chart-toggle--disabled': !hasSpeedData }">
+                <input
+                  v-model="chartSeriesVisibility.speed"
+                  type="checkbox"
+                  :disabled="!hasSpeedData"
+                >
+                Speed
+              </label>
+              <label :class="{ 'detail-chart-toggle--disabled': !hasAltitudeData }">
+                <input
+                  v-model="chartSeriesVisibility.altitude"
+                  type="checkbox"
+                  :disabled="!hasAltitudeData"
+                >
+                Altitude
+              </label>
+              <label :class="{ 'detail-chart-toggle--disabled': !hasPowerData }">
+                <input
+                  v-model="chartSeriesVisibility.power"
+                  type="checkbox"
+                  :disabled="!hasPowerData"
+                >
+                Power
+              </label>
+              <label :class="{ 'detail-chart-toggle--disabled': !hasHeartRateData }">
+                <input
+                  v-model="chartSeriesVisibility.heartrate"
+                  type="checkbox"
+                  :disabled="!hasHeartRateData"
+                >
+                Heart rate
+              </label>
+              <label :class="{ 'detail-chart-toggle--disabled': !hasCadenceData }">
+                <input
+                  v-model="chartSeriesVisibility.cadence"
+                  type="checkbox"
+                  :disabled="!hasCadenceData"
+                >
+                Cadence
+              </label>
             </div>
           </div>
         </header>
@@ -305,12 +557,6 @@
         />
       </section>
 
-      <section class="detail-card">
-        <ActivityMetrics
-          v-if="activity"
-          :activity="activity"
-        />
-      </section>
     </div>
   </template>
 </template>
@@ -319,17 +565,20 @@
 import { Tooltip } from "bootstrap";
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import type { ActivityEffort, DetailedActivity } from "@/models/activity.model";
-import { formatSpeedWithUnit, formatTime } from "@/utils/formatters";
+import type { DetailedActivity, StravaSegmentEffort } from "@/models/activity.model";
+import { formatActivityTypeLabel, formatSpeedWithUnit, formatTime } from "@/utils/formatters";
 import { useContextStore } from "@/stores/context.js";
 import { useAthleteStore } from "@/stores/athlete";
+import { useStatisticsStore } from "@/stores/statistics";
+import {
+  computeHeartRateZoneDistribution,
+  resolveHeartRateZoneSettings,
+} from "@/utils/heart-rate-zones";
 import { ErrorService } from "@/services/error.service";
 import type { Options, SeriesAreaOptions, SeriesLineOptions } from "highcharts";
 import Highcharts from "highcharts";
 import { Chart } from "highcharts-vue";
-import ActivityMetrics from "@/components/ActivityMetrics.vue";
 import PowerDistributionChart from "@/components/charts/PowerDistributionChart.vue";
-import SwitchButton from '@/components/SwitchButton.vue';
 import PowerCurveDetailsChart from "@/components/charts/PowerCurveDetailsChart.vue";
 
 // Import the leaflet library
@@ -357,16 +606,15 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-const showPowerCurve = ref(false);
-
-const hasPowerData = computed(() => {
-  const powerData = activity.value?.stream?.watts;
-
-  return powerData && powerData.length > 0;
-});
+const speedCurveColor = "#2563eb";
+const altitudeCurveColor = "#cbd5e1";
+const powerCurveColor = "#8b1e3f";
+const heartRateCurveColor = "#dc2626";
+const cadenceCurveColor = "#047857";
 
 const contextStore = useContextStore();
 const athleteStore = useAthleteStore();
+const statisticsStore = useStatisticsStore();
 
 const route = useRoute();
 
@@ -374,7 +622,8 @@ const activityId = Array.isArray(route.params.id) ? route.params.id[0] : route.p
 
 
 const activity = ref<DetailedActivity | null>(null);
-const activityVersion = ref<"corrected" | "raw">("corrected");
+const comparisonVersionActivity = ref<DetailedActivity | null>(null);
+const activityVersion = ref<"corrected" | "raw">("raw");
 const loadError = ref<string | null>(null);
 const loadWarning = ref<string | null>(null);
 const similarEffortExpanded = ref(false);
@@ -386,9 +635,73 @@ const selectedPolyline = ref<L.Polyline | null>(null);
 const hoverMarker = ref<L.Marker | null>(null);
 const lastHoveredPointIndex = ref<number | null>(null);
 
-const radioOptions = ref<{ label: string; value: string; description: string }[]>([]);
+const chartSeriesVisibility = reactive({
+  speed: true,
+  altitude: true,
+  power: false,
+  heartrate: false,
+  cadence: false,
+});
 
+const hasSpeedData = computed(() => {
+  const stream = activity.value?.stream;
+  return Boolean(stream?.velocitySmooth?.length && stream.distance?.length);
+});
+
+const hasAltitudeData = computed(() => {
+  const stream = activity.value?.stream;
+  return Boolean(stream?.altitude?.length && stream.distance?.length);
+});
+
+const hasPowerData = computed(() => {
+  const stream = activity.value?.stream;
+  return Boolean(stream?.watts?.length && stream.distance?.length);
+});
+
+const hasHeartRateData = computed(() => {
+  const stream = activity.value?.stream;
+  return Boolean(stream?.heartrate?.length && stream.distance?.length);
+});
+
+const hasCadenceData = computed(() => {
+  const stream = activity.value?.stream;
+  return Boolean(stream?.cadence?.length && stream.distance?.length);
+});
+
+type EffortPanelTab = "computed" | "strava";
+type SegmentFilter = "all" | "pr" | "starred" | "climbs" | "descents";
+type SegmentSort = "default" | "name" | "duration" | "power" | "grade";
+
+type RouteEffortOption = {
+  id: string;
+  label: string;
+  description: string;
+  distance: number;
+  seconds: number;
+  idxStart: number;
+  idxEnd: number;
+  deltaAltitude?: number | null;
+  averagePower?: number | null;
+  averageHeartrate?: number | null;
+  averageCadence?: number | null;
+  grade?: number | null;
+  badges: string[];
+  source: EffortPanelTab;
+};
+
+type RouteEffortDescriptionInput = {
+  distance: number;
+  seconds: number;
+  deltaAltitude?: number | null;
+  averagePower?: number | null;
+  grade?: number | null;
+};
+
+const effortPanelTab = ref<EffortPanelTab>("computed");
 const selectedOption = ref<string | null>(null);
+const segmentSearch = ref("");
+const segmentFilter = ref<SegmentFilter>("all");
+const segmentSort = ref<SegmentSort>("default");
 
 const radioLabels = ref<HTMLElement[]>([]); // Ref to hold radio labels
 
@@ -398,14 +711,107 @@ type SelectedEffortSummary = {
   speed: string;
   gradient: string;
   elevation: string;
+  power?: string;
 };
 
-const selectedEffort = computed<ActivityEffort | null>(() => {
-  if (!activity.value?.activityEfforts || !selectedOption.value) {
+const computedEffortOptions = computed<RouteEffortOption[]>(() => {
+  return (activity.value?.activityEfforts ?? []).map((effort) => ({
+    id: effort.id,
+    label: effort.label,
+    description: formatRouteEffortDescription(effort),
+    distance: effort.distance,
+    seconds: effort.seconds,
+    idxStart: effort.idxStart,
+    idxEnd: effort.idxEnd,
+    deltaAltitude: effort.deltaAltitude,
+    averagePower: effort.averagePower,
+    badges: [],
+    source: "computed",
+  }));
+});
+
+const stravaSegmentOptions = computed<RouteEffortOption[]>(() => {
+  return (activity.value?.stravaSegmentEfforts ?? []).map((effort) => {
+    const badges = [
+      effort.segment.starred ? "Starred" : null,
+      effort.prRank ? `PR #${effort.prRank}` : null,
+      effort.komRank ? `KOM #${effort.komRank}` : null,
+      effort.hidden ? "Hidden" : null,
+    ].filter((badge): badge is string => Boolean(badge));
+
+    return {
+      id: `strava-${effort.id}`,
+      label: effort.segment.name || effort.name,
+      description: formatStravaSegmentDescription(effort),
+      distance: effort.distance,
+      seconds: effort.elapsedTime,
+      idxStart: effort.startIndex,
+      idxEnd: effort.endIndex,
+      deltaAltitude: effort.segment.elevationHigh - effort.segment.elevationLow,
+      averagePower: effort.averageWatts > 0 ? effort.averageWatts : null,
+      averageHeartrate: effort.averageHeartRate > 0 ? effort.averageHeartRate : null,
+      averageCadence: effort.averageCadence > 0 ? effort.averageCadence : null,
+      grade: Number.isFinite(effort.segment.averageGrade) ? effort.segment.averageGrade : null,
+      badges,
+      source: "strava",
+    };
+  });
+});
+
+const filteredStravaSegmentOptions = computed<RouteEffortOption[]>(() => {
+  const search = segmentSearch.value.trim().toLowerCase();
+  let options = [...stravaSegmentOptions.value];
+
+  if (search) {
+    options = options.filter((option) =>
+      option.label.toLowerCase().includes(search) ||
+      option.description.toLowerCase().includes(search)
+    );
+  }
+
+  options = options.filter((option) => {
+    switch (segmentFilter.value) {
+      case "pr":
+        return option.badges.some((badge) => badge.startsWith("PR #"));
+      case "starred":
+        return option.badges.includes("Starred");
+      case "climbs":
+        return (option.grade ?? 0) > 0.5;
+      case "descents":
+        return (option.grade ?? 0) < -0.5;
+      default:
+        return true;
+    }
+  });
+
+  return options.sort((left, right) => {
+    switch (segmentSort.value) {
+      case "name":
+        return left.label.localeCompare(right.label);
+      case "duration":
+        return right.seconds - left.seconds;
+      case "power":
+        return (right.averagePower ?? 0) - (left.averagePower ?? 0);
+      case "grade":
+        return Math.abs(right.grade ?? 0) - Math.abs(left.grade ?? 0);
+      default:
+        return 0;
+    }
+  });
+});
+
+const visibleEffortOptions = computed<RouteEffortOption[]>(() => {
+  return effortPanelTab.value === "strava"
+    ? filteredStravaSegmentOptions.value
+    : computedEffortOptions.value;
+});
+
+const selectedEffort = computed<RouteEffortOption | null>(() => {
+  if (!selectedOption.value) {
     return null;
   }
 
-  return activity.value.activityEfforts.find(
+  return [...computedEffortOptions.value, ...stravaSegmentOptions.value].find(
     (effort) => effort.id === selectedOption.value
   ) ?? null;
 });
@@ -418,21 +824,32 @@ const selectedEffortSummary = computed<SelectedEffortSummary | null>(() => {
 
   const distanceInKm = effort.distance > 0 ? effort.distance / 1000 : 0;
   const speed = effort.seconds > 0 ? effort.distance / effort.seconds : 0;
-  const gradient = effort.distance > 0 ? (effort.deltaAltitude / effort.distance) * 100 : 0;
-  const elevationPrefix = effort.deltaAltitude >= 0 ? "D+" : "D-";
-
+  const deltaAltitude = effort.deltaAltitude ?? 0;
+  const gradient = effort.grade ?? (effort.distance > 0 ? (deltaAltitude / effort.distance) * 100 : 0);
+  const elevationPrefix = deltaAltitude >= 0 ? "D+" : "D-";
   return {
     duration: formatTime(effort.seconds),
     distance: `${distanceInKm.toFixed(2)} km`,
-    speed: formatSpeedWithUnit(speed, activity.value?.type ?? "Ride"),
-    gradient: `Gradient ${gradient.toFixed(1)}%`,
-    elevation: `${elevationPrefix} ${Math.abs(Math.round(effort.deltaAltitude))} m`,
+    speed: formatSpeedWithUnit(speed, effectiveActivityType.value),
+    gradient: `Grade ${gradient.toFixed(1)}%`,
+    elevation: `${elevationPrefix} ${Math.abs(Math.round(deltaAltitude))} m`,
+    power: effort.averagePower && effort.averagePower > 0
+      ? `Power ${Math.round(effort.averagePower)} W`
+      : undefined,
   };
 });
 
 const stravaActivityUrl = computed(() => `https://www.strava.com/activities/${activity.value?.id ?? activityId ?? ""}`);
-const activityTypeLabel = computed(() => activity.value?.type ?? "Activity");
-const activityVersionLabel = computed(() => activityVersion.value === "corrected" ? "Corrected" : "Raw");
+const effectiveActivityType = computed(() => resolveEffectiveActivityType(activity.value));
+const activityTypeLabel = computed(() => formatActivityTypeLabel(effectiveActivityType.value));
+const activityVersionLabel = computed(() => {
+  if (activityVersion.value === "raw") {
+    return "Raw";
+  }
+
+  return "Corrected";
+});
+const comparisonVersionLabel = computed(() => activityVersion.value === "corrected" ? "Raw" : "Corrected");
 
 const activityDateLabel = computed(() => {
   const rawDate = activity.value?.startDateLocal ?? activity.value?.startDate;
@@ -445,7 +862,7 @@ const activityDateLabel = computed(() => {
     return rawDate.substring(0, 16);
   }
 
-  return parsedDate.toLocaleString(undefined, {
+  return parsedDate.toLocaleString("en-US", {
     weekday: "short",
     day: "2-digit",
     month: "short",
@@ -486,16 +903,16 @@ const kpis = computed<DetailKpi[]>(() => {
       value: formatTime(currentActivity.movingTime),
     },
     {
-      label: "Elevation gain",
+      label: "D+",
       value: `${currentActivity.totalElevationGain.toFixed(0)} m`,
     },
     {
-      label: "Descent",
+      label: "D-",
       value: `${currentActivity.totalDescent.toFixed(0)} m`,
     },
     {
       label: "Average speed",
-      value: formatSpeedWithUnit(currentActivity.averageSpeed, currentActivity.type),
+      value: formatSpeedWithUnit(currentActivity.averageSpeed, currentActivity.sportType || currentActivity.type),
     },
   ];
 
@@ -515,6 +932,280 @@ const kpis = computed<DetailKpi[]>(() => {
   }
 
   return baseKpis;
+});
+
+type DetailMetricRow = {
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: "muted" | "good" | "warn";
+};
+
+const cadenceUnit = computed(() => effectiveActivityType.value.endsWith("Run") ? "spm" : "rpm");
+
+const summaryRows = computed<DetailMetricRow[]>(() => {
+  const currentActivity = activity.value;
+  if (!currentActivity) {
+    return [];
+  }
+
+  const rows: DetailMetricRow[] = [
+    { label: "Sport", value: activityTypeLabel.value },
+    { label: "Strava base type", value: currentActivity.type || "N/A" },
+    { label: "Date", value: activityDateLabel.value },
+    { label: "Distance", value: `${(currentActivity.distance / 1000).toFixed(1)} km` },
+    { label: "D+ / D-", value: `${Math.round(currentActivity.totalElevationGain)} m / ${Math.round(currentActivity.totalDescent)} m` },
+    { label: "Moving time", value: formatTime(currentActivity.movingTime), hint: `Elapsed ${formatTime(currentActivity.elapsedTime)}` },
+    { label: "Average speed", value: formatSpeedWithUnit(currentActivity.averageSpeed, effectiveActivityType.value) },
+  ];
+
+  if (currentActivity.maxSpeed > 0) {
+    rows.push({
+      label: "Max speed",
+      value: formatSpeedWithUnit(currentActivity.maxSpeed, effectiveActivityType.value),
+    });
+  }
+
+  if (currentActivity.averageCadence > 0) {
+    rows.push({
+      label: "Average cadence",
+      value: formatCadenceValue(currentActivity.averageCadence),
+    });
+  }
+
+  return rows;
+});
+
+const streamAvailabilityRows = computed<DetailMetricRow[]>(() => {
+  const stream = activity.value?.stream;
+  const rows: DetailMetricRow[] = [
+    {
+      label: "GPS",
+      value: stream?.latlng?.length ? `${stream.latlng.length} points` : "Missing",
+      tone: stream?.latlng?.length ? "good" : "warn",
+    },
+    {
+      label: "Altitude",
+      value: stream?.altitude?.length ? `${stream.altitude.length} points` : "Missing",
+      tone: stream?.altitude?.length ? "good" : "muted",
+    },
+    {
+      label: "Speed",
+      value: stream?.velocitySmooth?.length ? `${stream.velocitySmooth.length} points` : "Missing",
+      tone: stream?.velocitySmooth?.length ? "good" : "muted",
+    },
+    {
+      label: "Heart rate",
+      value: stream?.heartrate?.length ? `${stream.heartrate.length} points` : "Missing",
+      tone: stream?.heartrate?.length ? "good" : "muted",
+    },
+    {
+      label: "Cadence",
+      value: stream?.cadence?.length ? `${stream.cadence.length} points` : "Missing",
+      tone: stream?.cadence?.length ? "good" : "muted",
+    },
+    {
+      label: "Watts",
+      value: stream?.watts?.length ? `${stream.watts.length} points` : "Missing",
+      tone: stream?.watts?.length ? "good" : "muted",
+    },
+  ];
+
+  return rows;
+});
+
+const availableStreamSummary = computed(() => {
+  const available = streamAvailabilityRows.value
+    .filter((row) => row.value !== "Missing")
+    .map((row) => row.label);
+
+  return available.length > 0 ? available.join(", ") : "No detailed streams";
+});
+
+const powerSourceLabel = computed(() => {
+  const currentActivity = activity.value;
+  if (!currentActivity || (!hasPowerData.value && currentActivity.averageWatts <= 0)) {
+    return "None";
+  }
+
+  return currentActivity.deviceWatts ? "Power meter" : "Strava estimate";
+});
+
+const correctionSummary = computed(() => {
+  if (!comparisonVersionActivity.value) {
+    return "Comparison unavailable";
+  }
+
+  if (versionDifferenceRows.value.length === 0) {
+    return "No correction applied";
+  }
+
+  const count = versionDifferenceRows.value.length;
+  return activityVersion.value === "corrected"
+    ? `${count} corrected field${count > 1 ? "s" : ""}`
+    : `${count} corrected field${count > 1 ? "s" : ""} available`;
+});
+
+const dataSourceRows = computed<DetailMetricRow[]>(() => {
+  const streamCount = streamAvailabilityRows.value.filter((row) => row.value !== "Missing").length;
+  return [
+    { label: "Displayed view", value: activityVersionLabel.value },
+    {
+      label: "Correction status",
+      value: correctionSummary.value,
+      tone: versionDifferenceRows.value.length > 0 ? "good" : "muted",
+    },
+    {
+      label: "Power source",
+      value: powerSourceLabel.value,
+      hint: hasPowerData.value ? "Power stream available" : undefined,
+    },
+    {
+      label: "Streams",
+      value: availableStreamSummary.value,
+      hint: `${streamCount}/6 available`,
+    },
+  ];
+});
+
+const versionDifferenceRows = computed<DetailMetricRow[]>(() => {
+  const currentActivity = activity.value;
+  const comparisonActivity = comparisonVersionActivity.value;
+  if (!currentActivity || !comparisonActivity) {
+    return [];
+  }
+
+  return buildVersionDifferenceRows(currentActivity, comparisonActivity, effectiveActivityType.value);
+});
+
+const canSelectCorrectedVersion = computed(() =>
+  Boolean(comparisonVersionActivity.value && versionDifferenceRows.value.length > 0)
+);
+
+function buildVersionDifferenceRows(
+  currentActivity: DetailedActivity,
+  comparisonActivity: DetailedActivity,
+  activityType: string,
+): DetailMetricRow[] {
+  const rows: DetailMetricRow[] = [];
+
+  pushVersionDifference(rows, "Distance", currentActivity.distance, comparisonActivity.distance, 1, (value) => `${(value / 1000).toFixed(2)} km`, (delta) => formatSignedDistance(delta));
+  pushVersionDifference(rows, "D+", currentActivity.totalElevationGain, comparisonActivity.totalElevationGain, 0.5, (value) => `${Math.round(value)} m`, (delta) => formatSignedMeters(delta));
+  pushVersionDifference(rows, "D-", currentActivity.totalDescent, comparisonActivity.totalDescent, 0.5, (value) => `${Math.round(value)} m`, (delta) => formatSignedMeters(delta));
+  pushVersionDifference(rows, "Moving time", currentActivity.movingTime, comparisonActivity.movingTime, 1, (value) => formatTime(value), (delta) => formatSignedTime(delta));
+  pushVersionDifference(rows, "Average speed", currentActivity.averageSpeed, comparisonActivity.averageSpeed, 0.01, (value) => formatSpeedWithUnit(value, activityType), (delta) => formatSignedSpeed(delta));
+  pushVersionDifference(rows, "Avg power", currentActivity.averageWatts, comparisonActivity.averageWatts, 0.5, (value) => `${Math.round(value)} W`, (delta) => formatSignedNumber(delta, " W", 0));
+  pushVersionDifference(rows, "Avg HR", currentActivity.averageHeartrate, comparisonActivity.averageHeartrate, 0.5, (value) => `${Math.round(value)} bpm`, (delta) => formatSignedNumber(delta, " bpm", 0));
+
+  return rows;
+}
+
+const powerRows = computed<DetailMetricRow[]>(() => {
+  const currentActivity = activity.value;
+  if (!currentActivity) {
+    return [];
+  }
+
+  const rows: DetailMetricRow[] = [];
+  if (currentActivity.averageWatts > 0) {
+    rows.push({ label: "Average power", value: `${Math.round(currentActivity.averageWatts)} W` });
+  }
+  if (currentActivity.weightedAverageWatts > 0) {
+    rows.push({ label: "Weighted avg power", value: `${Math.round(currentActivity.weightedAverageWatts)} W` });
+  }
+  if (currentActivity.maxWatts > 0) {
+    rows.push({ label: "Max power", value: `${Math.round(currentActivity.maxWatts)} W` });
+  }
+  if (currentActivity.kilojoules > 0) {
+    rows.push({ label: "Work", value: `${Math.round(currentActivity.kilojoules)} kJ` });
+  }
+  if ((currentActivity.calories ?? 0) > 0) {
+    rows.push({ label: "Calories", value: `${Math.round(currentActivity.calories ?? 0)} kcal` });
+  }
+  if (rows.length > 0 || hasPowerData.value) {
+    rows.push({
+      label: "Source",
+      value: powerSourceLabel.value,
+      hint: hasPowerData.value ? "Available in the profile chart" : undefined,
+    });
+  }
+
+  return rows;
+});
+
+const bestPowerRows = computed<DetailMetricRow[]>(() => {
+  const watts = activity.value?.stream?.watts ?? [];
+  if (!watts.length) {
+    return [];
+  }
+
+  return [
+    { label: "5 s", seconds: 5 },
+    { label: "30 s", seconds: 30 },
+    { label: "1 min", seconds: 60 },
+    { label: "5 min", seconds: 5 * 60 },
+    { label: "20 min", seconds: 20 * 60 },
+  ]
+    .map(({ label, seconds }) => {
+      const value = bestAveragePower(watts, seconds);
+      return value !== null ? { label, value: `${Math.round(value)} W` } : null;
+    })
+    .filter((row): row is DetailMetricRow => row !== null);
+});
+
+const resolvedHeartRateSettings = computed(() => {
+  return (
+    statisticsStore.heartRateZoneAnalysis?.resolvedSettings ??
+    resolveHeartRateZoneSettings(
+      athleteStore.heartRateZoneSettings,
+      Math.trunc(activity.value?.maxHeartrate ?? 0) || null,
+    )
+  );
+});
+
+const activityHeartRateZones = computed(() => {
+  const stream = activity.value?.stream;
+  if (!stream) {
+    return null;
+  }
+
+  return computeHeartRateZoneDistribution(
+    stream.heartrate ?? null,
+    stream.time ?? null,
+    resolvedHeartRateSettings.value ?? null,
+  );
+});
+
+const heartRateRows = computed<DetailMetricRow[]>(() => {
+  const currentActivity = activity.value;
+  if (!currentActivity) {
+    return [];
+  }
+
+  const rows: DetailMetricRow[] = [];
+  if (currentActivity.averageHeartrate > 0) {
+    rows.push({ label: "Average HR", value: `${Math.round(currentActivity.averageHeartrate)} bpm` });
+  }
+  if (currentActivity.maxHeartrate > 0) {
+    rows.push({ label: "Max HR", value: `${Math.round(currentActivity.maxHeartrate)} bpm` });
+  }
+  if (activityHeartRateZones.value) {
+    rows.push({
+      label: "Tracked HR time",
+      value: formatTime(activityHeartRateZones.value.totalTrackedSeconds),
+    });
+    if (activityHeartRateZones.value.easyHardRatio !== null && activityHeartRateZones.value.easyHardRatio !== undefined) {
+      rows.push({
+        label: "Easy/hard ratio",
+        value: `${activityHeartRateZones.value.easyHardRatio.toFixed(2)} : 1`,
+      });
+    }
+  }
+  if ((currentActivity.sufferScore ?? 0) > 0) {
+    rows.push({ label: "Suffer score", value: `${Math.round(currentActivity.sufferScore ?? 0)}` });
+  }
+
+  return rows;
 });
 
 type HighlightItem = {
@@ -573,12 +1264,30 @@ const comparisonScopeLabel = computed(() => {
     return "";
   }
   const sample = comparison.criteria.sampleSize;
-  return `${sample} similar ${comparison.criteria.activityType} activit${sample === 1 ? "y" : "ies"} in ${comparison.criteria.year}`;
+  const activityLabel = formatActivityTypeLabel(comparison.criteria.activityType);
+  return `${sample} similar ${activityLabel} activit${sample > 1 ? "ies" : "y"} in ${comparison.criteria.year}`;
 });
 
 const comparisonStatusClass = computed(() => {
   const status = activityComparison.value?.status ?? "insufficient-data";
   return `detail-comparison__status--${status}`;
+});
+
+const activityComparisonDisplayLabel = computed(() => {
+  const comparison = activityComparison.value;
+  if (!comparison) {
+    return "";
+  }
+
+  const labels: Record<string, string> = {
+    "typical": "In line with similar activities",
+    "faster": "Faster than similar activities",
+    "slower": "Slower than similar activities",
+    "atypical": "Atypical activity",
+    "insufficient-data": "Not enough data",
+  };
+
+  return labels[comparison.status] ?? comparison.label;
 });
 
 type ComparisonMetricRow = {
@@ -601,8 +1310,8 @@ const comparisonMetricRows = computed<ComparisonMetricRow[]>(() => {
   const rows: ComparisonMetricRow[] = [
     {
       label: "Speed",
-      current: formatSpeedWithUnit(currentActivity.averageSpeed, currentActivity.type),
-      baseline: formatSpeedWithUnit(baseline.averageSpeed, currentActivity.type),
+      current: formatSpeedWithUnit(currentActivity.averageSpeed, currentActivity.sportType || currentActivity.type),
+      baseline: formatSpeedWithUnit(baseline.averageSpeed, currentActivity.sportType || currentActivity.type),
       delta: formatSignedSpeed(deltas.averageSpeed),
       deltaClass: comparisonDeltaClass(deltas.averageSpeed, true),
     },
@@ -621,7 +1330,7 @@ const comparisonMetricRows = computed<ComparisonMetricRow[]>(() => {
       deltaClass: comparisonDeltaClass(-Math.abs(deltas.distance), true),
     },
     {
-      label: "Elevation",
+      label: "D+",
       current: `${Math.round(currentActivity.totalElevationGain)} m`,
       baseline: `${Math.round(baseline.elevationGain)} m`,
       delta: formatSignedMeters(deltas.elevationGain),
@@ -662,6 +1371,58 @@ const comparisonMetricRows = computed<ComparisonMetricRow[]>(() => {
   return rows;
 });
 
+function resolveEffectiveActivityType(currentActivity?: DetailedActivity | null): string {
+  return currentActivity?.sportType || currentActivity?.type || "Ride";
+}
+
+function formatCadenceValue(cadence: number): string {
+  const displayedCadence = effectiveActivityType.value.endsWith("Run")
+    ? cadence * 2
+    : cadence;
+
+  return `${Math.round(displayedCadence)} ${cadenceUnit.value}`;
+}
+
+function pushVersionDifference(
+  rows: DetailMetricRow[],
+  label: string,
+  currentValue: number,
+  comparisonValue: number,
+  threshold: number,
+  formatter: (value: number) => string,
+  deltaFormatter: (value: number) => string,
+) {
+  const delta = currentValue - comparisonValue;
+  if (!Number.isFinite(delta) || Math.abs(delta) <= threshold) {
+    return;
+  }
+
+  rows.push({
+    label,
+    value: `${formatter(currentValue)} (${deltaFormatter(delta)})`,
+  });
+}
+
+function bestAveragePower(watts: number[], windowSamples: number): number | null {
+  const finiteWatts = watts.map((value) => Number.isFinite(value) ? value : 0);
+  if (finiteWatts.length < windowSamples || windowSamples <= 0) {
+    return null;
+  }
+
+  let windowSum = 0;
+  for (let index = 0; index < windowSamples; index += 1) {
+    windowSum += finiteWatts[index] ?? 0;
+  }
+
+  let best = windowSum / windowSamples;
+  for (let index = windowSamples; index < finiteWatts.length; index += 1) {
+    windowSum += (finiteWatts[index] ?? 0) - (finiteWatts[index - windowSamples] ?? 0);
+    best = Math.max(best, windowSum / windowSamples);
+  }
+
+  return best;
+}
+
 function comparisonDeltaClass(value: number, positiveIsGood: boolean): string {
   if (Math.abs(value) < 0.0001) {
     return "detail-comparison__delta detail-comparison__delta--flat";
@@ -700,50 +1461,128 @@ function formatComparisonDate(value: string): string {
   if (Number.isNaN(parsed.getTime())) {
     return value.substring(0, 10);
   }
-  return parsed.toLocaleDateString(undefined, {
+  return parsed.toLocaleDateString("en-US", {
     day: "2-digit",
     month: "short",
   });
 }
 
-// Icon options
+function formatStravaSegmentDescription(effort: StravaSegmentEffort): string {
+  const parts = [
+    formatRouteEffortDescription({
+      distance: effort.distance,
+      seconds: effort.elapsedTime,
+      averagePower: effort.averageWatts,
+      grade: effort.segment.averageGrade,
+    }),
+  ];
 
-const buildRadioOptions = () => {
-  if (activity.value?.activityEfforts) {
-    radioOptions.value = activity.value?.activityEfforts.map((effort) => {
-      return {
-        label: effort.label,
-        value: effort.id,
-        description: effort?.description ?? "",
-      };
-    });
-  } else {
-    radioOptions.value = [];
+  if (effort.averageHeartRate > 0) {
+    parts.push(`${Math.round(effort.averageHeartRate)} bpm`);
   }
-};
+
+  return parts.join(" · ");
+}
+
+function formatRouteEffortDescription(effort: RouteEffortDescriptionInput): string {
+  const parts = [
+    `${(effort.distance / 1000).toFixed(2)} km`,
+    formatTime(effort.seconds),
+  ];
+
+  if (effort.seconds > 0 && effort.distance > 0) {
+    parts.push(formatSpeedWithUnit(effort.distance / effort.seconds, effectiveActivityType.value));
+  }
+
+  const gradient = effort.grade ?? (
+    effort.deltaAltitude !== null &&
+    effort.deltaAltitude !== undefined &&
+    effort.distance > 0
+      ? (effort.deltaAltitude / effort.distance) * 100
+      : null
+  );
+
+  if (gradient !== null && Number.isFinite(gradient)) {
+    parts.push(`Grade ${gradient.toFixed(1)}%`);
+  }
+
+  if (effort.deltaAltitude !== null && effort.deltaAltitude !== undefined && Number.isFinite(effort.deltaAltitude)) {
+    parts.push(`${effort.deltaAltitude >= 0 ? "D+" : "D-"} ${Math.abs(Math.round(effort.deltaAltitude))} m`);
+  }
+
+  if (effort.averagePower && effort.averagePower > 0) {
+    parts.push(`${Math.round(effort.averagePower)} W`);
+  }
+
+  return parts.join(" · ");
+}
 
 async function fetchDetailedActivity(id: string, version: "corrected" | "raw" = activityVersion.value) {
-  const url = version === "raw" ? `/api/activities/${id}?version=raw` : `/api/activities/${id}`;
-  const response = await fetch(url);
-  if (!response.ok) {
-    const apiMessage = await extractApiErrorMessage(response.clone());
-    try {
-      await ErrorService.catchError(response);
-    } catch {
-      // The toast has already been emitted by ErrorService.
-    }
-    throw new Error(apiMessage);
-  }
-  const detailed = (await response.json()) as DetailedActivity;
+  const detailed = await fetchDetailedActivityPayload(id, version);
   activity.value = detailed;
   activityVersion.value = version;
   similarEffortExpanded.value = false;
   loadError.value = null;
   loadWarning.value = getDetailedActivityWarning(detailed);
+  comparisonVersionActivity.value = await fetchComparisonVersionActivity(id, version);
+}
+
+async function fetchInitialDetailedActivity(id: string) {
+  const rawActivity = await fetchDetailedActivityPayload(id, "raw");
+  const correctedActivity = await fetchComparisonVersionActivity(id, "raw");
+  const hasCorrection =
+    correctedActivity !== null &&
+    buildVersionDifferenceRows(
+      correctedActivity,
+      rawActivity,
+      resolveEffectiveActivityType(correctedActivity),
+    ).length > 0;
+
+  const selectedActivity = hasCorrection && correctedActivity ? correctedActivity : rawActivity;
+  activity.value = selectedActivity;
+  activityVersion.value = hasCorrection ? "corrected" : "raw";
+  comparisonVersionActivity.value = hasCorrection ? rawActivity : correctedActivity;
+  similarEffortExpanded.value = false;
+  loadError.value = null;
+  loadWarning.value = getDetailedActivityWarning(selectedActivity);
+}
+
+async function fetchDetailedActivityPayload(
+  id: string,
+  version: "corrected" | "raw",
+  emitToast = true,
+): Promise<DetailedActivity> {
+  const url = version === "raw" ? `/api/activities/${id}?version=raw` : `/api/activities/${id}`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    const apiMessage = await extractApiErrorMessage(response.clone());
+    if (emitToast) {
+      try {
+        await ErrorService.catchError(response);
+      } catch {
+        // The toast has already been emitted by ErrorService.
+      }
+    }
+    throw new Error(apiMessage);
+  }
+  return (await response.json()) as DetailedActivity;
+}
+
+async function fetchComparisonVersionActivity(id: string, currentVersion: "corrected" | "raw"): Promise<DetailedActivity | null> {
+  const nextVersion = currentVersion === "corrected" ? "raw" : "corrected";
+
+  try {
+    return await fetchDetailedActivityPayload(id, nextVersion, false);
+  } catch {
+    return null;
+  }
 }
 
 async function switchActivityVersion(version: "corrected" | "raw") {
   if (version === activityVersion.value || !activityId) {
+    return;
+  }
+  if (version === "corrected" && !canSelectCorrectedVersion.value) {
     return;
   }
   try {
@@ -752,7 +1591,6 @@ async function switchActivityVersion(version: "corrected" | "raw") {
     await nextTick();
     updateMap();
     initChart();
-    buildRadioOptions();
   } catch (error) {
     loadError.value = error instanceof Error && error.message
       ? error.message
@@ -929,10 +1767,10 @@ const chartOptions: Options = reactive({
           if (this.isFirst) {
             return "";
           }
-          return formatSpeedWithUnit(this.value, activity.value?.type ?? "Ride");
+          return formatSpeedWithUnit(this.value, effectiveActivityType.value);
         },
         style: {
-          color: (Highcharts.getOptions().colors?.[0] as string) ?? "#000000",
+          color: speedCurveColor,
         },
       },
     },
@@ -943,42 +1781,66 @@ const chartOptions: Options = reactive({
       labels: {
         format: "{value} m",
         style: {
-          color: "#d3d3d3",
+          color: altitudeCurveColor,
         },
       },
       opposite: true,
     },
     {
       title: {
-        text: "",
-      },
-      labels: {
-        format: "{value} watts",
+        text: "Power",
         style: {
-          color: "red",
+          color: powerCurveColor,
         },
       },
+      labels: {
+        format: "{value} W",
+        style: {
+          color: powerCurveColor,
+        },
+      },
+    },
+    {
+      title: {
+        text: "Heart rate",
+        style: {
+          color: heartRateCurveColor,
+        },
+      },
+      labels: {
+        format: "{value} bpm",
+        style: {
+          color: heartRateCurveColor,
+        },
+      },
+      opposite: true,
+    },
+    {
+      title: {
+        text: "Cadence",
+        style: {
+          color: cadenceCurveColor,
+        },
+      },
+      labels: {
+        formatter: function (this: any): string {
+          return `${this.value} ${cadenceUnit.value}`;
+        },
+        style: {
+          color: cadenceCurveColor,
+        },
+      },
+      opposite: true,
     },
   ],
   tooltip: {
     formatter: function (this: any): string {
-      const altitude = this.points?.[1]?.y ?? 0;
-      const velocityMS =
-        activity.value?.stream?.velocitySmooth?.[this.points?.[0]?.point?.index ?? 0];
-      const velocity = formatSpeedWithUnit(
-        velocityMS ?? 0,
-        activity.value?.type ?? "Ride"
-      );
-
-      return (
-        "Distance: " +
-        this.point.x.toFixed(1) +
-        " km<br/>Speed: <b>" +
-        velocity +
-        "</b></br>Altitude: " +
-        altitude.toFixed(0) +
-        " m"
-      );
+      const x = typeof this.x === "number" ? this.x : this.point?.x ?? 0;
+      const lines = [`Distance: ${x.toFixed(1)} km`];
+      for (const point of this.points ?? []) {
+        lines.push(`${point.series.name}: <b>${formatChartPoint(point.series.name, point.y ?? 0)}</b>`);
+      }
+      return lines.join("<br/>");
     },
     shared: true,
   },
@@ -990,26 +1852,43 @@ const chartOptions: Options = reactive({
       name: "Speed",
       type: "line",
       data: [],
+      color: speedCurveColor,
     },
     {
       name: "Altitude",
       type: "area",
       data: [],
-      color: "#d3d3d3",
+      color: altitudeCurveColor,
       yAxis: 1,
     },
     {
-      name: "",
+      name: "Selected segment",
       type: "area",
       data: [],
       color: "blue",
       yAxis: 1,
     },
     {
-      name: "Power Curve",
+      name: "Power",
       type: "line",
       data: [],
-      color: "red",
+      color: powerCurveColor,
+      dashStyle: "ShortDash",
+      yAxis: 2,
+    },
+    {
+      name: "Heart rate",
+      type: "line",
+      data: [],
+      color: heartRateCurveColor,
+      yAxis: 3,
+    },
+    {
+      name: "Cadence",
+      type: "line",
+      data: [],
+      color: cadenceCurveColor,
+      yAxis: 4,
     },
   ],
 });
@@ -1018,47 +1897,8 @@ let chartInstance: Highcharts.Chart | null = null;
 let chartMouseMoveHandler: ((e: MouseEvent) => void) | null = null;
 
 const initChart = () => {
-  const altitudeStream = activity.value?.stream?.altitude;
-  const distanceStream = activity.value?.stream?.distance;
-  const speedStream = activity.value?.stream?.velocitySmooth;
-
-  if (
-    speedStream &&
-    distanceStream &&
-    chartOptions.series &&
-    chartOptions.series.length > 0
-  ) {
-    (chartOptions.series[0] as SeriesLineOptions).data = speedStream.map(
-      (speed, index) => ({
-        x: (distanceStream?.[index] ?? 0) / 1000,
-        y: speed,
-      })
-    );
-  }
-
-  if (
-    altitudeStream &&
-    distanceStream &&
-    chartOptions.series &&
-    chartOptions.series.length > 0
-  ) {
-    (chartOptions.series[1] as SeriesAreaOptions).data = altitudeStream.map(
-      (altitude, index) => ({
-        x: (distanceStream?.[index] ?? 0) / 1000,
-        y: altitude,
-      })
-    );
-
-    // Calculate the minimum altitude value
-    const minAltitude = Math.min(...altitudeStream);
-    const yAxisMin = minAltitude * 0.95; // Set the min property of the altitude yAxis
-
-    // Set the min property of the altitude yAxis
-    if (Array.isArray(chartOptions.yAxis) && chartOptions.yAxis[1]) {
-      chartOptions.yAxis[1].min = yAxisMin;
-    }
-  }
-
+  destroyChartInstance();
+  syncChartSeries(false);
   const chartContainer = document.getElementById("chart-container");
   if (chartContainer) {
     chartInstance = Highcharts.chart(chartContainer, chartOptions);
@@ -1068,9 +1908,8 @@ const initChart = () => {
 
       const event: Highcharts.PointerEventObject = chartInstance.pointer.normalize(e);
       let point: Highcharts.Point | undefined = undefined;
-      if (chartInstance.series[0]) {
-        point = chartInstance.series[0].searchPoint(event, true);
-      }
+      const hoverSeries = chartInstance.series.find((series) => series.visible && series.points.length > 0);
+      point = hoverSeries?.searchPoint(event, true);
 
       if (point) {
         if (lastHoveredPointIndex.value === point.index) {
@@ -1098,19 +1937,111 @@ const initChart = () => {
   }
 };
 
-const handleRadioClick = (key: string) => {
+function destroyChartInstance() {
+  const chartContainer = document.getElementById("chart-container");
+  if (chartContainer && chartMouseMoveHandler) {
+    chartContainer.removeEventListener("mousemove", chartMouseMoveHandler);
+  }
+  chartMouseMoveHandler = null;
+
+  if (chartInstance) {
+    chartInstance.destroy();
+    chartInstance = null;
+  }
+}
+
+function syncChartSeries(redraw = true) {
+  if (!chartOptions.series) {
+    return;
+  }
+
+  const stream = activity.value?.stream;
+  const distanceStream = stream?.distance ?? [];
+
+  (chartOptions.series[0] as SeriesLineOptions).data =
+    chartSeriesVisibility.speed && stream?.velocitySmooth
+      ? buildDistanceSeries(stream.velocitySmooth, distanceStream)
+      : [];
+  (chartOptions.series[0] as SeriesLineOptions).visible =
+    chartSeriesVisibility.speed && hasSpeedData.value;
+
+  (chartOptions.series[1] as SeriesAreaOptions).data =
+    chartSeriesVisibility.altitude && stream?.altitude
+      ? buildDistanceSeries(stream.altitude, distanceStream)
+      : [];
+  (chartOptions.series[1] as SeriesAreaOptions).visible =
+    chartSeriesVisibility.altitude && hasAltitudeData.value;
+
+  const altitudeStream = stream?.altitude ?? [];
+  if (altitudeStream.length > 0 && Array.isArray(chartOptions.yAxis) && chartOptions.yAxis[1]) {
+    const minAltitude = Math.min(...altitudeStream);
+    chartOptions.yAxis[1].min = minAltitude * 0.95;
+  }
+
+  (chartOptions.series[3] as SeriesLineOptions).data =
+    chartSeriesVisibility.power && stream?.watts
+      ? buildDistanceSeries(stream.watts, distanceStream)
+      : [];
+  (chartOptions.series[3] as SeriesLineOptions).visible =
+    chartSeriesVisibility.power && hasPowerData.value;
+
+  (chartOptions.series[4] as SeriesLineOptions).data =
+    chartSeriesVisibility.heartrate && stream?.heartrate
+      ? buildDistanceSeries(stream.heartrate, distanceStream)
+      : [];
+  (chartOptions.series[4] as SeriesLineOptions).visible =
+    chartSeriesVisibility.heartrate && hasHeartRateData.value;
+
+  (chartOptions.series[5] as SeriesLineOptions).data =
+    chartSeriesVisibility.cadence && stream?.cadence
+      ? buildDistanceSeries(stream.cadence, distanceStream)
+      : [];
+  (chartOptions.series[5] as SeriesLineOptions).visible =
+    chartSeriesVisibility.cadence && hasCadenceData.value;
+
+  if (chartInstance) {
+    chartInstance.update({
+      series: chartOptions.series,
+      yAxis: chartOptions.yAxis,
+    }, redraw, true);
+  }
+}
+
+function buildDistanceSeries(values: number[], distances: number[]) {
+  const size = Math.min(values.length, distances.length);
+  return Array.from({ length: size }, (_, index) => ({
+    x: (distances[index] ?? 0) / 1000,
+    y: Number.isFinite(values[index]) ? values[index] : 0,
+  }));
+}
+
+function formatChartPoint(seriesName: string, value: number): string {
+  switch (seriesName) {
+    case "Speed":
+      return formatSpeedWithUnit(value, effectiveActivityType.value);
+    case "Altitude":
+    case "Selected segment":
+      return `${Math.round(value)} m`;
+    case "Power":
+      return `${Math.round(value)} W`;
+    case "Heart rate":
+      return `${Math.round(value)} bpm`;
+    case "Cadence":
+      return formatCadenceValue(value);
+    default:
+      return value.toFixed(1);
+  }
+}
+
+const handleRouteEffortClick = (key: string) => {
   selectedOption.value = key;
 
-  // 1 - Get the selected effort
-  const effort: ActivityEffort | undefined = activity.value?.activityEfforts.find(
-    (effort) => effort.id === key
-  );
+  const effort = selectedEffort.value;
   if (!effort) {
     console.error(`No effort found for value: ${key}`);
     return;
   }
 
-  // 2 - Get the stream data for the selected effort
   const stream = activity.value?.stream;
   if (!stream) {
     console.error(`No stream data found for effort: ${effort}`);
@@ -1174,7 +2105,7 @@ const handleRadioClick = (key: string) => {
         })
     );
 
-    // Forcer la mise à jour du graphique
+    // Force the chart update after replacing the selected segment overlay.
     if (chartInstance) {
       chartInstance.update({
         series: chartOptions.series,
@@ -1187,11 +2118,13 @@ onMounted(async () => {
   contextStore.updateCurrentView("activity");
   initMap();
   try {
-    await athleteStore.fetchHeartRateZoneSettings().catch(() => undefined);
-    await fetchDetailedActivity(activityId ?? "");
+    await Promise.allSettled([
+      athleteStore.fetchHeartRateZoneSettings(),
+      statisticsStore.fetchHeartRateZoneAnalysis(),
+    ]);
+    await fetchInitialDetailedActivity(activityId ?? "");
     updateMap();
     initChart();
-    buildRadioOptions();
 
     // Ensure DOM is updated before initializing tooltips
     await nextTick();
@@ -1214,14 +2147,7 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-  const chartContainer = document.getElementById("chart-container");
-  if (chartContainer && chartMouseMoveHandler) {
-    chartContainer.removeEventListener("mousemove", chartMouseMoveHandler);
-  }
-  if (chartInstance) {
-    chartInstance.destroy();
-    chartInstance = null;
-  }
+  destroyChartInstance();
   if (map.value) {
     map.value.remove();
     map.value = undefined;
@@ -1232,34 +2158,24 @@ onBeforeUnmount(() => {
   lastHoveredPointIndex.value = null;
 });
 
-// Watcher to update chart options when showPowerCurve changes
-watch([showPowerCurve, activity], () => {
-  if (chartOptions.series) {
-    if (showPowerCurve.value && hasPowerData.value) {
-      chartOptions.series[3] = {
-        name: "Power Curve",
-        type: "line",
-        data: (activity.value?.stream?.watts ?? []).map((watts, index) => ({
-          x: (activity.value?.stream?.distance?.[index] ?? 0) / 1000,
-          y: watts,
-        })),
-        color: "red",
-        yAxis: 2,
-      };
-    } else {
-      chartOptions.series[3] = {
-        name: "Power Curve",
-        type: "line",
-        data: [],
-        color: "red",
-      };
-    }
-    if (chartInstance) {
-      chartInstance.update({
-        series: chartOptions.series,
-      });
-    }
+watch(effortPanelTab, () => {
+  clearSelectedEffort();
+});
+
+watch([segmentSearch, segmentFilter, segmentSort], () => {
+  if (selectedEffort.value && !visibleEffortOptions.value.some((option) => option.id === selectedEffort.value?.id)) {
+    clearSelectedEffort();
   }
+});
+
+watch([
+  () => chartSeriesVisibility.speed,
+  () => chartSeriesVisibility.altitude,
+  () => chartSeriesVisibility.power,
+  () => chartSeriesVisibility.heartrate,
+  () => chartSeriesVisibility.cadence,
+], () => {
+  syncChartSeries();
 });
 
 </script>
@@ -1353,11 +2269,196 @@ watch([showPowerCurve, activity], () => {
   border-color: var(--ms-primary);
 }
 
-.detail-kpi-grid,
+.detail-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .detail-highlights {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 10px;
+}
+
+.detail-insight-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+
+.detail-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.detail-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.detail-panel__header h2 {
+  margin: 0;
+  font-size: 0.96rem;
+  font-weight: 900;
+}
+
+.detail-metric-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.detail-metric-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 0.85fr) minmax(0, 1.15fr);
+  gap: 8px;
+  align-items: baseline;
+  min-width: 0;
+  border-top: 1px solid #edf0f5;
+  padding-top: 7px;
+}
+
+.detail-metric-row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.detail-metric-row dt {
+  color: var(--ms-text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.detail-metric-row dd {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+  text-align: right;
+}
+
+.detail-metric-row dd strong {
+  overflow-wrap: anywhere;
+  color: var(--ms-text);
+  font-size: 0.88rem;
+}
+
+.detail-metric-row dd small {
+  color: var(--ms-text-muted);
+  font-size: 0.72rem;
+}
+
+.detail-metric-row--good dd strong {
+  color: #166534;
+}
+
+.detail-metric-row--warn dd strong {
+  color: #b45309;
+}
+
+.detail-metric-row--muted dd strong {
+  color: #64748b;
+}
+
+.detail-version-diff {
+  border-top: 1px solid #edf0f5;
+  padding-top: 8px;
+}
+
+.detail-version-diff h3 {
+  margin: 0 0 6px;
+  color: var(--ms-text-muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.detail-version-diff ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.detail-version-diff li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--ms-text-muted);
+  font-size: 0.78rem;
+}
+
+.detail-version-diff strong {
+  color: var(--ms-text);
+  text-align: right;
+}
+
+.detail-best-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+  gap: 6px;
+}
+
+.detail-best-grid__item {
+  border: 1px solid #edf0f5;
+  border-radius: 8px;
+  padding: 6px;
+  background: #fbfdff;
+  display: grid;
+  gap: 2px;
+}
+
+.detail-best-grid__item span {
+  color: var(--ms-text-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.detail-best-grid__item strong {
+  color: var(--ms-text);
+  font-size: 0.88rem;
+}
+
+.detail-zone-bars {
+  display: grid;
+  gap: 6px;
+}
+
+.detail-zone-bar {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 38px;
+  gap: 7px;
+  align-items: center;
+  font-size: 0.72rem;
+  color: var(--ms-text-muted);
+  font-weight: 800;
+}
+
+.detail-zone-bar div {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eef2f7;
+}
+
+.detail-zone-bar i {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: inherit;
+  background: #ef4444;
 }
 
 .detail-kpi-card,
@@ -1668,6 +2769,82 @@ watch([showPowerCurve, activity], () => {
   font-weight: 600;
 }
 
+.detail-effort-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.detail-effort-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  border: 1px solid var(--ms-border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ms-muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.detail-effort-tab span {
+  min-width: 20px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  padding: 1px 6px;
+  font-size: 0.72rem;
+}
+
+.detail-effort-tab--active {
+  border-color: #cfdcff;
+  background: #eff5ff;
+  color: #1d4ed8;
+}
+
+.detail-effort-tab--active span {
+  background: #dbe8ff;
+  color: #1d4ed8;
+}
+
+.detail-effort-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.detail-effort-filters label {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.detail-effort-filters span {
+  color: var(--ms-text-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.detail-effort-filters input,
+.detail-effort-filters select {
+  width: 100%;
+  min-height: 32px;
+  border: 1px solid var(--ms-border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ms-text);
+  font-size: 0.78rem;
+  padding: 5px 8px;
+}
+
 .radio-scroll-container {
   max-height: 420px;
   overflow-y: auto;
@@ -1698,11 +2875,10 @@ watch([showPowerCurve, activity], () => {
 }
 
 .radio-label {
+  display: grid;
+  gap: 2px;
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   font-weight: 600;
   text-align: left;
   cursor: pointer;
@@ -1710,8 +2886,43 @@ watch([showPowerCurve, activity], () => {
   font-size: 0.9rem;
 }
 
+.radio-label > span:first-child,
+.radio-label small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radio-label small {
+  color: var(--ms-muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
 .radio-label--active {
   color: #1d4ed8;
+}
+
+.effort-option__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.effort-option__badges span {
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  padding: 1px 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.detail-empty-state {
+  margin: 10px 0 0;
+  color: var(--ms-muted);
+  font-size: 0.9rem;
 }
 
 .detail-chip--active {
@@ -1727,6 +2938,36 @@ watch([showPowerCurve, activity], () => {
 
 .detail-card__header--chart {
   margin-bottom: 10px;
+}
+
+.detail-chart-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.detail-chart-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  border: 1px solid var(--ms-border);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--ms-text);
+  padding: 3px 9px;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.detail-chart-controls input {
+  margin: 0;
+}
+
+.detail-chart-toggle--disabled {
+  color: var(--ms-text-muted) !important;
+  background: #f8fafc !important;
 }
 
 .detail-chart {
@@ -1811,6 +3052,11 @@ watch([showPowerCurve, activity], () => {
 }
 
 @media (max-width: 980px) {
+  .detail-kpi-grid,
+  .detail-insight-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .detail-map-layout,
   .detail-comparison__body {
     grid-template-columns: 1fr;
@@ -1827,6 +3073,13 @@ watch([showPowerCurve, activity], () => {
 }
 
 @media (max-width: 680px) {
+  .detail-kpi-grid,
+  .detail-highlights,
+  .detail-insight-grid,
+  .detail-effort-filters {
+    grid-template-columns: 1fr;
+  }
+
   .detail-hero {
     flex-direction: column;
   }
@@ -1842,6 +3095,15 @@ watch([showPowerCurve, activity], () => {
 
   .detail-comparison__table {
     min-width: 520px;
+  }
+
+  .detail-card__header--chart {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .detail-chart-controls {
+    justify-content: flex-start;
   }
 }
 </style>

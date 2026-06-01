@@ -3,7 +3,7 @@
     class="btn btn-primary"
     @click="toggle"
   >
-    {{ buttonText }} {{ modelValue ? 'on' : 'off' }}
+    {{ buttonText }}
   </button>
 </template>
   
