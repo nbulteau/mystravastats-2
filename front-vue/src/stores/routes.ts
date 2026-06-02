@@ -839,18 +839,18 @@ export const useRoutesStore = defineStore("routes", {
       this.persistSavedShapeTemplates();
       return true;
     },
-    buildCurrentShapeGpx(name = "Strava Art sketch"): string | null {
+    buildCurrentShapeGpx(name = "GPS Art sketch"): string | null {
       const points = sanitizeShapePoints(this.shapePoints);
       if (points.length < 2) {
         return null;
       }
-      const escapedName = escapeXml(name.trim() || "Strava Art sketch");
+      const escapedName = escapeXml(name.trim() || "GPS Art sketch");
       const trackPoints = points
         .map((point) => `      <trkpt lat="${point[0].toFixed(7)}" lon="${point[1].toFixed(7)}"></trkpt>`)
         .join("\n");
       return [
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
-        "<gpx version=\"1.1\" creator=\"MyStravaStats\" xmlns=\"http://www.topografix.com/GPX/1/1\">",
+        "<gpx version=\"1.1\" creator=\"My Activity Stats\" xmlns=\"http://www.topografix.com/GPX/1/1\">",
         "  <trk>",
         `    <name>${escapedName}</name>`,
         "    <trkseg>",
@@ -861,12 +861,12 @@ export const useRoutesStore = defineStore("routes", {
         "",
       ].join("\n");
     },
-    buildCurrentShapeTcx(name = "Strava Art sketch"): string | null {
+    buildCurrentShapeTcx(name = "GPS Art sketch"): string | null {
       const points = sanitizeShapePoints(this.shapePoints);
       if (points.length < 2) {
         return null;
       }
-      const escapedName = escapeXml(name.trim() || "Strava Art sketch");
+      const escapedName = escapeXml(name.trim() || "GPS Art sketch");
       const startTime = Date.now();
       const trackPoints = points
         .map((point, index) => [

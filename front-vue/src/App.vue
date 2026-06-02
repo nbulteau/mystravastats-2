@@ -22,7 +22,7 @@ const navItems = [
   { id: "badges-tab", name: "badges", controls: "badges-tab-pane", to: "/badges", label: "Badges" },
   { id: "segments-tab", name: "segments", controls: "segments-tab-pane", to: "/segments", label: "Segments" },
   { id: "map-tab", name: "map", controls: "map-tab-pane", to: "/map", label: "Map" },
-  { id: "routes-tab", name: "routes", controls: "routes-tab-pane", to: "/routes", label: "Strava Art", beta: true },
+  { id: "routes-tab", name: "routes", controls: "routes-tab-pane", to: "/routes", label: "GPS Art", beta: true },
   { id: "gear-tab", name: "gear", controls: "gear-tab-pane", to: "/gear", label: "Gear" },
   { id: "settings-tab", name: "settings", controls: "settings-tab-pane", to: "/settings", label: "Settings" },
   { id: "diagnostics-tab", name: "diagnostics", controls: "diagnostics-tab-pane", to: "/diagnostics", label: "Status" },

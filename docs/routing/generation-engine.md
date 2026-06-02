@@ -2,7 +2,7 @@
 
 This document is the single source of truth for route generation behavior in both backends (Go and Kotlin).
 
-The public generator is now the Strava Art studio: one Draw art workflow that snaps a drawn/imported shape to routable roads.
+The public generator is now the GPS Art studio: one Draw art workflow that snaps a drawn/imported shape to routable roads.
 
 ## Scope
 
@@ -11,15 +11,15 @@ Covered endpoints:
 - `POST /api/routes/generate/shape`
 - `GET /api/routes/{routeId}/gpx`
 
-Public API details are pinned in the [Strava Art route contract](./strava-art-contract.md) and the OpenAPI fragment at [`../api/strava-art-routes.openapi.yaml`](../api/strava-art-routes.openapi.yaml).
+Public API details are pinned in the [GPS Art route contract](./strava-art-contract.md) and the OpenAPI fragment at [`../api/strava-art-routes.openapi.yaml`](../api/strava-art-routes.openapi.yaml).
 
 Current runtime behavior:
 
 - Draw art is the only public route generation mode
-- distance/elevation/direction targets are not part of the Strava Art request contract
-- public Strava Art treats every sketch/import as an ordered point-to-point polyline, even when the drawing visually closes on itself
+- distance/elevation/direction targets are not part of the GPS Art request contract
+- public GPS Art treats every sketch/import as an ordered point-to-point polyline, even when the drawing visually closes on itself
 - shape generation keeps parity between Go and Kotlin
-- Strava Art optimizes drawing resemblance first; retracing is allowed when it materially improves the match to the user model
+- GPS Art optimizes drawing resemblance first; retracing is allowed when it materially improves the match to the user model
 - parity objective between Go and Kotlin remains mandatory
 - history-profile indexing (step 1) is available behind feature flags and propagated to the routing engine request
 
@@ -30,7 +30,7 @@ History-profile feature flags:
 
 ## Inputs And Normalization
 
-Strava Art input is normalized as follows:
+GPS Art input is normalized as follows:
 
 - `shapeInputType`: `draw|polyline|gpx|svg`
 - `shapeData`: required non-empty payload
@@ -57,9 +57,9 @@ Strava Art input is normalized as follows:
 | `TRAIL` | `walking` | `0.42 / 0.33 / 0.15 / 0.10` | `0.30` | `0.36 / 0.40 / 0.24` | `TrailRun` |
 | `HIKE` | `walking` | `0.34 / 0.41 / 0.15 / 0.10` | `0.28` | `0.30 / 0.45 / 0.25` | `Hike` |
 
-The numeric columns still describe the internal route explorer and routing engine scoring profiles. Public Strava Art generation does not ask the user for distance, elevation, or direction targets.
+The numeric columns still describe the internal route explorer and routing engine scoring profiles. Public GPS Art generation does not ask the user for distance, elevation, or direction targets.
 
-## Strava Art Generator Algorithm
+## GPS Art Generator Algorithm
 
 ### 1. Validate request
 
@@ -70,7 +70,7 @@ The numeric columns still describe the internal route explorer and routing engin
 ### 2. Parse and infer shape
 
 - parse drawn JSON coordinates, wrapped coordinate objects, encoded polylines, or GPX points
-- force the public shape filter to `POINT_TO_POINT`; loop/out-and-back inference remains an internal explorer concept, not a Strava Art product mode
+- force the public shape filter to `POINT_TO_POINT`; loop/out-and-back inference remains an internal explorer concept, not a GPS Art product mode
 - keep the raw shape payload so both backends can project/snap the same input
 
 ### 2b. Search drawing pose
@@ -89,11 +89,11 @@ Each pose keeps the same point order and point count. The first pose variants ar
 The shape endpoint asks the route explorer for shape-aware candidates:
 
 - `shapeMatches`: OSRM shape-mode candidates generated from the drawing; cache-derived shape matches remain internal explorer data
-- `roadGraphLoops`: target/road-graph candidates used by the explorer, not public Strava Art replacements unless they are explicitly shape-mode generated
-- `closestLoops`: historical candidates kept for recommendations and diagnostics, not returned as Strava Art proposals
+- `roadGraphLoops`: target/road-graph candidates used by the explorer, not public GPS Art replacements unless they are explicitly shape-mode generated
+- `closestLoops`: historical candidates kept for recommendations and diagnostics, not returned as GPS Art proposals
 - `shapeRemixes`: historical remix candidates for shape composition
 
-Public `POST /api/routes/generate/shape` responses are stricter than the internal explorer result: they only return OSRM candidates generated from the drawing (`Shape mode:*`). If the strict strategies fail, shape-mode best-effort strategies may still return a low-confidence OSRM route with a weak `Art fit` and explicit fallback reasons; historical activities are not substituted as Strava Art proposals.
+Public `POST /api/routes/generate/shape` responses are stricter than the internal explorer result: they only return OSRM candidates generated from the drawing (`Shape mode:*`). If the strict strategies fail, shape-mode best-effort strategies may still return a low-confidence OSRM route with a weak `Art fit` and explicit fallback reasons; historical activities are not substituted as GPS Art proposals.
 
 Before the expensive routing pass, the engine checks OSRM coverage by snapping the start point and sampled artwork points with `/nearest`. If the nearest routable point is more than 5 km away, generation stops with `OSRM_COVERAGE_MISMATCH`. This prevents misleading zero-distance OSRM routes when the local extract covers another region than the map area being drawn.
 
@@ -112,18 +112,18 @@ Routing strategy parity (Go/Kotlin):
 Retrace policy is mode-specific:
 
 - for classic sport loops and the internal explorer, hard anti-backtracking rules remain owned by the routing engine
-- for public Strava Art, `Art fit` wins over novelty: opposite traversal and axis reuse may be accepted when they preserve the drawing
-- Strava Art should still expose retrace/backtracking diagnostics as rideability signals, not as automatic rejection reasons
+- for public GPS Art, `Art fit` wins over novelty: opposite traversal and axis reuse may be accepted when they preserve the drawing
+- GPS Art should still expose retrace/backtracking diagnostics as rideability signals, not as automatic rejection reasons
 - keep the 2 km start/finish tolerance behavior explicit for classic route-generation checks
 
 ### 4. Score each candidate
 
-Main Strava Art response scores:
+Main GPS Art response scores:
 
 - `global`: backend match score
 - `shape`: anchored shape match score when available
 - `roadFitness`: surface mix fitness (`paved/gravel/trail/unknown`)
-- `distance`, `elevation`, `duration`, `direction`: mirror `global` because those are no longer user constraints for Strava Art
+- `distance`, `elevation`, `duration`, `direction`: mirror `global` because those are no longer user constraints for GPS Art
 
 Shape-mode scoring is stricter than generic route scoring:
 
@@ -181,7 +181,7 @@ Examples of success diagnostics:
 
 - accepts `draw|polyline|gpx|svg`
 - keeps raw shape payload for shape projection/routing
-- public Strava Art shape requests are forced to `POINT_TO_POINT`; classic/internal route explorer shape inference may still classify historical routes as `LOOP` or `OUT_AND_BACK`
+- public GPS Art shape requests are forced to `POINT_TO_POINT`; classic/internal route explorer shape inference may still classify historical routes as `LOOP` or `OUT_AND_BACK`
 - coordinate parsing supports:
   - JSON array of `[lat, lng]`
   - wrapped JSON fields (`points`, `coordinates`, `latLng`)
@@ -226,7 +226,7 @@ Routing health is exposed by `/api/health/details`:
 Behavior:
 
 - when routing is up: OSRM shape-mode generation executes from the drawing
-- when routing is degraded: no public Strava Art route is returned; historical candidates stay available only to the explorer/recommendation layer
+- when routing is degraded: no public GPS Art route is returned; historical candidates stay available only to the explorer/recommendation layer
 - partial per-call failures remain non-fatal when at least one valid candidate survives
 
 ## Simplified Pseudocode
@@ -265,8 +265,8 @@ return selected + diagnostics
 
 ## Acceptance Targets
 
-- Strava Art generation returns a practicable road-snapped route for drawn/GPX/polyline inputs in dense-area local tests
-- Strava Art may return retracing routes when they better preserve the drawing, with clear rideability diagnostics
+- GPS Art generation returns a practicable road-snapped route for drawn/GPX/polyline inputs in dense-area local tests
+- GPS Art may return retracing routes when they better preserve the drawing, with clear rideability diagnostics
 - classic route-generation and explorer anti-backtracking checks remain strongly constrained outside the start/finish tolerance zone
 - route-type behavior remains meaningfully distinct (`Ride` vs `Gravel` vs `MTB`)
 - parity checks remain mandatory across Go/Kotlin
@@ -274,6 +274,6 @@ return selected + diagnostics
 ## Related Docs
 
 - [OSRM Setup](./osrm-setup.md)
-- [Strava Art Route Contract](./strava-art-contract.md)
+- [GPS Art Route Contract](./strava-art-contract.md)
 - [Manual Route Checks](./manual-checks.md)
 - [Main project doc](../README.md)

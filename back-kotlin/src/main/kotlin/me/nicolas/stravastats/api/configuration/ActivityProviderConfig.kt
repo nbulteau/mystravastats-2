@@ -90,7 +90,7 @@ class ActivityProviderConfig {
         }
 
         logger.info("")
-        logger.info("To access MyStravaStats: copy paste this url http://localhost:8080 in a browser")
+        logger.info("To access My Activity Stats: copy paste this url http://localhost:8080 in a browser")
         logger.info("")
 
         return activityProvider

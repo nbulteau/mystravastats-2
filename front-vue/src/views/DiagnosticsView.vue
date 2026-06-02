@@ -374,6 +374,7 @@ const runtimeConfigItems = computed<Array<{ label: string; value: string; monosp
   { label: "Backend", value: textValue(runtimeConfig.value.backend) || "n/a", monospace: false },
   { label: "Provider", value: formatProvider(textValue(runtimeData.value.provider)), monospace: false },
   { label: "Strava cache", value: textValue(runtimeData.value.stravaCachePath) || "n/a", monospace: true },
+  { label: "Strava API base", value: textValue(runtimeData.value.stravaApiBaseUrl) || "n/a", monospace: true },
   { label: "FIT files", value: textValue(runtimeData.value.fitFilesPath) || "n/a", monospace: true },
   { label: "GPX files", value: textValue(runtimeData.value.gpxFilesPath) || "n/a", monospace: true },
   { label: "CORS origins", value: displayList(runtimeCors.value.allowedOrigins), monospace: true },

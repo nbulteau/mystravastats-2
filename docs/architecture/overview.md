@@ -1,6 +1,6 @@
 # Architecture Diagram
 
-This page gives a high-level view of how MyStravaStats is structured.
+This page gives a high-level view of how My Activity Stats is structured.
 
 ## Main Components
 

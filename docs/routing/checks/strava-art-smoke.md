@@ -1,4 +1,4 @@
-# Strava Art smoke check
+# GPS Art smoke check
 
 This check validates the public MVP flow against a running backend:
 

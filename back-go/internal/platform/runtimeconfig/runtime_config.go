@@ -8,6 +8,7 @@ import (
 
 const (
 	defaultStravaCachePath          = "strava-cache"
+	defaultStravaAPIBaseURL         = "https://www.strava.com/api/v3"
 	defaultServerHost               = "localhost"
 	defaultServerPort               = "8080"
 	defaultOSMRoutingBaseURL        = "http://localhost:5000"
@@ -37,15 +38,17 @@ func Details() map[string]any {
 	return map[string]any{
 		"backend": "go",
 		"data": map[string]any{
-			"provider":               dataProvider,
-			"stravaCachePath":        readStringEnv("STRAVA_CACHE_PATH", defaultStravaCachePath),
-			"stravaCacheConfigured":  isConfigured("STRAVA_CACHE_PATH"),
-			"fitFilesPath":           fitFilesPath,
-			"fitFilesConfigured":     fitConfigured,
-			"gpxFilesPath":           gpxFilesPath,
-			"gpxFilesConfigured":     gpxConfigured,
-			"gpxFilesSupported":      true,
-			"providerSelectionOrder": []string{"FIT_FILES_PATH", "GPX_FILES_PATH", "STRAVA_CACHE_PATH"},
+			"provider":                dataProvider,
+			"stravaCachePath":         readStringEnv("STRAVA_CACHE_PATH", defaultStravaCachePath),
+			"stravaCacheConfigured":   isConfigured("STRAVA_CACHE_PATH"),
+			"stravaApiBaseUrl":        StravaAPIBaseURL(),
+			"stravaApiBaseConfigured": isConfigured("STRAVA_API_BASE_URL"),
+			"fitFilesPath":            fitFilesPath,
+			"fitFilesConfigured":      fitConfigured,
+			"gpxFilesPath":            gpxFilesPath,
+			"gpxFilesConfigured":      gpxConfigured,
+			"gpxFilesSupported":       true,
+			"providerSelectionOrder":  []string{"FIT_FILES_PATH", "GPX_FILES_PATH", "STRAVA_CACHE_PATH"},
 		},
 		"server": map[string]any{
 			"host":              readFirstStringEnv(defaultServerHost, "SERVER_HOST", "HOST"),
@@ -115,6 +118,14 @@ func IntValue(key string, fallback int) int {
 
 func OSMRoutingTimeoutMs() int {
 	return normalizedTimeoutMs()
+}
+
+func StravaAPIBaseURL() string {
+	return strings.TrimRight(readStringEnv("STRAVA_API_BASE_URL", defaultStravaAPIBaseURL), "/")
+}
+
+func StravaAPIURL(path string) string {
+	return StravaAPIBaseURL() + "/" + strings.TrimLeft(path, "/")
 }
 
 func RoutingHistoryHalfLifeDays() int {

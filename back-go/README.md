@@ -1,6 +1,6 @@
 ## Back-Go
 
-MyStravaStats Backend API - A Golang backend service for Strava statistics and activity analysis built with Clean Architecture principles.
+My Activity Stats Backend API - A Golang backend service for Strava statistics and activity analysis built with Clean Architecture principles.
 
 ## Architecture Overview
 

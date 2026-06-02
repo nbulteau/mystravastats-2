@@ -62,15 +62,15 @@ func loadStravaArtSmokeFixture(t *testing.T) stravaArtSmokeFixture {
 	t.Helper()
 	fixturePath, err := findRouteFixtureFile("test-fixtures/routes/strava-art-smoke.json")
 	if err != nil {
-		t.Fatalf("failed to locate Strava Art smoke fixture file: %v", err)
+		t.Fatalf("failed to locate GPS Art smoke fixture file: %v", err)
 	}
 	payload, err := os.ReadFile(fixturePath)
 	if err != nil {
-		t.Fatalf("failed to read Strava Art smoke fixture file %q: %v", fixturePath, err)
+		t.Fatalf("failed to read GPS Art smoke fixture file %q: %v", fixturePath, err)
 	}
 	var fixture stravaArtSmokeFixture
 	if err := json.Unmarshal(payload, &fixture); err != nil {
-		t.Fatalf("failed to decode Strava Art smoke fixture file %q: %v", fixturePath, err)
+		t.Fatalf("failed to decode GPS Art smoke fixture file %q: %v", fixturePath, err)
 	}
 	return fixture
 }
@@ -1416,7 +1416,7 @@ func TestGenerateShapeRoutesByActivityType_ClosedDraw_UsesPointToPointShapeFilte
 		t.Fatalf("expected inferred shape filter, got nil")
 	}
 	if got := *routesReader.capturedRequest.Shape; got != "POINT_TO_POINT" {
-		t.Fatalf("expected Strava Art to force POINT_TO_POINT, got %q", got)
+		t.Fatalf("expected GPS Art to force POINT_TO_POINT, got %q", got)
 	}
 }
 

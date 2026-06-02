@@ -13,7 +13,7 @@ object BrowserUtils {
         }
 
         if (isNativeImage()) {
-            println("To grant MyStravaStats to read your Strava activities data: copy paste this URL in a browser")
+            println("To grant My Activity Stats to read your Strava activities data: copy paste this URL in a browser")
         } else {
             try {
                 if (Desktop.isDesktopSupported()) {

@@ -300,7 +300,7 @@ class OsmRoutingEngineAdapterShapeTest {
             // THEN
             val route = assertNotNull(result.recommendation)
             assertTrue(route.routeId.startsWith("edited-osm-"))
-            assertEquals(false, route.isLoop, "edited Strava Art route must stay point-to-point")
+            assertEquals(false, route.isLoop, "edited GPS Art route must stay point-to-point")
             assertEquals(RouteVariantType.SHAPE_MATCH, route.variantType)
             assertEquals(3, result.controlPoints.size)
             assertEquals(2, routeCalls.get(), "expected one OSRM route call per edited segment")
@@ -633,7 +633,7 @@ class OsmRoutingEngineAdapterShapeTest {
             recommendations.first().reasons.contains("Selection profile: art-fit-diagnostic (retrace allowed)"),
             "expected art-fit diagnostic profile, got ${recommendations.first().reasons}"
         )
-        assertTrue(rejectCounts.isEmpty(), "expected Strava Art retrace to remain diagnostic-only, got $rejectCounts")
+        assertTrue(rejectCounts.isEmpty(), "expected GPS Art retrace to remain diagnostic-only, got $rejectCounts")
     }
 
     @Test
@@ -666,7 +666,7 @@ class OsmRoutingEngineAdapterShapeTest {
         )
         assertNotNull(
             invokeToRouteCandidateFromPreview(adapter, shapeRequest, preview),
-            "Strava Art should keep retraced candidates so Art fit can rank them",
+            "GPS Art should keep retraced candidates so Art fit can rank them",
         )
     }
 

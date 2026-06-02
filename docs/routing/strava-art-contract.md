@@ -1,6 +1,6 @@
-# Strava Art route contract
+# GPS Art route contract
 
-This document is the shared contract for the public Strava Art route flow in Go, Kotlin, and the Vue frontend.
+This document is the shared contract for the public GPS Art route flow in Go, Kotlin, and the Vue frontend.
 
 Until `TECH-P1-01` centralizes the full OpenAPI source of truth, the contract is maintained as:
 
@@ -38,7 +38,7 @@ Optional fields:
 - `routeType`: `RIDE`, `MTB`, `GRAVEL`, `RUN`, `TRAIL`, or `HIKE`; invalid or missing values fall back to `RIDE`.
 - `variantCount`: `1..24`; missing values use backend defaults.
 
-Strava Art does not accept public distance, elevation, duration, or direction targets. Those scores stay in the response for contract compatibility, but `score.shape` is the user-facing Art fit.
+GPS Art does not accept public distance, elevation, duration, or direction targets. Those scores stay in the response for contract compatibility, but `score.shape` is the user-facing Art fit.
 
 ## Response
 
@@ -47,7 +47,7 @@ Strava Art does not accept public distance, elevation, duration, or direction ta
 - `variantType` is `SHAPE_MATCH` or `ROAD_GRAPH`.
 - `reasons` must contain a `Shape mode:*` reason.
 - Known generated shape modes include `map-matched trace`, `nearest-road trace`, `high-fidelity stitched trace`, `segment stitched alternatives`, dense/simplified sketch anchors, road-first anchors, and best-effort fallbacks.
-- historical activity candidates and remixes are not returned as public Strava Art proposals.
+- historical activity candidates and remixes are not returned as public GPS Art proposals.
 - ordering is `score.shape` first, then `score.global`, `score.roadFitness`, shorter distance, then stable `routeId`.
 
 `GeneratedRoute` fields are stable across Go and Kotlin:
@@ -60,7 +60,7 @@ Strava Art does not accept public distance, elevation, duration, or direction ta
 
 ## Art Fit First
 
-Strava Art is optimized for drawing resemblance before sport-loop novelty.
+GPS Art is optimized for drawing resemblance before sport-loop novelty.
 
 - `score.shape` includes real map-space corridor fit: a route that visibly stays nearer to the dashed drawing should outrank a faster orthogonal path when both are routable.
 - Automatic pose transforms may generate candidates, but `score.shape` is measured against the visible input sketch, not against the transformed probe.
@@ -106,7 +106,7 @@ OSRM-backed local smoke:
 BACKEND_URL=http://127.0.0.1:8080 ./scripts/smoke-strava-art.sh
 ```
 
-Docker stack smoke with Strava Art enabled:
+Docker stack smoke with GPS Art enabled:
 
 ```bash
 RUN_STRAVA_ART_SMOKE=1 ./scripts/smoke-docker-compose.sh go

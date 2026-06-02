@@ -39,7 +39,7 @@ const SCREEN_SPECS = [
 
 function printHelp() {
   console.log(`
-Capture documentation screenshots for MyStravaStats.
+Capture documentation screenshots for My Activity Stats.
 
 Usage:
   node scripts/capture-doc-screenshots.mjs [options]

@@ -255,7 +255,7 @@ func buildShapeGenerationDiagnostics(
 	if ignoredCandidateCount > 0 {
 		diagnostics = append(diagnostics, dto.RouteGenerationDiagnosticDto{
 			Code:    "NON_SHAPE_CANDIDATES_IGNORED",
-			Message: "Historical or non-shape route candidates were ignored because Strava Art only returns OSRM routes generated from the drawing.",
+			Message: "Historical or non-shape route candidates were ignored because GPS Art only returns OSRM routes generated from the drawing.",
 		})
 	}
 
@@ -314,7 +314,7 @@ func buildSuccessfulGenerationDiagnostics(routes []dto.GeneratedRouteDto) []dto.
 			case strings.HasPrefix(normalized, "Selection profile: directional-best-effort"):
 				appendOnce("DIRECTION_BEST_EFFORT", "Directional constraints were softened to preserve route availability.")
 			case strings.HasPrefix(normalized, "Selection profile: art-fit-diagnostic"):
-				appendOnce("ART_FIT_RETRACE_ALLOWED", "Strava Art selected drawing fit first; retrace is reported as rideability context.")
+				appendOnce("ART_FIT_RETRACE_ALLOWED", "GPS Art selected drawing fit first; retrace is reported as rideability context.")
 			case strings.Contains(normalized, "Selection profile: emergency-fallback"):
 				appendOnce("EMERGENCY_FALLBACK", "Emergency fallback selected the best available generated route.")
 			case normalized == "Generation fallback: historical route cache":
@@ -406,7 +406,7 @@ func buildRouteGPX(name string, latLng [][]float64) (string, error) {
 
 	safeName := strings.TrimSpace(name)
 	if safeName == "" {
-		safeName = "MyStravaStats route"
+		safeName = "My Activity Stats route"
 	}
 	var escapedNameBuffer bytes.Buffer
 	if err := xml.EscapeText(&escapedNameBuffer, []byte(safeName)); err != nil {
@@ -416,7 +416,7 @@ func buildRouteGPX(name string, latLng [][]float64) (string, error) {
 
 	var builder strings.Builder
 	builder.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
-	builder.WriteString(`<gpx version="1.1" creator="MyStravaStats" xmlns="http://www.topografix.com/GPX/1/1">` + "\n")
+	builder.WriteString(`<gpx version="1.1" creator="My Activity Stats" xmlns="http://www.topografix.com/GPX/1/1">` + "\n")
 	builder.WriteString("  <trk>\n")
 	builder.WriteString("    <name>" + escapedName + "</name>\n")
 	builder.WriteString("    <trkseg>\n")

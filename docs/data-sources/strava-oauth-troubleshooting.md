@@ -1,11 +1,11 @@
 # OAuth and Cache Troubleshooting
 
-This page explains the most common issues when MyStravaStats tries to connect to Strava or read local cached data.
+This page explains the most common issues when My Activity Stats tries to connect to Strava or read local cached data.
 
 ## Problem: The browser does not open
 
 What happens:
-- MyStravaStats tries to open the Strava authorization page automatically
+- My Activity Stats tries to open the Strava authorization page automatically
 
 What to do:
 - copy the authorization URL printed in the terminal

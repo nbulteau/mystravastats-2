@@ -68,13 +68,13 @@ run_case() {
   log "Calling ${generate_endpoint} (${case_name})"
   local response_json
   response_json="$(curl -sS -f -m "$CURL_MAX_TIME" -X POST "$generate_endpoint" -H 'Content-Type: application/json' -H "X-Request-Id: ${request_id}" -d "$request_body")" \
-    || fail "Strava Art generation call failed for ${case_name}."
+    || fail "GPS Art generation call failed for ${case_name}."
 
   local routes_count
   routes_count="$(echo "$response_json" | jq '.routes | length')"
   if [[ "$routes_count" -lt 1 ]]; then
     echo "$response_json" | jq --arg caseName "$case_name" '{case: $caseName, routesCount: (.routes | length), diagnostics}'
-    fail "No route returned for Strava Art smoke shape ${case_name}."
+    fail "No route returned for GPS Art smoke shape ${case_name}."
   fi
 
   local route_id

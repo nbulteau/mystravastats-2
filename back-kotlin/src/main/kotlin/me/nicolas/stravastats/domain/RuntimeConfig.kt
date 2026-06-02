@@ -5,6 +5,7 @@ import java.util.Locale
 
 object RuntimeConfig {
     private const val DEFAULT_STRAVA_CACHE_PATH = "strava-cache"
+    private const val DEFAULT_STRAVA_API_BASE_URL = "https://www.strava.com/api/v3"
     private const val DEFAULT_SERVER_ADDRESS = "0.0.0.0"
     private const val DEFAULT_SERVER_PORT = "8080"
     private const val DEFAULT_OSM_ROUTING_BASE_URL = "http://localhost:5000"
@@ -37,6 +38,8 @@ object RuntimeConfig {
                 "provider" to provider,
                 "stravaCachePath" to stravaCachePath,
                 "stravaCacheConfigured" to isConfigured("STRAVA_CACHE_PATH"),
+                "stravaApiBaseUrl" to stravaApiBaseUrl(),
+                "stravaApiBaseConfigured" to isConfigured("STRAVA_API_BASE_URL"),
                 "fitFilesPath" to (fitFilesPath ?: ""),
                 "fitFilesConfigured" to (fitFilesPath != null),
                 "gpxFilesPath" to (gpxFilesPath ?: ""),
@@ -92,6 +95,14 @@ object RuntimeConfig {
     fun corsAllowedMethods(): List<String> = defaultCorsAllowedMethods
 
     fun corsAllowedHeaders(): List<String> = defaultCorsAllowedHeaders
+
+    fun stravaApiBaseUrl(): String {
+        return readStringConfig("STRAVA_API_BASE_URL", DEFAULT_STRAVA_API_BASE_URL).trimEnd('/')
+    }
+
+    fun stravaApiUrl(path: String): String {
+        return "${stravaApiBaseUrl()}/${path.trimStart('/')}"
+    }
 
     fun readConfigValue(key: String): String? {
         val property = System.getProperty(key)

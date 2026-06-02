@@ -109,7 +109,7 @@ class SourceModeService(
             ?: throw IllegalArgumentException("OAuth session is missing or expired.")
         if (session.createdAt.plusSeconds(STRAVA_OAUTH_SESSION_TTL_SECONDS).isBefore(Instant.now())) {
             oauthSessions.remove(state.orEmpty())
-            throw IllegalArgumentException("OAuth session expired. Restart Strava enrollment from MyStravaStats.")
+            throw IllegalArgumentException("OAuth session expired. Restart Strava enrollment from My Activity Stats.")
         }
         if (!error.isNullOrBlank()) {
             oauthSessions.remove(state.orEmpty())
@@ -652,7 +652,7 @@ class SourceModeService(
     }
 
     private fun fetchStravaAthlete(accessToken: String): Map<String, Any?> {
-        val request = HttpRequest.newBuilder(URI.create(STRAVA_ATHLETE_URL))
+        val request = HttpRequest.newBuilder(URI.create(RuntimeConfig.stravaApiUrl("athlete")))
             .header("Authorization", "Bearer $accessToken")
             .GET()
             .build()
@@ -727,7 +727,6 @@ class SourceModeService(
         private const val STRAVA_SETTINGS_URL = "https://www.strava.com/settings/api"
         private const val STRAVA_AUTHORIZE_URL = "https://www.strava.com/oauth/authorize"
         private const val STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token"
-        private const val STRAVA_ATHLETE_URL = "https://www.strava.com/api/v3/athlete"
         private const val STRAVA_OAUTH_SCOPE = "read_all,activity:read_all,profile:read_all"
         private const val STRAVA_OAUTH_SESSION_TTL_SECONDS = 600L
         private val REQUIRED_STRAVA_SCOPES = listOf("read_all", "activity:read_all", "profile:read_all")

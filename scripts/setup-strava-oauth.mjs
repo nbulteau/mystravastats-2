@@ -9,9 +9,11 @@ import { stdin as input, stdout as output } from "node:process";
 import { randomBytes } from "node:crypto";
 
 const DEFAULT_SCOPE = "read_all,activity:read_all,profile:read_all";
+const DEFAULT_STRAVA_API_BASE_URL = "https://www.strava.com/api/v3";
+const STRAVA_API_BASE_URL = normalizeBaseUrl(process.env.STRAVA_API_BASE_URL ?? DEFAULT_STRAVA_API_BASE_URL);
 const SETTINGS_URL = "https://www.strava.com/settings/api";
 const TOKEN_URL = "https://www.strava.com/oauth/token";
-const ATHLETE_URL = "https://www.strava.com/api/v3/athlete";
+const ATHLETE_URL = `${STRAVA_API_BASE_URL}/athlete`;
 
 const args = parseArgs(process.argv.slice(2));
 
@@ -36,6 +38,7 @@ async function main() {
   console.log("Strava app creation is manual. This script automates the local setup after that step.");
   console.log(`Open or create the app here: ${SETTINGS_URL}`);
   console.log("Set Authorization Callback Domain to: 127.0.0.1");
+  console.log(`Using Strava API base URL: ${STRAVA_API_BASE_URL}`);
   console.log("");
 
   if (!args.noBrowser) {
@@ -305,4 +308,9 @@ function ensureFetch() {
   if (typeof fetch !== "function") {
     throw new Error("This script needs Node.js with global fetch support.");
   }
+}
+
+function normalizeBaseUrl(value) {
+  const trimmed = String(value || DEFAULT_STRAVA_API_BASE_URL).trim();
+  return (trimmed || DEFAULT_STRAVA_API_BASE_URL).replace(/\/+$/, "");
 }

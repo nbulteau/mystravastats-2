@@ -1,6 +1,6 @@
 # Statistics Reference
 
-This page explains the main statistics exposed by MyStravaStats and the intuition behind them.
+This page explains the main statistics exposed by My Activity Stats and the intuition behind them.
 
 ## Global Metrics
 
@@ -48,7 +48,7 @@ The Eddington number is a consistency metric.
 Definition:
 - it is the largest number `E` such that you completed at least `E` different days with at least `E km` on each of those days
 
-How MyStravaStats computes it:
+How My Activity Stats computes it:
 1. group activities by day
 2. sum the total distance of each day
 3. convert each day total to kilometers
@@ -80,7 +80,7 @@ Examples:
 - best 10 km
 
 Method:
-- MyStravaStats uses a sliding window over the stream data
+- My Activity Stats uses a sliding window over the stream data
 - it scans the activity to find the segment with the best time for the target distance
 
 ## Best Efforts By Time

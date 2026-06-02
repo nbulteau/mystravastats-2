@@ -1,6 +1,6 @@
-# MyStravaStats
+# My Activity Stats
 
-MyStravaStats is a personal Strava and local activity analytics application.
+My Activity Stats is a personal Strava and local activity analytics application.
 
 Start with the documentation index:
 
@@ -17,7 +17,7 @@ Strava still requires creating the API application manually from:
 https://www.strava.com/settings/api
 ```
 
-After that one manual step, MyStravaStats can automate the local OAuth flow from
+After that one manual step, My Activity Stats can automate the local OAuth flow from
 `Diagnostics` > `Data Source` > `Connect Strava`, or from the CLI:
 
 ```shell

@@ -1,6 +1,6 @@
 # Developer Setup
 
-This guide collects the commands used most often while developing MyStravaStats.
+This guide collects the commands used most often while developing My Activity Stats.
 
 ## Toolchain Versions
 

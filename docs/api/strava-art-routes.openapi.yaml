@@ -1,18 +1,18 @@
 openapi: 3.0.3
 info:
-  title: MyStravaStats Strava Art Routes Contract
+  title: My Activity Stats GPS Art Routes Contract
   version: "2026-05-04"
-  description: Shared contract fragment for public Strava Art route generation in Go and Kotlin.
+  description: Shared contract fragment for public GPS Art route generation in Go and Kotlin.
 paths:
   /api/routes/generate/shape:
     post:
       tags:
         - routes
-      summary: Generate Strava Art routes from a drawn or imported shape.
+      summary: Generate GPS Art routes from a drawn or imported shape.
       description: >
         Snaps a user-provided artwork shape to routable roads. Returned proposals
         are OSRM-generated shape-mode routes; historical activities must not be
-        substituted as public Strava Art proposals.
+        substituted as public GPS Art proposals.
       parameters:
         - name: activityType
           in: query
@@ -58,7 +58,7 @@ paths:
     get:
       tags:
         - routes
-      summary: Export a generated Strava Art route as GPX.
+      summary: Export a generated GPS Art route as GPX.
       parameters:
         - name: routeId
           in: path
@@ -146,7 +146,7 @@ components:
           type: string
         variantType:
           type: string
-          description: SHAPE_MATCH or ROAD_GRAPH for public Strava Art proposals.
+          description: SHAPE_MATCH or ROAD_GRAPH for public GPS Art proposals.
         routeType:
           type: string
           nullable: true

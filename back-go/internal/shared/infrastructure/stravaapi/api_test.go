@@ -52,6 +52,40 @@ func TestRetrieveLoggedInAthlete_FailFastOnTooManyRequests(t *testing.T) {
 	}
 }
 
+func TestRetrieveLoggedInAthlete_UsesConfiguredAPIBaseURLAsV3Root(t *testing.T) {
+	var requestedPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestedPath = r.URL.Path
+		if r.URL.Path != "/athlete" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = fmt.Fprint(w, `{"id":42,"username":"test-athlete"}`)
+	}))
+	defer server.Close()
+
+	api := &StravaApi{
+		accessToken: "test-token",
+		properties: StravaProperties{
+			APIBaseURL: server.URL,
+		},
+		httpClient: server.Client(),
+	}
+
+	athlete, err := api.RetrieveLoggedInAthlete()
+
+	if err != nil {
+		t.Fatalf("expected athlete request to succeed, got %v", err)
+	}
+	if athlete == nil || athlete.Id != 42 {
+		t.Fatalf("expected athlete id 42, got %#v", athlete)
+	}
+	if requestedPath != "/athlete" {
+		t.Fatalf("expected configured API base URL to be treated as V3 root, got path %q", requestedPath)
+	}
+}
+
 func TestGetActivitiesFailFastOnRateLimit(t *testing.T) {
 	// GIVEN
 	var calls int32

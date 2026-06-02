@@ -47,7 +47,7 @@ wait_for_url "Frontend" "$FRONT_URL" "${FRONT_WAIT_ATTEMPTS:-60}"
 wait_for_url "API health through frontend proxy" "$API_HEALTH_URL" "${API_WAIT_ATTEMPTS:-60}"
 
 if [[ "${RUN_STRAVA_ART_SMOKE:-false}" == "true" || "${RUN_STRAVA_ART_SMOKE:-0}" == "1" ]]; then
-  echo "Running Strava Art smoke check through $FRONT_URL"
+  echo "Running GPS Art smoke check through $FRONT_URL"
   BACKEND_URL="${STRAVA_ART_BACKEND_URL:-$FRONT_URL}" "$ROOT_DIR/scripts/smoke-strava-art.sh"
 fi
 

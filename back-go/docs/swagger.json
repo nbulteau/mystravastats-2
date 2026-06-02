@@ -2,7 +2,7 @@
     "swagger": "2.0",
     "info": {
         "description": "API for Strava statistics",
-        "title": "MyStravaStats API",
+        "title": "My Activity Stats API",
         "termsOfService": "http://swagger.io/terms/",
         "contact": {
             "name": "API Support",

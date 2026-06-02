@@ -1599,7 +1599,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 diagnostics = listOf(
                     RouteGenerationDiagnostic(
                         code = "EDIT_CONTROL_POINTS_TOO_FEW",
-                        message = "At least two control points are required to edit a Strava Art route.",
+                        message = "At least two control points are required to edit a GPS Art route.",
                     ),
                 ),
             )
@@ -1740,7 +1740,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             routeId = generatedEditedRouteId(preview, request.routeId),
             activity = ActivityShort(
                 id = 0,
-                name = "Edited Strava Art route",
+                name = "Edited GPS Art route",
                 type = activityTypeFromRouteType(request.routeType),
             ),
             activityDate = DateTimeFormatter.ISO_INSTANT.format(Instant.now()),
@@ -2169,7 +2169,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             effectiveScore
         }
         // effectiveMatchScore is an internal ranking score (not API score). For
-        // classic loops it penalizes retrace heavily; Strava Art selection still
+        // classic loops it penalizes retrace heavily; GPS Art selection still
         // sorts by shape score first and keeps retrace as a rideability signal.
         return OsrmRouteCandidate(
             recommendation = recommendation,
@@ -2254,7 +2254,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         val selectedIds = mutableSetOf<String>()
 
         if (shapeMode) {
-            // Strava Art is judged first by the drawing. Retrace can be necessary
+            // GPS Art is judged first by the drawing. Retrace can be necessary
             // to preserve the model, so route-loop relaxation levels are diagnostics
             // here, not hard selection gates.
             for (candidate in sortedCandidates) {

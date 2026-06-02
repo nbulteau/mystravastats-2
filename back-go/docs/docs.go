@@ -1197,7 +1197,7 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost:8080",
 	BasePath:         "/",
 	Schemes:          []string{},
-	Title:            "MyStravaStats API",
+	Title:            "My Activity Stats API",
 	Description:      "API for Strava statistics",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,

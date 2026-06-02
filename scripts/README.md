@@ -13,8 +13,11 @@ node scripts/setup-strava-oauth.mjs --cache /absolute/path/to/strava-cache
 ```
 
 The script writes `.strava`, opens the Strava OAuth authorization page, receives
-the local callback, validates `/api/v3/athlete` and stores `.strava-token.json`
-for later refresh-token reuse.
+the local callback, validates the configured Strava API `athlete` endpoint and
+stores `.strava-token.json` for later refresh-token reuse.
+
+Set `STRAVA_API_BASE_URL=https://www.api-v3.strava.com` to validate against the
+new Strava V3 API host while keeping OAuth on `https://www.strava.com`.
 
 ## smoke-source-modes.mjs
 
@@ -53,7 +56,7 @@ go run ../scripts/generate-source-mode-fit-fixture.go --out ../test-fixtures/sou
 
 ## capture-doc-screenshots.mjs
 
-Capture documentation screenshots for MyStravaStats.
+Capture documentation screenshots for My Activity Stats.
 
 Usage from the repository root:
 

@@ -366,7 +366,7 @@ describe("routes store", () => {
     expect(store.selectedRouteId).toBe("shape-route-1");
   });
 
-  it("orders Strava Art proposals by drawing fit before selecting the first route", async () => {
+  it("orders GPS Art proposals by drawing fit before selecting the first route", async () => {
     const store = useRoutesStore();
     store.mode = "SHAPE";
     store.shapePoints = [
@@ -417,7 +417,7 @@ describe("routes store", () => {
     expect(store.selectedRouteId).toBe("high-art-fit");
   });
 
-  it("does not constrain Strava Art shape generation with distance or elevation defaults", async () => {
+  it("does not constrain GPS Art shape generation with distance or elevation defaults", async () => {
     const store = useRoutesStore();
     store.mode = "SHAPE";
     store.shapePoints = [

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mystravastats/internal/platform/runtimeconfig"
 	"mystravastats/internal/shared/domain/business"
 	"net"
 	"net/http"
@@ -21,7 +22,6 @@ import (
 
 const stravaOAuthSettingsURL = "https://www.strava.com/settings/api"
 const stravaOAuthTokenURL = "https://www.strava.com/oauth/token"
-const stravaOAuthAthleteURL = "https://www.strava.com/api/v3/athlete"
 const stravaOAuthScope = "read_all,activity:read_all,profile:read_all"
 const stravaOAuthSessionTTL = 10 * time.Minute
 
@@ -146,7 +146,7 @@ func completeStravaOAuthEnrollment(query url.Values) (string, int) {
 	session := sessionValue.(stravaOAuthSession)
 	if time.Since(session.CreatedAt) > stravaOAuthSessionTTL {
 		stravaOAuthSessions.Delete(state)
-		return stravaOAuthHTML("Authorization failed", "OAuth session expired. Restart Strava enrollment from MyStravaStats."), http.StatusBadRequest
+		return stravaOAuthHTML("Authorization failed", "OAuth session expired. Restart Strava enrollment from My Activity Stats."), http.StatusBadRequest
 	}
 	if oauthError := query.Get("error"); oauthError != "" {
 		stravaOAuthSessions.Delete(state)
@@ -280,7 +280,7 @@ func exchangeStravaOAuthCode(clientID string, clientSecret string, code string) 
 }
 
 func fetchStravaAthlete(accessToken string) (map[string]any, error) {
-	request, err := http.NewRequest(http.MethodGet, stravaOAuthAthleteURL, nil)
+	request, err := http.NewRequest(http.MethodGet, runtimeconfig.StravaAPIURL("athlete"), nil)
 	if err != nil {
 		return nil, err
 	}

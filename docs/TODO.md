@@ -7,7 +7,7 @@
 - Les modes de source `STRAVA`, `FIT` et `GPX` existent dans Go et Kotlin. Leur activation reste principalement une affaire de configuration runtime et de redemarrage backend.
 - Le backend Go reste important pour le binaire local; le backend Kotlin reste la reference historique de plusieurs providers et services metier.
 - La generation de routes reste la zone la plus sensible: OSRM, anti-retrace, diagnostics, export GPX, parite Go/Kotlin.
-- L'onglet routes a ete repositionne en `Strava Art` / GPS drawing studio: dessiner ou importer une forme, la snapper au reseau routier via OSRM, puis exporter un GPX exploitable.
+- L'onglet routes a ete repositionne en `GPS Art` / GPS drawing studio: dessiner ou importer une forme, la snapper au reseau routier via OSRM, puis exporter un GPX exploitable.
 - La qualite des donnees locales FIT/GPX dispose maintenant d'un corpus partage et de tests miroir Go/Kotlin sur les anomalies principales: valeurs invalides, streams incomplets, GPS aberrant, altitude spike, corrections proposees et impacts avant/apres correction.
 - Les modes source `STRAVA` / `FIT` / `GPX` ont un smoke test reproductible avec fixtures locales anonymes pour Go et Kotlin.
 - Les risques ouverts les plus visibles sont le contrat API non partage, les parcours frontend peu couverts, la parite Go/Kotlin hors routes/data quality et la fraicheur des indicateurs apres synchronisation.
@@ -19,12 +19,12 @@
 - Preserver les regles anti-retrace strictes hors zone depart/arrivee pour les routes sportives classiques et l'explorateur interne.
 - Garder le comportement de zone depart/arrivee 2 km explicite et teste.
 - Preserver `X-Request-Id` et les diagnostics exploitables sur les endpoints de generation.
-- Pour `Strava Art`, conserver `/routes` comme URL interne tant qu'aucune migration n'est prevue.
-- Pour `Strava Art`, rendre visibles le dessin d'origine, la route OSRM generee, les scores de ressemblance/praticabilite et les raisons de fallback.
-- Pour `Strava Art`, le score `Art fit` doit rester centre sur le respect du dessin: proximite ancree, derive du centre, ordre du trace et forme globale.
-- Pour `Strava Art`, le trace utilisateur est toujours une polyligne point-a-point ordonnee: meme une forme visuellement fermee ne doit pas etre reinterpretee en boucle sportive, retour depart ou contour a point de depart flexible.
-- Pour `Strava Art`, le moteur peut tester des poses automatiques du dessin (echelle, rotation, micro-translation) pour trouver une route OSRM plus fidele, mais les diagnostics doivent exposer la transformation retenue.
-- Pour `Strava Art`, les retours sur ses pas sont acceptables quand ils ameliorent nettement la ressemblance au modele utilisateur; l'anti-retrace devient un signal de praticabilite/diagnostic, pas un rejet dur.
+- Pour `GPS Art`, conserver `/routes` comme URL interne tant qu'aucune migration n'est prevue.
+- Pour `GPS Art`, rendre visibles le dessin d'origine, la route OSRM generee, les scores de ressemblance/praticabilite et les raisons de fallback.
+- Pour `GPS Art`, le score `Art fit` doit rester centre sur le respect du dessin: proximite ancree, derive du centre, ordre du trace et forme globale.
+- Pour `GPS Art`, le trace utilisateur est toujours une polyligne point-a-point ordonnee: meme une forme visuellement fermee ne doit pas etre reinterpretee en boucle sportive, retour depart ou contour a point de depart flexible.
+- Pour `GPS Art`, le moteur peut tester des poses automatiques du dessin (echelle, rotation, micro-translation) pour trouver une route OSRM plus fidele, mais les diagnostics doivent exposer la transformation retenue.
+- Pour `GPS Art`, les retours sur ses pas sont acceptables quand ils ameliorent nettement la ressemblance au modele utilisateur; l'anti-retrace devient un signal de praticabilite/diagnostic, pas un rejet dur.
 - Garder les exports GPX generes compatibles avec Strava, Garmin, Komoot et les outils GPS standards.
 - Ne pas changer silencieusement les contrats API: ajouter migration, compatibilite ou tests de contrat.
 - Toute reponse JSON issue d'un provider local doit rester serialisable: pas de `NaN`, `Inf`, sentinelle FIT brute ou tableau `null` quand le contrat expose une liste.
@@ -95,6 +95,29 @@
   Acceptance:
   - un changement de capacite backend ne laisse plus une doc contradictoire.
 
+- [ ] `TECH-P1-09` (`P1`, `L`) - Ajouter un `CompositeActivityProvider` mixte Strava + RideWithGPS + FIT/GPX/TCX.
+  Owners: `Back-Go`, `Back-Kotlin`, `Front`, `QA`.
+  Constat:
+  - les modes source actuels restent exclusifs via `FIT_FILES_PATH`, `GPX_FILES_PATH` ou `STRAVA_CACHE_PATH`,
+  - un fonctionnement mixte permettrait de garder les metadonnees Strava ou RideWithGPS tout en enrichissant ou completant les activites avec des fichiers locaux FIT/GPX/TCX,
+  - RideWithGPS expose des `Trips` et `Routes`, mais ne couvre pas exactement les memes concepts que Strava: le provider doit normaliser ces differences sans les masquer,
+  - le cache Strava existant doit rester intact: RideWithGPS doit avoir son propre cache local et la fusion doit produire une vue composite ou un cache composite separe.
+  Scope:
+  - introduire un mode runtime mixte explicite, par exemple `ACTIVITY_SOURCE_MODE=MIXED`,
+  - implementer un `CompositeActivityProvider` miroir en Go et Kotlin,
+  - ajouter un provider RideWithGPS avec configuration dediee (`RIDEWITHGPS_API_BASE_URL`, credentials OAuth/token, `RIDEWITHGPS_CACHE_PATH`) et cache local separe sur le modele du provider Strava,
+  - charger Strava, RideWithGPS, FIT, GPX et TCX sans changer les providers existants,
+  - matcher les activites par date, type, distance, duree et trace GPS quand disponible,
+  - exposer provenance, confiance de matching, conflits et activites locales non matchees dans les diagnostics,
+  - mettre a jour la section `Data source` de la page Status `/diagnostics` pour afficher les sources actives, les caches Strava/RideWithGPS, les imports locaux et les conflits de fusion,
+  - ajouter fixtures partagees Strava + RideWithGPS + FIT + GPX + TCX et tests de parite Go/Kotlin.
+  Acceptance:
+  - une activite Strava peut etre enrichie par un stream FIT/GPX local sans modifier le cache Strava,
+  - une activite RideWithGPS peut etre lue depuis son cache local et enrichie par un fichier FIT/GPX/TCX local,
+  - une activite locale absente de Strava peut apparaitre en mode union,
+  - la section `Data source` de `/diagnostics` ne presente plus le mode mixte comme une source unique et rend visibles provenance, statut des caches et conflits,
+  - les divergences de matching sont visibles et testees dans les deux backends.
+
 ### Priorite basse
 
 - [ ] `TECH-P2-01` (`P2`, `M`) - Nettoyer la strategie d'assets frontend embarques.
@@ -123,7 +146,7 @@
 
 ### Priorite moyenne
 
-- [ ] `FUNC-P1-15` (`P1`, `L`) - Edition aimantee des routes generees `Strava Art`.
+- [ ] `FUNC-P1-15` (`P1`, `L`) - Edition aimantee des routes generees `GPS Art`.
   Owners: `Product`, `Front`, `Routes`, `Back-Go`, `Back-Kotlin`.
   Statut: MVP implemente; validation produit avec un OSRM local actif a faire.
   Proposition:
@@ -133,7 +156,7 @@
   - ne jamais ecrire de geometrie hors route dans la route finale ou dans le GPX exporte,
   - distinguer visuellement le dessin original, la route generee et la route editee,
   - permettre au minimum: deplacer un point, inserer un point sur un segment, supprimer un point de controle, annuler/refaire, revenir a la proposition initiale,
-  - conserver l'ordre point-a-point du trace Strava Art: l'edition ajuste le chemin OSRM entre points ordonnes, elle ne transforme pas la route en boucle sportive,
+  - conserver l'ordre point-a-point du trace GPS Art: l'edition ajuste le chemin OSRM entre points ordonnes, elle ne transforme pas la route en boucle sportive,
   - remonter des diagnostics explicites quand un segment edite ne peut pas etre route par OSRM (`EDIT_SEGMENT_NO_ROUTE`, couverture insuffisante, point non routable),
   - garder Go et Kotlin alignes sur les endpoints/DTO d'edition et les regles de snap.
   Acceptance:
@@ -146,7 +169,7 @@
   - chaque point de controle est snappe via OSRM nearest puis chaque segment adjacent est recalcule via OSRM route,
   - la route editee est retournee comme nouvelle proposition OSRM et mise en cache pour l'export GPX,
   - l'UI expose le mode edit, points de controle, deplacement, insertion, suppression, undo/redo et reset,
-  - diagnostics explicites d'edition ajoutes et presentes dans `Strava Art`,
+  - diagnostics explicites d'edition ajoutes et presentes dans `GPS Art`,
   - tests Go/Kotlin ajoutes sur succes d'edition et segment OSRM impossible.
 
 - [ ] `FUNC-P1-12` (`P1`, `M`) - Centre de fraicheur et synchronisation.
@@ -187,14 +210,14 @@
   Acceptance:
   - les donnees ajoutees par l'application restent portables hors application.
 
-- [ ] `FUNC-P2-06` (`P2`, `M`) - Bibliotheque de projets `Strava Art`.
+- [ ] `FUNC-P2-06` (`P2`, `M`) - Bibliotheque de projets `GPS Art`.
   Owners: `Product`, `Front`, `Routes`.
   Proposition:
   - sauvegarder dessins, imports, routes OSRM generees, exports GPX et scores associes,
   - comparer plusieurs variantes d'un meme dessin,
   - permettre de reprendre un projet sans redessiner depuis zero.
   Acceptance:
-  - `Strava Art` devient un atelier reutilisable plutot qu'un outil one-shot.
+  - `GPS Art` devient un atelier reutilisable plutot qu'un outil one-shot.
 
 ## Dette visible a traiter en premier
 

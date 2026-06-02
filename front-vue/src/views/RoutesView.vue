@@ -757,7 +757,7 @@ function diagnosticMessage(diagnostic: RouteGenerationDiagnostic): string {
     case "START_POINT_SNAPPED":
       return "The start was moved to the closest routable point.";
     case "NON_SHAPE_CANDIDATES_IGNORED":
-      return "Existing activities were available, but Strava Art only returns OSRM routes generated from the sketch.";
+      return "Existing activities were available, but GPS Art only returns OSRM routes generated from the sketch.";
     case "ENGINE_CACHE_FALLBACK":
       return "OSRM did not produce a better candidate, so a known historical route was returned.";
     case "ENGINE_FALLBACK_LEGACY":
@@ -1477,7 +1477,7 @@ function exportSketchPng() {
   context.setLineDash([]);
   context.fillStyle = "#242933";
   context.font = "700 22px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-  context.fillText(saveShapeName.value.trim() || "Strava Art sketch", 30, canvas.height - 28);
+  context.fillText(saveShapeName.value.trim() || "GPS Art sketch", 30, canvas.height - 28);
 
   canvas.toBlob((blob) => {
     if (!blob) {
@@ -1739,7 +1739,7 @@ onBeforeUnmount(() => {
       <div class="routes-title-block">
         <div>
           <span class="routes-kicker">GPS drawing studio</span>
-          <h1>Strava Art</h1>
+          <h1>GPS Art</h1>
         </div>
         <div class="routes-head-actions">
           <span class="routes-mode-chip">
@@ -1752,7 +1752,7 @@ onBeforeUnmount(() => {
           </span>
         </div>
       </div>
-      <div class="routes-art-steps" aria-label="Strava Art workflow">
+      <div class="routes-art-steps" aria-label="GPS Art workflow">
         <span :class="{ 'routes-art-step--active': workspaceStage === 'Sketch' }">
           <i class="fa-solid fa-pencil" aria-hidden="true" />
           Sketch

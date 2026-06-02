@@ -1,6 +1,6 @@
 # OSM Routing Setup (OSRM)
 
-This guide explains how to set up a local OSRM router for MyStravaStats route generation.
+This guide explains how to set up a local OSRM router for My Activity Stats route generation.
 
 ## Platform-Specific Setup
 
@@ -120,7 +120,7 @@ docker compose -f "$PROJECT_ROOT/docker-compose-routing-osrm.yml" --profile prep
 By default, extraction uses `/opt/bicycle.lua` (cycling-oriented routing).
 By default, preprocessing runs with `2` threads to reduce memory pressure.
 The prepare step also writes the selected extract profile to `osm/region.osrm.profile`
-so MyStravaStats can expose profile-aware route type availability in the UI.
+so My Activity Stats can expose profile-aware route type availability in the UI.
 
 If you want a different profile for extraction:
 

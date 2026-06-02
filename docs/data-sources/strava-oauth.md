@@ -1,12 +1,12 @@
 # Strava OAuth Setup
 
-To access live Strava data, MyStravaStats needs a Strava API application linked to your own Strava account.
+To access live Strava data, My Activity Stats needs a Strava API application linked to your own Strava account.
 
 Create it from [Strava API Settings](https://www.strava.com/settings/api).
 
 Strava does not expose a public API endpoint to create this developer application
 or retrieve its secret. That first application-creation step remains manual.
-MyStravaStats can automate everything after that: local `.strava` creation,
+My Activity Stats can automate everything after that: local `.strava` creation,
 OAuth authorization, callback handling, token exchange and refresh-token reuse.
 
 ## 1. Create A Strava Application
@@ -66,7 +66,7 @@ node scripts/setup-strava-oauth.mjs --cache /your/custom/cache
 
 ## 4. Locate The Cache Directory
 
-By default, MyStravaStats uses:
+By default, My Activity Stats uses:
 
 ```text
 strava-cache
@@ -104,6 +104,15 @@ useCache=false
 
 `useCache=false` allows live Strava refresh. `useCache=true` prefers local cached data and avoids a live bootstrap.
 
+The Strava V3 API root can be overridden with:
+
+```shell
+export STRAVA_API_BASE_URL=https://www.api-v3.strava.com
+```
+
+By default, My Activity Stats uses `https://www.strava.com/api/v3`. OAuth
+authorization and token exchange still use `https://www.strava.com`.
+
 The OAuth assistant also creates:
 
 ```text
@@ -135,12 +144,12 @@ useCache=true
 
 On the first Strava-enabled launch:
 
-1. MyStravaStats reads `.strava`.
+1. My Activity Stats reads `.strava`.
 2. It reuses `.strava-token.json` when a valid token is available.
 3. If needed, it opens the Strava authorization screen.
 4. You approve access.
 5. Strava redirects back to a local callback URL.
-6. MyStravaStats exchanges the authorization code for an access token and refresh token.
+6. My Activity Stats exchanges the authorization code for an access token and refresh token.
 7. Activities start downloading into the local cache.
 
 If the browser does not open automatically, the authorization URL is printed in the terminal.
@@ -150,7 +159,7 @@ If the browser does not open automatically, the authorization URL is printed in 
 - The first import may take time if you have many years of activities.
 - Streams and detailed activities may be filled progressively.
 - Because of Strava rate limits, a full import may require more than one run.
-- If `clientSecret` is missing, MyStravaStats can only rely on already cached data.
+- If `clientSecret` is missing, My Activity Stats can only rely on already cached data.
 - If `useCache=true` but the cache is empty, the app cannot perform a full live import.
 - If OAuth fails immediately after approval, check the Strava app `Authorization Callback Domain`.
 - If you revoke the app from Strava settings, delete `.strava-token.json` and run the assistant again.

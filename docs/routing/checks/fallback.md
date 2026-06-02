@@ -1,6 +1,6 @@
-# Strava Art fallback manual check (API + UI)
+# GPS Art fallback manual check (API + UI)
 
-This guide validates that fallback diagnostics are visible both in API responses and in the UI for Strava Art generation.
+This guide validates that fallback diagnostics are visible both in API responses and in the UI for GPS Art generation.
 
 ## Prerequisites
 
@@ -49,6 +49,6 @@ START_LNG=-1.587309
   - `START_POINT_SNAPPED`
   - `SELECTION_RELAXED`
   - `EMERGENCY_FALLBACK`
-- Strava Art routes may also include `ART_FIT_RETRACE_ALLOWED` when drawing resemblance wins and retrace is only rideability context.
+- GPS Art routes may also include `ART_FIT_RETRACE_ALLOWED` when drawing resemblance wins and retrace is only rideability context.
 - In the UI, a warning toast appears when such fallback diagnostics are returned.
 - In the UI, diagnostics are visible under the generation panel even when routes are present.

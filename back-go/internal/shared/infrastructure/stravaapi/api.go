@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"mystravastats/internal/helpers"
+	"mystravastats/internal/platform/runtimeconfig"
 	"mystravastats/internal/shared/domain/strava"
 	"net/http"
 	"net/url"
@@ -22,8 +23,9 @@ import (
 )
 
 type StravaProperties struct {
-	PageSize int
-	URL      string
+	PageSize   int
+	URL        string
+	APIBaseURL string
 }
 
 type StravaApi struct {
@@ -71,8 +73,9 @@ func NewStravaApiWithTokenStore(clientId, clientSecret, tokenStore string) *Stra
 
 func newStravaApi(clientId, clientSecret, tokenStore string) *StravaApi {
 	properties := StravaProperties{
-		PageSize: 200,
-		URL:      "https://www.strava.com",
+		PageSize:   200,
+		URL:        "https://www.strava.com",
+		APIBaseURL: runtimeconfig.StravaAPIBaseURL(),
 	}
 	api := &StravaApi{
 		clientId:     clientId,
@@ -365,7 +368,7 @@ func newOAuthState() (string, error) {
 }
 
 func (api *StravaApi) RetrieveLoggedInAthlete() (*strava.Athlete, error) {
-	baseAthleteUrl := fmt.Sprintf("%s/api/v3/athlete", api.properties.URL)
+	baseAthleteUrl := api.apiURL("athlete")
 	return api.retrieveAthlete(baseAthleteUrl)
 }
 
@@ -408,7 +411,7 @@ func (api *StravaApi) getActivities(year int, failFastOnRateLimit bool) ([]strav
 	after := time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
 	before := time.Date(year+1, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
 
-	baseURL := fmt.Sprintf("%s/api/v3/athlete/activities", api.properties.URL)
+	baseURL := api.apiURL("athlete/activities")
 	activitiesURL, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid base URL: %w", err)
@@ -525,7 +528,7 @@ func (api *StravaApi) getActivities(year int, failFastOnRateLimit bool) ([]strav
 }
 
 func (api *StravaApi) GetDetailedActivity(activityId int64) (*strava.DetailedActivity, error) {
-	baseActivitiesUel := fmt.Sprintf("%s/api/v3/activities/%d?include_all_efforts=true", api.properties.URL, activityId)
+	baseActivitiesUel := api.apiURL(fmt.Sprintf("activities/%d?include_all_efforts=true", activityId))
 	resp, err := api.doGetWithRateLimitRetry(baseActivitiesUel, 20*time.Second, 6, true)
 	if err != nil {
 		return nil, err
@@ -567,7 +570,7 @@ func (api *StravaApi) GetActivityStream(stravaActivity strava.Activity) (*strava
 		return nil, nil
 	}
 
-	baseStreamsUrl := fmt.Sprintf("%s/api/v3/activities/%d/streams?keys=time,distance,latlng,altitude,velocity_smooth,heartrate,cadence,watts,moving,grade_smooth&key_by_type=true", api.properties.URL, stravaActivity.Id)
+	baseStreamsUrl := api.apiURL(fmt.Sprintf("activities/%d/streams?keys=time,distance,latlng,altitude,velocity_smooth,heartrate,cadence,watts,moving,grade_smooth&key_by_type=true", stravaActivity.Id))
 	resp, err := api.doGetWithRateLimitRetry(baseStreamsUrl, 10*time.Second, 4, true)
 	if err != nil {
 		return nil, err
@@ -648,6 +651,20 @@ func (api *StravaApi) doGetWithRateLimitRetry(url string, timeout time.Duration,
 	}
 
 	return nil, fmt.Errorf("strava request failed after %d attempts", maxAttempts)
+}
+
+func (api *StravaApi) apiURL(path string) string {
+	return api.apiBaseURL() + "/" + strings.TrimLeft(path, "/")
+}
+
+func (api *StravaApi) apiBaseURL() string {
+	if strings.TrimSpace(api.properties.APIBaseURL) != "" {
+		return strings.TrimRight(strings.TrimSpace(api.properties.APIBaseURL), "/")
+	}
+	if strings.TrimSpace(api.properties.URL) != "" {
+		return strings.TrimRight(strings.TrimSpace(api.properties.URL), "/") + "/api/v3"
+	}
+	return runtimeconfig.StravaAPIBaseURL()
 }
 
 func retryAfterDuration(retryAfterHeader string, fallback time.Duration) time.Duration {

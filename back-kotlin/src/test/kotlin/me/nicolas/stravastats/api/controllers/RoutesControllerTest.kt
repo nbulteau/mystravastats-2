@@ -467,7 +467,7 @@ class RoutesControllerTest {
     }
 
     @Test
-    fun `Strava Art smoke generates route and exports gpx`() {
+    fun `GPS Art smoke generates route and exports gpx`() {
         // GIVEN
         val fixture = loadStravaArtSmokeFixture()
         fixture.smokeCases().forEach { smokeCase ->
@@ -762,7 +762,7 @@ class RoutesControllerTest {
             val parent = cursor.parent ?: return@repeat
             cursor = parent
         }
-        fail("failed to locate Strava Art smoke fixture file: $relative")
+        fail("failed to locate GPS Art smoke fixture file: $relative")
     }
 
     private data class StravaArtSmokeFixture(

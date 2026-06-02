@@ -1,6 +1,6 @@
 # Cache Layout For Developers
 
-This page explains how MyStravaStats stores Strava data on disk.
+This page explains how My Activity Stats stores Strava data on disk.
 
 ## Default Root Directory
 

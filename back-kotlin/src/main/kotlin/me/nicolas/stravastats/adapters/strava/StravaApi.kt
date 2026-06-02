@@ -164,7 +164,7 @@ internal class StravaApi(clientId: String, clientSecret: String, stravaCache: St
 
     private fun doGetLoggedInAthlete(): StravaAthlete? {
 
-        val url = "https://www.strava.com/api/v3/athlete"
+        val url = properties.apiUrl("athlete")
 
         val response = executeRequestWithRetry(
             requestBuilder = { Request.Builder().url(url).headers(buildRequestHeaders()).build() },
@@ -196,7 +196,7 @@ internal class StravaApi(clientId: String, clientSecret: String, stravaCache: St
         val activities = mutableListOf<StravaActivity>()
         var page = 1
         // Use UTC as reference timezone so that date boundaries are consistent for all users
-        var url = "https://www.strava.com/api/v3/athlete/activities?per_page=${properties.pageSize}"
+        var url = "${properties.apiUrl("athlete/activities")}?per_page=${properties.pageSize}"
         if (before != null) {
             url += "&before=${before.toEpochSecond(ZoneOffset.UTC)}"
         }
@@ -244,7 +244,7 @@ internal class StravaApi(clientId: String, clientSecret: String, stravaCache: St
             return null
         }
         val url =
-            "https://www.strava.com/api/v3/activities/${stravaActivity.id}/streams" + "?keys=time,distance,latlng,altitude,velocity_smooth,heartrate,cadence,watts,moving,grade_smooth&key_by_type=true"
+            properties.apiUrl("activities/${stravaActivity.id}/streams") + "?keys=time,distance,latlng,altitude,velocity_smooth,heartrate,cadence,watts,moving,grade_smooth&key_by_type=true"
 
         val response = executeRequestWithRetry(
             requestBuilder = { Request.Builder().url(url).headers(buildRequestHeaders()).build() },
@@ -292,7 +292,7 @@ internal class StravaApi(clientId: String, clientSecret: String, stravaCache: St
         activityId: Long,
         failFastOnRateLimit: Boolean = false,
     ): StravaDetailedActivity? {
-        val url = "https://www.strava.com/api/v3/activities/$activityId?include_all_efforts=true"
+        val url = properties.apiUrl("activities/$activityId?include_all_efforts=true")
 
         val response = executeRequestWithRetry(
             requestBuilder = { Request.Builder().url(url).headers(buildRequestHeaders()).build() },
@@ -353,11 +353,11 @@ internal class StravaApi(clientId: String, clientSecret: String, stravaCache: St
         openBrowser(url)
 
         println()
-        println("To grant MyStravaStats to read your Strava activities data: copy paste this URL in a browser")
+        println("To grant My Activity Stats to read your Strava activities data: copy paste this URL in a browser")
         println(url)
         println()
 
-        logger.info("Waiting for your agreement to allow MyStravaStats to access to your Strava data ...")
+        logger.info("Waiting for your agreement to allow My Activity Stats to access to your Strava data ...")
         val authorizationCode = receiveOAuthCallback(redirectPort, state)
         logger.info("Access granted - exchanging authorization code for access token.")
         val tokenPayload = getAccessToken(clientId, clientSecret, authorizationCode)
@@ -458,7 +458,7 @@ internal class StravaApi(clientId: String, clientSecret: String, stravaCache: St
         <body>
             <div class="container">
                 <h1>Access Granted</h1>
-                <p class="custom-class">Access granted to MyStravaStats.</p>
+                <p class="custom-class">Access granted to My Activity Stats.</p>
                 <p>You can now close this window.</p>
             </div>
         </body>
@@ -488,7 +488,7 @@ internal class StravaApi(clientId: String, clientSecret: String, stravaCache: St
     }
 
     private fun requestToken(payloadValues: Map<String, String>): Map<String, Any?> {
-        val url = "${properties.url}/api/v3/oauth/token"
+        val url = "${properties.url.trimEnd('/')}/oauth/token"
 
         val payload = payloadValues.entries.joinToString("&") { (key, value) ->
             "${encodeQueryParam(key)}=${encodeQueryParam(value)}"

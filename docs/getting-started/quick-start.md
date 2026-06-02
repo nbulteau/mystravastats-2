@@ -1,6 +1,6 @@
 # Quick Start
 
-This guide is for running MyStravaStats locally without working on the code.
+This guide is for running My Activity Stats locally without working on the code.
 
 ## 1. Install Docker
 

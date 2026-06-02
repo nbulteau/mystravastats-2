@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test
 class RuntimeConfigTest {
     private val runtimeKeys = listOf(
         "STRAVA_CACHE_PATH",
+        "STRAVA_API_BASE_URL",
         "FIT_FILES_PATH",
         "GPX_FILES_PATH",
         "SERVER_ADDRESS",
@@ -50,6 +51,8 @@ class RuntimeConfigTest {
         assertEquals("kotlin", details["backend"])
         assertEquals("strava", data["provider"])
         assertEquals("strava-cache", data["stravaCachePath"])
+        assertEquals("https://www.strava.com/api/v3", data["stravaApiBaseUrl"])
+        assertFalse(data["stravaApiBaseConfigured"] as Boolean)
         assertFalse(data["fitFilesConfigured"] as Boolean)
         assertTrue(data["gpxFilesSupported"] as Boolean)
         assertEquals(listOf("http://localhost", "http://localhost:5173"), cors["allowedOrigins"])
@@ -68,6 +71,7 @@ class RuntimeConfigTest {
         System.setProperty("FIT_FILES_PATH", "/data/fit")
         System.setProperty("GPX_FILES_PATH", "/data/gpx")
         System.setProperty("STRAVA_CACHE_PATH", "/data/strava")
+        System.setProperty("STRAVA_API_BASE_URL", "https://www.api-v3.strava.com/")
         System.setProperty("CORS_ALLOWED_ORIGINS", "http://localhost:5173, https://app.example")
         System.setProperty("OSM_ROUTING_ENABLED", "false")
         System.setProperty("OSM_ROUTING_BASE_URL", "http://osrm:5000/")
@@ -82,6 +86,8 @@ class RuntimeConfigTest {
         val routing = details["routing"] as Map<*, *>
 
         assertEquals("fit", data["provider"])
+        assertEquals("https://www.api-v3.strava.com", data["stravaApiBaseUrl"])
+        assertTrue(data["stravaApiBaseConfigured"] as Boolean)
         assertEquals("/data/fit", data["fitFilesPath"])
         assertTrue(data["fitFilesConfigured"] as Boolean)
         assertEquals("/data/gpx", data["gpxFilesPath"])

@@ -412,7 +412,7 @@ class RoutesController(
                     )
                     normalized.startsWith("Selection profile: art-fit-diagnostic") -> appendOnce(
                         code = "ART_FIT_RETRACE_ALLOWED",
-                        message = "Strava Art selected drawing fit first; retrace is reported as rideability context.",
+                        message = "GPS Art selected drawing fit first; retrace is reported as rideability context.",
                     )
                     normalized.contains("Selection profile: emergency-fallback") -> appendOnce(
                         code = "EMERGENCY_FALLBACK",
@@ -499,7 +499,7 @@ class RoutesController(
         if (ignoredCandidateCount > 0) {
             diagnostics += RouteGenerationDiagnosticDto(
                 code = "NON_SHAPE_CANDIDATES_IGNORED",
-                message = "Historical or non-shape route candidates were ignored because Strava Art only returns OSRM routes generated from the drawing.",
+                message = "Historical or non-shape route candidates were ignored because GPS Art only returns OSRM routes generated from the drawing.",
             )
         }
 
@@ -893,13 +893,13 @@ class RoutesController(
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "at least 2 valid points are required to export GPX")
         }
 
-        val safeName = escapeXml(name.ifBlank { "MyStravaStats route" })
+        val safeName = escapeXml(name.ifBlank { "My Activity Stats route" })
         val trkPoints = validPoints.joinToString("\n") { point ->
             "      <trkpt lat=\"%.7f\" lon=\"%.7f\"></trkpt>".format(point[0], point[1])
         }
         return """
             <?xml version="1.0" encoding="UTF-8"?>
-            <gpx version="1.1" creator="MyStravaStats" xmlns="http://www.topografix.com/GPX/1/1">
+            <gpx version="1.1" creator="My Activity Stats" xmlns="http://www.topografix.com/GPX/1/1">
               <trk>
                 <name>$safeName</name>
                 <trkseg>

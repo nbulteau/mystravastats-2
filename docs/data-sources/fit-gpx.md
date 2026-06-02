@@ -1,6 +1,6 @@
 # FIT And GPX Sources
 
-MyStravaStats can work from local activity files in addition to Strava.
+My Activity Stats can work from local activity files in addition to Strava.
 
 ## FIT
 

@@ -7,6 +7,7 @@ import (
 
 func TestDetails_DefaultsToStravaRuntimeConfig(t *testing.T) {
 	t.Setenv("STRAVA_CACHE_PATH", "")
+	t.Setenv("STRAVA_API_BASE_URL", "")
 	t.Setenv("FIT_FILES_PATH", "")
 	t.Setenv("GPX_FILES_PATH", "")
 	t.Setenv("CORS_ALLOWED_ORIGINS", "")
@@ -27,6 +28,9 @@ func TestDetails_DefaultsToStravaRuntimeConfig(t *testing.T) {
 	}
 	if data["stravaCachePath"] != defaultStravaCachePath {
 		t.Fatalf("expected default Strava cache path, got %#v", data["stravaCachePath"])
+	}
+	if data["stravaApiBaseUrl"] != defaultStravaAPIBaseURL {
+		t.Fatalf("expected default Strava API base URL, got %#v", data["stravaApiBaseUrl"])
 	}
 	if !reflect.DeepEqual(cors["allowedOrigins"], defaultCORSAllowedOrigins) {
 		t.Fatalf("expected default CORS origins, got %#v", cors["allowedOrigins"])
@@ -52,6 +56,7 @@ func TestDetails_ExposesConfiguredRuntimeValues(t *testing.T) {
 	t.Setenv("FIT_FILES_PATH", "/data/fit")
 	t.Setenv("GPX_FILES_PATH", "/data/gpx")
 	t.Setenv("STRAVA_CACHE_PATH", "/data/strava")
+	t.Setenv("STRAVA_API_BASE_URL", "https://www.api-v3.strava.com/")
 	t.Setenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173, https://app.example")
 	t.Setenv("OSM_ROUTING_ENABLED", "false")
 	t.Setenv("OSM_ROUTING_HISTORY_HALF_LIFE_DAYS", "90")
@@ -68,6 +73,9 @@ func TestDetails_ExposesConfiguredRuntimeValues(t *testing.T) {
 	}
 	if data["fitFilesPath"] != "/data/fit" || data["fitFilesConfigured"] != true {
 		t.Fatalf("expected configured FIT path, got %#v", data)
+	}
+	if data["stravaApiBaseUrl"] != "https://www.api-v3.strava.com" || data["stravaApiBaseConfigured"] != true {
+		t.Fatalf("expected configured Strava API base URL, got %#v", data)
 	}
 	if data["gpxFilesSupported"] != true {
 		t.Fatalf("expected Go GPX support to be true, got %#v", data["gpxFilesSupported"])

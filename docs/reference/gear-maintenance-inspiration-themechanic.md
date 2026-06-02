@@ -9,9 +9,9 @@ Source reviewed:
 
 ## Summary
 
-The Bike Mechanic positions gear maintenance as a proactive workshop rather than a passive gear mileage table. The strongest ideas for MyStravaStats are component-level lifecycle tracking, clear due/soon/ok alerts, maintenance history tied to odometer distance, and per-bike calendars that stay current from activity sync.
+The Bike Mechanic positions gear maintenance as a proactive workshop rather than a passive gear mileage table. The strongest ideas for My Activity Stats are component-level lifecycle tracking, clear due/soon/ok alerts, maintenance history tied to odometer distance, and per-bike calendars that stay current from activity sync.
 
-MyStravaStats already has a useful local base: bikes and shoes, distance coverage, local service records, component tasks, odometer distance, and GPX/FIT/Strava-friendly local storage. The next step is not to copy a SaaS garage, but to turn the Gear tab into a local decision surface: what is due, why, on which bike, and what action should be logged next.
+My Activity Stats already has a useful local base: bikes and shoes, distance coverage, local service records, component tasks, odometer distance, and GPX/FIT/Strava-friendly local storage. The next step is not to copy a SaaS garage, but to turn the Gear tab into a local decision surface: what is due, why, on which bike, and what action should be logged next.
 
 ## Inspirations to Keep
 
@@ -30,7 +30,7 @@ MyStravaStats already has a useful local base: bikes and shoes, distance coverag
 - Battery alerts from Garmin/Wahoo via Intervals.icu: valuable, but only if local activity files expose device battery metadata reliably. Track it as future telemetry, not as a core Gear dependency.
 - Full inventory management: useful later, but too broad for `FUNC-P1-10`; begin with spare component records linked to maintenance replacements.
 
-## Existing MyStravaStats Coverage
+## Existing My Activity Stats Coverage
 
 - Gear tab already computes distance, moving time, elevation, activities, monthly distance and best activities per gear.
 - Local service records already exist with component, operation, date, odometer distance and note.

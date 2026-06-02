@@ -5,6 +5,7 @@ Runtime configuration is centralized in the backend diagnostics payload. `GET /a
 | Variable | Go backend | Kotlin backend | Default | Notes |
 | --- | --- | --- | --- | --- |
 | `STRAVA_CACHE_PATH` | yes | yes | `strava-cache` | Strava cache directory. |
+| `STRAVA_API_BASE_URL` | yes | yes | `https://www.strava.com/api/v3` | Strava V3 API root. Set to `https://www.api-v3.strava.com` for the new API host. OAuth authorize/token URLs remain on `https://www.strava.com`. |
 | `FIT_FILES_PATH` | yes | yes | unset | Selects the FIT provider when set. |
 | `GPX_FILES_PATH` | yes | yes | unset | Selects the GPX provider when set, unless `FIT_FILES_PATH` is also set. |
 | `CORS_ALLOWED_ORIGINS` | yes | yes | `http://localhost,http://localhost:5173` | Comma-separated list of allowed browser origins. |
