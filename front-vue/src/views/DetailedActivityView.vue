@@ -73,7 +73,13 @@
           :key="kpi.label"
           class="detail-kpi-card"
         >
-          <span class="detail-kpi-card__label">{{ kpi.label }}</span>
+          <span class="detail-kpi-card__label detail-label-with-tooltip">
+            <span>{{ kpi.label }}</span>
+            <TooltipHint
+              v-if="metricTooltip(kpi)"
+              :text="metricTooltip(kpi) ?? ''"
+            />
+          </span>
           <strong class="detail-kpi-card__value">{{ kpi.value }}</strong>
           <small v-if="kpi.hint" class="detail-kpi-card__hint">{{ kpi.hint }}</small>
         </article>
@@ -93,48 +99,21 @@
               :key="row.label"
               class="detail-metric-row"
             >
-              <dt>{{ row.label }}</dt>
+              <dt>
+                <span class="detail-label-with-tooltip">
+                  <span>{{ row.label }}</span>
+                  <TooltipHint
+                    v-if="metricTooltip(row)"
+                    :text="metricTooltip(row) ?? ''"
+                  />
+                </span>
+              </dt>
               <dd>
                 <strong>{{ row.value }}</strong>
                 <small v-if="row.hint">{{ row.hint }}</small>
               </dd>
             </div>
           </dl>
-        </article>
-
-        <article class="detail-card detail-panel">
-          <header class="detail-panel__header">
-            <h2>Data & Source</h2>
-          </header>
-          <dl class="detail-metric-list">
-            <div
-              v-for="row in dataSourceRows"
-              :key="row.label"
-              class="detail-metric-row"
-              :class="row.tone ? `detail-metric-row--${row.tone}` : undefined"
-            >
-              <dt>{{ row.label }}</dt>
-              <dd>
-                <strong>{{ row.value }}</strong>
-                <small v-if="row.hint">{{ row.hint }}</small>
-              </dd>
-            </div>
-          </dl>
-          <div
-            v-if="versionDifferenceRows.length > 0"
-            class="detail-version-diff"
-          >
-            <h3>Differences vs {{ comparisonVersionLabel }}</h3>
-            <ul>
-              <li
-                v-for="row in versionDifferenceRows"
-                :key="row.label"
-              >
-                <span>{{ row.label }}</span>
-                <strong>{{ row.value }}</strong>
-              </li>
-            </ul>
-          </div>
         </article>
 
         <article class="detail-card detail-panel">
@@ -148,7 +127,15 @@
                 :key="row.label"
                 class="detail-metric-row"
               >
-                <dt>{{ row.label }}</dt>
+                <dt>
+                  <span class="detail-label-with-tooltip">
+                    <span>{{ row.label }}</span>
+                    <TooltipHint
+                      v-if="metricTooltip(row)"
+                      :text="metricTooltip(row) ?? ''"
+                    />
+                  </span>
+                </dt>
                 <dd>
                   <strong>{{ row.value }}</strong>
                   <small v-if="row.hint">{{ row.hint }}</small>
@@ -190,7 +177,15 @@
               :key="row.label"
               class="detail-metric-row"
             >
-              <dt>{{ row.label }}</dt>
+              <dt>
+                <span class="detail-label-with-tooltip">
+                  <span>{{ row.label }}</span>
+                  <TooltipHint
+                    v-if="metricTooltip(row)"
+                    :text="metricTooltip(row) ?? ''"
+                  />
+                </span>
+              </dt>
               <dd>
                 <strong>{{ row.value }}</strong>
                 <small v-if="row.hint">{{ row.hint }}</small>
@@ -219,6 +214,49 @@
           >
             No heart rate data available.
           </p>
+        </article>
+
+        <article class="detail-card detail-panel">
+          <header class="detail-panel__header">
+            <h2>Data & Source</h2>
+          </header>
+          <dl class="detail-metric-list">
+            <div
+              v-for="row in dataSourceRows"
+              :key="row.label"
+              class="detail-metric-row"
+              :class="row.tone ? `detail-metric-row--${row.tone}` : undefined"
+            >
+              <dt>
+                <span class="detail-label-with-tooltip">
+                  <span>{{ row.label }}</span>
+                  <TooltipHint
+                    v-if="metricTooltip(row)"
+                    :text="metricTooltip(row) ?? ''"
+                  />
+                </span>
+              </dt>
+              <dd>
+                <strong>{{ row.value }}</strong>
+                <small v-if="row.hint">{{ row.hint }}</small>
+              </dd>
+            </div>
+          </dl>
+          <div
+            v-if="versionDifferenceRows.length > 0"
+            class="detail-version-diff"
+          >
+            <h3>Differences vs {{ comparisonVersionLabel }}</h3>
+            <ul>
+              <li
+                v-for="row in versionDifferenceRows"
+                :key="row.label"
+              >
+                <span>{{ row.label }}</span>
+                <strong>{{ row.value }}</strong>
+              </li>
+            </ul>
+          </div>
         </article>
       </section>
 
@@ -580,6 +618,8 @@ import {
   type ResolvedManualFtp,
 } from "@/models/athlete-performance-settings.model";
 import { ErrorService } from "@/services/error.service";
+import TooltipHint from "@/components/TooltipHint.vue";
+import { getMetricTooltip } from "@/utils/metric-tooltips";
 import type { Options, SeriesAreaOptions, SeriesLineOptions } from "highcharts";
 import Highcharts from "highcharts";
 import { Chart } from "highcharts-vue";
@@ -890,6 +930,7 @@ type DetailKpi = {
   label: string;
   value: string;
   hint?: string;
+  tooltip?: string;
 };
 
 const kpis = computed<DetailKpi[]>(() => {
@@ -947,6 +988,7 @@ type DetailMetricRow = {
   label: string;
   value: string;
   hint?: string;
+  tooltip?: string;
   tone?: "muted" | "good" | "warn";
 };
 
@@ -966,6 +1008,14 @@ type PowerAnalysis = {
   intensityFactor: number | null;
   trainingStressScore: number | null;
   workKilojoules: number | null;
+  powerZoneEstimate: PowerZoneEstimate | null;
+};
+
+type PowerZoneEstimate = {
+  trackedSeconds: number;
+  aerobicSeconds: number;
+  thresholdVo2Seconds: number;
+  anaerobicSeconds: number;
 };
 
 const summaryRows = computed<DetailMetricRow[]>(() => {
@@ -1182,6 +1232,29 @@ const powerRows = computed<DetailMetricRow[]>(() => {
   if (analysis.trainingStressScore !== null) {
     rows.push({ label: "Training Stress Score (TSS)", value: analysis.trainingStressScore.toFixed(1) });
   }
+  if (analysis.powerZoneEstimate !== null) {
+    rows.push({
+      label: "Aerobic power-zone time",
+      value: formatPowerZoneTime(
+        analysis.powerZoneEstimate.aerobicSeconds,
+        analysis.powerZoneEstimate.trackedSeconds,
+      ),
+    });
+    rows.push({
+      label: "Threshold / VO2 time",
+      value: formatPowerZoneTime(
+        analysis.powerZoneEstimate.thresholdVo2Seconds,
+        analysis.powerZoneEstimate.trackedSeconds,
+      ),
+    });
+    rows.push({
+      label: "Anaerobic exposure",
+      value: formatPowerZoneTime(
+        analysis.powerZoneEstimate.anaerobicSeconds,
+        analysis.powerZoneEstimate.trackedSeconds,
+      ),
+    });
+  }
   if (analysis.ftp !== null) {
     rows.push({
       label: analysis.ftpSourceKind === "estimated" ? "Estimated FTP" : "FTP setting",
@@ -1264,6 +1337,7 @@ function buildPowerAnalysis(
   );
   const ftpDetails = resolveFtpDetails(manualFtp, athleteFtp, best60MinutePower, best20MinutePower);
   const weightDetails = resolveWeightDetails(performanceSettings.weightKg, athleteWeight);
+  const powerZoneEstimate = ftpDetails.ftp !== null ? buildPowerZoneEstimate(watts, ftpDetails.ftp) : null;
   const intensityFactor =
     normalizedPower !== null && ftpDetails.ftp !== null
       ? normalizedPower / ftpDetails.ftp
@@ -1295,6 +1369,7 @@ function buildPowerAnalysis(
     intensityFactor,
     trainingStressScore,
     workKilojoules,
+    powerZoneEstimate,
   };
 }
 
@@ -1313,6 +1388,7 @@ function emptyPowerAnalysis(): PowerAnalysis {
     intensityFactor: null,
     trainingStressScore: null,
     workKilojoules: null,
+    powerZoneEstimate: null,
   };
 }
 
@@ -1395,6 +1471,41 @@ function resolveWeightDetails(
   return { weightKg: null, source: null };
 }
 
+function buildPowerZoneEstimate(watts: number[], ftp: number): PowerZoneEstimate | null {
+  if (!watts.length || !Number.isFinite(ftp) || ftp <= 0) {
+    return null;
+  }
+
+  const aerobicUpperBound = ftp * 0.9;
+  const anaerobicLowerBound = ftp * 1.2;
+
+  return watts.reduce<PowerZoneEstimate>((estimate, rawPower) => {
+    const power = Number.isFinite(rawPower) && rawPower > 0 ? rawPower : 0;
+    estimate.trackedSeconds += 1;
+    if (power <= aerobicUpperBound) {
+      estimate.aerobicSeconds += 1;
+    } else if (power <= anaerobicLowerBound) {
+      estimate.thresholdVo2Seconds += 1;
+    } else {
+      estimate.anaerobicSeconds += 1;
+    }
+    return estimate;
+  }, {
+    trackedSeconds: 0,
+    aerobicSeconds: 0,
+    thresholdVo2Seconds: 0,
+    anaerobicSeconds: 0,
+  });
+}
+
+function formatPowerZoneTime(seconds: number, totalSeconds: number): string {
+  if (totalSeconds <= 0) {
+    return formatTime(seconds);
+  }
+  const percentage = seconds / totalSeconds * 100;
+  return `${formatTime(seconds)} (${percentage.toFixed(0)}%)`;
+}
+
 function resolvePowerDurationSeconds(currentActivity: DetailedActivity): number {
   const time = currentActivity.stream?.time ?? [];
   const lastTime = time.length > 0 ? time[time.length - 1] : null;
@@ -1402,6 +1513,10 @@ function resolvePowerDurationSeconds(currentActivity: DetailedActivity): number 
     return lastTime;
   }
   return currentActivity.elapsedTime > 0 ? currentActivity.elapsedTime : currentActivity.movingTime;
+}
+
+function metricTooltip(metric: { label: string; tooltip?: string }): string | null {
+  return metric.tooltip ?? getMetricTooltip(metric.label);
 }
 
 const resolvedHeartRateSettings = computed(() => {
@@ -2788,6 +2903,24 @@ watch([
   letter-spacing: 0.07em;
   color: var(--ms-text-muted);
   font-weight: 700;
+}
+
+.detail-label-with-tooltip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
+.detail-label-with-tooltip > span:first-child {
+  min-width: 0;
+}
+
+.detail-label-with-tooltip :deep(.tooltip-hint) {
+  flex: 0 0 auto;
+  margin-left: 0;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .detail-kpi-card__value,

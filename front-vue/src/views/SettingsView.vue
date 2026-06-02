@@ -2,8 +2,11 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useAthleteStore } from "@/stores/athlete";
 import { useContextStore } from "@/stores/context";
+import { useStatisticsStore } from "@/stores/statistics";
 import { useUiStore } from "@/stores/ui";
 import { ToastTypeEnum } from "@/models/toast.model";
+import TooltipHint from "@/components/TooltipHint.vue";
+import type { HeartRateZoneSettings, ResolvedHeartRateZoneSettings } from "@/models/heart-rate-zone.model";
 import {
   emptyAthletePerformanceSettings,
   isIsoDate,
@@ -11,9 +14,12 @@ import {
   type AthletePerformanceSettings,
   type AthleteFtpSetting,
 } from "@/models/athlete-performance-settings.model";
+import { resolveHeartRateZoneSettings } from "@/utils/heart-rate-zones";
+import { getMetricTooltip } from "@/utils/metric-tooltips";
 
 const contextStore = useContextStore();
 const athleteStore = useAthleteStore();
+const statisticsStore = useStatisticsStore();
 const uiStore = useUiStore();
 
 const isLoading = ref(false);
@@ -21,6 +27,11 @@ const isSaving = ref(false);
 const loadError = ref("");
 const saveError = ref("");
 const draftSettings = reactive<AthletePerformanceSettings>(emptyAthletePerformanceSettings());
+const draftHeartRateZoneSettings = reactive<HeartRateZoneSettings>({
+  maxHr: null,
+  thresholdHr: null,
+  reserveHr: null,
+});
 const draftFtp = ref<number | null>(null);
 const draftEffectiveFrom = ref(todayKey());
 
@@ -40,11 +51,61 @@ const manualWeightInput = computed<number | "">({
   },
 });
 
+const maxHrInput = computed<number | "">({
+  get() {
+    return draftHeartRateZoneSettings.maxHr && draftHeartRateZoneSettings.maxHr > 0
+      ? draftHeartRateZoneSettings.maxHr
+      : "";
+  },
+  set(value) {
+    draftHeartRateZoneSettings.maxHr = normalizePositiveInt(value);
+  },
+});
+
+const thresholdHrInput = computed<number | "">({
+  get() {
+    return draftHeartRateZoneSettings.thresholdHr && draftHeartRateZoneSettings.thresholdHr > 0
+      ? draftHeartRateZoneSettings.thresholdHr
+      : "";
+  },
+  set(value) {
+    draftHeartRateZoneSettings.thresholdHr = normalizePositiveInt(value);
+  },
+});
+
+const reserveHrInput = computed<number | "">({
+  get() {
+    return draftHeartRateZoneSettings.reserveHr && draftHeartRateZoneSettings.reserveHr > 0
+      ? draftHeartRateZoneSettings.reserveHr
+      : "";
+  },
+  set(value) {
+    draftHeartRateZoneSettings.reserveHr = normalizePositiveInt(value);
+  },
+});
+
 const sortedFtpHistory = computed(() =>
   [...draftSettings.ftpHistory].sort((left, right) => right.effectiveFrom.localeCompare(left.effectiveFrom)),
 );
 
 const latestManualFtp = computed(() => sortedFtpHistory.value[0] ?? null);
+const fallbackMaxHr = computed(() => statisticsStore.heartRateZoneAnalysis.resolvedSettings?.maxHr ?? null);
+const resolvedHeartRateSettings = computed<ResolvedHeartRateZoneSettings | null>(() =>
+  resolveHeartRateZoneSettings(draftHeartRateZoneSettings, fallbackMaxHr.value)
+);
+const heartRateMethodLabel = computed(() => {
+  const method = resolvedHeartRateSettings.value?.method;
+  if (method === "THRESHOLD") return "Threshold HR";
+  if (method === "RESERVE") return "HR Reserve";
+  if (method === "MAX") return "Max HR";
+  return "Unavailable";
+});
+const heartRateSourceLabel = computed(() => {
+  const source = resolvedHeartRateSettings.value?.source;
+  if (source === "ATHLETE_SETTINGS") return "Athlete settings";
+  if (source === "DERIVED_FROM_DATA") return "Derived from activities";
+  return "Unavailable";
+});
 const canSaveFtpEntry = computed(() =>
   draftFtp.value !== null &&
   Number.isFinite(draftFtp.value) &&
@@ -73,6 +134,16 @@ const sourceRows = computed(() => [
     value: athleteStore.athleteWeight > 0 ? `${athleteStore.athleteWeight.toFixed(1)} kg` : "Unavailable",
     hint: "Read from Strava profile when available",
   },
+  {
+    label: "HR zone method",
+    value: heartRateMethodLabel.value,
+    hint: heartRateSourceLabel.value,
+  },
+  {
+    label: "Resolved Max HR",
+    value: resolvedHeartRateSettings.value?.maxHr ? `${resolvedHeartRateSettings.value.maxHr} bpm` : "Unavailable",
+    hint: heartRateSourceLabel.value,
+  },
 ]);
 
 watch(
@@ -85,6 +156,16 @@ watch(
   { immediate: true, deep: true },
 );
 
+watch(
+  () => athleteStore.heartRateZoneSettings,
+  (settings) => {
+    draftHeartRateZoneSettings.maxHr = settings.maxHr ?? null;
+    draftHeartRateZoneSettings.thresholdHr = settings.thresholdHr ?? null;
+    draftHeartRateZoneSettings.reserveHr = settings.reserveHr ?? null;
+  },
+  { immediate: true, deep: true },
+);
+
 onMounted(async () => {
   contextStore.updateCurrentView("settings");
   isLoading.value = true;
@@ -93,6 +174,8 @@ onMounted(async () => {
     await Promise.all([
       athleteStore.fetchAthlete(),
       athleteStore.fetchPerformanceSettings(),
+      athleteStore.fetchHeartRateZoneSettings(),
+      statisticsStore.fetchHeartRateZoneAnalysis(),
     ]);
   } catch (error) {
     loadError.value = error instanceof Error ? error.message : "Unable to load settings.";
@@ -130,11 +213,19 @@ async function saveSettings() {
   isSaving.value = true;
   saveError.value = "";
   try {
-    await athleteStore.savePerformanceSettings(draftSettings);
+    await Promise.all([
+      athleteStore.savePerformanceSettings(draftSettings),
+      athleteStore.saveHeartRateZoneSettings({
+        maxHr: normalizePositiveInt(draftHeartRateZoneSettings.maxHr),
+        thresholdHr: normalizePositiveInt(draftHeartRateZoneSettings.thresholdHr),
+        reserveHr: normalizePositiveInt(draftHeartRateZoneSettings.reserveHr),
+      }),
+    ]);
+    statisticsStore.invalidateCache();
     uiStore.showToast({
       id: `settings-${Date.now()}`,
       type: ToastTypeEnum.NORMAL,
-      message: "Performance settings saved.",
+      message: "Settings saved.",
       timeout: 2400,
     });
   } catch (error) {
@@ -148,9 +239,23 @@ function resetDraft() {
   const normalized = normalizeAthletePerformanceSettings(athleteStore.performanceSettings);
   draftSettings.ftpHistory = normalized.ftpHistory;
   draftSettings.weightKg = normalized.weightKg;
+  draftHeartRateZoneSettings.maxHr = athleteStore.heartRateZoneSettings.maxHr ?? null;
+  draftHeartRateZoneSettings.thresholdHr = athleteStore.heartRateZoneSettings.thresholdHr ?? null;
+  draftHeartRateZoneSettings.reserveHr = athleteStore.heartRateZoneSettings.reserveHr ?? null;
   draftFtp.value = null;
   draftEffectiveFrom.value = todayKey();
   saveError.value = "";
+}
+
+function normalizePositiveInt(value: number | string | null | undefined): number | null {
+  if (value === "" || value === null || value === undefined) {
+    return null;
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null;
+  }
+  return Math.trunc(parsed);
 }
 
 function todayKey(): string {
@@ -325,6 +430,79 @@ function todayKey(): string {
             </div>
           </dl>
         </article>
+
+        <article class="settings-panel settings-panel--wide">
+          <header>
+            <h2>Heart Rate Zones</h2>
+          </header>
+          <div class="settings-form-grid settings-form-grid--hr">
+            <label>
+              <span>
+                Max HR
+                <TooltipHint :text="getMetricTooltip('Max HR') ?? ''" />
+              </span>
+              <input
+                v-model="maxHrInput"
+                type="number"
+                min="1"
+                step="1"
+                class="form-control"
+                placeholder="185"
+              >
+            </label>
+            <label>
+              <span>
+                Threshold HR
+                <TooltipHint :text="getMetricTooltip('Threshold HR') ?? ''" />
+              </span>
+              <input
+                v-model="thresholdHrInput"
+                type="number"
+                min="1"
+                step="1"
+                class="form-control"
+                placeholder="160"
+              >
+            </label>
+            <label>
+              <span>
+                Reserve HR
+                <TooltipHint :text="getMetricTooltip('Reserve HR') ?? ''" />
+              </span>
+              <input
+                v-model="reserveHrInput"
+                type="number"
+                min="1"
+                step="1"
+                class="form-control"
+                placeholder="130"
+              >
+            </label>
+          </div>
+          <dl class="settings-priority settings-priority--grid">
+            <div>
+              <dt>
+                HR zone method
+                <TooltipHint :text="getMetricTooltip('HR Zone Method') ?? ''" />
+              </dt>
+              <dd>{{ heartRateMethodLabel }}</dd>
+            </div>
+            <div>
+              <dt>
+                HR zone source
+                <TooltipHint :text="getMetricTooltip('HR Zone Source') ?? ''" />
+              </dt>
+              <dd>{{ heartRateSourceLabel }}</dd>
+            </div>
+            <div>
+              <dt>
+                Resolved Max HR
+                <TooltipHint :text="getMetricTooltip('Resolved Max HR') ?? ''" />
+              </dt>
+              <dd>{{ resolvedHeartRateSettings?.maxHr ? `${resolvedHeartRateSettings.maxHr} bpm` : "Unavailable" }}</dd>
+            </div>
+          </dl>
+        </article>
       </section>
     </template>
   </div>
@@ -443,6 +621,10 @@ function todayKey(): string {
   padding: 16px;
 }
 
+.settings-panel--wide {
+  grid-column: 1 / -1;
+}
+
 .settings-panel header {
   align-items: center;
   display: flex;
@@ -467,10 +649,29 @@ function todayKey(): string {
   grid-template-columns: minmax(0, 260px);
 }
 
+.settings-form-grid--hr {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .settings-form-grid label {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.settings-form-grid label > span,
+.settings-priority dt {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.35rem;
+}
+
+.settings-form-grid label > span :deep(.tooltip-hint),
+.settings-priority dt :deep(.tooltip-hint) {
+  flex: 0 0 auto;
+  margin-left: 0;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .settings-table {
@@ -531,6 +732,11 @@ function todayKey(): string {
   margin: 3px 0 0;
 }
 
+.settings-priority--grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 @media (max-width: 992px) {
   .settings-header,
   .settings-grid {
@@ -550,7 +756,9 @@ function todayKey(): string {
 @media (max-width: 640px) {
   .settings-summary,
   .settings-form-grid,
-  .settings-form-grid--single {
+  .settings-form-grid--single,
+  .settings-form-grid--hr,
+  .settings-priority--grid {
     grid-template-columns: 1fr;
   }
 

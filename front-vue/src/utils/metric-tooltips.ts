@@ -16,7 +16,9 @@ const exactMetricTooltips: Record<string, string> = {
   "Tracked HR Time":
     "Total time where heart rate stream points are available. Missing stream sections are excluded.",
   "Easy / Hard Ratio":
-    "Easy time is Zone 1 plus Zone 2. Hard time is Zone 4 plus Zone 5. Displayed as Easy : Hard.",
+    "Easy time is Z1 + Z2. Hard time is Z4 + Z5. Ratio = easy time / hard time. Zones come from your resolved HR settings: Threshold HR if set, otherwise Heart Rate Reserve, otherwise Max HR; if no setting exists, Max HR is derived from activity data.",
+  "Easy/hard ratio":
+    "Easy time is Z1 + Z2. Hard time is Z4 + Z5. Ratio = easy time / hard time. Zones come from your resolved HR settings: Threshold HR if set, otherwise Heart Rate Reserve, otherwise Max HR; if no setting exists, Max HR is derived from activity data.",
   "HR Data Availability":
     "Available when at least one activity in the current filters contains heart rate stream data.",
   "Average Speed":
@@ -27,10 +29,40 @@ const exactMetricTooltips: Record<string, string> = {
     "For cycling: pedal revolutions per minute (rpm). For running: steps per minute (spm).",
   "Average Watts":
     "Arithmetic mean of power values across the activity.",
+  "Average power":
+    "Arithmetic mean of recorded power values. It is useful for total workload, but it can understate variable rides with descents or coasting.",
+  "Average W/kg":
+    "Average power divided by athlete weight. Uses manual weight when available. Useful for comparing effort relative to body mass, but less stable than FTP/kg.",
+  "Max power":
+    "Highest instantaneous recorded power value in the activity.",
+  "Max avg power (20 min)":
+    "Best rolling 20-minute average power in this activity. Often used as a rough FTP estimation input.",
   "Weighted Average Watts":
     "Intensity-weighted power estimate. It reflects variable efforts better than plain average watts.",
+  "Weighted avg power":
+    "Intensity-weighted power estimate provided by Strava. It reflects variable efforts better than plain average power.",
+  "Normalized Power (NP)":
+    "Intensity-weighted power estimate computed from a 30-second rolling average and fourth-power weighting. It is closer to physiological cost than average power.",
+  "Intensity Factor (IF)":
+    "Normalized Power divided by FTP. Around 1.00 means riding at FTP-equivalent intensity; values above 1.00 are only sustainable for shorter efforts.",
+  "Training Stress Score (TSS)":
+    "Training load estimate based on duration, Normalized Power, IF, and FTP. About 100 is roughly one hour at FTP.",
+  "FTP setting":
+    "Functional Threshold Power used for local calculations. Manual dated settings are preferred over Strava profile values and estimates.",
+  "Estimated FTP":
+    "Fallback FTP estimated from the activity power curve when no manual or Strava FTP is available.",
+  "FTP / kg":
+    "FTP divided by athlete weight. This is usually a better level indicator than Average W/kg from one ride.",
+  "Aerobic power-zone time":
+    "Estimated time at or below 90% of FTP. This mostly covers endurance and tempo work, but includes easy/coasting samples.",
+  "Threshold / VO2 time":
+    "Estimated time between 90% and 120% of FTP. This covers threshold and VO2max-like intensity, depending on duration.",
+  "Anaerobic exposure":
+    "Estimated time above 120% of FTP. This is a practical anaerobic-intensity signal, not a true W' or lactate-based measurement.",
   Kilojoules:
     "Mechanical work from power over time. Useful to estimate training load and fueling demand.",
+  Work:
+    "Mechanical work from power over time, expressed in kilojoules. It is not the same as food calories, but often tracks fueling demand.",
   "Average Heartrate":
     "Average heart rate in beats per minute (bpm).",
   "Max Heartrate":

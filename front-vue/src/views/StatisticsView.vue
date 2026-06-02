@@ -2,21 +2,17 @@
 import StatisticsGrid from "@/components/StatisticsGrid.vue";
 import PersonalRecordsTimelineGrid from "@/components/PersonalRecordsTimelineGrid.vue";
 import HeartRateZoneAnalysisPanel from "@/components/HeartRateZoneAnalysisPanel.vue";
-import type { HeartRateZoneSettings } from "@/models/heart-rate-zone.model";
 import { useContextStore } from "@/stores/context.js";
 import { useStatisticsStore } from "@/stores/statistics";
-import { useAthleteStore } from "@/stores/athlete";
 import { computed, onMounted } from "vue";
 
 const contextStore = useContextStore();
 const statisticsStore = useStatisticsStore();
-const athleteStore = useAthleteStore();
 onMounted(() => contextStore.updateCurrentView("statistics"));
 
 const currentYear = computed(() => contextStore.currentYear);
 const statistics = computed(() => statisticsStore.statistics);
 const personalRecordsTimeline = computed(() => statisticsStore.personalRecordsTimeline);
-const heartRateZoneSettings = computed(() => athleteStore.heartRateZoneSettings);
 const heartRateZoneAnalysis = computed(() => statisticsStore.heartRateZoneAnalysis);
 const isStatisticsLoading = computed(() => statisticsStore.isStatisticsLoading);
 const isPersonalRecordsTimelineLoading = computed(() => statisticsStore.isPersonalRecordsTimelineLoading);
@@ -24,12 +20,6 @@ const isHeartRateZoneAnalysisLoading = computed(() => statisticsStore.isHeartRat
 const statisticsError = computed(() => statisticsStore.statisticsError);
 const personalRecordsTimelineError = computed(() => statisticsStore.personalRecordsTimelineError);
 const heartRateZoneAnalysisError = computed(() => statisticsStore.heartRateZoneAnalysisError);
-
-async function onSaveHeartRateZoneSettings(settings: HeartRateZoneSettings) {
-  await athleteStore.saveHeartRateZoneSettings(settings);
-  statisticsStore.invalidateCache();
-  await statisticsStore.fetchHeartRateZoneAnalysis();
-}
 </script>
 
 <template>
@@ -84,8 +74,6 @@ async function onSaveHeartRateZoneSettings(settings: HeartRateZoneSettings) {
       <template v-else>
         <HeartRateZoneAnalysisPanel
           :analysis="heartRateZoneAnalysis"
-          :settings="heartRateZoneSettings"
-          @save-settings="onSaveHeartRateZoneSettings"
         />
         <div v-if="heartRateZoneAnalysisError" class="block-state block-state--warning mt-2">
           Displaying cached HR zone analysis. {{ heartRateZoneAnalysisError }}

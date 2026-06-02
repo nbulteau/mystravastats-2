@@ -1,37 +1,13 @@
 <script setup lang="ts">
-import { computed, reactive, watch } from "vue";
+import { computed } from "vue";
 import TooltipHint from "@/components/TooltipHint.vue";
-import type {
-  HeartRateZoneAnalysis,
-  HeartRateZoneSettings,
-} from "@/models/heart-rate-zone.model";
+import type { HeartRateZoneAnalysis } from "@/models/heart-rate-zone.model";
 import { formatTime } from "@/utils/formatters";
 import { getMetricTooltip } from "@/utils/metric-tooltips";
 
 const props = defineProps<{
   analysis: HeartRateZoneAnalysis;
-  settings: HeartRateZoneSettings;
 }>();
-
-const emit = defineEmits<{
-  (e: "save-settings", payload: HeartRateZoneSettings): void;
-}>();
-
-const draftSettings = reactive<HeartRateZoneSettings>({
-  maxHr: null,
-  thresholdHr: null,
-  reserveHr: null,
-});
-
-watch(
-  () => props.settings,
-  (settings) => {
-    draftSettings.maxHr = settings.maxHr ?? null;
-    draftSettings.thresholdHr = settings.thresholdHr ?? null;
-    draftSettings.reserveHr = settings.reserveHr ?? null;
-  },
-  { immediate: true, deep: true },
-);
 
 const recentActivities = computed(() =>
   [...props.analysis.activities].reverse().slice(0, 12),
@@ -52,67 +28,6 @@ const sourceLabel = computed(() => {
   return "Unavailable";
 });
 
-function normalizePositiveInt(value: number | null | undefined): number | null {
-  if (value === null || value === undefined || Number.isNaN(value)) return null;
-  const normalized = Math.trunc(value);
-  return normalized > 0 ? normalized : null;
-}
-
-const derivedMaxHr = computed(() => {
-  const resolved = props.analysis.resolvedSettings;
-  const resolvedMaxHr = normalizePositiveInt(resolved?.maxHr);
-  if (!resolved || resolvedMaxHr === null) return null;
-
-  if (resolved.source === "DERIVED_FROM_DATA") {
-    return resolvedMaxHr;
-  }
-
-  // Backward-compatible inference for older backend builds:
-  // in THRESHOLD mode, max HR can still be derived when no explicit max HR is saved.
-  const savedMaxHr = normalizePositiveInt(props.settings.maxHr);
-  const thresholdHr = normalizePositiveInt(props.settings.thresholdHr);
-  const inferredDerivedInThresholdMode =
-    resolved.method === "THRESHOLD" &&
-    savedMaxHr === null &&
-    thresholdHr !== null &&
-    resolvedMaxHr !== thresholdHr;
-
-  return inferredDerivedInThresholdMode ? resolvedMaxHr : null;
-});
-
-const maxHrInputValue = computed<number | "">({
-  get() {
-    if (
-      draftSettings.maxHr !== null &&
-      draftSettings.maxHr !== undefined &&
-      draftSettings.maxHr > 0
-    ) {
-      return draftSettings.maxHr;
-    }
-    return derivedMaxHr.value ?? "";
-  },
-  set(value) {
-    if (value === "" || value === null || value === undefined) {
-      draftSettings.maxHr = null;
-      return;
-    }
-
-    const parsed = Number(value);
-    if (Number.isNaN(parsed) || parsed <= 0) {
-      draftSettings.maxHr = null;
-      return;
-    }
-
-    draftSettings.maxHr = Math.trunc(parsed);
-  },
-});
-
-const maxHrIsDerivedInTextbox = computed(
-  () =>
-    (draftSettings.maxHr === null || draftSettings.maxHr === undefined) &&
-    derivedMaxHr.value !== null,
-);
-
 const resolvedMaxHrLabel = computed(() => {
   const maxHr = props.analysis.resolvedSettings?.maxHr;
   if (!maxHr || maxHr <= 0) return "-";
@@ -122,14 +37,6 @@ const resolvedMaxHrLabel = computed(() => {
 const usesDerivedMaxHr = computed(
   () => props.analysis.resolvedSettings?.source === "DERIVED_FROM_DATA",
 );
-
-function saveSettings() {
-  emit("save-settings", {
-    maxHr: normalizePositiveInt(draftSettings.maxHr),
-    thresholdHr: normalizePositiveInt(draftSettings.thresholdHr),
-    reserveHr: normalizePositiveInt(draftSettings.reserveHr),
-  });
-}
 
 function formatRatio(value: number | null | undefined): string {
   if (value === null || value === undefined) return "-";
@@ -155,53 +62,24 @@ function zoneTooltip(zone: string): string {
         Heart Rate Zone Analysis
         <TooltipHint :text="'Zone-based training breakdown using heart rate streams and your settings.'" />
       </h4>
-      <small class="text-muted hr-zone-method">
-        Method: {{ methodLabel }}
-        <TooltipHint :text="getMetricTooltip('HR Zone Method') ?? ''" />
-        <span class="ms-2">
-          Source: {{ sourceLabel }}
-          <TooltipHint :text="getMetricTooltip('HR Zone Source') ?? ''" />
-        </span>
-      </small>
+      <div class="hr-zone-header__meta">
+        <small class="text-muted hr-zone-method">
+          Method: {{ methodLabel }}
+          <TooltipHint :text="getMetricTooltip('HR Zone Method') ?? ''" />
+          <span class="ms-2">
+            Source: {{ sourceLabel }}
+            <TooltipHint :text="getMetricTooltip('HR Zone Source') ?? ''" />
+          </span>
+        </small>
+        <RouterLink
+          class="btn btn-outline-secondary btn-sm hr-zone-edit-link"
+          to="/settings"
+        >
+          <i class="fa-solid fa-sliders" aria-hidden="true" />
+          Edit HR settings
+        </RouterLink>
+      </div>
     </header>
-
-    <div class="hr-zone-settings row g-2 align-items-end">
-      <div class="col-sm-4">
-        <label class="form-label">
-          Max HR
-          <TooltipHint :text="getMetricTooltip('Max HR') ?? ''" />
-        </label>
-        <input v-model="maxHrInputValue" type="number" min="1" class="form-control form-control-sm">
-        <small v-if="maxHrIsDerivedInTextbox" class="text-muted">
-          Derived from activities (effective value currently used).
-        </small>
-      </div>
-      <div class="col-sm-4">
-        <label class="form-label">
-          Threshold HR
-          <TooltipHint :text="getMetricTooltip('Threshold HR') ?? ''" />
-        </label>
-        <input v-model.number="draftSettings.thresholdHr" type="number" min="1" class="form-control form-control-sm">
-      </div>
-      <div class="col-sm-4">
-        <label class="form-label">
-          Reserve HR
-          <TooltipHint :text="getMetricTooltip('Reserve HR') ?? ''" />
-        </label>
-        <input v-model.number="draftSettings.reserveHr" type="number" min="1" class="form-control form-control-sm">
-      </div>
-      <div class="col-12 d-flex justify-content-end">
-        <button class="btn btn-primary btn-sm" type="button" @click="saveSettings">
-          Save Zones
-        </button>
-      </div>
-      <div class="col-12">
-        <small class="text-muted">
-          Settings are saved per athlete in local cache.
-          <TooltipHint :text="getMetricTooltip('Heart Rate Zone Storage') ?? ''" />
-        </small>
-      </div>
-    </div>
 
     <div class="hr-zone-summary row g-2">
       <div class="col-md-3">
@@ -346,7 +224,16 @@ function zoneTooltip(zone: string): string {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  gap: 12px;
   margin-bottom: 12px;
+}
+
+.hr-zone-header__meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 .hr-zone-method {
@@ -354,6 +241,12 @@ function zoneTooltip(zone: string): string {
   align-items: center;
   flex-wrap: wrap;
   gap: 4px;
+}
+
+.hr-zone-edit-link {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
 }
 
 .metric-tile {
@@ -426,6 +319,15 @@ function zoneTooltip(zone: string): string {
 }
 
 @media (max-width: 992px) {
+  .hr-zone-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .hr-zone-header__meta {
+    justify-content: flex-start;
+  }
+
   .zone-row {
     grid-template-columns: 1fr;
     gap: 4px;
