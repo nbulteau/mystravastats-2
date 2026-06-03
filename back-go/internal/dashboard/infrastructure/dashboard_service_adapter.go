@@ -28,8 +28,8 @@ func (adapter *DashboardServiceAdapter) FindActivityHeatmap(activityTypes ...bus
 	return computeActivityHeatmap(activityTypes...)
 }
 
-func (adapter *DashboardServiceAdapter) FindEddingtonNumber(activityTypes ...business.ActivityType) business.EddingtonNumber {
-	return computeEddingtonNumber(activityTypes...)
+func (adapter *DashboardServiceAdapter) FindEddingtonNumber(scope business.EddingtonScope, metric business.EddingtonMetric, basis business.EddingtonBasis, year *int, activityTypes ...business.ActivityType) business.EddingtonNumber {
+	return computeEddingtonNumber(scope, metric, basis, year, activityTypes...)
 }
 
 func (adapter *DashboardServiceAdapter) FindAnnualGoals(year int, activityTypes ...business.ActivityType) business.AnnualGoals {

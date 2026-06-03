@@ -66,8 +66,8 @@ func NewGetEddingtonNumberUseCase(reader DashboardReader) *GetEddingtonNumberUse
 	return &GetEddingtonNumberUseCase{reader: reader}
 }
 
-func (uc *GetEddingtonNumberUseCase) Execute(activityTypes []business.ActivityType) business.EddingtonNumber {
-	return uc.reader.FindEddingtonNumber(activityTypes...)
+func (uc *GetEddingtonNumberUseCase) Execute(scope business.EddingtonScope, metric business.EddingtonMetric, basis business.EddingtonBasis, year *int, activityTypes []business.ActivityType) business.EddingtonNumber {
+	return uc.reader.FindEddingtonNumber(scope, metric, basis, year, activityTypes...)
 }
 
 type GetAnnualGoalsUseCase struct {

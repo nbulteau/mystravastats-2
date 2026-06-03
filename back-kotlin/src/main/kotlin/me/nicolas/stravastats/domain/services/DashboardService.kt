@@ -8,7 +8,10 @@ import me.nicolas.stravastats.domain.business.AnnualGoalStatus
 import me.nicolas.stravastats.domain.business.AnnualGoalTargets
 import me.nicolas.stravastats.domain.business.AnnualGoals
 import me.nicolas.stravastats.domain.business.DashboardData
+import me.nicolas.stravastats.domain.business.EddingtonBasis
+import me.nicolas.stravastats.domain.business.EddingtonMetric
 import me.nicolas.stravastats.domain.business.EddingtonNumber
+import me.nicolas.stravastats.domain.business.EddingtonScope
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.services.ActivityHelper.groupActivitiesByDay
 import me.nicolas.stravastats.domain.services.activityproviders.ActivityProviderCacheIdentity
@@ -31,7 +34,13 @@ interface IDashboardService {
 
     fun getCumulativeElevationPerYear(activityTypes: Set<ActivityType>): Map<String, Map<String, Number>>
 
-    fun getEddingtonNumber(activityTypes: Set<ActivityType>): EddingtonNumber
+    fun getEddingtonNumber(
+        activityTypes: Set<ActivityType>,
+        scope: EddingtonScope = EddingtonScope.LIFETIME,
+        metric: EddingtonMetric = EddingtonMetric.DISTANCE,
+        basis: EddingtonBasis = EddingtonBasis.DAYS,
+        year: Int? = null,
+    ): EddingtonNumber
 
     fun getDashboardData(activityTypes: Set<ActivityType>): DashboardData
 
@@ -136,19 +145,50 @@ class DashboardService(
      * @param activityTypes the stravaActivity type
      * @return the Eddington number structure
      */
-    override fun getEddingtonNumber(activityTypes: Set<ActivityType>): EddingtonNumber {
-        logger.info("Get Eddington number for activity type $activityTypes")
+    override fun getEddingtonNumber(
+        activityTypes: Set<ActivityType>,
+        scope: EddingtonScope,
+        metric: EddingtonMetric,
+        basis: EddingtonBasis,
+        year: Int?,
+    ): EddingtonNumber {
+        logger.info("Get Eddington number for activity type $activityTypes, scope $scope, metric $metric and basis $basis")
 
         val excludedActivityIds = dataQualityExcludedActivityIds(activityProvider)
-        val activitiesByActiveDays = if (excludedActivityIds.isEmpty()) {
-            activityProvider.getActivitiesByActivityTypeGroupByActiveDays(activityTypes)
-        } else {
-            activityProvider.getActivitiesByActivityTypeAndYear(activityTypes)
-                .withoutDataQualityExcludedStats(activityProvider)
-                .groupBy { activity -> activity.startDateLocal.substringBefore('T') }
-                .mapValues { (_, activities) -> activities.sumOf { activity -> activity.distance / 1000 }.roundToInt() }
+        val values = when (scope) {
+            EddingtonScope.YEAR -> {
+                if (year == null) {
+                    emptyList()
+                } else if (metric == EddingtonMetric.DISTANCE && basis == EddingtonBasis.DAYS && excludedActivityIds.isEmpty()) {
+                    activityProvider.getActivitiesByActivityTypeByYearGroupByActiveDays(activityTypes, year).values.toList()
+                } else {
+                    activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, year)
+                        .withoutDataQualityExcludedStats(activityProvider)
+                        .toEddingtonValues(metric, basis)
+                }
+            }
+            EddingtonScope.ROLLING_12_MONTHS -> {
+                val today = LocalDate.now()
+                val start = today.minusYears(1)
+                activityProvider.getActivitiesByActivityTypeAndYear(activityTypes)
+                    .withoutDataQualityExcludedStats(activityProvider)
+                    .filter { activity ->
+                        val date = activity.annualGoalDate() ?: return@filter false
+                        !date.isBefore(start) && !date.isAfter(today)
+                    }
+                    .toEddingtonValues(metric, basis)
+            }
+            EddingtonScope.LIFETIME -> {
+                if (metric == EddingtonMetric.DISTANCE && basis == EddingtonBasis.DAYS && excludedActivityIds.isEmpty()) {
+                    activityProvider.getActivitiesByActivityTypeGroupByActiveDays(activityTypes).values.toList()
+                } else {
+                    activityProvider.getActivitiesByActivityTypeAndYear(activityTypes)
+                        .withoutDataQualityExcludedStats(activityProvider)
+                        .toEddingtonValues(metric, basis)
+                }
+            }
         }
-        val eddingtonList = computeEddingtonListFromDailyTotals(activitiesByActiveDays.values)
+        val eddingtonList = computeEddingtonListFromDailyTotals(values)
 
         var eddingtonNumber = 0
         for (day in eddingtonList.size downTo 1) {
@@ -158,7 +198,7 @@ class DashboardService(
             }
         }
 
-        return EddingtonNumber(eddingtonNumber, eddingtonList)
+        return EddingtonNumber(eddingtonNumber, eddingtonList, scope, metric, basis)
     }
 
     override fun getAnnualGoals(year: Int, activityTypes: Set<ActivityType>): AnnualGoals {
@@ -416,6 +456,23 @@ class DashboardService(
         return activities.mapValues { (_, activities) ->
             sum += activities.sumOf { activity -> activity.totalElevationGain.toInt() }
             sum
+        }
+    }
+
+    private fun List<StravaActivity>.toEddingtonValues(metric: EddingtonMetric, basis: EddingtonBasis): List<Int> {
+        if (basis == EddingtonBasis.ACTIVITIES) {
+            return this.map { activity -> activity.eddingtonValue(metric) }
+        }
+        return this
+            .groupBy { activity -> activity.startDateLocal.substringBefore('T') }
+            .values
+            .map { activities -> activities.sumOf { activity -> activity.eddingtonValue(metric) } }
+    }
+
+    private fun StravaActivity.eddingtonValue(metric: EddingtonMetric): Int {
+        return when (metric) {
+            EddingtonMetric.ELEVATION -> totalElevationGain.toInt()
+            EddingtonMetric.DISTANCE -> (distance / 1000).toInt()
         }
     }
 

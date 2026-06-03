@@ -62,7 +62,7 @@ func buildAnnualGoals(
 	now time.Time,
 ) business.AnnualGoals {
 	current := annualGoalCurrentValues(activities)
-	eddington := computeEddingtonFromDailyTotals(annualGoalDailyDistanceTotals(activities))
+	eddington := computeEddingtonFromDailyTotals(business.EddingtonScopeYear, annualGoalDailyDistanceTotals(activities))
 	current.eddington = float64(eddington.Number)
 	monthlyValues := annualGoalMonthlyValues(activities)
 	last30DaysValues, last30DaysWindowDays := annualGoalLast30DaysValues(year, activities, now)
@@ -193,7 +193,7 @@ func annualGoalMonthlyValues(activities []*strava.Activity) map[business.AnnualG
 
 	for month := 0; month < 12; month++ {
 		values[business.AnnualGoalMetricActiveDays][month] = float64(len(activeDaysByMonth[month]))
-		values[business.AnnualGoalMetricEddington][month] = float64(computeEddingtonFromDailyTotals(dailyDistanceByMonth[month]).Number)
+		values[business.AnnualGoalMetricEddington][month] = float64(computeEddingtonFromDailyTotals(business.EddingtonScopeYear, dailyDistanceByMonth[month]).Number)
 	}
 	return values
 }
@@ -213,7 +213,7 @@ func annualGoalLast30DaysValues(year int, activities []*strava.Activity, now tim
 		filtered = append(filtered, activity)
 	}
 	values := annualGoalCurrentValues(filtered)
-	eddington := computeEddingtonFromDailyTotals(annualGoalDailyDistanceTotals(filtered))
+	eddington := computeEddingtonFromDailyTotals(business.EddingtonScopeYear, annualGoalDailyDistanceTotals(filtered))
 	values.eddington = float64(eddington.Number)
 	return values, windowDays
 }

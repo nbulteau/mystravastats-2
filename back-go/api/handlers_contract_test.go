@@ -266,7 +266,7 @@ func (stub *contractDashboardReaderStub) FindActivityHeatmap(_ ...business.Activ
 	return stub.heatmap
 }
 
-func (stub *contractDashboardReaderStub) FindEddingtonNumber(_ ...business.ActivityType) business.EddingtonNumber {
+func (stub *contractDashboardReaderStub) FindEddingtonNumber(_ business.EddingtonScope, _ business.EddingtonMetric, _ business.EddingtonBasis, _ *int, _ ...business.ActivityType) business.EddingtonNumber {
 	return stub.eddington
 }
 
@@ -880,7 +880,19 @@ func TestGetDashboardEddingtonNumber_Returns200(t *testing.T) {
 	// THEN
 	setTestContainer(t, &container{
 		getEddingtonNumberUseCase: dashboardApp.NewGetEddingtonNumberUseCase(&contractDashboardReaderStub{
-			eddington: business.EddingtonNumber{Number: 55, List: []int{60, 58, 55}},
+			eddington: business.EddingtonNumber{
+				Number:          55,
+				List:            []int{60, 58, 55},
+				Scope:           business.EddingtonScopeLifetime,
+				Metric:          business.EddingtonMetricDistance,
+				Basis:           business.EddingtonBasisDays,
+				Unit:            "km",
+				NextTarget:      56,
+				QualifyingCount: 0,
+				MissingCount:    56,
+				QualifyingDays:  0,
+				MissingDays:     56,
+			},
 		}),
 	})
 
@@ -899,6 +911,21 @@ func TestGetDashboardEddingtonNumber_Returns200(t *testing.T) {
 	}
 	if got := int(response["eddingtonNumber"].(float64)); got != 55 {
 		t.Fatalf("expected eddingtonNumber=55, got %d", got)
+	}
+	if got := response["scope"].(string); got != "lifetime" {
+		t.Fatalf("expected scope=lifetime, got %s", got)
+	}
+	if got := response["metric"].(string); got != "distance" {
+		t.Fatalf("expected metric=distance, got %s", got)
+	}
+	if got := response["basis"].(string); got != "days" {
+		t.Fatalf("expected basis=days, got %s", got)
+	}
+	if got := response["unit"].(string); got != "km" {
+		t.Fatalf("expected unit=km, got %s", got)
+	}
+	if got := int(response["nextTarget"].(float64)); got != 56 {
+		t.Fatalf("expected nextTarget=56, got %d", got)
 	}
 }
 

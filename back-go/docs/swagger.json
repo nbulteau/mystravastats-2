@@ -555,6 +555,46 @@
                         "name": "activityType",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Year. Required when scope is year",
+                        "name": "year",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "lifetime",
+                            "year",
+                            "rolling-12-months"
+                        ],
+                        "type": "string",
+                        "default": "lifetime",
+                        "description": "Eddington scope",
+                        "name": "scope",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "distance",
+                            "elevation"
+                        ],
+                        "type": "string",
+                        "default": "distance",
+                        "description": "Eddington metric",
+                        "name": "metric",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "days",
+                            "activities"
+                        ],
+                        "type": "string",
+                        "default": "days",
+                        "description": "Eddington basis",
+                        "name": "basis",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -1114,6 +1154,33 @@
                 },
                 "eddingtonNumber": {
                     "type": "integer"
+                },
+                "basis": {
+                    "type": "string"
+                },
+                "metric": {
+                    "type": "string"
+                },
+                "missingCount": {
+                    "type": "integer"
+                },
+                "missingDays": {
+                    "type": "integer"
+                },
+                "nextTarget": {
+                    "type": "integer"
+                },
+                "qualifyingCount": {
+                    "type": "integer"
+                },
+                "qualifyingDays": {
+                    "type": "integer"
+                },
+                "scope": {
+                    "type": "string"
+                },
+                "unit": {
+                    "type": "string"
                 }
             }
         },

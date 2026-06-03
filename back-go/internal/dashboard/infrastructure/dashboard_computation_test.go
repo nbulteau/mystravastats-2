@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"fmt"
 	"math"
+	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
 	"strconv"
 	"testing"
@@ -14,7 +15,7 @@ func TestComputeEddingtonFromDailyTotals_ReturnsZeroForEmptyInput(t *testing.T) 
 	dailyTotals := map[string]int{}
 
 	// WHEN
-	result := computeEddingtonFromDailyTotals(dailyTotals)
+	result := computeEddingtonFromDailyTotals(business.EddingtonScopeLifetime, dailyTotals)
 
 	// THEN
 	if result.Number != 0 {
@@ -22,6 +23,9 @@ func TestComputeEddingtonFromDailyTotals_ReturnsZeroForEmptyInput(t *testing.T) 
 	}
 	if len(result.List) != 0 {
 		t.Fatalf("expected empty eddington list, got %d entries", len(result.List))
+	}
+	if result.NextTarget != 1 || result.QualifyingDays != 0 || result.MissingDays != 1 {
+		t.Fatalf("expected next target progress 0/1, got target=%d qualifying=%d missing=%d", result.NextTarget, result.QualifyingDays, result.MissingDays)
 	}
 }
 
@@ -33,7 +37,7 @@ func TestComputeEddingtonFromDailyTotals_DoesNotRoundUpOnExactBoundary(t *testin
 	}
 
 	// WHEN
-	result := computeEddingtonFromDailyTotals(dailyTotals)
+	result := computeEddingtonFromDailyTotals(business.EddingtonScopeLifetime, dailyTotals)
 
 	// THEN
 	if result.Number != 49 {
@@ -47,6 +51,9 @@ func TestComputeEddingtonFromDailyTotals_DoesNotRoundUpOnExactBoundary(t *testin
 	}
 	if result.List[49] != 49 {
 		t.Fatalf("expected 49 days at >=50km, got %d", result.List[49])
+	}
+	if result.NextTarget != 50 || result.QualifyingDays != 49 || result.MissingDays != 1 {
+		t.Fatalf("expected next target 50 with one missing day, got target=%d qualifying=%d missing=%d", result.NextTarget, result.QualifyingDays, result.MissingDays)
 	}
 }
 
@@ -62,7 +69,7 @@ func TestComputeEddingtonFromDailyTotals_IgnoresNonPositiveDailyTotals(t *testin
 	}
 
 	// WHEN
-	result := computeEddingtonFromDailyTotals(dailyTotals)
+	result := computeEddingtonFromDailyTotals(business.EddingtonScopeLifetime, dailyTotals)
 
 	// THEN
 	if result.Number != 4 {
@@ -75,6 +82,30 @@ func TestComputeEddingtonFromDailyTotals_IgnoresNonPositiveDailyTotals(t *testin
 		if count != 4 {
 			t.Fatalf("expected 4 days for threshold index %d, got %d", day, count)
 		}
+	}
+}
+
+func TestComputeEddingtonFromValues_SupportsElevationActivities(t *testing.T) {
+	// GIVEN
+	values := []int{4, 4, 4, 2}
+
+	// WHEN
+	result := computeEddingtonFromValues(
+		business.EddingtonScopeLifetime,
+		business.EddingtonMetricElevation,
+		business.EddingtonBasisActivities,
+		values,
+	)
+
+	// THEN
+	if result.Number != 3 {
+		t.Fatalf("expected eddington number 3, got %d", result.Number)
+	}
+	if result.Metric != business.EddingtonMetricElevation || result.Basis != business.EddingtonBasisActivities || result.Unit != "m" {
+		t.Fatalf("expected elevation/activity metadata, got metric=%s basis=%s unit=%s", result.Metric, result.Basis, result.Unit)
+	}
+	if result.NextTarget != 4 || result.QualifyingCount != 3 || result.MissingCount != 1 {
+		t.Fatalf("expected next target 4 with one missing activity, got target=%d qualifying=%d missing=%d", result.NextTarget, result.QualifyingCount, result.MissingCount)
 	}
 }
 

@@ -14,60 +14,170 @@ import (
 	"time"
 )
 
-func computeEddingtonNumber(activityTypes ...business.ActivityType) business.EddingtonNumber {
-	log.Printf("Get Eddington number for activity type %s", activityTypes)
+func computeEddingtonNumber(scope business.EddingtonScope, metric business.EddingtonMetric, basis business.EddingtonBasis, year *int, activityTypes ...business.ActivityType) business.EddingtonNumber {
+	if scope == "" {
+		scope = business.EddingtonScopeLifetime
+	}
+	if metric == "" {
+		metric = business.EddingtonMetricDistance
+	}
+	if basis == "" {
+		basis = business.EddingtonBasisDays
+	}
+	log.Printf("Get Eddington number for scope %s, metric %s, basis %s and activity type %s", scope, metric, basis, activityTypes)
 
-	activities := dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(nil, activityTypes...))
-	return computeEddingtonFromDailyTotals(dailyDistanceTotals(activities))
+	activities := eddingtonActivitiesForScope(scope, year, activityTypes...)
+	return computeEddingtonFromValues(scope, metric, basis, eddingtonValues(activities, metric, basis))
 }
 
-func computeEddingtonFromDailyTotals(activitiesByActiveDays map[string]int) business.EddingtonNumber {
+func eddingtonActivitiesForScope(scope business.EddingtonScope, year *int, activityTypes ...business.ActivityType) []*strava.Activity {
+	switch scope {
+	case business.EddingtonScopeYear:
+		return dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...))
+	case business.EddingtonScopeRolling12Months:
+		activities := dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(nil, activityTypes...))
+		now := time.Now()
+		return filterActivitiesByDateRange(activities, now.AddDate(-1, 0, 0), now)
+	default:
+		return dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(nil, activityTypes...))
+	}
+}
+
+func computeEddingtonFromDailyTotals(scope business.EddingtonScope, activitiesByActiveDays map[string]int) business.EddingtonNumber {
+	return computeEddingtonFromValues(scope, business.EddingtonMetricDistance, business.EddingtonBasisDays, mapValues(activitiesByActiveDays))
+}
+
+func computeEddingtonFromValues(scope business.EddingtonScope, metric business.EddingtonMetric, basis business.EddingtonBasis, values []int) business.EddingtonNumber {
 	var eddingtonList []int
-	if len(activitiesByActiveDays) == 0 {
+	if len(values) == 0 {
 		eddingtonList = []int{}
 	} else {
 		maxValue := 0
-		for _, value := range activitiesByActiveDays {
+		for _, value := range values {
 			if value > maxValue {
 				maxValue = value
 			}
 		}
 		if maxValue <= 0 {
-			return business.EddingtonNumber{Number: 0, List: []int{}}
+			return withEddingtonProgress(business.EddingtonNumber{Number: 0, List: []int{}, Scope: scope, Metric: metric, Basis: basis, Unit: eddingtonUnit(metric)})
 		}
 		counts := make([]int, maxValue)
-		for _, value := range activitiesByActiveDays {
+		for _, value := range values {
 			if value <= 0 {
 				continue
 			}
-			for day := value; day > 0; day-- {
-				counts[day-1]++
+			for threshold := value; threshold > 0; threshold-- {
+				counts[threshold-1]++
 			}
 		}
 		eddingtonList = counts
 	}
 
 	eddingtonNumber := 0
-	for day := len(eddingtonList); day > 0; day-- {
-		if eddingtonList[day-1] >= day {
-			eddingtonNumber = day
+	for threshold := len(eddingtonList); threshold > 0; threshold-- {
+		if eddingtonList[threshold-1] >= threshold {
+			eddingtonNumber = threshold
 			break
 		}
 	}
 
-	return business.EddingtonNumber{Number: eddingtonNumber, List: eddingtonList}
+	return withEddingtonProgress(business.EddingtonNumber{Number: eddingtonNumber, List: eddingtonList, Scope: scope, Metric: metric, Basis: basis, Unit: eddingtonUnit(metric)})
 }
 
-func dailyDistanceTotals(activities []*strava.Activity) map[string]int {
+func eddingtonValues(activities []*strava.Activity, metric business.EddingtonMetric, basis business.EddingtonBasis) []int {
+	if basis == business.EddingtonBasisActivities {
+		values := make([]int, 0, len(activities))
+		for _, activity := range activities {
+			if activity == nil {
+				continue
+			}
+			values = append(values, eddingtonActivityValue(activity, metric))
+		}
+		return values
+	}
+
+	return mapValues(dailyMetricTotals(activities, metric))
+}
+
+func dailyMetricTotals(activities []*strava.Activity, metric business.EddingtonMetric) map[string]int {
 	result := make(map[string]int)
 	for _, activity := range activities {
 		if activity == nil || len(activity.StartDateLocal) < 10 {
 			continue
 		}
 		day := activity.StartDateLocal[:10]
-		result[day] += int(activity.Distance / 1000)
+		result[day] += eddingtonActivityValue(activity, metric)
 	}
 	return result
+}
+
+func dailyDistanceTotals(activities []*strava.Activity) map[string]int {
+	return dailyMetricTotals(activities, business.EddingtonMetricDistance)
+}
+
+func eddingtonActivityValue(activity *strava.Activity, metric business.EddingtonMetric) int {
+	switch metric {
+	case business.EddingtonMetricElevation:
+		return int(activity.TotalElevationGain)
+	default:
+		return int(activity.Distance / 1000)
+	}
+}
+
+func eddingtonUnit(metric business.EddingtonMetric) string {
+	if metric == business.EddingtonMetricElevation {
+		return "m"
+	}
+	return "km"
+}
+
+func mapValues(valuesByKey map[string]int) []int {
+	values := make([]int, 0, len(valuesByKey))
+	for _, value := range valuesByKey {
+		values = append(values, value)
+	}
+	return values
+}
+
+func withEddingtonProgress(eddington business.EddingtonNumber) business.EddingtonNumber {
+	nextTarget := eddington.Number + 1
+	qualifyingCount := 0
+	if nextTarget > 0 && nextTarget <= len(eddington.List) {
+		qualifyingCount = eddington.List[nextTarget-1]
+	}
+	missingCount := nextTarget - qualifyingCount
+	if missingCount < 0 {
+		missingCount = 0
+	}
+	eddington.NextTarget = nextTarget
+	eddington.QualifyingCount = qualifyingCount
+	eddington.MissingCount = missingCount
+	eddington.QualifyingDays = qualifyingCount
+	eddington.MissingDays = missingCount
+	return eddington
+}
+
+func filterActivitiesByDateRange(activities []*strava.Activity, start time.Time, end time.Time) []*strava.Activity {
+	result := make([]*strava.Activity, 0, len(activities))
+	startDate := truncateDate(start)
+	endDate := truncateDate(end)
+	for _, activity := range activities {
+		if activity == nil || len(activity.StartDateLocal) < 10 {
+			continue
+		}
+		activityDate, err := time.Parse("2006-01-02", activity.StartDateLocal[:10])
+		if err != nil {
+			continue
+		}
+		if !activityDate.Before(startDate) && !activityDate.After(endDate) {
+			result = append(result, activity)
+		}
+	}
+	return result
+}
+
+func truncateDate(value time.Time) time.Time {
+	return time.Date(value.Year(), value.Month(), value.Day(), 0, 0, 0, 0, time.UTC)
 }
 
 func computeCumulativeDistancePerYear(activityTypes ...business.ActivityType) map[string]map[string]float64 {

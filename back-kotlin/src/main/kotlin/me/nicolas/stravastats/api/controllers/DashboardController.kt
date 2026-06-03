@@ -5,9 +5,14 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import me.nicolas.stravastats.api.dto.*
+import me.nicolas.stravastats.domain.business.EddingtonBasis
+import me.nicolas.stravastats.domain.business.EddingtonMetric
+import me.nicolas.stravastats.domain.business.EddingtonScope
 import me.nicolas.stravastats.domain.services.ActivityHeatmapDay
 import me.nicolas.stravastats.domain.services.IDashboardService
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.web.server.ResponseStatusException
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -69,10 +74,32 @@ class DashboardController(
     @GetMapping("/eddington-number")
     fun getEddingtonNumber(
         @RequestParam(required = true) activityType: String,
+        @RequestParam(required = false) year: Int?,
+        @RequestParam(required = false) scope: String?,
+        @RequestParam(required = false) metric: String?,
+        @RequestParam(required = false) basis: String?,
     ): EddingtonNumberDto {
         val activityTypes = activityType.convertToActivityTypeSet()
+        val eddingtonScope = try {
+            EddingtonScope.fromApiValue(scope)
+        } catch (exception: IllegalArgumentException) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, exception.message, exception)
+        }
+        if (eddingtonScope == EddingtonScope.YEAR && year == null) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "year is required for Eddington year scope")
+        }
+        val eddingtonMetric = try {
+            EddingtonMetric.fromApiValue(metric)
+        } catch (exception: IllegalArgumentException) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, exception.message, exception)
+        }
+        val eddingtonBasis = try {
+            EddingtonBasis.fromApiValue(basis)
+        } catch (exception: IllegalArgumentException) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, exception.message, exception)
+        }
 
-        return dashboardService.getEddingtonNumber(activityTypes).toDto()
+        return dashboardService.getEddingtonNumber(activityTypes, eddingtonScope, eddingtonMetric, eddingtonBasis, year).toDto()
     }
 
     @Operation(

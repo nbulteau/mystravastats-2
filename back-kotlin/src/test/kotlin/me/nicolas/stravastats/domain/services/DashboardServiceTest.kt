@@ -6,6 +6,9 @@ import me.nicolas.stravastats.domain.business.AnnualGoalMetric
 import me.nicolas.stravastats.domain.business.AnnualGoalStatus
 import me.nicolas.stravastats.domain.business.AnnualGoalTargets
 import me.nicolas.stravastats.domain.business.ActivityType
+import me.nicolas.stravastats.domain.business.EddingtonBasis
+import me.nicolas.stravastats.domain.business.EddingtonMetric
+import me.nicolas.stravastats.domain.business.EddingtonScope
 import me.nicolas.stravastats.domain.business.strava.AthleteRef
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.stream.AltitudeStream
@@ -49,6 +52,10 @@ class DashboardServiceTest {
         // THEN
         assertEquals(0, result.eddingtonNumber)
         assertEquals(emptyList<Int>(), result.eddingtonList)
+        assertEquals(EddingtonScope.LIFETIME, result.scope)
+        assertEquals(1, result.nextTarget)
+        assertEquals(0, result.qualifyingDays)
+        assertEquals(1, result.missingDays)
     }
 
     @Test
@@ -67,6 +74,9 @@ class DashboardServiceTest {
         assertEquals(51, result.eddingtonList.size)
         assertEquals(49, result.eddingtonList[48]) // >= 49km
         assertEquals(49, result.eddingtonList[49]) // >= 50km
+        assertEquals(50, result.nextTarget)
+        assertEquals(49, result.qualifyingDays)
+        assertEquals(1, result.missingDays)
     }
 
     @Test
@@ -89,6 +99,134 @@ class DashboardServiceTest {
         // THEN
         assertEquals(4, result.eddingtonNumber)
         assertEquals(listOf(4, 4, 4, 4), result.eddingtonList)
+    }
+
+    @Test
+    fun `getEddingtonNumber can compute elevation by activities`() {
+        // GIVEN
+        every {
+            activityProvider.getActivitiesByActivityTypeAndYear(setOf(ActivityType.Ride))
+        } returns listOf(
+            createActivity(
+                id = 10L,
+                startDateLocal = "2025-01-01T08:00:00Z",
+                distanceMeters = 20_000.0,
+                elevationGainMeters = 4.0,
+                movingTimeSeconds = 1_800,
+                elapsedTimeSeconds = 1_900,
+            ),
+            createActivity(
+                id = 11L,
+                startDateLocal = "2025-01-01T12:00:00Z",
+                distanceMeters = 15_000.0,
+                elevationGainMeters = 4.0,
+                movingTimeSeconds = 1_600,
+                elapsedTimeSeconds = 1_700,
+            ),
+            createActivity(
+                id = 12L,
+                startDateLocal = "2025-01-02T08:00:00Z",
+                distanceMeters = 10_000.0,
+                elevationGainMeters = 4.0,
+                movingTimeSeconds = 1_000,
+                elapsedTimeSeconds = 1_100,
+            ),
+            createActivity(
+                id = 13L,
+                startDateLocal = "2025-01-03T08:00:00Z",
+                distanceMeters = 8_000.0,
+                elevationGainMeters = 2.0,
+                movingTimeSeconds = 900,
+                elapsedTimeSeconds = 950,
+            ),
+        )
+
+        // WHEN
+        val result = dashboardService.getEddingtonNumber(
+            activityTypes = setOf(ActivityType.Ride),
+            metric = EddingtonMetric.ELEVATION,
+            basis = EddingtonBasis.ACTIVITIES,
+        )
+
+        // THEN
+        assertEquals(3, result.eddingtonNumber)
+        assertEquals(EddingtonMetric.ELEVATION, result.metric)
+        assertEquals(EddingtonBasis.ACTIVITIES, result.basis)
+        assertEquals("m", result.unit)
+        assertEquals(4, result.nextTarget)
+        assertEquals(3, result.qualifyingCount)
+        assertEquals(1, result.missingCount)
+    }
+
+    @Test
+    fun `getEddingtonNumber can compute selected year scope`() {
+        // GIVEN
+        every {
+            activityProvider.getActivitiesByActivityTypeByYearGroupByActiveDays(setOf(ActivityType.Ride), 2025)
+        } returns mapOf(
+            "2025-01-01" to 3,
+            "2025-01-02" to 3,
+            "2025-01-03" to 3,
+        )
+
+        // WHEN
+        val result = dashboardService.getEddingtonNumber(
+            activityTypes = setOf(ActivityType.Ride),
+            scope = EddingtonScope.YEAR,
+            year = 2025,
+        )
+
+        // THEN
+        assertEquals(EddingtonScope.YEAR, result.scope)
+        assertEquals(3, result.eddingtonNumber)
+        assertEquals(4, result.nextTarget)
+        assertEquals(0, result.qualifyingDays)
+        assertEquals(4, result.missingDays)
+    }
+
+    @Test
+    fun `getEddingtonNumber can compute rolling twelve months scope`() {
+        // GIVEN
+        val today = LocalDate.now()
+        every {
+            activityProvider.getActivitiesByActivityTypeAndYear(setOf(ActivityType.Ride))
+        } returns listOf(
+            createActivity(
+                id = 1L,
+                startDateLocal = today.minusDays(3).toString() + "T08:00:00Z",
+                distanceMeters = 2_000.0,
+                elevationGainMeters = 0.0,
+                movingTimeSeconds = 600,
+                elapsedTimeSeconds = 600,
+            ),
+            createActivity(
+                id = 2L,
+                startDateLocal = today.minusDays(2).toString() + "T08:00:00Z",
+                distanceMeters = 2_000.0,
+                elevationGainMeters = 0.0,
+                movingTimeSeconds = 600,
+                elapsedTimeSeconds = 600,
+            ),
+            createActivity(
+                id = 3L,
+                startDateLocal = today.minusYears(1).minusDays(1).toString() + "T08:00:00Z",
+                distanceMeters = 100_000.0,
+                elevationGainMeters = 0.0,
+                movingTimeSeconds = 3_600,
+                elapsedTimeSeconds = 3_600,
+            ),
+        )
+
+        // WHEN
+        val result = dashboardService.getEddingtonNumber(
+            activityTypes = setOf(ActivityType.Ride),
+            scope = EddingtonScope.ROLLING_12_MONTHS,
+        )
+
+        // THEN
+        assertEquals(EddingtonScope.ROLLING_12_MONTHS, result.scope)
+        assertEquals(2, result.eddingtonNumber)
+        assertEquals(listOf(2, 2), result.eddingtonList)
     }
 
     @Test

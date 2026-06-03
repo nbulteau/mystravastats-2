@@ -1,98 +1,185 @@
 <script setup lang="ts">
 import { Chart } from "highcharts-vue";
-import { reactive, watch } from "vue";
-import Highcharts, { type Options, type SeriesColumnOptions } from "highcharts";
+import { reactive, ref, watch } from "vue";
+import type {
+  Options,
+  SeriesColumnOptions,
+  SeriesLineOptions,
+  XAxisOptions,
+  YAxisOptions,
+} from "highcharts";
 import { EddingtonNumber } from "@/models/eddington-number.model";
+import {
+  EDDINGTON_CURRENT_COLOR,
+  EDDINGTON_REFERENCE_COLOR,
+  buildEddingtonChartData,
+  formatEddingtonTooltip,
+  pluralizeEddingtonCount,
+  type EddingtonChartPoint,
+} from "@/utils/eddington-chart";
 
 const props = defineProps<{
   title: string;
   eddingtonNumber: EddingtonNumber;
 }>();
 
+const hasChartData = ref(false);
+
 const chartOptions: Options = reactive({
-  chart: {},
+  chart: {
+    type: "column",
+    height: 360,
+  },
   title: {
+    text: "",
+  },
+  subtitle: {
     text: "",
   },
   credits: {
     text:
       "Source: <a href='https://en.wikipedia.org/wiki/Eddington_number' target='_blank'>Eddington number</a>",
   },
-  xAxis: [
-    {
-      categories: [],
-      crosshair: true,
-      labels: {
-        format: "{value} km",
-      },
+  xAxis: {
+    min: 0,
+    max: 1,
+    crosshair: true,
+    title: {
+      text: "Distance threshold",
     },
-  ],
-  yAxis: [
-    {
-      labels: {
-        style: {
-          color: Highcharts.getOptions().colors?.[1] as string || 'black',
-        },
-      },
-      title: {
-        text: "Times completed",
-        style: {
-          color: Highcharts.getOptions().colors?.[1] as string,
-        },
-      },
+    labels: {
+      format: "{value} km",
     },
-  ],
+  },
+  yAxis: {
+    min: 0,
+    max: 1,
+    allowDecimals: false,
+    title: {
+      text: "Days at or above threshold",
+    },
+  },
   tooltip: {
     formatter: function (this: any): string {
-      return this.points.reduce(function (s: string, point: { x: number; y: number }) {
-        const color = (point.x === props.eddingtonNumber.eddingtonNumber && point.y >= props.eddingtonNumber.eddingtonNumber) ? "red" : "black";
-        const text = (point.x > props.eddingtonNumber.eddingtonNumber) ? "<br>You need " + (point.x - point.y) + " more ride of at least " + point.x +" km to reach " + point.x : "";
-
-        return `<span style="color: ${color}">You covered at least ${point.y} times ${point.x} kms</span>${text ? text : ""}`;
-      }, "");
+      const pointOptions = this.point?.options as EddingtonChartPoint | undefined;
+      if (!pointOptions) {
+        return "";
+      }
+      return formatEddingtonTooltip(pointOptions);
     },
-    shared: true,
+    shared: false,
   },
   legend: {
-    enabled: false,
+    enabled: true,
+  },
+  plotOptions: {
+    column: {
+      borderWidth: 0,
+      pointPadding: 0.08,
+      groupPadding: 0.08,
+    },
   },
   series: [
     {
-      name: "Occurence",
+      name: "Recorded days",
       type: "column",
+      data: [],
+    },
+    {
+      name: "Requirement",
+      type: "line",
+      color: EDDINGTON_REFERENCE_COLOR,
+      dashStyle: "ShortDash",
+      marker: {
+        enabled: false,
+      },
+      enableMouseTracking: false,
       data: [],
     },
   ],
 });
 
+function updatePlotLines(currentNumber: number) {
+  const plotLine = currentNumber > 0
+    ? [
+        {
+          value: currentNumber,
+          color: EDDINGTON_CURRENT_COLOR,
+          width: 1,
+          dashStyle: "ShortDash" as const,
+          zIndex: 4,
+          label: {
+            text: `E=${currentNumber}`,
+            style: {
+              color: EDDINGTON_CURRENT_COLOR,
+              fontWeight: "700",
+            },
+          },
+        },
+      ]
+    : [];
+
+  (chartOptions.xAxis as XAxisOptions).plotLines = plotLine;
+  (chartOptions.yAxis as YAxisOptions).plotLines = plotLine;
+}
+
+function updateChartData() {
+  const chartData = buildEddingtonChartData(props.eddingtonNumber ?? {});
+  hasChartData.value = chartData.hasData;
+  const countPlural = pluralizeEddingtonCount(2, chartData.countSingular);
+
+  if (chartOptions.title) {
+    chartOptions.title.text = props.title;
+  }
+  if (chartOptions.subtitle) {
+    chartOptions.subtitle.text = chartData.summary;
+  }
+
+  (chartOptions.xAxis as XAxisOptions).min = chartData.axisMin;
+  (chartOptions.xAxis as XAxisOptions).max = chartData.axisMax;
+  (chartOptions.xAxis as XAxisOptions).title = {
+    text: `${chartData.metricLabel === "elevation" ? "Elevation" : "Distance"} threshold`,
+  };
+  (chartOptions.xAxis as XAxisOptions).labels = {
+    format: `{value} ${chartData.unit}`,
+  };
+  (chartOptions.yAxis as YAxisOptions).max = chartData.yAxisMax;
+  (chartOptions.yAxis as YAxisOptions).title = {
+    text: `${countPlural[0].toUpperCase()}${countPlural.slice(1)} at or above threshold`,
+  };
+  updatePlotLines(chartData.currentNumber);
+
+  if (chartOptions.series && chartOptions.series[0]) {
+    (chartOptions.series[0] as SeriesColumnOptions).name = `Recorded ${countPlural}`;
+    (chartOptions.series[0] as SeriesColumnOptions).data = chartData.points;
+  }
+  if (chartOptions.series && chartOptions.series[1]) {
+    (chartOptions.series[1] as SeriesLineOptions).data = chartData.referenceLine;
+  }
+}
+
 watch(
   () => props.eddingtonNumber,
-  (newData) => {
-    if (newData.eddingtonList) {
-      // Modify the data to include color for eddington number bar
-      const modifiedData = newData.eddingtonList.map((value, index) => {
-        if (index + 1 === newData.eddingtonNumber && value >= newData.eddingtonNumber) {
-          return { x: index + 1, y: value, color: "red" };
-        }
-        return { x: index + 1, y: value, color: "black" };
-      });
-      if (chartOptions.series && chartOptions.series[0]) {
-        (chartOptions.series[0] as SeriesColumnOptions).data = modifiedData;
-      }
-
-      if (chartOptions.title) {
-        chartOptions.title.text = props.title
-      }
-    }
-  },
+  updateChartData,
   { immediate: true }
-); // Immediate to handle initial data
+);
+
+watch(
+  () => props.title,
+  updateChartData,
+);
 </script>
 
 <template>
   <div class="chart-container">
+    <div
+      v-if="!hasChartData"
+      class="chart-empty"
+    >
+      No Eddington data available for this sport filter.
+    </div>
     <Chart
-      type="line"
+      v-else
       :options="chartOptions"
     />
   </div>

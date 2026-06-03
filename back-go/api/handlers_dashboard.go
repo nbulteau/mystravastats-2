@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"mystravastats/api/dto"
+	"mystravastats/internal/shared/domain/business"
 	"net/http"
 )
 
@@ -92,21 +93,53 @@ func getDashboardActivityHeatmap(writer http.ResponseWriter, request *http.Reque
 // @Tags dashboard
 // @Produce json
 // @Param activityType query string true "Activity type"
+// @Param year query int false "Year. Required when scope is year"
+// @Param scope query string false "Eddington scope" Enums(lifetime, year, rolling-12-months) default(lifetime)
+// @Param metric query string false "Eddington metric" Enums(distance, elevation) default(distance)
+// @Param basis query string false "Eddington basis" Enums(days, activities) default(days)
 // @Success 200 {object} dto.EddingtonNumberDto
 // @Failure 400 {string} string "Invalid parameters"
 // @Failure 500 {string} string "Internal server error"
 // @Router /api/dashboard/eddington-number [get]
 func getDashboardEddingtonNumber(writer http.ResponseWriter, request *http.Request) {
-	_, activityTypes, err := parseActivityRequestParams(request)
+	year, activityTypes, err := parseActivityRequestParams(request)
+	if err != nil {
+		writeBadRequest(writer, "Invalid request parameters", err.Error())
+		return
+	}
+	scope, err := getEddingtonScopeParam(request)
+	if err != nil {
+		writeBadRequest(writer, "Invalid request parameters", err.Error())
+		return
+	}
+	if scope == business.EddingtonScopeYear && year == nil {
+		writeBadRequest(writer, "Invalid request parameters", "year is required for Eddington year scope")
+		return
+	}
+	metric, err := getEddingtonMetricParam(request)
+	if err != nil {
+		writeBadRequest(writer, "Invalid request parameters", err.Error())
+		return
+	}
+	basis, err := getEddingtonBasisParam(request)
 	if err != nil {
 		writeBadRequest(writer, "Invalid request parameters", err.Error())
 		return
 	}
 
-	edNum := getContainer().getEddingtonNumberUseCase.Execute(activityTypes)
+	edNum := getContainer().getEddingtonNumberUseCase.Execute(scope, metric, basis, year, activityTypes)
 	edNumDto := dto.EddingtonNumberDto{
 		EddingtonNumber: edNum.Number,
 		EddingtonList:   edNum.List,
+		Scope:           string(edNum.Scope),
+		Metric:          string(edNum.Metric),
+		Basis:           string(edNum.Basis),
+		Unit:            edNum.Unit,
+		NextTarget:      edNum.NextTarget,
+		QualifyingCount: edNum.QualifyingCount,
+		MissingCount:    edNum.MissingCount,
+		QualifyingDays:  edNum.QualifyingDays,
+		MissingDays:     edNum.MissingDays,
 	}
 
 	if err := writeJSON(writer, http.StatusOK, edNumDto); err != nil {

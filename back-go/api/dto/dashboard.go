@@ -22,8 +22,17 @@ type DashboardDataDto struct {
 }
 
 type EddingtonNumberDto struct {
-	EddingtonNumber int   `json:"eddingtonNumber"`
-	EddingtonList   []int `json:"eddingtonList"`
+	EddingtonNumber int    `json:"eddingtonNumber"`
+	EddingtonList   []int  `json:"eddingtonList"`
+	Scope           string `json:"scope"`
+	Metric          string `json:"metric"`
+	Basis           string `json:"basis"`
+	Unit            string `json:"unit"`
+	NextTarget      int    `json:"nextTarget"`
+	QualifyingCount int    `json:"qualifyingCount"`
+	MissingCount    int    `json:"missingCount"`
+	QualifyingDays  int    `json:"qualifyingDays"`
+	MissingDays     int    `json:"missingDays"`
 }
 
 type CumulativeDataPerYearDto struct {

@@ -31,7 +31,7 @@ func (stub *dashboardReaderStub) FindActivityHeatmap(_ ...business.ActivityType)
 	return stub.heatmap
 }
 
-func (stub *dashboardReaderStub) FindEddingtonNumber(_ ...business.ActivityType) business.EddingtonNumber {
+func (stub *dashboardReaderStub) FindEddingtonNumber(_ business.EddingtonScope, _ business.EddingtonMetric, _ business.EddingtonBasis, _ *int, _ ...business.ActivityType) business.EddingtonNumber {
 	return stub.eddington
 }
 
@@ -78,7 +78,7 @@ func TestGetEddingtonNumberUseCase_Execute_ReturnsResult(t *testing.T) {
 	useCase := NewGetEddingtonNumberUseCase(reader)
 
 	// WHEN
-	result := useCase.Execute([]business.ActivityType{business.Ride})
+	result := useCase.Execute(business.EddingtonScopeLifetime, business.EddingtonMetricDistance, business.EddingtonBasisDays, nil, []business.ActivityType{business.Ride})
 
 	// THEN
 	if result.Number != 42 {

@@ -11,6 +11,9 @@ import {
 } from "@/models/annual-goals.model";
 
 export type HeatmapScope = "selection" | "all-sports";
+export type EddingtonScope = "lifetime" | "year" | "rolling-12-months";
+export type EddingtonMetric = "distance" | "elevation";
+export type EddingtonBasis = "days" | "activities";
 
 type DashboardCacheEntry = {
   cumulativeDistancePerYear: Map<string, Map<string, number>>;
@@ -60,6 +63,9 @@ export const useDashboardStore = defineStore("dashboard", {
     dashboardByKey: {} as Record<string, DashboardCacheEntry>,
     heatmapByKey: {} as Record<string, ActivityHeatmap>,
     heatmapScope: "selection" as HeatmapScope,
+    eddingtonScope: "lifetime" as EddingtonScope,
+    eddingtonMetric: "distance" as EddingtonMetric,
+    eddingtonBasis: "days" as EddingtonBasis,
     isLoading: false,
     isSavingAnnualGoals: false,
     error: null as string | null,
@@ -68,7 +74,7 @@ export const useDashboardStore = defineStore("dashboard", {
   actions: {
     currentDashboardKey(): string {
       const contextStore = useContextStore();
-      return contextStore.currentFiltersKey;
+      return `${contextStore.currentFiltersKey}:eddington=${this.eddingtonScope}:${this.eddingtonMetric}:${this.eddingtonBasis}`;
     },
     currentHeatmapActivityType(): string {
       const contextStore = useContextStore();
@@ -87,6 +93,35 @@ export const useDashboardStore = defineStore("dashboard", {
     },
     setHeatmapScope(scope: HeatmapScope) {
       this.heatmapScope = scope;
+    },
+    normalizeEddingtonScopeForCurrentContext() {
+      if (this.eddingtonScope === "year" && this.currentAnnualGoalYear() === null) {
+        this.eddingtonScope = "lifetime";
+      }
+    },
+    async setEddingtonScope(scope: EddingtonScope) {
+      const nextScope = scope === "year" && this.currentAnnualGoalYear() === null
+        ? "lifetime"
+        : scope;
+      if (this.eddingtonScope === nextScope) {
+        return;
+      }
+      this.eddingtonScope = nextScope;
+      await this.fetchEddingtonNumber();
+    },
+    async setEddingtonMetric(metric: EddingtonMetric) {
+      if (this.eddingtonMetric === metric) {
+        return;
+      }
+      this.eddingtonMetric = metric;
+      await this.fetchEddingtonNumber();
+    },
+    async setEddingtonBasis(basis: EddingtonBasis) {
+      if (this.eddingtonBasis === basis) {
+        return;
+      }
+      this.eddingtonBasis = basis;
+      await this.fetchEddingtonNumber();
     },
     updateDashboardCacheForCurrentKey() {
       this.dashboardByKey[this.currentDashboardKey()] = {
@@ -122,7 +157,15 @@ export const useDashboardStore = defineStore("dashboard", {
     },
     async fetchEddingtonNumber() {
       const contextStore = useContextStore();
-      const url = buildFilteredApiUrl("dashboard/eddington-number", contextStore.currentActivityType, contextStore.currentYear);
+      this.normalizeEddingtonScopeForCurrentContext();
+      const baseUrl = buildFilteredApiUrl("dashboard/eddington-number", contextStore.currentActivityType, contextStore.currentYear);
+      const separator = baseUrl.includes("?") ? "&" : "?";
+      const params = new URLSearchParams({
+        scope: this.eddingtonScope,
+        metric: this.eddingtonMetric,
+        basis: this.eddingtonBasis,
+      });
+      const url = `${baseUrl}${separator}${params.toString()}`;
       this.eddingtonNumber = await requestJson<EddingtonNumber>(url);
       this.updateDashboardCacheForCurrentKey();
     },
@@ -188,6 +231,7 @@ export const useDashboardStore = defineStore("dashboard", {
       }
     },
     async ensureDashboardLoaded(force = false) {
+      this.normalizeEddingtonScopeForCurrentContext();
       const key = this.currentDashboardKey();
       const cached = this.dashboardByKey[key];
       if (!force && cached) {

@@ -99,7 +99,7 @@ const exactMetricTooltips: Record<string, string> = {
   "Most active month":
     "Month with the highest number of activities in the selected period.",
   "Eddington number":
-    "Largest number E such that you have at least E days with distance greater than or equal to E.",
+    "Largest number E such that at least E days or activities reach the selected threshold. Switch distance/elevation, days/activities, and the time scope.",
   "Heatmap Advanced Insights":
     "Advanced interpretation layer on top of daily heatmap data: consistency, streaks, weekly momentum, weekday signature, top days, activity mix, and best week.",
   "Heatmap Consistency":

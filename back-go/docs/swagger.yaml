@@ -292,6 +292,24 @@ definitions:
         type: array
       eddingtonNumber:
         type: integer
+      basis:
+        type: string
+      metric:
+        type: string
+      missingCount:
+        type: integer
+      missingDays:
+        type: integer
+      nextTarget:
+        type: integer
+      qualifyingCount:
+        type: integer
+      qualifyingDays:
+        type: integer
+      scope:
+        type: string
+      unit:
+        type: string
     type: object
   dto.StatisticDto:
     properties:
@@ -703,6 +721,35 @@ paths:
         in: query
         name: activityType
         required: true
+        type: string
+      - description: Year. Required when scope is year
+        in: query
+        name: year
+        type: integer
+      - default: lifetime
+        description: Eddington scope
+        enum:
+        - lifetime
+        - year
+        - rolling-12-months
+        in: query
+        name: scope
+        type: string
+      - default: distance
+        description: Eddington metric
+        enum:
+        - distance
+        - elevation
+        in: query
+        name: metric
+        type: string
+      - default: days
+        description: Eddington basis
+        enum:
+        - days
+        - activities
+        in: query
+        name: basis
         type: string
       produces:
       - application/json

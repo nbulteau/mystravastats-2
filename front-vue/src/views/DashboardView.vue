@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { useContextStore } from "@/stores/context.js";
-import { useDashboardStore } from "@/stores/dashboard";
+import {
+  type EddingtonBasis,
+  type EddingtonMetric,
+  type EddingtonScope,
+  useDashboardStore,
+} from "@/stores/dashboard";
 import { computed, onMounted } from "vue";
 import type { AnnualGoalTargets } from "@/models/annual-goals.model";
 import TooltipHint from "@/components/TooltipHint.vue";
@@ -18,6 +23,7 @@ import DistanceElevationPerYearChart from "@/components/charts/DistanceElevation
 import ActiveDaysConsistencyPerYearChart from "@/components/charts/ActiveDaysConsistencyPerYearChart.vue";
 import MovingTimePerYearChart from "@/components/charts/MovingTimePerYearChart.vue";
 import ElevationEfficiencyPerYearChart from "@/components/charts/ElevationEfficiencyPerYearChart.vue";
+import { formatActivityTypeLabel } from "@/utils/formatters";
 
 const contextStore = useContextStore();
 const dashboardStore = useDashboardStore();
@@ -25,6 +31,15 @@ onMounted(() => contextStore.updateCurrentView("dashboard"));
 
 const currentActivityType = computed(() => contextStore.currentActivityType);
 const currentYear = computed(() => contextStore.currentYear);
+const eddingtonScope = computed(() => dashboardStore.eddingtonScope);
+const eddingtonMetric = computed(() => dashboardStore.eddingtonMetric);
+const eddingtonBasis = computed(() => dashboardStore.eddingtonBasis);
+const currentActivityTypeLabel = computed(() =>
+  currentActivityType.value
+    .split("_")
+    .map((activityType) => formatActivityTypeLabel(activityType))
+    .join(", ")
+);
 const isLoading = computed(() => dashboardStore.isLoading);
 const error = computed(() => dashboardStore.error);
 const annualGoals = computed(() => dashboardStore.annualGoals);
@@ -66,6 +81,30 @@ const averageWattsByYear = computed(() => dashboardStore.dashboardData.averageWa
 const maxWattsByYear = computed(() =>
   sortDataByYear(dashboardStore.dashboardData.maxWattsByYear)
 );
+const eddingtonScopeOptions: Array<{ value: EddingtonScope; label: string }> = [
+  { value: "lifetime", label: "Lifetime" },
+  { value: "year", label: "Year" },
+  { value: "rolling-12-months", label: "12 months" },
+];
+const eddingtonMetricOptions: Array<{ value: EddingtonMetric; label: string }> = [
+  { value: "distance", label: "Distance" },
+  { value: "elevation", label: "Elevation" },
+];
+const eddingtonBasisOptions: Array<{ value: EddingtonBasis; label: string }> = [
+  { value: "days", label: "Days" },
+  { value: "activities", label: "Activities" },
+];
+const isYearScopeDisabled = computed(() => currentYear.value === "All years");
+const eddingtonTitle = computed(() => {
+  const scopeLabel = eddingtonScope.value === "year"
+    ? currentYear.value
+    : eddingtonScope.value === "rolling-12-months"
+      ? "Rolling 12-month"
+      : "Lifetime";
+  const metricLabel = eddingtonMetric.value === "elevation" ? "Elevation" : "Distance";
+  const basisLabel = eddingtonBasis.value === "activities" ? "activities" : "days";
+  return `${scopeLabel} ${metricLabel} Eddington by ${basisLabel} for ${currentActivityTypeLabel.value}: ${eddingtonNumber.value.eddingtonNumber}`;
+});
 
 function sortDataByYear(
   averageWattsByYear: Record<string, number>
@@ -84,6 +123,21 @@ function tooltip(label: string): string {
 
 async function saveAnnualGoals(targets: AnnualGoalTargets) {
   await dashboardStore.saveAnnualGoals(targets);
+}
+
+async function setEddingtonScope(scope: EddingtonScope) {
+  if (scope === "year" && isYearScopeDisabled.value) {
+    return;
+  }
+  await dashboardStore.setEddingtonScope(scope);
+}
+
+async function setEddingtonMetric(metric: EddingtonMetric) {
+  await dashboardStore.setEddingtonMetric(metric);
+}
+
+async function setEddingtonBasis(basis: EddingtonBasis) {
+  await dashboardStore.setEddingtonBasis(basis);
 }
 </script>
 
@@ -127,9 +181,62 @@ async function saveAnnualGoals(targets: AnnualGoalTargets) {
           Eddington number
         </h3>
         <TooltipHint :text="tooltip('Eddington number')" />
+        <div
+          class="eddington-controls"
+        >
+          <div
+            class="scope-switch"
+            role="group"
+            aria-label="Eddington metric"
+          >
+            <button
+              v-for="option in eddingtonMetricOptions"
+              :key="option.value"
+              type="button"
+              class="scope-switch__button"
+              :class="{ 'scope-switch__button--active': eddingtonMetric === option.value }"
+              @click="setEddingtonMetric(option.value)"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+          <div
+            class="scope-switch"
+            role="group"
+            aria-label="Eddington basis"
+          >
+            <button
+              v-for="option in eddingtonBasisOptions"
+              :key="option.value"
+              type="button"
+              class="scope-switch__button"
+              :class="{ 'scope-switch__button--active': eddingtonBasis === option.value }"
+              @click="setEddingtonBasis(option.value)"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+          <div
+            class="scope-switch"
+            role="group"
+            aria-label="Eddington scope"
+          >
+            <button
+              v-for="option in eddingtonScopeOptions"
+              :key="option.value"
+              type="button"
+              class="scope-switch__button"
+              :class="{ 'scope-switch__button--active': eddingtonScope === option.value }"
+              :disabled="option.value === 'year' && isYearScopeDisabled"
+              @click="setEddingtonScope(option.value)"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+        </div>
       </div>
       <EddingtonNumberChart
-        :title="`Eddington number for ${currentActivityType}: ${eddingtonNumber.eddingtonNumber}`"
+        :title="eddingtonTitle"
         :eddington-number="eddingtonNumber"
       />
     </section>
@@ -272,5 +379,63 @@ async function saveAnnualGoals(targets: AnnualGoalTargets) {
   margin: 0;
   font-size: 0.9rem;
   font-weight: 800;
+}
+
+.eddington-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.scope-switch {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--ms-border);
+  border-radius: 8px;
+  background: #f8f9fc;
+}
+
+.scope-switch__button {
+  border: 0;
+  border-right: 1px solid var(--ms-border);
+  padding: 5px 10px;
+  color: var(--ms-text-muted);
+  background: transparent;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.scope-switch__button:last-child {
+  border-right: 0;
+}
+
+.scope-switch__button:disabled {
+  color: #b7bbc6;
+  cursor: not-allowed;
+}
+
+.scope-switch__button--active {
+  color: #ffffff;
+  background: var(--ms-primary);
+}
+
+@media (max-width: 640px) {
+  .chart-panel__header {
+    flex-wrap: wrap;
+  }
+
+  .eddington-controls {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .scope-switch {
+    flex: 1 1 100%;
+  }
+
+  .scope-switch__button {
+    flex: 1;
+  }
 }
 </style>

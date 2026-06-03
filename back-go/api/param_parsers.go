@@ -62,6 +62,48 @@ func parseActivityRequestParams(request *http.Request) (*int, []business.Activit
 	return year, activityTypes, nil
 }
 
+func getEddingtonScopeParam(request *http.Request) (business.EddingtonScope, error) {
+	value := strings.TrimSpace(request.URL.Query().Get("scope"))
+	if value == "" {
+		return business.EddingtonScopeLifetime, nil
+	}
+	scope := business.EddingtonScope(value)
+	switch scope {
+	case business.EddingtonScopeLifetime, business.EddingtonScopeYear, business.EddingtonScopeRolling12Months:
+		return scope, nil
+	default:
+		return "", fmt.Errorf("invalid scope: %q", value)
+	}
+}
+
+func getEddingtonMetricParam(request *http.Request) (business.EddingtonMetric, error) {
+	value := strings.TrimSpace(request.URL.Query().Get("metric"))
+	if value == "" {
+		return business.EddingtonMetricDistance, nil
+	}
+	metric := business.EddingtonMetric(value)
+	switch metric {
+	case business.EddingtonMetricDistance, business.EddingtonMetricElevation:
+		return metric, nil
+	default:
+		return "", fmt.Errorf("invalid metric: %q", value)
+	}
+}
+
+func getEddingtonBasisParam(request *http.Request) (business.EddingtonBasis, error) {
+	value := strings.TrimSpace(request.URL.Query().Get("basis"))
+	if value == "" {
+		return business.EddingtonBasisDays, nil
+	}
+	basis := business.EddingtonBasis(value)
+	switch basis {
+	case business.EddingtonBasisDays, business.EddingtonBasisActivities:
+		return basis, nil
+	default:
+		return "", fmt.Errorf("invalid basis: %q", value)
+	}
+}
+
 func getPeriodParam(request *http.Request) (business.Period, error) {
 	periodParam := request.URL.Query().Get("period")
 	if periodParam == "" {
