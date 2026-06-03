@@ -16,9 +16,9 @@ enum class EddingtonScope(val apiValue: String) {
     }
 }
 
-enum class EddingtonMetric(val apiValue: String, val unit: String) {
-    DISTANCE("distance", "km"),
-    ELEVATION("elevation", "m");
+enum class EddingtonMetric(val apiValue: String, val unit: String, val thresholdScale: Int) {
+    DISTANCE("distance", "km", 1),
+    ELEVATION("elevation", "m", 100);
 
     companion object {
         fun fromApiValue(value: String?): EddingtonMetric {
@@ -53,6 +53,7 @@ data class EddingtonNumber (
     val metric: EddingtonMetric = EddingtonMetric.DISTANCE,
     val basis: EddingtonBasis = EddingtonBasis.DAYS,
     val unit: String = metric.unit,
+    val thresholdScale: Int = metric.thresholdScale,
     val nextTarget: Int = eddingtonNumber + 1,
     val qualifyingCount: Int = eddingtonList.getOrElse(nextTarget - 1) { 0 },
     val missingCount: Int = maxOf(nextTarget - qualifyingCount, 0),

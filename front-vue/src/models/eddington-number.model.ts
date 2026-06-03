@@ -5,6 +5,7 @@ export class EddingtonNumber {
     metric!: "distance" | "elevation";
     basis!: "days" | "activities";
     unit!: "km" | "m";
+    thresholdScale!: number;
     nextTarget!: number;
     qualifyingCount!: number;
     missingCount!: number;

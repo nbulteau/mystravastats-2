@@ -1185,6 +1185,9 @@ const docTemplate = `{
                 "scope": {
                     "type": "string"
                 },
+                "thresholdScale": {
+                    "type": "integer"
+                },
                 "unit": {
                     "type": "string"
                 }

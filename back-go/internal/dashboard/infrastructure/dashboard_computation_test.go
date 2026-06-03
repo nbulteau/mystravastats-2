@@ -101,11 +101,24 @@ func TestComputeEddingtonFromValues_SupportsElevationActivities(t *testing.T) {
 	if result.Number != 3 {
 		t.Fatalf("expected eddington number 3, got %d", result.Number)
 	}
-	if result.Metric != business.EddingtonMetricElevation || result.Basis != business.EddingtonBasisActivities || result.Unit != "m" {
-		t.Fatalf("expected elevation/activity metadata, got metric=%s basis=%s unit=%s", result.Metric, result.Basis, result.Unit)
+	if result.Metric != business.EddingtonMetricElevation || result.Basis != business.EddingtonBasisActivities || result.Unit != "m" || result.ThresholdScale != 100 {
+		t.Fatalf("expected elevation/activity metadata, got metric=%s basis=%s unit=%s scale=%d", result.Metric, result.Basis, result.Unit, result.ThresholdScale)
 	}
 	if result.NextTarget != 4 || result.QualifyingCount != 3 || result.MissingCount != 1 {
 		t.Fatalf("expected next target 4 with one missing activity, got target=%d qualifying=%d missing=%d", result.NextTarget, result.QualifyingCount, result.MissingCount)
+	}
+}
+
+func TestEddingtonActivityValue_UsesHundredMeterElevationBuckets(t *testing.T) {
+	// GIVEN
+	activity := &strava.Activity{TotalElevationGain: 349}
+
+	// WHEN
+	value := eddingtonActivityValue(activity, business.EddingtonMetricElevation)
+
+	// THEN
+	if value != 3 {
+		t.Fatalf("expected 349m to count as 3 hundred-meter buckets, got %d", value)
 	}
 }
 

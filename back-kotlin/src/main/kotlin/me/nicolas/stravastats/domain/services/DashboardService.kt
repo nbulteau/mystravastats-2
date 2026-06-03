@@ -471,7 +471,7 @@ class DashboardService(
 
     private fun StravaActivity.eddingtonValue(metric: EddingtonMetric): Int {
         return when (metric) {
-            EddingtonMetric.ELEVATION -> totalElevationGain.toInt()
+            EddingtonMetric.ELEVATION -> (totalElevationGain / metric.thresholdScale).toInt()
             EddingtonMetric.DISTANCE -> (distance / 1000).toInt()
         }
     }

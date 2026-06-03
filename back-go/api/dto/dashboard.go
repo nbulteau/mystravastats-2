@@ -28,6 +28,7 @@ type EddingtonNumberDto struct {
 	Metric          string `json:"metric"`
 	Basis           string `json:"basis"`
 	Unit            string `json:"unit"`
+	ThresholdScale  int    `json:"thresholdScale"`
 	NextTarget      int    `json:"nextTarget"`
 	QualifyingCount int    `json:"qualifyingCount"`
 	MissingCount    int    `json:"missingCount"`

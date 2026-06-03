@@ -887,6 +887,7 @@ func TestGetDashboardEddingtonNumber_Returns200(t *testing.T) {
 				Metric:          business.EddingtonMetricDistance,
 				Basis:           business.EddingtonBasisDays,
 				Unit:            "km",
+				ThresholdScale:  1,
 				NextTarget:      56,
 				QualifyingCount: 0,
 				MissingCount:    56,
@@ -923,6 +924,9 @@ func TestGetDashboardEddingtonNumber_Returns200(t *testing.T) {
 	}
 	if got := response["unit"].(string); got != "km" {
 		t.Fatalf("expected unit=km, got %s", got)
+	}
+	if got := int(response["thresholdScale"].(float64)); got != 1 {
+		t.Fatalf("expected thresholdScale=1, got %d", got)
 	}
 	if got := int(response["nextTarget"].(float64)); got != 56 {
 		t.Fatalf("expected nextTarget=56, got %d", got)

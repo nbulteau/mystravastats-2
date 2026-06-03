@@ -127,6 +127,8 @@ function updateChartData() {
   const chartData = buildEddingtonChartData(props.eddingtonNumber ?? {});
   hasChartData.value = chartData.hasData;
   const countPlural = pluralizeEddingtonCount(2, chartData.countSingular);
+  const thresholdScale = chartData.thresholdScale;
+  const thresholdUnit = chartData.unit;
 
   if (chartOptions.title) {
     chartOptions.title.text = props.title;
@@ -141,7 +143,10 @@ function updateChartData() {
     text: `${chartData.metricLabel === "elevation" ? "Elevation" : "Distance"} threshold`,
   };
   (chartOptions.xAxis as XAxisOptions).labels = {
-    format: `{value} ${chartData.unit}`,
+    formatter: function (this: { value: number | string }) {
+      const value = Number(this.value);
+      return Number.isFinite(value) ? `${value * thresholdScale} ${thresholdUnit}` : "";
+    },
   };
   (chartOptions.yAxis as YAxisOptions).max = chartData.yAxisMax;
   (chartOptions.yAxis as YAxisOptions).title = {

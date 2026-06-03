@@ -17,6 +17,8 @@ data class EddingtonNumberDto(
     val basis: String,
     @param:Schema(description = "Eddington threshold unit")
     val unit: String,
+    @param:Schema(description = "Multiplier applied to Eddington thresholds for display")
+    val thresholdScale: Int,
     @param:Schema(description = "Next Eddington target")
     val nextTarget: Int,
     @param:Schema(description = "Items already qualifying for the next target")
@@ -36,6 +38,7 @@ fun EddingtonNumber.toDto() = EddingtonNumberDto(
     metric = this.metric.apiValue,
     basis = this.basis.apiValue,
     unit = this.unit,
+    thresholdScale = this.thresholdScale,
     nextTarget = this.nextTarget,
     qualifyingCount = this.qualifyingCount,
     missingCount = this.missingCount,

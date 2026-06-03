@@ -111,7 +111,7 @@ class DashboardServiceTest {
                 id = 10L,
                 startDateLocal = "2025-01-01T08:00:00Z",
                 distanceMeters = 20_000.0,
-                elevationGainMeters = 4.0,
+                elevationGainMeters = 400.0,
                 movingTimeSeconds = 1_800,
                 elapsedTimeSeconds = 1_900,
             ),
@@ -119,7 +119,7 @@ class DashboardServiceTest {
                 id = 11L,
                 startDateLocal = "2025-01-01T12:00:00Z",
                 distanceMeters = 15_000.0,
-                elevationGainMeters = 4.0,
+                elevationGainMeters = 400.0,
                 movingTimeSeconds = 1_600,
                 elapsedTimeSeconds = 1_700,
             ),
@@ -127,7 +127,7 @@ class DashboardServiceTest {
                 id = 12L,
                 startDateLocal = "2025-01-02T08:00:00Z",
                 distanceMeters = 10_000.0,
-                elevationGainMeters = 4.0,
+                elevationGainMeters = 400.0,
                 movingTimeSeconds = 1_000,
                 elapsedTimeSeconds = 1_100,
             ),
@@ -135,7 +135,7 @@ class DashboardServiceTest {
                 id = 13L,
                 startDateLocal = "2025-01-03T08:00:00Z",
                 distanceMeters = 8_000.0,
-                elevationGainMeters = 2.0,
+                elevationGainMeters = 200.0,
                 movingTimeSeconds = 900,
                 elapsedTimeSeconds = 950,
             ),
@@ -153,6 +153,7 @@ class DashboardServiceTest {
         assertEquals(EddingtonMetric.ELEVATION, result.metric)
         assertEquals(EddingtonBasis.ACTIVITIES, result.basis)
         assertEquals("m", result.unit)
+        assertEquals(100, result.thresholdScale)
         assertEquals(4, result.nextTarget)
         assertEquals(3, result.qualifyingCount)
         assertEquals(1, result.missingCount)

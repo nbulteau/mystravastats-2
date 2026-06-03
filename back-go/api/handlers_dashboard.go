@@ -135,6 +135,7 @@ func getDashboardEddingtonNumber(writer http.ResponseWriter, request *http.Reque
 		Metric:          string(edNum.Metric),
 		Basis:           string(edNum.Basis),
 		Unit:            edNum.Unit,
+		ThresholdScale:  edNum.ThresholdScale,
 		NextTarget:      edNum.NextTarget,
 		QualifyingCount: edNum.QualifyingCount,
 		MissingCount:    edNum.MissingCount,

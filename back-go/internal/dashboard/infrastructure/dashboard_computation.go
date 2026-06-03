@@ -59,7 +59,7 @@ func computeEddingtonFromValues(scope business.EddingtonScope, metric business.E
 			}
 		}
 		if maxValue <= 0 {
-			return withEddingtonProgress(business.EddingtonNumber{Number: 0, List: []int{}, Scope: scope, Metric: metric, Basis: basis, Unit: eddingtonUnit(metric)})
+			return withEddingtonProgress(business.EddingtonNumber{Number: 0, List: []int{}, Scope: scope, Metric: metric, Basis: basis, Unit: eddingtonUnit(metric), ThresholdScale: eddingtonThresholdScale(metric)})
 		}
 		counts := make([]int, maxValue)
 		for _, value := range values {
@@ -81,7 +81,7 @@ func computeEddingtonFromValues(scope business.EddingtonScope, metric business.E
 		}
 	}
 
-	return withEddingtonProgress(business.EddingtonNumber{Number: eddingtonNumber, List: eddingtonList, Scope: scope, Metric: metric, Basis: basis, Unit: eddingtonUnit(metric)})
+	return withEddingtonProgress(business.EddingtonNumber{Number: eddingtonNumber, List: eddingtonList, Scope: scope, Metric: metric, Basis: basis, Unit: eddingtonUnit(metric), ThresholdScale: eddingtonThresholdScale(metric)})
 }
 
 func eddingtonValues(activities []*strava.Activity, metric business.EddingtonMetric, basis business.EddingtonBasis) []int {
@@ -118,7 +118,7 @@ func dailyDistanceTotals(activities []*strava.Activity) map[string]int {
 func eddingtonActivityValue(activity *strava.Activity, metric business.EddingtonMetric) int {
 	switch metric {
 	case business.EddingtonMetricElevation:
-		return int(activity.TotalElevationGain)
+		return int(activity.TotalElevationGain / float64(eddingtonThresholdScale(metric)))
 	default:
 		return int(activity.Distance / 1000)
 	}
@@ -129,6 +129,13 @@ func eddingtonUnit(metric business.EddingtonMetric) string {
 		return "m"
 	}
 	return "km"
+}
+
+func eddingtonThresholdScale(metric business.EddingtonMetric) int {
+	if metric == business.EddingtonMetricElevation {
+		return 100
+	}
+	return 1
 }
 
 func mapValues(valuesByKey map[string]int) []int {

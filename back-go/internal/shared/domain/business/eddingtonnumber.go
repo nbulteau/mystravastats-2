@@ -23,6 +23,7 @@ type EddingtonNumber struct {
 	Metric          EddingtonMetric
 	Basis           EddingtonBasis
 	Unit            string
+	ThresholdScale  int
 	NextTarget      int
 	QualifyingCount int
 	MissingCount    int
