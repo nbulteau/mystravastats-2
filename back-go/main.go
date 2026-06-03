@@ -22,6 +22,7 @@ import (
 	"mystravastats/api"
 	"mystravastats/internal/platform/activityprovider"
 	"mystravastats/internal/platform/runtimeconfig"
+	"mystravastats/internal/sourcesync"
 	"net"
 	"net/http"
 	"os"
@@ -60,6 +61,7 @@ func main() {
 	// Eager initialization keeps cache loading and background refresh
 	// behavior unchanged from a user perspective at startup.
 	activityprovider.Init(*port)
+	go sourcesync.Synchronize("startup")
 
 	// Start the generated-route cache eviction loop; it stops when the
 	// application exits via context cancellation.

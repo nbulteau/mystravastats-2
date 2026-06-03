@@ -2,6 +2,8 @@ package me.nicolas.stravastats.domain.services
 
 import me.nicolas.stravastats.domain.RuntimeConfig
 import me.nicolas.stravastats.domain.business.SourceMode
+import me.nicolas.stravastats.domain.business.SourceModeApplyRequest
+import me.nicolas.stravastats.domain.business.SourceModeApplyResult
 import me.nicolas.stravastats.domain.business.SourceModeEnvironmentVariable
 import me.nicolas.stravastats.domain.business.SourceModePreview
 import me.nicolas.stravastats.domain.business.SourceModePreviewError
@@ -12,6 +14,7 @@ import me.nicolas.stravastats.domain.business.StravaOAuthStartResult
 import me.nicolas.stravastats.domain.business.StravaOAuthStatus
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.interfaces.ISourcePreviewRepositoryFactory
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.KotlinModule
@@ -31,20 +34,26 @@ import java.util.concurrent.ConcurrentHashMap
 
 interface ISourceModeService {
     fun preview(request: SourceModePreviewRequest): SourceModePreview
+    fun apply(request: SourceModeApplyRequest): SourceModeApplyResult
     fun startStravaOAuth(request: StravaOAuthStartRequest, callbackUrl: String = ""): StravaOAuthStartResult
     fun completeStravaOAuth(state: String?, code: String?, scope: String?, error: String?): String
     fun stravaOAuthHtml(title: String, message: String): String
 }
 
 @Service
-class SourceModeService(
+class SourceModeService @Autowired constructor(
     private val repositoryFactory: ISourcePreviewRepositoryFactory,
 ) : ISourceModeService {
+    private var envFile: File = File(".env")
     private val objectMapper = JsonMapper.builder()
         .addModule(KotlinModule.Builder().build())
         .build()
     private val httpClient: HttpClient = HttpClient.newBuilder().build()
     private val oauthSessions = ConcurrentHashMap<String, StravaOAuthSession>()
+
+    internal constructor(repositoryFactory: ISourcePreviewRepositoryFactory, envFile: File) : this(repositoryFactory) {
+        this.envFile = envFile
+    }
 
     override fun preview(request: SourceModePreviewRequest): SourceModePreview {
         val mode = normalizeMode(request.mode)
@@ -59,6 +68,23 @@ class SourceModeService(
                 repositoryFactory.createGpxRepository(path).loadActivitiesFromCache(it)
             }
         })
+    }
+
+    override fun apply(request: SourceModeApplyRequest): SourceModeApplyResult {
+        val mode = normalizeMode(request.mode)
+        val sourcePreview = preview(SourceModePreviewRequest(mode = mode.name, path = request.path.trim()))
+        require(sourcePreview.supported) { "unsupported source mode ${request.mode}" }
+        require(sourcePreview.errors.isEmpty()) { sourcePreview.errors.first().message }
+        require(sourcePreview.configKey.isNotBlank() && sourcePreview.path.isNotBlank()) { "source mode path is required" }
+
+        val writtenEnvFile = writeSourceModeEnv(sourcePreview.mode, sourcePreview.configKey, sourcePreview.path)
+        return SourceModeApplyResult(
+            status = "saved",
+            message = "${sourcePreview.configKey} saved in $writtenEnvFile. Restart the backend to activate it.",
+            envFile = writtenEnvFile,
+            restartNeeded = sourcePreview.restartNeeded,
+            preview = sourcePreview,
+        )
     }
 
     override fun startStravaOAuth(request: StravaOAuthStartRequest, callbackUrl: String): StravaOAuthStartResult {
@@ -222,6 +248,62 @@ class SourceModeService(
             SourceMode.GPX -> listOf("FIT_FILES_PATH")
             SourceMode.FIT -> listOf("GPX_FILES_PATH")
         }
+    }
+
+    private fun writeSourceModeEnv(mode: SourceMode, configKey: String, path: String): String {
+        val updates = mutableMapOf<String, String?>(configKey to path.trim())
+        sourceUnsetKeys(mode).forEach { key -> updates[key] = null }
+        writeDotEnv(envFile, updates)
+        return envFile.absoluteFile.toPath().normalize().toString()
+    }
+
+    private fun writeDotEnv(file: File, updates: Map<String, String?>) {
+        val existingLines = if (file.exists()) {
+            file.readText().replace("\r\n", "\n").split("\n").dropLastWhile { it == "" }
+        } else {
+            emptyList()
+        }
+        val seen = mutableSetOf<String>()
+        val output = mutableListOf<String>()
+        existingLines.forEach { line ->
+            val key = dotEnvLineKey(line)
+            if (key == null || key !in updates) {
+                output.add(line)
+                return@forEach
+            }
+            seen.add(key)
+            updates[key]?.let { value ->
+                output.add("$key=${dotEnvQuote(value)}")
+            }
+        }
+        updates.forEach { (key, value) ->
+            if (key !in seen && value != null) {
+                output.add("$key=${dotEnvQuote(value)}")
+            }
+        }
+
+        file.parentFile?.mkdirs()
+        val text = if (output.isEmpty()) "" else output.joinToString("\n") + "\n"
+        file.writeText(text)
+        file.setReadable(false, false)
+        file.setReadable(true, true)
+        file.setWritable(false, false)
+        file.setWritable(true, true)
+        file.setExecutable(false, false)
+    }
+
+    private fun dotEnvLineKey(line: String): String? {
+        val trimmed = line.trim()
+        if (trimmed.isBlank() || trimmed.startsWith("#") || !trimmed.contains("=")) return null
+        return trimmed.substringBefore("=")
+            .trim()
+            .removePrefix("export ")
+            .trim()
+            .ifBlank { null }
+    }
+
+    private fun dotEnvQuote(value: String): String {
+        return "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
     }
 
     private fun shellQuote(value: String): String {

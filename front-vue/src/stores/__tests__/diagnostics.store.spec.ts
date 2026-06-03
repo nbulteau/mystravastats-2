@@ -163,6 +163,56 @@ describe("diagnostics store", () => {
     expect(preview.stravaOAuth).toBeNull();
   });
 
+  it("saves a source mode and keeps the returned preview", async () => {
+    const preview = {
+      mode: "FIT",
+      activeMode: "STRAVA",
+      path: "/data/fit",
+      configKey: "FIT_FILES_PATH",
+      supported: true,
+      active: false,
+      configured: false,
+      readable: true,
+      validStructure: true,
+      restartNeeded: true,
+      activationCommand: "env -u GPX_FILES_PATH FIT_FILES_PATH='/data/fit' ./mystravastats -port '8080'",
+      fileCount: 12,
+      validFileCount: 12,
+      invalidFileCount: 0,
+      activityCount: 12,
+      years: null,
+      missingFields: null,
+      environment: null,
+      errors: null,
+      recommendations: null,
+    };
+    const payload = {
+      status: "saved",
+      message: "FIT_FILES_PATH saved in /repo/.env. Restart the backend to activate it.",
+      envFile: "/repo/.env",
+      restartNeeded: true,
+      preview,
+    };
+    vi.mocked(requestJson).mockResolvedValue(payload);
+    const store = useDiagnosticsStore();
+
+    const result = await store.applySourceMode({ mode: "FIT", path: "/data/fit" });
+
+    expect(requestJson).toHaveBeenCalledWith("/api/source-modes/apply", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ mode: "FIT", path: "/data/fit" }),
+    });
+    expect(result.preview.years).toEqual([]);
+    expect(result.preview.errors).toEqual([]);
+    expect(store.sourceModePreview).toEqual(result.preview);
+    expect(store.sourceModeApplyResult).toEqual(result);
+    expect(store.isApplyingSourceMode).toBe(false);
+  });
+
   it("starts Strava OAuth enrollment", async () => {
     const payload = {
       status: "oauth_started",

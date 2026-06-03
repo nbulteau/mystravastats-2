@@ -26,29 +26,29 @@ var defaultCORSAllowedHeaders = []string{"Content-Type", "Authorization", "X-Req
 func Details() map[string]any {
 	fitFilesPath, fitConfigured := optionalEnv("FIT_FILES_PATH")
 	gpxFilesPath, gpxConfigured := optionalEnv("GPX_FILES_PATH")
-	dataProvider := "strava"
-	if fitConfigured {
-		dataProvider = "fit"
-	} else if gpxConfigured {
-		dataProvider = "gpx"
-	}
+	stravaConfigured := isConfigured("STRAVA_CACHE_PATH")
+	dataProvider, activeProviders := dataProviderDetails(stravaConfigured, fitConfigured, gpxConfigured)
 
 	corsOrigins, corsSource := corsAllowedOriginsWithSource()
 
 	return map[string]any{
 		"backend": "go",
 		"data": map[string]any{
-			"provider":                dataProvider,
-			"stravaCachePath":         readStringEnv("STRAVA_CACHE_PATH", defaultStravaCachePath),
-			"stravaCacheConfigured":   isConfigured("STRAVA_CACHE_PATH"),
-			"stravaApiBaseUrl":        StravaAPIBaseURL(),
-			"stravaApiBaseConfigured": isConfigured("STRAVA_API_BASE_URL"),
-			"fitFilesPath":            fitFilesPath,
-			"fitFilesConfigured":      fitConfigured,
-			"gpxFilesPath":            gpxFilesPath,
-			"gpxFilesConfigured":      gpxConfigured,
-			"gpxFilesSupported":       true,
-			"providerSelectionOrder":  []string{"FIT_FILES_PATH", "GPX_FILES_PATH", "STRAVA_CACHE_PATH"},
+			"provider":                  dataProvider,
+			"stravaCachePath":           readStringEnv("STRAVA_CACHE_PATH", defaultStravaCachePath),
+			"stravaCacheConfigured":     isConfigured("STRAVA_CACHE_PATH"),
+			"stravaApiBaseUrl":          StravaAPIBaseURL(),
+			"stravaApiBaseConfigured":   isConfigured("STRAVA_API_BASE_URL"),
+			"fitFilesPath":              fitFilesPath,
+			"fitFilesConfigured":        fitConfigured,
+			"garminFitSourcePath":       readStringEnv("GARMIN_FIT_SOURCE_PATH", ""),
+			"garminFitSourceConfigured": isConfigured("GARMIN_FIT_SOURCE_PATH"),
+			"gpxFilesPath":              gpxFilesPath,
+			"gpxFilesConfigured":        gpxConfigured,
+			"gpxFilesSupported":         true,
+			"activeProviders":           activeProviders,
+			"compositeAutoEnabled":      len(activeProviders) > 1,
+			"providerSelectionOrder":    []string{"STRAVA_CACHE_PATH", "FIT_FILES_PATH", "GPX_FILES_PATH"},
 		},
 		"server": map[string]any{
 			"host":              readFirstStringEnv(defaultServerHost, "SERVER_HOST", "HOST"),
@@ -81,6 +81,26 @@ func Details() map[string]any {
 			"controlDockerBin":    readStringEnv("OSRM_CONTROL_DOCKER_BIN", ""),
 		},
 	}
+}
+
+func dataProviderDetails(stravaConfigured, fitConfigured, gpxConfigured bool) (string, []string) {
+	activeProviders := make([]string, 0, 3)
+	if stravaConfigured {
+		activeProviders = append(activeProviders, "strava")
+	}
+	if fitConfigured {
+		activeProviders = append(activeProviders, "fit")
+	}
+	if gpxConfigured {
+		activeProviders = append(activeProviders, "gpx")
+	}
+	if len(activeProviders) > 1 {
+		return "composite", activeProviders
+	}
+	if len(activeProviders) == 1 {
+		return activeProviders[0], activeProviders
+	}
+	return "strava", []string{"strava"}
 }
 
 func CORSAllowedOrigins() []string {

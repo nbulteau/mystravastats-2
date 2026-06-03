@@ -50,6 +50,8 @@ class RuntimeConfigTest {
 
         assertEquals("kotlin", details["backend"])
         assertEquals("strava", data["provider"])
+        assertEquals(listOf("strava"), data["activeProviders"])
+        assertFalse(data["compositeAutoEnabled"] as Boolean)
         assertEquals("strava-cache", data["stravaCachePath"])
         assertEquals("https://www.strava.com/api/v3", data["stravaApiBaseUrl"])
         assertFalse(data["stravaApiBaseConfigured"] as Boolean)
@@ -85,7 +87,9 @@ class RuntimeConfigTest {
         val cors = details["cors"] as Map<*, *>
         val routing = details["routing"] as Map<*, *>
 
-        assertEquals("fit", data["provider"])
+        assertEquals("composite", data["provider"])
+        assertEquals(listOf("strava", "fit", "gpx"), data["activeProviders"])
+        assertTrue(data["compositeAutoEnabled"] as Boolean)
         assertEquals("https://www.api-v3.strava.com", data["stravaApiBaseUrl"])
         assertTrue(data["stravaApiBaseConfigured"] as Boolean)
         assertEquals("/data/fit", data["fitFilesPath"])
@@ -98,6 +102,19 @@ class RuntimeConfigTest {
         assertEquals(90, routing["historyHalfLifeDays"])
         assertEquals(false, routing["controlEnabled"])
         assertEquals(12000, routing["controlTimeoutMs"])
+    }
+
+    @Test
+    fun `details keeps single configured local provider exclusive`() {
+        clearRuntimeConfigForTest()
+        System.setProperty("FIT_FILES_PATH", "/data/fit")
+
+        val details = RuntimeConfig.details()
+        val data = details["data"] as Map<*, *>
+
+        assertEquals("fit", data["provider"])
+        assertEquals(listOf("fit"), data["activeProviders"])
+        assertFalse(data["compositeAutoEnabled"] as Boolean)
     }
 
     private fun clearRuntimeConfigForTest() {

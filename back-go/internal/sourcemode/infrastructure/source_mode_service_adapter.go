@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -65,6 +66,37 @@ func (adapter *SourceModeServiceAdapter) PreviewSourceMode(request business.Sour
 			Recommendations: []string{"Choose STRAVA, FIT or GPX."},
 		}
 	}
+}
+
+func (adapter *SourceModeServiceAdapter) ApplySourceMode(request business.SourceModeApplyRequest) (business.SourceModeApplyResult, error) {
+	mode := normalizeSourceMode(request.Mode)
+	path := strings.TrimSpace(request.Path)
+	preview := adapter.PreviewSourceMode(business.SourceModePreviewRequest{
+		Mode: string(mode),
+		Path: path,
+	})
+	if !preview.Supported {
+		return business.SourceModeApplyResult{}, fmt.Errorf("unsupported source mode %q", request.Mode)
+	}
+	if len(preview.Errors) > 0 {
+		return business.SourceModeApplyResult{}, errors.New(preview.Errors[0].Message)
+	}
+	if strings.TrimSpace(preview.ConfigKey) == "" || strings.TrimSpace(preview.Path) == "" {
+		return business.SourceModeApplyResult{}, fmt.Errorf("source mode path is required")
+	}
+
+	envPath, err := writeSourceModeEnv(preview.Mode, preview.ConfigKey, preview.Path)
+	if err != nil {
+		return business.SourceModeApplyResult{}, err
+	}
+
+	return business.SourceModeApplyResult{
+		Status:        "saved",
+		Message:       fmt.Sprintf("%s saved in %s. Restart the backend to activate it.", preview.ConfigKey, envPath),
+		EnvFile:       envPath,
+		RestartNeeded: preview.RestartNeeded,
+		Preview:       preview,
+	}, nil
 }
 
 func normalizeSourceModePreview(preview business.SourceModePreview) business.SourceModePreview {
@@ -479,6 +511,90 @@ func sourceModeUnsetKeys(mode business.SourceMode) []string {
 	default:
 		return []string{}
 	}
+}
+
+func writeSourceModeEnv(mode business.SourceMode, configKey string, path string) (string, error) {
+	envPath := ".env"
+	updates := map[string]*string{
+		configKey: stringPtr(strings.TrimSpace(path)),
+	}
+	for _, key := range sourceModeUnsetKeys(mode) {
+		updates[key] = nil
+	}
+	if err := writeDotEnv(envPath, updates); err != nil {
+		return "", err
+	}
+	absolutePath, err := filepath.Abs(envPath)
+	if err != nil {
+		return envPath, nil
+	}
+	return absolutePath, nil
+}
+
+func writeDotEnv(path string, updates map[string]*string) error {
+	existing, err := os.ReadFile(path)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+
+	seen := make(map[string]bool, len(updates))
+	lines := strings.Split(strings.ReplaceAll(string(existing), "\r\n", "\n"), "\n")
+	output := make([]string, 0, len(lines)+len(updates))
+	for index, line := range lines {
+		if index == len(lines)-1 && line == "" {
+			continue
+		}
+		key, ok := dotEnvLineKey(line)
+		if !ok {
+			output = append(output, line)
+			continue
+		}
+		if value, exists := updates[key]; exists {
+			seen[key] = true
+			if value != nil {
+				output = append(output, fmt.Sprintf("%s=%s", key, dotEnvQuote(*value)))
+			}
+			continue
+		}
+		output = append(output, line)
+	}
+	for key, value := range updates {
+		if seen[key] || value == nil {
+			continue
+		}
+		output = append(output, fmt.Sprintf("%s=%s", key, dotEnvQuote(*value)))
+	}
+
+	data := strings.Join(output, "\n")
+	if data != "" {
+		data += "\n"
+	}
+	return os.WriteFile(path, []byte(data), 0o600)
+}
+
+func dotEnvLineKey(line string) (string, bool) {
+	trimmed := strings.TrimSpace(line)
+	if trimmed == "" || strings.HasPrefix(trimmed, "#") || !strings.Contains(trimmed, "=") {
+		return "", false
+	}
+	key := strings.TrimSpace(strings.SplitN(trimmed, "=", 2)[0])
+	if strings.HasPrefix(key, "export ") {
+		key = strings.TrimSpace(strings.TrimPrefix(key, "export "))
+	}
+	if key == "" {
+		return "", false
+	}
+	return key, true
+}
+
+func dotEnvQuote(value string) string {
+	escaped := strings.ReplaceAll(value, `\`, `\\`)
+	escaped = strings.ReplaceAll(escaped, `"`, `\"`)
+	return `"` + escaped + `"`
+}
+
+func stringPtr(value string) *string {
+	return &value
 }
 
 func shellQuote(value string) string {

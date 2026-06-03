@@ -13,6 +13,19 @@ type SourceModePreviewRequest struct {
 	Path string `json:"path"`
 }
 
+type SourceModeApplyRequest struct {
+	Mode string `json:"mode"`
+	Path string `json:"path"`
+}
+
+type SourceModeApplyResult struct {
+	Status        string            `json:"status"`
+	Message       string            `json:"message"`
+	EnvFile       string            `json:"envFile"`
+	RestartNeeded bool              `json:"restartNeeded"`
+	Preview       SourceModePreview `json:"preview"`
+}
+
 type StravaOAuthStartRequest struct {
 	Path         string `json:"path"`
 	ClientID     string `json:"clientId"`

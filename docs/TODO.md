@@ -4,7 +4,7 @@
 
 - Monorepo avec trois surfaces principales: `front-vue`, `back-go`, `back-kotlin`.
 - Le frontend Vue 3 couvre dashboard, objectifs annuels, diagnostics, source modes, data quality, charts, heatmap, statistiques, badges, activites, detail activite, segments, carte, materiel et routes.
-- Les modes de source `STRAVA`, `FIT` et `GPX` existent dans Go et Kotlin. Leur activation reste principalement une affaire de configuration runtime et de redemarrage backend.
+- Les modes de source `STRAVA`, `FIT` et `GPX` existent dans Go et Kotlin. Leur activation peut etre sauvegardee depuis Diagnostics dans `.env`, mais reste effective au redemarrage backend.
 - Le backend Go reste important pour le binaire local; le backend Kotlin reste la reference historique de plusieurs providers et services metier.
 - La generation de routes reste la zone la plus sensible: OSRM, anti-retrace, diagnostics, export GPX, parite Go/Kotlin.
 - L'onglet routes a ete repositionne en `GPS Art` / GPS drawing studio: dessiner ou importer une forme, la snapper au reseau routier via OSRM, puis exporter un GPX exploitable.
@@ -35,75 +35,15 @@
 
 ### Priorite haute
 
-- [ ] `TECH-P1-01` (`P1`, `L`) - Mettre le contrat API sous controle OpenAPI partage.
-  Owners: `Back-Kotlin`, `Back-Go`, `Front`, `QA`.
-  Constat:
-  - Springdoc existe cote Kotlin, Swagger existe cote Go, mais le frontend maintient ses interfaces a la main,
-  - plusieurs DTO sensibles evoluent dans deux backends.
-  Scope:
-  - choisir une source de verite OpenAPI ou un mode de comparaison strict entre specs,
-  - generer les types TypeScript et eventuellement un client API type,
-  - ajouter des tests de conformite Go/Kotlin sur les DTO sensibles (`routes`, `statistics`, `dashboard`, `activities`, `source modes`, `data quality`, `gear analysis`, `annual goals`).
-  Acceptance:
-  - une divergence de champ ou d'enum casse la CI avant d'arriver dans l'UI.
-
-- [ ] `TECH-P1-08` (`P1`, `M`) - Rendre observable la fraicheur des donnees apres synchronisation.
-  Owners: `Back-Go`, `Back-Kotlin`, `Front`, `QA`.
-  Constat:
-  - l'application peut importer de nouvelles activites au demarrage,
-  - les indicateurs derives comme l'Eddington number, le dashboard ou les statistiques peuvent rester percus comme obsoletes si l'UI ou les caches ne signalent pas clairement leur version de donnees.
-  Scope:
-  - exposer une version ou generation de donnees dans `/api/health/details` ou un endpoint equivalent,
-  - invalider explicitement les stores frontend quand une synchronisation modifie le corpus d'activites,
-  - ajouter un smoke test couvrant import activite -> recalcul statistiques -> UI actualisee.
-  Acceptance:
-  - apres import d'une activite, les indicateurs derives visibles se mettent a jour sans reload manuel ambigu.
-
-### Priorite moyenne
-
-- [ ] `TECH-P1-03` (`P1`, `M`) - Etendre la couverture frontend.
-  Owners: `Front`, `QA`.
-  Constat:
-  - les tests Vitest couvrent surtout stores/routes/charts utils,
-  - les parcours UI riches sont peu proteges.
-  Scope:
-  - ajouter tests composants pour diagnostics, source mode, data quality, objectifs annuels, `HeaderBar`, `RoutesView`, `ActivityHeatmapChart`, `HeartRateZoneAnalysisPanel` et `GearAnalysisView`,
-  - ajouter quelques tests e2e/smoke avec backend mocke ou fixtures,
-  - verifier les etats loading/erreur/cache et les erreurs API.
-  Acceptance:
-  - les workflows utilisateurs principaux sont proteges sans dependance a Strava.
-
-- [ ] `TECH-P1-05` (`P1`, `L`) - Reduire le risque de divergence Go/Kotlin hors routes.
-  Owners: `Back-Go`, `Back-Kotlin`, `QA`.
-  Scope:
-  - ajouter des fixtures partagees pour statistiques, badges, dashboard, heatmap, objectifs annuels, source modes, gear analysis, segments et activites detaillees,
-  - garder `test-fixtures/data-quality` comme reference pour les diagnostics/corrections locales deja stabilises,
-  - comparer au minimum les champs agreges et les cas limites de dates/streams manquants,
-  - documenter les divergences acceptees quand une fonctionnalite n'existe que dans un backend.
-  Acceptance:
-  - la parite critique n'est plus limitee au moteur routes et a la data quality.
-
-- [ ] `TECH-P1-07` (`P1`, `S`) - Eviter la derive des docs de capacites backend.
-  Owners: `Docs`, `Back-Go`, `Back-Kotlin`.
-  Constat:
-  - les capacites providers evoluent plus vite que certaines pages d'architecture,
-  - la matrice backend, runtime config et docs source modes doivent rester coherentes.
-  Scope:
-  - ajouter une checklist de mise a jour docs quand `/api/health/details` ou les providers changent,
-  - verifier que la matrice de capacites reflete les tests runtime,
-  - faire pointer les docs source modes vers les memes regles de selection `FIT_FILES_PATH`, `GPX_FILES_PATH`, `STRAVA_CACHE_PATH`.
-  Acceptance:
-  - un changement de capacite backend ne laisse plus une doc contradictoire.
-
 - [ ] `TECH-P1-09` (`P1`, `L`) - Ajouter un `CompositeActivityProvider` mixte Strava + RideWithGPS + FIT/GPX/TCX.
   Owners: `Back-Go`, `Back-Kotlin`, `Front`, `QA`.
   Constat:
-  - les modes source actuels restent exclusifs via `FIT_FILES_PATH`, `GPX_FILES_PATH` ou `STRAVA_CACHE_PATH`,
+  - les modes source historiques etaient exclusifs via `FIT_FILES_PATH`, `GPX_FILES_PATH` ou `STRAVA_CACHE_PATH`,
   - un fonctionnement mixte permettrait de garder les metadonnees Strava ou RideWithGPS tout en enrichissant ou completant les activites avec des fichiers locaux FIT/GPX/TCX,
   - RideWithGPS expose des `Trips` et `Routes`, mais ne couvre pas exactement les memes concepts que Strava: le provider doit normaliser ces differences sans les masquer,
   - le cache Strava existant doit rester intact: RideWithGPS doit avoir son propre cache local et la fusion doit produire une vue composite ou un cache composite separe.
   Scope:
-  - introduire un mode runtime mixte explicite, par exemple `ACTIVITY_SOURCE_MODE=MIXED`,
+  - activer automatiquement le mode composite des que plusieurs sources sont configurees,
   - implementer un `CompositeActivityProvider` miroir en Go et Kotlin,
   - ajouter un provider RideWithGPS avec configuration dediee (`RIDEWITHGPS_API_BASE_URL`, credentials OAuth/token, `RIDEWITHGPS_CACHE_PATH`) et cache local separe sur le modele du provider Strava,
   - charger Strava, RideWithGPS, FIT, GPX et TCX sans changer les providers existants,
@@ -117,6 +57,22 @@
   - une activite locale absente de Strava peut apparaitre en mode union,
   - la section `Data source` de `/diagnostics` ne presente plus le mode mixte comme une source unique et rend visibles provenance, statut des caches et conflits,
   - les divergences de matching sont visibles et testees dans les deux backends.
+  Fait V1:
+  - `CompositeActivityProvider` ajoute en Go et Kotlin pour Strava + FIT + GPX,
+  - selection automatique quand plusieurs sources sont configurees, avec Strava prioritaire quand il est explicitement configure,
+  - matching par date, type, distance, duree et point de depart,
+  - matching accepte l'offset horaire Europe/Paris attendu a la date de l'activite (`+1h` hiver, `+2h` ete) pour absorber les divergences timezone/DST quand distance/duree/depart concordent,
+  - ID Strava conserve quand un match Strava existe; les activites locales non matchees restent en union,
+  - stream local FIT/GPX utilise pour enrichir l'activite composite sans modifier les caches sources,
+  - diagnostics composite exposes dans `/api/health/details` et section `Data source` de `/diagnostics` mise a jour,
+  - import FIT USB Garmin ajoute cote Go: detection `GARMIN_FIT_SOURCE_PATH` ou `/Volumes/.../GARMIN/ACTIVITY`, copie vers `FIT_FILES_PATH/<annee>/`, bouton `Synchronize` dans Status et reload du provider FIT/composite apres import,
+  - tests miroir ajoutes sur conservation de l'ID Strava et union locale.
+  Reste:
+  - provider RideWithGPS et cache local dedie,
+  - support TCX,
+  - fixtures partagees completes Strava + RideWithGPS + FIT + GPX + TCX.
+
+### Priorite moyenne
 
 ### Priorite basse
 
@@ -172,15 +128,6 @@
   - diagnostics explicites d'edition ajoutes et presentes dans `GPS Art`,
   - tests Go/Kotlin ajoutes sur succes d'edition et segment OSRM impossible.
 
-- [ ] `FUNC-P1-12` (`P1`, `M`) - Centre de fraicheur et synchronisation.
-  Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
-  Proposition:
-  - afficher la derniere synchronisation, le nombre d'activites importees, les erreurs provider et la generation de donnees courante,
-  - ajouter une action de rafraichissement explicite quand le backend le permet,
-  - signaler les vues qui affichent encore des donnees calculees avant la derniere synchronisation.
-  Acceptance:
-  - l'utilisateur sait si les statistiques visibles incluent les activites nouvellement importees.
-
 - [ ] `FUNC-P1-13` (`P1`, `M`) - Assistant de revue data quality.
   Owners: `Product`, `Front`, `Stats`.
   Proposition:
@@ -192,38 +139,7 @@
 
 ### Priorite basse
 
-- [ ] `FUNC-P2-02` (`P2`, `M`) - Calendrier d'entrainement unifie.
-  Owners: `Product`, `Front`, `Stats`.
-  Proposition:
-  - vue calendrier combinant heatmap, charge hebdo, jours de repos, sorties longues et intensites,
-  - navigation semaine/mois/annee,
-  - annotations manuelles locales.
-  Acceptance:
-  - lecture rapide de la regularite et des trous d'entrainement.
 
-- [ ] `FUNC-P2-05` (`P2`, `M`) - Sauvegarde et exports portables des donnees locales.
-  Owners: `Product`, `Front`, `Back-Go`, `Back-Kotlin`.
-  Proposition:
-  - exporter en JSON les objectifs annuels, zones cardio, exclusions/corrections data quality, maintenance materiel et preferences locales,
-  - documenter les schemas exportes pour pouvoir les reimporter plus tard,
-  - garder les exports GPX de routes generes compatibles avec les outils externes.
-  Acceptance:
-  - les donnees ajoutees par l'application restent portables hors application.
-
-- [ ] `FUNC-P2-06` (`P2`, `M`) - Bibliotheque de projets `GPS Art`.
-  Owners: `Product`, `Front`, `Routes`.
-  Proposition:
-  - sauvegarder dessins, imports, routes OSRM generees, exports GPX et scores associes,
-  - comparer plusieurs variantes d'un meme dessin,
-  - permettre de reprendre un projet sans redessiner depuis zero.
-  Acceptance:
-  - `GPS Art` devient un atelier reutilisable plutot qu'un outil one-shot.
-
-## Dette visible a traiter en premier
-
-- Contrat OpenAPI partage (`TECH-P1-01`).
-- Fraicheur des donnees apres synchronisation (`TECH-P1-08`).
-- Couverture frontend des parcours critiques (`TECH-P1-03`).
 
 ## Verification conseillee selon le type de changement
 

@@ -5,6 +5,7 @@ import (
 	"mystravastats/internal/platform/activityprovider"
 	"mystravastats/internal/platform/runtimeconfig"
 	routeApp "mystravastats/internal/routes/application"
+	"mystravastats/internal/sourcesync"
 )
 
 // HealthServiceAdapter bridges the current internal/services layer
@@ -29,5 +30,6 @@ func (adapter *HealthServiceAdapter) FindCacheHealthDetails() map[string]any {
 	}
 	diagnostics["dataQuality"] = dataqualityInfra.CurrentProviderReport().Summary
 	diagnostics["runtimeConfig"] = runtimeconfig.Details()
+	diagnostics["sourceSync"] = sourcesync.LastResult()
 	return diagnostics
 }

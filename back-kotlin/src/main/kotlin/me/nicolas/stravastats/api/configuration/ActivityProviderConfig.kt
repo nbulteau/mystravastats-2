@@ -11,6 +11,8 @@ import me.nicolas.stravastats.domain.RuntimeConfig
 import me.nicolas.stravastats.domain.interfaces.ILocalStorageProvider
 import me.nicolas.stravastats.domain.interfaces.ISourcePreviewRepositoryFactory
 import me.nicolas.stravastats.domain.interfaces.IYearActivityStorageProvider
+import me.nicolas.stravastats.domain.services.activityproviders.CompositeActivityProvider
+import me.nicolas.stravastats.domain.services.activityproviders.CompositeActivitySource
 import me.nicolas.stravastats.domain.services.activityproviders.FitActivityProvider
 import me.nicolas.stravastats.domain.services.activityproviders.GpxActivityProvider
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
@@ -50,27 +52,31 @@ class ActivityProviderConfig {
 
         logger.info("Resolved STRAVA_CACHE_PATH={}", stravaCache ?: "strava-cache (default)")
 
-        val activityProvider = if (fitCache == null && gpxCache == null) {
-            logger.info("Using Strava Activity Provider")
+        val configuredSourceCount = listOfNotNull(stravaCache, fitCache, gpxCache).size
 
-            val resolvedStravaCache = stravaCache ?: "strava-cache"
-            val provider = StravaActivityProvider(
-                storageProvider = StravaRepository(resolvedStravaCache),
-                stravaApiFactory = { clientId, clientSecret -> StravaApi(clientId, clientSecret, resolvedStravaCache) },
-                stravaApi = null,
-                stravaCache = resolvedStravaCache,
-            )
+        val activityProvider = if (configuredSourceCount > 1) {
+            logger.info("Using Composite Activity Provider")
 
-            // Initialize activity provider (suspend function) in a controlled blocking context
-            try {
-                runBlocking {
-                    provider.initializeAndLoadActivities()
-                }
-            } catch (e: Exception) {
-                logger.error("Failed to initialize StravaActivityProvider", e)
-                throw e
+            val srtmProvider = SRTMProvider()
+            val sources = mutableListOf<CompositeActivitySource>()
+
+            if (stravaCache != null) {
+                sources.add(CompositeActivitySource("strava", createStravaProvider(stravaCache)))
+            }
+            if (fitCache != null) {
+                sources.add(CompositeActivitySource("fit", FitActivityProvider(fitCache, srtmProvider, FITRepository(fitCache))))
+            }
+            if (gpxCache != null) {
+                sources.add(CompositeActivitySource("gpx", GpxActivityProvider(gpxCache, srtmProvider, GPXRepository(gpxCache))))
             }
 
+            val provider = CompositeActivityProvider(sources)
+            createdProvider = provider
+            provider
+        } else if (fitCache == null && gpxCache == null) {
+            logger.info("Using Strava Activity Provider")
+
+            val provider = createStravaProvider(stravaCache ?: "strava-cache")
             createdProvider = provider
             provider
         } else {
@@ -94,6 +100,26 @@ class ActivityProviderConfig {
         logger.info("")
 
         return activityProvider
+    }
+
+    private fun createStravaProvider(resolvedStravaCache: String): StravaActivityProvider {
+        val provider = StravaActivityProvider(
+            storageProvider = StravaRepository(resolvedStravaCache),
+            stravaApiFactory = { clientId, clientSecret -> StravaApi(clientId, clientSecret, resolvedStravaCache) },
+            stravaApi = null,
+            stravaCache = resolvedStravaCache,
+        )
+
+        try {
+            runBlocking {
+                provider.initializeAndLoadActivities()
+            }
+        } catch (e: Exception) {
+            logger.error("Failed to initialize StravaActivityProvider", e)
+            throw e
+        }
+
+        return provider
     }
 
     @PreDestroy

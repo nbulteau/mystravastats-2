@@ -95,6 +95,46 @@ func TestPreviewSourceMode_StravaReportsOAuthEnrollmentStatus(t *testing.T) {
 	}
 }
 
+func TestWriteSourceModeEnv_SavesFITAndUnsetsGPX(t *testing.T) {
+	root := t.TempDir()
+	previousCwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to read cwd: %v", err)
+	}
+	if err := os.Chdir(root); err != nil {
+		t.Fatalf("failed to chdir: %v", err)
+	}
+	defer func() {
+		if err := os.Chdir(previousCwd); err != nil {
+			t.Fatalf("failed to restore cwd: %v", err)
+		}
+	}()
+
+	if err := os.WriteFile(".env", []byte("STRAVA_CACHE_PATH=\"strava-cache\"\nexport GPX_FILES_PATH=\"/old/gpx\"\nOPEN_BROWSER=false\n"), 0o600); err != nil {
+		t.Fatalf("failed to seed .env: %v", err)
+	}
+
+	envPath, err := writeSourceModeEnv(business.SourceModeFIT, "FIT_FILES_PATH", "/new fit")
+	if err != nil {
+		t.Fatalf("failed to write source mode env: %v", err)
+	}
+
+	content, err := os.ReadFile(envPath)
+	if err != nil {
+		t.Fatalf("failed to read .env: %v", err)
+	}
+	text := string(content)
+	if !strings.Contains(text, "FIT_FILES_PATH=\"/new fit\"") {
+		t.Fatalf("expected FIT path to be saved, got:\n%s", text)
+	}
+	if strings.Contains(text, "GPX_FILES_PATH") {
+		t.Fatalf("expected GPX path to be removed, got:\n%s", text)
+	}
+	if !strings.Contains(text, "STRAVA_CACHE_PATH=\"strava-cache\"") || !strings.Contains(text, "OPEN_BROWSER=false") {
+		t.Fatalf("expected unrelated config to be preserved, got:\n%s", text)
+	}
+}
+
 func writeSourceModeGPX(t *testing.T, root string, year string, name string, content string) string {
 	t.Helper()
 	yearDirectory := filepath.Join(root, year)

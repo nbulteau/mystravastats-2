@@ -1,8 +1,15 @@
 import { defineStore } from "pinia";
 import { requestJson } from "@/stores/api";
 import type { DataQualityCorrectionPreview, DataQualityReport } from "@/models/data-quality.model";
-import type { HealthDetailsPayload } from "@/models/health.model";
-import type { SourceModePreview, SourceModePreviewRequest, StravaOAuthStartRequest, StravaOAuthStartResult } from "@/models/source-mode.model";
+import type { HealthDetailsPayload, SourceSyncResult } from "@/models/health.model";
+import type {
+  SourceModeApplyRequest,
+  SourceModeApplyResult,
+  SourceModePreview,
+  SourceModePreviewRequest,
+  StravaOAuthStartRequest,
+  StravaOAuthStartResult,
+} from "@/models/source-mode.model";
 
 interface OsrmControlResult {
   status: string;
@@ -18,10 +25,14 @@ export const useDiagnosticsStore = defineStore("diagnostics", {
     health: null as HealthDetailsPayload | null,
     dataQualityReport: null as DataQualityReport | null,
     sourceModePreview: null as SourceModePreview | null,
+    sourceModeApplyResult: null as SourceModeApplyResult | null,
+    sourceSyncResult: null as SourceSyncResult | null,
     osrmStartResult: null as OsrmControlResult | null,
     isLoading: false,
     isStartingOsrm: false,
+    isSynchronizingSources: false,
     isPreviewingSourceMode: false,
+    isApplyingSourceMode: false,
     error: null as string | null,
     sourceModePreviewError: null as string | null,
     lastLoadedAt: null as string | null,
@@ -83,6 +94,22 @@ export const useDiagnosticsStore = defineStore("diagnostics", {
         this.isStartingOsrm = false;
       }
     },
+    async synchronizeSources(): Promise<SourceSyncResult> {
+      this.isSynchronizingSources = true;
+      try {
+        const result = await requestJson<SourceSyncResult>("/api/source-sync/synchronize", {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+          },
+        });
+        this.sourceSyncResult = result;
+        await this.refreshDiagnostics();
+        return result;
+      } finally {
+        this.isSynchronizingSources = false;
+      }
+    },
     async previewSourceMode(request: SourceModePreviewRequest): Promise<SourceModePreview> {
       this.isPreviewingSourceMode = true;
       this.sourceModePreviewError = null;
@@ -104,6 +131,33 @@ export const useDiagnosticsStore = defineStore("diagnostics", {
         throw error;
       } finally {
         this.isPreviewingSourceMode = false;
+      }
+    },
+    async applySourceMode(request: SourceModeApplyRequest): Promise<SourceModeApplyResult> {
+      this.isApplyingSourceMode = true;
+      this.sourceModePreviewError = null;
+      try {
+        const result = await requestJson<SourceModeApplyResult>("/api/source-modes/apply", {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(request),
+        });
+        const normalizedResult = {
+          ...result,
+          preview: normalizeSourceModePreview(result.preview),
+        };
+        this.sourceModePreview = normalizedResult.preview;
+        this.sourceModeApplyResult = normalizedResult;
+        return normalizedResult;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unable to save data source.";
+        this.sourceModePreviewError = message;
+        throw error;
+      } finally {
+        this.isApplyingSourceMode = false;
       }
     },
     async startStravaOAuthEnrollment(request: StravaOAuthStartRequest): Promise<StravaOAuthStartResult> {

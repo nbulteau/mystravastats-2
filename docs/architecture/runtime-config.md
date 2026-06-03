@@ -2,12 +2,14 @@
 
 Runtime configuration is centralized in the backend diagnostics payload. `GET /api/health/details` exposes non-sensitive effective values under `runtimeConfig`, and the Diagnostics page renders the same information.
 
+The Diagnostics `Data Source` workflow can also save a previewed source. `POST /api/source-modes/apply` validates the selected path and writes the corresponding key to `.env` in the backend process working directory. It preserves unrelated keys, removes incompatible local-source keys, and still requires a backend restart because providers are built at startup.
+
 | Variable | Go backend | Kotlin backend | Default | Notes |
 | --- | --- | --- | --- | --- |
 | `STRAVA_CACHE_PATH` | yes | yes | `strava-cache` | Strava cache directory. |
 | `STRAVA_API_BASE_URL` | yes | yes | `https://www.strava.com/api/v3` | Strava V3 API root. Set to `https://www.api-v3.strava.com` for the new API host. OAuth authorize/token URLs remain on `https://www.strava.com`. |
-| `FIT_FILES_PATH` | yes | yes | unset | Selects the FIT provider when set. |
-| `GPX_FILES_PATH` | yes | yes | unset | Selects the GPX provider when set, unless `FIT_FILES_PATH` is also set. |
+| `FIT_FILES_PATH` | yes | yes | unset | Selects the FIT provider when it is the only configured local source. Combines in composite mode when another source is configured. |
+| `GPX_FILES_PATH` | yes | yes | unset | Selects the GPX provider when it is the only configured local source. Combines in composite mode when another source is configured. |
 | `CORS_ALLOWED_ORIGINS` | yes | yes | `http://localhost,http://localhost:5173` | Comma-separated list of allowed browser origins. |
 | `OPEN_BROWSER` | yes | yes | `true` | Set to `false` in Docker or headless runs. |
 | `SERVER_HOST` / `HOST` | yes | no | `localhost` | Go listen host. `SERVER_HOST` wins over `HOST`. |
@@ -31,6 +33,13 @@ Runtime configuration is centralized in the backend diagnostics payload. `GET /a
 | `OSRM_CONTROL_DOCKER_BIN` | yes | yes | unset | Optional Docker CLI path override. |
 | `API_BACKEND_URL` | frontend Docker | frontend Docker | `http://back:8080` | Backend upstream used by the Docker frontend Nginx proxy. |
 | `https_proxy` / `HTTPS_PROXY` | no | yes | unset | Proxy support for Strava API access in the Kotlin backend. |
+
+Source selection:
+
+- With no explicit local source, both backends use the Strava provider and the default `strava-cache`.
+- With exactly one configured source (`STRAVA_CACHE_PATH`, `FIT_FILES_PATH`, or `GPX_FILES_PATH`), that provider stays exclusive.
+- With two or more configured sources, both backends use the composite provider automatically. `runtimeConfig.data.provider` becomes `composite`, `runtimeConfig.data.activeProviders` lists the sources, and `/api/health/details` exposes composite merge diagnostics.
+- In composite mode, Strava is the metadata priority when `STRAVA_CACHE_PATH` is explicitly configured. Local FIT/GPX streams can enrich matched Strava activities without modifying the Strava cache.
 
 Related docs:
 

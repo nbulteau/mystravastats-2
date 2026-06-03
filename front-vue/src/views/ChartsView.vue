@@ -304,7 +304,7 @@ watch(
     <section class="chart-toolbar">
       <div class="chart-toolbar__left">
         <h2 class="chart-toolbar__title">
-          Charts
+          Trends
         </h2>
         <p class="chart-toolbar__subtitle">
           {{ chartSubtitle }}

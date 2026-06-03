@@ -179,6 +179,46 @@ func TestComputeFITPowerMetrics_IgnoresInvalidSessionPower(t *testing.T) {
 	}
 }
 
+func TestResolveFITMovingTime_UsesTotalMovingTimeWhenPresent(t *testing.T) {
+	stream := movingTimeTestStream([]int{0, 10, 20}, []bool{false, true, true})
+
+	movingTime := resolveFITMovingTime(12, 20, 20, stream)
+
+	if movingTime != 12 {
+		t.Fatalf("expected total moving time to win, got %d", movingTime)
+	}
+}
+
+func TestResolveFITMovingTime_UsesStreamWhenItRemovesStopTimeFromTimer(t *testing.T) {
+	stream := movingTimeTestStream([]int{0, 100, 200, 300, 400}, []bool{false, true, false, true, true})
+
+	movingTime := resolveFITMovingTime(0, 400, 405, stream)
+
+	if movingTime != 300 {
+		t.Fatalf("expected stream moving fallback, got %d", movingTime)
+	}
+}
+
+func TestResolveFITMovingTime_UsesStreamForGarminTimerWithLongStops(t *testing.T) {
+	stream := movingTimeTestStream([]int{0, 12701, 16328}, []bool{false, true, false})
+
+	movingTime := resolveFITMovingTime(0, 16328, 18581, stream)
+
+	if movingTime != 12701 {
+		t.Fatalf("expected stream moving time from FIT records, got %d", movingTime)
+	}
+}
+
+func TestResolveFITMovingTime_KeepsTimerWhenTimerAlreadyExcludesStops(t *testing.T) {
+	stream := movingTimeTestStream([]int{0, 100, 200, 300, 400}, []bool{false, true, true, true, true})
+
+	movingTime := resolveFITMovingTime(0, 220, 900, stream)
+
+	if movingTime != 220 {
+		t.Fatalf("expected total timer time to win, got %d", movingTime)
+	}
+}
+
 func TestFITNumericHelpers_IgnoreNonFiniteValues(t *testing.T) {
 	if firstPositiveFinite(math.NaN(), math.Inf(1), -1, 12.5) != 12.5 {
 		t.Fatal("expected firstPositiveFinite to skip NaN, Inf and negative values")
@@ -197,6 +237,15 @@ func TestFITNumericHelpers_IgnoreNonFiniteValues(t *testing.T) {
 	}
 	if validFITUint8(fitInvalidUint8) != 0 || validFITUint16Float(fitInvalidUint16) != 0 {
 		t.Fatal("expected FIT sentinel helpers to coerce invalid values to zero")
+	}
+}
+
+func movingTimeTestStream(times []int, moving []bool) *strava.Stream {
+	return &strava.Stream{
+		Time: strava.TimeStream{Data: times},
+		Moving: &strava.MovingStream{
+			Data: moving,
+		},
 	}
 }
 

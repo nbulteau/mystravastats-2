@@ -73,6 +73,9 @@ strava-cache
 ```
 
 If `STRAVA_CACHE_PATH` is defined, the application uses that directory instead.
+When `STRAVA_CACHE_PATH` is explicitly configured together with `FIT_FILES_PATH`
+or `GPX_FILES_PATH`, Strava participates in composite mode and remains the
+canonical metadata source for matched activities.
 
 ## 5. Create `.strava`
 

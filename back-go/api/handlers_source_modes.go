@@ -42,6 +42,24 @@ func postSourceModePreview(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+func postSourceModeApply(writer http.ResponseWriter, request *http.Request) {
+	var applyRequest business.SourceModeApplyRequest
+	if err := json.NewDecoder(request.Body).Decode(&applyRequest); err != nil {
+		writeBadRequest(writer, "Invalid request body", err.Error())
+		return
+	}
+
+	result, err := getContainer().applySourceModeUseCase.Execute(applyRequest)
+	if err != nil {
+		writeBadRequest(writer, "Invalid source mode", err.Error())
+		return
+	}
+	if err := writeJSON(writer, http.StatusOK, result); err != nil {
+		log.Printf("failed to write source mode apply response: %v", err)
+		writeInternalServerError(writer, "Failed to encode source mode apply response")
+	}
+}
+
 func postStravaOAuthStart(writer http.ResponseWriter, request *http.Request) {
 	var payload business.StravaOAuthStartRequest
 	if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {

@@ -60,6 +60,9 @@ const bestEffortCache = computed(() => asRecord(manifest.value.bestEffortCache))
 const rateLimit = computed(() => asRecord(root.value.rateLimit));
 const refresh = computed(() => asRecord(root.value.refresh));
 const files = computed(() => asRecord(root.value.files));
+const composite = computed(() => asRecord(root.value.composite));
+const sourceSync = computed(() => asRecord(root.value.sourceSync));
+const fitSourceSync = computed(() => asRecord(sourceSync.value.fit));
 const runtimeConfig = computed(() => asRecord(root.value.runtimeConfig));
 const runtimeData = computed(() => asRecord(runtimeConfig.value.data));
 const runtimeServer = computed(() => asRecord(runtimeConfig.value.server));
@@ -353,6 +356,31 @@ const cacheSummaryItems = computed<Array<{ label: string; value: string; monospa
   { label: "Manifest", value: formatDateTime(textValue(manifest.value.updatedAt)), monospace: false },
   { label: "Background refresh", value: backgroundRefreshInProgress.value ? "Running" : "Idle", monospace: false },
 ]);
+const activeProviderValue = computed(() => textValue(root.value.provider) || textValue(runtimeData.value.provider));
+const activeConfiguredProviders = computed(() => {
+  const compositeProviders = listValues(composite.value.activeProviders);
+  if (compositeProviders.length > 0) return compositeProviders;
+  return listValues(runtimeData.value.activeProviders);
+});
+const isCompositeProvider = computed(() => activeProviderValue.value.toLowerCase() === "composite" || booleanValue(composite.value.active));
+const compositeSourceRows = computed(() =>
+  recordList(composite.value.sources).map((source) => ({
+    provider: formatProvider(textValue(source.provider)),
+    athleteId: textValue(source.athleteId) || "n/a",
+    cacheRoot: textValue(source.cacheRoot) || "n/a",
+    activities: formatInteger(numberValue(source.activities)),
+    years: displayList(source.availableYearBins),
+  })),
+);
+const compositeConflictRows = computed(() =>
+  recordList(composite.value.conflictSamples).map((conflict) => formatCompositeConflict(conflict)),
+);
+const compositeSummaryItems = computed<Array<{ label: string; value: string; tone?: "warn" | "up" | "neutral" }>>(() => [
+  { label: "Active sources", value: activeConfiguredProviders.value.map(formatProvider).join(", ") || "n/a", tone: "up" },
+  { label: "Merged", value: formatInteger(numberValue(composite.value.matchedActivities)), tone: "up" },
+  { label: "Local only", value: formatInteger(numberValue(composite.value.localOnlyActivities)), tone: "neutral" },
+  { label: "Conflicts", value: formatInteger(numberValue(composite.value.conflictCount)), tone: (numberValue(composite.value.conflictCount) ?? 0) > 0 ? "warn" : "up" },
+]);
 const cacheManifestItems = computed<Array<{ label: string; value: string; monospace: boolean }>>(() => {
   if (Object.keys(manifest.value).length === 0) return [];
   return [
@@ -376,6 +404,7 @@ const runtimeConfigItems = computed<Array<{ label: string; value: string; monosp
   { label: "Strava cache", value: textValue(runtimeData.value.stravaCachePath) || "n/a", monospace: true },
   { label: "Strava API base", value: textValue(runtimeData.value.stravaApiBaseUrl) || "n/a", monospace: true },
   { label: "FIT files", value: textValue(runtimeData.value.fitFilesPath) || "n/a", monospace: true },
+  { label: "Garmin FIT source", value: textValue(runtimeData.value.garminFitSourcePath) || "Auto-detect", monospace: true },
   { label: "GPX files", value: textValue(runtimeData.value.gpxFilesPath) || "n/a", monospace: true },
   { label: "CORS origins", value: displayList(runtimeCors.value.allowedOrigins), monospace: true },
   { label: "CORS headers", value: displayList(runtimeCors.value.allowedHeaders), monospace: true },
@@ -387,8 +416,43 @@ const runtimeConfigItems = computed<Array<{ label: string; value: string; monosp
   { label: "History bias", value: yesNo(runtimeRouting.value.historyBiasEnabled), monospace: false },
 ]);
 const sourceModePreview = computed(() => diagnosticsStore.sourceModePreview);
-const activeSourceMode = computed(() => normalizeSourceMode(textValue(runtimeData.value.provider) || textValue(root.value.provider)));
-const sourceModeConfigKey = computed(() => configKeyForSourceMode(selectedSourceMode.value));
+const sourceSyncStatusLabel = computed(() => {
+  const status = textValue(sourceSync.value.status).toLowerCase();
+  if (diagnosticsStore.isSynchronizingSources || status === "running") return "Running";
+  if (status === "completed") return "OK";
+  if (status === "failed") return "Failed";
+  if (status === "skipped") return "Skipped";
+  return "Idle";
+});
+const sourceSyncStatusClass = computed(() => {
+  const status = textValue(sourceSync.value.status).toLowerCase();
+  if (diagnosticsStore.isSynchronizingSources || status === "running") return "status-chip status-chip--warn";
+  if (status === "completed") return "status-chip status-chip--up";
+  if (status === "failed") return "status-chip status-chip--down";
+  return "status-chip status-chip--neutral";
+});
+const sourceSyncSummary = computed(() => textValue(sourceSync.value.message) || "No synchronization run yet.");
+const sourceSyncItems = computed<Array<{ label: string; value: string; tone?: "warn" | "up" | "neutral"; monospace?: boolean }>>(() => {
+  const importedFiles = numberValue(fitSourceSync.value.importedFiles) ?? 0;
+  const invalidFiles = numberValue(fitSourceSync.value.invalidFiles) ?? 0;
+  return [
+    { label: "Last run", value: formatDateTime(textValue(sourceSync.value.completedAt)), tone: "neutral" },
+    { label: "Source", value: textValue(fitSourceSync.value.sourcePath) || "No Garmin USB source", monospace: true, tone: textValue(fitSourceSync.value.sourcePath) ? "neutral" : "warn" },
+    { label: "Destination", value: textValue(fitSourceSync.value.destinationPath) || textValue(runtimeData.value.fitFilesPath) || "n/a", monospace: true },
+    { label: "Scanned", value: formatInteger(numberValue(fitSourceSync.value.scannedFiles)) },
+    { label: "Imported", value: formatInteger(importedFiles), tone: importedFiles > 0 ? "up" : "neutral" },
+    { label: "Already present", value: formatInteger(numberValue(fitSourceSync.value.alreadyPresentFiles)) },
+    { label: "Invalid", value: formatInteger(invalidFiles), tone: invalidFiles > 0 ? "warn" : "neutral" },
+    { label: "Year folders", value: displayList(fitSourceSync.value.createdYearDirectories) },
+  ];
+});
+const activeSourceMode = computed(() => normalizeSourceMode(activeProviderValue.value));
+const selectedSourceIsActive = computed(() => {
+  if (isCompositeProvider.value) {
+    return activeConfiguredProviders.value.map((provider) => provider.toUpperCase()).includes(selectedSourceMode.value);
+  }
+  return activeSourceMode.value === selectedSourceMode.value;
+});
 const stravaOAuth = computed<StravaOAuthStatus | null>(() => selectedSourceMode.value === "STRAVA" ? sourceModePreview.value?.stravaOAuth ?? null : null);
 const stravaSettingsHref = computed(() => stravaOAuth.value?.settingsUrl || "https://www.strava.com/settings/api");
 const stravaEnrollmentCommand = computed(() => stravaOAuth.value?.setupCommand || stravaSetupCommand(sourceModePath.value));
@@ -398,7 +462,7 @@ const stravaEnrollmentActionLabel = computed(() => {
 });
 const stravaEnrollmentStatusLabel = computed(() => {
   const status = stravaOAuth.value?.status;
-  if (!sourceModePreview.value) return "Preview needed";
+  if (!sourceModePreview.value) return "Check needed";
   if (status === "ready" || status === "ready_unverified_scopes") return "Ready";
   if (status === "cache_only") return "Cache only";
   if (status === "refreshable") return "Refreshable";
@@ -423,7 +487,7 @@ const stravaClientIdPlaceholder = computed(() => stravaOAuth.value?.clientIdPres
 const stravaClientSecretPlaceholder = computed(() => stravaOAuth.value?.clientSecretPresent ? "Reuse saved Client Secret" : "Client Secret");
 const stravaSavedCredentialsHint = computed(() => {
   const status = stravaOAuth.value;
-  if (!sourceModePreview.value) return "Run Preview to inspect an existing .strava before starting OAuth.";
+  if (!sourceModePreview.value) return "Check this cache before starting OAuth.";
   if (status?.credentialsPresent) return "Existing .strava credentials will be reused when these fields are empty.";
   if (status?.credentialsFilePresent) return "A .strava file exists, but at least one credential is missing.";
   return "No .strava credentials detected yet.";
@@ -468,14 +532,14 @@ const stravaEnrollmentSteps = computed<Array<{ key: string; title: string; detai
     {
       key: "oauth",
       title: "OAuth token",
-      detail: status?.message || "Preview the Strava cache to inspect OAuth readiness.",
+      detail: status?.message || "Check the Strava cache to inspect OAuth readiness.",
       state: tokenReady ? "complete" : tokenDown ? "warn" : tokenWarn ? "current" : "pending",
       icon: "fa-solid fa-shield-halved",
     },
     {
       key: "activate",
       title: "Active source",
-      detail: preview?.active ? "Backend is already using this Strava cache." : preview?.restartNeeded ? "Restart with the generated command." : "Preview the source, then verify active mode.",
+      detail: preview?.active ? "Backend is already using this Strava cache." : preview?.restartNeeded ? "Use this source, then restart normally." : "Check the source, then verify active mode.",
       state: preview?.active ? "complete" : preview ? "warn" : "pending",
       icon: "fa-solid fa-circle-check",
     },
@@ -502,6 +566,7 @@ const sourceModeStatusLabel = computed(() => {
   if (!preview) return "Not checked";
   if (preview.active) return "Active";
   if (!preview.supported || preview.errors.length > 0 || !preview.readable || !preview.validStructure) return "Needs attention";
+  if (sourceModeSavedForNextStart.value) return "Restart needed";
   if (preview.restartNeeded) return "Ready after restart";
   return "Ready";
 });
@@ -511,8 +576,17 @@ const sourceModeStatusClass = computed(() => {
   if (!preview) return "status-chip status-chip--neutral";
   if (preview.active) return "status-chip status-chip--up";
   if (!preview.supported || preview.errors.length > 0 || !preview.readable || !preview.validStructure) return "status-chip status-chip--warn";
+  if (sourceModeSavedForNextStart.value) return "status-chip status-chip--warn";
   if (preview.restartNeeded) return "status-chip status-chip--warn";
   return "status-chip status-chip--up";
+});
+const dataSourceStatusLabel = computed(() => {
+  if (isCompositeProvider.value) return "Composite active";
+  return sourceModeStatusLabel.value;
+});
+const dataSourceStatusClass = computed(() => {
+  if (isCompositeProvider.value) return "status-chip status-chip--up";
+  return sourceModeStatusClass.value;
 });
 const sourceModePreviewStats = computed<Array<{ label: string; value: string; tone?: "warn" | "neutral" }>>(() => {
   const preview = sourceModePreview.value;
@@ -537,8 +611,8 @@ const localSourceGuideFacts = computed<GuideFact[]>(() => {
   if (!preview) {
     return [
       { label: "Path", value: sourceModePath.value.trim() ? "Set" : "Required", tone: sourceModePath.value.trim() ? undefined : "warn" },
-      { label: "Config", value: sourceModeConfigKey.value, monospace: true },
-      { label: "Verification", value: diagnosticsStore.isPreviewingSourceMode ? "Checking" : "Preview first", tone: "warn" },
+      { label: "Saved", value: sourceModeSavedForNextStart.value ? "Pending restart" : "No", tone: sourceModeSavedForNextStart.value ? "warn" : "neutral" },
+      { label: "Verification", value: diagnosticsStore.isPreviewingSourceMode ? "Checking" : "Check first", tone: "warn" },
     ];
   }
   return [
@@ -552,14 +626,15 @@ const localSourceGuideNextAction = computed(() => {
   const preview = sourceModePreview.value;
   if (!sourceModePath.value.trim()) return `Select a ${selectedSourceMode.value} directory to inspect.`;
   if (diagnosticsStore.isPreviewingSourceMode) return "Checking the selected directory.";
-  if (!preview) return "Run Preview to inspect files and prepare the activation command.";
+  if (!preview) return "Check the selected directory before saving it.";
   if (preview.errors.length > 0) return preview.errors[0]?.message ?? "Fix the reported source issue.";
   if (!preview.readable) return "Choose a readable directory.";
   if (!preview.validStructure) return "Fix the directory structure before activating this source.";
   if (preview.invalidFileCount > 0) return "Remove or fix invalid files before relying on this source.";
-  if (preview.restartNeeded) return "Restart with the generated command, then verify active mode.";
+  if (sourceModeSavedForNextStart.value && preview.restartNeeded) return "Restart the backend normally, then verify active mode.";
+  if (preview.restartNeeded) return "Use this source, then restart the backend normally.";
   if (preview.active) return `${selectedSourceMode.value} is active and ready.`;
-  return "Preview is ready; verify active mode before switching workflows.";
+  return "Check is ready; verify active mode before switching workflows.";
 });
 const localSourceGuideNextActionClass = computed(() => {
   const preview = sourceModePreview.value;
@@ -582,17 +657,17 @@ const localSourceGuideSteps = computed<GuideStep[]>(() => {
     },
     {
       key: "files",
-      title: "Files",
-      detail: preview ? `${formatInteger(preview.validFileCount)} valid file(s), ${formatInteger(preview.invalidFileCount)} invalid.` : "Preview files before activation.",
+      title: "Check",
+      detail: preview ? `${formatInteger(preview.validFileCount)} valid file(s), ${formatInteger(preview.invalidFileCount)} invalid.` : "Check files before saving.",
       state: preview ? preview.errors.length > 0 || !preview.validStructure || preview.validFileCount === 0 ? "warn" : "complete" : "pending",
       icon: "fa-solid fa-file-lines",
     },
     {
       key: "restart",
-      title: "Runtime config",
-      detail: preview?.active ? "Backend is already using this source." : preview?.restartNeeded ? "Activation command is ready." : "Preview prepares the restart command.",
-      state: preview?.active ? "complete" : preview?.restartNeeded ? "current" : preview ? "complete" : "pending",
-      icon: "fa-solid fa-terminal",
+      title: "Save",
+      detail: sourceModeSavedForNextStart.value ? "Saved for the next backend start." : preview?.active ? "Backend is already using this source." : sourceModeCheckIsReady.value ? "Ready to save for the next backend start." : "Use this source after a successful check.",
+      state: sourceModeSavedForNextStart.value || preview?.active ? "complete" : preview ? "current" : "pending",
+      icon: "fa-solid fa-floppy-disk",
     },
     {
       key: "verify",
@@ -607,7 +682,7 @@ const dataQualityProviderMode = computed<SourceMode | null>(() => {
   const provider = dataQualitySummary.value?.provider?.trim();
   return provider ? normalizeSourceMode(provider) : null;
 });
-const selectedLocalSourceIsActive = computed(() => selectedSourceMode.value !== "STRAVA" && activeSourceMode.value === selectedSourceMode.value);
+const selectedLocalSourceIsActive = computed(() => selectedSourceMode.value !== "STRAVA" && selectedSourceIsActive.value);
 const dataQualityMatchesSelectedSource = computed(() => {
   if (!selectedLocalSourceIsActive.value) return false;
   return dataQualityProviderMode.value === null || dataQualityProviderMode.value === selectedSourceMode.value;
@@ -628,7 +703,8 @@ const localSourceQualityCopy = computed(() => {
   const preview = sourceModePreview.value;
   const summary = dataQualitySummary.value;
   if (!selectedLocalSourceIsActive.value) {
-    if (preview?.restartNeeded) return `Restart with ${sourceModeConfigKey.value} to run data quality on this import.`;
+    if (sourceModeSavedForNextStart.value) return "Restart the backend normally to run data quality on this import.";
+    if (preview?.restartNeeded) return "Use this source to run data quality on this import after restart.";
     return `Data quality will attach here once ${selectedSourceMode.value} is the active source.`;
   }
   if (!dataQualityMatchesSelectedSource.value || !summary || summary.status === "not_applicable") {
@@ -646,7 +722,7 @@ const localSourceQualityFacts = computed<GuideFact[]>(() => {
       { label: "Quality", value: "Pending" },
       { label: "Current", value: formatProvider(activeSourceMode.value), tone: activeSourceMode.value === "STRAVA" ? "neutral" : "warn" },
       { label: "Target", value: selectedSourceMode.value, tone: "up" },
-      { label: "Next", value: sourceModePreview.value?.restartNeeded ? "Restart" : "Preview", tone: "warn" },
+      { label: "Next", value: sourceModeSavedForNextStart.value ? "Restart" : sourceModePreview.value?.restartNeeded ? "Use source" : "Check", tone: "warn" },
     ];
   }
   if (!dataQualityMatchesSelectedSource.value || !summary || summary.status === "not_applicable") {
@@ -672,22 +748,76 @@ const localSourceQualityCanFix = computed(() =>
   dataQualityMatchesSelectedSource.value && (dataQualitySummary.value?.safeCorrectionCount ?? 0) > 0,
 );
 const sourceModeActivationCommand = computed(() => sourceModePreview.value?.activationCommand ?? "");
-const sourceModeActivationSummary = computed<Array<{ label: string; value: string; tone?: "warn" | "up" }>>(() => {
+const sourceModeSavedForNextStart = computed(() => {
+  if (selectedSourceIsActive.value) return null;
+  const result = diagnosticsStore.sourceModeApplyResult;
+  if (!result) return null;
+  const preview = result.preview;
+  if (preview.mode !== selectedSourceMode.value) return null;
+  if (preview.path.trim() !== sourceModePath.value.trim()) return null;
+  return result;
+});
+const sourceModeCheckIsReady = computed(() => {
   const preview = sourceModePreview.value;
-  const verification = preview?.active
-    ? "Active"
-    : preview?.restartNeeded
-      ? "Restart required"
-      : preview
-        ? "No restart"
-        : "Preview first";
+  return Boolean(preview && preview.supported && preview.readable && preview.validStructure && preview.errors.length === 0);
+});
+const sourceModeNextStep = computed(() => {
+  if (selectedSourceIsActive.value && !sourceModeSavedForNextStart.value) return "Ready";
+  if (sourceModeSavedForNextStart.value) return "Restart normally";
+  if (sourceModeCheckIsReady.value) return "Use this source";
+  return "Check first";
+});
+const sourceModeNextStepCopy = computed(() => {
+  if (selectedSourceIsActive.value && !sourceModeSavedForNextStart.value) {
+    return `${selectedSourceMode.value} is running now.`;
+  }
+  if (sourceModeSavedForNextStart.value) {
+    return "Restart the backend with your usual command. The saved .env settings will be loaded automatically.";
+  }
+  if (sourceModeCheckIsReady.value) {
+    return "This source looks usable. Save it for the next backend start.";
+  }
+  return "Check the selected path before saving it.";
+});
+const sourceModeNextStepClass = computed(() => {
+  if (selectedSourceIsActive.value && !sourceModeSavedForNextStart.value) return "source-next-step source-next-step--ready";
+  if (sourceModeSavedForNextStart.value || sourceModeCheckIsReady.value) return "source-next-step source-next-step--warn";
+  return "source-next-step";
+});
+const sourceModeActivationSummary = computed<Array<{ label: string; value: string; tone?: "warn" | "up" | "neutral"; monospace?: boolean }>>(() => {
+  const preview = sourceModePreview.value;
+  const saved = sourceModeSavedForNextStart.value;
+  const savedValue = saved
+    ? `${formatProvider(saved.preview.mode)} · ${saved.preview.path}`
+    : selectedSourceIsActive.value
+      ? "No pending change"
+      : "Not saved yet";
   return [
-    { label: "Current", value: formatProvider(activeSourceMode.value), tone: activeSourceMode.value === selectedSourceMode.value ? "up" : "warn" },
-    { label: "Target", value: selectedSourceMode.value },
-    { label: "Verification", value: verification, tone: preview?.active ? "up" : preview ? "warn" : undefined },
+    { label: "Running now", value: formatProvider(activeProviderValue.value), tone: selectedSourceIsActive.value ? "up" : "warn" },
+    { label: "Saved for next start", value: savedValue, tone: saved ? "warn" : selectedSourceIsActive.value ? "up" : "neutral", monospace: Boolean(saved) },
+    { label: "Next step", value: sourceModeNextStep.value, tone: selectedSourceIsActive.value && !saved ? "up" : preview ? "warn" : "neutral" },
   ];
 });
 const sourceModeEnvironment = computed(() => sourceModePreview.value?.environment ?? []);
+const sourceModeAdvancedAvailable = computed(() => sourceModeEnvironment.value.length > 0 || sourceModeActivationCommand.value.length > 0);
+const canApplySourceMode = computed(() => {
+  const preview = sourceModePreview.value;
+  if (!preview || diagnosticsStore.isPreviewingSourceMode || diagnosticsStore.isApplyingSourceMode) return false;
+  if (sourceModeSavedForNextStart.value) return false;
+  if (!sourceModePath.value.trim()) return false;
+  if (preview.mode !== selectedSourceMode.value || preview.path.trim() !== sourceModePath.value.trim()) return false;
+  return preview.supported && preview.readable && preview.validStructure && preview.errors.length === 0;
+});
+const sourceModeCheckLabel = computed(() => {
+  if (diagnosticsStore.isPreviewingSourceMode) return "Checking";
+  return selectedSourceMode.value === "STRAVA" ? "Check cache" : "Check directory";
+});
+const sourceModeApplyLabel = computed(() => {
+  if (diagnosticsStore.isApplyingSourceMode) return "Saving";
+  if (sourceModeSavedForNextStart.value) return "Saved";
+  if (sourceModePreview.value?.active) return "Already active";
+  return "Use this source";
+});
 const degradedReasons = computed(() => {
   const reasons: Array<{ title: string; detail: string; tone: "warn" | "down" | "info" }> = [];
   if (diagnosticsStore.error) {
@@ -852,6 +982,11 @@ function listValues(value: unknown): string[] {
     .filter((item) => item.length > 0);
 }
 
+function recordList(value: unknown): HealthRecord[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => asRecord(item));
+}
+
 function displayList(value: unknown): string {
   const values = listValues(value);
   return values.length > 0 ? values.join(", ") : "n/a";
@@ -873,6 +1008,7 @@ function formatProvider(value: string): string {
   if (normalized === "gpx") return "GPX";
   if (normalized === "fit") return "FIT";
   if (normalized === "strava") return "Strava";
+  if (normalized === "composite") return "Composite";
   if (normalized === "") return "Unknown";
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
@@ -926,6 +1062,25 @@ function formatSignedDistance(value: number | null | undefined): string {
   return `${sign}${(value / 1000).toFixed(2)} km`;
 }
 
+function formatDurationSeconds(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "n/a";
+  const totalSeconds = Math.max(0, Math.round(value));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const parts: string[] = [];
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0 || hours > 0) parts.push(`${minutes}m`);
+  if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`);
+  return parts.join(" ");
+}
+
+function formatSignedDurationSeconds(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "n/a";
+  const sign = value > 0 ? "+" : value < 0 ? "-" : "";
+  return `${sign}${formatDurationSeconds(Math.abs(value))}`;
+}
+
 function formatSpeed(value: number | null | undefined): string {
   if (value === null || value === undefined) return "n/a";
   return `${(value * 3.6).toFixed(1)} km/h`;
@@ -954,12 +1109,6 @@ function normalizeSourceMode(value: string): SourceMode {
   const normalized = value.trim().toUpperCase();
   if (normalized === "FIT" || normalized === "GPX") return normalized;
   return "STRAVA";
-}
-
-function configKeyForSourceMode(mode: SourceMode): string {
-  if (mode === "FIT") return "FIT_FILES_PATH";
-  if (mode === "GPX") return "GPX_FILES_PATH";
-  return "STRAVA_CACHE_PATH";
 }
 
 function defaultSourceModePath(mode: SourceMode): string {
@@ -1034,6 +1183,7 @@ function markSourceModePathEdited() {
 
 function clearSourceModePreview() {
   diagnosticsStore.sourceModePreview = null;
+  diagnosticsStore.sourceModeApplyResult = null;
   diagnosticsStore.sourceModePreviewError = null;
 }
 
@@ -1045,8 +1195,86 @@ function formatSourceField(value: string): string {
     heartRate: "Heart rate",
     power: "Power",
     cadence: "Cadence",
+    distance: "Distance",
+    moving_time: "Moving time",
+    start_latlng: "Start point",
   };
   return labels[value] || value;
+}
+
+function parseConflictNumber(value: string): number | null {
+  const match = value.replace(",", ".").match(/-?\d+(?:\.\d+)?/);
+  if (!match) return null;
+  const parsed = Number.parseFloat(match[0]);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function compositePrimaryProviderLabel(otherSource: string): string {
+  const other = formatProvider(otherSource);
+  return activeConfiguredProviders.value
+    .map((provider) => formatProvider(provider))
+    .find((provider) => provider !== other) || "Primary source";
+}
+
+function compositeConflictTitle(field: string): string {
+  const labels: Record<string, string> = {
+    distance: "Distance differs between sources",
+    moving_time: "Moving time differs between sources",
+    start_latlng: "Start point differs between sources",
+  };
+  return labels[field] || `${formatSourceField(field)} differs between sources`;
+}
+
+function formatCompositeConflictValue(field: string, value: string): string {
+  const numeric = parseConflictNumber(value);
+  if (numeric === null) return value || "n/a";
+  if (field === "moving_time") return formatDurationSeconds(numeric);
+  if (field === "distance") return formatDistanceMeters(numeric);
+  if (field === "start_latlng") return formatMeters(numeric);
+  return formatInteger(numeric);
+}
+
+function formatCompositeConflictDelta(field: string, primary: string, other: string): string {
+  const primaryValue = parseConflictNumber(primary);
+  const otherValue = parseConflictNumber(other);
+  if (primaryValue === null || otherValue === null) return "n/a";
+  const delta = otherValue - primaryValue;
+  if (field === "moving_time") return formatSignedDurationSeconds(delta);
+  if (field === "distance") return formatSignedDistance(delta);
+  if (field === "start_latlng") return formatSignedMeters(delta);
+  const sign = delta > 0 ? "+" : "";
+  return `${sign}${formatInteger(delta)}`;
+}
+
+function compositeConflictSummary(field: string, primaryProvider: string, otherProvider: string, delta: string): string {
+  const fieldLabel = formatSourceField(field).toLowerCase();
+  if (delta === "n/a") {
+    return `${otherProvider} reports a different ${fieldLabel}; ${primaryProvider} keeps the value used in totals.`;
+  }
+  return `${otherProvider} differs from ${primaryProvider} by ${delta} for ${fieldLabel}; ${primaryProvider} keeps the value used in totals.`;
+}
+
+function formatCompositeConflict(conflict: HealthRecord) {
+  const rawField = textValue(conflict.field);
+  const otherProvider = formatProvider(textValue(conflict.source));
+  const primaryProvider = compositePrimaryProviderLabel(otherProvider);
+  const rawPrimary = textValue(conflict.primary) || "n/a";
+  const rawOther = textValue(conflict.other) || "n/a";
+  const delta = formatCompositeConflictDelta(rawField, rawPrimary, rawOther);
+
+  return {
+    id: `${otherProvider}-${rawField}-${rawPrimary}-${rawOther}`,
+    title: compositeConflictTitle(rawField),
+    summary: compositeConflictSummary(rawField, primaryProvider, otherProvider, delta),
+    primaryLabel: primaryProvider,
+    primaryValue: formatCompositeConflictValue(rawField, rawPrimary),
+    otherLabel: otherProvider,
+    otherValue: formatCompositeConflictValue(rawField, rawOther),
+    delta,
+    rawField: rawField || "unknown",
+    rawPrimary,
+    rawOther,
+  };
 }
 
 function formatDataQualityCategory(value: string): string {
@@ -1341,6 +1569,26 @@ async function refreshDiagnostics() {
   await diagnosticsStore.refreshDiagnostics();
 }
 
+async function synchronizeSources() {
+  try {
+    const result = await diagnosticsStore.synchronizeSources();
+    const imported = numberValue(asRecord(result.fit).importedFiles) ?? 0;
+    uiStore.showToast({
+      id: `source-sync-${Date.now()}`,
+      type: ToastTypeEnum.NORMAL,
+      message: imported > 0 ? `${formatInteger(imported)} FIT file(s) imported.` : textValue(result.message) || "Synchronization completed.",
+      timeout: 3600,
+    });
+  } catch (error) {
+    uiStore.showToast({
+      id: `source-sync-failed-${Date.now()}`,
+      type: ToastTypeEnum.WARN,
+      message: error instanceof Error ? error.message : "Unable to synchronize sources.",
+      timeout: 4600,
+    });
+  }
+}
+
 async function checkRouting() {
   await diagnosticsStore.refreshDiagnostics();
 }
@@ -1395,7 +1643,7 @@ async function copySourceModeCommand() {
     uiStore.showToast({
       id: `source-mode-command-copy-${Date.now()}`,
       type: ToastTypeEnum.NORMAL,
-      message: "Restart command copied.",
+      message: "Manual command copied.",
       timeout: 2400,
     });
   } catch {
@@ -1475,6 +1723,33 @@ async function startStravaEnrollment() {
   }
 }
 
+async function applySourceMode() {
+  if (!canApplySourceMode.value) {
+    return;
+  }
+  try {
+    const result = await diagnosticsStore.applySourceMode({
+      mode: selectedSourceMode.value,
+      path: sourceModePath.value,
+    });
+    uiStore.showToast({
+      id: `source-mode-apply-${Date.now()}`,
+      type: ToastTypeEnum.NORMAL,
+      message: result.restartNeeded
+        ? `${formatProvider(result.preview.mode)} source saved. Restart the backend normally to load it.`
+        : `${formatProvider(result.preview.mode)} source saved.`,
+      timeout: 4200,
+    });
+  } catch (error) {
+    uiStore.showToast({
+      id: `source-mode-apply-failed-${Date.now()}`,
+      type: ToastTypeEnum.WARN,
+      message: error instanceof Error ? error.message : "Unable to save data source.",
+      timeout: 4200,
+    });
+  }
+}
+
 async function previewSourceMode(silent = false) {
   try {
     const preview = await diagnosticsStore.previewSourceMode({
@@ -1540,6 +1815,15 @@ async function previewSourceMode(silent = false) {
           <i class="fa-solid fa-rotate-right" aria-hidden="true" />
           {{ diagnosticsStore.isLoading ? "Refreshing" : "Refresh" }}
         </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          :disabled="diagnosticsStore.isSynchronizingSources || diagnosticsStore.isLoading"
+          @click="synchronizeSources"
+        >
+          <i class="fa-solid fa-arrows-rotate" aria-hidden="true" />
+          {{ diagnosticsStore.isSynchronizingSources ? "Synchronizing" : "Synchronize" }}
+        </button>
       </div>
     </section>
 
@@ -1599,9 +1883,98 @@ async function previewSourceMode(silent = false) {
       <section class="diagnostics-panel diagnostics-panel--wide">
         <div class="panel-heading">
           <h2>Data Source</h2>
-          <span :class="sourceModeStatusClass">{{ sourceModeStatusLabel }}</span>
+          <span :class="dataSourceStatusClass">{{ dataSourceStatusLabel }}</span>
         </div>
         <div class="source-mode-layout">
+          <div class="source-sync-overview">
+            <div class="source-sync-heading">
+              <div>
+                <strong>Synchronization</strong>
+                <small>{{ sourceSyncSummary }}</small>
+              </div>
+              <span :class="sourceSyncStatusClass">{{ sourceSyncStatusLabel }}</span>
+            </div>
+            <div class="source-preview-metrics source-preview-metrics--compact">
+              <div
+                v-for="item in sourceSyncItems"
+                :key="item.label"
+                :class="['source-preview-metric', item.tone === 'warn' ? 'source-preview-metric--warn' : '', item.tone === 'up' ? 'source-preview-metric--up' : '']"
+              >
+                <span>{{ item.label }}</span>
+                <strong :class="{ monospace: item.monospace }">{{ item.value }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div
+            v-if="isCompositeProvider"
+            class="composite-source-overview"
+          >
+            <div class="source-preview-metrics">
+              <div
+                v-for="item in compositeSummaryItems"
+                :key="item.label"
+                :class="['source-preview-metric', item.tone === 'warn' ? 'source-preview-metric--warn' : '']"
+              >
+                <span>{{ item.label }}</span>
+                <strong>{{ item.value }}</strong>
+              </div>
+            </div>
+            <div
+              v-if="compositeSourceRows.length > 0"
+              class="composite-source-table"
+            >
+              <div class="composite-source-row composite-source-row--head">
+                <span>Source</span>
+                <span>Activities</span>
+                <span>Years</span>
+                <span>Cache</span>
+              </div>
+              <div
+                v-for="source in compositeSourceRows"
+                :key="`${source.provider}-${source.athleteId}-${source.cacheRoot}`"
+                class="composite-source-row"
+              >
+                <span>{{ source.provider }}</span>
+                <span>{{ source.activities }}</span>
+                <span>{{ source.years }}</span>
+                <span class="monospace">{{ source.cacheRoot }}</span>
+              </div>
+            </div>
+            <div
+              v-if="compositeConflictRows.length > 0"
+              class="source-message-list source-message-list--warnings source-conflict-list"
+            >
+              <p class="source-conflict-intro">
+                Matched activities can disagree by source. The primary source stays in charge of summary fields; the secondary value is shown for comparison.
+              </p>
+              <div
+                v-for="conflict in compositeConflictRows"
+                :key="conflict.id"
+                class="source-message-item source-conflict-item"
+              >
+                <strong>{{ conflict.title }}</strong>
+                <span>{{ conflict.summary }}</span>
+                <div class="source-conflict-values">
+                  <span>
+                    <small>{{ conflict.primaryLabel }}</small>
+                    <strong>{{ conflict.primaryValue }}</strong>
+                  </span>
+                  <span>
+                    <small>{{ conflict.otherLabel }}</small>
+                    <strong>{{ conflict.otherValue }}</strong>
+                  </span>
+                  <span>
+                    <small>Difference</small>
+                    <strong>{{ conflict.delta }}</strong>
+                  </span>
+                </div>
+                <small class="source-conflict-raw">
+                  Raw: {{ conflict.rawField }} · {{ conflict.rawPrimary }} → {{ conflict.rawOther }}
+                </small>
+              </div>
+            </div>
+          </div>
           <div class="source-mode-form">
             <div
               class="source-mode-tabs"
@@ -1639,9 +2012,8 @@ async function previewSourceMode(silent = false) {
                 @click="() => previewSourceMode()"
               >
                 <i class="fa-solid fa-magnifying-glass" aria-hidden="true" />
-                {{ diagnosticsStore.isPreviewingSourceMode ? "Checking" : "Preview" }}
+                {{ sourceModeCheckLabel }}
               </button>
-              <span class="source-config-key monospace">{{ sourceModeConfigKey }}</span>
             </div>
             <div
               v-if="selectedSourceMode === 'STRAVA'"
@@ -1771,7 +2143,6 @@ async function previewSourceMode(silent = false) {
                   <strong>{{ localSourceGuideTitle }}</strong>
                   <span :class="sourceModeStatusClass">{{ sourceModeStatusLabel }}</span>
                 </div>
-                <span class="source-config-key monospace">{{ sourceModeConfigKey }}</span>
               </div>
               <p class="source-guide-copy">
                 {{ localSourceGuideCopy }}
@@ -1877,45 +2248,69 @@ async function previewSourceMode(silent = false) {
                   :class="['source-activation-item', item.tone === 'warn' ? 'source-activation-item--warn' : '', item.tone === 'up' ? 'source-activation-item--up' : '']"
                 >
                   <span>{{ item.label }}</span>
-                  <strong>{{ item.value }}</strong>
+                  <strong :class="{ monospace: item.monospace }">{{ item.value }}</strong>
                 </div>
               </div>
-              <div
-                v-if="sourceModeEnvironment.length > 0"
-                class="source-env-list"
-              >
-                <div
-                  v-for="variable in sourceModeEnvironment"
-                  :key="variable.key"
-                  class="source-env-row"
-                >
-                  <span class="monospace">{{ variable.key }}</span>
-                  <strong :class="{ monospace: variable.value }">{{ variable.value || "unset" }}</strong>
-                </div>
-              </div>
-              <div
-                v-if="sourceModeActivationCommand"
-                class="source-command"
-              >
-                <code>{{ sourceModeActivationCommand }}</code>
+              <p :class="sourceModeNextStepClass">
+                <i class="fa-solid fa-circle-info" aria-hidden="true" />
+                {{ sourceModeNextStepCopy }}
+              </p>
+              <div class="source-activation-actions">
                 <button
                   type="button"
-                  class="btn btn-outline-secondary btn-sm"
-                  @click="copySourceModeCommand"
+                  class="btn btn-primary btn-sm source-save-button"
+                  :disabled="!canApplySourceMode"
+                  @click="applySourceMode"
                 >
-                  <i class="fa-solid fa-copy" aria-hidden="true" />
-                  Copy
+                  <i class="fa-solid fa-floppy-disk" aria-hidden="true" />
+                  {{ sourceModeApplyLabel }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm source-verify-button"
+                  :disabled="diagnosticsStore.isLoading"
+                  @click="refreshDiagnostics"
+                >
+                  <i class="fa-solid fa-circle-check" aria-hidden="true" />
+                  Verify active mode
                 </button>
               </div>
-              <button
-                type="button"
-                class="btn btn-outline-secondary btn-sm source-verify-button"
-                :disabled="diagnosticsStore.isLoading"
-                @click="refreshDiagnostics"
+              <details
+                v-if="sourceModeAdvancedAvailable"
+                class="source-advanced"
               >
-                <i class="fa-solid fa-circle-check" aria-hidden="true" />
-                Verify active mode
-              </button>
+                <summary>
+                  <i class="fa-solid fa-sliders" aria-hidden="true" />
+                  Advanced
+                </summary>
+                <div
+                  v-if="sourceModeEnvironment.length > 0"
+                  class="source-env-list"
+                >
+                  <div
+                    v-for="variable in sourceModeEnvironment"
+                    :key="variable.key"
+                    class="source-env-row"
+                  >
+                    <span class="monospace">{{ variable.key }}</span>
+                    <strong :class="{ monospace: variable.value }">{{ variable.value || "unset" }}</strong>
+                  </div>
+                </div>
+                <div
+                  v-if="sourceModeActivationCommand"
+                  class="source-command"
+                >
+                  <code>{{ sourceModeActivationCommand }}</code>
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm"
+                    @click="copySourceModeCommand"
+                  >
+                    <i class="fa-solid fa-copy" aria-hidden="true" />
+                    Copy
+                  </button>
+                </div>
+              </details>
             </div>
             <p
               v-if="diagnosticsStore.sourceModePreviewError"
@@ -2974,9 +3369,73 @@ dd {
 }
 
 .source-mode-form,
-.source-mode-preview {
+.source-mode-preview,
+.source-sync-overview,
+.composite-source-overview {
   grid-column: 1 / -1;
   min-width: 0;
+}
+
+.source-sync-overview {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--ms-border);
+  border-radius: 8px;
+  background: #fafbfe;
+  padding: 12px;
+}
+
+.source-sync-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.source-sync-heading strong,
+.source-sync-heading small {
+  display: block;
+}
+
+.source-sync-heading small {
+  margin-top: 2px;
+  color: var(--ms-text-muted);
+  font-weight: 600;
+}
+
+.composite-source-overview {
+  display: grid;
+  gap: 10px;
+}
+
+.composite-source-table {
+  display: grid;
+  gap: 1px;
+  overflow-x: auto;
+  border: 1px solid var(--ms-border);
+  border-radius: 8px;
+}
+
+.composite-source-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 0.6fr) minmax(86px, 0.4fr) minmax(120px, 0.7fr) minmax(180px, 1.3fr);
+  gap: 8px;
+  min-width: 680px;
+  padding: 8px 10px;
+  background: #ffffff;
+}
+
+.composite-source-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.composite-source-row--head {
+  background: #f3f6fa;
+  color: var(--ms-text-muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 .source-mode-tabs {
@@ -3029,13 +3488,6 @@ dd {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-}
-
-.source-config-key {
-  border: 1px solid #e5e7ee;
-  border-radius: 8px;
-  background: #fafbfe;
-  padding: 7px 9px;
 }
 
 .strava-guide,
@@ -3150,6 +3602,34 @@ dd {
 }
 
 .source-guide-next--warn {
+  border-color: #f6db9a;
+  background: #fff8e5;
+  color: #7a5b15;
+}
+
+.source-next-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+  border: 1px solid #d7e1ee;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ms-text-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 8px 10px;
+}
+
+.source-next-step--ready {
+  border-color: #b8e5c8;
+  background: #f1fbf5;
+  color: #23713b;
+}
+
+.source-next-step--warn {
   border-color: #f6db9a;
   background: #fff8e5;
   color: #7a5b15;
@@ -3506,10 +3986,43 @@ dd {
 }
 
 .source-command .btn,
+.source-save-button,
 .source-verify-button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.source-activation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.source-advanced {
+  border: 1px solid #d7e1ee;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 8px 10px;
+}
+
+.source-advanced summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ms-text-muted);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.source-advanced[open] {
+  display: grid;
+  gap: 8px;
+}
+
+.source-advanced[open] summary {
+  margin-bottom: 2px;
 }
 
 .source-mode-error {
@@ -3527,6 +4040,10 @@ dd {
   gap: 8px;
 }
 
+.source-preview-metrics--compact {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .source-preview-metric {
   min-width: 0;
   border: 1px solid #e5e7ee;
@@ -3538,6 +4055,11 @@ dd {
 .source-preview-metric--warn {
   border-color: #f3d17e;
   background: #fff8e3;
+}
+
+.source-preview-metric--up {
+  border-color: #99d6b0;
+  background: #eaf8ef;
 }
 
 .source-preview-metric span {
@@ -3622,6 +4144,59 @@ dd {
   border-color: #efa4a4;
   background: #fff0f0;
   color: #9b1c1c;
+}
+
+.source-message-list--warnings .source-message-item {
+  border-color: #f3d17e;
+  background: #fff8e3;
+  color: #805d05;
+}
+
+.source-conflict-list {
+  gap: 8px;
+}
+
+.source-conflict-intro {
+  margin: 0;
+  color: #6f5311;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.source-conflict-item {
+  gap: 7px;
+}
+
+.source-conflict-values {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.source-conflict-values > span {
+  display: grid;
+  gap: 2px;
+  border: 1px solid rgba(128, 93, 5, 0.18);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.65);
+  padding: 6px 8px;
+  min-width: 0;
+}
+
+.source-conflict-values small,
+.source-conflict-raw {
+  color: #6f5311;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.source-conflict-values strong {
+  color: #684900;
+  overflow-wrap: anywhere;
+}
+
+.source-conflict-raw {
+  opacity: 0.8;
 }
 
 .quality-layout {
@@ -4311,6 +4886,7 @@ dd {
   .source-activation-summary,
   .source-env-row,
   .source-command,
+  .source-conflict-values,
   .source-preview-metrics,
   .source-guide-facts,
   .source-guide-quality-facts,

@@ -48,6 +48,8 @@ import me.nicolas.stravastats.domain.business.GearAnalysisSummary
 import me.nicolas.stravastats.domain.business.GearMaintenanceRecord
 import me.nicolas.stravastats.domain.business.GearMaintenanceRecordRequest
 import me.nicolas.stravastats.domain.business.GearMaintenanceTask
+import me.nicolas.stravastats.domain.business.SourceModeApplyRequest
+import me.nicolas.stravastats.domain.business.SourceModeApplyResult
 import me.nicolas.stravastats.domain.business.SourceModeEnvironmentVariable
 import me.nicolas.stravastats.domain.business.SourceModePreview
 import me.nicolas.stravastats.domain.business.SourceModePreviewError
@@ -172,6 +174,8 @@ import org.springframework.boot.runApplication
         GearMaintenanceRecordRequestDto::class,
         GearMaintenanceTaskDto::class,
         SourceModePreviewRequest::class,
+        SourceModeApplyRequest::class,
+        SourceModeApplyResult::class,
         StravaOAuthStartRequest::class,
         StravaOAuthStartResult::class,
         SourceModeEnvironmentVariable::class,

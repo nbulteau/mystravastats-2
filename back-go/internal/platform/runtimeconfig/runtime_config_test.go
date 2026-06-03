@@ -26,6 +26,9 @@ func TestDetails_DefaultsToStravaRuntimeConfig(t *testing.T) {
 	if data["provider"] != "strava" {
 		t.Fatalf("expected provider=strava, got %#v", data["provider"])
 	}
+	if !reflect.DeepEqual(data["activeProviders"], []string{"strava"}) {
+		t.Fatalf("expected default active provider strava, got %#v", data["activeProviders"])
+	}
 	if data["stravaCachePath"] != defaultStravaCachePath {
 		t.Fatalf("expected default Strava cache path, got %#v", data["stravaCachePath"])
 	}
@@ -68,8 +71,14 @@ func TestDetails_ExposesConfiguredRuntimeValues(t *testing.T) {
 	cors := details["cors"].(map[string]any)
 	routing := details["routing"].(map[string]any)
 
-	if data["provider"] != "fit" {
-		t.Fatalf("expected FIT provider, got %#v", data["provider"])
+	if data["provider"] != "composite" {
+		t.Fatalf("expected composite provider, got %#v", data["provider"])
+	}
+	if !reflect.DeepEqual(data["activeProviders"], []string{"strava", "fit", "gpx"}) {
+		t.Fatalf("expected active providers strava, fit and gpx, got %#v", data["activeProviders"])
+	}
+	if data["compositeAutoEnabled"] != true {
+		t.Fatalf("expected composite auto-enabled, got %#v", data["compositeAutoEnabled"])
 	}
 	if data["fitFilesPath"] != "/data/fit" || data["fitFilesConfigured"] != true {
 		t.Fatalf("expected configured FIT path, got %#v", data)
@@ -95,5 +104,24 @@ func TestDetails_ExposesConfiguredRuntimeValues(t *testing.T) {
 	}
 	if routing["controlTimeoutMs"] != 12000 {
 		t.Fatalf("expected OSRM control timeout 12000, got %#v", routing["controlTimeoutMs"])
+	}
+}
+
+func TestDetails_KeepsSingleConfiguredLocalProviderExclusive(t *testing.T) {
+	t.Setenv("STRAVA_CACHE_PATH", "")
+	t.Setenv("FIT_FILES_PATH", "/data/fit")
+	t.Setenv("GPX_FILES_PATH", "")
+
+	details := Details()
+	data := details["data"].(map[string]any)
+
+	if data["provider"] != "fit" {
+		t.Fatalf("expected FIT provider, got %#v", data["provider"])
+	}
+	if !reflect.DeepEqual(data["activeProviders"], []string{"fit"}) {
+		t.Fatalf("expected active provider fit, got %#v", data["activeProviders"])
+	}
+	if data["compositeAutoEnabled"] != false {
+		t.Fatalf("expected composite disabled, got %#v", data["compositeAutoEnabled"])
 	}
 }

@@ -22,10 +22,15 @@ object RuntimeConfig {
         val stravaCachePath = readStringConfig("STRAVA_CACHE_PATH", DEFAULT_STRAVA_CACHE_PATH)
         val fitFilesPath = readConfigValue("FIT_FILES_PATH")
         val gpxFilesPath = readConfigValue("GPX_FILES_PATH")
-        val provider = when {
-            fitFilesPath != null -> "fit"
-            gpxFilesPath != null -> "gpx"
-            else -> "strava"
+        val activeProviders = activeDataProviders(
+            stravaConfigured = isConfigured("STRAVA_CACHE_PATH"),
+            fitConfigured = fitFilesPath != null,
+            gpxConfigured = gpxFilesPath != null,
+        )
+        val provider = if (activeProviders.size > 1) {
+            "composite"
+        } else {
+            activeProviders.firstOrNull() ?: "strava"
         }
         val historyHalfLifeDays = readIntConfig(
             "OSM_ROUTING_HISTORY_HALF_LIFE_DAYS",
@@ -45,7 +50,9 @@ object RuntimeConfig {
                 "gpxFilesPath" to (gpxFilesPath ?: ""),
                 "gpxFilesConfigured" to (gpxFilesPath != null),
                 "gpxFilesSupported" to true,
-                "providerSelectionOrder" to listOf("FIT_FILES_PATH", "GPX_FILES_PATH", "STRAVA_CACHE_PATH"),
+                "activeProviders" to activeProviders,
+                "compositeAutoEnabled" to (activeProviders.size > 1),
+                "providerSelectionOrder" to listOf("STRAVA_CACHE_PATH", "FIT_FILES_PATH", "GPX_FILES_PATH"),
             ),
             "server" to mapOf(
                 "address" to readStringConfig("SERVER_ADDRESS", DEFAULT_SERVER_ADDRESS),
@@ -102,6 +109,19 @@ object RuntimeConfig {
 
     fun stravaApiUrl(path: String): String {
         return "${stravaApiBaseUrl()}/${path.trimStart('/')}"
+    }
+
+    private fun activeDataProviders(
+        stravaConfigured: Boolean,
+        fitConfigured: Boolean,
+        gpxConfigured: Boolean,
+    ): List<String> {
+        val providers = buildList {
+            if (stravaConfigured) add("strava")
+            if (fitConfigured) add("fit")
+            if (gpxConfigured) add("gpx")
+        }
+        return providers.ifEmpty { listOf("strava") }
     }
 
     fun readConfigValue(key: String): String? {

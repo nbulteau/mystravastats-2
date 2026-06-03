@@ -1,6 +1,7 @@
 package me.nicolas.stravastats.domain.services
 
 import me.nicolas.stravastats.domain.business.SourceMode
+import me.nicolas.stravastats.domain.business.SourceModeApplyRequest
 import me.nicolas.stravastats.domain.business.SourceModePreviewRequest
 import me.nicolas.stravastats.domain.interfaces.ILocalStorageProvider
 import me.nicolas.stravastats.domain.interfaces.ISourcePreviewRepositoryFactory
@@ -139,6 +140,28 @@ class SourceModeServiceTest {
         assertEquals("42", oauth.athleteId)
         assertEquals("Ada Lovelace", oauth.athleteName)
         assertTrue(oauth.setupCommand.contains("setup-strava-oauth.mjs"))
+    }
+
+    @Test
+    fun `apply saves FIT source in dot env and unsets GPX`() {
+        // GIVEN
+        val envFile = tempDir.resolve(".env").toFile()
+        envFile.writeText("STRAVA_CACHE_PATH=\"strava-cache\"\nexport GPX_FILES_PATH=\"/old/gpx\"\nOPEN_BROWSER=false\n")
+        val fitDirectory = tempDir.resolve("fit")
+        Files.createDirectories(fitDirectory.resolve("2026"))
+        val service = SourceModeService(repositoryFactory, envFile)
+
+        // WHEN
+        val result = service.apply(SourceModeApplyRequest(mode = "FIT", path = fitDirectory.toString()))
+
+        // THEN
+        assertEquals("saved", result.status)
+        assertEquals(envFile.absoluteFile.toPath().normalize().toString(), result.envFile)
+        val text = envFile.readText()
+        assertTrue(text.contains("FIT_FILES_PATH=\"${fitDirectory}\""))
+        assertFalse(text.contains("GPX_FILES_PATH"))
+        assertTrue(text.contains("STRAVA_CACHE_PATH=\"strava-cache\""))
+        assertTrue(text.contains("OPEN_BROWSER=false"))
     }
 
     @Test

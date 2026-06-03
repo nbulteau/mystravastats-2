@@ -205,6 +205,10 @@ func (provider *FITActivityProvider) CacheRootPath() string {
 	return provider.fitDirectory
 }
 
+func (provider *FITActivityProvider) Reload() {
+	provider.replaceActivities(provider.loadActivitiesFromFITDirectory())
+}
+
 func (provider *FITActivityProvider) loadActivitiesFromFITDirectory() []*strava.Activity {
 	start := time.Now()
 	loadedActivities := make([]*strava.Activity, 0)
@@ -305,13 +309,12 @@ func DecodeFITActivity(filePath string, athleteID int64) (*strava.Activity, erro
 		elapsedTime = stream.Time.Data[len(stream.Time.Data)-1]
 	}
 
-	movingTime := roundedNonNegative(session.GetTotalMovingTimeScaled())
-	if movingTime <= 0 {
-		movingTime = roundedNonNegative(session.GetTotalTimerTimeScaled())
-	}
-	if movingTime <= 0 {
-		movingTime = elapsedTime
-	}
+	movingTime := resolveFITMovingTime(
+		roundedNonNegative(session.GetTotalMovingTimeScaled()),
+		roundedNonNegative(session.GetTotalTimerTimeScaled()),
+		elapsedTime,
+		stream,
+	)
 
 	averageCadence := float64(asUint8(session.GetAvgCadence()))
 	averageHeartRate := float64(validFITUint8(session.AvgHeartRate))
@@ -662,6 +665,55 @@ func buildStreamFromFITRecords(records []*fitparser.RecordMsg, startTime time.Ti
 	}
 
 	return stream
+}
+
+func resolveFITMovingTime(totalMovingTime int, totalTimerTime int, elapsedTime int, stream *strava.Stream) int {
+	if totalMovingTime > 0 {
+		return totalMovingTime
+	}
+
+	streamMovingTime := movingTimeFromFITStream(stream)
+	if totalTimerTime > 0 {
+		if shouldUseStreamMovingTimeFallback(totalTimerTime, streamMovingTime) {
+			return streamMovingTime
+		}
+		return totalTimerTime
+	}
+	if streamMovingTime > 0 {
+		return streamMovingTime
+	}
+	return elapsedTime
+}
+
+func shouldUseStreamMovingTimeFallback(totalTimerTime int, streamMovingTime int) bool {
+	if totalTimerTime <= 0 || streamMovingTime <= 0 || streamMovingTime >= totalTimerTime {
+		return false
+	}
+
+	streamRemovesMeaningfulStopTime := float64(totalTimerTime-streamMovingTime) > math.Max(60, float64(totalTimerTime)*0.02)
+	return streamRemovesMeaningfulStopTime
+}
+
+func movingTimeFromFITStream(stream *strava.Stream) int {
+	if stream == nil || stream.Moving == nil || len(stream.Time.Data) < 2 {
+		return 0
+	}
+
+	limit := len(stream.Time.Data)
+	if len(stream.Moving.Data) < limit {
+		limit = len(stream.Moving.Data)
+	}
+	movingTime := 0
+	for index := 1; index < limit; index++ {
+		delta := stream.Time.Data[index] - stream.Time.Data[index-1]
+		if delta <= 0 {
+			continue
+		}
+		if stream.Moving.Data[index] {
+			movingTime += delta
+		}
+	}
+	return movingTime
 }
 
 func extractCoordinate(record *fitparser.RecordMsg) []float64 {

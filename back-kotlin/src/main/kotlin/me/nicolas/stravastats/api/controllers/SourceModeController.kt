@@ -1,6 +1,8 @@
 package me.nicolas.stravastats.api.controllers
 
 import jakarta.servlet.http.HttpServletRequest
+import me.nicolas.stravastats.domain.business.SourceModeApplyRequest
+import me.nicolas.stravastats.domain.business.SourceModeApplyResult
 import me.nicolas.stravastats.domain.business.SourceModePreview
 import me.nicolas.stravastats.domain.business.SourceModePreviewRequest
 import me.nicolas.stravastats.domain.business.StravaOAuthStartRequest
@@ -25,6 +27,15 @@ class SourceModeController(
     @PostMapping("/preview")
     fun preview(@RequestBody request: SourceModePreviewRequest): SourceModePreview {
         return sourceModeService.preview(request)
+    }
+
+    @PostMapping("/apply")
+    fun apply(@RequestBody request: SourceModeApplyRequest): SourceModeApplyResult {
+        return try {
+            sourceModeService.apply(request)
+        } catch (exception: IllegalArgumentException) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, exception.message.orEmpty(), exception)
+        }
     }
 
     @PostMapping("/strava/oauth/start")

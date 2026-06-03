@@ -11,6 +11,19 @@ data class SourceModePreviewRequest(
     val path: String = "",
 )
 
+data class SourceModeApplyRequest(
+    val mode: String = "STRAVA",
+    val path: String = "",
+)
+
+data class SourceModeApplyResult(
+    val status: String,
+    val message: String,
+    val envFile: String,
+    val restartNeeded: Boolean,
+    val preview: SourceModePreview,
+)
+
 data class StravaOAuthStartRequest(
     val path: String = "",
     val clientId: String = "",

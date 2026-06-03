@@ -5,6 +5,19 @@ export interface SourceModePreviewRequest {
   path: string;
 }
 
+export interface SourceModeApplyRequest {
+  mode: SourceMode;
+  path: string;
+}
+
+export interface SourceModeApplyResult {
+  status: string;
+  message: string;
+  envFile: string;
+  restartNeeded: boolean;
+  preview: SourceModePreview;
+}
+
 export interface StravaOAuthStartRequest {
   path: string;
   clientId: string;

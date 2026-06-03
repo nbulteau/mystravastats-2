@@ -78,6 +78,7 @@ type container struct {
 	applySafeDataQualityCorrectionsUseCase   *dataQualityApp.ApplySafeDataQualityCorrectionsUseCase
 	revertDataQualityCorrectionUseCase       *dataQualityApp.RevertDataQualityCorrectionUseCase
 	previewSourceModeUseCase                 *sourceModeApp.PreviewSourceModeUseCase
+	applySourceModeUseCase                   *sourceModeApp.ApplySourceModeUseCase
 }
 
 var (
@@ -148,6 +149,7 @@ func getContainer() *container {
 			applySafeDataQualityCorrectionsUseCase:   dataQualityApp.NewApplySafeDataQualityCorrectionsUseCase(dataQualityReader),
 			revertDataQualityCorrectionUseCase:       dataQualityApp.NewRevertDataQualityCorrectionUseCase(dataQualityReader),
 			previewSourceModeUseCase:                 sourceModeApp.NewPreviewSourceModeUseCase(sourceModeReader),
+			applySourceModeUseCase:                   sourceModeApp.NewApplySourceModeUseCase(sourceModeReader),
 		}
 	})
 

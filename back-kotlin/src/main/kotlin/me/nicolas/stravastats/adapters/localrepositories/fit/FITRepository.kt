@@ -14,6 +14,8 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.*
 import kotlin.math.absoluteValue
+import kotlin.math.max
+import kotlin.math.roundToInt
 
 class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
 
@@ -80,7 +82,7 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
         // The stravaActivity's max speed, in meters per second
         val maxSpeed: Float = sessionMesg?.maxSpeed ?: 0.0F
         // The stravaActivity's moving time, in seconds
-        val movingTime: Int = sessionMesg?.timestamp?.timestamp?.minus(sessionMesg.startTime?.timestamp!!)?.toInt()!!
+        val movingTime: Int = resolveMovingTime(sessionMesg, stream, elapsedTime)
         // The time at which the stravaActivity was started.
         val startDate: String = extractDate(sessionMesg.startTime?.timestamp!!)
         // The time at which the stravaActivity was started in the local timezone.
@@ -128,6 +130,29 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
             weightedAverageWatts = powerMetrics.weightedAverageWatts,
             stream = stream
         )
+    }
+
+    private fun resolveMovingTime(sessionMesg: SessionMesg, stream: Stream, elapsedTime: Int): Int {
+        val totalMovingTime = sessionMesg.totalMovingTime?.roundToInt() ?: 0
+        val totalTimerTime = sessionMesg.totalTimerTime?.roundToInt() ?: 0
+        val streamMovingTime = stream.movingTimeSeconds()
+        return resolveFitMovingTime(totalMovingTime, totalTimerTime, elapsedTime, streamMovingTime)
+    }
+
+    private fun Stream.movingTimeSeconds(): Int {
+        val movingData = moving?.data.orEmpty()
+        val timeData = time.data
+        if (movingData.isEmpty() || timeData.size < 2) return 0
+
+        var movingTime = 0
+        val limit = minOf(timeData.size, movingData.size)
+        for (index in 1 until limit) {
+            val delta = timeData[index] - timeData[index - 1]
+            if (delta > 0 && movingData[index]) {
+                movingTime += delta
+            }
+        }
+        return movingTime
     }
 
     /**
@@ -191,7 +216,7 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
 
         // moving
         val dataMoving = this.map { recordMesg ->
-            (recordMesg.speed ?: 0.0F) > 0.0F
+            (recordMesg.speed ?: 0.0F) > 0.1F
         }
         val streamMoving = if (dataMoving.isNotEmpty()) {
             MovingStream(
@@ -379,4 +404,30 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
             index++
         }
     }
+}
+
+internal fun resolveFitMovingTime(
+    totalMovingTime: Int,
+    totalTimerTime: Int,
+    elapsedTime: Int,
+    streamMovingTime: Int,
+): Int {
+    if (totalMovingTime > 0) return totalMovingTime
+    if (totalTimerTime > 0) {
+        if (shouldUseStreamMovingTimeFallback(totalTimerTime, streamMovingTime)) {
+            return streamMovingTime
+        }
+        return totalTimerTime
+    }
+    if (streamMovingTime > 0) return streamMovingTime
+    return elapsedTime
+}
+
+private fun shouldUseStreamMovingTimeFallback(totalTimerTime: Int, streamMovingTime: Int): Boolean {
+    if (totalTimerTime <= 0 || streamMovingTime <= 0 || streamMovingTime >= totalTimerTime) {
+        return false
+    }
+
+    val streamRemovesMeaningfulStopTime = (totalTimerTime - streamMovingTime).toDouble() > max(60.0, totalTimerTime.toDouble() * 0.02)
+    return streamRemovesMeaningfulStopTime
 }
