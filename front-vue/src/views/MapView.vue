@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from "vue";
-import type { MapPassageSegment, MapPassages, MapTrack } from "@/models/map.model";
+import type { MapPassageSegment, MapPassages, MapRenderMode, MapTrack } from "@/models/map.model";
 import { useContextStore } from "@/stores/context.js";
 import AllTracksMap from "@/components/AllTracksMap.vue";
 import { type MapViewport, useMapStore } from "@/stores/map";
@@ -13,7 +13,7 @@ onMounted(() => contextStore.updateCurrentView("map"));
 const mapTracks = computed(() => mapStore.mapTracks);
 const mapPassages = computed(() => mapStore.mapPassages);
 const activityTypeFilter = ref("ALL");
-const renderMode = ref<"TRACES" | "PASSAGES" | "POINT_DENSITY">("TRACES");
+const renderMode = ref<MapRenderMode>("TRACES");
 const filtersKey = computed(() => mapStore.currentFiltersKey());
 const isRefreshing = ref(false);
 const recenterToken = ref(0);
@@ -108,6 +108,9 @@ const toolbarStats = computed(() => {
     const suffix = omittedPassageSegments.value > 0 ? ` · ${omittedPassageSegments.value.toLocaleString()} hidden` : "";
     return `${totalPassageCorridors.value} corridors · max ${maxPassageCount.value} passes${suffix}`;
   }
+  if (renderMode.value === "HEATMAP") {
+    return `${totalTracks.value} tracks · heatmap from ${totalPoints.value.toLocaleString()} GPS points`;
+  }
   return `${totalTracks.value} tracks · ${totalPoints.value.toLocaleString()} points`;
 });
 
@@ -123,7 +126,7 @@ function selectActivityTypeFilter(type: string) {
   recenterToken.value += 1;
 }
 
-function setRenderMode(mode: "TRACES" | "PASSAGES" | "POINT_DENSITY") {
+function setRenderMode(mode: MapRenderMode) {
   if (renderMode.value === mode) {
     return;
   }
@@ -168,7 +171,7 @@ watch(
         {{ toolbarStats }}
       </div>
       <div class="map-toolbar__actions">
-        <div class="btn-group btn-group-sm">
+        <div class="btn-group btn-group-sm map-mode-control">
           <button
             type="button"
             class="btn"
@@ -180,18 +183,18 @@ watch(
           <button
             type="button"
             class="btn"
-            :class="renderMode === 'PASSAGES' ? 'btn-primary' : 'btn-outline-primary'"
-            @click="setRenderMode('PASSAGES')"
+            :class="renderMode === 'HEATMAP' ? 'btn-primary' : 'btn-outline-primary'"
+            @click="setRenderMode('HEATMAP')"
           >
-            Frequency
+            Heatmap
           </button>
           <button
             type="button"
             class="btn"
-            :class="renderMode === 'POINT_DENSITY' ? 'btn-primary' : 'btn-outline-primary'"
-            @click="setRenderMode('POINT_DENSITY')"
+            :class="renderMode === 'PASSAGES' ? 'btn-primary' : 'btn-outline-primary'"
+            @click="setRenderMode('PASSAGES')"
           >
-            Point density
+            Frequency
           </button>
         </div>
         <button
@@ -217,9 +220,6 @@ watch(
       v-if="activityTypeSummaries.length > 0"
       class="map-type-filters"
     >
-      <div class="map-type-filters__hint">
-        Type filters below refine the current top selection.
-      </div>
       <button
         type="button"
         class="type-pill"
@@ -294,18 +294,15 @@ watch(
   gap: 8px;
 }
 
+.map-mode-control .btn {
+  min-width: 84px;
+}
+
 .map-type-filters {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-}
-
-.map-type-filters__hint {
-  width: 100%;
-  margin-bottom: 2px;
-  font-size: 0.78rem;
-  color: var(--ms-text-muted);
 }
 
 .type-pill {

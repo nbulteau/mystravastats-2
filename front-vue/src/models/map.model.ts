@@ -1,3 +1,5 @@
+export type MapRenderMode = "TRACES" | "HEATMAP" | "PASSAGES";
+
 export type MapTrack = {
   activityId: number;
   activityName: string;

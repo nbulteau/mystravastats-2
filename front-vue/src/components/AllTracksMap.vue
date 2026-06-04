@@ -2,7 +2,7 @@
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import type { MapPassageSegment, MapPassages, MapTrack } from "@/models/map.model";
+import type { MapPassageSegment, MapPassages, MapRenderMode, MapTrack } from "@/models/map.model";
 import type { MapViewport } from "@/stores/map";
 import { getActivityTypeColor } from "@/utils/mapTrackColors";
 import { useRouter } from "vue-router";
@@ -15,7 +15,7 @@ const props = defineProps<{
   error?: string | null;
   initialViewport?: MapViewport | null;
   recenterToken?: number;
-  renderMode?: "TRACES" | "PASSAGES" | "POINT_DENSITY";
+  renderMode?: MapRenderMode;
 }>();
 
 const emit = defineEmits<{
@@ -28,13 +28,15 @@ const MAX_POINTS_PER_TRACK = 1500;
 const AGGREGATION_ZOOM_THRESHOLD = 9;
 const AGGREGATION_MIN_TRACKS = 24;
 const AGGREGATION_CELL_SIZE_PX = 64;
-const DENSITY_CELL_SIZE_PX = 40;
-const DENSITY_MAX_POINTS_PER_TRACK = 280;
+const HEATMAP_SAMPLE_CELL_SIZE_PX = 8;
+const HEATMAP_MAX_POINTS_PER_TRACK = 360;
+const HEATMAP_RADIUS_PX = 24;
+const HEATMAP_MAX_DEVICE_PIXEL_RATIO = 2;
 
 const map = ref<L.Map>();
 const mapContainer = ref<HTMLDivElement | null>(null);
 const tracksLayerGroup = ref<L.LayerGroup>();
-const densityLayerGroup = ref<L.LayerGroup>();
+const heatmapCanvas = ref<HTMLCanvasElement>();
 const latestBounds = ref<L.LatLngBounds | null>(null);
 const lastDatasetKey = ref<string | null>(null);
 const canvasRenderer = L.canvas({ padding: 0.25 });
@@ -43,8 +45,8 @@ const aggregatedClusterCount = ref(0);
 const aggregatedTrackCount = ref(0);
 const aggregatedDistanceKm = ref(0);
 const aggregatedElevationGainM = ref(0);
-const densityCellCount = ref(0);
-const densityPointCount = ref(0);
+const heatmapCellCount = ref(0);
+const heatmapPointCount = ref(0);
 const passageCorridorCount = ref(0);
 const passageMaxCount = ref(0);
 const passageResolutionMeters = ref(0);
@@ -53,10 +55,10 @@ const isValidCoordinate = (coord: number[]) =>
   Number.isFinite(coord[0]) && Number.isFinite(coord[1]);
 
 const hasRenderableTracks = computed(() => latestBounds.value !== null);
-const isPointDensityMode = computed(() => props.renderMode === "POINT_DENSITY");
+const isHeatmapMode = computed(() => props.renderMode === "HEATMAP");
 const isPassagesMode = computed(() => props.renderMode === "PASSAGES");
-const isAggregatedMode = computed(() => !isPointDensityMode.value && !isPassagesMode.value && aggregatedClusterCount.value > 0);
-const isDensityOverlayVisible = computed(() => isPointDensityMode.value && densityCellCount.value > 0);
+const isAggregatedMode = computed(() => !isHeatmapMode.value && !isPassagesMode.value && aggregatedClusterCount.value > 0);
+const isHeatmapOverlayVisible = computed(() => isHeatmapMode.value && heatmapCellCount.value > 0);
 const isPassagesOverlayVisible = computed(() => isPassagesMode.value && passageCorridorCount.value > 0);
 const emptyMapMessage = computed(() => {
   if (isPassagesMode.value) {
@@ -74,11 +76,9 @@ type MapCluster = {
   weightedContribution: number;
 };
 
-type DensityCell = {
-  center: L.LatLng;
+type HeatmapCell = {
+  point: L.Point;
   count: number;
-  distanceKm: number;
-  elevationGainM: number;
 };
 
 function simplifyTrackCoordinates(trackCoordinates: number[][]): number[][] {
@@ -97,11 +97,11 @@ function simplifyTrackCoordinates(trackCoordinates: number[][]): number[][] {
   return reduced;
 }
 
-function simplifyDensityCoordinates(trackCoordinates: number[][]): number[][] {
-  if (trackCoordinates.length <= DENSITY_MAX_POINTS_PER_TRACK) {
+function simplifyHeatmapCoordinates(trackCoordinates: number[][]): number[][] {
+  if (trackCoordinates.length <= HEATMAP_MAX_POINTS_PER_TRACK) {
     return trackCoordinates;
   }
-  const step = Math.ceil(trackCoordinates.length / DENSITY_MAX_POINTS_PER_TRACK);
+  const step = Math.ceil(trackCoordinates.length / HEATMAP_MAX_POINTS_PER_TRACK);
   const reduced: number[][] = [];
   for (let index = 0; index < trackCoordinates.length; index += step) {
     reduced.push(trackCoordinates[index]);
@@ -113,12 +113,27 @@ function simplifyDensityCoordinates(trackCoordinates: number[][]): number[][] {
   return reduced;
 }
 
-function densityColor(ratio: number): string {
+function heatmapColorComponents(ratio: number): [number, number, number] {
   const clampedRatio = Math.max(0, Math.min(1, ratio));
-  const hue = 220 - clampedRatio * 200; // blue -> red
-  const saturation = 78;
-  const lightness = 56 - clampedRatio * 14;
-  return `hsl(${hue} ${saturation}% ${lightness}%)`;
+  const stops: Array<{ stop: number; color: [number, number, number] }> = [
+    { stop: 0, color: [27, 94, 196] },
+    { stop: 0.25, color: [0, 188, 212] },
+    { stop: 0.5, color: [67, 160, 71] },
+    { stop: 0.75, color: [255, 193, 7] },
+    { stop: 1, color: [224, 49, 49] },
+  ];
+
+  const rightIndex = Math.max(1, stops.findIndex((entry) => entry.stop >= clampedRatio));
+  const right = stops[rightIndex];
+  const left = stops[rightIndex - 1];
+  const span = right.stop - left.stop || 1;
+  const localRatio = (clampedRatio - left.stop) / span;
+
+  return [
+    Math.round(left.color[0] + (right.color[0] - left.color[0]) * localRatio),
+    Math.round(left.color[1] + (right.color[1] - left.color[1]) * localRatio),
+    Math.round(left.color[2] + (right.color[2] - left.color[2]) * localRatio),
+  ];
 }
 
 function passageColor(count: number): string {
@@ -145,9 +160,9 @@ function resetTraceAggregationState() {
   aggregatedElevationGainM.value = 0;
 }
 
-function resetDensityState() {
-  densityCellCount.value = 0;
-  densityPointCount.value = 0;
+function resetHeatmapState() {
+  heatmapCellCount.value = 0;
+  heatmapPointCount.value = 0;
 }
 
 function resetPassagesState() {
@@ -316,88 +331,208 @@ function buildClusters(currentZoom: number): MapCluster[] {
   }));
 }
 
-function buildDensityCells(currentZoom: number): DensityCell[] {
+function ensureHeatmapCanvas(): HTMLCanvasElement | null {
   if (!map.value) {
-    return [];
+    return null;
+  }
+
+  if (!heatmapCanvas.value) {
+    const canvas = L.DomUtil.create(
+      "canvas",
+      "activity-heatmap-canvas leaflet-zoom-animated",
+      map.value.getPanes().overlayPane,
+    ) as HTMLCanvasElement;
+    canvas.style.pointerEvents = "none";
+    canvas.style.display = "none";
+    heatmapCanvas.value = canvas;
+  }
+
+  return heatmapCanvas.value;
+}
+
+function clearHeatmapCanvas() {
+  const canvas = heatmapCanvas.value;
+  if (!canvas) {
+    return;
+  }
+  const context = canvas.getContext("2d");
+  if (context) {
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    context.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  canvas.style.display = "none";
+}
+
+function prepareHeatmapCanvas(): {
+  canvas: HTMLCanvasElement;
+  context: CanvasRenderingContext2D;
+  size: L.Point;
+  topLeft: L.Point;
+} | null {
+  if (!map.value) {
+    return null;
+  }
+
+  const canvas = ensureHeatmapCanvas();
+  const context = canvas?.getContext("2d");
+  if (!canvas || !context) {
+    return null;
+  }
+
+  const size = map.value.getSize();
+  const topLeft = map.value.containerPointToLayerPoint([0, 0]);
+  const pixelRatio = Math.min(
+    typeof window === "undefined" ? 1 : window.devicePixelRatio || 1,
+    HEATMAP_MAX_DEVICE_PIXEL_RATIO,
+  );
+  const width = Math.max(1, Math.round(size.x * pixelRatio));
+  const height = Math.max(1, Math.round(size.y * pixelRatio));
+
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+  canvas.style.width = `${size.x}px`;
+  canvas.style.height = `${size.y}px`;
+  canvas.style.display = "block";
+  L.DomUtil.setPosition(canvas, topLeft);
+
+  context.setTransform(1, 0, 0, 1, 0, 0);
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+  return {
+    canvas,
+    context,
+    size,
+    topLeft,
+  };
+}
+
+function buildHeatmapCells(topLeft: L.Point, size: L.Point): {
+  cells: HeatmapCell[];
+  pointsForBounds: L.LatLng[];
+} {
+  if (!map.value) {
+    return { cells: [], pointsForBounds: [] };
   }
 
   const cells = new Map<string, {
     count: number;
-    sumLat: number;
-    sumLng: number;
-    distanceKm: number;
-    elevationGainM: number;
+    pointXSum: number;
+    pointYSum: number;
   }>();
+  const pointsForBounds: L.LatLng[] = [];
+  const drawMargin = HEATMAP_RADIUS_PX * 2;
 
   props.mapTracks.forEach((track) => {
-    const simplifiedCoordinates = simplifyDensityCoordinates(track.coordinates);
+    const simplifiedCoordinates = simplifyHeatmapCoordinates(track.coordinates);
     const validCoordinates = simplifiedCoordinates.filter((coord) => isValidCoordinate(coord));
-    if (validCoordinates.length === 0) {
-      return;
-    }
-    const distanceShare = (Number.isFinite(track.distanceKm) ? track.distanceKm : 0) / validCoordinates.length;
-    const elevationShare = (Number.isFinite(track.elevationGainM) ? track.elevationGainM : 0) / validCoordinates.length;
-
     validCoordinates.forEach((coord) => {
       const latLng = L.latLng(coord[0], coord[1]);
-      const projected = map.value!.project(latLng, currentZoom);
-      const cellX = Math.floor(projected.x / DENSITY_CELL_SIZE_PX);
-      const cellY = Math.floor(projected.y / DENSITY_CELL_SIZE_PX);
+      pointsForBounds.push(latLng);
+
+      const layerPoint = map.value!.latLngToLayerPoint(latLng);
+      const point = layerPoint.subtract(topLeft);
+      if (
+        point.x < -drawMargin
+        || point.y < -drawMargin
+        || point.x > size.x + drawMargin
+        || point.y > size.y + drawMargin
+      ) {
+        return;
+      }
+
+      const cellX = Math.floor(point.x / HEATMAP_SAMPLE_CELL_SIZE_PX);
+      const cellY = Math.floor(point.y / HEATMAP_SAMPLE_CELL_SIZE_PX);
       const key = `${cellX}:${cellY}`;
       const existing = cells.get(key);
       if (existing) {
         existing.count += 1;
-        existing.sumLat += latLng.lat;
-        existing.sumLng += latLng.lng;
-        existing.distanceKm += distanceShare;
-        existing.elevationGainM += elevationShare;
+        existing.pointXSum += point.x;
+        existing.pointYSum += point.y;
         return;
       }
       cells.set(key, {
         count: 1,
-        sumLat: latLng.lat,
-        sumLng: latLng.lng,
-        distanceKm: distanceShare,
-        elevationGainM: elevationShare,
+        pointXSum: point.x,
+        pointYSum: point.y,
       });
     });
   });
 
-  return Array.from(cells.values()).map((cell) => ({
-    center: L.latLng(cell.sumLat / cell.count, cell.sumLng / cell.count),
-    count: cell.count,
-    distanceKm: cell.distanceKm,
-    elevationGainM: cell.elevationGainM,
-  }));
+  return {
+    cells: Array.from(cells.values()).map((cell) => ({
+      point: L.point(cell.pointXSum / cell.count, cell.pointYSum / cell.count),
+      count: cell.count,
+    })),
+    pointsForBounds,
+  };
 }
 
-function renderDensityLayer(currentZoom: number): L.LatLng[] {
-  if (!densityLayerGroup.value) {
+function colorizeHeatmapCanvas(context: CanvasRenderingContext2D, width: number, height: number) {
+  const image = context.getImageData(0, 0, width, height);
+  const pixels = image.data;
+
+  for (let index = 0; index < pixels.length; index += 4) {
+    const alpha = pixels[index + 3];
+    if (alpha === 0) {
+      continue;
+    }
+
+    const ratio = Math.min(1, alpha / 170);
+    const [red, green, blue] = heatmapColorComponents(ratio);
+    pixels[index] = red;
+    pixels[index + 1] = green;
+    pixels[index + 2] = blue;
+    pixels[index + 3] = Math.min(235, Math.round(alpha * 1.45));
+  }
+
+  context.putImageData(image, 0, 0);
+}
+
+function renderHeatmapLayer(): L.LatLng[] {
+  const prepared = prepareHeatmapCanvas();
+  if (!prepared) {
     return [];
   }
 
-  const densityCells = buildDensityCells(currentZoom);
-  const maxCellCount = densityCells.reduce((max, cell) => Math.max(max, cell.count), 0);
-  densityCellCount.value = densityCells.length;
-  densityPointCount.value = densityCells.reduce((sum, cell) => sum + cell.count, 0);
+  const { canvas, context, size, topLeft } = prepared;
+  const { cells, pointsForBounds } = buildHeatmapCells(topLeft, size);
+  const maxCellCount = cells.reduce((max, cell) => Math.max(max, cell.count), 0);
 
-  const pointsForBounds: L.LatLng[] = [];
-  densityCells.forEach((cell) => {
-    pointsForBounds.push(cell.center);
-    const normalized = maxCellCount <= 0 ? 0 : cell.count / maxCellCount;
-    const marker = L.circleMarker(cell.center, {
-      radius: Math.min(20, 4 + Math.sqrt(cell.count) * 1.7),
-      color: "transparent",
-      weight: 0,
-      fillColor: densityColor(normalized),
-      fillOpacity: 0.16 + normalized * 0.72,
-      renderer: canvasRenderer,
-    }).addTo(densityLayerGroup.value!);
-    marker.bindTooltip(
-      `${cell.count} points · ${cell.distanceKm.toFixed(1)} km · D+ ${Math.round(cell.elevationGainM).toLocaleString()} m`,
-      { direction: "top", opacity: 0.95 },
+  heatmapCellCount.value = cells.length;
+  heatmapPointCount.value = cells.reduce((sum, cell) => sum + cell.count, 0);
+
+  if (cells.length === 0 || maxCellCount <= 0) {
+    clearHeatmapCanvas();
+    return pointsForBounds;
+  }
+
+  cells.forEach((cell) => {
+    const normalized = cell.count / maxCellCount;
+    const radius = Math.min(44, HEATMAP_RADIUS_PX + Math.sqrt(cell.count) * 2);
+    const alpha = Math.min(0.52, 0.07 + Math.log2(cell.count + 1) * 0.055);
+    const gradient = context.createRadialGradient(
+      cell.point.x,
+      cell.point.y,
+      0,
+      cell.point.x,
+      cell.point.y,
+      radius,
     );
+    gradient.addColorStop(0, `rgba(0, 0, 0, ${Math.min(0.64, alpha + normalized * 0.12)})`);
+    gradient.addColorStop(0.45, `rgba(0, 0, 0, ${alpha * 0.48})`);
+    gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+    context.fillStyle = gradient;
+    context.beginPath();
+    context.arc(cell.point.x, cell.point.y, radius, 0, Math.PI * 2);
+    context.fill();
   });
+
+  context.setTransform(1, 0, 0, 1, 0, 0);
+  colorizeHeatmapCanvas(context, canvas.width, canvas.height);
 
   return pointsForBounds;
 }
@@ -555,7 +690,6 @@ const initMap = () => {
     }).addTo(map.value);
 
     tracksLayerGroup.value = L.layerGroup().addTo(map.value);
-    densityLayerGroup.value = L.layerGroup().addTo(map.value);
     map.value.on("moveend", handleMoveEnd);
     map.value.on("zoomend", handleZoomEnd);
     map.value.on("popupopen", handlePopupOpen);
@@ -570,6 +704,7 @@ function renderTraceLayers() {
     return;
   }
   tracksLayerGroup.value.clearLayers();
+  clearHeatmapCanvas();
 
   const currentZoom = map.value.getZoom();
   if (shouldUseAggregation(currentZoom)) {
@@ -619,21 +754,19 @@ function renderTraceLayers() {
   }
 }
 
-function renderDensityMode() {
+function renderHeatmapMode() {
   latestBounds.value = null;
-  if (!map.value || !densityLayerGroup.value) {
+  if (!map.value) {
     return;
   }
-  densityLayerGroup.value.clearLayers();
   resetTraceAggregationState();
   resetPassagesState();
 
-  const currentZoom = map.value.getZoom();
-  const densityPoints = renderDensityLayer(currentZoom);
-  if (densityPoints.length === 0) {
+  const heatmapPoints = renderHeatmapLayer();
+  if (heatmapPoints.length === 0) {
     return;
   }
-  const bounds = L.latLngBounds(densityPoints);
+  const bounds = L.latLngBounds(heatmapPoints);
   if (bounds.isValid()) {
     latestBounds.value = bounds;
   }
@@ -646,7 +779,8 @@ function renderPassagesMode() {
   }
   tracksLayerGroup.value.clearLayers();
   resetTraceAggregationState();
-  resetDensityState();
+  resetHeatmapState();
+  clearHeatmapCanvas();
 
   const passagePoints = renderPassageLayer();
   if (passagePoints.length === 0) {
@@ -660,16 +794,16 @@ function renderPassagesMode() {
 
 function renderMapLayers() {
   tracksLayerGroup.value?.clearLayers();
-  densityLayerGroup.value?.clearLayers();
-  resetDensityState();
+  clearHeatmapCanvas();
+  resetHeatmapState();
   resetPassagesState();
 
   if (isPassagesMode.value) {
     renderPassagesMode();
     return;
   }
-  if (isPointDensityMode.value) {
-    renderDensityMode();
+  if (isHeatmapMode.value) {
+    renderHeatmapMode();
     return;
   }
   renderTraceLayers();
@@ -753,10 +887,10 @@ onBeforeUnmount(() => {
     map.value = undefined;
   }
   tracksLayerGroup.value = undefined;
-  densityLayerGroup.value = undefined;
+  heatmapCanvas.value = undefined;
   latestBounds.value = null;
   resetTraceAggregationState();
-  resetDensityState();
+  resetHeatmapState();
   resetPassagesState();
 });
 </script>
@@ -793,10 +927,10 @@ onBeforeUnmount(() => {
       · {{ aggregatedDistanceKm.toFixed(0) }} km · D+ {{ Math.round(aggregatedElevationGainM).toLocaleString() }} m
     </div>
     <div
-      v-if="isDensityOverlayVisible"
-      class="map-overlay map-overlay--density"
+      v-if="isHeatmapOverlayVisible"
+      class="map-overlay map-overlay--heatmap"
     >
-      Point density · {{ densityCellCount }} cells · {{ densityPointCount.toLocaleString() }} points
+      Heatmap · {{ heatmapCellCount }} cells · {{ heatmapPointCount.toLocaleString() }} sampled points
     </div>
     <div
       v-if="isPassagesOverlayVisible"
@@ -861,12 +995,17 @@ onBeforeUnmount(() => {
   font-size: 0.8rem;
 }
 
-.map-overlay--density {
+.map-overlay--heatmap {
   inset: 14px 14px auto auto;
-  color: #0f2b64;
-  border: 1px solid #bdd3ff;
-  background: rgba(231, 239, 255, 0.95);
+  color: #471111;
+  border: 1px solid #f0b4a8;
+  background: rgba(255, 238, 235, 0.95);
   font-size: 0.8rem;
+}
+
+:deep(.activity-heatmap-canvas) {
+  pointer-events: none;
+  opacity: 0.9;
 }
 
 .map-overlay--passages {
