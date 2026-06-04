@@ -123,6 +123,30 @@ func TestBestDistanceEffort_ReturnsNilWhenAltitudeDataIsEmpty(t *testing.T) {
 	}
 }
 
+func TestBestPowerForTime_ReturnsNilWhenPowerStreamIsTruncated(t *testing.T) {
+	// GIVEN
+	stream := syntheticStream(
+		[]float64{0, 100, 200, 300},
+		[]int{0, 10, 20, 30},
+		[]float64{100, 102, 104, 106},
+	)
+	stream.Watts = &strava.PowerStream{Data: []float64{180}}
+	activity := strava.Activity{
+		Id:     43,
+		Name:   "Truncated virtual ride",
+		Type:   "VirtualRide",
+		Stream: stream,
+	}
+
+	// WHEN
+	effort := BestPowerForTime(activity, 20)
+
+	// THEN
+	if effort != nil {
+		t.Fatalf("expected nil effort when power stream is truncated, got %+v", effort)
+	}
+}
+
 func TestBestElevationForDistance_WithSyntheticStream(t *testing.T) {
 	// GIVEN
 	stream := syntheticStream(

@@ -55,6 +55,25 @@ class BestEffortDistanceStatisticTest {
     }
 
     @Test
+    fun `calculateBestTimeForDistance returns null when time stream is truncated`() {
+        // GIVEN
+        val activity = StatisticsFixtures.syntheticRideActivity(
+            id = 30,
+            stream = StatisticsFixtures.defaultStream(
+                distances = listOf(0.0, 100.0, 200.0, 300.0),
+                times = listOf(0, 10),
+                altitudes = listOf(100.0, 102.0, 104.0, 106.0),
+            )
+        )
+
+        // WHEN
+        val effort = activity.calculateBestTimeForDistance(distance = 200.0)
+
+        // THEN
+        assertNull(effort)
+    }
+
+    @Test
     fun `statistic returns Not available when no effort exists`() {
         // GIVEN
         val activity = StatisticsFixtures.syntheticRideActivity(

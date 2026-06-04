@@ -333,12 +333,18 @@ function todayKey(): string {
       <section class="settings-grid">
         <article class="settings-panel">
           <header>
-            <h2>FTP History</h2>
+            <h2>
+              FTP History
+              <TooltipHint :text="getMetricTooltip('FTP setting') ?? ''" />
+            </h2>
           </header>
 
           <div class="settings-form-grid">
             <label>
-              <span>Effective from</span>
+              <span>
+                Effective from
+                <TooltipHint :text="getMetricTooltip('FTP effective date') ?? ''" />
+              </span>
               <input
                 v-model="draftEffectiveFrom"
                 type="date"
@@ -346,7 +352,10 @@ function todayKey(): string {
               >
             </label>
             <label>
-              <span>FTP</span>
+              <span>
+                FTP
+                <TooltipHint :text="getMetricTooltip('FTP setting') ?? ''" />
+              </span>
               <input
                 v-model.number="draftFtp"
                 type="number"
@@ -421,7 +430,10 @@ function todayKey(): string {
           </div>
           <dl class="settings-priority">
             <div>
-              <dt>FTP priority</dt>
+              <dt>
+                FTP priority
+                <TooltipHint :text="getMetricTooltip('FTP priority') ?? ''" />
+              </dt>
               <dd>Manual by activity date, Strava profile, estimated from power stream</dd>
             </div>
             <div>

@@ -90,12 +90,15 @@ private fun activityEffort(
 
     val distances = stream.distance.data
     val times = stream.time.data
-    val streamDataSize = distances.size
+    val streamDataSize = minOf(distances.size, times.size, altitudes.size, nonNullWatts.size)
+    if (streamDataSize < 2) {
+        return null
+    }
 
     var currentPower = 0
     val elevationPrefix = ElevationGainLossPrefix.from(altitudes, streamDataSize)
 
-    do {
+    while (idxEnd < streamDataSize) {
         val totalDistance = distances[idxEnd] - distances[idxStart]
         val totalAltitude = if (altitudes.isNotEmpty()) {
             altitudes[idxEnd] - altitudes[idxStart]
@@ -130,7 +133,7 @@ private fun activityEffort(
             ++idxStart
             ++idxEnd
         }
-    } while (idxEnd < streamDataSize)
+    }
 
     return bestEffort
 }

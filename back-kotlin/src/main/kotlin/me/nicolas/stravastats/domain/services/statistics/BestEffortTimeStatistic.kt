@@ -85,7 +85,10 @@ private fun activityEffort(
     val altitudes = stream.altitude?.data ?: emptyList()
     val nonNullWatts = stream.watts?.data?.map { it ?: 0 }
 
-    val streamDataSize = distances.size
+    val streamDataSize = minOf(distances.size, times.size, altitudes.size)
+    if (streamDataSize < 2) {
+        return null
+    }
     val elevationPrefix = ElevationGainLossPrefix.from(altitudes, streamDataSize)
 
     while (idxEnd < streamDataSize) {
@@ -99,7 +102,11 @@ private fun activityEffort(
             val estimatedDistanceForTime = totalDistance / totalTime * seconds
             if (estimatedDistanceForTime > maxDist) {
                 maxDist = estimatedDistanceForTime
-                val averagePower = nonNullWatts?.subList(idxStart, idxEnd + 1)?.average()?.toInt()
+                val averagePower = nonNullWatts
+                    ?.takeIf { watts -> idxEnd < watts.size }
+                    ?.subList(idxStart, idxEnd + 1)
+                    ?.average()
+                    ?.toInt()
                 val elevation = elevationPrefix.between(idxStart, idxEnd)
                 bestEffort = ActivityEffort(
                     maxDist, seconds, totalAltitude, idxStart, idxEnd, averagePower,

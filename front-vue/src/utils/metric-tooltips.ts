@@ -49,6 +49,10 @@ const exactMetricTooltips: Record<string, string> = {
     "Training load estimate based on duration, Normalized Power, IF, and FTP. About 100 is roughly one hour at FTP.",
   "FTP setting":
     "Functional Threshold Power used for local calculations. Manual dated settings are preferred over Strava profile values and estimates.",
+  "FTP effective date":
+    "Date from which a manual FTP applies. Activities on or after this date use that FTP until a newer dated value exists.",
+  "FTP priority":
+    "FTP resolution order for activity analysis: manual dated FTP for the activity date, then Strava profile FTP, then estimate from the power stream.",
   "Estimated FTP":
     "Fallback FTP estimated from the activity power curve when no manual or Strava FTP is available.",
   "FTP / kg":

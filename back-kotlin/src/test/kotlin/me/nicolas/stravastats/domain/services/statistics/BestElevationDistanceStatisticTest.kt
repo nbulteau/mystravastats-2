@@ -58,6 +58,26 @@ class BestElevationDistanceStatisticTest {
     }
 
     @Test
+    fun `calculateBestElevationForDistance returns null when stream original size is larger than available data`() {
+        // GIVEN
+        val stream = StatisticsFixtures.defaultStream(
+            distances = listOf(0.0, 100.0),
+            times = listOf(0, 10),
+            altitudes = listOf(100.0, 101.0),
+        )
+        val activity = StatisticsFixtures.syntheticRideActivity(
+            id = 25,
+            stream = stream.copy(distance = stream.distance.copy(originalSize = 10))
+        )
+
+        // WHEN
+        val effort = activity.calculateBestElevationForDistance(distance = 200.0)
+
+        // THEN
+        assertNull(effort)
+    }
+
+    @Test
     fun `statistic requires distance strictly greater than 100 meters`() {
         // GIVEN
         val activity = StatisticsFixtures.syntheticRideActivity(id = 24)

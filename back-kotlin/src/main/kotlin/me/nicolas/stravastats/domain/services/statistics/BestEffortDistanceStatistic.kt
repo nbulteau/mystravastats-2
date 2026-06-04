@@ -86,7 +86,10 @@ private fun activityEffort(
         }
     }
 
-    val streamDataSize = distances.size
+    val streamDataSize = minOf(distances.size, times.size)
+    if (streamDataSize < 2) {
+        return null
+    }
     val elevationPrefix = ElevationGainLossPrefix.from(altitudes, streamDataSize)
 
     while (idxEnd < streamDataSize) {
@@ -100,7 +103,7 @@ private fun activityEffort(
             val estimatedTimeForDistance = distance / totalDistance * totalTime
             if (estimatedTimeForDistance < bestTime && estimatedTimeForDistance > 1) {
                 bestTime = estimatedTimeForDistance
-                val averagePower = wattsPrefixSum?.let { prefix ->
+                val averagePower = wattsPrefixSum?.takeIf { prefix -> idxEnd + 1 < prefix.size }?.let { prefix ->
                     val sampleCount = idxEnd - idxStart + 1
                     if (sampleCount == 0) null else (prefix[idxEnd + 1] - prefix[idxStart]) / sampleCount
                 }

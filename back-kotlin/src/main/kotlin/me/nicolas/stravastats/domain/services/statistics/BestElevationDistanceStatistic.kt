@@ -78,10 +78,13 @@ private fun activityEffort(
         }
     }
 
-    val streamDataSize = stream.distance.originalSize
+    val streamDataSize = minOf(distances.size, times.size, altitudes.size)
+    if (streamDataSize < 2) {
+        return null
+    }
     val elevationPrefix = ElevationGainLossPrefix.from(altitudes, streamDataSize)
 
-    do {
+    while (idxEnd < streamDataSize) {
         val totalDistance = distances[idxEnd] - distances[idxStart]
         val totalAltitude = if (altitudes.isNotEmpty()) {
             altitudes[idxEnd] - altitudes[idxStart]
@@ -95,7 +98,7 @@ private fun activityEffort(
         } else {
             if (totalAltitude > bestElevation) {
                 bestElevation = totalAltitude
-                val averagePower = wattsPrefixSum?.let { prefix ->
+                val averagePower = wattsPrefixSum?.takeIf { prefix -> idxEnd + 1 < prefix.size }?.let { prefix ->
                     val sampleCount = idxEnd - idxStart + 1
                     if (sampleCount == 0) null else (prefix[idxEnd + 1] - prefix[idxStart]) / sampleCount
                 }
@@ -114,7 +117,7 @@ private fun activityEffort(
             }
             ++idxStart
         }
-    } while (idxEnd < streamDataSize)
+    }
 
     return bestEffort
 }

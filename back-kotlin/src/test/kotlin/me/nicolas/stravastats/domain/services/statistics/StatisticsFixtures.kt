@@ -4,6 +4,7 @@ import me.nicolas.stravastats.domain.business.strava.AthleteRef
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.stream.AltitudeStream
 import me.nicolas.stravastats.domain.business.strava.stream.DistanceStream
+import me.nicolas.stravastats.domain.business.strava.stream.PowerStream
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.business.strava.stream.TimeStream
 
@@ -45,6 +46,7 @@ internal object StatisticsFixtures {
         distances: List<Double> = listOf(0.0, 100.0, 200.0, 300.0, 400.0),
         times: List<Int> = listOf(0, 10, 20, 35, 50),
         altitudes: List<Double>? = listOf(100.0, 105.0, 115.0, 118.0, 130.0),
+        watts: List<Int?>? = null,
     ): Stream {
         val originalSize = distances.size
         return Stream(
@@ -66,6 +68,14 @@ internal object StatisticsFixtures {
                     originalSize = it.size,
                     resolution = "high",
                     seriesType = "distance",
+                )
+            },
+            watts = watts?.let {
+                PowerStream(
+                    data = it,
+                    originalSize = it.size,
+                    resolution = "high",
+                    seriesType = "time",
                 )
             },
         )

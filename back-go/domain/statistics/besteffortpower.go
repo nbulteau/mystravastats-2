@@ -100,6 +100,18 @@ func bestPowerForTimeForTime(id int64, name, activityType string, stream *strava
 	distances := stream.Distance
 	times := stream.Time
 	streamDataSize := len(distances.Data)
+	if len(times.Data) < streamDataSize {
+		streamDataSize = len(times.Data)
+	}
+	if len((*altitudes).Data) < streamDataSize {
+		streamDataSize = len((*altitudes).Data)
+	}
+	if len(nonNullWatts) < streamDataSize {
+		streamDataSize = len(nonNullWatts)
+	}
+	if streamDataSize < 2 {
+		return nil
+	}
 
 	currentPower := 0.0
 	elevationPrefix := newElevationGainLossPrefix((*altitudes).Data, streamDataSize)
