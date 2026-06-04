@@ -15,7 +15,7 @@ const usesWideLayout = computed(() => route.name === "diagnostics");
 
 const navItems = [
   { id: "dashboard-tab", name: "dashboard", controls: "dashboard-tab-pane", to: "/dashboard", label: "Dashboard" },
-  { id: "heatmap-tab", name: "heatmap", controls: "heatmap-tab-pane", to: "/heatmap", label: "Activity Heatmap" },
+  { id: "heatmap-tab", name: "heatmap", controls: "heatmap-tab-pane", to: "/heatmap", label: "Heatmap" },
   { id: "activities-tab", name: "activities", controls: "activities-tab-pane", to: "/activities", label: "Activities" },
   { id: "statistics-tab", name: "statistics", controls: "home-tab-pane", to: "/statistics", label: "Statistics" },
   { id: "charts-tab", name: "charts", controls: "chart-tab-pane", to: "/charts", label: "Trends" },

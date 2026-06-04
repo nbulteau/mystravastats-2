@@ -9,19 +9,21 @@ import type {
 } from "highcharts";
 import { calculateTrendLine } from "@/utils/charts";
 
-type YearMetric = "distance" | "elevation";
+type DetailMetric = "distance" | "elevation";
 
 const props = defineProps<{
-  elevationByYear: Record<string, number>;
-  distanceByYear: Record<string, number>;
+  averageDistanceByYear: Record<string, number>;
+  averageElevationByYear: Record<string, number>;
+  maxDistanceByYear: Record<string, number>;
+  maxElevationByYear: Record<string, number>;
 }>();
 
-const metricOptions: Array<{ value: YearMetric; label: string }> = [
+const metricOptions: Array<{ value: DetailMetric; label: string }> = [
   { value: "distance", label: "Distance" },
   { value: "elevation", label: "Elevation" },
 ];
 
-const selectedMetric = ref<YearMetric>("distance");
+const selectedMetric = ref<DetailMetric>("distance");
 const activeUnit = ref<"km" | "m">("km");
 
 const chartOptions: Options = reactive({
@@ -36,11 +38,11 @@ const chartOptions: Options = reactive({
     text: "",
   },
   xAxis: {
+    categories: [],
+    crosshair: true,
     labels: {
       autoRotation: [-45],
     },
-    categories: [],
-    crosshair: true,
   },
   yAxis: {
     min: 0,
@@ -72,7 +74,7 @@ const chartOptions: Options = reactive({
   },
   series: [
     {
-      name: "Distance",
+      name: "Average distance",
       type: "line",
       dataLabels: {
         enabled: true,
@@ -84,7 +86,19 @@ const chartOptions: Options = reactive({
       data: [],
     },
     {
-      name: "Trend line",
+      name: "Maximum distance",
+      type: "line",
+      dataLabels: {
+        enabled: true,
+        y: -10,
+        formatter: function (this: any): string {
+          return formatValue(this.y, activeUnit.value);
+        },
+      },
+      data: [],
+    },
+    {
+      name: "Average trend",
       type: "line",
       dashStyle: "ShortDash",
       marker: {
@@ -96,7 +110,7 @@ const chartOptions: Options = reactive({
   ],
 });
 
-function setSelectedMetric(metric: YearMetric) {
+function setSelectedMetric(metric: DetailMetric) {
   selectedMetric.value = metric;
 }
 
@@ -106,6 +120,20 @@ function safeValue(value: number | undefined): number {
 
 function formatValue(value: number, unit: "km" | "m"): string {
   return `${Math.round(value).toLocaleString()} ${unit}`;
+}
+
+function maxValueSummary(values: number[], years: string[], label: string, unit: "km" | "m"): string | null {
+  if (values.length === 0) {
+    return null;
+  }
+
+  const maxValue = Math.max(...values);
+  const maxIndex = values.indexOf(maxValue);
+  const year = years[maxIndex];
+  if (!year || !Number.isFinite(maxValue)) {
+    return null;
+  }
+  return `${label}: ${formatValue(maxValue, unit)} in ${year}`;
 }
 
 function highlightedPoints(values: number[]): Array<number | { y: number; marker: { enabled: true; radius: number; fillColor: string } }> {
@@ -120,35 +148,30 @@ function highlightedPoints(values: number[]): Array<number | { y: number; marker
     : value);
 }
 
-function bestSummary(values: number[], years: string[], unit: "km" | "m"): string {
-  if (values.length === 0) {
-    return "";
-  }
-
-  const maxValue = Math.max(...values);
-  const maxIndex = values.indexOf(maxValue);
-  const year = years[maxIndex];
-  if (!year || !Number.isFinite(maxValue)) {
-    return "";
-  }
-  return `Best year: ${formatValue(maxValue, unit)} in ${year}`;
-}
-
 function updateChartData() {
   const isDistance = selectedMetric.value === "distance";
-  const source = isDistance ? props.distanceByYear : props.elevationByYear;
-  const metricLabel = isDistance ? "Distance" : "Elevation";
+  const averageSource = isDistance ? props.averageDistanceByYear : props.averageElevationByYear;
+  const maxSource = isDistance ? props.maxDistanceByYear : props.maxElevationByYear;
   const unit = isDistance ? "km" : "m";
-  const years = Object.keys(source ?? {}).sort();
-  const values = years.map((year) => safeValue(source?.[year]));
+  const metricLabel = isDistance ? "Distance" : "Elevation";
+  const averageLabel = isDistance ? "Average distance" : "Average elevation";
+  const maxLabel = isDistance ? "Maximum distance" : "Maximum elevation";
+  const years = Array.from(
+    new Set([...Object.keys(averageSource ?? {}), ...Object.keys(maxSource ?? {})]),
+  ).sort();
+  const averageValues = years.map((year) => safeValue(averageSource?.[year]));
+  const maxValues = years.map((year) => safeValue(maxSource?.[year]));
+  const subtitle = [
+    maxValueSummary(averageValues, years, "Best average", unit),
+    maxValueSummary(maxValues, years, "Best max", unit),
+  ].filter((part): part is string => part !== null).join(" - ");
 
   activeUnit.value = unit;
-
   if (chartOptions.title) {
-    chartOptions.title.text = `${metricLabel} by year`;
+    chartOptions.title.text = `${metricLabel} details by year`;
   }
   if (chartOptions.subtitle) {
-    chartOptions.subtitle.text = bestSummary(values, years, unit);
+    chartOptions.subtitle.text = subtitle;
   }
   (chartOptions.xAxis as XAxisOptions).categories = years;
   (chartOptions.yAxis as YAxisOptions).title = {
@@ -156,18 +179,24 @@ function updateChartData() {
   };
 
   if (chartOptions.series?.[0]) {
-    (chartOptions.series[0] as SeriesLineOptions).name = metricLabel;
-    (chartOptions.series[0] as SeriesLineOptions).data = highlightedPoints(values);
+    (chartOptions.series[0] as SeriesLineOptions).name = averageLabel;
+    (chartOptions.series[0] as SeriesLineOptions).data = highlightedPoints(averageValues);
   }
   if (chartOptions.series?.[1]) {
-    (chartOptions.series[1] as SeriesLineOptions).data = calculateTrendLine(values);
+    (chartOptions.series[1] as SeriesLineOptions).name = maxLabel;
+    (chartOptions.series[1] as SeriesLineOptions).data = highlightedPoints(maxValues);
+  }
+  if (chartOptions.series?.[2]) {
+    (chartOptions.series[2] as SeriesLineOptions).data = calculateTrendLine(averageValues);
   }
 }
 
 watch(
   [
-    () => props.elevationByYear,
-    () => props.distanceByYear,
+    () => props.averageDistanceByYear,
+    () => props.averageElevationByYear,
+    () => props.maxDistanceByYear,
+    () => props.maxElevationByYear,
     selectedMetric,
   ],
   updateChartData,
@@ -176,16 +205,16 @@ watch(
 </script>
 
 <template>
-  <div class="distance-elevation-year">
+  <div class="distance-elevation-details">
     <div
-      class="distance-elevation-year__controls"
+      class="distance-elevation-details__controls"
       role="group"
-      aria-label="Distance elevation by year metric"
+      aria-label="Distance elevation details metric"
     >
       <div
         class="scope-switch"
         role="group"
-        aria-label="Year metric"
+        aria-label="Distance elevation metric"
       >
         <button
           v-for="option in metricOptions"
@@ -207,13 +236,13 @@ watch(
 </template>
 
 <style scoped>
-.distance-elevation-year {
+.distance-elevation-details {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.distance-elevation-year__controls {
+.distance-elevation-details__controls {
   display: flex;
   justify-content: flex-end;
 }
@@ -246,7 +275,7 @@ watch(
 }
 
 @media (max-width: 640px) {
-  .distance-elevation-year__controls {
+  .distance-elevation-details__controls {
     justify-content: stretch;
   }
 

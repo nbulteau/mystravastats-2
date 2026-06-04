@@ -14,15 +14,13 @@ import AnnualGoalsPanel from "@/components/AnnualGoalsPanel.vue";
 import CumulativeDistancePerYearChart from "@/components/charts/CumulativeDataPerYearChart.vue";
 import EddingtonNumberChart from "@/components/charts/EddingtonNumberChart.vue";
 import SpeedPerYearChart from "@/components/charts/SpeedPerYearChart.vue";
-import DistancePerYearChart from "@/components/charts/DistancePerYearChart.vue";
-import ElevationPerYearChart from "@/components/charts/ElevationPerYearChart.vue";
+import DistanceElevationDetailsPerYearChart from "@/components/charts/DistanceElevationDetailsPerYearChart.vue";
 import HeartRatePerYearChart from "@/components/charts/HeartRatePerYearChart.vue";
 import PowerPerYearChart from "@/components/charts/PowerPerYearChart.vue";
 import ActivitiesCountPerYearChart from "@/components/charts/ActivitiesCountPerYearChart.vue";
 import DistanceElevationPerYearChart from "@/components/charts/DistanceElevationPerYearChart.vue";
 import ActiveDaysConsistencyPerYearChart from "@/components/charts/ActiveDaysConsistencyPerYearChart.vue";
 import MovingTimePerYearChart from "@/components/charts/MovingTimePerYearChart.vue";
-import ElevationEfficiencyPerYearChart from "@/components/charts/ElevationEfficiencyPerYearChart.vue";
 import { formatActivityTypeLabel } from "@/utils/formatters";
 
 const contextStore = useContextStore();
@@ -70,9 +68,6 @@ const averageElevationByYear = computed(
   () => dashboardStore.dashboardData.averageElevationByYear
 );
 const maxElevationByYear = computed(() => dashboardStore.dashboardData.maxElevationByYear);
-const elevationEfficiencyByYear = computed(
-  () => dashboardStore.dashboardData.elevationEfficiencyByYear
-);
 const averageHeartRateByYear = computed(
   () => dashboardStore.dashboardData.averageHeartRateByYear
 );
@@ -169,15 +164,6 @@ async function setEddingtonBasis(basis: EddingtonBasis) {
     <section class="chart-panel">
       <div class="chart-panel__header">
         <h3 class="chart-panel__title">
-          Activities count
-        </h3>
-        <TooltipHint :text="tooltip('Nb activities')" />
-      </div>
-      <ActivitiesCountPerYearChart :activities-count="activitiesCount" />
-    </section>
-    <section class="chart-panel">
-      <div class="chart-panel__header">
-        <h3 class="chart-panel__title">
           Eddington number
         </h3>
         <TooltipHint :text="tooltip('Eddington number')" />
@@ -248,9 +234,19 @@ async function setEddingtonBasis(basis: EddingtonBasis) {
         <TooltipHint :text="tooltip('Total distance')" />
       </div>
       <CumulativeDistancePerYearChart
+        :activity-type-label="currentActivityTypeLabel"
         :cumulative-distance-per-year="cumulativeDistancePerYear"
         :cumulative-elevation-per-year="cumulativeElevationPerYear"
       />
+    </section>
+    <section class="chart-panel">
+      <div class="chart-panel__header">
+        <h3 class="chart-panel__title">
+          Activities count
+        </h3>
+        <TooltipHint :text="tooltip('Nb activities')" />
+      </div>
+      <ActivitiesCountPerYearChart :activities-count="activitiesCount" />
     </section>
     <section class="chart-panel">
       <div class="chart-panel__header">
@@ -279,36 +275,15 @@ async function setEddingtonBasis(basis: EddingtonBasis) {
     <section class="chart-panel">
       <div class="chart-panel__header">
         <h3 class="chart-panel__title">
-          Distance
+          Distance / elevation
         </h3>
         <TooltipHint :text="tooltip('Max distance')" />
       </div>
-      <DistancePerYearChart
+      <DistanceElevationDetailsPerYearChart
         :average-distance-by-year="averageDistanceByYear"
-        :max-distance-by-year="maxDistanceByYear"
-      />
-    </section>
-    <section class="chart-panel">
-      <div class="chart-panel__header">
-        <h3 class="chart-panel__title">
-          Elevation
-        </h3>
-        <TooltipHint :text="tooltip('Max elevation')" />
-      </div>
-      <ElevationPerYearChart
         :average-elevation-by-year="averageElevationByYear"
+        :max-distance-by-year="maxDistanceByYear"
         :max-elevation-by-year="maxElevationByYear"
-      />
-    </section>
-    <section class="chart-panel">
-      <div class="chart-panel__header">
-        <h3 class="chart-panel__title">
-          Elevation efficiency
-        </h3>
-        <TooltipHint :text="tooltip('Elevation efficiency')" />
-      </div>
-      <ElevationEfficiencyPerYearChart
-        :elevation-efficiency-by-year="elevationEfficiencyByYear"
       />
     </section>
     <section class="chart-panel">

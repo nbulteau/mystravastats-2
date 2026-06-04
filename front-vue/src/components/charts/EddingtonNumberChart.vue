@@ -28,7 +28,7 @@ const hasChartData = ref(false);
 const chartOptions: Options = reactive({
   chart: {
     type: "column",
-    height: 360,
+    height: 500,
   },
   title: {
     text: "",
