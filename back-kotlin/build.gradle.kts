@@ -2,13 +2,13 @@ import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import org.gradle.jvm.toolchain.JvmVendorSpec
 
 plugins {
-    kotlin("jvm") version "2.3.20"
-    kotlin("plugin.spring") version "2.3.20"
+    kotlin("jvm") version "2.4.0"
+    kotlin("plugin.spring") version "2.4.0"
 
     id("org.springframework.boot") version "4.0.6"
     id("io.spring.dependency-management") version "1.1.7"
     id("org.graalvm.buildtools.native") version "1.0.0"
-    id("com.github.ben-manes.versions") version "0.53.0"
+    id("com.github.ben-manes.versions") version "0.54.0"
 }
 
 group = "me.nicolas"
@@ -43,7 +43,7 @@ dependencies {
     //developmentOnly("org.springframework.boot:spring-boot-devtools")
     //providedRuntime("org.springframework.boot:spring-boot-starter-tomcat")
 
-    implementation("tools.jackson.module:jackson-module-kotlin:3.1.3")
+    implementation("tools.jackson.module:jackson-module-kotlin:3.1.4")
 
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
 
@@ -54,7 +54,7 @@ dependencies {
     // Garmin FIT Java SDK sourced from GitHub via JitPack (replaces the vendored libs/fit.jar).
     // All SessionMesg/RecordMesg accessors used by FITRepository are present and compatible.
     // Newer versions available at https://github.com/garmin/fit-java-sdk/tags.
-    implementation("com.github.garmin:fit-java-sdk:21.200.0")
+    implementation("com.github.garmin:fit-java-sdk:21.202.0")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
