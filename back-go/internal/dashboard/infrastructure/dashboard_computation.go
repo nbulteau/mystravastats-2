@@ -270,6 +270,8 @@ func computeDashboardData(activityTypes ...business.ActivityType) business.Dashb
 	maxHeartRateByYear := make(map[string]float64)
 	averageWattsByYear := make(map[string]float64)
 	maxWattsByYear := make(map[string]float64)
+	deviceAverageWattsByYear := make(map[string]float64)
+	deviceMaxWattsByYear := make(map[string]float64)
 
 	for year, yearActivities := range activitiesGroupedByYear {
 		nbActivitiesByYear[year] = len(yearActivities)
@@ -291,6 +293,12 @@ func computeDashboardData(activityTypes ...business.ActivityType) business.Dashb
 		maxHeartRateByYear[year] = maxHeartRate(yearActivities)
 		averageWattsByYear[year] = averageWatts(yearActivities)
 		maxWattsByYear[year] = maxWatts(yearActivities)
+		if deviceAverageWatts := averageDeviceWatts(yearActivities); deviceAverageWatts > 0 {
+			deviceAverageWattsByYear[year] = deviceAverageWatts
+		}
+		if deviceMaxWatts := maxDeviceWatts(yearActivities); deviceMaxWatts > 0 {
+			deviceMaxWattsByYear[year] = deviceMaxWatts
+		}
 	}
 
 	return business.DashboardData{
@@ -311,6 +319,8 @@ func computeDashboardData(activityTypes ...business.ActivityType) business.Dashb
 		MaxHeartRateByYear:        maxHeartRateByYear,
 		AverageWattsByYear:        averageWattsByYear,
 		MaxWattsByYear:            maxWattsByYear,
+		DeviceAverageWattsByYear:  deviceAverageWattsByYear,
+		DeviceMaxWattsByYear:      deviceMaxWattsByYear,
 	}
 }
 
@@ -454,6 +464,31 @@ func maxWatts(activities []*strava.Activity) float64 {
 	var maxWattsValue float64
 	for _, activity := range activities {
 		if activity.AverageWatts > maxWattsValue {
+			maxWattsValue = activity.AverageWatts
+		}
+	}
+	return maxWattsValue
+}
+
+func averageDeviceWatts(activities []*strava.Activity) float64 {
+	var sum float64
+	var count float64
+	for _, activity := range activities {
+		if activity.DeviceWatts && activity.AverageWatts > 0 {
+			sum += activity.AverageWatts
+			count++
+		}
+	}
+	if count == 0 {
+		return 0
+	}
+	return sum / count
+}
+
+func maxDeviceWatts(activities []*strava.Activity) float64 {
+	var maxWattsValue float64
+	for _, activity := range activities {
+		if activity.DeviceWatts && activity.AverageWatts > maxWattsValue {
 			maxWattsValue = activity.AverageWatts
 		}
 	}

@@ -95,6 +95,9 @@ class DashboardService(
         var averageWattsCount: Int = 0,
         var averageWattsSum: Int = 0,
         var maxWatts: Int = 0,
+        var deviceAverageWattsCount: Int = 0,
+        var deviceAverageWattsSum: Int = 0,
+        var deviceMaxWatts: Int = 0,
     )
 
     private data class AnnualGoalsCacheFile(
@@ -338,6 +341,16 @@ class DashboardService(
             .mapValues { (_, stats) -> stats.maxWatts }
             .filter { it.value > 0 }
 
+        val deviceAverageWattsByYear = yearlyAccumulators
+            .mapValues { (_, stats) ->
+                if (stats.deviceAverageWattsCount == 0) 0 else stats.deviceAverageWattsSum / stats.deviceAverageWattsCount
+            }
+            .filter { it.value > 0 }
+
+        val deviceMaxWattsByYear = yearlyAccumulators
+            .mapValues { (_, stats) -> stats.deviceMaxWatts }
+            .filter { it.value > 0 }
+
         return DashboardData(
             nbActivitiesByYear,
             activeDaysByYear,
@@ -355,7 +368,9 @@ class DashboardService(
             averageHeartRateByYear,
             maxHeartRateByYear,
             averageWattsByYear,
-            maxWattsByYear
+            maxWattsByYear,
+            deviceAverageWattsByYear,
+            deviceMaxWattsByYear
         )
     }
 
@@ -418,6 +433,11 @@ class DashboardService(
                 stats.averageWattsSum += activity.averageWatts
             }
             stats.maxWatts = maxOf(stats.maxWatts, activity.averageWatts)
+            if (activity.deviceWatts && activity.averageWatts > 0) {
+                stats.deviceAverageWattsCount++
+                stats.deviceAverageWattsSum += activity.averageWatts
+                stats.deviceMaxWatts = maxOf(stats.deviceMaxWatts, activity.averageWatts)
+            }
         }
         return stats
     }

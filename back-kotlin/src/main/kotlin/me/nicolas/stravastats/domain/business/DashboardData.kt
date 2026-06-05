@@ -18,4 +18,6 @@ data class DashboardData(
     val maxHeartRateByYear: Map<String, Int>,
     val averageWattsByYear: Map<String, Int>,
     val maxWattsByYear: Map<String, Int>,
+    val deviceAverageWattsByYear: Map<String, Int>,
+    val deviceMaxWattsByYear: Map<String, Int>,
 )

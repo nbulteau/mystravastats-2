@@ -76,6 +76,12 @@ const averageWattsByYear = computed(() => dashboardStore.dashboardData.averageWa
 const maxWattsByYear = computed(() =>
   sortDataByYear(dashboardStore.dashboardData.maxWattsByYear)
 );
+const deviceAverageWattsByYear = computed(() =>
+  sortDataByYear(dashboardStore.dashboardData.deviceAverageWattsByYear ?? {})
+);
+const deviceMaxWattsByYear = computed(() =>
+  sortDataByYear(dashboardStore.dashboardData.deviceMaxWattsByYear ?? {})
+);
 const eddingtonScopeOptions: Array<{ value: EddingtonScope; label: string }> = [
   { value: "lifetime", label: "Lifetime" },
   { value: "year", label: "Year" },
@@ -328,8 +334,10 @@ async function setEddingtonBasis(basis: EddingtonBasis) {
         <TooltipHint :text="tooltip('Average Watts')" />
       </div>
       <PowerPerYearChart
-          :average-watts-by-year="averageWattsByYear"
-          :max-watts-by-year="maxWattsByYear"
+        :average-watts-by-year="averageWattsByYear"
+        :max-watts-by-year="maxWattsByYear"
+        :device-average-watts-by-year="deviceAverageWattsByYear"
+        :device-max-watts-by-year="deviceMaxWattsByYear"
       />
     </section>
   </div>

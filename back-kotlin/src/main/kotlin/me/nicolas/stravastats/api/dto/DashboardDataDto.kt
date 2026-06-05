@@ -22,6 +22,8 @@ data class DashboardDataDto(
     val maxHeartRateByYear: Map<String, Int>,
     val averageWattsByYear: Map<String, Int>,
     val maxWattsByYear: Map<String, Int>,
+    val deviceAverageWattsByYear: Map<String, Int>,
+    val deviceMaxWattsByYear: Map<String, Int>,
 )
 
 fun DashboardData.toDto(): DashboardDataDto {
@@ -43,5 +45,7 @@ fun DashboardData.toDto(): DashboardDataDto {
         maxHeartRateByYear = this.maxHeartRateByYear,
         averageWattsByYear = this.averageWattsByYear,
         maxWattsByYear = this.maxWattsByYear,
+        deviceAverageWattsByYear = this.deviceAverageWattsByYear,
+        deviceMaxWattsByYear = this.deviceMaxWattsByYear,
     )
 }

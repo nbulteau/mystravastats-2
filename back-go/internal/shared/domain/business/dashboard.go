@@ -18,5 +18,7 @@ type DashboardData struct {
 	MaxHeartRateByYear        map[string]float64 `json:"maxHeartRateByYear"`
 	AverageWattsByYear        map[string]float64 `json:"averageWattsByYear"`
 	MaxWattsByYear            map[string]float64 `json:"maxWattsByYear"`
+	DeviceAverageWattsByYear  map[string]float64 `json:"deviceAverageWattsByYear"`
+	DeviceMaxWattsByYear      map[string]float64 `json:"deviceMaxWattsByYear"`
 	AverageCadence            [][]int64          `json:"averageCadence"`
 }

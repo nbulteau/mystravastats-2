@@ -917,6 +917,8 @@ func ToDashboardDataDto(data business.DashboardData) DashboardDataDto {
 		MaxHeartRateByYear:        data.MaxHeartRateByYear,
 		AverageWattsByYear:        data.AverageWattsByYear,
 		MaxWattsByYear:            data.MaxWattsByYear,
+		DeviceAverageWattsByYear:  data.DeviceAverageWattsByYear,
+		DeviceMaxWattsByYear:      data.DeviceMaxWattsByYear,
 		AverageCadenceByYear:      data.AverageCadence,
 	}
 }

@@ -157,6 +157,27 @@ func TestSumMovingTime_FallsBackToElapsedTimeWhenMovingTimeIsZero(t *testing.T) 
 	}
 }
 
+func TestDeviceWattsIgnoresStravaEstimatedPower(t *testing.T) {
+	// GIVEN
+	activities := []*strava.Activity{
+		{AverageWatts: 426.4, DeviceWatts: false},
+		{AverageWatts: 240.0, DeviceWatts: true},
+		{AverageWatts: 300.0, DeviceWatts: true},
+	}
+
+	// WHEN
+	average := averageDeviceWatts(activities)
+	maximum := maxDeviceWatts(activities)
+
+	// THEN
+	if math.Abs(average-270.0) > 0.0001 {
+		t.Fatalf("expected device average watts 270, got %.1f", average)
+	}
+	if math.Abs(maximum-300.0) > 0.0001 {
+		t.Fatalf("expected device max watts 300, got %.1f", maximum)
+	}
+}
+
 func TestComputeConsistencyByYear_UsesFullYearForPastYears(t *testing.T) {
 	// GIVEN
 	year := "2024"

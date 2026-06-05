@@ -306,6 +306,56 @@ class DashboardServiceTest {
     }
 
     @Test
+    fun `getDashboardData separates device power from estimated power`() {
+        // GIVEN
+        val activityTypes = setOf(ActivityType.Ride)
+        val activities = listOf(
+            createActivity(
+                id = 11L,
+                startDateLocal = "2025-01-01T08:00:00Z",
+                distanceMeters = 10000.0,
+                elevationGainMeters = 100.0,
+                movingTimeSeconds = 1800,
+                elapsedTimeSeconds = 1800,
+                averageWatts = 426,
+                deviceWatts = false,
+            ),
+            createActivity(
+                id = 12L,
+                startDateLocal = "2025-01-02T08:00:00Z",
+                distanceMeters = 10000.0,
+                elevationGainMeters = 100.0,
+                movingTimeSeconds = 1800,
+                elapsedTimeSeconds = 1800,
+                averageWatts = 240,
+                deviceWatts = true,
+            ),
+            createActivity(
+                id = 13L,
+                startDateLocal = "2025-01-03T08:00:00Z",
+                distanceMeters = 10000.0,
+                elevationGainMeters = 100.0,
+                movingTimeSeconds = 1800,
+                elapsedTimeSeconds = 1800,
+                averageWatts = 300,
+                deviceWatts = true,
+            ),
+        )
+        every {
+            activityProvider.getActivitiesByActivityTypeAndYear(activityTypes)
+        } returns activities
+
+        // WHEN
+        val result = dashboardService.getDashboardData(activityTypes)
+
+        // THEN
+        assertEquals(322, result.averageWattsByYear["2025"])
+        assertEquals(426, result.maxWattsByYear["2025"])
+        assertEquals(270, result.deviceAverageWattsByYear["2025"])
+        assertEquals(300, result.deviceMaxWattsByYear["2025"])
+    }
+
+    @Test
     fun `saveAnnualGoals persists targets locally and returns projections`() {
         // GIVEN
         val activityTypes = setOf(ActivityType.Ride)
@@ -456,12 +506,16 @@ class DashboardServiceTest {
         elevationGainMeters: Double,
         movingTimeSeconds: Int,
         elapsedTimeSeconds: Int,
+        averageWatts: Int = 0,
+        deviceWatts: Boolean = false,
     ): StravaActivity {
         return StravaActivity(
             athlete = AthleteRef(1),
             averageSpeed = if (movingTimeSeconds > 0) distanceMeters / movingTimeSeconds else 0.0,
+            averageWatts = averageWatts,
             commute = false,
             distance = distanceMeters,
+            deviceWatts = deviceWatts,
             elapsedTime = elapsedTimeSeconds,
             id = id,
             maxSpeed = 0.0f,

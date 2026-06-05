@@ -16,6 +16,8 @@ export class DashboardData {
     maxHeartRateByYear: Record<string, number>;
     averageWattsByYear: Record<string, number>;
     maxWattsByYear: Record<string, number>;
+    deviceAverageWattsByYear: Record<string, number>;
+    deviceMaxWattsByYear: Record<string, number>;
     averageCadenceByYear: Array<Array<number>>;
 
     constructor(
@@ -36,6 +38,8 @@ export class DashboardData {
         maxHeartRateByYear: Record<string, number>,
         averageWattsByYear: Record<string, number>,
         maxWattsByYear: Record<string, number>,
+        deviceAverageWattsByYear: Record<string, number>,
+        deviceMaxWattsByYear: Record<string, number>,
         averageCadenceByYear: Array<Array<number>>
     ) {
         this.nbActivitiesByYear = nbActivitiesByYear;
@@ -55,6 +59,8 @@ export class DashboardData {
         this.maxHeartRateByYear = maxHeartRateByYear;
         this.averageWattsByYear = averageWattsByYear;
         this.maxWattsByYear = maxWattsByYear;
+        this.deviceAverageWattsByYear = deviceAverageWattsByYear;
+        this.deviceMaxWattsByYear = deviceMaxWattsByYear;
         this.averageCadenceByYear = averageCadenceByYear;
     }
 }
