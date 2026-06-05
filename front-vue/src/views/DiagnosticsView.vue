@@ -63,6 +63,7 @@ const files = computed(() => asRecord(root.value.files));
 const composite = computed(() => asRecord(root.value.composite));
 const sourceSync = computed(() => asRecord(root.value.sourceSync));
 const fitSourceSync = computed(() => asRecord(sourceSync.value.fit));
+const fitSyncModule = computed(() => asRecord(fitSourceSync.value.syncModule));
 const runtimeConfig = computed(() => asRecord(root.value.runtimeConfig));
 const runtimeData = computed(() => asRecord(runtimeConfig.value.data));
 const runtimeServer = computed(() => asRecord(runtimeConfig.value.server));
@@ -404,7 +405,9 @@ const runtimeConfigItems = computed<Array<{ label: string; value: string; monosp
   { label: "Strava cache", value: textValue(runtimeData.value.stravaCachePath) || "n/a", monospace: true },
   { label: "Strava API base", value: textValue(runtimeData.value.stravaApiBaseUrl) || "n/a", monospace: true },
   { label: "FIT files", value: textValue(runtimeData.value.fitFilesPath) || "n/a", monospace: true },
+  { label: "FIT inbox", value: textValue(runtimeData.value.fitInboxPath) || "n/a", monospace: true },
   { label: "Garmin FIT source", value: textValue(runtimeData.value.garminFitSourcePath) || "Auto-detect", monospace: true },
+  { label: "Garmin sync module", value: textValue(runtimeData.value.garminFitSyncBin) || "n/a", monospace: true },
   { label: "GPX files", value: textValue(runtimeData.value.gpxFilesPath) || "n/a", monospace: true },
   { label: "CORS origins", value: displayList(runtimeCors.value.allowedOrigins), monospace: true },
   { label: "CORS headers", value: displayList(runtimeCors.value.allowedHeaders), monospace: true },
@@ -435,9 +438,15 @@ const sourceSyncSummary = computed(() => textValue(sourceSync.value.message) || 
 const sourceSyncItems = computed<Array<{ label: string; value: string; tone?: "warn" | "up" | "neutral"; monospace?: boolean }>>(() => {
   const importedFiles = numberValue(fitSourceSync.value.importedFiles) ?? 0;
   const invalidFiles = numberValue(fitSourceSync.value.invalidFiles) ?? 0;
+  const moduleStatus = textValue(fitSyncModule.value.status);
+  const moduleCopiedFiles = numberValue(fitSyncModule.value.copiedFiles) ?? 0;
   return [
     { label: "Last run", value: formatDateTime(textValue(sourceSync.value.completedAt)), tone: "neutral" },
-    { label: "Source", value: textValue(fitSourceSync.value.sourcePath) || "No Garmin USB source", monospace: true, tone: textValue(fitSourceSync.value.sourcePath) ? "neutral" : "warn" },
+    { label: "Source type", value: formatFITSourceKind(textValue(fitSourceSync.value.sourceKind)), tone: textValue(fitSourceSync.value.sourceKind) ? "neutral" : "warn" },
+    { label: "Source", value: textValue(fitSourceSync.value.sourcePath) || "No FIT inbox or Garmin source", monospace: true, tone: textValue(fitSourceSync.value.sourcePath) ? "neutral" : "warn" },
+    { label: "Inbox", value: textValue(fitSourceSync.value.inboxPath) || textValue(runtimeData.value.fitInboxPath) || "n/a", monospace: true },
+    { label: "Sync module", value: moduleStatus ? `${formatFITModuleStatus(moduleStatus)} · ${textValue(fitSyncModule.value.backend) || "external"}` : "n/a", tone: moduleStatus === "failed" ? "warn" : "neutral" },
+    { label: "Copied to inbox", value: formatInteger(moduleCopiedFiles), tone: moduleCopiedFiles > 0 ? "up" : "neutral" },
     { label: "Destination", value: textValue(fitSourceSync.value.destinationPath) || textValue(runtimeData.value.fitFilesPath) || "n/a", monospace: true },
     { label: "Scanned", value: formatInteger(numberValue(fitSourceSync.value.scannedFiles)) },
     { label: "Imported", value: formatInteger(importedFiles), tone: importedFiles > 0 ? "up" : "neutral" },
@@ -1011,6 +1020,22 @@ function formatProvider(value: string): string {
   if (normalized === "composite") return "Composite";
   if (normalized === "") return "Unknown";
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
+function formatFITSourceKind(value: string): string {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "fit_inbox") return "FIT inbox";
+  if (normalized === "garmin_usb") return "Garmin USB";
+  return value || "No source";
+}
+
+function formatFITModuleStatus(value: string): string {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "ok") return "OK";
+  if (normalized === "no_device") return "No device";
+  if (normalized === "not_configured") return "Not configured";
+  if (normalized === "failed") return "Failed";
+  return value || "n/a";
 }
 
 function formatDateTime(value: string | null): string {

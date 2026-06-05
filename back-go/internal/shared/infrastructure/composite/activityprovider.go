@@ -117,6 +117,7 @@ type compositeRecord struct {
 	PrimaryProvider string
 	PrimaryID       int64
 	Sources         []ActivitySourceRef
+	StreamProvider  string
 	Confidence      string
 	Conflicts       []MergeConflict
 }
@@ -256,7 +257,8 @@ func (provider *CompositeActivityProvider) mergeCluster(cluster activityCluster)
 
 	primary := cluster.items[0]
 	activity := cloneActivity(primary.activity)
-	activity.Stream = bestStream(cluster.items)
+	stream, streamProvider := bestStreamWithProvider(cluster.items)
+	activity.Stream = stream
 
 	for _, item := range cluster.items[1:] {
 		activity = enrichMissingFields(activity, item.activity)
@@ -272,6 +274,7 @@ func (provider *CompositeActivityProvider) mergeCluster(cluster activityCluster)
 		PrimaryProvider: primary.source.Name,
 		PrimaryID:       primary.activity.Id,
 		Sources:         sourceRefs(cluster.items),
+		StreamProvider:  streamProvider,
 		Confidence:      confidenceForCluster(cluster),
 		Conflicts:       conflicts,
 	}
@@ -290,7 +293,7 @@ func (provider *CompositeActivityProvider) GetDetailedActivity(activityID int64)
 	if detailed == nil {
 		detailed = record.Activity.ToStravaDetailedActivity()
 	}
-	return enrichDetailedActivity(detailed, record.Activity)
+	return attachSourceProvenance(enrichDetailedActivity(detailed, record.Activity), record)
 }
 
 func (provider *CompositeActivityProvider) GetCachedDetailedActivity(activityID int64) *strava.DetailedActivity {
@@ -306,7 +309,7 @@ func (provider *CompositeActivityProvider) GetCachedDetailedActivity(activityID 
 	if detailed == nil {
 		return provider.GetDetailedActivity(activityID)
 	}
-	return enrichDetailedActivity(detailed, record.Activity)
+	return attachSourceProvenance(enrichDetailedActivity(detailed, record.Activity), record)
 }
 
 func (provider *CompositeActivityProvider) GetActivitiesByYearAndActivityTypes(year *int, activityTypes ...business.ActivityType) []*strava.Activity {
@@ -639,17 +642,19 @@ func detectConflicts(primary *strava.Activity, other *strava.Activity, source st
 	return conflicts
 }
 
-func bestStream(items []sourceActivity) *strava.Stream {
+func bestStreamWithProvider(items []sourceActivity) (*strava.Stream, string) {
 	var best *strava.Stream
+	bestProvider := ""
 	bestScore := 0
 	for _, item := range items {
 		score := streamScore(item.source.Name, item.activity.Stream)
 		if score > bestScore {
 			best = item.activity.Stream
+			bestProvider = item.source.Name
 			bestScore = score
 		}
 	}
-	return best
+	return best, bestProvider
 }
 
 func streamScore(source string, stream *strava.Stream) int {
@@ -745,6 +750,60 @@ func enrichDetailedActivity(detailed *strava.DetailedActivity, activity *strava.
 		enriched.WeightedAverageWatts = activity.WeightedAverageWatts
 	}
 	return &enriched
+}
+
+func attachSourceProvenance(detailed *strava.DetailedActivity, record compositeRecord) *strava.DetailedActivity {
+	if detailed == nil {
+		return nil
+	}
+	enriched := *detailed
+	streamProvider := record.StreamProvider
+	if streamProvider == "" {
+		streamProvider = record.PrimaryProvider
+	}
+	enriched.Source = &strava.ActivitySource{
+		PrimaryProvider: record.PrimaryProvider,
+		PrimaryID:       record.PrimaryID,
+		StreamProvider:  streamProvider,
+		MergeConfidence: record.Confidence,
+		Sources:         toDomainSourceRefs(record.Sources),
+		Conflicts:       toDomainSourceConflicts(record.Conflicts),
+		FieldSources: map[string]string{
+			"metadata":       record.PrimaryProvider,
+			"summary":        record.PrimaryProvider,
+			"segments":       record.PrimaryProvider,
+			"detailedStream": streamProvider,
+		},
+	}
+	return &enriched
+}
+
+func toDomainSourceRefs(sources []ActivitySourceRef) []strava.ActivitySourceRef {
+	refs := make([]strava.ActivitySourceRef, 0, len(sources))
+	for _, source := range sources {
+		refs = append(refs, strava.ActivitySourceRef{
+			Provider:       source.Provider,
+			ActivityID:     source.ActivityID,
+			StartDateLocal: source.StartDateLocal,
+			Distance:       source.Distance,
+			MovingTime:     source.MovingTime,
+			HasStream:      source.HasStream,
+		})
+	}
+	return refs
+}
+
+func toDomainSourceConflicts(conflicts []MergeConflict) []strava.ActivitySourceConflict {
+	refs := make([]strava.ActivitySourceConflict, 0, len(conflicts))
+	for _, conflict := range conflicts {
+		refs = append(refs, strava.ActivitySourceConflict{
+			Field:   conflict.Field,
+			Primary: conflict.Primary,
+			Other:   conflict.Other,
+			Source:  conflict.Source,
+		})
+	}
+	return refs
 }
 
 func cloneActivity(activity *strava.Activity) *strava.Activity {

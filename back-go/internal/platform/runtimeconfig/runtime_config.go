@@ -2,6 +2,7 @@ package runtimeconfig
 
 import (
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -25,6 +26,8 @@ var defaultCORSAllowedHeaders = []string{"Content-Type", "Authorization", "X-Req
 
 func Details() map[string]any {
 	fitFilesPath, fitConfigured := optionalEnv("FIT_FILES_PATH")
+	fitInboxPath, fitInboxConfigured, fitInboxSource := FITInboxPath()
+	garminFitSyncBin, garminFitSyncConfigured, garminFitSyncSource := GarminFITSyncBin()
 	gpxFilesPath, gpxConfigured := optionalEnv("GPX_FILES_PATH")
 	stravaConfigured := isConfigured("STRAVA_CACHE_PATH")
 	dataProvider, activeProviders := dataProviderDetails(stravaConfigured, fitConfigured, gpxConfigured)
@@ -41,8 +44,14 @@ func Details() map[string]any {
 			"stravaApiBaseConfigured":   isConfigured("STRAVA_API_BASE_URL"),
 			"fitFilesPath":              fitFilesPath,
 			"fitFilesConfigured":        fitConfigured,
+			"fitInboxPath":              fitInboxPath,
+			"fitInboxConfigured":        fitInboxConfigured,
+			"fitInboxSource":            fitInboxSource,
 			"garminFitSourcePath":       readStringEnv("GARMIN_FIT_SOURCE_PATH", ""),
 			"garminFitSourceConfigured": isConfigured("GARMIN_FIT_SOURCE_PATH"),
+			"garminFitSyncBin":          garminFitSyncBin,
+			"garminFitSyncConfigured":   garminFitSyncConfigured,
+			"garminFitSyncSource":       garminFitSyncSource,
 			"gpxFilesPath":              gpxFilesPath,
 			"gpxFilesConfigured":        gpxConfigured,
 			"gpxFilesSupported":         true,
@@ -118,6 +127,28 @@ func CORSAllowedHeaders() []string {
 
 func OptionalValue(key string) (string, bool) {
 	return optionalEnv(key)
+}
+
+func FITInboxPath() (string, bool, string) {
+	if value, configured := optionalEnv("FIT_INBOX_PATH"); configured {
+		return value, true, "FIT_INBOX_PATH"
+	}
+	if fitFilesPath, configured := optionalEnv("FIT_FILES_PATH"); configured {
+		return filepath.Join(fitFilesPath, "_inbox"), true, "derived"
+	}
+	return "", false, "not_configured"
+}
+
+func GarminFITSyncBin() (string, bool, string) {
+	if value, configured := optionalEnv("GARMIN_FIT_SYNC_BIN"); configured {
+		return value, true, "GARMIN_FIT_SYNC_BIN"
+	}
+	for _, candidate := range garminFITSyncCandidates() {
+		if isExecutableFile(candidate) {
+			return candidate, true, "auto"
+		}
+	}
+	return "", false, "not_configured"
 }
 
 func StringValue(key string, fallback string) string {
@@ -233,6 +264,37 @@ func readIntEnv(key string, fallback int) int {
 		return fallback
 	}
 	return value
+}
+
+func garminFITSyncCandidates() []string {
+	name := "garmin-fit-sync"
+	if filepath.Separator == '\\' {
+		name += ".exe"
+	}
+
+	candidates := []string{
+		filepath.Join("tools", "garmin-fit-sync", "target", "release", name),
+		filepath.Join("..", "tools", "garmin-fit-sync", "target", "release", name),
+	}
+	if executablePath, err := os.Executable(); err == nil {
+		executableDir := filepath.Dir(executablePath)
+		candidates = append(candidates,
+			filepath.Join(executableDir, "tools", "garmin-fit-sync", "target", "release", name),
+			filepath.Join(executableDir, "..", "tools", "garmin-fit-sync", "target", "release", name),
+		)
+	}
+	return candidates
+}
+
+func isExecutableFile(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil || info.IsDir() {
+		return false
+	}
+	if filepath.Separator == '\\' {
+		return true
+	}
+	return info.Mode()&0o111 != 0
 }
 
 func normalizedTimeoutMs() int {

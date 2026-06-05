@@ -213,8 +213,9 @@ func ToDetailedActivityDto(detailedActivity *strava.DetailedActivity) DetailedAc
 		ActivityEfforts:      toActivityEffortsDto(activityEfforts),
 		StravaSegmentEfforts: toStravaSegmentEffortsDto(detailedActivity.SegmentEfforts),
 		StartDate:            parseTime(detailedActivity.StartDate),
-		StartDateLocal:       parseTime(detailedActivity.StartDateLocal),
+		StartDateLocal:       detailedActivity.StartDateLocal,
 		StartLatlng:          finiteFloat64Slice(detailedActivity.StartLatLng),
+		Source:               toActivitySourceDto(detailedActivity.Source),
 		Stream:               toStreamDto(detailedActivity.Stream),
 		SufferScore:          finiteFloat64Ptr(detailedActivity.SufferScore),
 		TotalDescent:         finiteFloat64(calculateTotalDescent(detailedActivity.Stream)),
@@ -223,6 +224,49 @@ func ToDetailedActivityDto(detailedActivity *strava.DetailedActivity) DetailedAc
 		SportType:            firstNonEmpty(detailedActivity.SportType, detailedActivity.Type),
 		WeightedAverageWatts: detailedActivity.WeightedAverageWatts,
 	}
+}
+
+func toActivitySourceDto(source *strava.ActivitySource) *ActivitySourceDto {
+	if source == nil {
+		return nil
+	}
+	return &ActivitySourceDto{
+		PrimaryProvider: source.PrimaryProvider,
+		PrimaryID:       source.PrimaryID,
+		StreamProvider:  source.StreamProvider,
+		MergeConfidence: source.MergeConfidence,
+		Sources:         toActivitySourceRefsDto(source.Sources),
+		Conflicts:       toActivitySourceConflictsDto(source.Conflicts),
+		FieldSources:    source.FieldSources,
+	}
+}
+
+func toActivitySourceRefsDto(sources []strava.ActivitySourceRef) []ActivitySourceRefDto {
+	refs := make([]ActivitySourceRefDto, 0, len(sources))
+	for _, source := range sources {
+		refs = append(refs, ActivitySourceRefDto{
+			Provider:       source.Provider,
+			ActivityID:     source.ActivityID,
+			StartDateLocal: source.StartDateLocal,
+			Distance:       finiteFloat64(source.Distance),
+			MovingTime:     source.MovingTime,
+			HasStream:      source.HasStream,
+		})
+	}
+	return refs
+}
+
+func toActivitySourceConflictsDto(conflicts []strava.ActivitySourceConflict) []ActivitySourceConflictDto {
+	refs := make([]ActivitySourceConflictDto, 0, len(conflicts))
+	for _, conflict := range conflicts {
+		refs = append(refs, ActivitySourceConflictDto{
+			Field:   conflict.Field,
+			Primary: conflict.Primary,
+			Other:   conflict.Other,
+			Source:  conflict.Source,
+		})
+	}
+	return refs
 }
 
 func sanitizeStreamForDto(stream *strava.Stream) *strava.Stream {

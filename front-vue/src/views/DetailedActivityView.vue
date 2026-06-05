@@ -603,7 +603,7 @@
 import { Tooltip } from "bootstrap";
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import type { DetailedActivity, StravaSegmentEffort } from "@/models/activity.model";
+import type { ActivitySourceConflict, ActivitySourceRef, DetailedActivity, StravaSegmentEffort } from "@/models/activity.model";
 import { formatActivityTypeLabel, formatSpeedWithUnit, formatTime } from "@/utils/formatters";
 import { useContextStore } from "@/stores/context.js";
 import { useAthleteStore } from "@/stores/athlete";
@@ -905,6 +905,9 @@ const activityDateLabel = computed(() => {
   if (!rawDate) {
     return "Date unavailable";
   }
+  if (activity.value?.startDateLocal) {
+    return formatLocalActivityDate(rawDate);
+  }
 
   const parsedDate = new Date(rawDate);
   if (Number.isNaN(parsedDate.getTime())) {
@@ -1122,9 +1125,49 @@ const correctionSummary = computed(() => {
 });
 
 const dataSourceRows = computed<DetailMetricRow[]>(() => {
+  const currentActivity = activity.value;
   const streamCount = streamAvailabilityRows.value.filter((row) => row.value !== "Missing").length;
-  return [
+  const source = currentActivity?.source;
+  const rows: DetailMetricRow[] = [
     { label: "Displayed view", value: activityVersionLabel.value },
+  ];
+
+  if (source) {
+    rows.push(
+      {
+        label: "Primary data",
+        value: formatProviderLabel(source.primaryProvider),
+        hint: `Activity ID ${source.primaryId}`,
+      },
+      {
+        label: "Detailed stream",
+        value: formatProviderLabel(source.streamProvider || source.fieldSources?.detailedStream || source.primaryProvider),
+        hint: "GPS, altitude, speed, heart rate, cadence and power streams",
+      },
+      {
+        label: "Matched sources",
+        value: formatActivitySourceRefs(source.sources),
+        hint: source.mergeConfidence ? `Match confidence ${source.mergeConfidence}` : undefined,
+      },
+    );
+    if ((source.conflicts?.length ?? 0) > 0) {
+      rows.push({
+        label: "Source conflicts",
+        value: `${source.conflicts?.length ?? 0} field${(source.conflicts?.length ?? 0) > 1 ? "s" : ""}`,
+        hint: formatSourceConflictSample(source.conflicts),
+        tone: "warn",
+      });
+    }
+  } else {
+    rows.push({
+      label: "Primary data",
+      value: "Single source",
+      hint: "No composite provenance reported",
+      tone: "muted",
+    });
+  }
+
+  rows.push(
     {
       label: "Correction status",
       value: correctionSummary.value,
@@ -1140,7 +1183,9 @@ const dataSourceRows = computed<DetailMetricRow[]>(() => {
       value: availableStreamSummary.value,
       hint: `${streamCount}/6 available`,
     },
-  ];
+  );
+
+  return rows;
 });
 
 const versionDifferenceRows = computed<DetailMetricRow[]>(() => {
@@ -1817,6 +1862,49 @@ function formatSignedSpeed(value: number): string {
 function formatSignedTime(value: number): string {
   const sign = value > 0 ? "+" : value < 0 ? "-" : "";
   return `${sign}${formatTime(Math.abs(value))}`;
+}
+
+function formatLocalActivityDate(value: string): string {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
+  if (!match) {
+    return value.substring(0, 16);
+  }
+  const [, year, month, day, hour, minute] = match;
+  const localDate = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute));
+  return localDate.toLocaleString("en-US", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatProviderLabel(provider: string | undefined): string {
+  const normalized = (provider ?? "").trim().toLowerCase();
+  if (normalized === "strava") return "Strava";
+  if (normalized === "fit") return "FIT";
+  if (normalized === "gpx") return "GPX";
+  if (normalized === "ridewithgps") return "RideWithGPS";
+  return provider || "Unknown";
+}
+
+function formatActivitySourceRefs(sources: ActivitySourceRef[] | undefined): string {
+  if (!Array.isArray(sources) || sources.length === 0) {
+    return "n/a";
+  }
+  return sources
+    .map((source) => `${formatProviderLabel(source.provider)} #${source.activityId}${source.hasStream ? " + stream" : ""}`)
+    .join(" · ");
+}
+
+function formatSourceConflictSample(conflicts: ActivitySourceConflict[] | undefined): string | undefined {
+  if (!Array.isArray(conflicts) || conflicts.length === 0) {
+    return undefined;
+  }
+  const conflict = conflicts[0];
+  return `${conflict.field}: ${formatProviderLabel(conflict.source)} ${conflict.primary} -> ${conflict.other}`;
 }
 
 function formatComparisonDate(value: string): string {

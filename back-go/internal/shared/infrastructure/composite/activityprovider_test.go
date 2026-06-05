@@ -27,6 +27,16 @@ func TestCompositeKeepsStravaIDAndEnrichesWithLocalStream(t *testing.T) {
 	if activities[0].Stream == nil || activities[0].Stream.LatLng == nil || len(activities[0].Stream.LatLng.Data) != 120 {
 		t.Fatalf("expected GPX stream enrichment, got %#v", activities[0].Stream)
 	}
+	detailed := provider.GetDetailedActivity(123)
+	if detailed == nil || detailed.Source == nil {
+		t.Fatalf("expected detailed activity provenance, got %#v", detailed)
+	}
+	if detailed.Source.PrimaryProvider != "strava" || detailed.Source.StreamProvider != "gpx" {
+		t.Fatalf("expected Strava primary and GPX stream provenance, got %#v", detailed.Source)
+	}
+	if len(detailed.Source.Sources) != 2 {
+		t.Fatalf("expected two source references, got %#v", detailed.Source.Sources)
+	}
 
 	details := provider.CacheDiagnostics()
 	compositeDetails := details["composite"].(map[string]any)

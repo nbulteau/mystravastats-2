@@ -65,4 +65,31 @@ type DetailedActivity struct {
 	WeightedAverageWatts     int             `json:"weighted_average_watts"`
 	WorkoutType              int             `json:"workout_type"`
 	Stream                   *Stream         `json:"stream,omitempty"`
+	Source                   *ActivitySource `json:"source,omitempty"`
+}
+
+type ActivitySource struct {
+	PrimaryProvider string                   `json:"primary_provider"`
+	PrimaryID       int64                    `json:"primary_id"`
+	StreamProvider  string                   `json:"stream_provider,omitempty"`
+	MergeConfidence string                   `json:"merge_confidence,omitempty"`
+	Sources         []ActivitySourceRef      `json:"sources,omitempty"`
+	Conflicts       []ActivitySourceConflict `json:"conflicts,omitempty"`
+	FieldSources    map[string]string        `json:"field_sources,omitempty"`
+}
+
+type ActivitySourceRef struct {
+	Provider       string  `json:"provider"`
+	ActivityID     int64   `json:"activity_id"`
+	StartDateLocal string  `json:"start_date_local"`
+	Distance       float64 `json:"distance"`
+	MovingTime     int     `json:"moving_time"`
+	HasStream      bool    `json:"has_stream"`
+}
+
+type ActivitySourceConflict struct {
+	Field   string `json:"field"`
+	Primary string `json:"primary"`
+	Other   string `json:"other"`
+	Source  string `json:"source"`
 }

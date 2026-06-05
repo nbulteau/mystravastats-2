@@ -61,11 +61,38 @@ export interface DetailedActivity {
     sportType: string;
     weightedAverageWatts: number;
     stream: Stream;
+    source?: ActivitySource | null;
     activityEfforts: ActivityEffort[];
     stravaSegmentEfforts: StravaSegmentEffort[];
     activityComparison?: ActivityComparison | null;
     calories?: number;
     sufferScore?: number | null;
+}
+
+export interface ActivitySource {
+    primaryProvider: string;
+    primaryId: number;
+    streamProvider?: string;
+    mergeConfidence?: string;
+    sources?: ActivitySourceRef[];
+    conflicts?: ActivitySourceConflict[];
+    fieldSources?: Record<string, string>;
+}
+
+export interface ActivitySourceRef {
+    provider: string;
+    activityId: number;
+    startDateLocal: string;
+    distance: number;
+    movingTime: number;
+    hasStream: boolean;
+}
+
+export interface ActivitySourceConflict {
+    field: string;
+    primary: string;
+    other: string;
+    source: string;
 }
 
 export interface ActivityComparison {

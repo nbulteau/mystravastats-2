@@ -1,7 +1,9 @@
 package helpers
 
 import (
+	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -16,6 +18,29 @@ var stravaDateLayouts = []string{
 	"2006-01-02T15:04:05",
 	"2006-01-02 15:04:05",
 	"2006-01-02",
+}
+
+var activityLocationOnce sync.Once
+var activityLocation *time.Location
+
+func ActivityLocation() *time.Location {
+	activityLocationOnce.Do(func() {
+		timezone := strings.TrimSpace(os.Getenv("ACTIVITY_TIMEZONE"))
+		if timezone == "" {
+			timezone = "Europe/Paris"
+		}
+		location, err := time.LoadLocation(timezone)
+		if err != nil {
+			activityLocation = time.Local
+			return
+		}
+		activityLocation = location
+	})
+	return activityLocation
+}
+
+func ActivityLocalTime(value time.Time) time.Time {
+	return value.In(ActivityLocation())
 }
 
 func ParseActivityDate(value string) (time.Time, bool) {

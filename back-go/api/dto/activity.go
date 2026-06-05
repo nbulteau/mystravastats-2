@@ -48,8 +48,9 @@ type DetailedActivityDto struct {
 	StravaSegmentEfforts []StravaSegmentEffortDto `json:"stravaSegmentEfforts"`
 	ActivityComparison   *ActivityComparisonDto   `json:"activityComparison,omitempty"`
 	StartDate            time.Time                `json:"startDate"`
-	StartDateLocal       time.Time                `json:"startDateLocal"`
+	StartDateLocal       string                   `json:"startDateLocal"`
 	StartLatlng          []float64                `json:"startLatlng"`
+	Source               *ActivitySourceDto       `json:"source,omitempty"`
 	Stream               *StreamDto               `json:"stream"`
 	SufferScore          *float64                 `json:"sufferScore"`
 	TotalDescent         float64                  `json:"totalDescent"`
@@ -57,6 +58,32 @@ type DetailedActivityDto struct {
 	Type                 string                   `json:"type"`
 	SportType            string                   `json:"sportType"`
 	WeightedAverageWatts int                      `json:"weightedAverageWatts"`
+}
+
+type ActivitySourceDto struct {
+	PrimaryProvider string                      `json:"primaryProvider"`
+	PrimaryID       int64                       `json:"primaryId"`
+	StreamProvider  string                      `json:"streamProvider,omitempty"`
+	MergeConfidence string                      `json:"mergeConfidence,omitempty"`
+	Sources         []ActivitySourceRefDto      `json:"sources,omitempty"`
+	Conflicts       []ActivitySourceConflictDto `json:"conflicts,omitempty"`
+	FieldSources    map[string]string           `json:"fieldSources,omitempty"`
+}
+
+type ActivitySourceRefDto struct {
+	Provider       string  `json:"provider"`
+	ActivityID     int64   `json:"activityId"`
+	StartDateLocal string  `json:"startDateLocal"`
+	Distance       float64 `json:"distance"`
+	MovingTime     int     `json:"movingTime"`
+	HasStream      bool    `json:"hasStream"`
+}
+
+type ActivitySourceConflictDto struct {
+	Field   string `json:"field"`
+	Primary string `json:"primary"`
+	Other   string `json:"other"`
+	Source  string `json:"source"`
 }
 
 type ActivityComparisonDto struct {

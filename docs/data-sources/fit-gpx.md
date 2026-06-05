@@ -20,6 +20,52 @@ GARMIN_FIT_SOURCE_PATH
 /Volumes/*/GARMIN/Activity
 ```
 
+For Garmin watches that expose activities through MTP, such as a Fenix 7 on
+macOS, the preferred workflow is:
+
+```text
+Garmin watch
+  -> garmin-fit-sync module
+  -> FIT_INBOX_PATH
+  -> Status / Synchronize
+  -> FIT_FILES_PATH/<year>/
+```
+
+The optional Rust helper module is configured with:
+
+```text
+GARMIN_FIT_SYNC_BIN=/path/to/garmin-fit-sync
+FIT_INBOX_PATH=/path/to/fit-inbox
+```
+
+If `FIT_INBOX_PATH` is unset but `FIT_FILES_PATH` is configured, the Go backend
+uses:
+
+```text
+<FIT_FILES_PATH>/_inbox
+```
+
+If `GARMIN_FIT_SYNC_BIN` is unset, the Go backend auto-detects a helper built in
+the repository at:
+
+```text
+tools/garmin-fit-sync/target/release/garmin-fit-sync
+```
+
+When both values are configured, the Go backend runs:
+
+```shell
+garmin-fit-sync sync --inbox "$FIT_INBOX_PATH" --json
+```
+
+before importing local files. If `GARMIN_FIT_SOURCE_PATH` is configured, it is
+passed to the module as `--source`. The first helper backend copies files from a
+mounted/file-system Garmin activity directory. Native MTP backends for macOS,
+Windows and Linux are intended to live behind the same JSON contract.
+
+`FIT_INBOX_PATH` can also be used without the module as a manual drop zone:
+place `.fit` files in the inbox, then run `Synchronize`.
+
 Imported files are copied into the configured FIT library under the activity
 year:
 

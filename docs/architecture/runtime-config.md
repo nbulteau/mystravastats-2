@@ -9,6 +9,9 @@ The Diagnostics `Data Source` workflow can also save a previewed source. `POST /
 | `STRAVA_CACHE_PATH` | yes | yes | `strava-cache` | Strava cache directory. |
 | `STRAVA_API_BASE_URL` | yes | yes | `https://www.strava.com/api/v3` | Strava V3 API root. Set to `https://www.api-v3.strava.com` for the new API host. OAuth authorize/token URLs remain on `https://www.strava.com`. |
 | `FIT_FILES_PATH` | yes | yes | unset | Selects the FIT provider when it is the only configured local source. Combines in composite mode when another source is configured. |
+| `FIT_INBOX_PATH` | yes | no | `<FIT_FILES_PATH>/_inbox` when FIT is configured | Optional Go drop zone for `.fit` files. `Synchronize` imports files from this inbox into `FIT_FILES_PATH/<year>/`. |
+| `GARMIN_FIT_SYNC_BIN` | yes | no | auto-detected repo build when present | Optional Go path to the `garmin-fit-sync` helper. When available with a FIT inbox, `Synchronize` runs the helper before importing the inbox. |
+| `GARMIN_FIT_SOURCE_PATH` | yes | no | unset | Optional mounted Garmin activity directory or device root used by Go `Synchronize` and forwarded to `garmin-fit-sync --source`. |
 | `GPX_FILES_PATH` | yes | yes | unset | Selects the GPX provider when it is the only configured local source. Combines in composite mode when another source is configured. |
 | `CORS_ALLOWED_ORIGINS` | yes | yes | `http://localhost,http://localhost:5173` | Comma-separated list of allowed browser origins. |
 | `OPEN_BROWSER` | yes | yes | `true` | Set to `false` in Docker or headless runs. |

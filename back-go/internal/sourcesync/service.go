@@ -1,14 +1,17 @@
 package sourcesync
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -26,8 +29,11 @@ import (
 
 const (
 	fitDestinationEnv  = "FIT_FILES_PATH"
+	fitInboxEnv        = "FIT_INBOX_PATH"
 	garminSourceEnv    = "GARMIN_FIT_SOURCE_PATH"
+	garminSyncBinEnv   = "GARMIN_FIT_SYNC_BIN"
 	defaultVolumesRoot = "/Volumes"
+	syncModuleTimeout  = 2 * time.Minute
 )
 
 type SyncResult struct {
@@ -42,20 +48,23 @@ type SyncResult struct {
 }
 
 type FITImportResult struct {
-	Status                 string            `json:"status"`
-	Message                string            `json:"message"`
-	Configured             bool              `json:"configured"`
-	SourcePath             string            `json:"sourcePath"`
-	CandidateSourcePaths   []string          `json:"candidateSourcePaths"`
-	DestinationPath        string            `json:"destinationPath"`
-	ScannedFiles           int               `json:"scannedFiles"`
-	ImportedFiles          int               `json:"importedFiles"`
-	AlreadyPresentFiles    int               `json:"alreadyPresentFiles"`
-	SkippedFiles           int               `json:"skippedFiles"`
-	InvalidFiles           int               `json:"invalidFiles"`
-	CreatedYearDirectories []string          `json:"createdYearDirectories"`
-	Imported               []ImportedFITFile `json:"imported"`
-	Errors                 []string          `json:"errors"`
+	Status                 string               `json:"status"`
+	Message                string               `json:"message"`
+	Configured             bool                 `json:"configured"`
+	SourceKind             string               `json:"sourceKind"`
+	SourcePath             string               `json:"sourcePath"`
+	InboxPath              string               `json:"inboxPath"`
+	CandidateSourcePaths   []string             `json:"candidateSourcePaths"`
+	DestinationPath        string               `json:"destinationPath"`
+	ScannedFiles           int                  `json:"scannedFiles"`
+	ImportedFiles          int                  `json:"importedFiles"`
+	AlreadyPresentFiles    int                  `json:"alreadyPresentFiles"`
+	SkippedFiles           int                  `json:"skippedFiles"`
+	InvalidFiles           int                  `json:"invalidFiles"`
+	CreatedYearDirectories []string             `json:"createdYearDirectories"`
+	Imported               []ImportedFITFile    `json:"imported"`
+	Errors                 []string             `json:"errors"`
+	SyncModule             *FITSyncModuleResult `json:"syncModule,omitempty"`
 }
 
 type ImportedFITFile struct {
@@ -66,10 +75,37 @@ type ImportedFITFile struct {
 	StartDate   string `json:"startDate"`
 }
 
+type FITSyncModuleResult struct {
+	Status               string              `json:"status"`
+	Message              string              `json:"message"`
+	Backend              string              `json:"backend"`
+	Executable           string              `json:"executable,omitempty"`
+	Device               string              `json:"device,omitempty"`
+	SourcePath           string              `json:"sourcePath,omitempty"`
+	InboxPath            string              `json:"inboxPath,omitempty"`
+	CandidateSourcePaths []string            `json:"candidateSourcePaths,omitempty"`
+	ScannedFiles         int                 `json:"scannedFiles"`
+	CopiedFiles          int                 `json:"copiedFiles"`
+	AlreadyPresentFiles  int                 `json:"alreadyPresentFiles"`
+	SkippedFiles         int                 `json:"skippedFiles"`
+	InvalidFiles         int                 `json:"invalidFiles"`
+	Copied               []FITSyncModuleFile `json:"copied,omitempty"`
+	Errors               []string            `json:"errors,omitempty"`
+	Raw                  map[string]any      `json:"-"`
+}
+
+type FITSyncModuleFile struct {
+	Source      string `json:"source"`
+	Destination string `json:"destination"`
+}
+
 type Service struct {
 	decodeFIT        func(filePath string, athleteID int64) (*strava.Activity, error)
 	fitDestination   func() (string, bool)
+	fitInboxPath     func() (string, bool)
 	garminSourcePath func() (string, bool)
+	garminSyncBin    func() (string, bool)
+	runSyncModule    func(binPath string, inboxPath string, sourcePath string) (FITSyncModuleResult, error)
 	reloadProvider   func()
 	volumesRoot      string
 	now              func() time.Time
@@ -84,7 +120,10 @@ func NewService() *Service {
 	return &Service{
 		decodeFIT:        fitprovider.DecodeFITActivity,
 		fitDestination:   func() (string, bool) { return runtimeconfig.OptionalValue(fitDestinationEnv) },
+		fitInboxPath:     configuredFITInboxPath,
 		garminSourcePath: func() (string, bool) { return runtimeconfig.OptionalValue(garminSourceEnv) },
+		garminSyncBin:    configuredGarminFITSyncBin,
+		runSyncModule:    runGarminFITSyncModule,
 		reloadProvider:   activityprovider.Reload,
 		volumesRoot:      defaultVolumesRoot,
 		now:              time.Now,
@@ -97,6 +136,16 @@ func NewService() *Service {
 			},
 		},
 	}
+}
+
+func configuredFITInboxPath() (string, bool) {
+	value, configured, _ := runtimeconfig.FITInboxPath()
+	return value, configured
+}
+
+func configuredGarminFITSyncBin() (string, bool) {
+	value, configured, _ := runtimeconfig.GarminFITSyncBin()
+	return value, configured
 }
 
 func Synchronize(reason string) SyncResult {
@@ -157,23 +206,42 @@ func (service *Service) storeLastResult(result SyncResult) {
 
 func (service *Service) importFIT() FITImportResult {
 	destinationPath, configured := service.fitDestination()
+	inboxPath, inboxConfigured := service.fitInboxPath()
 	result := FITImportResult{
 		Status:          "not_configured",
 		Configured:      configured,
 		DestinationPath: strings.TrimSpace(destinationPath),
+		InboxPath:       strings.TrimSpace(inboxPath),
 	}
 	if strings.TrimSpace(destinationPath) == "" {
 		result.Message = "FIT directory is not configured."
 		return result
 	}
 
-	sourcePath, candidates := service.detectGarminFITSource()
+	if strings.TrimSpace(inboxPath) != "" {
+		if err := os.MkdirAll(strings.TrimSpace(inboxPath), 0o755); err != nil {
+			result.Status = "failed"
+			result.Message = "Unable to create FIT inbox directory."
+			result.Errors = append(result.Errors, err.Error())
+			return result
+		}
+	}
+
+	if moduleResult := service.syncGarminModule(strings.TrimSpace(inboxPath)); moduleResult != nil {
+		result.SyncModule = moduleResult
+		if moduleResult.Status == "failed" {
+			result.Errors = append(result.Errors, moduleResult.Errors...)
+		}
+	}
+
+	sourcePath, sourceKind, candidates := service.detectFITImportSource(strings.TrimSpace(inboxPath), inboxConfigured)
 	result.CandidateSourcePaths = candidates
 	if sourcePath == "" {
 		result.Status = "no_device"
-		result.Message = "No Garmin USB activity directory was detected."
+		result.Message = "No FIT inbox or Garmin USB activity directory was detected."
 		return result
 	}
+	result.SourceKind = sourceKind
 	result.SourcePath = sourcePath
 
 	if err := os.MkdirAll(destinationPath, 0o755); err != nil {
@@ -183,7 +251,7 @@ func (service *Service) importFIT() FITImportResult {
 		return result
 	}
 
-	existingFingerprints := service.existingFITFingerprints(destinationPath, &result)
+	existingFingerprints := service.existingFITFingerprints(destinationPath, sourcePath, &result)
 	createdYears := map[string]struct{}{}
 
 	err := filepath.WalkDir(sourcePath, func(path string, entry os.DirEntry, walkErr error) error {
@@ -262,6 +330,55 @@ func (service *Service) importFIT() FITImportResult {
 	return result
 }
 
+func (service *Service) syncGarminModule(inboxPath string) *FITSyncModuleResult {
+	binPath, configured := service.garminSyncBin()
+	binPath = strings.TrimSpace(binPath)
+	if !configured || binPath == "" {
+		return nil
+	}
+	result := FITSyncModuleResult{
+		Status:     "not_configured",
+		Message:    "FIT_INBOX_PATH is required before the Garmin FIT sync module can run.",
+		Backend:    "external",
+		Executable: binPath,
+		InboxPath:  inboxPath,
+	}
+	if inboxPath == "" {
+		return &result
+	}
+	sourcePath, _ := service.garminSourcePath()
+	moduleResult, err := service.runSyncModule(binPath, inboxPath, strings.TrimSpace(sourcePath))
+	moduleResult.Executable = binPath
+	if moduleResult.InboxPath == "" {
+		moduleResult.InboxPath = inboxPath
+	}
+	if err != nil {
+		moduleResult.Status = "failed"
+		if moduleResult.Message == "" {
+			moduleResult.Message = "Garmin FIT sync module failed."
+		}
+		moduleResult.Errors = append(moduleResult.Errors, err.Error())
+	}
+	return &moduleResult
+}
+
+func (service *Service) detectFITImportSource(inboxPath string, inboxConfigured bool) (string, string, []string) {
+	candidates := make([]string, 0)
+	if inboxConfigured && inboxPath != "" {
+		path := filepath.Clean(inboxPath)
+		candidates = append(candidates, path)
+		if isDirectory(path) {
+			return path, "fit_inbox", candidates
+		}
+	}
+	sourcePath, garminCandidates := service.detectGarminFITSource()
+	candidates = append(candidates, garminCandidates...)
+	if sourcePath != "" {
+		return sourcePath, "garmin_usb", candidates
+	}
+	return "", "", candidates
+}
+
 func (service *Service) detectGarminFITSource() (string, []string) {
 	candidates := make([]string, 0)
 	if configuredPath, configured := service.garminSourcePath(); configured && strings.TrimSpace(configuredPath) != "" {
@@ -300,10 +417,14 @@ func (service *Service) detectGarminFITSource() (string, []string) {
 	return "", candidates
 }
 
-func (service *Service) existingFITFingerprints(destinationPath string, result *FITImportResult) map[string]bool {
+func (service *Service) existingFITFingerprints(destinationPath string, sourcePath string, result *FITImportResult) map[string]bool {
 	fingerprints := map[string]bool{}
+	cleanSourcePath := filepath.Clean(strings.TrimSpace(sourcePath))
 	_ = filepath.WalkDir(destinationPath, func(path string, entry os.DirEntry, walkErr error) error {
 		if walkErr != nil || entry == nil || entry.IsDir() || !strings.EqualFold(filepath.Ext(entry.Name()), ".fit") {
+			return nil
+		}
+		if cleanSourcePath != "" && sameOrInside(path, cleanSourcePath) {
 			return nil
 		}
 		activity, err := service.decodeFIT(path, 0)
@@ -316,6 +437,36 @@ func (service *Service) existingFITFingerprints(destinationPath string, result *
 		return nil
 	})
 	return fingerprints
+}
+
+func runGarminFITSyncModule(binPath string, inboxPath string, sourcePath string) (FITSyncModuleResult, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), syncModuleTimeout)
+	defer cancel()
+
+	args := []string{"sync", "--inbox", inboxPath, "--json"}
+	if strings.TrimSpace(sourcePath) != "" {
+		args = append(args, "--source", strings.TrimSpace(sourcePath))
+	}
+	command := exec.CommandContext(ctx, binPath, args...)
+	output, err := command.CombinedOutput()
+
+	var result FITSyncModuleResult
+	if unmarshalErr := json.Unmarshal(output, &result); unmarshalErr != nil {
+		result = FITSyncModuleResult{
+			Status:  "failed",
+			Message: "Unable to parse Garmin FIT sync module JSON output.",
+			Backend: "external",
+			Errors:  []string{strings.TrimSpace(string(output)), unmarshalErr.Error()},
+		}
+		if err != nil {
+			result.Errors = append(result.Errors, err.Error())
+		}
+		return result, err
+	}
+	if result.Backend == "" {
+		result.Backend = "external"
+	}
+	return result, err
 }
 
 func (service *Service) destinationFilePath(sourcePath string, yearDirectory string) (string, error) {
@@ -440,9 +591,12 @@ func syncMessageFromFIT(fit FITImportResult) string {
 	case "up_to_date":
 		return "FIT library is already up to date."
 	case "no_files":
+		if fit.SourceKind == "fit_inbox" {
+			return "FIT inbox is configured, but no FIT files were present."
+		}
 		return "Garmin USB source was found, but no FIT files were present."
 	case "no_device":
-		return "No Garmin USB activity directory was detected."
+		return "No FIT inbox or Garmin USB activity directory was detected."
 	case "not_configured":
 		return "FIT import skipped because FIT_FILES_PATH is not configured."
 	case "failed":
@@ -472,6 +626,9 @@ func fitImportMessage(result FITImportResult) string {
 	case "up_to_date":
 		return fmt.Sprintf("%d FIT file(s) already present.", result.AlreadyPresentFiles)
 	case "no_files":
+		if result.SourceKind == "fit_inbox" {
+			return "No FIT files found in the configured FIT inbox."
+		}
 		return "No FIT files found in the detected Garmin activity directory."
 	case "failed":
 		return "No valid FIT file could be imported."
@@ -492,4 +649,20 @@ func sortedMapKeys(values map[string]struct{}) []string {
 func isDirectory(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && info.IsDir()
+}
+
+func sameOrInside(path string, root string) bool {
+	if strings.TrimSpace(root) == "" {
+		return false
+	}
+	cleanPath := filepath.Clean(path)
+	cleanRoot := filepath.Clean(root)
+	if cleanPath == cleanRoot {
+		return true
+	}
+	relative, err := filepath.Rel(cleanRoot, cleanPath)
+	if err != nil {
+		return false
+	}
+	return relative != "." && !strings.HasPrefix(relative, ".."+string(filepath.Separator)) && relative != ".."
 }

@@ -332,7 +332,7 @@ func DecodeFITActivity(filePath string, athleteID int64) (*strava.Activity, erro
 	}
 
 	startDateUTC := startDate.UTC()
-	startDateLocal := startDate.In(time.Local)
+	startDateLocal := helpers.ActivityLocalTime(startDate)
 	startLatlng := extractStartLatLng(session, stream)
 
 	activityID := fitActivityID(filePath, startDateUTC, sportType, distance)

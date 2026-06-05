@@ -340,7 +340,7 @@ func DecodeGPXActivity(filePath string, athleteID int64, fallbackYear int) (*str
 	}
 
 	startDateUTC := startTime.UTC()
-	startDateLocal := startDateUTC.In(time.Local)
+	startDateLocal := helpers.ActivityLocalTime(startDateUTC)
 	activityID := gpxActivityID(filePath, startDateUTC, sportType, stats.distanceMeters)
 
 	return &strava.Activity{

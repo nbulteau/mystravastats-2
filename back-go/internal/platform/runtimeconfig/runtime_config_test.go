@@ -9,6 +9,8 @@ func TestDetails_DefaultsToStravaRuntimeConfig(t *testing.T) {
 	t.Setenv("STRAVA_CACHE_PATH", "")
 	t.Setenv("STRAVA_API_BASE_URL", "")
 	t.Setenv("FIT_FILES_PATH", "")
+	t.Setenv("FIT_INBOX_PATH", "")
+	t.Setenv("GARMIN_FIT_SYNC_BIN", "")
 	t.Setenv("GPX_FILES_PATH", "")
 	t.Setenv("CORS_ALLOWED_ORIGINS", "")
 	t.Setenv("OSM_ROUTING_BASE_URL", "")
@@ -57,6 +59,8 @@ func TestDetails_DefaultsToStravaRuntimeConfig(t *testing.T) {
 
 func TestDetails_ExposesConfiguredRuntimeValues(t *testing.T) {
 	t.Setenv("FIT_FILES_PATH", "/data/fit")
+	t.Setenv("FIT_INBOX_PATH", "/data/fit-inbox")
+	t.Setenv("GARMIN_FIT_SYNC_BIN", "/usr/local/bin/garmin-fit-sync")
 	t.Setenv("GPX_FILES_PATH", "/data/gpx")
 	t.Setenv("STRAVA_CACHE_PATH", "/data/strava")
 	t.Setenv("STRAVA_API_BASE_URL", "https://www.api-v3.strava.com/")
@@ -83,6 +87,18 @@ func TestDetails_ExposesConfiguredRuntimeValues(t *testing.T) {
 	if data["fitFilesPath"] != "/data/fit" || data["fitFilesConfigured"] != true {
 		t.Fatalf("expected configured FIT path, got %#v", data)
 	}
+	if data["fitInboxPath"] != "/data/fit-inbox" || data["fitInboxConfigured"] != true {
+		t.Fatalf("expected configured FIT inbox, got %#v", data)
+	}
+	if data["fitInboxSource"] != "FIT_INBOX_PATH" {
+		t.Fatalf("expected FIT inbox source from env, got %#v", data["fitInboxSource"])
+	}
+	if data["garminFitSyncBin"] != "/usr/local/bin/garmin-fit-sync" || data["garminFitSyncConfigured"] != true {
+		t.Fatalf("expected configured Garmin FIT sync module, got %#v", data)
+	}
+	if data["garminFitSyncSource"] != "GARMIN_FIT_SYNC_BIN" {
+		t.Fatalf("expected Garmin FIT sync source from env, got %#v", data["garminFitSyncSource"])
+	}
 	if data["stravaApiBaseUrl"] != "https://www.api-v3.strava.com" || data["stravaApiBaseConfigured"] != true {
 		t.Fatalf("expected configured Strava API base URL, got %#v", data)
 	}
@@ -104,6 +120,24 @@ func TestDetails_ExposesConfiguredRuntimeValues(t *testing.T) {
 	}
 	if routing["controlTimeoutMs"] != 12000 {
 		t.Fatalf("expected OSRM control timeout 12000, got %#v", routing["controlTimeoutMs"])
+	}
+}
+
+func TestDetails_DerivesFITInboxFromFITFilesPath(t *testing.T) {
+	t.Setenv("FIT_FILES_PATH", "/data/fit")
+	t.Setenv("FIT_INBOX_PATH", "")
+
+	details := Details()
+	data := details["data"].(map[string]any)
+
+	if data["fitInboxPath"] != "/data/fit/_inbox" {
+		t.Fatalf("expected derived FIT inbox, got %#v", data["fitInboxPath"])
+	}
+	if data["fitInboxConfigured"] != true {
+		t.Fatalf("expected derived FIT inbox to be configured, got %#v", data["fitInboxConfigured"])
+	}
+	if data["fitInboxSource"] != "derived" {
+		t.Fatalf("expected derived FIT inbox source, got %#v", data["fitInboxSource"])
 	}
 }
 
