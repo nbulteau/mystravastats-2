@@ -11,6 +11,8 @@ class RuntimeConfigTest {
         "STRAVA_CACHE_PATH",
         "STRAVA_API_BASE_URL",
         "FIT_FILES_PATH",
+        "FIT_INBOX_PATH",
+        "GARMIN_FIT_SOURCE_PATH",
         "GPX_FILES_PATH",
         "SERVER_ADDRESS",
         "SERVER_PORT",
@@ -71,6 +73,8 @@ class RuntimeConfigTest {
     fun `details exposes configured runtime values`() {
         clearRuntimeConfigForTest()
         System.setProperty("FIT_FILES_PATH", "/data/fit")
+        System.setProperty("FIT_INBOX_PATH", "/data/fit-inbox")
+        System.setProperty("GARMIN_FIT_SOURCE_PATH", "/Volumes/FENIX/GARMIN/ACTIVITY")
         System.setProperty("GPX_FILES_PATH", "/data/gpx")
         System.setProperty("STRAVA_CACHE_PATH", "/data/strava")
         System.setProperty("STRAVA_API_BASE_URL", "https://www.api-v3.strava.com/")
@@ -94,6 +98,11 @@ class RuntimeConfigTest {
         assertTrue(data["stravaApiBaseConfigured"] as Boolean)
         assertEquals("/data/fit", data["fitFilesPath"])
         assertTrue(data["fitFilesConfigured"] as Boolean)
+        assertEquals("/data/fit-inbox", data["fitInboxPath"])
+        assertTrue(data["fitInboxConfigured"] as Boolean)
+        assertEquals("FIT_INBOX_PATH", data["fitInboxSource"])
+        assertEquals("/Volumes/FENIX/GARMIN/ACTIVITY", data["garminFitSourcePath"])
+        assertTrue(data["garminFitSourceConfigured"] as Boolean)
         assertEquals("/data/gpx", data["gpxFilesPath"])
         assertEquals(listOf("http://localhost:5173", "https://app.example"), cors["allowedOrigins"])
         assertEquals(false, routing["enabled"])
@@ -115,6 +124,19 @@ class RuntimeConfigTest {
         assertEquals("fit", data["provider"])
         assertEquals(listOf("fit"), data["activeProviders"])
         assertFalse(data["compositeAutoEnabled"] as Boolean)
+    }
+
+    @Test
+    fun `details derives FIT inbox from FIT files path`() {
+        clearRuntimeConfigForTest()
+        System.setProperty("FIT_FILES_PATH", "/data/fit")
+
+        val details = RuntimeConfig.details()
+        val data = details["data"] as Map<*, *>
+
+        assertEquals("/data/fit/_inbox", data["fitInboxPath"])
+        assertTrue(data["fitInboxConfigured"] as Boolean)
+        assertEquals("derived", data["fitInboxSource"])
     }
 
     private fun clearRuntimeConfigForTest() {

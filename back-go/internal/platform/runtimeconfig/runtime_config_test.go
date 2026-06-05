@@ -10,7 +10,7 @@ func TestDetails_DefaultsToStravaRuntimeConfig(t *testing.T) {
 	t.Setenv("STRAVA_API_BASE_URL", "")
 	t.Setenv("FIT_FILES_PATH", "")
 	t.Setenv("FIT_INBOX_PATH", "")
-	t.Setenv("GARMIN_FIT_SYNC_BIN", "")
+	t.Setenv("GARMIN_FIT_SOURCE_PATH", "")
 	t.Setenv("GPX_FILES_PATH", "")
 	t.Setenv("CORS_ALLOWED_ORIGINS", "")
 	t.Setenv("OSM_ROUTING_BASE_URL", "")
@@ -60,7 +60,7 @@ func TestDetails_DefaultsToStravaRuntimeConfig(t *testing.T) {
 func TestDetails_ExposesConfiguredRuntimeValues(t *testing.T) {
 	t.Setenv("FIT_FILES_PATH", "/data/fit")
 	t.Setenv("FIT_INBOX_PATH", "/data/fit-inbox")
-	t.Setenv("GARMIN_FIT_SYNC_BIN", "/usr/local/bin/garmin-fit-sync")
+	t.Setenv("GARMIN_FIT_SOURCE_PATH", "/Volumes/FENIX/GARMIN/ACTIVITY")
 	t.Setenv("GPX_FILES_PATH", "/data/gpx")
 	t.Setenv("STRAVA_CACHE_PATH", "/data/strava")
 	t.Setenv("STRAVA_API_BASE_URL", "https://www.api-v3.strava.com/")
@@ -93,11 +93,8 @@ func TestDetails_ExposesConfiguredRuntimeValues(t *testing.T) {
 	if data["fitInboxSource"] != "FIT_INBOX_PATH" {
 		t.Fatalf("expected FIT inbox source from env, got %#v", data["fitInboxSource"])
 	}
-	if data["garminFitSyncBin"] != "/usr/local/bin/garmin-fit-sync" || data["garminFitSyncConfigured"] != true {
-		t.Fatalf("expected configured Garmin FIT sync module, got %#v", data)
-	}
-	if data["garminFitSyncSource"] != "GARMIN_FIT_SYNC_BIN" {
-		t.Fatalf("expected Garmin FIT sync source from env, got %#v", data["garminFitSyncSource"])
+	if data["garminFitSourcePath"] != "/Volumes/FENIX/GARMIN/ACTIVITY" || data["garminFitSourceConfigured"] != true {
+		t.Fatalf("expected configured Garmin FIT source, got %#v", data)
 	}
 	if data["stravaApiBaseUrl"] != "https://www.api-v3.strava.com" || data["stravaApiBaseConfigured"] != true {
 		t.Fatalf("expected configured Strava API base URL, got %#v", data)

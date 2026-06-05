@@ -6,6 +6,12 @@ import type {SeriesLineOptions, SeriesOptionsType} from "highcharts";
 type PowerSourceMode = "device" | "all";
 type PowerPoint = { y: number; marker?: { enabled: boolean; radius: number; fillColor: string } };
 
+function formatWatts(value: unknown): string {
+  return typeof value === "number" && Number.isFinite(value)
+    ? `${Math.round(value)} watts`
+    : "";
+}
+
 const props = defineProps<{
   averageWattsByYear: Record<string, number>;
   maxWattsByYear: Record<string, number>;
@@ -54,10 +60,10 @@ const chartOptions = reactive({
       return this.points.reduce(function (
               s: any,
               point: {
-                color: any; series: { name: string }; y: string
+                color: any; series: { name: string }; y: number
               }
           ) {
-            return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${point.y} watts`;
+            return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${formatWatts(point.y)}`;
           },
           "<b>" + this.key + "</b>");
     },
@@ -71,7 +77,7 @@ const chartOptions = reactive({
         enabled: true,
         y: -10,
         formatter: function (this: any): string {
-          return typeof this.y === "number" ? `${this.y.toFixed(0)} watts` : "";
+          return formatWatts(this.y);
       },
       },
       data: [], // Initialize with an empty array
@@ -83,7 +89,7 @@ const chartOptions = reactive({
         enabled: true,
         y: -10,
         formatter: function (this: any): string {
-          return typeof this.y === "number" ? `${this.y.toFixed(0)} watts` : "";
+          return formatWatts(this.y);
       },
       },
       data: [], // Initialize with an empty array

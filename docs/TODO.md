@@ -65,11 +65,11 @@
   - ID Strava conserve quand un match Strava existe; les activites locales non matchees restent en union,
   - stream local FIT/GPX utilise pour enrichir l'activite composite sans modifier les caches sources,
   - diagnostics composite exposes dans `/api/health/details` et section `Data source` de `/diagnostics` mise a jour,
-  - import FIT USB Garmin ajoute cote Go: detection `GARMIN_FIT_SOURCE_PATH` ou `/Volumes/.../GARMIN/ACTIVITY`, copie vers `FIT_FILES_PATH/<annee>/`, bouton `Synchronize` dans Status et reload du provider FIT/composite apres import,
-  - spike `garmin-fit-sync` ajoute en Rust avec contrat JSON cross-platform, backend filesystem initial, `FIT_INBOX_PATH` comme drop zone, et integration Go optionnelle via `GARMIN_FIT_SYNC_BIN`,
+  - import FIT Garmin ajoute cote Go et Kotlin: detection `GARMIN_FIT_SOURCE_PATH` ou montage standard OpenMTP/filesystem, copie vers `FIT_INBOX_PATH`, import vers `FIT_FILES_PATH/<annee>/`, bouton `Synchronize` dans Status et reload du provider FIT/composite apres import,
+  - l'ancien spike Rust a ete retire du workflow: la copie filesystem vit maintenant dans chaque backend,
   - tests miroir ajoutes sur conservation de l'ID Strava et union locale.
   Reste:
-  - backend MTP natif macOS/Windows/Linux derriere `garmin-fit-sync`,
+  - automatisation MTP native macOS/Windows/Linux sans OpenMTP si on decide de reprendre ce sujet,
   - provider RideWithGPS et cache local dedie,
   - support TCX,
   - fixtures partagees completes Strava + RideWithGPS + FIT + GPX + TCX.

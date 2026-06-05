@@ -61,7 +61,7 @@ const activeUnit = ref<"km" | "m">("km");
 const chartOptions: Options = reactive({
   chart: {
     type: "line",
-    height: 500,
+    height: 600,
   },
   title: {
     text: "",
@@ -190,7 +190,7 @@ function updateChartData() {
   activeUnit.value = chartData.unit;
 
   if (chartOptions.title) {
-    chartOptions.title.text = `${chartData.title} for ${props.activityTypeLabel}`;
+    chartOptions.title.text = chartData.title;
   }
   if (chartOptions.subtitle) {
     chartOptions.subtitle.text = chartData.summary;

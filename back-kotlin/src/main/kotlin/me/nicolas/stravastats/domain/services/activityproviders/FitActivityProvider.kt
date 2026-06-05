@@ -43,6 +43,11 @@ class FitActivityProvider(
         )
     }
 
+    override fun reload(): Boolean {
+        activities = loadFromLocalCache()
+        return true
+    }
+
     private fun loadFromLocalCache(): List<StravaActivity> {
         logger.info("Load FIT activities from local cache ...")
 

@@ -58,12 +58,17 @@ import me.nicolas.stravastats.domain.business.SourceModeYearPreview
 import me.nicolas.stravastats.domain.business.StravaOAuthStartRequest
 import me.nicolas.stravastats.domain.business.StravaOAuthStartResult
 import me.nicolas.stravastats.domain.business.StravaOAuthStatus
+import me.nicolas.stravastats.domain.business.FITDeviceSyncFile
+import me.nicolas.stravastats.domain.business.FITDeviceSyncResult
+import me.nicolas.stravastats.domain.business.FITImportResult
 import me.nicolas.stravastats.domain.business.HeartRateZoneActivitySummary
 import me.nicolas.stravastats.domain.business.HeartRateZoneAnalysis
 import me.nicolas.stravastats.domain.business.HeartRateZoneDistribution
 import me.nicolas.stravastats.domain.business.HeartRateZonePeriodSummary
 import me.nicolas.stravastats.domain.business.HeartRateZoneSettings
+import me.nicolas.stravastats.domain.business.ImportedFITFile
 import me.nicolas.stravastats.domain.business.ResolvedHeartRateZoneSettings
+import me.nicolas.stravastats.domain.business.SourceSyncResult
 import me.nicolas.stravastats.domain.business.strava.Achievement
 import me.nicolas.stravastats.domain.business.strava.AthleteRef
 import me.nicolas.stravastats.domain.business.strava.Bike
@@ -183,6 +188,11 @@ import org.springframework.boot.runApplication
         SourceModePreviewError::class,
         StravaOAuthStatus::class,
         SourceModePreview::class,
+        SourceSyncResult::class,
+        FITImportResult::class,
+        ImportedFITFile::class,
+        FITDeviceSyncResult::class,
+        FITDeviceSyncFile::class,
         HeartRateZoneSettings::class,
         ResolvedHeartRateZoneSettings::class,
         HeartRateZoneDistribution::class,

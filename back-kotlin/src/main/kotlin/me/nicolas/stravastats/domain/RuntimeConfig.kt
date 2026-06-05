@@ -21,6 +21,7 @@ object RuntimeConfig {
     fun details(): Map<String, Any?> {
         val stravaCachePath = readStringConfig("STRAVA_CACHE_PATH", DEFAULT_STRAVA_CACHE_PATH)
         val fitFilesPath = readConfigValue("FIT_FILES_PATH")
+        val (fitInboxPath, fitInboxConfigured, fitInboxSource) = fitInboxPath()
         val gpxFilesPath = readConfigValue("GPX_FILES_PATH")
         val activeProviders = activeDataProviders(
             stravaConfigured = isConfigured("STRAVA_CACHE_PATH"),
@@ -47,6 +48,11 @@ object RuntimeConfig {
                 "stravaApiBaseConfigured" to isConfigured("STRAVA_API_BASE_URL"),
                 "fitFilesPath" to (fitFilesPath ?: ""),
                 "fitFilesConfigured" to (fitFilesPath != null),
+                "fitInboxPath" to fitInboxPath,
+                "fitInboxConfigured" to fitInboxConfigured,
+                "fitInboxSource" to fitInboxSource,
+                "garminFitSourcePath" to readStringConfig("GARMIN_FIT_SOURCE_PATH", ""),
+                "garminFitSourceConfigured" to isConfigured("GARMIN_FIT_SOURCE_PATH"),
                 "gpxFilesPath" to (gpxFilesPath ?: ""),
                 "gpxFilesConfigured" to (gpxFilesPath != null),
                 "gpxFilesSupported" to true,
@@ -109,6 +115,12 @@ object RuntimeConfig {
 
     fun stravaApiUrl(path: String): String {
         return "${stravaApiBaseUrl()}/${path.trimStart('/')}"
+    }
+
+    fun fitInboxPath(): Triple<String, Boolean, String> {
+        readConfigValue("FIT_INBOX_PATH")?.let { value -> return Triple(value, true, "FIT_INBOX_PATH") }
+        readConfigValue("FIT_FILES_PATH")?.let { value -> return Triple(File(value, "_inbox").path, true, "derived") }
+        return Triple("", false, "not_configured")
     }
 
     private fun activeDataProviders(

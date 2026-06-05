@@ -104,7 +104,7 @@ const eddingtonTitle = computed(() => {
       : "Lifetime";
   const metricLabel = eddingtonMetric.value === "elevation" ? "Elevation" : "Distance";
   const basisLabel = eddingtonBasis.value === "activities" ? "activities" : "days";
-  return `${scopeLabel} ${metricLabel} Eddington by ${basisLabel} for ${currentActivityTypeLabel.value}: ${eddingtonNumber.value.eddingtonNumber}`;
+  return `${scopeLabel} ${metricLabel} Eddington by ${basisLabel}: ${eddingtonNumber.value.eddingtonNumber}`;
 });
 
 function sortDataByYear(

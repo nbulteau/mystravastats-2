@@ -142,10 +142,19 @@ func TestSynchronize_ImportsFITInboxIntoYearDirectory(t *testing.T) {
 	}
 }
 
-func TestSynchronize_RunsGarminSyncModuleBeforeImportingInbox(t *testing.T) {
+func TestSynchronize_SyncsGarminSourceToInboxBeforeImporting(t *testing.T) {
 	destinationDirectory := t.TempDir()
-	inboxDirectory := t.TempDir()
-	service := testService(destinationDirectory, t.TempDir(), func(filePath string, athleteID int64) (*strava.Activity, error) {
+	inboxDirectory := filepath.Join(destinationDirectory, "_inbox")
+	volumesRoot := t.TempDir()
+	sourceDirectory := filepath.Join(volumesRoot, "Garmin Fenix 7", "GARMIN", "ACTIVITY")
+	if err := os.MkdirAll(sourceDirectory, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(sourceDirectory, "run.fit"), []byte("fit"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	service := testService(destinationDirectory, volumesRoot, func(filePath string, athleteID int64) (*strava.Activity, error) {
 		return &strava.Activity{
 			Id:             44,
 			Type:           "Run",
@@ -156,33 +165,20 @@ func TestSynchronize_RunsGarminSyncModuleBeforeImportingInbox(t *testing.T) {
 		}, nil
 	}, func() {})
 	service.fitInboxPath = func() (string, bool) { return inboxDirectory, true }
-	service.garminSyncBin = func() (string, bool) { return "/usr/local/bin/garmin-fit-sync", true }
-	service.runSyncModule = func(binPath string, inboxPath string, sourcePath string) (FITSyncModuleResult, error) {
-		if binPath == "" || inboxPath != inboxDirectory {
-			t.Fatalf("unexpected module args: bin=%s inbox=%s", binPath, inboxPath)
-		}
-		if err := os.WriteFile(filepath.Join(inboxPath, "run.fit"), []byte("fit"), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		return FITSyncModuleResult{
-			Status:      "ok",
-			Message:     "Copied 1 FIT file(s).",
-			Backend:     "filesystem",
-			InboxPath:   inboxPath,
-			CopiedFiles: 1,
-		}, nil
-	}
 
 	result := service.Synchronize("test")
 
-	if result.FIT.SyncModule == nil || result.FIT.SyncModule.CopiedFiles != 1 {
-		t.Fatalf("expected sync module diagnostics, got %#v", result.FIT.SyncModule)
+	if result.FIT.DeviceSync == nil || result.FIT.DeviceSync.CopiedFiles != 1 {
+		t.Fatalf("expected device sync diagnostics, got %#v", result.FIT.DeviceSync)
 	}
 	if result.FIT.ImportedFiles != 1 {
-		t.Fatalf("expected 1 imported module file, got %d", result.FIT.ImportedFiles)
+		t.Fatalf("expected 1 imported synced file, got %d", result.FIT.ImportedFiles)
+	}
+	if _, err := os.Stat(filepath.Join(inboxDirectory, "run.fit")); err != nil {
+		t.Fatalf("expected FIT copied to inbox: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(destinationDirectory, "2026", "run.fit")); err != nil {
-		t.Fatalf("expected imported module FIT in year directory: %v", err)
+		t.Fatalf("expected imported synced FIT in year directory: %v", err)
 	}
 }
 
@@ -197,10 +193,8 @@ func testService(
 		fitDestination:   func() (string, bool) { return destinationDirectory, true },
 		fitInboxPath:     func() (string, bool) { return "", false },
 		garminSourcePath: func() (string, bool) { return "", false },
-		garminSyncBin:    func() (string, bool) { return "", false },
-		runSyncModule:    runGarminFITSyncModule,
 		reloadProvider:   reload,
-		volumesRoot:      volumesRoot,
+		volumeRoots:      func() []string { return []string{volumesRoot} },
 		now:              time.Now,
 		lastResult: SyncResult{
 			Status: "idle",

@@ -1,18 +1,16 @@
 package sourcesync
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"math"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -31,9 +29,7 @@ const (
 	fitDestinationEnv  = "FIT_FILES_PATH"
 	fitInboxEnv        = "FIT_INBOX_PATH"
 	garminSourceEnv    = "GARMIN_FIT_SOURCE_PATH"
-	garminSyncBinEnv   = "GARMIN_FIT_SYNC_BIN"
 	defaultVolumesRoot = "/Volumes"
-	syncModuleTimeout  = 2 * time.Minute
 )
 
 type SyncResult struct {
@@ -64,7 +60,7 @@ type FITImportResult struct {
 	CreatedYearDirectories []string             `json:"createdYearDirectories"`
 	Imported               []ImportedFITFile    `json:"imported"`
 	Errors                 []string             `json:"errors"`
-	SyncModule             *FITSyncModuleResult `json:"syncModule,omitempty"`
+	DeviceSync             *FITDeviceSyncResult `json:"deviceSync,omitempty"`
 }
 
 type ImportedFITFile struct {
@@ -75,11 +71,10 @@ type ImportedFITFile struct {
 	StartDate   string `json:"startDate"`
 }
 
-type FITSyncModuleResult struct {
+type FITDeviceSyncResult struct {
 	Status               string              `json:"status"`
 	Message              string              `json:"message"`
 	Backend              string              `json:"backend"`
-	Executable           string              `json:"executable,omitempty"`
 	Device               string              `json:"device,omitempty"`
 	SourcePath           string              `json:"sourcePath,omitempty"`
 	InboxPath            string              `json:"inboxPath,omitempty"`
@@ -89,12 +84,11 @@ type FITSyncModuleResult struct {
 	AlreadyPresentFiles  int                 `json:"alreadyPresentFiles"`
 	SkippedFiles         int                 `json:"skippedFiles"`
 	InvalidFiles         int                 `json:"invalidFiles"`
-	Copied               []FITSyncModuleFile `json:"copied,omitempty"`
+	Copied               []FITDeviceSyncFile `json:"copied,omitempty"`
 	Errors               []string            `json:"errors,omitempty"`
-	Raw                  map[string]any      `json:"-"`
 }
 
-type FITSyncModuleFile struct {
+type FITDeviceSyncFile struct {
 	Source      string `json:"source"`
 	Destination string `json:"destination"`
 }
@@ -104,14 +98,18 @@ type Service struct {
 	fitDestination   func() (string, bool)
 	fitInboxPath     func() (string, bool)
 	garminSourcePath func() (string, bool)
-	garminSyncBin    func() (string, bool)
-	runSyncModule    func(binPath string, inboxPath string, sourcePath string) (FITSyncModuleResult, error)
 	reloadProvider   func()
-	volumesRoot      string
+	volumeRoots      func() []string
 	now              func() time.Time
 	running          atomic.Bool
 	lastResultMutex  sync.RWMutex
 	lastResult       SyncResult
+}
+
+type garminDevice struct {
+	name         string
+	root         string
+	activityPath string
 }
 
 var defaultService = NewService()
@@ -122,10 +120,8 @@ func NewService() *Service {
 		fitDestination:   func() (string, bool) { return runtimeconfig.OptionalValue(fitDestinationEnv) },
 		fitInboxPath:     configuredFITInboxPath,
 		garminSourcePath: func() (string, bool) { return runtimeconfig.OptionalValue(garminSourceEnv) },
-		garminSyncBin:    configuredGarminFITSyncBin,
-		runSyncModule:    runGarminFITSyncModule,
 		reloadProvider:   activityprovider.Reload,
-		volumesRoot:      defaultVolumesRoot,
+		volumeRoots:      platformVolumeRoots,
 		now:              time.Now,
 		lastResult: SyncResult{
 			Status:  "idle",
@@ -140,11 +136,6 @@ func NewService() *Service {
 
 func configuredFITInboxPath() (string, bool) {
 	value, configured, _ := runtimeconfig.FITInboxPath()
-	return value, configured
-}
-
-func configuredGarminFITSyncBin() (string, bool) {
-	value, configured, _ := runtimeconfig.GarminFITSyncBin()
 	return value, configured
 }
 
@@ -227,15 +218,16 @@ func (service *Service) importFIT() FITImportResult {
 		}
 	}
 
-	if moduleResult := service.syncGarminModule(strings.TrimSpace(inboxPath)); moduleResult != nil {
-		result.SyncModule = moduleResult
-		if moduleResult.Status == "failed" {
-			result.Errors = append(result.Errors, moduleResult.Errors...)
+	if deviceSync := service.syncGarminToInbox(strings.TrimSpace(inboxPath)); deviceSync != nil {
+		result.DeviceSync = deviceSync
+		result.CandidateSourcePaths = append(result.CandidateSourcePaths, deviceSync.CandidateSourcePaths...)
+		if deviceSync.Status == "failed" {
+			result.Errors = append(result.Errors, deviceSync.Errors...)
 		}
 	}
 
 	sourcePath, sourceKind, candidates := service.detectFITImportSource(strings.TrimSpace(inboxPath), inboxConfigured)
-	result.CandidateSourcePaths = candidates
+	result.CandidateSourcePaths = append(result.CandidateSourcePaths, candidates...)
 	if sourcePath == "" {
 		result.Status = "no_device"
 		result.Message = "No FIT inbox or Garmin USB activity directory was detected."
@@ -330,36 +322,55 @@ func (service *Service) importFIT() FITImportResult {
 	return result
 }
 
-func (service *Service) syncGarminModule(inboxPath string) *FITSyncModuleResult {
-	binPath, configured := service.garminSyncBin()
-	binPath = strings.TrimSpace(binPath)
-	if !configured || binPath == "" {
+func (service *Service) syncGarminToInbox(inboxPath string) *FITDeviceSyncResult {
+	if strings.TrimSpace(inboxPath) == "" {
 		return nil
 	}
-	result := FITSyncModuleResult{
-		Status:     "not_configured",
-		Message:    "FIT_INBOX_PATH is required before the Garmin FIT sync module can run.",
-		Backend:    "external",
-		Executable: binPath,
-		InboxPath:  inboxPath,
+	device, candidates := service.detectGarminDevice()
+	result := FITDeviceSyncResult{
+		Status:               "no_device",
+		Message:              "No mounted Garmin activity directory was detected.",
+		Backend:              "filesystem",
+		InboxPath:            inboxPath,
+		CandidateSourcePaths: candidates,
 	}
-	if inboxPath == "" {
+	if device == nil {
 		return &result
 	}
-	sourcePath, _ := service.garminSourcePath()
-	moduleResult, err := service.runSyncModule(binPath, inboxPath, strings.TrimSpace(sourcePath))
-	moduleResult.Executable = binPath
-	if moduleResult.InboxPath == "" {
-		moduleResult.InboxPath = inboxPath
+	if err := os.MkdirAll(inboxPath, 0o755); err != nil {
+		result.Status = "failed"
+		result.Message = "Unable to create FIT inbox directory."
+		result.Errors = append(result.Errors, err.Error())
+		return &result
 	}
-	if err != nil {
-		moduleResult.Status = "failed"
-		if moduleResult.Message == "" {
-			moduleResult.Message = "Garmin FIT sync module failed."
+
+	result.Status = "ok"
+	result.Device = device.name
+	result.SourcePath = device.activityPath
+	files := fitFiles(device.activityPath)
+	result.ScannedFiles = len(files)
+	for _, file := range files {
+		destination, copied, err := copyFITToInbox(file, inboxPath)
+		if err != nil {
+			result.InvalidFiles++
+			result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", file, err))
+			continue
 		}
-		moduleResult.Errors = append(moduleResult.Errors, err.Error())
+		if copied {
+			result.CopiedFiles++
+			if len(result.Copied) < 25 {
+				result.Copied = append(result.Copied, FITDeviceSyncFile{
+					Source:      file,
+					Destination: destination,
+				})
+			}
+		} else {
+			result.AlreadyPresentFiles++
+			result.SkippedFiles++
+		}
 	}
-	return &moduleResult
+	result.Message = garminDeviceSyncMessage(result)
+	return &result
 }
 
 func (service *Service) detectFITImportSource(inboxPath string, inboxConfigured bool) (string, string, []string) {
@@ -380,41 +391,38 @@ func (service *Service) detectFITImportSource(inboxPath string, inboxConfigured 
 }
 
 func (service *Service) detectGarminFITSource() (string, []string) {
-	candidates := make([]string, 0)
-	if configuredPath, configured := service.garminSourcePath(); configured && strings.TrimSpace(configuredPath) != "" {
-		path := filepath.Clean(strings.TrimSpace(configuredPath))
-		candidates = append(candidates, path)
-		if isDirectory(path) {
-			return path, candidates
-		}
-	}
-
-	volumeEntries, err := os.ReadDir(service.volumesRoot)
-	if err != nil {
-		return "", candidates
-	}
-	for _, volumeEntry := range volumeEntries {
-		if !volumeEntry.IsDir() {
-			continue
-		}
-		if strings.HasPrefix(volumeEntry.Name(), ".") {
-			continue
-		}
-		volumeRoot := filepath.Join(service.volumesRoot, volumeEntry.Name())
-		for _, parts := range [][]string{
-			{"GARMIN", "ACTIVITY"},
-			{"GARMIN", "Activity"},
-			{"Garmin", "ACTIVITY"},
-			{"Garmin", "Activity"},
-		} {
-			candidate := filepath.Join(append([]string{volumeRoot}, parts...)...)
-			candidates = append(candidates, candidate)
-			if isDirectory(candidate) {
-				return candidate, candidates
-			}
-		}
+	device, candidates := service.detectGarminDevice()
+	if device != nil {
+		return device.activityPath, candidates
 	}
 	return "", candidates
+}
+
+func (service *Service) detectGarminDevice() (*garminDevice, []string) {
+	candidates := make([]string, 0)
+	if configuredPath, configured := service.garminSourcePath(); configured && strings.TrimSpace(configuredPath) != "" {
+		appendGarminSourceCandidates(filepath.Clean(strings.TrimSpace(configuredPath)), &candidates)
+	} else {
+		for _, root := range service.volumeRoots() {
+			appendGarminVolumeCandidates(root, &candidates)
+		}
+	}
+	seen := map[string]struct{}{}
+	for _, candidate := range candidates {
+		candidate = filepath.Clean(candidate)
+		if _, ok := seen[candidate]; ok {
+			continue
+		}
+		seen[candidate] = struct{}{}
+		if isDirectory(candidate) {
+			return &garminDevice{
+				name:         garminDeviceName(candidate),
+				root:         garminDeviceRoot(candidate),
+				activityPath: candidate,
+			}, candidates
+		}
+	}
+	return nil, candidates
 }
 
 func (service *Service) existingFITFingerprints(destinationPath string, sourcePath string, result *FITImportResult) map[string]bool {
@@ -437,36 +445,6 @@ func (service *Service) existingFITFingerprints(destinationPath string, sourcePa
 		return nil
 	})
 	return fingerprints
-}
-
-func runGarminFITSyncModule(binPath string, inboxPath string, sourcePath string) (FITSyncModuleResult, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), syncModuleTimeout)
-	defer cancel()
-
-	args := []string{"sync", "--inbox", inboxPath, "--json"}
-	if strings.TrimSpace(sourcePath) != "" {
-		args = append(args, "--source", strings.TrimSpace(sourcePath))
-	}
-	command := exec.CommandContext(ctx, binPath, args...)
-	output, err := command.CombinedOutput()
-
-	var result FITSyncModuleResult
-	if unmarshalErr := json.Unmarshal(output, &result); unmarshalErr != nil {
-		result = FITSyncModuleResult{
-			Status:  "failed",
-			Message: "Unable to parse Garmin FIT sync module JSON output.",
-			Backend: "external",
-			Errors:  []string{strings.TrimSpace(string(output)), unmarshalErr.Error()},
-		}
-		if err != nil {
-			result.Errors = append(result.Errors, err.Error())
-		}
-		return result, err
-	}
-	if result.Backend == "" {
-		result.Backend = "external"
-	}
-	return result, err
 }
 
 func (service *Service) destinationFilePath(sourcePath string, yearDirectory string) (string, error) {
@@ -559,6 +537,73 @@ func copyFileAtomic(sourcePath string, destinationPath string) error {
 	return os.Rename(tempPath, destinationPath)
 }
 
+func copyFITToInbox(sourcePath string, inboxPath string) (string, bool, error) {
+	base := filepath.Base(sourcePath)
+	if strings.TrimSpace(base) == "" || base == "." || base == string(filepath.Separator) {
+		base = "activity.fit"
+	}
+	preferred := filepath.Join(inboxPath, base)
+	if sameFileSize(sourcePath, preferred) {
+		return preferred, false, nil
+	}
+	destination, err := availableInboxDestination(sourcePath, preferred)
+	if err != nil {
+		return "", false, err
+	}
+	if err := copyFileAtomic(sourcePath, destination); err != nil {
+		return "", false, err
+	}
+	return destination, true, nil
+}
+
+func sameFileSize(sourcePath string, destinationPath string) bool {
+	sourceInfo, sourceErr := os.Stat(sourcePath)
+	destinationInfo, destinationErr := os.Stat(destinationPath)
+	return sourceErr == nil && destinationErr == nil && !sourceInfo.IsDir() && !destinationInfo.IsDir() && sourceInfo.Size() == destinationInfo.Size()
+}
+
+func availableInboxDestination(sourcePath string, preferred string) (string, error) {
+	if _, err := os.Stat(preferred); errors.Is(err, os.ErrNotExist) {
+		return preferred, nil
+	}
+	sourceInfo, _ := os.Stat(sourcePath)
+	sourceSize := int64(0)
+	if sourceInfo != nil {
+		sourceSize = sourceInfo.Size()
+	}
+	extension := filepath.Ext(preferred)
+	stem := strings.TrimSuffix(filepath.Base(preferred), extension)
+	if stem == "" {
+		stem = "activity"
+	}
+	if extension == "" {
+		extension = ".fit"
+	}
+	parent := filepath.Dir(preferred)
+	for index := 1; index < 1000; index++ {
+		candidate := filepath.Join(parent, fmt.Sprintf("%s-%d-%d%s", stem, sourceSize, index, extension))
+		if _, err := os.Stat(candidate); errors.Is(err, os.ErrNotExist) {
+			return candidate, nil
+		}
+	}
+	return "", fmt.Errorf("unable to choose destination file for %s", sourcePath)
+}
+
+func fitFiles(root string) []string {
+	files := make([]string, 0)
+	_ = filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
+		if err != nil || entry == nil || entry.IsDir() {
+			return nil
+		}
+		if strings.EqualFold(filepath.Ext(entry.Name()), ".fit") {
+			files = append(files, path)
+		}
+		return nil
+	})
+	sort.Strings(files)
+	return files
+}
+
 func shortFileHash(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -637,6 +682,19 @@ func fitImportMessage(result FITImportResult) string {
 	}
 }
 
+func garminDeviceSyncMessage(result FITDeviceSyncResult) string {
+	if result.Status == "failed" {
+		return "Garmin FIT synchronization failed."
+	}
+	if result.CopiedFiles > 0 {
+		return fmt.Sprintf("Copied %d FIT file(s) from Garmin source to inbox.", result.CopiedFiles)
+	}
+	if result.ScannedFiles == 0 {
+		return "Mounted Garmin activity directory was found, but it contains no FIT files."
+	}
+	return fmt.Sprintf("%d FIT file(s) already present in inbox.", result.AlreadyPresentFiles)
+}
+
 func sortedMapKeys(values map[string]struct{}) []string {
 	result := make([]string, 0, len(values))
 	for value := range values {
@@ -649,6 +707,77 @@ func sortedMapKeys(values map[string]struct{}) []string {
 func isDirectory(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && info.IsDir()
+}
+
+func appendGarminSourceCandidates(source string, candidates *[]string) {
+	appendGarminActivitySubdirectories(source, candidates)
+	*candidates = append(*candidates, source)
+}
+
+func appendGarminVolumeCandidates(root string, candidates *[]string) {
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() || strings.HasPrefix(entry.Name(), ".") {
+			continue
+		}
+		appendGarminActivitySubdirectories(filepath.Join(root, entry.Name()), candidates)
+	}
+}
+
+func appendGarminActivitySubdirectories(root string, candidates *[]string) {
+	for _, parts := range [][]string{
+		{"GARMIN", "ACTIVITY"},
+		{"GARMIN", "Activity"},
+		{"Garmin", "ACTIVITY"},
+		{"Garmin", "Activity"},
+	} {
+		*candidates = append(*candidates, filepath.Join(append([]string{root}, parts...)...))
+	}
+}
+
+func garminDeviceName(activityPath string) string {
+	root := garminDeviceRoot(activityPath)
+	name := filepath.Base(root)
+	if strings.TrimSpace(name) == "" || name == "." || name == string(filepath.Separator) {
+		return "Garmin"
+	}
+	return name
+}
+
+func garminDeviceRoot(activityPath string) string {
+	parent := filepath.Dir(activityPath)
+	if parent == "." || parent == string(filepath.Separator) {
+		return activityPath
+	}
+	root := filepath.Dir(parent)
+	if root == "." || root == string(filepath.Separator) {
+		return activityPath
+	}
+	return root
+}
+
+func platformVolumeRoots() []string {
+	switch runtime.GOOS {
+	case "darwin":
+		return []string{defaultVolumesRoot}
+	case "windows":
+		roots := make([]string, 0, 26)
+		for letter := 'A'; letter <= 'Z'; letter++ {
+			roots = append(roots, fmt.Sprintf("%c:\\", letter))
+		}
+		return roots
+	case "linux":
+		roots := make([]string, 0)
+		if user := strings.TrimSpace(os.Getenv("USER")); user != "" {
+			roots = append(roots, filepath.Join("/run/media", user), filepath.Join("/media", user))
+		}
+		return append(roots, "/media", "/mnt")
+	default:
+		return []string{}
+	}
 }
 
 func sameOrInside(path string, root string) bool {

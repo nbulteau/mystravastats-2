@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
 import me.nicolas.stravastats.domain.RuntimeConfig
 import me.nicolas.stravastats.domain.services.IDataQualityService
+import me.nicolas.stravastats.domain.services.ISourceSyncService
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import me.nicolas.stravastats.domain.services.routing.RoutingEnginePort
 import org.springframework.http.MediaType
@@ -20,6 +21,7 @@ class HealthController(
     private val activityProvider: IActivityProvider,
     private val routingEngine: RoutingEnginePort,
     private val dataQualityService: IDataQualityService,
+    private val sourceSyncService: ISourceSyncService,
 ) {
 
     @Operation(
@@ -47,6 +49,7 @@ class HealthController(
         details["routing"] = routingEngine.healthDetails()
         details["dataQuality"] = dataQualityService.getReport().summary
         details["runtimeConfig"] = RuntimeConfig.details()
+        details["sourceSync"] = sourceSyncService.lastResult()
         return details
     }
 }

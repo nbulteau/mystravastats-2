@@ -48,4 +48,6 @@ interface IActivityProvider {
     )
 
     fun cacheIdentity(): ActivityProviderCacheIdentity? = null
+
+    fun reload(): Boolean = false
 }

@@ -32,16 +32,20 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
             file.extension.lowercase(Locale.getDefault()) == "fit"
         }
         val activities: List<StravaActivity> = fitFiles?.mapNotNull { fitFile ->
-            try {
-                val fitMessages = fitDecoder.decode(fitFile.inputStream())
-                fitMessages.toActivity()
-            } catch (exception: Exception) {
-                logger.error("Something wrong during FIT conversion: ${exception.message}")
-                null
-            }
+            decodeActivity(fitFile)
         }?.toList() ?: emptyList()
 
         return activities
+    }
+
+    fun decodeActivity(fitFile: File): StravaActivity? {
+        return try {
+            val fitMessages = fitDecoder.decode(fitFile.inputStream())
+            fitMessages.toActivity()
+        } catch (exception: Exception) {
+            logger.error("Something wrong during FIT conversion: ${exception.message}")
+            null
+        }
     }
 
     /**

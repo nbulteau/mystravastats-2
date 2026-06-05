@@ -53,19 +53,19 @@ export interface FITImportResult extends HealthRecord {
   createdYearDirectories?: string[];
   imported?: ImportedFITFile[];
   errors?: string[];
-  syncModule?: FITSyncModuleResult;
+  deviceSync?: FITDeviceSyncResult;
+  syncModule?: FITDeviceSyncResult;
 }
 
-export interface FITSyncModuleFile extends HealthRecord {
+export interface FITDeviceSyncFile extends HealthRecord {
   source?: string;
   destination?: string;
 }
 
-export interface FITSyncModuleResult extends HealthRecord {
+export interface FITDeviceSyncResult extends HealthRecord {
   status?: string;
   message?: string;
   backend?: string;
-  executable?: string;
   device?: string;
   sourcePath?: string;
   inboxPath?: string;
@@ -75,7 +75,7 @@ export interface FITSyncModuleResult extends HealthRecord {
   alreadyPresentFiles?: number;
   skippedFiles?: number;
   invalidFiles?: number;
-  copied?: FITSyncModuleFile[];
+  copied?: FITDeviceSyncFile[];
   errors?: string[];
 }
 

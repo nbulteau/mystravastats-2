@@ -176,6 +176,12 @@ class CompositeActivityProvider(
         )
     }
 
+    override fun reload(): Boolean {
+        sources.forEach { source -> source.provider.reload() }
+        rebuild()
+        return true
+    }
+
     override fun close() {
         sources.forEach { source ->
             (source.provider as? AutoCloseable)?.close()

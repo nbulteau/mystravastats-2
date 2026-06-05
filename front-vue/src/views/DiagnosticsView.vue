@@ -48,6 +48,11 @@ type GuideFactTone = "warn" | "up" | "down" | "neutral";
 type GuideFact = { label: string; value: string; tone?: GuideFactTone; monospace?: boolean };
 type GuideStepState = "complete" | "current" | "warn" | "pending";
 type GuideStep = { key: string; title: string; detail: string; state: GuideStepState; icon: string };
+type StatusTone = "up" | "warn" | "down" | "neutral" | "info";
+type StatusActionKey = "start-osrm" | "check-osrm" | "safe-fixes" | "review-quality" | "review-source" | "synchronize" | "refresh";
+type StatusActionTone = "primary" | "warn" | "neutral";
+type StatusAction = { key: StatusActionKey; label: string; detail: string; icon: string; tone: StatusActionTone; disabled?: boolean };
+type StatusItem = { label: string; value: string; detail?: string; tone: StatusTone };
 
 onMounted(() => contextStore.updateCurrentView("diagnostics"));
 
@@ -63,7 +68,7 @@ const files = computed(() => asRecord(root.value.files));
 const composite = computed(() => asRecord(root.value.composite));
 const sourceSync = computed(() => asRecord(root.value.sourceSync));
 const fitSourceSync = computed(() => asRecord(sourceSync.value.fit));
-const fitSyncModule = computed(() => asRecord(fitSourceSync.value.syncModule));
+const fitDeviceSync = computed(() => asRecord(fitSourceSync.value.deviceSync || fitSourceSync.value.syncModule));
 const runtimeConfig = computed(() => asRecord(root.value.runtimeConfig));
 const runtimeData = computed(() => asRecord(runtimeConfig.value.data));
 const runtimeServer = computed(() => asRecord(runtimeConfig.value.server));
@@ -153,8 +158,11 @@ const dataQualityIssueListLabel = computed(() => {
   if (total === filtered && total <= visible) {
     return `${formatInteger(visible)} issues`;
   }
+  if (total === filtered) {
+    return `Showing ${formatInteger(visible)} of ${formatInteger(total)} issues`;
+  }
   if (filtered <= visible) {
-    return `${formatInteger(filtered)} filtered of ${formatInteger(total)} issues`;
+    return `${formatInteger(filtered)} filtered issues out of ${formatInteger(total)} total`;
   }
   return `Showing ${formatInteger(visible)} of ${formatInteger(filtered)} filtered issues`;
 });
@@ -170,7 +178,7 @@ const issueCorrectionImpactStats = computed(() => {
       delta: formatSignedDistance(impact?.distanceDeltaMeters),
     },
     {
-      label: "D+",
+      label: "Elevation",
       before: formatMeters(impact?.elevationMetersBefore),
       after: formatMeters(impact?.elevationMetersAfter),
       delta: formatSignedMeters(impact?.elevationDeltaMeters),
@@ -283,9 +291,9 @@ const healthStatusClass = computed(() => {
   return statusClass(routingStatus.value === "down" || routingStatus.value === "misconfigured" ? routingStatus.value : "up");
 });
 const warmupStatusItems = computed(() => [
-  { label: "Résumé annuel", value: textValue(warmup.value.priority1) || "n/a" },
-  { label: "Records principaux", value: textValue(warmup.value.priority2) || "n/a" },
-  { label: "Métriques avancées", value: textValue(warmup.value.priority3) || "n/a" },
+  { label: "Annual summary", value: textValue(warmup.value.priority1) || "n/a" },
+  { label: "Primary records", value: textValue(warmup.value.priority2) || "n/a" },
+  { label: "Advanced metrics", value: textValue(warmup.value.priority3) || "n/a" },
 ]);
 const warmupInProgress = computed(() => booleanValue(refresh.value.warmupInProgress));
 const backgroundRefreshInProgress = computed(() => booleanValue(refresh.value.backgroundInProgress));
@@ -407,7 +415,6 @@ const runtimeConfigItems = computed<Array<{ label: string; value: string; monosp
   { label: "FIT files", value: textValue(runtimeData.value.fitFilesPath) || "n/a", monospace: true },
   { label: "FIT inbox", value: textValue(runtimeData.value.fitInboxPath) || "n/a", monospace: true },
   { label: "Garmin FIT source", value: textValue(runtimeData.value.garminFitSourcePath) || "Auto-detect", monospace: true },
-  { label: "Garmin sync module", value: textValue(runtimeData.value.garminFitSyncBin) || "n/a", monospace: true },
   { label: "GPX files", value: textValue(runtimeData.value.gpxFilesPath) || "n/a", monospace: true },
   { label: "CORS origins", value: displayList(runtimeCors.value.allowedOrigins), monospace: true },
   { label: "CORS headers", value: displayList(runtimeCors.value.allowedHeaders), monospace: true },
@@ -438,15 +445,15 @@ const sourceSyncSummary = computed(() => textValue(sourceSync.value.message) || 
 const sourceSyncItems = computed<Array<{ label: string; value: string; tone?: "warn" | "up" | "neutral"; monospace?: boolean }>>(() => {
   const importedFiles = numberValue(fitSourceSync.value.importedFiles) ?? 0;
   const invalidFiles = numberValue(fitSourceSync.value.invalidFiles) ?? 0;
-  const moduleStatus = textValue(fitSyncModule.value.status);
-  const moduleCopiedFiles = numberValue(fitSyncModule.value.copiedFiles) ?? 0;
+  const deviceStatus = textValue(fitDeviceSync.value.status);
+  const deviceCopiedFiles = numberValue(fitDeviceSync.value.copiedFiles) ?? 0;
   return [
     { label: "Last run", value: formatDateTime(textValue(sourceSync.value.completedAt)), tone: "neutral" },
     { label: "Source type", value: formatFITSourceKind(textValue(fitSourceSync.value.sourceKind)), tone: textValue(fitSourceSync.value.sourceKind) ? "neutral" : "warn" },
     { label: "Source", value: textValue(fitSourceSync.value.sourcePath) || "No FIT inbox or Garmin source", monospace: true, tone: textValue(fitSourceSync.value.sourcePath) ? "neutral" : "warn" },
     { label: "Inbox", value: textValue(fitSourceSync.value.inboxPath) || textValue(runtimeData.value.fitInboxPath) || "n/a", monospace: true },
-    { label: "Sync module", value: moduleStatus ? `${formatFITModuleStatus(moduleStatus)} · ${textValue(fitSyncModule.value.backend) || "external"}` : "n/a", tone: moduleStatus === "failed" ? "warn" : "neutral" },
-    { label: "Copied to inbox", value: formatInteger(moduleCopiedFiles), tone: moduleCopiedFiles > 0 ? "up" : "neutral" },
+    { label: "Device sync", value: deviceStatus ? `${formatFITDeviceSyncStatus(deviceStatus)} · ${textValue(fitDeviceSync.value.backend) || "filesystem"}` : "n/a", tone: deviceStatus === "failed" ? "warn" : "neutral" },
+    { label: "Copied to inbox", value: formatInteger(deviceCopiedFiles), tone: deviceCopiedFiles > 0 ? "up" : "neutral" },
     { label: "Destination", value: textValue(fitSourceSync.value.destinationPath) || textValue(runtimeData.value.fitFilesPath) || "n/a", monospace: true },
     { label: "Scanned", value: formatInteger(numberValue(fitSourceSync.value.scannedFiles)) },
     { label: "Imported", value: formatInteger(importedFiles), tone: importedFiles > 0 ? "up" : "neutral" },
@@ -454,6 +461,10 @@ const sourceSyncItems = computed<Array<{ label: string; value: string; tone?: "w
     { label: "Invalid", value: formatInteger(invalidFiles), tone: invalidFiles > 0 ? "warn" : "neutral" },
     { label: "Year folders", value: displayList(fitSourceSync.value.createdYearDirectories) },
   ];
+});
+const sourceSyncKeyItems = computed(() => {
+  const priority = new Set(["Last run", "Source type", "Device sync", "Imported", "Invalid"]);
+  return sourceSyncItems.value.filter((item) => priority.has(item.label));
 });
 const activeSourceMode = computed(() => normalizeSourceMode(activeProviderValue.value));
 const selectedSourceIsActive = computed(() => {
@@ -868,6 +879,147 @@ const degradedReasons = computed(() => {
   }
   return reasons;
 });
+const dataQualityIssueTotal = computed(() => dataQualitySummary.value?.issueCount ?? dataQualityIssues.value.length);
+const dataQualitySafeFixTotal = computed(() => dataQualitySummary.value?.safeCorrectionCount ?? 0);
+const dataQualityManualReviewTotal = computed(() => dataQualitySummary.value?.manualReviewCount ?? 0);
+const compositeConflictTotal = computed(() => numberValue(composite.value.conflictCount) ?? compositeConflictRows.value.length);
+const statusOverviewItems = computed<StatusItem[]>(() => {
+  const sourceDetail = isCompositeProvider.value
+    ? activeConfiguredProviders.value.map(formatProvider).join(", ") || "Composite source"
+    : sourcePath.value || "No source path detected";
+  const qualityDetail = dataQualityIssueTotal.value > 0
+    ? `${formatInteger(dataQualityIssueTotal.value)} issue(s), ${formatInteger(dataQualitySafeFixTotal.value)} safe fix(es)`
+    : "No blocking local data quality issue";
+
+  return [
+    {
+      label: "System",
+      value: healthStatusLabel.value,
+      detail: diagnosticsStore.error || "Backend health payload is reachable.",
+      tone: diagnosticsStore.error ? "down" : healthStatusLabel.value === "Operational" ? "up" : "warn",
+    },
+    {
+      label: "Data source",
+      value: dataSourceStatusLabel.value,
+      detail: sourceDetail,
+      tone: dataSourceStatusClass.value.includes("--up") ? "up" : dataSourceStatusClass.value.includes("--down") ? "down" : "warn",
+    },
+    {
+      label: "Routing",
+      value: routingStatusLabel.value,
+      detail: textValue(routing.value.error) || textValue(routing.value.baseUrl) || "No routing detail available.",
+      tone: routingStatus.value === "up" && routingReachable.value ? "up" : routingStatus.value === "disabled" ? "neutral" : routingStatus.value === "unknown" ? "neutral" : "down",
+    },
+    {
+      label: "Data quality",
+      value: dataQualityStatusLabel.value,
+      detail: qualityDetail,
+      tone: dataQualityStatusClass.value.includes("--up") ? "up" : dataQualityStatusClass.value.includes("--down") ? "down" : dataQualityIssueTotal.value > 0 ? "warn" : "neutral",
+    },
+  ];
+});
+const attentionItems = computed<StatusItem[]>(() => {
+  const items: StatusItem[] = degradedReasons.value.map((reason) => ({
+    label: reason.title,
+    value: reason.tone === "down" ? "Needs attention" : "Notice",
+    detail: reason.detail,
+    tone: reason.tone,
+  }));
+
+  if (compositeConflictTotal.value > 0) {
+    items.push({
+      label: "Source conflicts",
+      value: `${formatInteger(compositeConflictTotal.value)} conflict(s)`,
+      detail: "Matched activities disagree between sources. Review which source is used for totals.",
+      tone: "warn",
+    });
+  }
+
+  if (dataQualityIssueTotal.value > 0) {
+    const safeFixText = dataQualitySafeFixTotal.value > 0
+      ? `${formatInteger(dataQualitySafeFixTotal.value)} safe fix(es) available`
+      : `${formatInteger(dataQualityManualReviewTotal.value)} manual review item(s)`;
+    items.push({
+      label: "Data quality",
+      value: `${formatInteger(dataQualityIssueTotal.value)} issue(s)`,
+      detail: `${safeFixText}. Check this before trusting records, distance, elevation, or sensor charts.`,
+      tone: dataQualitySummary.value?.status === "critical" ? "down" : "warn",
+    });
+  }
+
+  if (items.length === 0) {
+    items.push({
+      label: "All clear",
+      value: "No action required",
+      detail: "Core source, routing, cache, and quality signals look usable.",
+      tone: "up",
+    });
+  }
+
+  return items;
+});
+const statusActions = computed<StatusAction[]>(() => {
+  const actions: StatusAction[] = [];
+  if (canStartOsrm.value) {
+    actions.push({
+      key: "start-osrm",
+      label: "Start OSRM",
+      detail: "Bring route generation online.",
+      icon: "fa-solid fa-play",
+      tone: "primary",
+      disabled: diagnosticsStore.isStartingOsrm,
+    });
+  } else if (routingStatus.value === "down" || routingStatus.value === "misconfigured") {
+    actions.push({
+      key: "check-osrm",
+      label: "Check OSRM",
+      detail: "Refresh routing health.",
+      icon: "fa-solid fa-route",
+      tone: "warn",
+      disabled: diagnosticsStore.isLoading,
+    });
+  }
+
+  if (dataQualitySafeFixTotal.value > 0) {
+    actions.push({
+      key: "safe-fixes",
+      label: "Review safe fixes",
+      detail: "Preview local corrections before applying them.",
+      icon: "fa-solid fa-wand-magic-sparkles",
+      tone: "primary",
+      disabled: qualityBatchActionInProgress.value,
+    });
+  } else if (dataQualityIssueTotal.value > 0) {
+    actions.push({
+      key: "review-quality",
+      label: "Triage data quality",
+      detail: "Inspect the highest-impact issues.",
+      icon: "fa-solid fa-list-check",
+      tone: "warn",
+    });
+  }
+
+  if (compositeConflictTotal.value > 0) {
+    actions.push({
+      key: "review-source",
+      label: "Review source conflicts",
+      detail: "Compare Strava/FIT values.",
+      icon: "fa-solid fa-code-compare",
+      tone: "warn",
+    });
+  }
+
+  actions.push({
+    key: "synchronize",
+    label: "Synchronize",
+    detail: "Import new local source files.",
+    icon: "fa-solid fa-arrows-rotate",
+    tone: "neutral",
+    disabled: diagnosticsStore.isSynchronizingSources || diagnosticsStore.isLoading,
+  });
+
+  return actions.slice(0, 4);
+});
 const rawPayload = computed(() => JSON.stringify(health.value ?? {}, null, 2));
 
 watch(
@@ -1029,7 +1181,7 @@ function formatFITSourceKind(value: string): string {
   return value || "No source";
 }
 
-function formatFITModuleStatus(value: string): string {
+function formatFITDeviceSyncStatus(value: string): string {
   const normalized = value.trim().toLowerCase();
   if (normalized === "ok") return "OK";
   if (normalized === "no_device") return "No device";
@@ -1190,6 +1342,55 @@ function sourceGuideStepClass(state: "complete" | "current" | "warn" | "pending"
 
 function sourceGuideFactClass(fact: GuideFact): string {
   return fact.tone && fact.tone !== "neutral" ? `source-guide-fact source-guide-fact--${fact.tone}` : "source-guide-fact";
+}
+
+function statusOverviewItemClass(tone: StatusTone): string {
+  return `status-overview-item status-overview-item--${tone}`;
+}
+
+function attentionItemClass(tone: StatusTone): string {
+  return `attention-item attention-item--${tone}`;
+}
+
+function scrollToSection(sectionId: string) {
+  document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function openDetails(selector: string) {
+  const details = document.querySelector<HTMLDetailsElement>(selector);
+  if (details) {
+    details.open = true;
+  }
+}
+
+function runStatusAction(actionKey: StatusActionKey) {
+  if (actionKey === "start-osrm") {
+    void startOsrm();
+    return;
+  }
+  if (actionKey === "check-osrm") {
+    void checkRouting();
+    return;
+  }
+  if (actionKey === "safe-fixes") {
+    void applySafeCorrections();
+    return;
+  }
+  if (actionKey === "review-quality") {
+    openDetails(".quality-issue-details");
+    scrollToSection("data-quality-section");
+    return;
+  }
+  if (actionKey === "review-source") {
+    openDetails(".source-conflicts-details");
+    scrollToSection("data-source-section");
+    return;
+  }
+  if (actionKey === "synchronize") {
+    void synchronizeSources();
+    return;
+  }
+  void refreshDiagnostics();
 }
 
 function selectSourceMode(mode: SourceMode) {
@@ -1410,7 +1611,7 @@ function formatDataQualityImpactToken(value: string): string {
   const labels: Record<string, string> = {
     records: "Records",
     distance: "Distance",
-    elevation: "D+",
+    elevation: "Elevation",
     speed: "Speed",
     sensor: "Sensor",
   };
@@ -1814,25 +2015,6 @@ async function previewSourceMode(silent = false) {
       <div class="diagnostics-actions">
         <button
           type="button"
-          class="btn btn-outline-secondary"
-          :disabled="!canStartOsrm"
-          :title="osrmStartDisabledReason || 'Start local OSRM Docker service'"
-          @click="startOsrm"
-        >
-          <i class="fa-solid fa-play" aria-hidden="true" />
-          {{ diagnosticsStore.isStartingOsrm ? "Starting OSRM" : "Start OSRM" }}
-        </button>
-        <button
-          type="button"
-          class="btn btn-outline-secondary"
-          :disabled="diagnosticsStore.isLoading"
-          @click="checkRouting"
-        >
-          <i class="fa-solid fa-route" aria-hidden="true" />
-          Check OSRM
-        </button>
-        <button
-          type="button"
           class="btn btn-primary"
           :disabled="diagnosticsStore.isLoading"
           @click="refreshDiagnostics"
@@ -1863,49 +2045,96 @@ async function previewSourceMode(silent = false) {
       v-else
       class="diagnostics-grid"
     >
-      <section class="diagnostics-panel diagnostics-panel--summary">
-        <div class="summary-main">
-          <span :class="healthStatusClass">{{ healthStatusLabel }}</span>
-          <h2>{{ providerLabel }}</h2>
-          <p>{{ activityCount ?? 0 }} activities · {{ availableYears.length }} years</p>
+      <section class="diagnostics-panel diagnostics-panel--summary status-overview-panel">
+        <div class="status-overview-header">
+          <div class="summary-main">
+            <span :class="healthStatusClass">{{ healthStatusLabel }}</span>
+            <h2>{{ providerLabel }}</h2>
+            <p>{{ formatInteger(activityCount) }} activities · {{ availableYears.length }} years</p>
+          </div>
+          <dl class="summary-list">
+            <div>
+              <dt>Health payload</dt>
+              <dd>{{ timestampLabel }}</dd>
+            </div>
+            <div>
+              <dt>Loaded in UI</dt>
+              <dd>{{ loadedAtLabel }}</dd>
+            </div>
+            <div>
+              <dt>Athlete</dt>
+              <dd>{{ textValue(root.athleteId) || "n/a" }}</dd>
+            </div>
+          </dl>
         </div>
-        <dl class="summary-list">
-          <div>
-            <dt>Health payload</dt>
-            <dd>{{ timestampLabel }}</dd>
+
+        <div class="status-overview-grid">
+          <div
+            v-for="item in statusOverviewItems"
+            :key="item.label"
+            :class="statusOverviewItemClass(item.tone)"
+          >
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+            <small>{{ item.detail }}</small>
           </div>
-          <div>
-            <dt>Loaded in UI</dt>
-            <dd>{{ loadedAtLabel }}</dd>
-          </div>
-          <div>
-            <dt>Athlete</dt>
-            <dd>{{ textValue(root.athleteId) || "n/a" }}</dd>
-          </div>
-        </dl>
+        </div>
+
+        <div class="status-action-strip">
+          <button
+            v-for="action in statusActions"
+            :key="action.key"
+            type="button"
+            :class="['status-action', `status-action--${action.tone}`]"
+            :disabled="action.disabled"
+            @click="runStatusAction(action.key)"
+          >
+            <i :class="action.icon" aria-hidden="true" />
+            <span>
+              <strong>{{ action.label }}</strong>
+              <small>{{ action.detail }}</small>
+            </span>
+          </button>
+        </div>
+
+        <div class="attention-list">
+          <article
+            v-for="item in attentionItems"
+            :key="`${item.label}-${item.value}`"
+            :class="attentionItemClass(item.tone)"
+          >
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+            <small>{{ item.detail }}</small>
+          </article>
+        </div>
       </section>
 
       <section
-        v-if="hasRuntimeConfig"
+        v-if="degradedReasons.length > 0"
+        id="degraded-section"
         class="diagnostics-panel diagnostics-panel--wide"
       >
         <div class="panel-heading">
-          <h2>Runtime Config</h2>
-          <span class="status-chip status-chip--neutral">{{ textValue(runtimeCors.source) || "default" }}</span>
+          <h2>Degraded Mode</h2>
+          <span class="panel-count">{{ degradedReasons.length }}</span>
         </div>
-        <div class="runtime-config-grid">
-          <div
-            v-for="item in runtimeConfigItems"
-            :key="item.label"
-            class="runtime-config-item"
+        <div class="degraded-list">
+          <article
+            v-for="reason in degradedReasons"
+            :key="reason.title"
+            :class="['degraded-item', `degraded-item--${reason.tone}`]"
           >
-            <span>{{ item.label }}</span>
-            <strong :class="{ monospace: item.monospace }">{{ item.value }}</strong>
-          </div>
+            <strong>{{ reason.title }}</strong>
+            <span>{{ reason.detail }}</span>
+          </article>
         </div>
       </section>
 
-      <section class="diagnostics-panel diagnostics-panel--wide">
+      <section
+        id="data-source-section"
+        class="diagnostics-panel diagnostics-panel--wide"
+      >
         <div class="panel-heading">
           <h2>Data Source</h2>
           <span :class="dataSourceStatusClass">{{ dataSourceStatusLabel }}</span>
@@ -1921,7 +2150,7 @@ async function previewSourceMode(silent = false) {
             </div>
             <div class="source-preview-metrics source-preview-metrics--compact">
               <div
-                v-for="item in sourceSyncItems"
+                v-for="item in sourceSyncKeyItems"
                 :key="item.label"
                 :class="['source-preview-metric', item.tone === 'warn' ? 'source-preview-metric--warn' : '', item.tone === 'up' ? 'source-preview-metric--up' : '']"
               >
@@ -1929,6 +2158,22 @@ async function previewSourceMode(silent = false) {
                 <strong :class="{ monospace: item.monospace }">{{ item.value }}</strong>
               </div>
             </div>
+            <details class="source-sync-details">
+              <summary>
+                <i class="fa-solid fa-sliders" aria-hidden="true" />
+                Synchronization details
+              </summary>
+              <div class="source-preview-metrics source-preview-metrics--compact">
+                <div
+                  v-for="item in sourceSyncItems"
+                  :key="`details-${item.label}`"
+                  :class="['source-preview-metric', item.tone === 'warn' ? 'source-preview-metric--warn' : '', item.tone === 'up' ? 'source-preview-metric--up' : '']"
+                >
+                  <span>{{ item.label }}</span>
+                  <strong :class="{ monospace: item.monospace }">{{ item.value }}</strong>
+                </div>
+              </div>
+            </details>
           </div>
 
           <div
@@ -1966,40 +2211,58 @@ async function previewSourceMode(silent = false) {
                 <span class="monospace">{{ source.cacheRoot }}</span>
               </div>
             </div>
-            <div
+            <details
               v-if="compositeConflictRows.length > 0"
-              class="source-message-list source-message-list--warnings source-conflict-list"
+              class="source-conflicts-details"
             >
-              <p class="source-conflict-intro">
-                Matched activities can disagree by source. The primary source stays in charge of summary fields; the secondary value is shown for comparison.
-              </p>
-              <div
-                v-for="conflict in compositeConflictRows"
-                :key="conflict.id"
-                class="source-message-item source-conflict-item"
-              >
-                <strong>{{ conflict.title }}</strong>
-                <span>{{ conflict.summary }}</span>
-                <div class="source-conflict-values">
-                  <span>
-                    <small>{{ conflict.primaryLabel }}</small>
-                    <strong>{{ conflict.primaryValue }}</strong>
-                  </span>
-                  <span>
-                    <small>{{ conflict.otherLabel }}</small>
-                    <strong>{{ conflict.otherValue }}</strong>
-                  </span>
-                  <span>
-                    <small>Difference</small>
-                    <strong>{{ conflict.delta }}</strong>
-                  </span>
+              <summary>
+                <span>
+                  <strong>{{ formatInteger(compositeConflictTotal) }} source conflict(s)</strong>
+                  <small>Review matched activities where source values disagree.</small>
+                </span>
+                <i class="fa-solid fa-chevron-down" aria-hidden="true" />
+              </summary>
+              <div class="source-message-list source-message-list--warnings source-conflict-list">
+                <p class="source-conflict-intro">
+                  Matched activities can disagree by source. The primary source stays in charge of summary fields; the secondary value is shown for comparison.
+                </p>
+                <div
+                  v-for="conflict in compositeConflictRows"
+                  :key="conflict.id"
+                  class="source-message-item source-conflict-item"
+                >
+                  <strong>{{ conflict.title }}</strong>
+                  <span>{{ conflict.summary }}</span>
+                  <div class="source-conflict-values">
+                    <span>
+                      <small>{{ conflict.primaryLabel }}</small>
+                      <strong>{{ conflict.primaryValue }}</strong>
+                    </span>
+                    <span>
+                      <small>{{ conflict.otherLabel }}</small>
+                      <strong>{{ conflict.otherValue }}</strong>
+                    </span>
+                    <span>
+                      <small>Difference</small>
+                      <strong>{{ conflict.delta }}</strong>
+                    </span>
+                  </div>
+                  <small class="source-conflict-raw">
+                    Raw: {{ conflict.rawField }} · {{ conflict.rawPrimary }} → {{ conflict.rawOther }}
+                  </small>
                 </div>
-                <small class="source-conflict-raw">
-                  Raw: {{ conflict.rawField }} · {{ conflict.rawPrimary }} → {{ conflict.rawOther }}
-                </small>
               </div>
-            </div>
+            </details>
           </div>
+          <details class="source-configuration-details">
+            <summary>
+              <span>
+                <strong>Change data source</strong>
+                <small>Check Strava, FIT, or GPX paths and save pending source changes.</small>
+              </span>
+              <i class="fa-solid fa-chevron-down" aria-hidden="true" />
+            </summary>
+            <div class="source-configuration-body">
           <div class="source-mode-form">
             <div
               class="source-mode-tabs"
@@ -2425,11 +2688,14 @@ async function previewSourceMode(silent = false) {
               </div>
             </div>
           </div>
+            </div>
+          </details>
         </div>
       </section>
 
       <section
         v-if="dataQualitySummary"
+        id="data-quality-section"
         class="diagnostics-panel diagnostics-panel--wide"
       >
         <div class="panel-heading">
@@ -2528,7 +2794,7 @@ async function previewSourceMode(silent = false) {
                   <option value="all">All impacts</option>
                   <option value="records">Records</option>
                   <option value="distance">Distance</option>
-                  <option value="elevation">D+</option>
+                  <option value="elevation">Elevation</option>
                   <option value="speed">Speed</option>
                   <option value="sensor">Sensor data</option>
                 </select>
@@ -2545,229 +2811,242 @@ async function previewSourceMode(silent = false) {
             </div>
           </div>
 
-          <div
-            v-if="filteredDataQualityIssues.length > 0"
-            class="quality-table"
+          <details
+            v-if="dataQualityIssues.length > 0"
+            class="quality-issue-details"
           >
-            <div class="quality-table-toolbar">
-              <div>
+            <summary>
+              <span>
                 <strong>Issue list</strong>
                 <small>{{ dataQualityIssueListLabel }}</small>
-              </div>
-              <div class="quality-table-actions">
-                <button
-                  v-if="(dataQualitySummary.safeCorrectionCount ?? 0) > 0"
-                  type="button"
-                  class="btn btn-sm btn-primary"
-                  :disabled="qualityBatchActionInProgress"
-                  @click="applySafeCorrections"
-                >
-                  <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true" />
-                  Fix safe issues
-                </button>
-                <button
-                  v-if="canToggleDataQualityIssues"
-                  type="button"
-                  class="btn btn-sm btn-outline-secondary"
-                  @click="showAllDataQualityIssues = !showAllDataQualityIssues"
-                >
-                  <i
-                    :class="showAllDataQualityIssues ? 'fa-solid fa-compress' : 'fa-solid fa-list'"
-                    aria-hidden="true"
-                  />
-                  {{ showAllDataQualityIssues ? `Show top ${dataQualityPreviewLimit}` : "Show all" }}
-                </button>
-              </div>
-            </div>
-            <div class="quality-row quality-row--head">
-              <span>Severity</span>
-              <span>Activity</span>
-              <span>Problem</span>
-              <span>Field</span>
-              <span>Impact</span>
-              <span>Action</span>
-            </div>
-            <template
-              v-for="issue in displayedDataQualityIssues"
-              :key="issue.id"
+              </span>
+              <i class="fa-solid fa-chevron-down" aria-hidden="true" />
+            </summary>
+
+            <div
+              v-if="filteredDataQualityIssues.length > 0"
+              class="quality-table"
             >
-              <div class="quality-row">
-                <span :class="dataQualitySeverityClass(issue.severity)">{{ issue.severity }}</span>
-                <span>
-                  <RouterLink
-                    v-if="issue.activityId"
-                    :to="`/activities/${issue.activityId}`"
-                    class="quality-activity-link"
-                  >
-                    {{ issue.activityName || issue.activityId }}
-                  </RouterLink>
-                  <span v-else>{{ issue.activityName || "n/a" }}</span>
-                  <small>{{ [issue.activityType, issue.year].filter(Boolean).join(" · ") }}</small>
-                </span>
-                <span>
-                  <strong class="quality-problem-label">
-                    {{ formatDataQualityCategory(issue.category) }}
-                    <TooltipHint :text="dataQualityCategoryTooltip(issue.category)" />
-                  </strong>
-                  <small>{{ issue.message }}</small>
-                  <small
-                    v-if="issue.correction?.available"
-                    :class="['quality-correction-chip', `quality-correction-chip--${issue.correction.safety}`]"
-                  >
-                    {{ dataQualityActionLabel(issue) }}
-                  </small>
-                </span>
-                <span>
-                  <strong class="monospace">{{ formatSourceField(issue.field) }}</strong>
-                  <small>{{ issue.rawValue || issue.field }}</small>
-                </span>
-                <span class="quality-impact-cell">
-                  <small
-                    v-for="token in dataQualityImpactTokens(issue)"
-                    :key="token"
-                    :class="['quality-impact-chip', `quality-impact-chip--${token}`]"
-                  >
-                    {{ formatDataQualityImpactToken(token) }}
-                  </small>
-                </span>
-                <span class="quality-action-cell">
+              <div class="quality-table-toolbar">
+                <div>
+                  <strong>Visible issues</strong>
+                  <small>{{ dataQualityIssueListLabel }}</small>
+                </div>
+                <div class="quality-table-actions">
                   <button
-                    v-if="issue.correction?.available"
+                    v-if="(dataQualitySummary.safeCorrectionCount ?? 0) > 0"
                     type="button"
-                    class="btn btn-sm btn-outline-secondary"
-                    :disabled="issueCorrectionPreviewLoading && selectedQualityIssueId === issue.id"
-                    @click="previewIssueCorrection(issue)"
-                  >
-                    <i class="fa-solid fa-eye" aria-hidden="true" />
-                    Review
-                  </button>
-                  <button
-                    v-if="issue.correction?.available && issue.correction.safety === 'safe'"
-                    type="button"
-                    class="btn btn-sm btn-outline-primary"
-                    :disabled="qualityActionIssueId === issue.id"
-                    @click="applyIssueCorrection(issue)"
+                    class="btn btn-sm btn-primary"
+                    :disabled="qualityBatchActionInProgress"
+                    @click="applySafeCorrections"
                   >
                     <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true" />
-                    Fix
+                    Fix safe issues
                   </button>
                   <button
-                    v-if="issue.activityId"
-                    type="button"
-                    :class="['btn btn-sm', issue.excludedFromStats ? 'btn-outline-secondary' : 'btn-outline-danger']"
-                    :disabled="qualityActionActivityId === issue.activityId"
-                    @click="toggleStatsExclusion(issue)"
-                  >
-                    <i
-                      :class="issue.excludedFromStats ? 'fa-solid fa-rotate-left' : 'fa-solid fa-ban'"
-                      aria-hidden="true"
-                    />
-                    {{ issue.excludedFromStats ? "Include" : "Exclude" }}
-                  </button>
-                  <small v-if="issue.excludedFromStats">Excluded from stats</small>
-                  <small
-                    v-else-if="issue.correction?.available && issue.correction.safety === 'manual'"
-                    class="quality-manual-note"
-                  >
-                    {{ issue.correction.description || "Manual review required" }}
-                  </small>
-                  <small v-else>{{ issue.suggestion || "Review source" }}</small>
-                </span>
-              </div>
-              <div
-                v-if="selectedQualityIssueId === issue.id"
-                class="quality-row-preview"
-              >
-                <div class="quality-row-preview-heading">
-                  <div>
-                    <strong>{{ issue.activityName || issue.activityId || "Selected issue" }}</strong>
-                    <small>{{ issue.message }}</small>
-                  </div>
-                  <button
+                    v-if="canToggleDataQualityIssues"
                     type="button"
                     class="btn btn-sm btn-outline-secondary"
-                    @click="closeIssueCorrectionPreview"
+                    @click="showAllDataQualityIssues = !showAllDataQualityIssues"
                   >
-                    <i class="fa-solid fa-xmark" aria-hidden="true" />
-                    Close
+                    <i
+                      :class="showAllDataQualityIssues ? 'fa-solid fa-compress' : 'fa-solid fa-list'"
+                      aria-hidden="true"
+                    />
+                    {{ showAllDataQualityIssues ? `Show top ${dataQualityPreviewLimit}` : "Show all" }}
                   </button>
                 </div>
-                <p
-                  v-if="issueCorrectionPreviewLoading"
-                  class="quality-preview-inline-state"
-                >
-                  Loading correction impact.
-                </p>
-                <p
-                  v-else-if="issueCorrectionPreviewError"
-                  class="quality-preview-inline-state quality-preview-inline-state--warn"
-                >
-                  {{ issueCorrectionPreviewError }}
-                </p>
-                <template v-else-if="issueCorrectionPreview">
-                  <div class="quality-impact-grid">
-                    <div
-                      v-for="stat in issueCorrectionImpactStats"
-                      :key="stat.label"
+              </div>
+              <div class="quality-row quality-row--head">
+                <span>Severity</span>
+                <span>Activity</span>
+                <span>Problem</span>
+                <span>Field</span>
+                <span>Impact</span>
+                <span>Action</span>
+              </div>
+              <template
+                v-for="issue in displayedDataQualityIssues"
+                :key="issue.id"
+              >
+                <div class="quality-row">
+                  <span :class="dataQualitySeverityClass(issue.severity)">{{ issue.severity }}</span>
+                  <span>
+                    <RouterLink
+                      v-if="issue.activityId"
+                      :to="`/activities/${issue.activityId}`"
+                      class="quality-activity-link"
                     >
-                      <span>{{ stat.label }}</span>
-                      <strong>{{ stat.delta }}</strong>
-                      <small>{{ stat.before }} → {{ stat.after }}</small>
-                    </div>
-                  </div>
-                  <div
-                    v-if="issueCorrection"
-                    class="quality-preview-fields"
-                  >
-                    <span>{{ dataQualityActionLabel(issue) }}</span>
-                    <span>{{ correctionLabel(issueCorrection.type) }}</span>
-                    <span
-                      v-for="field in issueCorrection.modifiedFields"
-                      :key="field"
+                      {{ issue.activityName || issue.activityId }}
+                    </RouterLink>
+                    <span v-else>{{ issue.activityName || "n/a" }}</span>
+                    <small>{{ [issue.activityType, issue.year].filter(Boolean).join(" · ") }}</small>
+                  </span>
+                  <span>
+                    <strong class="quality-problem-label">
+                      {{ formatDataQualityCategory(issue.category) }}
+                      <TooltipHint :text="dataQualityCategoryTooltip(issue.category)" />
+                    </strong>
+                    <small>{{ issue.message }}</small>
+                    <small
+                      v-if="issue.correction?.available"
+                      :class="['quality-correction-chip', `quality-correction-chip--${issue.correction.safety}`]"
                     >
-                      {{ formatSourceField(field) }}
-                    </span>
-                  </div>
-                  <div
-                    v-if="issueCorrectionPreview.warnings.length > 0 || issueCorrectionPreview.blockingReasons.length > 0"
-                    class="quality-preview-review"
-                  >
-                    <span
-                      v-for="warning in issueCorrectionPreview.warnings"
-                      :key="`warning-${warning}`"
+                      {{ dataQualityActionLabel(issue) }}
+                    </small>
+                  </span>
+                  <span>
+                    <strong class="monospace">{{ formatSourceField(issue.field) }}</strong>
+                    <small>{{ issue.rawValue || issue.field }}</small>
+                  </span>
+                  <span class="quality-impact-cell">
+                    <small
+                      v-for="token in dataQualityImpactTokens(issue)"
+                      :key="token"
+                      :class="['quality-impact-chip', `quality-impact-chip--${token}`]"
                     >
-                      {{ warning }}
-                    </span>
-                    <span
-                      v-for="reason in issueCorrectionPreview.blockingReasons"
-                      :key="`blocking-${reason}`"
-                    >
-                      {{ reason }}
-                    </span>
-                  </div>
-                  <div class="quality-preview-actions">
+                      {{ formatDataQualityImpactToken(token) }}
+                    </small>
+                  </span>
+                  <span class="quality-action-cell">
                     <button
-                      v-if="issueCorrection?.safety === 'safe'"
+                      v-if="issue.correction?.available"
                       type="button"
-                      class="btn btn-sm btn-primary"
+                      class="btn btn-sm btn-outline-secondary"
+                      :disabled="issueCorrectionPreviewLoading && selectedQualityIssueId === issue.id"
+                      @click="previewIssueCorrection(issue)"
+                    >
+                      <i class="fa-solid fa-eye" aria-hidden="true" />
+                      Review
+                    </button>
+                    <button
+                      v-if="issue.correction?.available && issue.correction.safety === 'safe'"
+                      type="button"
+                      class="btn btn-sm btn-outline-primary"
                       :disabled="qualityActionIssueId === issue.id"
                       @click="applyIssueCorrection(issue)"
                     >
                       <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true" />
-                      Apply safe fix
+                      Fix
+                    </button>
+                    <button
+                      v-if="issue.activityId"
+                      type="button"
+                      :class="['btn btn-sm', issue.excludedFromStats ? 'btn-outline-secondary' : 'btn-outline-danger']"
+                      :disabled="qualityActionActivityId === issue.activityId"
+                      @click="toggleStatsExclusion(issue)"
+                    >
+                      <i
+                        :class="issue.excludedFromStats ? 'fa-solid fa-rotate-left' : 'fa-solid fa-ban'"
+                        aria-hidden="true"
+                      />
+                      {{ issue.excludedFromStats ? "Include" : "Exclude" }}
+                    </button>
+                    <small v-if="issue.excludedFromStats">Excluded from stats</small>
+                    <small
+                      v-else-if="issue.correction?.available && issue.correction.safety === 'manual'"
+                      class="quality-manual-note"
+                    >
+                      {{ issue.correction.description || "Manual review required" }}
+                    </small>
+                    <small v-else>{{ issue.suggestion || "Review source" }}</small>
+                  </span>
+                </div>
+                <div
+                  v-if="selectedQualityIssueId === issue.id"
+                  class="quality-row-preview"
+                >
+                  <div class="quality-row-preview-heading">
+                    <div>
+                      <strong>{{ issue.activityName || issue.activityId || "Selected issue" }}</strong>
+                      <small>{{ issue.message }}</small>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-secondary"
+                      @click="closeIssueCorrectionPreview"
+                    >
+                      <i class="fa-solid fa-xmark" aria-hidden="true" />
+                      Close
                     </button>
                   </div>
-                </template>
-              </div>
-            </template>
-          </div>
+                  <p
+                    v-if="issueCorrectionPreviewLoading"
+                    class="quality-preview-inline-state"
+                  >
+                    Loading correction impact.
+                  </p>
+                  <p
+                    v-else-if="issueCorrectionPreviewError"
+                    class="quality-preview-inline-state quality-preview-inline-state--warn"
+                  >
+                    {{ issueCorrectionPreviewError }}
+                  </p>
+                  <template v-else-if="issueCorrectionPreview">
+                    <div class="quality-impact-grid">
+                      <div
+                        v-for="stat in issueCorrectionImpactStats"
+                        :key="stat.label"
+                      >
+                        <span>{{ stat.label }}</span>
+                        <strong>{{ stat.delta }}</strong>
+                        <small>{{ stat.before }} → {{ stat.after }}</small>
+                      </div>
+                    </div>
+                    <div
+                      v-if="issueCorrection"
+                      class="quality-preview-fields"
+                    >
+                      <span>{{ dataQualityActionLabel(issue) }}</span>
+                      <span>{{ correctionLabel(issueCorrection.type) }}</span>
+                      <span
+                        v-for="field in issueCorrection.modifiedFields"
+                        :key="field"
+                      >
+                        {{ formatSourceField(field) }}
+                      </span>
+                    </div>
+                    <div
+                      v-if="issueCorrectionPreview.warnings.length > 0 || issueCorrectionPreview.blockingReasons.length > 0"
+                      class="quality-preview-review"
+                    >
+                      <span
+                        v-for="warning in issueCorrectionPreview.warnings"
+                        :key="`warning-${warning}`"
+                      >
+                        {{ warning }}
+                      </span>
+                      <span
+                        v-for="reason in issueCorrectionPreview.blockingReasons"
+                        :key="`blocking-${reason}`"
+                      >
+                        {{ reason }}
+                      </span>
+                    </div>
+                    <div class="quality-preview-actions">
+                      <button
+                        v-if="issueCorrection?.safety === 'safe'"
+                        type="button"
+                        class="btn btn-sm btn-primary"
+                        :disabled="qualityActionIssueId === issue.id"
+                        @click="applyIssueCorrection(issue)"
+                      >
+                        <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true" />
+                        Apply safe fix
+                      </button>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
 
-          <div
-            v-if="dataQualityIssues.length > 0 && filteredDataQualityIssues.length === 0"
-            class="quality-empty"
-          >
-            No issue matches the current triage filters.
-          </div>
+            <div
+              v-if="filteredDataQualityIssues.length === 0"
+              class="quality-empty"
+            >
+              No issue matches the current triage filters.
+            </div>
+          </details>
 
           <div
             v-if="activeDataQualityCorrections.length > 0"
@@ -2817,25 +3096,34 @@ async function previewSourceMode(silent = false) {
         </div>
       </section>
 
-      <section
-        v-if="degradedReasons.length > 0"
-        class="diagnostics-panel diagnostics-panel--wide"
-      >
-        <div class="panel-heading">
-          <h2>Degraded Mode</h2>
-          <span class="panel-count">{{ degradedReasons.length }}</span>
-        </div>
-        <div class="degraded-list">
-          <article
-            v-for="reason in degradedReasons"
-            :key="reason.title"
-            :class="['degraded-item', `degraded-item--${reason.tone}`]"
+      <details class="diagnostics-technical">
+        <summary class="technical-summary">
+          <span>
+            <strong>Technical details</strong>
+            <small>Runtime config, cache files, warmup, API limits, routing details, and raw payload.</small>
+          </span>
+          <i class="fa-solid fa-chevron-down" aria-hidden="true" />
+        </summary>
+        <div class="technical-grid">
+          <section
+            v-if="hasRuntimeConfig"
+            class="diagnostics-panel diagnostics-panel--wide"
           >
-            <strong>{{ reason.title }}</strong>
-            <span>{{ reason.detail }}</span>
-          </article>
-        </div>
-      </section>
+            <div class="panel-heading">
+              <h2>Runtime Config</h2>
+              <span class="status-chip status-chip--neutral">{{ textValue(runtimeCors.source) || "default" }}</span>
+            </div>
+            <div class="runtime-config-grid">
+              <div
+                v-for="item in runtimeConfigItems"
+                :key="item.label"
+                class="runtime-config-item"
+              >
+                <span>{{ item.label }}</span>
+                <strong :class="{ monospace: item.monospace }">{{ item.value }}</strong>
+              </div>
+            </div>
+          </section>
 
       <section class="diagnostics-panel diagnostics-panel--wide">
         <div class="panel-heading">
@@ -3007,6 +3295,8 @@ async function previewSourceMode(silent = false) {
         </div>
         <pre v-if="showRawPayload" class="raw-payload">{{ rawPayload }}</pre>
       </section>
+        </div>
+      </details>
     </div>
 
     <div
@@ -3189,6 +3479,149 @@ async function previewSourceMode(silent = false) {
   justify-content: space-between;
   gap: 18px;
   border-left: 4px solid var(--ms-primary);
+}
+
+.status-overview-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.status-overview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.status-overview-grid,
+.attention-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.status-overview-item,
+.attention-item {
+  min-width: 0;
+  border: 1px solid #e5e7ee;
+  border-radius: 8px;
+  background: #fafbfe;
+  padding: 10px;
+}
+
+.status-overview-item span,
+.attention-item span,
+.status-action small {
+  display: block;
+  color: var(--ms-text-muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.status-overview-item strong,
+.attention-item strong {
+  display: block;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.status-overview-item small,
+.attention-item small {
+  display: block;
+  margin-top: 4px;
+  color: var(--ms-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.status-overview-item--up,
+.attention-item--up {
+  border-color: #99d6b0;
+  background: #f1fbf5;
+}
+
+.status-overview-item--warn,
+.attention-item--warn {
+  border-color: #f3d17e;
+  background: #fff8e3;
+}
+
+.status-overview-item--down,
+.attention-item--down {
+  border-color: #efa4a4;
+  background: #fff0f0;
+}
+
+.status-overview-item--info,
+.attention-item--info,
+.status-overview-item--neutral,
+.attention-item--neutral {
+  border-color: #c8d2e1;
+  background: #eef4fb;
+}
+
+.status-action-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 8px;
+}
+
+.status-action {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid #d7e1ee;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ms-text);
+  padding: 10px;
+  text-align: left;
+}
+
+.status-action i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #eef4fb;
+  color: #31506f;
+}
+
+.status-action strong {
+  display: block;
+  line-height: 1.25;
+}
+
+.status-action--primary {
+  border-color: #f6b18a;
+  background: #fff7f2;
+  color: var(--ms-primary-strong);
+}
+
+.status-action--primary i {
+  background: #ffe4d5;
+  color: var(--ms-primary-strong);
+}
+
+.status-action--warn {
+  border-color: #f3d17e;
+  background: #fff8e3;
+  color: #805d05;
+}
+
+.status-action--warn i {
+  background: #fff0bf;
+  color: #805d05;
+}
+
+.status-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
 }
 
 .summary-main {
@@ -3426,6 +3859,68 @@ dd {
   margin-top: 2px;
   color: var(--ms-text-muted);
   font-weight: 600;
+}
+
+.source-sync-details,
+.source-conflicts-details,
+.source-configuration-details {
+  min-width: 0;
+  border: 1px solid #d7e1ee;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 8px 10px;
+}
+
+.source-sync-details summary,
+.source-conflicts-details summary,
+.source-configuration-details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--ms-text-muted);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.source-sync-details summary {
+  justify-content: flex-start;
+}
+
+.source-sync-details[open],
+.source-conflicts-details[open],
+.source-configuration-details[open] {
+  display: grid;
+  gap: 8px;
+}
+
+.source-sync-details[open] summary,
+.source-conflicts-details[open] summary,
+.source-configuration-details[open] summary {
+  margin-bottom: 2px;
+}
+
+.source-conflicts-details summary span,
+.source-conflicts-details summary strong,
+.source-conflicts-details summary small,
+.source-configuration-details summary span,
+.source-configuration-details summary strong,
+.source-configuration-details summary small {
+  display: block;
+  min-width: 0;
+}
+
+.source-conflicts-details summary small,
+.source-configuration-details summary small {
+  margin-top: 2px;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.source-configuration-body {
+  display: grid;
+  gap: 12px;
 }
 
 .composite-source-overview {
@@ -4373,6 +4868,51 @@ dd {
   min-height: 38px;
 }
 
+.quality-issue-details {
+  display: grid;
+  min-width: 0;
+  border: 1px solid #d7e1ee;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 10px;
+}
+
+.quality-issue-details:not([open]) > :not(summary) {
+  display: none;
+}
+
+.quality-issue-details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--ms-text);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.quality-issue-details summary span,
+.quality-issue-details summary strong,
+.quality-issue-details summary small {
+  display: block;
+  min-width: 0;
+}
+
+.quality-issue-details summary small {
+  margin-top: 2px;
+  color: var(--ms-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.quality-issue-details[open] {
+  gap: 10px;
+}
+
+.quality-issue-details[open] summary {
+  margin-bottom: 2px;
+}
+
 .quality-table {
   display: grid;
   gap: 1px;
@@ -4870,6 +5410,53 @@ dd {
   color: #9b1c1c;
 }
 
+.diagnostics-technical {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
+}
+
+.technical-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--ms-border);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: var(--ms-shadow-soft);
+  cursor: pointer;
+  padding: 12px 14px;
+}
+
+.technical-summary span,
+.technical-summary strong,
+.technical-summary small {
+  display: block;
+  min-width: 0;
+}
+
+.technical-summary strong {
+  font-size: 1rem;
+}
+
+.technical-summary small {
+  margin-top: 2px;
+  color: var(--ms-text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.technical-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.diagnostics-technical[open] .technical-summary {
+  margin-bottom: 2px;
+}
+
 .monospace {
   font-family: "SFMono-Regular", "Cascadia Code", "Liberation Mono", monospace;
   font-size: 0.86rem;
@@ -4888,7 +5475,8 @@ dd {
 
 @media (max-width: 992px) {
   .diagnostics-toolbar,
-  .diagnostics-panel--summary {
+  .diagnostics-panel--summary,
+  .status-overview-header {
     align-items: stretch;
     flex-direction: column;
   }
@@ -4899,9 +5487,12 @@ dd {
 
   .diagnostics-grid,
   .summary-list,
+  .status-overview-grid,
+  .attention-list,
   .detail-list--columns,
   .warmup-steps,
   .runtime-config-grid,
+  .technical-grid,
   .quality-metrics,
   .quality-action-groups,
   .quality-filters,
@@ -4935,6 +5526,59 @@ dd {
 
   .degraded-item span {
     text-align: left;
+  }
+
+  .quality-table {
+    gap: 8px;
+    overflow: visible;
+    border: 0;
+  }
+
+  .quality-table-toolbar,
+  .quality-row,
+  .quality-row-preview {
+    min-width: 0;
+    border: 1px solid var(--ms-border);
+    border-radius: 8px;
+  }
+
+  .quality-table-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .quality-table-actions {
+    justify-content: flex-start;
+  }
+
+  .quality-row {
+    grid-template-columns: 1fr;
+  }
+
+  .quality-row--head {
+    display: none;
+  }
+
+  .quality-action-cell {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .quality-action-cell small {
+    flex-basis: 100%;
+  }
+
+  .quality-row-preview,
+  .quality-impact-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .technical-summary,
+  .source-conflicts-details summary,
+  .source-configuration-details summary,
+  .quality-issue-details summary {
+    align-items: flex-start;
   }
 }
 </style>

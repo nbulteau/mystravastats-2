@@ -37,14 +37,15 @@ Composite mode currently supports `Strava + FIT + GPX`. RideWithGPS and TCX are 
 
 The `Data Source` section can check a Strava cache, FIT directory or GPX directory, then persist the selected source with `Use this source`. This writes the matching key to the backend working-directory `.env` file and preserves unrelated settings. The running provider is not hot-reloaded: restart the backend with the usual command, then use `Verify active mode`.
 
-For FIT, the Go local backend also exposes a `Synchronize` action on the Status
-page. It imports files from `FIT_INBOX_PATH` when configured, can call the
-optional `GARMIN_FIT_SYNC_BIN` helper first, and still supports
-`GARMIN_FIT_SOURCE_PATH` or an auto-detected `/Volumes/.../GARMIN/ACTIVITY`
-directory for mounted Garmin devices. Imported files are copied into
-`FIT_FILES_PATH/<year>/`, then the active FIT/composite provider is reloaded.
-When `FIT_INBOX_PATH` is unset, Go derives `<FIT_FILES_PATH>/_inbox`; when the
-Rust helper has been built in the repo, Go can auto-detect it.
+For FIT, the Go and Kotlin local backends synchronize at startup and expose a
+`Synchronize` action on the Status page. They copy files from a mounted
+Garmin/OpenMTP activity directory into `FIT_INBOX_PATH`, then import the inbox
+into `FIT_FILES_PATH/<year>/` and reload the active FIT/composite provider.
+`GARMIN_FIT_SOURCE_PATH` can point to either the Garmin device root or the
+`GARMIN/ACTIVITY` directory; when it is unset, the backends scan common mount
+roots such as `/Volumes`, `/media` and `/mnt`. When `FIT_INBOX_PATH` is unset,
+both backends derive
+`<FIT_FILES_PATH>/_inbox`.
 
 Source selection is automatic:
 
