@@ -147,6 +147,39 @@ func TestBestPowerForTime_ReturnsNilWhenPowerStreamIsTruncated(t *testing.T) {
 	}
 }
 
+func TestBestPowerForDistance_WithSyntheticStream(t *testing.T) {
+	// GIVEN
+	stream := syntheticStream(
+		[]float64{0, 500, 1000, 1500},
+		[]int{0, 30, 60, 90},
+		[]float64{100, 105, 110, 120},
+	)
+	stream.Watts = &strava.PowerStream{Data: []float64{100, 150, 200, 400}}
+	activity := strava.Activity{
+		Id:     44,
+		Name:   "Power test",
+		Type:   "Ride",
+		Stream: stream,
+	}
+
+	// WHEN
+	effort := BestPowerForDistance(activity, 1000)
+
+	// THEN
+	if effort == nil {
+		t.Fatalf("expected effort, got nil")
+	}
+	if effort.AveragePower == nil || math.Abs(*effort.AveragePower-250) > 1e-6 {
+		t.Fatalf("unexpected average power: got %v, want 250", effort.AveragePower)
+	}
+	if effort.Label != "Best Power for 1000 m" {
+		t.Fatalf("unexpected label: got %q", effort.Label)
+	}
+	if effort.IdxStart != 1 || effort.IdxEnd != 3 {
+		t.Fatalf("unexpected indexes: got %d-%d, want 1-3", effort.IdxStart, effort.IdxEnd)
+	}
+}
+
 func TestBestElevationForDistance_WithSyntheticStream(t *testing.T) {
 	// GIVEN
 	stream := syntheticStream(

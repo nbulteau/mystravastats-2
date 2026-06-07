@@ -7,6 +7,8 @@ import me.nicolas.stravastats.domain.business.SlopeType
 import me.nicolas.stravastats.domain.business.strava.*
 import me.nicolas.stravastats.domain.services.statistics.calculateBestDistanceForTime
 import me.nicolas.stravastats.domain.services.statistics.calculateBestElevationForDistance
+import me.nicolas.stravastats.domain.services.statistics.calculateBestPowerForDistance
+import me.nicolas.stravastats.domain.services.statistics.calculateBestPowerForTime
 import me.nicolas.stravastats.domain.services.statistics.calculateBestTimeForDistance
 import me.nicolas.stravastats.domain.utils.inDateTimeFormatter
 import java.time.LocalDate
@@ -69,6 +71,8 @@ object ActivityHelper {
             this.calculateBestTimeForDistance(5000.0),
             this.calculateBestTimeForDistance(10000.0),
             this.calculateBestDistanceForTime(60 * 60),
+            this.calculateBestPowerForDistance(1000.0),
+            this.calculateBestPowerForTime(60 * 60)?.withLabel("Best power for 1h0m0s"),
             this.calculateBestElevationForDistance(500.0),
             this.calculateBestElevationForDistance(1000.0),
             this.calculateBestElevationForDistance(10000.0)
@@ -97,6 +101,19 @@ object ActivityHelper {
 
         return slopesEfforts + activityEfforts + activityEffortsFromSegmentSegments
     }
+
+    private fun ActivityEffort.withLabel(label: String): ActivityEffort = ActivityEffort(
+        distance = distance,
+        seconds = seconds,
+        deltaAltitude = deltaAltitude,
+        idxStart = idxStart,
+        idxEnd = idxEnd,
+        averagePower = averagePower,
+        label = label,
+        activityShort = activityShort,
+        elevationGain = elevationGain,
+        elevationLoss = elevationLoss,
+    )
 
     /**
      * Group activities by month

@@ -1136,6 +1136,12 @@ function booleanValue(value: unknown): boolean {
   return false;
 }
 
+function sourceSyncChangedActivityData(result: unknown): boolean {
+  const sync = asRecord(result);
+  const fit = asRecord(sync.fit);
+  return booleanValue(sync.reloaded) || (numberValue(fit.importedFiles) ?? 0) > 0;
+}
+
 function listValues(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value
@@ -1799,10 +1805,15 @@ async function synchronizeSources() {
   try {
     const result = await diagnosticsStore.synchronizeSources();
     const imported = numberValue(asRecord(result.fit).importedFiles) ?? 0;
+    if (sourceSyncChangedActivityData(result)) {
+      contextStore.invalidateActivityDerivedCaches();
+    }
     uiStore.showToast({
       id: `source-sync-${Date.now()}`,
       type: ToastTypeEnum.NORMAL,
-      message: imported > 0 ? `${formatInteger(imported)} FIT file(s) imported.` : textValue(result.message) || "Synchronization completed.",
+      message: imported > 0
+        ? `${formatInteger(imported)} FIT file(s) imported. Activity views will reload with the latest data.`
+        : textValue(result.message) || "Synchronization completed.",
       timeout: 3600,
     });
   } catch (error) {

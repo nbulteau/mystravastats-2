@@ -1071,6 +1071,21 @@ func BuildActivityEfforts(activity *strava.DetailedActivity) []business.Activity
 	if bestDistanceFor1Hour != nil {
 		activityEfforts = append(activityEfforts, *bestDistanceFor1Hour)
 	}
+	activityForPowerEfforts := strava.Activity{
+		Id:     activity.Id,
+		Name:   activity.Name,
+		Type:   activity.Type,
+		Stream: activity.Stream,
+	}
+	bestPowerFor1000m := statistics.BestPowerForDistance(activityForPowerEfforts, 1000.0)
+	if bestPowerFor1000m != nil {
+		activityEfforts = append(activityEfforts, *bestPowerFor1000m)
+	}
+	bestPowerFor1Hour := statistics.BestPowerForTime(activityForPowerEfforts, 3600)
+	if bestPowerFor1Hour != nil {
+		bestPowerFor1Hour.Label = "Best power for 1h0m0s"
+		activityEfforts = append(activityEfforts, *bestPowerFor1Hour)
+	}
 	bestElevationFor500m := calculateBestElevationForDistance(activity, 500.0)
 	if bestElevationFor500m != nil {
 		activityEfforts = append(activityEfforts, *bestElevationFor500m)

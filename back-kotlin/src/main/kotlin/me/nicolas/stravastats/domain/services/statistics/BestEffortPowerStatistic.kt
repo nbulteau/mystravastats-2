@@ -43,26 +43,42 @@ internal open class BestEffortPowerStatistic(
 }
 
 fun StravaDetailedActivity.calculateBestPowerForTime(seconds: Int): ActivityEffort? {
+    val activityStream = stream ?: return null
+    if (activityStream.altitude == null) {
+        return null
+    }
+    return BestEffortCache.getOrCompute(this.id, "best-power-time-v2", seconds.toString(), activityStream) {
+        activityEffort(this.id, this.name, this.type, activityStream, seconds)
+    }
+}
 
-    // no stream -> return null
-    return if (stream == null || stream?.altitude == null) {
-        null
-    } else {
-        BestEffortCache.getOrCompute(this.id, "best-power-time-v2", seconds.toString(), this.stream!!) {
-            activityEffort(this.id, this.name, this.type, this.stream!!, seconds)
-        }
+fun StravaDetailedActivity.calculateBestPowerForDistance(distance: Double): ActivityEffort? {
+    val activityStream = stream ?: return null
+    if (activityStream.altitude == null) {
+        return null
+    }
+    return BestEffortCache.getOrCompute(this.id, "best-power-distance-v1", distance.toString(), activityStream) {
+        activityPowerDistanceEffort(this.id, this.name, this.type, activityStream, distance)
     }
 }
 
 fun StravaActivity.calculateBestPowerForTime(seconds: Int): ActivityEffort? {
+    val activityStream = stream ?: return null
+    if (activityStream.altitude == null) {
+        return null
+    }
+    return BestEffortCache.getOrCompute(this.id, "best-power-time-v2", seconds.toString(), activityStream) {
+        activityEffort(this.id, this.name, this.type, activityStream, seconds)
+    }
+}
 
-    // no stream -> return null
-    return if (stream == null || stream?.altitude == null) {
-        null
-    } else {
-        BestEffortCache.getOrCompute(this.id, "best-power-time-v2", seconds.toString(), this.stream!!) {
-            activityEffort(this.id, this.name, this.type, this.stream!!, seconds)
-        }
+fun StravaActivity.calculateBestPowerForDistance(distance: Double): ActivityEffort? {
+    val activityStream = stream ?: return null
+    if (activityStream.altitude == null) {
+        return null
+    }
+    return BestEffortCache.getOrCompute(this.id, "best-power-distance-v1", distance.toString(), activityStream) {
+        activityPowerDistanceEffort(this.id, this.name, this.type, activityStream, distance)
     }
 }
 
@@ -132,6 +148,76 @@ private fun activityEffort(
             currentPower -= nonNullWatts[idxStart]
             ++idxStart
             ++idxEnd
+        }
+    }
+
+    return bestEffort
+}
+
+/**
+ * Sliding window best average power for a given distance.
+ * @param distance given distance in meters
+ */
+private fun activityPowerDistanceEffort(
+    id: Long,
+    name: String,
+    type: String,
+    stream: Stream,
+    distance: Double
+): ActivityEffort? {
+    val altitudes = stream.altitude?.data ?: emptyList()
+    val nonNullWatts = stream.watts?.data?.map { it ?: 0 } ?: return null
+
+    var idxStart = 0
+    var idxEnd = 0
+    var bestAveragePower = 0.0
+    var bestEffort: ActivityEffort? = null
+
+    val distances = stream.distance.data
+    val times = stream.time.data
+    val streamDataSize = minOf(distances.size, times.size, altitudes.size, nonNullWatts.size)
+    if (streamDataSize < 2) {
+        return null
+    }
+
+    val elevationPrefix = ElevationGainLossPrefix.from(altitudes, streamDataSize)
+
+    while (idxEnd < streamDataSize && idxStart < streamDataSize) {
+        val totalDistance = distances[idxEnd] - distances[idxStart]
+        val totalTime = times[idxEnd] - times[idxStart]
+        val totalAltitude = altitudes[idxEnd] - altitudes[idxStart]
+
+        if (totalDistance < distance - 0.5) {
+            idxEnd++
+        } else {
+            if (totalTime <= 0) {
+                idxStart++
+                if (idxEnd < idxStart) {
+                    idxEnd = idxStart
+                }
+                continue
+            }
+            val averagePower = nonNullWatts.subList(idxStart, idxEnd + 1).average()
+            if (averagePower > bestAveragePower) {
+                bestAveragePower = averagePower
+                val estimatedTimeForDistance = distance / totalDistance * totalTime
+                val elevation = elevationPrefix.between(idxStart, idxEnd)
+                bestEffort = ActivityEffort(
+                    distance, estimatedTimeForDistance.toInt(), totalAltitude, idxStart, idxEnd, averagePower.toInt(),
+                    label = "Best Power for ${distance.toInt()} m",
+                    activityShort = ActivityShort(
+                        id = id,
+                        name = name,
+                        type = type
+                    ),
+                    elevationGain = elevation?.gain,
+                    elevationLoss = elevation?.loss,
+                )
+            }
+            idxStart++
+            if (idxEnd < idxStart) {
+                idxEnd = idxStart
+            }
         }
     }
 

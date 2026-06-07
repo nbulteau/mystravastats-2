@@ -96,6 +96,27 @@ class ActivityHelperDetailedSegmentsTest {
         assertTrue(climb.deltaAltitude > 0.0)
     }
 
+    @Test
+    fun `buildActivityEfforts adds power efforts`() {
+        // GIVEN
+        val stream = StatisticsFixtures.defaultStream(
+            distances = listOf(0.0, 1000.0, 2000.0),
+            times = listOf(0, 3600, 7200),
+            altitudes = listOf(100.0, 110.0, 120.0),
+            watts = listOf(180, 220, 260),
+        )
+        val activity = StatisticsFixtures.syntheticRideActivity(id = 79L, stream = stream)
+            .toStravaDetailedActivity()
+            .copy(stream = stream, segmentEfforts = emptyList())
+
+        // WHEN
+        val efforts = with(ActivityHelper) { activity.buildActivityEfforts() }
+
+        // THEN
+        assertTrue(efforts.any { effort -> effort.label == "Best Power for 1000 m" })
+        assertTrue(efforts.any { effort -> effort.label == "Best power for 1h0m0s" })
+    }
+
     private fun buildSyntheticDetailedActivity(): StravaDetailedActivity {
         val stream = StatisticsFixtures.defaultStream(
             distances = listOf(0.0, 100.0, 200.0, 300.0, 400.0, 500.0, 600.0),

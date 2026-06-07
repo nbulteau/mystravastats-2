@@ -119,6 +119,41 @@ func TestBuildActivityEfforts_LabelsDetectedClimbs(t *testing.T) {
 	t.Fatalf("expected generated climb effort, got %#v", efforts)
 }
 
+func TestBuildActivityEfforts_AddsPowerEfforts(t *testing.T) {
+	// GIVEN
+	detailedActivity := &strava.DetailedActivity{
+		Id:   44,
+		Name: "Power detail",
+		Type: "Ride",
+		Stream: &strava.Stream{
+			Distance: strava.DistanceStream{Data: []float64{0, 1000, 2000}},
+			Time:     strava.TimeStream{Data: []int{0, 3600, 7200}},
+			Altitude: &strava.AltitudeStream{Data: []float64{100, 110, 120}},
+			Watts:    &strava.PowerStream{Data: []float64{180, 220, 260}},
+		},
+	}
+
+	// WHEN
+	efforts := BuildActivityEfforts(detailedActivity)
+
+	// THEN
+	if !hasEffortLabel(efforts, "Best Power for 1000 m") {
+		t.Fatalf("expected best power distance effort, got %#v", efforts)
+	}
+	if !hasEffortLabel(efforts, "Best power for 1h0m0s") {
+		t.Fatalf("expected best power time effort, got %#v", efforts)
+	}
+}
+
+func hasEffortLabel(efforts []business.ActivityEffort, label string) bool {
+	for _, effort := range efforts {
+		if effort.Label == label {
+			return true
+		}
+	}
+	return false
+}
+
 func TestBuildActivityEfforts_DirectionAwareSegmentLabels(t *testing.T) {
 	// GIVEN
 	segmentName := "MURAILLE DE CHINE <Alpe d'Huez>"

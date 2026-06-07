@@ -85,6 +85,21 @@ func BestPowerForTime(activity strava.Activity, seconds int) *business.ActivityE
 	)
 }
 
+func BestPowerForDistance(activity strava.Activity, distance float64) *business.ActivityEffort {
+	if activity.Stream == nil || activity.Stream.Altitude == nil || len(activity.Stream.Altitude.Data) == 0 {
+		return nil
+	}
+	return getOrComputeBestEffort(
+		activity.Id,
+		"best-power-distance-v1",
+		effortDistanceTarget(distance),
+		activity.Stream,
+		func() *business.ActivityEffort {
+			return bestPowerForDistance(activity.Id, activity.Name, activity.Type, activity.Stream, distance)
+		},
+	)
+}
+
 func bestPowerForTimeForTime(id int64, name, activityType string, stream *strava.Stream, seconds int) *business.ActivityEffort {
 	altitudes := stream.Altitude
 	watts := stream.Watts
@@ -153,6 +168,84 @@ func bestPowerForTimeForTime(id int64, name, activityType string, stream *strava
 			currentPower -= nonNullWatts[idxStart]
 			idxStart++
 			idxEnd++
+		}
+	}
+
+	return bestEffort
+}
+
+func bestPowerForDistance(id int64, name, activityType string, stream *strava.Stream, distance float64) *business.ActivityEffort {
+	altitudes := stream.Altitude
+	watts := stream.Watts
+	if watts == nil || len(watts.Data) == 0 {
+		return nil
+	}
+
+	nonNullWatts := buildNonNullWatts(stream.Watts)
+
+	idxStart, idxEnd := 0, 0
+	bestAveragePower := 0.0
+	var bestEffort *business.ActivityEffort
+
+	distances := stream.Distance.Data
+	times := stream.Time.Data
+	streamDataSize := len(distances)
+	if len(times) < streamDataSize {
+		streamDataSize = len(times)
+	}
+	if len((*altitudes).Data) < streamDataSize {
+		streamDataSize = len((*altitudes).Data)
+	}
+	if len(nonNullWatts) < streamDataSize {
+		streamDataSize = len(nonNullWatts)
+	}
+	if streamDataSize < 2 {
+		return nil
+	}
+
+	elevationPrefix := newElevationGainLossPrefix((*altitudes).Data, streamDataSize)
+
+	for idxEnd < streamDataSize && idxStart < streamDataSize {
+		totalDistance := distances[idxEnd] - distances[idxStart]
+		totalTime := times[idxEnd] - times[idxStart]
+		totalAltitude := (*altitudes).Data[idxEnd] - (*altitudes).Data[idxStart]
+
+		if totalDistance < distance-0.5 {
+			idxEnd++
+		} else {
+			if totalTime <= 0 {
+				idxStart++
+				if idxEnd < idxStart {
+					idxEnd = idxStart
+				}
+				continue
+			}
+			averagePower := averagePower(nonNullWatts, idxStart, idxEnd)
+			if averagePower != nil && *averagePower > bestAveragePower {
+				bestAveragePower = *averagePower
+				estimatedTimeForDistance := distance / totalDistance * float64(totalTime)
+				elevationGain, elevationLoss := elevationPrefix.betweenPtrs(idxStart, idxEnd)
+				bestEffort = &business.ActivityEffort{
+					Distance:      distance,
+					Seconds:       int(estimatedTimeForDistance),
+					DeltaAltitude: totalAltitude,
+					ElevationGain: elevationGain,
+					ElevationLoss: elevationLoss,
+					IdxStart:      idxStart,
+					IdxEnd:        idxEnd,
+					AveragePower:  averagePower,
+					Label:         fmt.Sprintf("Best Power for %.0f m", distance),
+					ActivityShort: business.ActivityShort{
+						Id:   id,
+						Name: name,
+						Type: business.ActivityTypes[activityType],
+					},
+				}
+			}
+			idxStart++
+			if idxEnd < idxStart {
+				idxEnd = idxStart
+			}
 		}
 	}
 
