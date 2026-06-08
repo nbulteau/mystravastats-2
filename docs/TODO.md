@@ -35,46 +35,22 @@
 
 ### Priorite haute
 
-- [ ] `TECH-P1-09` (`P1`, `L`) - Ajouter un `CompositeActivityProvider` mixte Strava + RideWithGPS + FIT/GPX/TCX.
-  Owners: `Back-Go`, `Back-Kotlin`, `Front`, `QA`.
-  Constat:
-  - les modes source historiques etaient exclusifs via `FIT_FILES_PATH`, `GPX_FILES_PATH` ou `STRAVA_CACHE_PATH`,
-  - un fonctionnement mixte permettrait de garder les metadonnees Strava ou RideWithGPS tout en enrichissant ou completant les activites avec des fichiers locaux FIT/GPX/TCX,
-  - RideWithGPS expose des `Trips` et `Routes`, mais ne couvre pas exactement les memes concepts que Strava: le provider doit normaliser ces differences sans les masquer,
-  - le cache Strava existant doit rester intact: RideWithGPS doit avoir son propre cache local et la fusion doit produire une vue composite ou un cache composite separe.
-  Scope:
-  - activer automatiquement le mode composite des que plusieurs sources sont configurees,
-  - implementer un `CompositeActivityProvider` miroir en Go et Kotlin,
-  - ajouter un provider RideWithGPS avec configuration dediee (`RIDEWITHGPS_API_BASE_URL`, credentials OAuth/token, `RIDEWITHGPS_CACHE_PATH`) et cache local separe sur le modele du provider Strava,
-  - charger Strava, RideWithGPS, FIT, GPX et TCX sans changer les providers existants,
-  - matcher les activites par date, type, distance, duree et trace GPS quand disponible,
-  - exposer provenance, confiance de matching, conflits et activites locales non matchees dans les diagnostics,
-  - mettre a jour la section `Data source` de la page Status `/diagnostics` pour afficher les sources actives, les caches Strava/RideWithGPS, les imports locaux et les conflits de fusion,
-  - ajouter fixtures partagees Strava + RideWithGPS + FIT + GPX + TCX et tests de parite Go/Kotlin.
-  Acceptance:
-  - une activite Strava peut etre enrichie par un stream FIT/GPX local sans modifier le cache Strava,
-  - une activite RideWithGPS peut etre lue depuis son cache local et enrichie par un fichier FIT/GPX/TCX local,
-  - une activite locale absente de Strava peut apparaitre en mode union,
-  - la section `Data source` de `/diagnostics` ne presente plus le mode mixte comme une source unique et rend visibles provenance, statut des caches et conflits,
-  - les divergences de matching sont visibles et testees dans les deux backends.
-  Fait V1:
-  - `CompositeActivityProvider` ajoute en Go et Kotlin pour Strava + FIT + GPX,
-  - selection automatique quand plusieurs sources sont configurees, avec Strava prioritaire quand il est explicitement configure,
-  - matching par date, type, distance, duree et point de depart,
-  - matching accepte l'offset horaire Europe/Paris attendu a la date de l'activite (`+1h` hiver, `+2h` ete) pour absorber les divergences timezone/DST quand distance/duree/depart concordent,
-  - ID Strava conserve quand un match Strava existe; les activites locales non matchees restent en union,
-  - stream local FIT/GPX utilise pour enrichir l'activite composite sans modifier les caches sources,
-  - diagnostics composite exposes dans `/api/health/details` et section `Data source` de `/diagnostics` mise a jour,
-  - import FIT Garmin ajoute cote Go et Kotlin: detection `GARMIN_FIT_SOURCE_PATH` ou montage standard OpenMTP/filesystem, copie vers `FIT_INBOX_PATH`, import vers `FIT_FILES_PATH/<annee>/`, bouton `Synchronize` dans Status et reload du provider FIT/composite apres import,
-  - l'ancien spike Rust a ete retire du workflow: la copie filesystem vit maintenant dans chaque backend,
-  - tests miroir ajoutes sur conservation de l'ID Strava et union locale.
-  Reste:
-  - automatisation MTP native macOS/Windows/Linux sans OpenMTP si on decide de reprendre ce sujet,
-  - provider RideWithGPS et cache local dedie,
-  - support TCX,
-  - fixtures partagees completes Strava + RideWithGPS + FIT + GPX + TCX.
 
 ### Priorite moyenne
+
+- [ ] `TECH-P2-06` (`P2`, `M`) - Automatiser la synchronisation MTP native Garmin sans OpenMTP.
+  Owners: `Back-Go`, `Back-Kotlin`, `Infra`, `QA`.
+  Constat:
+  - la synchronisation FIT actuelle sait copier depuis un montage filesystem ou OpenMTP,
+  - certains environnements macOS/Windows/Linux pourraient beneficier d'une detection MTP native sans outil externe.
+  Scope:
+  - evaluer une integration MTP native par OS ou un helper dedie,
+  - conserver le flux actuel `GARMIN_FIT_SOURCE_PATH` / `FIT_INBOX_PATH` / `FIT_FILES_PATH/<annee>/`,
+  - garder les diagnostics explicites quand l'appareil n'est pas monte, non detecte ou inaccessible.
+  Acceptance:
+  - la synchronisation Garmin fonctionne sans OpenMTP sur au moins un OS cible documente,
+  - le mode filesystem/OpenMTP existant reste disponible,
+  - les erreurs de detection ou copie sont visibles dans Status.
 
 ### Priorite basse
 
