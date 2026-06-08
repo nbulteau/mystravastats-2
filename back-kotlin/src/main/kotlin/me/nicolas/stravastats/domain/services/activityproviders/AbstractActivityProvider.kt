@@ -28,6 +28,10 @@ abstract class AbstractActivityProvider : IActivityProvider {
             activitiesIndex = value.associateBy { stravaActivity -> stravaActivity.id }
         }
 
+    protected open fun beforeActivityRead() {
+        // Extension point for providers whose activity list is derived from mutable sources.
+    }
+
     override fun athlete(): StravaAthlete {
         check(::stravaAthlete.isInitialized) {
             "Athlete has not been loaded yet. Ensure initializeAndLoadActivities() completed successfully before calling athlete()."
@@ -41,6 +45,7 @@ abstract class AbstractActivityProvider : IActivityProvider {
      * @return a page of activities
      */
     override fun listActivitiesPaginated(pageable: Pageable): Page<StravaActivity> {
+        beforeActivityRead()
         logger.info("List activities paginated")
 
         val activitiesSnapshot = activities
@@ -88,6 +93,7 @@ abstract class AbstractActivityProvider : IActivityProvider {
     }
 
     override fun getActivity(activityId: Long): StravaActivity? {
+        beforeActivityRead()
         logger.info("Get stravaActivity for stravaActivity id $activityId")
         return activitiesIndex[activityId]
     }
@@ -125,6 +131,7 @@ abstract class AbstractActivityProvider : IActivityProvider {
     }
 
     override fun getActivitiesByActivityTypeGroupByActiveDays(activityTypes: Set<ActivityType>): Map<String, Int> {
+        beforeActivityRead()
         logger.info("Get activities by stravaActivity type ($activityTypes) group by active days")
 
         val filteredActivities = activities
@@ -141,6 +148,7 @@ abstract class AbstractActivityProvider : IActivityProvider {
         activityTypes: Set<ActivityType>,
         year: Int,
     ): Map<String, Int> {
+        beforeActivityRead()
         logger.info("Get activities by stravaActivity type ($activityTypes) group by active days for year $year")
 
         val filteredActivities = activities
@@ -158,12 +166,14 @@ abstract class AbstractActivityProvider : IActivityProvider {
         activityTypes: Set<ActivityType>,
         year: Int?
     ): List<StravaActivity> {
+        beforeActivityRead()
         return activities
             .filterActivitiesByYear(year)
             .filterActivitiesByActivityTypes(activityTypes)
     }
 
     override fun getActivitiesByActivityTypeGroupByYear(activityTypes: Set<ActivityType>): Map<String, List<StravaActivity>> {
+        beforeActivityRead()
         logger.info("Get activities by stravaActivity type ($activityTypes) group by year")
 
         val filteredActivities = activities.filterActivitiesByActivityTypes(activityTypes)

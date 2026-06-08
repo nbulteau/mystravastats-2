@@ -95,6 +95,7 @@ type CompositeActivityProvider struct {
 	dataMutex                 sync.RWMutex
 	cacheMutex                sync.RWMutex
 	diagnostics               compositeDiagnostics
+	sourceSignatures          map[string]string
 }
 
 type sourceActivity struct {
@@ -162,17 +163,27 @@ func NewCompositeActivityProvider(sources []Source) *CompositeActivityProvider {
 func (provider *CompositeActivityProvider) rebuild() {
 	clusters := make([]activityCluster, 0)
 	sourceSummaries := make([]map[string]any, 0, len(provider.sources))
+	sourceSignatures := make(map[string]string, len(provider.sources))
 
 	for _, source := range provider.sources {
 		activities := source.Provider.GetActivitiesByYearAndActivityTypes(nil, allActivityTypes...)
 		sourceDiagnostics := source.Provider.CacheDiagnostics()
-		sourceSummaries = append(sourceSummaries, map[string]any{
+		sourceActivityCount := sourceDiagnostics["activities"]
+		if sourceActivityCount == nil {
+			sourceActivityCount = len(activities)
+		}
+		sourceSummary := map[string]any{
 			"provider":          source.Name,
 			"athleteId":         source.Provider.ClientID(),
 			"cacheRoot":         source.Provider.CacheRootPath(),
-			"activities":        len(activities),
+			"activities":        sourceActivityCount,
 			"availableYearBins": sourceDiagnostics["availableYearBins"],
-		})
+		}
+		if refreshDiagnostics, ok := sourceDiagnostics["refresh"]; ok {
+			sourceSummary["refresh"] = refreshDiagnostics
+		}
+		sourceSummaries = append(sourceSummaries, sourceSummary)
+		sourceSignatures[source.Name] = sourceDataSignature(sourceSummary)
 
 		for _, activity := range activities {
 			if activity == nil {
@@ -245,7 +256,12 @@ func (provider *CompositeActivityProvider) rebuild() {
 		ConflictSamples:     conflictSamples,
 		SourceSummaries:     sourceSummaries,
 	}
+	provider.sourceSignatures = sourceSignatures
 	provider.dataMutex.Unlock()
+
+	provider.cacheMutex.Lock()
+	provider.filteredActivities = make(map[string][]*strava.Activity)
+	provider.cacheMutex.Unlock()
 }
 
 func (provider *CompositeActivityProvider) mergeCluster(cluster activityCluster) compositeRecord {
@@ -281,6 +297,7 @@ func (provider *CompositeActivityProvider) mergeCluster(cluster activityCluster)
 }
 
 func (provider *CompositeActivityProvider) GetDetailedActivity(activityID int64) *strava.DetailedActivity {
+	provider.refreshIfSourceDataChanged()
 	record, ok := provider.record(activityID)
 	if !ok {
 		return nil
@@ -297,6 +314,7 @@ func (provider *CompositeActivityProvider) GetDetailedActivity(activityID int64)
 }
 
 func (provider *CompositeActivityProvider) GetCachedDetailedActivity(activityID int64) *strava.DetailedActivity {
+	provider.refreshIfSourceDataChanged()
 	record, ok := provider.record(activityID)
 	if !ok {
 		return nil
@@ -313,6 +331,7 @@ func (provider *CompositeActivityProvider) GetCachedDetailedActivity(activityID 
 }
 
 func (provider *CompositeActivityProvider) GetActivitiesByYearAndActivityTypes(year *int, activityTypes ...business.ActivityType) []*strava.Activity {
+	provider.refreshIfSourceDataChanged()
 	cacheKey := buildFilterCacheKey(year, activityTypes...)
 	provider.cacheMutex.RLock()
 	if cached, ok := provider.filteredActivities[cacheKey]; ok {
@@ -331,10 +350,12 @@ func (provider *CompositeActivityProvider) GetActivitiesByYearAndActivityTypes(y
 }
 
 func (provider *CompositeActivityProvider) GetActivitiesByActivityTypeGroupByYear(activityTypes ...business.ActivityType) map[string][]*strava.Activity {
+	provider.refreshIfSourceDataChanged()
 	return groupActivitiesByYear(filterActivitiesByType(provider.getActivitiesSnapshot(), activityTypes...))
 }
 
 func (provider *CompositeActivityProvider) GetActivitiesByActivityTypeGroupByActiveDays(activityTypes ...business.ActivityType) map[string]int {
+	provider.refreshIfSourceDataChanged()
 	result := make(map[string]int)
 	for _, activity := range filterActivitiesByType(provider.getActivitiesSnapshot(), activityTypes...) {
 		if activity == nil {
@@ -382,6 +403,7 @@ func (provider *CompositeActivityProvider) SavePerformanceSettings(settings busi
 }
 
 func (provider *CompositeActivityProvider) CacheDiagnostics() map[string]any {
+	provider.refreshIfSourceDataChanged()
 	provider.dataMutex.RLock()
 	activities := len(provider.activities)
 	years := availableYearBins(provider.activities)
@@ -392,6 +414,7 @@ func (provider *CompositeActivityProvider) CacheDiagnostics() map[string]any {
 	for _, source := range provider.sources {
 		activeProviders = append(activeProviders, source.Name)
 	}
+	refresh := provider.sourceRefreshDiagnostics()
 
 	return map[string]any{
 		"timestamp":         time.Now().UTC().Format(time.RFC3339),
@@ -400,6 +423,7 @@ func (provider *CompositeActivityProvider) CacheDiagnostics() map[string]any {
 		"cacheRoot":         "composite",
 		"activities":        activities,
 		"availableYearBins": years,
+		"refresh":           refresh,
 		"composite": map[string]any{
 			"active":              true,
 			"activeProviders":     activeProviders,
@@ -435,10 +459,99 @@ func (provider *CompositeActivityProvider) Reload() {
 			reloadable.Reload()
 		}
 	}
-	provider.cacheMutex.Lock()
-	provider.filteredActivities = make(map[string][]*strava.Activity)
-	provider.cacheMutex.Unlock()
 	provider.rebuild()
+}
+
+func (provider *CompositeActivityProvider) refreshIfSourceDataChanged() {
+	currentSignatures := make(map[string]string, len(provider.sources))
+	for _, source := range provider.sources {
+		currentSignatures[source.Name] = sourceDataSignature(source.Provider.CacheDiagnostics())
+	}
+
+	provider.dataMutex.RLock()
+	previousSignatures := cloneStringMap(provider.sourceSignatures)
+	provider.dataMutex.RUnlock()
+	if stringMapsEqual(currentSignatures, previousSignatures) {
+		return
+	}
+	provider.rebuild()
+}
+
+func (provider *CompositeActivityProvider) sourceRefreshDiagnostics() map[string]any {
+	backgroundInProgress := false
+	warmupInProgress := false
+	for _, source := range provider.sources {
+		refresh, ok := source.Provider.CacheDiagnostics()["refresh"].(map[string]any)
+		if !ok {
+			continue
+		}
+		backgroundInProgress = backgroundInProgress || diagnosticBool(refresh["backgroundInProgress"])
+		warmupInProgress = warmupInProgress || diagnosticBool(refresh["warmupInProgress"])
+	}
+	return map[string]any{
+		"backgroundInProgress": backgroundInProgress,
+		"warmupInProgress":     warmupInProgress,
+	}
+}
+
+func diagnosticBool(value any) bool {
+	switch typed := value.(type) {
+	case bool:
+		return typed
+	case string:
+		return strings.EqualFold(typed, "true")
+	default:
+		return false
+	}
+}
+
+func sourceDataSignature(diagnostics map[string]any) string {
+	return fmt.Sprintf(
+		"activities=%v|years=%s",
+		diagnostics["activities"],
+		diagnosticListSignature(diagnostics["availableYearBins"]),
+	)
+}
+
+func diagnosticListSignature(value any) string {
+	switch typed := value.(type) {
+	case []string:
+		return strings.Join(typed, ",")
+	case []int:
+		parts := make([]string, 0, len(typed))
+		for _, item := range typed {
+			parts = append(parts, strconv.Itoa(item))
+		}
+		return strings.Join(parts, ",")
+	case []any:
+		parts := make([]string, 0, len(typed))
+		for _, item := range typed {
+			parts = append(parts, fmt.Sprint(item))
+		}
+		return strings.Join(parts, ",")
+	default:
+		return fmt.Sprint(value)
+	}
+}
+
+func cloneStringMap(source map[string]string) map[string]string {
+	cloned := make(map[string]string, len(source))
+	for key, value := range source {
+		cloned[key] = value
+	}
+	return cloned
+}
+
+func stringMapsEqual(left map[string]string, right map[string]string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for key, leftValue := range left {
+		if rightValue, ok := right[key]; !ok || leftValue != rightValue {
+			return false
+		}
+	}
+	return true
 }
 
 func (provider *CompositeActivityProvider) record(activityID int64) (compositeRecord, bool) {

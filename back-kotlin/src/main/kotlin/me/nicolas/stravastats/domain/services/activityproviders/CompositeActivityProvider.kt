@@ -33,6 +33,8 @@ class CompositeActivityProvider(
 
     private var recordsByActivityId: Map<Long, CompositeRecord> = emptyMap()
     private var diagnostics = CompositeDiagnostics()
+    @Volatile
+    private var sourceSignatures: Map<String, String> = emptyMap()
 
     init {
         stravaAthlete = this.sources.firstOrNull()?.provider?.athlete()
@@ -40,22 +42,26 @@ class CompositeActivityProvider(
         rebuild()
     }
 
+    @Synchronized
     private fun rebuild() {
         val clusters = mutableListOf<ActivityCluster>()
         val sourceSummaries = mutableListOf<Map<String, Any?>>()
+        val nextSourceSignatures = mutableMapOf<String, String>()
 
         for (source in sources) {
             val sourceActivities = source.provider.getActivitiesByActivityTypeAndYear(ActivityType.values().toSet(), null)
             val sourceDiagnostics = source.provider.getCacheDiagnostics()
-            sourceSummaries.add(
-                mapOf(
-                    "provider" to source.name,
-                    "athleteId" to (source.provider.cacheIdentity()?.athleteId ?: sourceDiagnostics["athleteId"]),
-                    "cacheRoot" to (source.provider.cacheIdentity()?.cacheRoot ?: sourceDiagnostics["cacheRoot"]),
-                    "activities" to sourceActivities.size,
-                    "availableYearBins" to sourceDiagnostics["availableYearBins"],
-                )
+            val sourceActivityCount = sourceDiagnostics["activities"] ?: sourceActivities.size
+            val sourceSummary = mutableMapOf<String, Any?>(
+                "provider" to source.name,
+                "athleteId" to (source.provider.cacheIdentity()?.athleteId ?: sourceDiagnostics["athleteId"]),
+                "cacheRoot" to (source.provider.cacheIdentity()?.cacheRoot ?: sourceDiagnostics["cacheRoot"]),
+                "activities" to sourceActivityCount,
+                "availableYearBins" to sourceDiagnostics["availableYearBins"],
             )
+            sourceDiagnostics["refresh"]?.let { refresh -> sourceSummary["refresh"] = refresh }
+            sourceSummaries.add(sourceSummary)
+            nextSourceSignatures[source.name] = sourceDataSignature(sourceSummary)
 
             for (activity in sourceActivities) {
                 val item = SourceActivity(source, activity, activityMatchMetadataFor(activity))
@@ -82,6 +88,11 @@ class CompositeActivityProvider(
             conflictSamples = records.flatMap { record -> record.conflicts }.take(12),
             sourceSummaries = sourceSummaries,
         )
+        sourceSignatures = nextSourceSignatures
+    }
+
+    override fun beforeActivityRead() {
+        refreshIfSourceDataChanged()
     }
 
     private fun mergeCluster(cluster: ActivityCluster): CompositeRecord {
@@ -110,6 +121,7 @@ class CompositeActivityProvider(
     }
 
     override fun getDetailedActivity(activityId: Long): StravaDetailedActivity? {
+        refreshIfSourceDataChanged()
         val record = recordsByActivityId[activityId] ?: return null
         val source = sources.firstOrNull { source -> source.name == record.primaryProvider }
         val detailed = source?.provider?.getDetailedActivity(record.primaryId)
@@ -118,6 +130,7 @@ class CompositeActivityProvider(
     }
 
     override fun getCachedDetailedActivity(activityId: Long): StravaDetailedActivity? {
+        refreshIfSourceDataChanged()
         val record = recordsByActivityId[activityId] ?: return null
         val source = sources.firstOrNull { source -> source.name == record.primaryProvider }
         val detailed = source?.provider?.getCachedDetailedActivity(record.primaryId)
@@ -142,6 +155,7 @@ class CompositeActivityProvider(
     }
 
     override fun getCacheDiagnostics(): Map<String, Any?> {
+        refreshIfSourceDataChanged()
         val activeProviders = sources.map { source -> source.name }
         return mapOf(
             "timestamp" to Instant.now().toString(),
@@ -150,6 +164,7 @@ class CompositeActivityProvider(
             "cacheRoot" to "composite",
             "activities" to activities.size,
             "availableYearBins" to availableYearBins(activities),
+            "refresh" to sourceRefreshDiagnostics(),
             "composite" to mapOf(
                 "active" to true,
                 "activeProviders" to activeProviders,
@@ -160,6 +175,31 @@ class CompositeActivityProvider(
                 "conflictSamples" to diagnostics.conflictSamples,
                 "futureProviders" to listOf("ridewithgps", "tcx"),
             ),
+        )
+    }
+
+    @Synchronized
+    private fun refreshIfSourceDataChanged() {
+        val currentSignatures = sources.associate { source ->
+            source.name to sourceDataSignature(source.provider.getCacheDiagnostics())
+        }
+        if (currentSignatures == sourceSignatures) {
+            return
+        }
+        rebuild()
+    }
+
+    private fun sourceRefreshDiagnostics(): Map<String, Any?> {
+        var backgroundInProgress = false
+        var warmupInProgress = false
+        sources.forEach { source ->
+            val refresh = source.provider.getCacheDiagnostics()["refresh"] as? Map<*, *> ?: return@forEach
+            backgroundInProgress = backgroundInProgress || refresh["backgroundInProgress"] == true
+            warmupInProgress = warmupInProgress || refresh["warmupInProgress"] == true
+        }
+        return mapOf(
+            "backgroundInProgress" to backgroundInProgress,
+            "warmupInProgress" to warmupInProgress,
         )
     }
 
@@ -257,6 +297,18 @@ class CompositeActivityProvider(
 
         private fun activitiesMatch(left: StravaActivity, right: StravaActivity): Boolean {
             return activityValuesMatch(left, right, activityMatchMetadataFor(left), activityMatchMetadataFor(right))
+        }
+
+        private fun sourceDataSignature(diagnostics: Map<String, Any?>): String {
+            return "activities=${diagnostics["activities"]}|years=${diagnosticListSignature(diagnostics["availableYearBins"])}"
+        }
+
+        private fun diagnosticListSignature(value: Any?): String {
+            return when (value) {
+                is Iterable<*> -> value.joinToString(",") { item -> item.toString() }
+                is Array<*> -> value.joinToString(",") { item -> item.toString() }
+                else -> value.toString()
+            }
         }
 
         private fun sourceActivitiesMatch(left: SourceActivity, right: SourceActivity): Boolean {

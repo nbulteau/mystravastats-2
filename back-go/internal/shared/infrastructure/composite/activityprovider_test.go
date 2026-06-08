@@ -161,9 +161,53 @@ func TestCompositeKeepsUnmatchedLocalActivitiesInUnion(t *testing.T) {
 	}
 }
 
+func TestCompositeRebuildsWhenSourceActivityCountChanges(t *testing.T) {
+	firstActivity := testActivity(9301, "morning ride", "Ride", "2026-06-08T07:30:00Z", 20000, 3600, nil)
+	nextActivity := testActivity(9302, "lunch ride", "Ride", "2026-06-08T12:00:00Z", 15000, 2700, nil)
+	source := &testProvider{name: "strava", activities: []*strava.Activity{firstActivity}}
+	provider := NewCompositeActivityProvider([]Source{
+		{Name: "strava", Provider: source},
+	})
+
+	if activities := provider.GetActivitiesByYearAndActivityTypes(nil, business.Ride); len(activities) != 1 {
+		t.Fatalf("expected initial cached activity, got %d", len(activities))
+	}
+
+	source.activities = append(source.activities, nextActivity)
+
+	activities := provider.GetActivitiesByYearAndActivityTypes(nil, business.Ride)
+	if len(activities) != 2 {
+		t.Fatalf("expected composite provider to rebuild after source count changed, got %d", len(activities))
+	}
+	diagnostics := provider.CacheDiagnostics()
+	if diagnostics["activities"] != 2 {
+		t.Fatalf("expected diagnostics to report rebuilt composite activity count, got %#v", diagnostics["activities"])
+	}
+}
+
+func TestCompositeDiagnosticsAggregatesSourceRefresh(t *testing.T) {
+	source := testProvider{
+		name:       "strava",
+		activities: []*strava.Activity{testActivity(9401, "morning ride", "Ride", "2026-06-08T07:30:00Z", 20000, 3600, nil)},
+		refresh: map[string]any{
+			"backgroundInProgress": true,
+			"warmupInProgress":     false,
+		},
+	}
+	provider := NewCompositeActivityProvider([]Source{
+		{Name: "strava", Provider: source},
+	})
+
+	refresh := provider.CacheDiagnostics()["refresh"].(map[string]any)
+	if refresh["backgroundInProgress"] != true {
+		t.Fatalf("expected composite refresh to include source background refresh, got %#v", refresh)
+	}
+}
+
 type testProvider struct {
 	name       string
 	activities []*strava.Activity
+	refresh    map[string]any
 }
 
 func (provider testProvider) GetDetailedActivity(activityId int64) *strava.DetailedActivity {
@@ -212,10 +256,15 @@ func (provider testProvider) SavePerformanceSettings(settings business.AthletePe
 }
 
 func (provider testProvider) CacheDiagnostics() map[string]any {
-	return map[string]any{
+	diagnostics := map[string]any{
 		"provider":          provider.name,
+		"activities":        len(provider.activities),
 		"availableYearBins": availableYearBins(provider.activities),
 	}
+	if provider.refresh != nil {
+		diagnostics["refresh"] = provider.refresh
+	}
+	return diagnostics
 }
 
 func (provider testProvider) ClientID() string {

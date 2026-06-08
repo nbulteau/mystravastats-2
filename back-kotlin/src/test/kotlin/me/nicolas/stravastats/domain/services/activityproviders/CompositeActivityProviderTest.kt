@@ -13,6 +13,7 @@ import me.nicolas.stravastats.domain.services.toStravaDetailedActivity
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
+import org.springframework.data.domain.PageRequest
 
 class CompositeActivityProviderTest {
     @Test
@@ -224,9 +225,73 @@ class CompositeActivityProviderTest {
         assertEquals(setOf(7001L, 8001L), ids)
     }
 
+    @Test
+    fun `rebuilds when a source activity count changes`() {
+        val firstActivity = testActivity(
+            id = 9301,
+            name = "morning ride",
+            sport = "Ride",
+            start = "2026-06-08T07:30:00Z",
+            distance = 20_000.0,
+            movingTime = 3_600,
+            stream = null,
+        )
+        val nextActivity = testActivity(
+            id = 9302,
+            name = "lunch ride",
+            sport = "Ride",
+            start = "2026-06-08T12:00:00Z",
+            distance = 15_000.0,
+            movingTime = 2_700,
+            stream = null,
+        )
+        val source = StubProvider("strava", listOf(firstActivity))
+        val provider = CompositeActivityProvider(
+            listOf(CompositeActivitySource("strava", source))
+        )
+
+        assertEquals(1, provider.getActivitiesByActivityTypeAndYear(setOf(ActivityType.Ride)).size)
+
+        source.appendActivity(nextActivity)
+
+        assertEquals(2, provider.getActivitiesByActivityTypeAndYear(setOf(ActivityType.Ride)).size)
+        assertEquals(2L, provider.listActivitiesPaginated(PageRequest.of(0, 10)).totalElements)
+        assertEquals(2, provider.getCacheDiagnostics()["activities"])
+    }
+
+    @Test
+    fun `aggregates source refresh diagnostics`() {
+        val source = StubProvider(
+            name = "strava",
+            seedActivities = listOf(
+                testActivity(
+                    id = 9401,
+                    name = "morning ride",
+                    sport = "Ride",
+                    start = "2026-06-08T07:30:00Z",
+                    distance = 20_000.0,
+                    movingTime = 3_600,
+                    stream = null,
+                )
+            ),
+            refresh = mapOf(
+                "backgroundInProgress" to true,
+                "warmupInProgress" to false,
+            ),
+        )
+        val provider = CompositeActivityProvider(
+            listOf(CompositeActivitySource("strava", source))
+        )
+
+        val refresh = provider.getCacheDiagnostics()["refresh"] as Map<*, *>
+
+        assertEquals(true, refresh["backgroundInProgress"])
+    }
+
     private class StubProvider(
         private val name: String,
         seedActivities: List<StravaActivity>,
+        private val refresh: Map<String, Any?>? = null,
     ) : AbstractActivityProvider() {
         init {
             stravaAthlete = StravaAthlete(id = 42, firstname = name)
@@ -241,6 +306,10 @@ class CompositeActivityProviderTest {
             return getDetailedActivity(activityId)
         }
 
+        fun appendActivity(activity: StravaActivity) {
+            activities = activities + activity
+        }
+
         override fun getCacheDiagnostics(): Map<String, Any?> {
             return mapOf(
                 "provider" to name,
@@ -251,7 +320,7 @@ class CompositeActivityProviderTest {
                     .map { activity -> activity.startDateLocal.substring(0, 4) }
                     .distinct()
                     .sorted(),
-            )
+            ) + if (refresh == null) emptyMap() else mapOf("refresh" to refresh)
         }
 
         override fun cacheIdentity(): ActivityProviderCacheIdentity {
