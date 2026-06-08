@@ -5,6 +5,9 @@ import me.nicolas.stravastats.domain.business.AthletePerformanceSettings
 import me.nicolas.stravastats.domain.business.HeartRateZoneSettings
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
+import me.nicolas.stravastats.domain.business.strava.ActivitySource as StravaActivitySource
+import me.nicolas.stravastats.domain.business.strava.ActivitySourceConflict as StravaActivitySourceConflict
+import me.nicolas.stravastats.domain.business.strava.ActivitySourceRef as StravaActivitySourceRef
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.services.toStravaDetailedActivity
 import java.time.Instant
@@ -98,10 +101,10 @@ class CompositeActivityProvider(
     private fun mergeCluster(cluster: ActivityCluster): CompositeRecord {
         val orderedItems = cluster.items.sortedBy { item -> sourcePriority[item.source.name] ?: Int.MAX_VALUE }
         val primary = orderedItems.first()
-        val bestStream = orderedItems
+        val bestStreamWithProvider = orderedItems
             .mapNotNull { item -> item.activity.stream?.let { stream -> item.source.name to stream } }
             .maxByOrNull { (source, stream) -> streamScore(source, stream) }
-            ?.second
+        val bestStream = bestStreamWithProvider?.second
 
         val merged = orderedItems.drop(1).fold(primary.activity.copy(stream = bestStream)) { current, item ->
             enrichMissingFields(current, item.activity)
@@ -114,6 +117,7 @@ class CompositeActivityProvider(
             activity = merged,
             primaryProvider = primary.source.name,
             primaryId = primary.activity.id,
+            streamProvider = bestStreamWithProvider?.first,
             sources = orderedItems.map { item -> item.toRef() },
             confidence = if (orderedItems.size > 1) "high" else "single_source",
             conflicts = conflicts,
@@ -126,7 +130,7 @@ class CompositeActivityProvider(
         val source = sources.firstOrNull { source -> source.name == record.primaryProvider }
         val detailed = source?.provider?.getDetailedActivity(record.primaryId)
             ?: record.activity.toStravaDetailedActivity()
-        return enrichDetailedActivity(detailed, record.activity)
+        return attachSourceProvenance(enrichDetailedActivity(detailed, record.activity), record)
     }
 
     override fun getCachedDetailedActivity(activityId: Long): StravaDetailedActivity? {
@@ -135,7 +139,7 @@ class CompositeActivityProvider(
         val source = sources.firstOrNull { source -> source.name == record.primaryProvider }
         val detailed = source?.provider?.getCachedDetailedActivity(record.primaryId)
             ?: return getDetailedActivity(activityId)
-        return enrichDetailedActivity(detailed, record.activity)
+        return attachSourceProvenance(enrichDetailedActivity(detailed, record.activity), record)
     }
 
     override fun getHeartRateZoneSettings(): HeartRateZoneSettings {
@@ -256,6 +260,7 @@ class CompositeActivityProvider(
         val activity: StravaActivity,
         val primaryProvider: String,
         val primaryId: Long,
+        val streamProvider: String?,
         val sources: List<ActivitySourceRef>,
         val confidence: String,
         val conflicts: List<MergeConflict>,
@@ -447,6 +452,35 @@ class CompositeActivityProvider(
                 maxHeartrate = if (detailed.maxHeartrate == 0) activity.maxHeartrate else detailed.maxHeartrate,
                 averageWatts = if (detailed.averageWatts == 0.0) activity.averageWatts.toDouble() else detailed.averageWatts,
                 weightedAverageWatts = if (detailed.weightedAverageWatts == 0) activity.weightedAverageWatts else detailed.weightedAverageWatts,
+            )
+        }
+
+        private fun attachSourceProvenance(detailed: StravaDetailedActivity, record: CompositeRecord): StravaDetailedActivity {
+            return detailed.copy(
+                source = StravaActivitySource(
+                    primaryProvider = record.primaryProvider,
+                    primaryId = record.primaryId,
+                    streamProvider = record.streamProvider,
+                    confidence = record.confidence,
+                    sources = record.sources.map { source ->
+                        StravaActivitySourceRef(
+                            provider = source.provider,
+                            activityId = source.activityId,
+                            startDateLocal = source.startDateLocal,
+                            distance = source.distance,
+                            movingTime = source.movingTime,
+                            hasStream = source.hasStream,
+                        )
+                    },
+                    conflicts = record.conflicts.map { conflict ->
+                        StravaActivitySourceConflict(
+                            field = conflict.field,
+                            primary = conflict.primary,
+                            other = conflict.other,
+                            source = conflict.source,
+                        )
+                    },
+                )
             )
         }
 

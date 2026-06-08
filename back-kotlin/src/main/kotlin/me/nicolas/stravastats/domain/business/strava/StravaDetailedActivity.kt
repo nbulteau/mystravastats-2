@@ -112,4 +112,31 @@ data class StravaDetailedActivity(
     val workoutType: Int,
 
     val stream: Stream? = null,
+
+    val source: ActivitySource? = null,
+)
+
+data class ActivitySource(
+    val primaryProvider: String,
+    val primaryId: Long,
+    val streamProvider: String? = null,
+    val confidence: String,
+    val sources: List<ActivitySourceRef> = emptyList(),
+    val conflicts: List<ActivitySourceConflict> = emptyList(),
+)
+
+data class ActivitySourceRef(
+    val provider: String,
+    val activityId: Long,
+    val startDateLocal: String,
+    val distance: Double,
+    val movingTime: Int,
+    val hasStream: Boolean,
+)
+
+data class ActivitySourceConflict(
+    val field: String,
+    val primary: String,
+    val other: String,
+    val source: String,
 )

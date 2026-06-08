@@ -1,0 +1,19 @@
+{
+  "year": 2026,
+  "activityType": "Ride",
+  "activityCount": 1,
+  "activityId": 2601001,
+  "primaryProvider": "strava",
+  "streamProvider": "fit",
+  "sourceCount": 3,
+  "sourceProviders": ["strava", "fit", "gpx"],
+  "matchedActivities": 1,
+  "localOnlyActivities": 0,
+  "conflictCount": 1,
+  "conflicts": [
+    {
+      "field": "distance",
+      "source": "gpx"
+    }
+  ]
+}

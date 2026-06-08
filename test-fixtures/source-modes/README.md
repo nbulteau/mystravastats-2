@@ -7,6 +7,9 @@ runtime source-mode paths as real Strava cache, FIT and GPX folders.
 - `fit/` contains a generated FIT activity.
 - `gpx/` contains one cycling GPX activity with elevation, heart rate, cadence
   and power samples.
+- `composite-expected.json` captures the expected Strava + FIT + GPX merge:
+  Strava remains primary, the local FIT stream enriches the activity, and the
+  GPX distance conflict stays visible.
 
 The smoke script copies these folders to a temporary directory before launching
 the backend, because providers may persist local diagnostics or detail caches.

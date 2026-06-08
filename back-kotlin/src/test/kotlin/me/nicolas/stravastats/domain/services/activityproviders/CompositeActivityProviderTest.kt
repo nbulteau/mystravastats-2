@@ -1,5 +1,9 @@
 package me.nicolas.stravastats.domain.services.activityproviders
 
+import kotlinx.coroutines.runBlocking
+import me.nicolas.stravastats.adapters.localrepositories.fit.FITRepository
+import me.nicolas.stravastats.adapters.localrepositories.gpx.GPXRepository
+import me.nicolas.stravastats.adapters.localrepositories.strava.StravaRepository
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.strava.AthleteRef
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
@@ -9,11 +13,17 @@ import me.nicolas.stravastats.domain.business.strava.stream.DistanceStream
 import me.nicolas.stravastats.domain.business.strava.stream.LatLngStream
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.business.strava.stream.TimeStream
+import me.nicolas.stravastats.domain.interfaces.ISRTMProvider
 import me.nicolas.stravastats.domain.services.toStravaDetailedActivity
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
 import org.springframework.data.domain.PageRequest
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.module.kotlin.KotlinModule
+import java.io.File
+import java.nio.file.Path
 
 class CompositeActivityProviderTest {
     @Test
@@ -288,6 +298,61 @@ class CompositeActivityProviderTest {
         assertEquals(true, refresh["backgroundInProgress"])
     }
 
+    @Test
+    fun `shared source mode fixtures match composite parity expectations`(@TempDir tempDir: Path) = runBlocking {
+        val expected = readSharedCompositeExpected()
+        val fixtureRoot = copySharedSourceModeFixtures(tempDir)
+        val srtmProvider = unavailableSrtmProvider()
+        val stravaPath = File(fixtureRoot, "strava").path
+        val fitPath = File(fixtureRoot, "fit").path
+        val gpxPath = File(fixtureRoot, "gpx").path
+        val stravaProvider = StravaActivityProvider(
+            storageProvider = StravaRepository(stravaPath),
+            stravaApiFactory = { _, _ -> error("Strava API should not be used by cache-only fixtures") },
+            stravaApi = null,
+            stravaCache = stravaPath,
+        )
+        stravaProvider.initializeAndLoadActivities()
+        val provider = CompositeActivityProvider(
+            listOf(
+                CompositeActivitySource("strava", stravaProvider),
+                CompositeActivitySource("fit", FitActivityProvider(fitPath, srtmProvider, FITRepository(fitPath))),
+                CompositeActivitySource("gpx", GpxActivityProvider(gpxPath, srtmProvider, GPXRepository(gpxPath))),
+            )
+        )
+
+        try {
+            val activities = provider.getActivitiesByActivityTypeAndYear(
+                setOf(ActivityType.valueOf(expected.activityType)),
+                expected.year,
+            )
+
+            assertEquals(expected.activityCount, activities.size)
+            assertEquals(expected.activityId, activities.first().id)
+            assertNotNull(activities.first().stream)
+
+            val detail = provider.getDetailedActivity(expected.activityId)
+            assertNotNull(detail?.source)
+            assertEquals(expected.primaryProvider, detail?.source?.primaryProvider)
+            assertEquals(expected.activityId, detail?.source?.primaryId)
+            assertEquals(expected.streamProvider, detail?.source?.streamProvider)
+            assertEquals(expected.sourceProviders, detail?.source?.sources?.map { source -> source.provider })
+            assertEquals(expected.conflicts.size, detail?.source?.conflicts?.size)
+            expected.conflicts.forEachIndexed { index, conflict ->
+                val actual = detail?.source?.conflicts?.get(index)
+                assertEquals(conflict.field, actual?.field)
+                assertEquals(conflict.source, actual?.source)
+            }
+
+            val compositeDiagnostics = provider.getCacheDiagnostics()["composite"] as Map<*, *>
+            assertEquals(expected.matchedActivities, compositeDiagnostics["matchedActivities"])
+            assertEquals(expected.localOnlyActivities, compositeDiagnostics["localOnlyActivities"])
+            assertEquals(expected.conflictCount, compositeDiagnostics["conflictCount"])
+        } finally {
+            provider.close()
+        }
+    }
+
     private class StubProvider(
         private val name: String,
         seedActivities: List<StravaActivity>,
@@ -383,4 +448,50 @@ class CompositeActivityProviderTest {
             ),
         )
     }
+
+    private fun readSharedCompositeExpected(): SharedCompositeExpected {
+        val mapper = JsonMapper.builder()
+            .addModule(KotlinModule.Builder().build())
+            .build()
+        return mapper.readValue(File(sharedSourceModeFixtureRoot(), "composite-expected.json"), SharedCompositeExpected::class.java)
+    }
+
+    private fun copySharedSourceModeFixtures(tempDir: Path): File {
+        val destination = tempDir.resolve("source-modes").toFile()
+        sharedSourceModeFixtureRoot().copyRecursively(destination, overwrite = true)
+        return destination
+    }
+
+    private fun sharedSourceModeFixtureRoot(): File {
+        val workingDirectory = File(System.getProperty("user.dir")).canonicalFile
+        val repoRoot = if (workingDirectory.name == "back-kotlin") workingDirectory.parentFile else workingDirectory
+        return File(repoRoot, "test-fixtures/source-modes").canonicalFile
+    }
+
+    private fun unavailableSrtmProvider(): ISRTMProvider {
+        return object : ISRTMProvider {
+            override fun getElevation(latitudeLongitudeList: List<List<Double>>): List<Double> = emptyList()
+
+            override fun isAvailable(): Boolean = false
+        }
+    }
+
+    private data class SharedCompositeExpected(
+        val year: Int,
+        val activityType: String,
+        val activityCount: Int,
+        val activityId: Long,
+        val primaryProvider: String,
+        val streamProvider: String,
+        val sourceProviders: List<String>,
+        val matchedActivities: Int,
+        val localOnlyActivities: Int,
+        val conflictCount: Int,
+        val conflicts: List<SharedExpectedConflict>,
+    )
+
+    private data class SharedExpectedConflict(
+        val field: String,
+        val source: String,
+    )
 }
