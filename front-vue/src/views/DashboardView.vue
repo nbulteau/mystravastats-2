@@ -170,6 +170,20 @@ async function setEddingtonBasis(basis: EddingtonBasis) {
     <section class="chart-panel">
       <div class="chart-panel__header">
         <h3 class="chart-panel__title">
+          Cumulative distance / elevation
+        </h3>
+        <TooltipHint :text="tooltip('Total distance')" />
+      </div>
+      <CumulativeDistancePerYearChart
+        :activity-type-label="currentActivityTypeLabel"
+        :cumulative-distance-per-year="cumulativeDistancePerYear"
+        :cumulative-elevation-per-year="cumulativeElevationPerYear"
+      />
+    </section>
+
+    <section class="chart-panel">
+      <div class="chart-panel__header">
+        <h3 class="chart-panel__title">
           Eddington number
         </h3>
         <TooltipHint :text="tooltip('Eddington number')" />
@@ -232,19 +246,7 @@ async function setEddingtonBasis(basis: EddingtonBasis) {
         :eddington-number="eddingtonNumber"
       />
     </section>
-    <section class="chart-panel">
-      <div class="chart-panel__header">
-        <h3 class="chart-panel__title">
-          Cumulative distance / elevation
-        </h3>
-        <TooltipHint :text="tooltip('Total distance')" />
-      </div>
-      <CumulativeDistancePerYearChart
-        :activity-type-label="currentActivityTypeLabel"
-        :cumulative-distance-per-year="cumulativeDistancePerYear"
-        :cumulative-elevation-per-year="cumulativeElevationPerYear"
-      />
-    </section>
+
     <section class="chart-panel">
       <div class="chart-panel__header">
         <h3 class="chart-panel__title">
@@ -254,6 +256,7 @@ async function setEddingtonBasis(basis: EddingtonBasis) {
       </div>
       <ActivitiesCountPerYearChart :activities-count="activitiesCount" />
     </section>
+
     <section class="chart-panel">
       <div class="chart-panel__header">
         <h3 class="chart-panel__title">
@@ -266,6 +269,7 @@ async function setEddingtonBasis(basis: EddingtonBasis) {
         :elevation-by-year="totalElevationByYear"
       />
     </section>
+    
     <section class="chart-panel">
       <div class="chart-panel__header">
         <h3 class="chart-panel__title">
