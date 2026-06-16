@@ -3433,8 +3433,11 @@ async function previewSourceMode(silent = false) {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  border-bottom: 1px solid var(--ms-border);
-  padding: 2px 0 12px;
+  border: 1px solid var(--ms-border);
+  border-radius: 14px;
+  background: var(--ms-surface-strong);
+  box-shadow: var(--ms-shadow-soft);
+  padding: 12px;
 }
 
 .diagnostics-kicker {
@@ -3448,7 +3451,7 @@ async function previewSourceMode(silent = false) {
 
 .diagnostics-toolbar h1 {
   margin: 0;
-  font-size: 1.55rem;
+  font-size: 1.35rem;
 }
 
 .diagnostics-actions {
@@ -3466,17 +3469,17 @@ async function previewSourceMode(silent = false) {
 }
 
 .diagnostics-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .diagnostics-panel {
   border: 1px solid var(--ms-border);
-  border-radius: 8px;
-  background: #ffffff;
+  border-radius: 14px;
+  background: var(--ms-surface-strong);
   box-shadow: var(--ms-shadow-soft);
-  padding: 14px;
+  padding: 12px;
 }
 
 .diagnostics-panel--wide {
@@ -3489,7 +3492,6 @@ async function previewSourceMode(silent = false) {
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  border-left: 4px solid var(--ms-primary);
 }
 
 .status-overview-panel {
@@ -5433,11 +5435,11 @@ dd {
   justify-content: space-between;
   gap: 12px;
   border: 1px solid var(--ms-border);
-  border-radius: 8px;
-  background: #ffffff;
+  border-radius: 14px;
+  background: var(--ms-surface-strong);
   box-shadow: var(--ms-shadow-soft);
   cursor: pointer;
-  padding: 12px 14px;
+  padding: 12px;
 }
 
 .technical-summary span,

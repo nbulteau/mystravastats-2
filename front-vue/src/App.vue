@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import "bootstrap/scss/bootstrap.scss";
-import { computed } from "vue";
 import HeaderBar from "@/components/HeaderBar.vue";
 import { RouterLink, useRoute } from "vue-router";
 import { useUiStore } from "@/stores/ui";
@@ -11,7 +10,6 @@ const uiStore = useUiStore();
 const route = useRoute();
 
 const isCurrent = (name: string) => route.name === name;
-const usesWideLayout = computed(() => route.name === "diagnostics");
 
 const navItems = [
   { id: "dashboard-tab", name: "dashboard", controls: "dashboard-tab-pane", to: "/dashboard", label: "Dashboard" },
@@ -33,7 +31,7 @@ const navItems = [
   <div class="app-frame">
     <div v-if="contextStore.currentView !== 'activity'">
       <HeaderBar class="fixed-top app-header" />
-      <nav :class="['navbar', usesWideLayout ? 'container-fluid' : 'container', 'app-tabs-shell']">
+      <nav class="navbar container app-tabs-shell">
         <ul
           id="myTab"
           class="nav nav-tabs app-tabs"
@@ -68,7 +66,7 @@ const navItems = [
     </div>
 
     <div
-      :class="[usesWideLayout ? 'container-fluid' : 'container', 'app-main', { 'app-main--activity': contextStore.currentView === 'activity' }]"
+      :class="['container', 'app-main', { 'app-main--activity': contextStore.currentView === 'activity' }]"
     >
       <main
         class="app-content"
