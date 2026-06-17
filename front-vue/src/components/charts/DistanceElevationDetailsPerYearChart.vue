@@ -10,12 +10,21 @@ import type {
 import { calculateTrendLine } from "@/utils/charts";
 
 type DetailMetric = "distance" | "elevation";
+type DetailBasis = "days" | "activities";
 
 const props = defineProps<{
   averageDistanceByYear: Record<string, number>;
+  averageDistanceByActiveDayByYear: Record<string, number>;
   averageElevationByYear: Record<string, number>;
+  averageElevationByActiveDayByYear: Record<string, number>;
   maxDistanceByYear: Record<string, number>;
+  maxDistanceDateByYear: Record<string, string>;
+  maxDistanceByActiveDayByYear: Record<string, number>;
+  maxDistanceByActiveDayDateByYear: Record<string, string>;
   maxElevationByYear: Record<string, number>;
+  maxElevationDateByYear: Record<string, string>;
+  maxElevationByActiveDayByYear: Record<string, number>;
+  maxElevationByActiveDayDateByYear: Record<string, string>;
 }>();
 
 const metricOptions: Array<{ value: DetailMetric; label: string }> = [
@@ -23,7 +32,13 @@ const metricOptions: Array<{ value: DetailMetric; label: string }> = [
   { value: "elevation", label: "Elevation" },
 ];
 
+const basisOptions: Array<{ value: DetailBasis; label: string }> = [
+  { value: "days", label: "Days" },
+  { value: "activities", label: "Activities" },
+];
+
 const selectedMetric = ref<DetailMetric>("distance");
+const selectedBasis = ref<DetailBasis>("activities");
 const activeUnit = ref<"km" | "m">("km");
 
 const chartOptions: Options = reactive({
@@ -57,8 +72,8 @@ const chartOptions: Options = reactive({
     formatter: function (this: any): string {
       const points = this.points ?? [];
       return points.reduce(
-        (summary: string, point: { color: string; series: { name: string }; y: number }) => {
-          return `${summary}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${formatValue(point.y, activeUnit.value)}`;
+        (summary: string, point: { color: string; options?: { custom?: { day?: string } }; series: { name: string }; y: number }) => {
+          return `${summary}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${formatValue(point.y, activeUnit.value)}${formatTooltipDay(point.options?.custom?.day)}`;
         },
         `<b>${this.key}</b>`,
       );
@@ -114,12 +129,20 @@ function setSelectedMetric(metric: DetailMetric) {
   selectedMetric.value = metric;
 }
 
+function setSelectedBasis(basis: DetailBasis) {
+  selectedBasis.value = basis;
+}
+
 function safeValue(value: number | undefined): number {
   return Number.isFinite(value) ? Number(value) : 0;
 }
 
 function formatValue(value: number, unit: "km" | "m"): string {
   return `${Math.round(value).toLocaleString()} ${unit}`;
+}
+
+function formatTooltipDay(day: string | undefined): string {
+  return day ? ` - Day: ${day}` : "";
 }
 
 function maxValueSummary(values: number[], years: string[], label: string, unit: "km" | "m"): string | null {
@@ -136,39 +159,63 @@ function maxValueSummary(values: number[], years: string[], label: string, unit:
   return `${label}: ${formatValue(maxValue, unit)} in ${year}`;
 }
 
-function highlightedPoints(values: number[]): Array<number | { y: number; marker: { enabled: true; radius: number; fillColor: string } }> {
+function highlightedPoints(
+  values: number[],
+  years: string[],
+  dateByYear?: Record<string, string>,
+): Array<number | { y: number; custom?: { day: string }; marker?: { enabled: true; radius: number; fillColor: string } }> {
   if (values.length === 0) {
     return [];
   }
 
   const maxValue = Math.max(...values);
   const maxIndex = values.indexOf(maxValue);
-  return values.map((value, index) => index === maxIndex
-    ? { y: value, marker: { enabled: true, radius: 6, fillColor: "#fc4c02" } }
-    : value);
+  return values.map((value, index) => {
+    const year = years[index] ?? "";
+    const day = dateByYear?.[year];
+    const point = day ? { y: value, custom: { day } } : { y: value };
+    if (index === maxIndex) {
+      return { ...point, marker: { enabled: true, radius: 6, fillColor: "#fc4c02" } };
+    }
+    return day ? point : value;
+  });
 }
 
 function updateChartData() {
   const isDistance = selectedMetric.value === "distance";
-  const averageSource = isDistance ? props.averageDistanceByYear : props.averageElevationByYear;
-  const maxSource = isDistance ? props.maxDistanceByYear : props.maxElevationByYear;
+  const isDays = selectedBasis.value === "days";
+  let averageSource: Record<string, number>;
+  let maxSource: Record<string, number>;
+  let maxDateSource: Record<string, string>;
+
+  if (isDistance) {
+    averageSource = isDays ? props.averageDistanceByActiveDayByYear : props.averageDistanceByYear;
+    maxSource = isDays ? props.maxDistanceByActiveDayByYear : props.maxDistanceByYear;
+    maxDateSource = isDays ? props.maxDistanceByActiveDayDateByYear : props.maxDistanceDateByYear;
+  } else {
+    averageSource = isDays ? props.averageElevationByActiveDayByYear : props.averageElevationByYear;
+    maxSource = isDays ? props.maxElevationByActiveDayByYear : props.maxElevationByYear;
+    maxDateSource = isDays ? props.maxElevationByActiveDayDateByYear : props.maxElevationDateByYear;
+  }
+
   const unit = isDistance ? "km" : "m";
   const metricLabel = isDistance ? "Distance" : "Elevation";
-  const averageLabel = isDistance ? "Average distance" : "Average elevation";
-  const maxLabel = isDistance ? "Maximum distance" : "Maximum elevation";
+  const basisLabel = isDays ? "day" : "activity";
+  const averageLabel = `${isDistance ? "Average distance" : "Average elevation"} per ${basisLabel}`;
+  const maxLabel = `${isDistance ? "Maximum distance" : "Maximum elevation"} per ${basisLabel}`;
   const years = Array.from(
     new Set([...Object.keys(averageSource ?? {}), ...Object.keys(maxSource ?? {})]),
   ).sort();
   const averageValues = years.map((year) => safeValue(averageSource?.[year]));
   const maxValues = years.map((year) => safeValue(maxSource?.[year]));
   const subtitle = [
-    maxValueSummary(averageValues, years, "Best average", unit),
-    maxValueSummary(maxValues, years, "Best max", unit),
+    maxValueSummary(averageValues, years, `Best average per ${basisLabel}`, unit),
+    maxValueSummary(maxValues, years, `Best maximum per ${basisLabel}`, unit),
   ].filter((part): part is string => part !== null).join(" - ");
 
   activeUnit.value = unit;
   if (chartOptions.title) {
-    chartOptions.title.text = `${metricLabel} details by year`;
+    chartOptions.title.text = `${metricLabel} per ${basisLabel} by year`;
   }
   if (chartOptions.subtitle) {
     chartOptions.subtitle.text = subtitle;
@@ -180,11 +227,11 @@ function updateChartData() {
 
   if (chartOptions.series?.[0]) {
     (chartOptions.series[0] as SeriesLineOptions).name = averageLabel;
-    (chartOptions.series[0] as SeriesLineOptions).data = highlightedPoints(averageValues);
+    (chartOptions.series[0] as SeriesLineOptions).data = highlightedPoints(averageValues, years);
   }
   if (chartOptions.series?.[1]) {
     (chartOptions.series[1] as SeriesLineOptions).name = maxLabel;
-    (chartOptions.series[1] as SeriesLineOptions).data = highlightedPoints(maxValues);
+    (chartOptions.series[1] as SeriesLineOptions).data = highlightedPoints(maxValues, years, maxDateSource);
   }
   if (chartOptions.series?.[2]) {
     (chartOptions.series[2] as SeriesLineOptions).data = calculateTrendLine(averageValues);
@@ -194,10 +241,19 @@ function updateChartData() {
 watch(
   [
     () => props.averageDistanceByYear,
+    () => props.averageDistanceByActiveDayByYear,
     () => props.averageElevationByYear,
+    () => props.averageElevationByActiveDayByYear,
     () => props.maxDistanceByYear,
+    () => props.maxDistanceDateByYear,
+    () => props.maxDistanceByActiveDayByYear,
+    () => props.maxDistanceByActiveDayDateByYear,
     () => props.maxElevationByYear,
+    () => props.maxElevationDateByYear,
+    () => props.maxElevationByActiveDayByYear,
+    () => props.maxElevationByActiveDayDateByYear,
     selectedMetric,
+    selectedBasis,
   ],
   updateChartData,
   { immediate: true },
@@ -228,6 +284,23 @@ watch(
           {{ option.label }}
         </button>
       </div>
+      <div
+        class="scope-switch"
+        role="group"
+        aria-label="Distance elevation details basis"
+      >
+        <button
+          v-for="option in basisOptions"
+          :key="option.value"
+          type="button"
+          class="scope-switch__button"
+          :class="{ 'scope-switch__button--active': selectedBasis === option.value }"
+          :aria-pressed="selectedBasis === option.value"
+          @click="setSelectedBasis(option.value)"
+        >
+          {{ option.label }}
+        </button>
+      </div>
     </div>
     <div class="chart-container">
       <Chart :options="chartOptions" />
@@ -244,6 +317,8 @@ watch(
 
 .distance-elevation-details__controls {
   display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   justify-content: flex-end;
 }
 
@@ -276,6 +351,7 @@ watch(
 
 @media (max-width: 640px) {
   .distance-elevation-details__controls {
+    flex-direction: column;
     justify-content: stretch;
   }
 

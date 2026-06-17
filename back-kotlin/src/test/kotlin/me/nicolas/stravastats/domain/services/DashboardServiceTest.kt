@@ -242,14 +242,18 @@ class DashboardServiceTest {
                 elevationGainMeters = 300.0,
                 movingTimeSeconds = 3600,
                 elapsedTimeSeconds = 3800,
+                averageHeartrate = 120.0,
+                maxHeartrate = 170,
             ),
             createActivity(
                 id = 2L,
                 startDateLocal = "2025-01-01T18:00:00Z",
-                distanceMeters = 10000.0,
+                distanceMeters = 15000.0,
                 elevationGainMeters = 100.0,
                 movingTimeSeconds = 0,
                 elapsedTimeSeconds = 1800,
+                averageHeartrate = 118.0,
+                maxHeartrate = 165,
             ),
             createActivity(
                 id = 3L,
@@ -258,6 +262,8 @@ class DashboardServiceTest {
                 elevationGainMeters = 600.0,
                 movingTimeSeconds = 5400,
                 elapsedTimeSeconds = 5600,
+                averageHeartrate = 132.0,
+                maxHeartrate = 183,
             ),
         )
         every {
@@ -271,9 +277,20 @@ class DashboardServiceTest {
         assertEquals(3, result.nbActivitiesByYear["2025"])
         assertEquals(2, result.activeDaysByYear["2025"])
         assertEquals(10800, result.movingTimeByYear["2025"])
-        assertEquals(60.0f, result.totalDistanceByYear["2025"])
+        assertEquals(65.0f, result.totalDistanceByYear["2025"])
+        assertEquals(30.0f, result.maxDistanceByYear["2025"])
+        assertEquals("2025-01-03", result.maxDistanceDateByYear["2025"])
+        assertEquals(32.5f, result.averageDistanceByActiveDayByYear["2025"]!!, 0.001f)
+        assertEquals(35.0f, result.maxDistanceByActiveDayByYear["2025"])
+        assertEquals("2025-01-01", result.maxDistanceByActiveDayDateByYear["2025"])
         assertEquals(1000, result.totalElevationByYear["2025"])
-        val expectedEfficiency = (1000.0f / 60.0f) * 10.0f
+        assertEquals("2025-01-03", result.maxElevationDateByYear["2025"])
+        assertEquals(500, result.averageElevationByActiveDayByYear["2025"])
+        assertEquals(600, result.maxElevationByActiveDayByYear["2025"])
+        assertEquals("2025-01-03", result.maxElevationByActiveDayDateByYear["2025"])
+        assertEquals(183, result.maxHeartRateByYear["2025"])
+        assertEquals("2025-01-03", result.maxHeartRateDateByYear["2025"])
+        val expectedEfficiency = (1000.0f / 65.0f) * 10.0f
         assertEquals(expectedEfficiency, result.elevationEfficiencyByYear["2025"]!!, 0.001f)
     }
 
@@ -351,8 +368,10 @@ class DashboardServiceTest {
         // THEN
         assertEquals(322, result.averageWattsByYear["2025"])
         assertEquals(426, result.maxWattsByYear["2025"])
+        assertEquals("2025-01-01", result.maxWattsDateByYear["2025"])
         assertEquals(270, result.deviceAverageWattsByYear["2025"])
         assertEquals(300, result.deviceMaxWattsByYear["2025"])
+        assertEquals("2025-01-03", result.deviceMaxWattsDateByYear["2025"])
     }
 
     @Test
@@ -506,18 +525,22 @@ class DashboardServiceTest {
         elevationGainMeters: Double,
         movingTimeSeconds: Int,
         elapsedTimeSeconds: Int,
+        averageHeartrate: Double = 0.0,
+        maxHeartrate: Int = 0,
         averageWatts: Int = 0,
         deviceWatts: Boolean = false,
     ): StravaActivity {
         return StravaActivity(
             athlete = AthleteRef(1),
             averageSpeed = if (movingTimeSeconds > 0) distanceMeters / movingTimeSeconds else 0.0,
+            averageHeartrate = averageHeartrate,
             averageWatts = averageWatts,
             commute = false,
             distance = distanceMeters,
             deviceWatts = deviceWatts,
             elapsedTime = elapsedTimeSeconds,
             id = id,
+            maxHeartrate = maxHeartrate,
             maxSpeed = 0.0f,
             movingTime = movingTimeSeconds,
             name = "Activity $id",

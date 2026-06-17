@@ -6,18 +6,30 @@ export class DashboardData {
     totalDistanceByYear: Record<string, number>;
     averageDistanceByYear: Record<string, number>;
     maxDistanceByYear: Record<string, number>;
+    maxDistanceDateByYear: Record<string, string>;
+    averageDistanceByActiveDayByYear: Record<string, number>;
+    maxDistanceByActiveDayByYear: Record<string, number>;
+    maxDistanceByActiveDayDateByYear: Record<string, string>;
     totalElevationByYear: Record<string, number>;
     averageElevationByYear: Record<string, number>;
     maxElevationByYear: Record<string, number>;
+    maxElevationDateByYear: Record<string, string>;
+    averageElevationByActiveDayByYear: Record<string, number>;
+    maxElevationByActiveDayByYear: Record<string, number>;
+    maxElevationByActiveDayDateByYear: Record<string, string>;
     elevationEfficiencyByYear: Record<string, number>;
     averageSpeedByYear: Record<string, number>;
     maxSpeedByYear: Record<string, number>;
+    maxSpeedDateByYear: Record<string, string>;
     averageHeartRateByYear: Record<string, number>;
     maxHeartRateByYear: Record<string, number>;
+    maxHeartRateDateByYear: Record<string, string>;
     averageWattsByYear: Record<string, number>;
     maxWattsByYear: Record<string, number>;
+    maxWattsDateByYear: Record<string, string>;
     deviceAverageWattsByYear: Record<string, number>;
     deviceMaxWattsByYear: Record<string, number>;
+    deviceMaxWattsDateByYear: Record<string, string>;
     averageCadenceByYear: Array<Array<number>>;
 
     constructor(
@@ -28,18 +40,30 @@ export class DashboardData {
         totalDistanceByYear: Record<string, number>,
         averageDistanceByYear: Record<string, number>,
         maxDistanceByYear: Record<string, number>,
+        maxDistanceDateByYear: Record<string, string>,
+        averageDistanceByActiveDayByYear: Record<string, number>,
+        maxDistanceByActiveDayByYear: Record<string, number>,
+        maxDistanceByActiveDayDateByYear: Record<string, string>,
         totalElevationByYear: Record<string, number>,
         averageElevationByYear: Record<string, number>,
         maxElevationByYear: Record<string, number>,
+        maxElevationDateByYear: Record<string, string>,
+        averageElevationByActiveDayByYear: Record<string, number>,
+        maxElevationByActiveDayByYear: Record<string, number>,
+        maxElevationByActiveDayDateByYear: Record<string, string>,
         elevationEfficiencyByYear: Record<string, number>,
         averageSpeedByYear: Record<string, number>,
         maxSpeedByYear: Record<string, number>,
+        maxSpeedDateByYear: Record<string, string>,
         averageHeartRateByYear: Record<string, number>,
         maxHeartRateByYear: Record<string, number>,
+        maxHeartRateDateByYear: Record<string, string>,
         averageWattsByYear: Record<string, number>,
         maxWattsByYear: Record<string, number>,
+        maxWattsDateByYear: Record<string, string>,
         deviceAverageWattsByYear: Record<string, number>,
         deviceMaxWattsByYear: Record<string, number>,
+        deviceMaxWattsDateByYear: Record<string, string>,
         averageCadenceByYear: Array<Array<number>>
     ) {
         this.nbActivitiesByYear = nbActivitiesByYear;
@@ -49,18 +73,30 @@ export class DashboardData {
         this.totalDistanceByYear = totalDistanceByYear;
         this.averageDistanceByYear = averageDistanceByYear;
         this.maxDistanceByYear = maxDistanceByYear;
+        this.maxDistanceDateByYear = maxDistanceDateByYear;
+        this.averageDistanceByActiveDayByYear = averageDistanceByActiveDayByYear;
+        this.maxDistanceByActiveDayByYear = maxDistanceByActiveDayByYear;
+        this.maxDistanceByActiveDayDateByYear = maxDistanceByActiveDayDateByYear;
         this.totalElevationByYear = totalElevationByYear;
         this.averageElevationByYear = averageElevationByYear;
         this.maxElevationByYear = maxElevationByYear;
+        this.maxElevationDateByYear = maxElevationDateByYear;
+        this.averageElevationByActiveDayByYear = averageElevationByActiveDayByYear;
+        this.maxElevationByActiveDayByYear = maxElevationByActiveDayByYear;
+        this.maxElevationByActiveDayDateByYear = maxElevationByActiveDayDateByYear;
         this.elevationEfficiencyByYear = elevationEfficiencyByYear;
         this.averageSpeedByYear = averageSpeedByYear;
         this.maxSpeedByYear = maxSpeedByYear;
+        this.maxSpeedDateByYear = maxSpeedDateByYear;
         this.averageHeartRateByYear = averageHeartRateByYear;
         this.maxHeartRateByYear = maxHeartRateByYear;
+        this.maxHeartRateDateByYear = maxHeartRateDateByYear;
         this.averageWattsByYear = averageWattsByYear;
         this.maxWattsByYear = maxWattsByYear;
+        this.maxWattsDateByYear = maxWattsDateByYear;
         this.deviceAverageWattsByYear = deviceAverageWattsByYear;
         this.deviceMaxWattsByYear = deviceMaxWattsByYear;
+        this.deviceMaxWattsDateByYear = deviceMaxWattsDateByYear;
         this.averageCadenceByYear = averageCadenceByYear;
     }
 }

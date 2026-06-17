@@ -139,6 +139,48 @@ func TestCountActiveDays_CountsUniqueCalendarDatesOnly(t *testing.T) {
 	}
 }
 
+func TestActiveDayDistanceStats_AggregateMultipleActivitiesOnSameDay(t *testing.T) {
+	// GIVEN
+	activities := []*strava.Activity{
+		{StartDateLocal: "2025-01-01T08:00:00Z", Distance: 20000, TotalElevationGain: 300},
+		{StartDateLocal: "2025-01-01T18:00:00Z", Distance: 15000, TotalElevationGain: 100},
+		{StartDateLocal: "2025-01-03T07:30:00Z", Distance: 30000, TotalElevationGain: 600},
+	}
+
+	// WHEN
+	distanceByDay := distanceTotalsByActiveDay(activities)
+	elevationByDay := elevationTotalsByActiveDay(activities)
+
+	// THEN
+	if math.Abs(maxDistance(activities)-30.0) > 0.0001 {
+		t.Fatalf("expected max activity distance 30km, got %.1f", maxDistance(activities))
+	}
+	if math.Abs(maxFloatValue(distanceByDay)-35.0) > 0.0001 {
+		t.Fatalf("expected max active-day distance 35km, got %.1f", maxFloatValue(distanceByDay))
+	}
+	if maxDistanceDate(activities) != "2025-01-03" {
+		t.Fatalf("expected max activity distance date 2025-01-03, got %q", maxDistanceDate(activities))
+	}
+	if maxFloatValueKey(distanceByDay) != "2025-01-01" {
+		t.Fatalf("expected max active-day distance date 2025-01-01, got %q", maxFloatValueKey(distanceByDay))
+	}
+	if math.Abs(averageFloatValues(distanceByDay)-32.5) > 0.0001 {
+		t.Fatalf("expected average active-day distance 32.5km, got %.1f", averageFloatValues(distanceByDay))
+	}
+	if maxIntValue(elevationByDay) != 600 {
+		t.Fatalf("expected max active-day elevation 600m, got %d", maxIntValue(elevationByDay))
+	}
+	if maxElevationDate(activities) != "2025-01-03" {
+		t.Fatalf("expected max activity elevation date 2025-01-03, got %q", maxElevationDate(activities))
+	}
+	if maxIntValueKey(elevationByDay) != "2025-01-03" {
+		t.Fatalf("expected max active-day elevation date 2025-01-03, got %q", maxIntValueKey(elevationByDay))
+	}
+	if averageIntValues(elevationByDay) != 500 {
+		t.Fatalf("expected average active-day elevation 500m, got %d", averageIntValues(elevationByDay))
+	}
+}
+
 func TestSumMovingTime_FallsBackToElapsedTimeWhenMovingTimeIsZero(t *testing.T) {
 	// GIVEN
 	activities := []*strava.Activity{
@@ -160,9 +202,9 @@ func TestSumMovingTime_FallsBackToElapsedTimeWhenMovingTimeIsZero(t *testing.T) 
 func TestDeviceWattsIgnoresStravaEstimatedPower(t *testing.T) {
 	// GIVEN
 	activities := []*strava.Activity{
-		{AverageWatts: 426.4, DeviceWatts: false},
-		{AverageWatts: 240.0, DeviceWatts: true},
-		{AverageWatts: 300.0, DeviceWatts: true},
+		{StartDateLocal: "2025-01-01T08:00:00Z", AverageWatts: 426.4, DeviceWatts: false},
+		{StartDateLocal: "2025-01-02T08:00:00Z", AverageWatts: 240.0, DeviceWatts: true},
+		{StartDateLocal: "2025-01-03T08:00:00Z", AverageWatts: 300.0, DeviceWatts: true},
 	}
 
 	// WHEN
@@ -175,6 +217,29 @@ func TestDeviceWattsIgnoresStravaEstimatedPower(t *testing.T) {
 	}
 	if math.Abs(maximum-300.0) > 0.0001 {
 		t.Fatalf("expected device max watts 300, got %.1f", maximum)
+	}
+	if maxWattsDate(activities) != "2025-01-01" {
+		t.Fatalf("expected all-power max watts date 2025-01-01, got %q", maxWattsDate(activities))
+	}
+	if maxDeviceWattsDate(activities) != "2025-01-03" {
+		t.Fatalf("expected device max watts date 2025-01-03, got %q", maxDeviceWattsDate(activities))
+	}
+}
+
+func TestMaxHeartRateDate_ReturnsActivityDate(t *testing.T) {
+	// GIVEN
+	activities := []*strava.Activity{
+		{StartDateLocal: "2025-01-01T08:00:00Z", MaxHeartrate: 171},
+		{StartDateLocal: "2025-01-02T08:00:00Z", MaxHeartrate: 183},
+		{StartDateLocal: "2025-01-03T08:00:00Z", MaxHeartrate: 178},
+	}
+
+	// WHEN
+	date := maxHeartRateDate(activities)
+
+	// THEN
+	if date != "2025-01-02" {
+		t.Fatalf("expected max heart rate date 2025-01-02, got %q", date)
 	}
 }
 

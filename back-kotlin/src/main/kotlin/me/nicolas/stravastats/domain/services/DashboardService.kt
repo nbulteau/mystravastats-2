@@ -12,12 +12,13 @@ import me.nicolas.stravastats.domain.business.EddingtonBasis
 import me.nicolas.stravastats.domain.business.EddingtonMetric
 import me.nicolas.stravastats.domain.business.EddingtonNumber
 import me.nicolas.stravastats.domain.business.EddingtonScope
+import me.nicolas.stravastats.domain.business.ActivityEffort
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.services.ActivityHelper.groupActivitiesByDay
 import me.nicolas.stravastats.domain.services.activityproviders.ActivityProviderCacheIdentity
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import me.nicolas.stravastats.domain.services.activityproviders.StravaActivityProvider
-import me.nicolas.stravastats.domain.services.statistics.BestEffortDistanceStatistic
+import me.nicolas.stravastats.domain.services.statistics.calculateBestTimeForDistance
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import tools.jackson.databind.DeserializationFeature
@@ -284,6 +285,25 @@ class DashboardService(
             .mapValues { (_, stats) -> stats.maxDistanceKm.toFloat() }
             .filter { it.value > 0 }
 
+        val maxDistanceDateByYear = activitiesByYear
+            .mapValues { (_, activities) -> maxDistanceDate(activities) }
+            .filter { it.value.isNotBlank() }
+
+        val distanceByActiveDayByYear = activitiesByYear
+            .mapValues { (_, activities) -> distanceTotalsByActiveDay(activities) }
+
+        val averageDistanceByActiveDayByYear = distanceByActiveDayByYear
+            .mapValues { (_, dayTotals) -> averageDoubleValues(dayTotals).toFloat() }
+            .filter { it.value > 0 }
+
+        val maxDistanceByActiveDayByYear = distanceByActiveDayByYear
+            .mapValues { (_, dayTotals) -> maxDoubleValue(dayTotals).toFloat() }
+            .filter { it.value > 0 }
+
+        val maxDistanceByActiveDayDateByYear = distanceByActiveDayByYear
+            .mapValues { (_, dayTotals) -> maxDoubleValueKey(dayTotals) }
+            .filter { it.value.isNotBlank() }
+
         val totalElevationByYear = yearlyAccumulators
             .mapValues { (_, stats) -> stats.totalElevation.toInt() }
             .filter { it.value > 0 }
@@ -297,6 +317,25 @@ class DashboardService(
         val maxElevationByYear = yearlyAccumulators
             .mapValues { (_, stats) -> stats.maxElevation }
             .filter { entry -> entry.value > 0 }
+
+        val maxElevationDateByYear = activitiesByYear
+            .mapValues { (_, activities) -> maxElevationDate(activities) }
+            .filter { it.value.isNotBlank() }
+
+        val elevationByActiveDayByYear = activitiesByYear
+            .mapValues { (_, activities) -> elevationTotalsByActiveDay(activities) }
+
+        val averageElevationByActiveDayByYear = elevationByActiveDayByYear
+            .mapValues { (_, dayTotals) -> averageIntValues(dayTotals) }
+            .filter { it.value > 0 }
+
+        val maxElevationByActiveDayByYear = elevationByActiveDayByYear
+            .mapValues { (_, dayTotals) -> maxIntValue(dayTotals) }
+            .filter { it.value > 0 }
+
+        val maxElevationByActiveDayDateByYear = elevationByActiveDayByYear
+            .mapValues { (_, dayTotals) -> maxIntValueKey(dayTotals) }
+            .filter { it.value.isNotBlank() }
 
         val elevationEfficiencyByYear = totalDistanceByYear
             .mapNotNull { (year, distanceKm) ->
@@ -315,11 +354,16 @@ class DashboardService(
             }
             .filter { entry -> entry.value > 0 }
 
-        val maxSpeedByYear = activitiesByYear
-            .mapValues { (_, activities) ->
-                (BestEffortDistanceStatistic("", activities, 200.0).getSpeed())!!.toFloat()
-            }
+        val bestSpeedEffortByYear = activitiesByYear
+            .mapValues { (_, activities) -> bestSpeedEffort(activities) }
+
+        val maxSpeedByYear = bestSpeedEffortByYear
+            .mapValues { (_, activityEffort) -> activityEffort?.second?.getMSSpeed()?.toFloat() ?: 0F }
             .filter { entry -> entry.value > 0.0 }
+
+        val maxSpeedDateByYear = bestSpeedEffortByYear
+            .mapValues { (_, activityEffort) -> activityEffort?.first?.activityDate() ?: "" }
+            .filter { it.value.isNotBlank() }
 
         val averageHeartRateByYear = yearlyAccumulators
             .mapValues { (_, stats) ->
@@ -331,6 +375,10 @@ class DashboardService(
             .mapValues { (_, stats) -> stats.maxHeartRate }
             .filter { it.value > 0 }
 
+        val maxHeartRateDateByYear = activitiesByYear
+            .mapValues { (_, activities) -> maxHeartRateDate(activities) }
+            .filter { it.value.isNotBlank() }
+
         val averageWattsByYear = yearlyAccumulators
             .mapValues { (_, stats) ->
                 if (stats.averageWattsCount == 0) 0 else stats.averageWattsSum / stats.averageWattsCount
@@ -340,6 +388,10 @@ class DashboardService(
         val maxWattsByYear = yearlyAccumulators
             .mapValues { (_, stats) -> stats.maxWatts }
             .filter { it.value > 0 }
+
+        val maxWattsDateByYear = activitiesByYear
+            .mapValues { (_, activities) -> maxWattsDate(activities, deviceOnly = false) }
+            .filter { it.value.isNotBlank() }
 
         val deviceAverageWattsByYear = yearlyAccumulators
             .mapValues { (_, stats) ->
@@ -351,6 +403,10 @@ class DashboardService(
             .mapValues { (_, stats) -> stats.deviceMaxWatts }
             .filter { it.value > 0 }
 
+        val deviceMaxWattsDateByYear = activitiesByYear
+            .mapValues { (_, activities) -> maxWattsDate(activities, deviceOnly = true) }
+            .filter { it.value.isNotBlank() }
+
         return DashboardData(
             nbActivitiesByYear,
             activeDaysByYear,
@@ -359,18 +415,30 @@ class DashboardService(
             totalDistanceByYear,
             averageDistanceByYear,
             maxDistanceByYear,
+            maxDistanceDateByYear,
+            averageDistanceByActiveDayByYear,
+            maxDistanceByActiveDayByYear,
+            maxDistanceByActiveDayDateByYear,
             totalElevationByYear,
             averageElevationByYear,
             maxElevationByYear,
+            maxElevationDateByYear,
+            averageElevationByActiveDayByYear,
+            maxElevationByActiveDayByYear,
+            maxElevationByActiveDayDateByYear,
             elevationEfficiencyByYear,
             averageSpeedByYear,
             maxSpeedByYear,
+            maxSpeedDateByYear,
             averageHeartRateByYear,
             maxHeartRateByYear,
+            maxHeartRateDateByYear,
             averageWattsByYear,
             maxWattsByYear,
+            maxWattsDateByYear,
             deviceAverageWattsByYear,
-            deviceMaxWattsByYear
+            deviceMaxWattsByYear,
+            deviceMaxWattsDateByYear,
         )
     }
 
@@ -502,6 +570,86 @@ class DashboardService(
         return activities.mapNotNull { activity ->
             activity.startDateLocal.takeIf { it.length >= 10 }?.substring(0, 10)
         }.toSet().size
+    }
+
+    private fun distanceTotalsByActiveDay(activities: List<StravaActivity>): Map<String, Double> {
+        return activities
+            .filter { activity -> activity.startDateLocal.length >= 10 }
+            .groupBy { activity -> activity.startDateLocal.substring(0, 10) }
+            .mapValues { (_, dayActivities) -> dayActivities.sumOf { activity -> activity.distance / 1000.0 } }
+    }
+
+    private fun elevationTotalsByActiveDay(activities: List<StravaActivity>): Map<String, Int> {
+        return activities
+            .filter { activity -> activity.startDateLocal.length >= 10 }
+            .groupBy { activity -> activity.startDateLocal.substring(0, 10) }
+            .mapValues { (_, dayActivities) -> dayActivities.sumOf { activity -> activity.totalElevationGain.toInt() } }
+    }
+
+    private fun maxDistanceDate(activities: List<StravaActivity>): String {
+        return activities.maxByOrNull { activity -> activity.distance }?.activityDate() ?: ""
+    }
+
+    private fun maxElevationDate(activities: List<StravaActivity>): String {
+        return activities.maxByOrNull { activity -> activity.totalElevationGain }?.activityDate() ?: ""
+    }
+
+    private fun maxHeartRateDate(activities: List<StravaActivity>): String {
+        return activities
+            .filter { activity -> activity.maxHeartrate > 0 }
+            .sortedBy { activity -> activity.activityDate() }
+            .maxByOrNull { activity -> activity.maxHeartrate }
+            ?.activityDate() ?: ""
+    }
+
+    private fun maxWattsDate(activities: List<StravaActivity>, deviceOnly: Boolean): String {
+        return activities
+            .filter { activity -> (!deviceOnly || activity.deviceWatts) && activity.averageWatts > 0 }
+            .sortedBy { activity -> activity.activityDate() }
+            .maxByOrNull { activity -> activity.averageWatts }
+            ?.activityDate() ?: ""
+    }
+
+    private fun averageDoubleValues(values: Map<String, Double>): Double {
+        return if (values.isEmpty()) 0.0 else values.values.sum() / values.size
+    }
+
+    private fun maxDoubleValue(values: Map<String, Double>): Double {
+        return values.values.maxOrNull() ?: 0.0
+    }
+
+    private fun maxDoubleValueKey(values: Map<String, Double>): String {
+        return values.entries
+            .sortedBy { entry -> entry.key }
+            .maxByOrNull { entry -> entry.value }
+            ?.key ?: ""
+    }
+
+    private fun averageIntValues(values: Map<String, Int>): Int {
+        return if (values.isEmpty()) 0 else values.values.sum() / values.size
+    }
+
+    private fun maxIntValue(values: Map<String, Int>): Int {
+        return values.values.maxOrNull() ?: 0
+    }
+
+    private fun maxIntValueKey(values: Map<String, Int>): String {
+        return values.entries
+            .sortedBy { entry -> entry.key }
+            .maxByOrNull { entry -> entry.value }
+            ?.key ?: ""
+    }
+
+    private fun bestSpeedEffort(activities: List<StravaActivity>): Pair<StravaActivity, ActivityEffort>? {
+        return activities
+            .mapNotNull { activity ->
+                activity.calculateBestTimeForDistance(200.0)?.let { effort -> activity to effort }
+            }
+            .minByOrNull { (_, effort) -> effort.seconds }
+    }
+
+    private fun StravaActivity.activityDate(): String {
+        return startDateLocal.takeIf { it.length >= 10 }?.substring(0, 10) ?: ""
     }
 
     private fun sumMovingTimeSeconds(activities: List<StravaActivity>): Int {

@@ -808,7 +808,13 @@ func TestGetDashboard_Returns200(t *testing.T) {
 	setTestContainer(t, &container{
 		getDashboardDataUseCase: dashboardApp.NewGetDashboardDataUseCase(&contractDashboardReaderStub{
 			dashboardData: business.DashboardData{
-				NbActivities: map[string]int{"2025": 42},
+				NbActivities:                     map[string]int{"2025": 42},
+				AverageDistanceByActiveDayByYear: map[string]float64{"2025": 32.5},
+				MaxDistanceByActiveDayByYear:     map[string]float64{"2025": 35.0},
+				MaxDistanceByActiveDayDateByYear: map[string]string{"2025": "2025-01-01"},
+				MaxHeartRateDateByYear:           map[string]string{"2025": "2025-01-02"},
+				MaxWattsDateByYear:               map[string]string{"2025": "2025-01-03"},
+				DeviceMaxWattsDateByYear:         map[string]string{"2025": "2025-01-04"},
 			},
 		}),
 	})
@@ -828,6 +834,24 @@ func TestGetDashboard_Returns200(t *testing.T) {
 	}
 	if _, exists := response["nbActivitiesByYear"]; !exists {
 		t.Fatalf("expected nbActivitiesByYear in response, got %+v", response)
+	}
+	if _, exists := response["averageDistanceByActiveDayByYear"]; !exists {
+		t.Fatalf("expected averageDistanceByActiveDayByYear in response, got %+v", response)
+	}
+	if _, exists := response["maxDistanceByActiveDayByYear"]; !exists {
+		t.Fatalf("expected maxDistanceByActiveDayByYear in response, got %+v", response)
+	}
+	if _, exists := response["maxDistanceByActiveDayDateByYear"]; !exists {
+		t.Fatalf("expected maxDistanceByActiveDayDateByYear in response, got %+v", response)
+	}
+	if _, exists := response["maxHeartRateDateByYear"]; !exists {
+		t.Fatalf("expected maxHeartRateDateByYear in response, got %+v", response)
+	}
+	if _, exists := response["maxWattsDateByYear"]; !exists {
+		t.Fatalf("expected maxWattsDateByYear in response, got %+v", response)
+	}
+	if _, exists := response["deviceMaxWattsDateByYear"]; !exists {
+		t.Fatalf("expected deviceMaxWattsDateByYear in response, got %+v", response)
 	}
 }
 

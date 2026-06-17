@@ -57,7 +57,7 @@ export const useDashboardStore = defineStore("dashboard", {
     cumulativeDistancePerYear: new Map<string, Map<string, number>>(),
     cumulativeElevationPerYear: new Map<string, Map<string, number>>(),
     eddingtonNumber: new EddingtonNumber(),
-    dashboardData: new DashboardData({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, []),
+    dashboardData: new DashboardData({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, []),
     annualGoals: emptyAnnualGoals(),
     activityHeatmap: {} as ActivityHeatmap,
     dashboardByKey: {} as Record<string, DashboardCacheEntry>,

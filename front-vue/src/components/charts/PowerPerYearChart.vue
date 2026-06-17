@@ -4,7 +4,11 @@ import {Chart} from "highcharts-vue";
 import type {SeriesLineOptions, SeriesOptionsType} from "highcharts";
 
 type PowerSourceMode = "device" | "all";
-type PowerPoint = { y: number; marker?: { enabled: boolean; radius: number; fillColor: string } };
+type PowerPoint = {
+  y: number;
+  custom?: { day: string };
+  marker?: { enabled: boolean; radius: number; fillColor: string };
+};
 
 function formatWatts(value: unknown): string {
   return typeof value === "number" && Number.isFinite(value)
@@ -12,12 +16,19 @@ function formatWatts(value: unknown): string {
     : "";
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   averageWattsByYear: Record<string, number>;
   maxWattsByYear: Record<string, number>;
+  maxWattsDateByYear?: Record<string, string>;
   deviceAverageWattsByYear?: Record<string, number>;
   deviceMaxWattsByYear?: Record<string, number>;
-}>();
+  deviceMaxWattsDateByYear?: Record<string, string>;
+}>(), {
+  maxWattsDateByYear: () => ({}),
+  deviceAverageWattsByYear: () => ({}),
+  deviceMaxWattsByYear: () => ({}),
+  deviceMaxWattsDateByYear: () => ({}),
+});
 
 const selectedPowerSource = ref<PowerSourceMode>("device");
 const hasDevicePowerData = computed(() =>
@@ -60,10 +71,10 @@ const chartOptions = reactive({
       return this.points.reduce(function (
               s: any,
               point: {
-                color: any; series: { name: string }; y: number
+                color: any; options?: { custom?: { day?: string } }; series: { name: string }; y: number
               }
           ) {
-            return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${formatWatts(point.y)}`;
+            return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${formatWatts(point.y)}${formatTooltipDay(point.options?.custom?.day)}`;
           },
           "<b>" + this.key + "</b>");
     },
@@ -110,16 +121,19 @@ const chartOptions = reactive({
 function selectedPowerData(): {
   average: Record<string, number>;
   maximum: Record<string, number>;
+  maximumDate: Record<string, string>;
 } {
   if (effectivePowerSource.value === "device") {
     return {
       average: props.deviceAverageWattsByYear ?? {},
       maximum: props.deviceMaxWattsByYear ?? {},
+      maximumDate: props.deviceMaxWattsDateByYear ?? {},
     };
   }
   return {
     average: props.averageWattsByYear,
     maximum: props.maxWattsByYear,
+    maximumDate: props.maxWattsDateByYear,
   };
 }
 
@@ -139,20 +153,27 @@ function valuesForYears(source: Record<string, number>, years: string[]): number
   return years.map((year) => source[year]);
 }
 
-function highlightedSeries(values: number[]): PowerPoint[] {
+function highlightedSeries(
+  values: number[],
+  years: string[] = [],
+  dateByYear: Record<string, string> = {},
+): PowerPoint[] {
   if (values.length === 0) {
     return [];
   }
   const maximum = Math.max(...values);
   const maximumIndex = values.indexOf(maximum);
   return values.map((value, index) => {
+    const year = years[index] ?? "";
+    const day = dateByYear[year];
+    const point: PowerPoint = day ? { y: value, custom: { day } } : { y: value };
     if (index === maximumIndex) {
       return {
-        y: value,
+        ...point,
         marker: { enabled: true, radius: 6, fillColor: "red" },
       };
     }
-    return { y: value };
+    return point;
   });
 }
 
@@ -176,10 +197,18 @@ function updateChartData() {
       effectivePowerSource.value === "device" ? "Maximum watts (meter)" : "Maximum watts";
 
     (chartOptions.series[0] as SeriesLineOptions).data = highlightedSeries(averageWattsByYear);
-    (chartOptions.series[1] as SeriesLineOptions).data = highlightedSeries(maxWattsByYear);
+    (chartOptions.series[1] as SeriesLineOptions).data = highlightedSeries(
+      maxWattsByYear,
+      years,
+      powerData.maximumDate,
+    );
 
     (chartOptions.series[2] as SeriesLineOptions).data = calculateTrendLine(averageWattsByYear);
   }
+}
+
+function formatTooltipDay(day: string | undefined): string {
+  return day ? ` - Day: ${day}` : "";
 }
 
 function calculateTrendLine(data: number[]): number[] {
@@ -203,8 +232,10 @@ watch(
     () => [
       props.averageWattsByYear,
       props.maxWattsByYear,
+      props.maxWattsDateByYear,
       props.deviceAverageWattsByYear,
       props.deviceMaxWattsByYear,
+      props.deviceMaxWattsDateByYear,
       effectivePowerSource.value,
     ],
     updateChartData,

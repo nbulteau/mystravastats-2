@@ -54,6 +54,7 @@ const consistencyByYear = computed(() => dashboardStore.dashboardData.consistenc
 const movingTimeByYear = computed(() => dashboardStore.dashboardData.movingTimeByYear);
 const averageSpeedByYear = computed(() => dashboardStore.dashboardData.averageSpeedByYear);
 const maxSpeedByYear = computed(() => dashboardStore.dashboardData.maxSpeedByYear);
+const maxSpeedDateByYear = computed(() => dashboardStore.dashboardData.maxSpeedDateByYear);
 const totalDistanceByYear = computed(
   () => dashboardStore.dashboardData.totalDistanceByYear
 );
@@ -61,6 +62,18 @@ const averageDistanceByYear = computed(
   () => dashboardStore.dashboardData.averageDistanceByYear
 );
 const maxDistanceByYear = computed(() => dashboardStore.dashboardData.maxDistanceByYear);
+const maxDistanceDateByYear = computed(
+  () => dashboardStore.dashboardData.maxDistanceDateByYear
+);
+const averageDistanceByActiveDayByYear = computed(
+  () => dashboardStore.dashboardData.averageDistanceByActiveDayByYear
+);
+const maxDistanceByActiveDayByYear = computed(
+  () => dashboardStore.dashboardData.maxDistanceByActiveDayByYear
+);
+const maxDistanceByActiveDayDateByYear = computed(
+  () => dashboardStore.dashboardData.maxDistanceByActiveDayDateByYear
+);
 const totalElevationByYear = computed(
   () => dashboardStore.dashboardData.totalElevationByYear
 );
@@ -68,19 +81,40 @@ const averageElevationByYear = computed(
   () => dashboardStore.dashboardData.averageElevationByYear
 );
 const maxElevationByYear = computed(() => dashboardStore.dashboardData.maxElevationByYear);
+const maxElevationDateByYear = computed(
+  () => dashboardStore.dashboardData.maxElevationDateByYear
+);
+const averageElevationByActiveDayByYear = computed(
+  () => dashboardStore.dashboardData.averageElevationByActiveDayByYear
+);
+const maxElevationByActiveDayByYear = computed(
+  () => dashboardStore.dashboardData.maxElevationByActiveDayByYear
+);
+const maxElevationByActiveDayDateByYear = computed(
+  () => dashboardStore.dashboardData.maxElevationByActiveDayDateByYear
+);
 const averageHeartRateByYear = computed(
   () => dashboardStore.dashboardData.averageHeartRateByYear
 );
 const maxHeartRateByYear = computed(() => dashboardStore.dashboardData.maxHeartRateByYear);
+const maxHeartRateDateByYear = computed(
+  () => dashboardStore.dashboardData.maxHeartRateDateByYear
+);
 const averageWattsByYear = computed(() => dashboardStore.dashboardData.averageWattsByYear);
 const maxWattsByYear = computed(() =>
   sortDataByYear(dashboardStore.dashboardData.maxWattsByYear)
+);
+const maxWattsDateByYear = computed(
+  () => dashboardStore.dashboardData.maxWattsDateByYear
 );
 const deviceAverageWattsByYear = computed(() =>
   sortDataByYear(dashboardStore.dashboardData.deviceAverageWattsByYear ?? {})
 );
 const deviceMaxWattsByYear = computed(() =>
   sortDataByYear(dashboardStore.dashboardData.deviceMaxWattsByYear ?? {})
+);
+const deviceMaxWattsDateByYear = computed(
+  () => dashboardStore.dashboardData.deviceMaxWattsDateByYear
 );
 const eddingtonScopeOptions: Array<{ value: EddingtonScope; label: string }> = [
   { value: "lifetime", label: "Lifetime" },
@@ -291,9 +325,17 @@ async function setEddingtonBasis(basis: EddingtonBasis) {
       </div>
       <DistanceElevationDetailsPerYearChart
         :average-distance-by-year="averageDistanceByYear"
+        :average-distance-by-active-day-by-year="averageDistanceByActiveDayByYear"
         :average-elevation-by-year="averageElevationByYear"
+        :average-elevation-by-active-day-by-year="averageElevationByActiveDayByYear"
         :max-distance-by-year="maxDistanceByYear"
+        :max-distance-date-by-year="maxDistanceDateByYear"
+        :max-distance-by-active-day-by-year="maxDistanceByActiveDayByYear"
+        :max-distance-by-active-day-date-by-year="maxDistanceByActiveDayDateByYear"
         :max-elevation-by-year="maxElevationByYear"
+        :max-elevation-date-by-year="maxElevationDateByYear"
+        :max-elevation-by-active-day-by-year="maxElevationByActiveDayByYear"
+        :max-elevation-by-active-day-date-by-year="maxElevationByActiveDayDateByYear"
       />
     </section>
     <section class="chart-panel">
@@ -315,6 +357,7 @@ async function setEddingtonBasis(basis: EddingtonBasis) {
       <HeartRatePerYearChart
         :average-heart-rate-by-year="averageHeartRateByYear"
         :max-heart-rate-by-year="maxHeartRateByYear"
+        :max-heart-rate-date-by-year="maxHeartRateDateByYear"
       />
     </section>
     <section class="chart-panel">
@@ -328,6 +371,7 @@ async function setEddingtonBasis(basis: EddingtonBasis) {
         :activity-type="currentActivityType"
         :average-speed-by-year="averageSpeedByYear"
         :max-speed-by-year="maxSpeedByYear"
+        :max-speed-date-by-year="maxSpeedDateByYear"
       />
     </section>
     <section class="chart-panel">
@@ -340,8 +384,10 @@ async function setEddingtonBasis(basis: EddingtonBasis) {
       <PowerPerYearChart
         :average-watts-by-year="averageWattsByYear"
         :max-watts-by-year="maxWattsByYear"
+        :max-watts-date-by-year="maxWattsDateByYear"
         :device-average-watts-by-year="deviceAverageWattsByYear"
         :device-max-watts-by-year="deviceMaxWattsByYear"
+        :device-max-watts-date-by-year="deviceMaxWattsDateByYear"
       />
     </section>
   </div>

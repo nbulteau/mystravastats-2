@@ -3,10 +3,19 @@ import {reactive, watch} from "vue";
 import {Chart} from "highcharts-vue";
 import type {SeriesColumnOptions, SeriesLineOptions, SeriesOptionsType} from "highcharts";
 
-const props = defineProps<{
+type HeartRatePoint = {
+  y: number;
+  custom?: { day: string };
+  marker?: { enabled: boolean; radius: number; fillColor: string };
+};
+
+const props = withDefaults(defineProps<{
   averageHeartRateByYear: Record<string, number>;
   maxHeartRateByYear: Record<string, number>;
-}>();
+  maxHeartRateDateByYear?: Record<string, string>;
+}>(), {
+  maxHeartRateDateByYear: () => ({}),
+});
 
 const chartOptions = reactive({
   chart: {
@@ -40,10 +49,10 @@ const chartOptions = reactive({
       return this.points.reduce(function (
               s: any,
               point: {
-                color: any; series: { name: string }; y: string
+                color: any; options?: { custom?: { day?: string } }; series: { name: string }; y: string
               }
           ) {
-            return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${point.y} bpm`;
+            return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${point.y} bpm${formatTooltipDay(point.options?.custom?.day)}`;
           },
           "<b>" + this.key + "</b>");
     },
@@ -94,10 +103,13 @@ function updateChartData() {
   }
 
   if (chartOptions.series && chartOptions.series.length > 0) {
-    const averageHeartRateByYear = Object.values(props.averageHeartRateByYear);
-    const maxHeartRateByYear = Object.values(props.maxHeartRateByYear);
+    const years = Array.from(
+      new Set([...Object.keys(props.averageHeartRateByYear), ...Object.keys(props.maxHeartRateByYear)]),
+    ).sort((left, right) => Number.parseInt(left, 10) - Number.parseInt(right, 10));
+    const averageHeartRateByYear = valuesForYears(props.averageHeartRateByYear, years);
+    const maxHeartRateByYear = valuesForYears(props.maxHeartRateByYear, years);
 
-    chartOptions.xAxis.categories = Object.keys(props.averageHeartRateByYear);
+    chartOptions.xAxis.categories = years;
 
     const maxAverageHeartRate = Math.max(...averageHeartRateByYear);
     const maxAverageHeartRateIndex = averageHeartRateByYear.indexOf(maxAverageHeartRate);
@@ -119,15 +131,16 @@ function updateChartData() {
     });
 
     (chartOptions.series[1] as SeriesColumnOptions).data = maxHeartRateByYear.map((value, index) => {
+      const year = years[index] ?? "";
+      const day = props.maxHeartRateDateByYear?.[year];
+      const point: HeartRatePoint = day ? { y: value, custom: { day } } : { y: value };
       if (index === maxMaxHeartRateIndex) {
         return {
-          y: value,
+          ...point,
           marker: { enabled: true, radius: 6, fillColor: 'red' }
         };
       } else {
-        return {
-          y: value
-        };
+        return point;
       }
     });
 
@@ -135,8 +148,22 @@ function updateChartData() {
   }
 }
 
+function valuesForYears(source: Record<string, number>, years: string[]): number[] {
+  return years.map((year) => source[year] ?? 0);
+}
+
+function formatTooltipDay(day: string | undefined): string {
+  return day ? ` - Day: ${day}` : "";
+}
+
 function calculateTrendLine(data: number[]): number[] {
   const n = data.length;
+  if (n === 0) {
+    return [];
+  }
+  if (n === 1) {
+    return [data[0]];
+  }
   const xSum = data.reduce((sum, _, index) => sum + index, 0);
   const ySum = data.reduce((sum, value) => sum + value, 0);
   const xySum = data.reduce((sum, value, index) => sum + index * value, 0);
@@ -150,7 +177,11 @@ function calculateTrendLine(data: number[]): number[] {
 
 
 watch(
-    () => props.averageHeartRateByYear || props.maxHeartRateByYear,
+    () => [
+      props.averageHeartRateByYear,
+      props.maxHeartRateByYear,
+      props.maxHeartRateDateByYear,
+    ],
     updateChartData,
     {immediate: true}
 );

@@ -9,11 +9,14 @@ import type {
 } from "highcharts";
 import { formatSpeedWithUnit } from "@/utils/formatters";
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   activityType: string;
   averageSpeedByYear: Record<string, number>;
   maxSpeedByYear: Record<string, number>;
-}>();
+  maxSpeedDateByYear?: Record<string, string>;
+}>(), {
+  maxSpeedDateByYear: () => ({}),
+});
 
 const unit = computed(() => ((props.activityType === "Run" || props.activityType === "TrailRun") ? "min/km" : "km/h"));
 
@@ -58,12 +61,13 @@ const chartOptions = reactive({
         s: any,
         point: {
           color: any;
+          options?: { custom?: { day?: string } };
           series: { name: string };
           y: string;
         }
       ) {
         const speed = formatSpeedWithUnit(parseFloat(point.y), props.activityType);
-        return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${speed}`;
+        return `${s}<br/><span style="color:${point.color}">\u25CF</span> ${point.series.name}: ${speed}${formatTooltipDay(point.options?.custom?.day)}`;
       }, "<b>" + this.key + "</b>");
     },
     shared: true,
@@ -153,10 +157,13 @@ function updateChartData() {
 
     (chartOptions.series[1] as SeriesColumnOptions).data = maxSpeedByYear.map(
       (value, index) => {
+        const year = years[index] ?? "";
+        const day = props.maxSpeedDateByYear?.[year];
+        const point = day ? { y: value, custom: { day } } : { y: value };
         if (index === maxMaxSpeedIndex) {
-          return { y: value, marker: { enabled: true, radius: 6, fillColor: "red" } };
+          return { ...point, marker: { enabled: true, radius: 6, fillColor: "red" } };
         }
-        return { y: value };
+        return point;
       }
     );
 
@@ -168,6 +175,10 @@ function updateChartData() {
   if (chartOptions.yAxis && (chartOptions.yAxis as YAxisOptions).title) {
     (chartOptions.yAxis as YAxisOptions).title!.text = `Speed ${unit.value}`;
   }
+}
+
+function formatTooltipDay(day: string | undefined): string {
+  return day ? ` - Day: ${day}` : "";
 }
 
 function calculateTrendLine(data: number[]): number[] {
@@ -197,7 +208,12 @@ function calculateTrendLine(data: number[]): number[] {
 }
 
 watch(
-  () => props.averageSpeedByYear || props.maxSpeedByYear || props.activityType,
+  [
+    () => props.averageSpeedByYear,
+    () => props.maxSpeedByYear,
+    () => props.maxSpeedDateByYear,
+    () => props.activityType,
+  ],
   updateChartData,
   { immediate: true }
 );

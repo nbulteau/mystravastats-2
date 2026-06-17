@@ -260,18 +260,30 @@ func computeDashboardData(activityTypes ...business.ActivityType) business.Dashb
 	totalDistanceByYear := make(map[string]float64)
 	averageDistanceByYear := make(map[string]float64)
 	maxDistanceByYear := make(map[string]float64)
+	maxDistanceDateByYear := make(map[string]string)
+	averageDistanceByActiveDayByYear := make(map[string]float64)
+	maxDistanceByActiveDayByYear := make(map[string]float64)
+	maxDistanceByActiveDayDateByYear := make(map[string]string)
 	totalElevationByYear := make(map[string]int)
 	averageElevationByYear := make(map[string]int)
 	maxElevationByYear := make(map[string]int)
+	maxElevationDateByYear := make(map[string]string)
+	averageElevationByActiveDayByYear := make(map[string]int)
+	maxElevationByActiveDayByYear := make(map[string]int)
+	maxElevationByActiveDayDateByYear := make(map[string]string)
 	elevationEfficiencyByYear := make(map[string]float64)
 	averageSpeedByYear := make(map[string]float64)
 	maxSpeedByYear := make(map[string]float64)
+	maxSpeedDateByYear := make(map[string]string)
 	averageHeartRateByYear := make(map[string]int)
 	maxHeartRateByYear := make(map[string]float64)
+	maxHeartRateDateByYear := make(map[string]string)
 	averageWattsByYear := make(map[string]float64)
 	maxWattsByYear := make(map[string]float64)
+	maxWattsDateByYear := make(map[string]string)
 	deviceAverageWattsByYear := make(map[string]float64)
 	deviceMaxWattsByYear := make(map[string]float64)
+	deviceMaxWattsDateByYear := make(map[string]string)
 
 	for year, yearActivities := range activitiesGroupedByYear {
 		nbActivitiesByYear[year] = len(yearActivities)
@@ -281,46 +293,73 @@ func computeDashboardData(activityTypes ...business.ActivityType) business.Dashb
 		totalDistanceByYear[year] = sumDistance(yearActivities)
 		averageDistanceByYear[year] = averageDistance(yearActivities)
 		maxDistanceByYear[year] = maxDistance(yearActivities)
+		maxDistanceDateByYear[year] = maxDistanceDate(yearActivities)
+		distanceByActiveDay := distanceTotalsByActiveDay(yearActivities)
+		averageDistanceByActiveDayByYear[year] = averageFloatValues(distanceByActiveDay)
+		maxDistanceByActiveDayByYear[year] = maxFloatValue(distanceByActiveDay)
+		maxDistanceByActiveDayDateByYear[year] = maxFloatValueKey(distanceByActiveDay)
 		totalElevationByYear[year] = sumElevation(yearActivities)
 		averageElevationByYear[year] = averageElevation(yearActivities)
 		maxElevationByYear[year] = maxElevation(yearActivities)
+		maxElevationDateByYear[year] = maxElevationDate(yearActivities)
+		elevationByActiveDay := elevationTotalsByActiveDay(yearActivities)
+		averageElevationByActiveDayByYear[year] = averageIntValues(elevationByActiveDay)
+		maxElevationByActiveDayByYear[year] = maxIntValue(elevationByActiveDay)
+		maxElevationByActiveDayDateByYear[year] = maxIntValueKey(elevationByActiveDay)
 		if totalDistanceByYear[year] > 0 {
 			elevationEfficiencyByYear[year] = (float64(totalElevationByYear[year]) / totalDistanceByYear[year]) * 10.0
 		}
 		averageSpeedByYear[year] = averageSpeed(yearActivities)
-		maxSpeedByYear[year] = maxSpeed(yearActivities)
+		bestSpeedEffort := bestSpeedEffort(yearActivities)
+		maxSpeedByYear[year] = speedFromEffort(bestSpeedEffort)
+		maxSpeedDateByYear[year] = activityDateByID(yearActivities, bestSpeedEffort)
 		averageHeartRateByYear[year] = averageHeartRate(yearActivities)
 		maxHeartRateByYear[year] = maxHeartRate(yearActivities)
+		maxHeartRateDateByYear[year] = maxHeartRateDate(yearActivities)
 		averageWattsByYear[year] = averageWatts(yearActivities)
 		maxWattsByYear[year] = maxWatts(yearActivities)
+		maxWattsDateByYear[year] = maxWattsDate(yearActivities)
 		if deviceAverageWatts := averageDeviceWatts(yearActivities); deviceAverageWatts > 0 {
 			deviceAverageWattsByYear[year] = deviceAverageWatts
 		}
 		if deviceMaxWatts := maxDeviceWatts(yearActivities); deviceMaxWatts > 0 {
 			deviceMaxWattsByYear[year] = deviceMaxWatts
+			deviceMaxWattsDateByYear[year] = maxDeviceWattsDate(yearActivities)
 		}
 	}
 
 	return business.DashboardData{
-		NbActivities:              nbActivitiesByYear,
-		ActiveDaysByYear:          activeDaysByYear,
-		ConsistencyByYear:         consistencyByYear,
-		MovingTimeByYear:          movingTimeByYear,
-		TotalDistanceByYear:       totalDistanceByYear,
-		AverageDistanceByYear:     averageDistanceByYear,
-		MaxDistanceByYear:         maxDistanceByYear,
-		TotalElevationByYear:      totalElevationByYear,
-		AverageElevationByYear:    averageElevationByYear,
-		MaxElevationByYear:        maxElevationByYear,
-		ElevationEfficiencyByYear: elevationEfficiencyByYear,
-		AverageSpeedByYear:        averageSpeedByYear,
-		MaxSpeedByYear:            maxSpeedByYear,
-		AverageHeartRateByYear:    averageHeartRateByYear,
-		MaxHeartRateByYear:        maxHeartRateByYear,
-		AverageWattsByYear:        averageWattsByYear,
-		MaxWattsByYear:            maxWattsByYear,
-		DeviceAverageWattsByYear:  deviceAverageWattsByYear,
-		DeviceMaxWattsByYear:      deviceMaxWattsByYear,
+		NbActivities:                      nbActivitiesByYear,
+		ActiveDaysByYear:                  activeDaysByYear,
+		ConsistencyByYear:                 consistencyByYear,
+		MovingTimeByYear:                  movingTimeByYear,
+		TotalDistanceByYear:               totalDistanceByYear,
+		AverageDistanceByYear:             averageDistanceByYear,
+		MaxDistanceByYear:                 maxDistanceByYear,
+		MaxDistanceDateByYear:             maxDistanceDateByYear,
+		AverageDistanceByActiveDayByYear:  averageDistanceByActiveDayByYear,
+		MaxDistanceByActiveDayByYear:      maxDistanceByActiveDayByYear,
+		MaxDistanceByActiveDayDateByYear:  maxDistanceByActiveDayDateByYear,
+		TotalElevationByYear:              totalElevationByYear,
+		AverageElevationByYear:            averageElevationByYear,
+		MaxElevationByYear:                maxElevationByYear,
+		MaxElevationDateByYear:            maxElevationDateByYear,
+		AverageElevationByActiveDayByYear: averageElevationByActiveDayByYear,
+		MaxElevationByActiveDayByYear:     maxElevationByActiveDayByYear,
+		MaxElevationByActiveDayDateByYear: maxElevationByActiveDayDateByYear,
+		ElevationEfficiencyByYear:         elevationEfficiencyByYear,
+		AverageSpeedByYear:                averageSpeedByYear,
+		MaxSpeedByYear:                    maxSpeedByYear,
+		MaxSpeedDateByYear:                maxSpeedDateByYear,
+		AverageHeartRateByYear:            averageHeartRateByYear,
+		MaxHeartRateByYear:                maxHeartRateByYear,
+		MaxHeartRateDateByYear:            maxHeartRateDateByYear,
+		AverageWattsByYear:                averageWattsByYear,
+		MaxWattsByYear:                    maxWattsByYear,
+		MaxWattsDateByYear:                maxWattsDateByYear,
+		DeviceAverageWattsByYear:          deviceAverageWattsByYear,
+		DeviceMaxWattsByYear:              deviceMaxWattsByYear,
+		DeviceMaxWattsDateByYear:          deviceMaxWattsDateByYear,
 	}
 }
 
@@ -359,6 +398,19 @@ func maxDistance(activities []*strava.Activity) float64 {
 	return maxDistanceValue
 }
 
+func maxDistanceDate(activities []*strava.Activity) string {
+	var maxDistanceValue float64
+	var maxDate string
+	for _, activity := range activities {
+		distance := activity.Distance / 1000
+		if distance > maxDistanceValue {
+			maxDistanceValue = distance
+			maxDate = activityDate(activity)
+		}
+	}
+	return maxDate
+}
+
 func countActiveDays(activities []*strava.Activity) int {
 	uniqueDays := make(map[string]struct{})
 	for _, activity := range activities {
@@ -369,6 +421,96 @@ func countActiveDays(activities []*strava.Activity) int {
 		uniqueDays[dayKey] = struct{}{}
 	}
 	return len(uniqueDays)
+}
+
+func distanceTotalsByActiveDay(activities []*strava.Activity) map[string]float64 {
+	totals := make(map[string]float64)
+	for _, activity := range activities {
+		if len(activity.StartDateLocal) < 10 {
+			continue
+		}
+		dayKey := activity.StartDateLocal[:10]
+		totals[dayKey] += activity.Distance / 1000
+	}
+	return totals
+}
+
+func elevationTotalsByActiveDay(activities []*strava.Activity) map[string]int {
+	totals := make(map[string]int)
+	for _, activity := range activities {
+		if len(activity.StartDateLocal) < 10 {
+			continue
+		}
+		dayKey := activity.StartDateLocal[:10]
+		totals[dayKey] += int(activity.TotalElevationGain)
+	}
+	return totals
+}
+
+func averageFloatValues(values map[string]float64) float64 {
+	if len(values) == 0 {
+		return 0
+	}
+	var sum float64
+	for _, value := range values {
+		sum += value
+	}
+	return sum / float64(len(values))
+}
+
+func maxFloatValue(values map[string]float64) float64 {
+	var maxValue float64
+	for _, value := range values {
+		if value > maxValue {
+			maxValue = value
+		}
+	}
+	return maxValue
+}
+
+func maxFloatValueKey(values map[string]float64) string {
+	var maxValue float64
+	var maxKey string
+	for key, value := range values {
+		if maxKey == "" || value > maxValue || (value == maxValue && key < maxKey) {
+			maxValue = value
+			maxKey = key
+		}
+	}
+	return maxKey
+}
+
+func averageIntValues(values map[string]int) int {
+	if len(values) == 0 {
+		return 0
+	}
+	var sum int
+	for _, value := range values {
+		sum += value
+	}
+	return sum / len(values)
+}
+
+func maxIntValue(values map[string]int) int {
+	var maxValue int
+	for _, value := range values {
+		if value > maxValue {
+			maxValue = value
+		}
+	}
+	return maxValue
+}
+
+func maxIntValueKey(values map[string]int) string {
+	var maxValue int
+	var maxKey string
+	for key, value := range values {
+		if maxKey == "" || value > maxValue || (value == maxValue && key < maxKey) {
+			maxValue = value
+			maxKey = key
+		}
+	}
+	return maxKey
 }
 
 func sumElevation(activities []*strava.Activity) int {
@@ -397,6 +539,19 @@ func maxElevation(activities []*strava.Activity) int {
 	return maxElevationValue
 }
 
+func maxElevationDate(activities []*strava.Activity) string {
+	var maxElevationValue int
+	var maxDate string
+	for _, activity := range activities {
+		elevation := int(activity.TotalElevationGain)
+		if elevation > maxElevationValue {
+			maxElevationValue = elevation
+			maxDate = activityDate(activity)
+		}
+	}
+	return maxDate
+}
+
 func averageSpeed(activities []*strava.Activity) float64 {
 	var sum float64
 	var count int
@@ -412,12 +567,34 @@ func averageSpeed(activities []*strava.Activity) float64 {
 	return sum / float64(count)
 }
 
-func maxSpeed(activities []*strava.Activity) float64 {
-	activityEffort := statistics.FindBestActivityEffort(activities, 200.0)
+func bestSpeedEffort(activities []*strava.Activity) *business.ActivityEffort {
+	return statistics.FindBestActivityEffort(activities, 200.0)
+}
+
+func speedFromEffort(activityEffort *business.ActivityEffort) float64 {
 	if activityEffort == nil {
 		return 0.0
 	}
 	return activityEffort.GetMSSpeed()
+}
+
+func activityDateByID(activities []*strava.Activity, activityEffort *business.ActivityEffort) string {
+	if activityEffort == nil {
+		return ""
+	}
+	for _, activity := range activities {
+		if activity.Id == activityEffort.ActivityShort.Id {
+			return activityDate(activity)
+		}
+	}
+	return ""
+}
+
+func activityDate(activity *strava.Activity) string {
+	if activity == nil || len(activity.StartDateLocal) < 10 {
+		return ""
+	}
+	return activity.StartDateLocal[:10]
 }
 
 func averageHeartRate(activities []*strava.Activity) int {
@@ -445,6 +622,22 @@ func maxHeartRate(activities []*strava.Activity) float64 {
 	return maxHeartRateValue
 }
 
+func maxHeartRateDate(activities []*strava.Activity) string {
+	var maxHeartRateValue float64
+	var maxDate string
+	for _, activity := range activities {
+		date := activityDate(activity)
+		if activity.MaxHeartrate > maxHeartRateValue || (activity.MaxHeartrate == maxHeartRateValue && date != "" && (maxDate == "" || date < maxDate)) {
+			maxHeartRateValue = activity.MaxHeartrate
+			maxDate = date
+		}
+	}
+	if maxHeartRateValue <= 0 {
+		return ""
+	}
+	return maxDate
+}
+
 func averageWatts(activities []*strava.Activity) float64 {
 	var sum float64
 	var count float64
@@ -468,6 +661,33 @@ func maxWatts(activities []*strava.Activity) float64 {
 		}
 	}
 	return maxWattsValue
+}
+
+func maxWattsDate(activities []*strava.Activity) string {
+	return maxWattsDateByDeviceFilter(activities, false)
+}
+
+func maxDeviceWattsDate(activities []*strava.Activity) string {
+	return maxWattsDateByDeviceFilter(activities, true)
+}
+
+func maxWattsDateByDeviceFilter(activities []*strava.Activity, deviceOnly bool) string {
+	var maxWattsValue float64
+	var maxDate string
+	for _, activity := range activities {
+		if deviceOnly && !activity.DeviceWatts {
+			continue
+		}
+		if activity.AverageWatts <= 0 {
+			continue
+		}
+		date := activityDate(activity)
+		if activity.AverageWatts > maxWattsValue || (activity.AverageWatts == maxWattsValue && date != "" && (maxDate == "" || date < maxDate)) {
+			maxWattsValue = activity.AverageWatts
+			maxDate = date
+		}
+	}
+	return maxDate
 }
 
 func averageDeviceWatts(activities []*strava.Activity) float64 {
