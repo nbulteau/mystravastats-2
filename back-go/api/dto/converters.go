@@ -1520,6 +1520,12 @@ func ToBadgeDto(badge business.Badge, activityTypes ...business.ActivityType) Ba
 			Description: strconv.Itoa(b.MovingTime),
 			Type:        activityType.String() + "MovingTimeBadge",
 		}
+	case badges.HikingBadge:
+		return BadgeDto{
+			Label:       b.Label,
+			Description: b.Description,
+			Type:        activityType.String() + "HikingBadge",
+		}
 	case badges.FamousClimbBadge:
 		return BadgeDto{
 			Label:       b.Label,

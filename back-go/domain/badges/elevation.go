@@ -80,27 +80,27 @@ var (
 	}
 
 	ElevationHikeLevel1 = ElevationBadge{
-		Label:              "Hike that climb 1000 m",
+		Label:              "Vertical Kilometer",
 		TotalElevationGain: 1000,
 	}
 	ElevationHikeLevel2 = ElevationBadge{
-		Label:              "Hike that climb 1500 m",
+		Label:              "Alpine Climb 1500 m",
 		TotalElevationGain: 1500,
 	}
 	ElevationHikeLevel3 = ElevationBadge{
-		Label:              "Hike that climb 2000 m",
+		Label:              "Big Mountain Day 2000 m",
 		TotalElevationGain: 2000,
 	}
 	ElevationHikeLevel4 = ElevationBadge{
-		Label:              "Hike that climb 2500 m",
+		Label:              "Huge Mountain Day 2500 m",
 		TotalElevationGain: 2500,
 	}
 	ElevationHikeLevel5 = ElevationBadge{
-		Label:              "Hike that climb 3000 m",
+		Label:              "Skyline Day 3000 m",
 		TotalElevationGain: 3000,
 	}
 	ElevationHikeBadgeSet = BadgeSet{
-		Name:   "Run that climb",
+		Name:   "Hiking elevation",
 		Badges: []Badge{ElevationHikeLevel1, ElevationHikeLevel2, ElevationHikeLevel3, ElevationHikeLevel4, ElevationHikeLevel5},
 	}
 )

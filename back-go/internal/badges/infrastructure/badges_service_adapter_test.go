@@ -46,6 +46,7 @@ func TestCheckGeneralBadges_UsesHikingFamilyForWalk(t *testing.T) {
 
 	assertCompletedBadge(t, results, isDistanceBadge)
 	assertCompletedBadge(t, results, isElevationBadge)
+	assertCompletedBadge(t, results, isHikingBadge)
 	assertCompletedBadge(t, results, isMovingTimeBadge)
 }
 
@@ -87,10 +88,16 @@ func isMovingTimeBadge(badge business.Badge) bool {
 	return ok
 }
 
+func isHikingBadge(badge business.Badge) bool {
+	_, ok := badge.(badges.HikingBadge)
+	return ok
+}
+
 func activity(activityType string, distance float64, elevation float64, movingTime int) *strava.Activity {
 	return &strava.Activity{
 		Type:               activityType,
 		SportType:          activityType,
+		Name:               activityType + " badge activity",
 		Distance:           distance,
 		TotalElevationGain: elevation,
 		MovingTime:         movingTime,

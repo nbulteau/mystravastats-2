@@ -260,6 +260,20 @@ func TestToBadgeDto_UsesRepresentativeBadgeActivityTypeForWalk(t *testing.T) {
 	}
 }
 
+func TestToBadgeDto_UsesHikingBadgeTypeForWalk(t *testing.T) {
+	dto := ToBadgeDto(badges.SummitDayBadge, business.Walk)
+
+	if dto.Type != "HikeHikingBadge" {
+		t.Fatalf("expected HikeHikingBadge, got %q", dto.Type)
+	}
+	if dto.Label != "Summit Day" {
+		t.Fatalf("expected Summit Day label, got %q", dto.Label)
+	}
+	if dto.Description == "" {
+		t.Fatalf("expected hiking badge description")
+	}
+}
+
 func TestToActivityDto_SanitizesNonFiniteSummaryValues(t *testing.T) {
 	// GIVEN
 	activity := strava.Activity{

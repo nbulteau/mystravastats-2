@@ -6,6 +6,7 @@ import me.nicolas.stravastats.api.dto.toDto
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.badges.DistanceBadge
 import me.nicolas.stravastats.domain.business.badges.ElevationBadge
+import me.nicolas.stravastats.domain.business.badges.HikingBadge
 import me.nicolas.stravastats.domain.business.badges.MovingTimeBadge
 import me.nicolas.stravastats.domain.business.strava.AthleteRef
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
@@ -84,8 +85,9 @@ class BadgesServiceTest {
 
         // THEN
         assertTrue(results.any { it.badge is DistanceBadge && it.isCompleted })
+        assertTrue(results.any { it.badge is HikingBadge && it.isCompleted })
         assertEquals(
-            setOf("HikeDistanceBadge", "HikeElevationBadge", "HikeMovingTimeBadge"),
+            setOf("HikeDistanceBadge", "HikeElevationBadge", "HikeHikingBadge", "HikeMovingTimeBadge"),
             results.map { it.toDto(activityTypes).badge.type }.toSet(),
         )
     }

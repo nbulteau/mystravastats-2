@@ -75,31 +75,31 @@ var (
 	}
 
 	DistanceHikeLevel1 = DistanceBadge{
-		Label:    "Hike that distance 10 km",
+		Label:    "Trail Hike 10 km",
 		Distance: 10000,
 	}
 	DistanceHikeLevel2 = DistanceBadge{
-		Label:    "Hike that distance 15 km",
+		Label:    "Long Hike 15 km",
 		Distance: 15000,
 	}
 	DistanceHikeLevel3 = DistanceBadge{
-		Label:    "Hike that distance 20 km",
+		Label:    "Big Day Hike 20 km",
 		Distance: 20000,
 	}
 	DistanceHikeLevel4 = DistanceBadge{
-		Label:    "Hike that distance 25 km",
+		Label:    "Endurance Hike 25 km",
 		Distance: 25000,
 	}
 	DistanceHikeLevel5 = DistanceBadge{
-		Label:    "Hike that distance 30 km",
+		Label:    "Mountain Marathon 30 km",
 		Distance: 30000,
 	}
 	DistanceHikeLevel6 = DistanceBadge{
-		Label:    "Hike that distance 35 km",
+		Label:    "Epic Long Hike 35 km",
 		Distance: 35000,
 	}
 	DistanceHikeBadgeSet = BadgeSet{
-		Name:   "Hike that distance",
+		Name:   "Hiking distance",
 		Badges: []Badge{DistanceHikeLevel1, DistanceHikeLevel2, DistanceHikeLevel3, DistanceHikeLevel4, DistanceHikeLevel5, DistanceHikeLevel6},
 	}
 )

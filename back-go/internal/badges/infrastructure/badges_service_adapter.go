@@ -51,8 +51,9 @@ func checkGeneralBadges(activities []*strava.Activity, activityTypes ...business
 			badges.ElevationRideBadgeSet.Check(activities)...),
 			badges.MovingTimeBadgesSet.Check(activities)...)
 	case business.Hike, business.Walk:
-		return append(append(badges.DistanceHikeBadgeSet.Check(activities),
+		return append(append(append(badges.DistanceHikeBadgeSet.Check(activities),
 			badges.ElevationHikeBadgeSet.Check(activities)...),
+			badges.HikingAdventureBadgeSet.Check(activities)...),
 			badges.MovingTimeBadgesSet.Check(activities)...)
 	case business.Run:
 		return append(append(badges.DistanceRunBadgeSet.Check(activities),

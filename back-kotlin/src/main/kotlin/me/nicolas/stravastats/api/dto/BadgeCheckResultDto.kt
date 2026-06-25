@@ -120,6 +120,7 @@ fun Badge.toDto(activityTypes: Set<ActivityType>): BadgeDto {
         is DistanceBadge -> this.toDto(activityTypes)
         is ElevationBadge -> this.toDto(activityTypes)
         is MovingTimeBadge -> this.toDto(activityTypes)
+        is HikingBadge -> this.toDto(activityTypes)
         is FamousClimbBadge -> this.toDto(activityTypes)
     }
 }
@@ -134,6 +135,10 @@ private fun DistanceBadge.toDto(activityTypes: Set<ActivityType>): BadgeDto {
 
 private fun MovingTimeBadge.toDto(activityTypes: Set<ActivityType>): BadgeDto {
     return BadgeDto(this.label, this.movingTime.toString(), badgeType(activityTypes, this.javaClass.simpleName))
+}
+
+private fun HikingBadge.toDto(activityTypes: Set<ActivityType>): BadgeDto {
+    return BadgeDto(this.label, this.description, badgeType(activityTypes, this.javaClass.simpleName))
 }
 
 private fun FamousClimbBadge.toDto(activityTypes: Set<ActivityType>): BadgeDto {

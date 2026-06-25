@@ -33,6 +33,7 @@ const buildBadgeImageUrl = (type: string) => {
       return cyclingBadge;
     case "HikeDistanceBadge":
     case "HikeElevationBadge":
+    case "HikeHikingBadge":
       return hickingBadge;
     default:
       return badge;
@@ -42,6 +43,7 @@ const buildBadgeImageUrl = (type: string) => {
 const isUnlocked = computed(() => props.badgeCheckResult.nbCheckedActivities > 0);
 const statusLabel = computed(() => (isUnlocked.value ? 'Earned' : 'Locked'));
 const representativeActivity = computed(() => props.badgeCheckResult.activities?.[0] ?? null);
+const isHikingAdventureBadge = computed(() => props.badgeCheckResult.badge.type === 'HikeHikingBadge');
 const climbCategoryLabel = computed(() => {
   const category = props.badgeCheckResult.badge.category?.trim().toUpperCase();
   if (!category) {
@@ -77,9 +79,13 @@ const bestTimeAndDateLabel = computed(() => {
     return 'No matching activity yet';
   }
 
+  const dateLabel = formatBadgeDate(representativeActivity.value.date);
+  if (isHikingAdventureBadge.value) {
+    return dateLabel ? `Matched activity • ${dateLabel}` : 'Matched activity';
+  }
+
   const effortTime = representativeActivity.value.badgeEffortSeconds ?? representativeActivity.value.movingTime ?? 0;
   const movingTimeLabel = effortTime > 0 ? formatTime(effortTime) : 'n/a';
-  const dateLabel = formatBadgeDate(representativeActivity.value.date);
   return dateLabel
     ? `Best time: ${movingTimeLabel} • ${dateLabel}`
     : `Best time: ${movingTimeLabel}`;
@@ -106,6 +112,7 @@ Status: ${statusLabel.value}<br>
 Matched activities: ${props.badgeCheckResult.nbCheckedActivities}<br>
 ${climbCategoryLabel.value ? `Climb category: ${climbCategoryLabel.value}<br>` : ''}
 ${climbAscentsLabel.value ? `${climbAscentsLabel.value}<br>` : ''}
+${isHikingAdventureBadge.value && props.badgeCheckResult.badge.description ? `${props.badgeCheckResult.badge.description}<br>` : ''}
 ${isUnlocked.value ? `${bestTimeAndDateLabel.value}<br>Representative activity: ${representativeName}` : 'Unlock this badge to see your best attempt.'}`;
 });
 
@@ -207,8 +214,8 @@ onBeforeUnmount(() => {
   color: var(--ms-text);
   font-weight: 700;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
