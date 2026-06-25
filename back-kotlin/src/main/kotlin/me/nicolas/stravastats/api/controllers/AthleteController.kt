@@ -7,17 +7,20 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import me.nicolas.stravastats.api.dto.AthleteDto
 import me.nicolas.stravastats.api.dto.AthletePerformanceSettingsDto
 import me.nicolas.stravastats.api.dto.ErrorResponseMessageDto
+import me.nicolas.stravastats.api.dto.FtpEstimateDto
 import me.nicolas.stravastats.api.dto.HeartRateZoneSettingsDto
 import me.nicolas.stravastats.api.dto.toDto
 import me.nicolas.stravastats.api.dto.toDomain
 import me.nicolas.stravastats.domain.services.IAthletePerformanceSettingsService
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import me.nicolas.stravastats.domain.services.IHeartRateZoneService
+import me.nicolas.stravastats.domain.services.defaultFtpEstimateActivityTypes
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 
@@ -59,6 +62,18 @@ class AthleteController(
     @GetMapping("/me/performance-settings")
     fun getPerformanceSettings(): AthletePerformanceSettingsDto {
         return performanceSettingsService.getSettings().toDto()
+    }
+
+    @GetMapping("/me/ftp-estimate")
+    fun getFtpEstimate(
+        @RequestParam(required = false) activityType: String?,
+        @RequestParam(required = false) days: Int?,
+    ): FtpEstimateDto {
+        val activityTypes = activityType
+            ?.takeIf { value -> value.isNotBlank() }
+            ?.convertToActivityTypeSet()
+            ?: defaultFtpEstimateActivityTypes
+        return performanceSettingsService.estimateFtp(activityTypes, days ?: 180).toDto()
     }
 
     @PutMapping("/me/performance-settings")

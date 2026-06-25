@@ -27,6 +27,7 @@ var routes = Routes{
 	{Name: "GetStravaOAuthCallback", Method: "GET", Pattern: "/api/source-modes/strava/oauth/callback", HandlerFunc: getStravaOAuthCallback},
 	{Name: "PostSourceSyncSynchronize", Method: "POST", Pattern: "/api/source-sync/synchronize", HandlerFunc: postSourceSyncSynchronize},
 	{Name: "GetAthlete", Method: "GET", Pattern: "/api/athletes/me", HandlerFunc: getAthlete},
+	{Name: "GetAthleteFtpEstimate", Method: "GET", Pattern: "/api/athletes/me/ftp-estimate", HandlerFunc: getAthleteFtpEstimate},
 	{Name: "GetAthletePerformanceSettings", Method: "GET", Pattern: "/api/athletes/me/performance-settings", HandlerFunc: getAthletePerformanceSettings},
 	{Name: "PutAthletePerformanceSettings", Method: "PUT", Pattern: "/api/athletes/me/performance-settings", HandlerFunc: putAthletePerformanceSettings},
 	{Name: "GetAthleteHeartRateZones", Method: "GET", Pattern: "/api/athletes/me/heart-rate-zones", HandlerFunc: getAthleteHeartRateZones},

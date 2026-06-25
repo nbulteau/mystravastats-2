@@ -146,11 +146,16 @@ func (stub *contractStatisticsReaderStub) FindStatisticsByYearAndTypes(_ *int, _
 
 type contractAthleteReaderStub struct {
 	athlete             strava.Athlete
+	activities          []*strava.Activity
 	performanceSettings business.AthletePerformanceSettings
 }
 
 func (stub *contractAthleteReaderStub) FindAthlete() strava.Athlete {
 	return stub.athlete
+}
+
+func (stub *contractAthleteReaderStub) FindActivitiesByYearAndTypes(_ *int, _ ...business.ActivityType) []*strava.Activity {
+	return stub.activities
 }
 
 func (stub *contractAthleteReaderStub) FindPerformanceSettings() business.AthletePerformanceSettings {
@@ -360,6 +365,43 @@ func TestGetAthletePerformanceSettings_Returns200AndBody(t *testing.T) {
 	}
 }
 
+func TestGetAthleteFtpEstimate_Returns200AndBody(t *testing.T) {
+	// GIVEN
+	setTestContainer(t, &container{
+		getFtpEstimateUseCase: athleteApp.NewGetFtpEstimateUseCase(&contractAthleteReaderStub{
+			activities: []*strava.Activity{
+				contractPowerActivity(9901, "FTP test", "2026-06-20T09:00:00Z", 215),
+			},
+		}),
+	})
+
+	request := httptest.NewRequest(http.MethodGet, "/api/athletes/me/ftp-estimate?activityType=Ride&days=180", nil)
+	recorder := httptest.NewRecorder()
+
+	getAthleteFtpEstimate(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", recorder.Code)
+	}
+
+	var response map[string]any
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode JSON response: %v", err)
+	}
+	if response["available"] != true {
+		t.Fatalf("expected FTP estimate to be available, got %+v", response)
+	}
+	if got := response["ftp"]; got != float64(215) {
+		t.Fatalf("expected ftp=215, got %+v", got)
+	}
+	if response["method"] != "best-60min" || response["confidence"] != "high" {
+		t.Fatalf("unexpected method/confidence: %+v", response)
+	}
+	if response["activityDate"] != "2026-06-20" {
+		t.Fatalf("expected activityDate=2026-06-20, got %+v", response["activityDate"])
+	}
+}
+
 func TestPutAthletePerformanceSettings_NormalizesAndReturns200(t *testing.T) {
 	// GIVEN
 	setTestContainer(t, &container{
@@ -392,6 +434,28 @@ func TestPutAthletePerformanceSettings_NormalizesAndReturns200(t *testing.T) {
 	history, ok := response["ftpHistory"].([]any)
 	if !ok || len(history) != 1 {
 		t.Fatalf("expected one normalized FTP history entry, got %+v", response["ftpHistory"])
+	}
+}
+
+func contractPowerActivity(id int64, name string, startDateLocal string, watts float64) *strava.Activity {
+	distances := []float64{0, 1000, 2000, 3000, 4000, 5000, 6000}
+	times := []int{0, 600, 1200, 1800, 2400, 3000, 3600}
+	altitudes := []float64{100, 101, 102, 103, 104, 105, 106}
+	powers := []float64{watts, watts, watts, watts, watts, watts, watts}
+	return &strava.Activity{
+		Id:             id,
+		Name:           name,
+		Type:           "Ride",
+		SportType:      "Ride",
+		DeviceWatts:    true,
+		StartDate:      startDateLocal,
+		StartDateLocal: startDateLocal,
+		Stream: &strava.Stream{
+			Distance: strava.DistanceStream{Data: distances, OriginalSize: len(distances), Resolution: "high", SeriesType: "distance"},
+			Time:     strava.TimeStream{Data: times, OriginalSize: len(times), Resolution: "high", SeriesType: "time"},
+			Altitude: &strava.AltitudeStream{Data: altitudes, OriginalSize: len(altitudes), Resolution: "high", SeriesType: "distance"},
+			Watts:    &strava.PowerStream{Data: powers, OriginalSize: len(powers), Resolution: "high", SeriesType: "time"},
+		},
 	}
 }
 

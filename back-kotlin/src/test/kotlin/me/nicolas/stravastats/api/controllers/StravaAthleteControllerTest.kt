@@ -3,8 +3,10 @@ package me.nicolas.stravastats.api.controllers
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import me.nicolas.stravastats.TestHelper
+import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.AthleteFtpSetting
 import me.nicolas.stravastats.domain.business.AthletePerformanceSettings
+import me.nicolas.stravastats.domain.business.FtpEstimate
 import me.nicolas.stravastats.domain.services.IAthletePerformanceSettingsService
 import me.nicolas.stravastats.domain.services.IHeartRateZoneService
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
@@ -74,6 +76,46 @@ class StravaAthleteControllerTest {
             .andExpect(jsonPath("$.ftpHistory[0].effectiveFrom").value("2026-05-01"))
             .andExpect(jsonPath("$.ftpHistory[0].ftp").value(160))
             .andExpect(jsonPath("$.weightKg").value(72.5))
+    }
+
+    @Test
+    fun `get FTP estimate returns derived estimate`() {
+        // GIVEN
+        every {
+            performanceSettingsService.estimateFtp(setOf(ActivityType.Ride), 180)
+        } returns FtpEstimate(
+            available = true,
+            ftp = 215,
+            method = "best-60min",
+            methodLabel = "Best 60 min power",
+            bestPower = 215,
+            multiplier = 1.0,
+            basedOnSeconds = 3600,
+            confidence = "high",
+            source = "Power meter, last 180 days",
+            sourceKind = "power-meter",
+            activityId = 9901,
+            activityName = "FTP test",
+            activityType = "Ride",
+            activityDate = "2026-06-20",
+            windowDays = 180,
+            activityCount = 1,
+        )
+
+        // WHEN
+        val result = mockMvc.perform(
+            get("/api/athletes/me/ftp-estimate?activityType=Ride&days=180")
+                .accept(MediaType.APPLICATION_JSON)
+        )
+
+        // THEN
+        result.andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.available").value(true))
+            .andExpect(jsonPath("$.ftp").value(215))
+            .andExpect(jsonPath("$.method").value("best-60min"))
+            .andExpect(jsonPath("$.confidence").value("high"))
+            .andExpect(jsonPath("$.activityDate").value("2026-06-20"))
     }
 
     @Test

@@ -40,6 +40,7 @@ type container struct {
 	getMapsGPXUseCase                        *activitiesApp.GetMapsGPXUseCase
 	getMapPassagesUseCase                    *activitiesApp.GetMapPassagesUseCase
 	getAthleteUseCase                        *athleteApp.GetAthleteUseCase
+	getFtpEstimateUseCase                    *athleteApp.GetFtpEstimateUseCase
 	getPerformanceSettingsUseCase            *athleteApp.GetPerformanceSettingsUseCase
 	updatePerformanceSettingsUseCase         *athleteApp.UpdatePerformanceSettingsUseCase
 	listStatisticsUseCase                    *statisticsApp.ListStatisticsUseCase
@@ -111,6 +112,7 @@ func getContainer() *container {
 			getMapsGPXUseCase:                        activitiesApp.NewGetMapsGPXUseCase(detailedActivityReader),
 			getMapPassagesUseCase:                    activitiesApp.NewGetMapPassagesUseCase(detailedActivityReader),
 			getAthleteUseCase:                        athleteApp.NewGetAthleteUseCase(athleteReader),
+			getFtpEstimateUseCase:                    athleteApp.NewGetFtpEstimateUseCase(athleteReader),
 			getPerformanceSettingsUseCase:            athleteApp.NewGetPerformanceSettingsUseCase(athleteReader),
 			updatePerformanceSettingsUseCase:         athleteApp.NewUpdatePerformanceSettingsUseCase(athleteReader),
 			listStatisticsUseCase:                    statisticsApp.NewListStatisticsUseCase(statisticsReader),

@@ -5,7 +5,11 @@ import (
 	"io"
 	"log"
 	"mystravastats/api/dto"
+	athleteApp "mystravastats/internal/athlete/application"
+	"mystravastats/internal/shared/domain/business"
 	"net/http"
+	"strconv"
+	"strings"
 )
 
 // getAthlete godoc
@@ -34,6 +38,27 @@ func getAthletePerformanceSettings(writer http.ResponseWriter, _ *http.Request) 
 	}
 }
 
+func getAthleteFtpEstimate(writer http.ResponseWriter, request *http.Request) {
+	activityTypes, err := getOptionalFtpEstimateActivityTypes(request)
+	if err != nil {
+		writeBadRequest(writer, "Invalid activity type", err.Error())
+		return
+	}
+
+	windowDays, err := getOptionalFtpEstimateWindowDays(request)
+	if err != nil {
+		writeBadRequest(writer, "Invalid days", err.Error())
+		return
+	}
+
+	estimate := getContainer().getFtpEstimateUseCase.Execute(activityTypes, windowDays)
+	estimateDto := dto.ToFtpEstimateDto(estimate)
+	if err := writeJSON(writer, http.StatusOK, estimateDto); err != nil {
+		log.Printf("failed to write FTP estimate response: %v", err)
+		writeInternalServerError(writer, "Failed to encode FTP estimate response")
+	}
+}
+
 func putAthletePerformanceSettings(writer http.ResponseWriter, request *http.Request) {
 	defer func(Body io.ReadCloser) {
 		if err := Body.Close(); err != nil {
@@ -55,6 +80,25 @@ func putAthletePerformanceSettings(writer http.ResponseWriter, request *http.Req
 		log.Printf("failed to write updated performance settings response: %v", err)
 		writeInternalServerError(writer, "Failed to encode updated performance settings response")
 	}
+}
+
+func getOptionalFtpEstimateActivityTypes(request *http.Request) ([]business.ActivityType, error) {
+	if strings.TrimSpace(request.URL.Query().Get("activityType")) == "" {
+		return athleteApp.DefaultFtpEstimateActivityTypes(), nil
+	}
+	return getActivityTypeParam(request)
+}
+
+func getOptionalFtpEstimateWindowDays(request *http.Request) (int, error) {
+	value := strings.TrimSpace(request.URL.Query().Get("days"))
+	if value == "" {
+		return 0, nil
+	}
+	days, err := strconv.Atoi(value)
+	if err != nil {
+		return 0, err
+	}
+	return days, nil
 }
 
 func getAthleteHeartRateZones(writer http.ResponseWriter, _ *http.Request) {

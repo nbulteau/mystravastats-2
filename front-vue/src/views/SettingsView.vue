@@ -89,6 +89,7 @@ const sortedFtpHistory = computed(() =>
 );
 
 const latestManualFtp = computed(() => sortedFtpHistory.value[0] ?? null);
+const ftpEstimate = computed(() => athleteStore.ftpEstimate);
 const fallbackMaxHr = computed(() => statisticsStore.heartRateZoneAnalysis.resolvedSettings?.maxHr ?? null);
 const resolvedHeartRateSettings = computed<ResolvedHeartRateZoneSettings | null>(() =>
   resolveHeartRateZoneSettings(draftHeartRateZoneSettings, fallbackMaxHr.value)
@@ -112,6 +113,22 @@ const canSaveFtpEntry = computed(() =>
   draftFtp.value > 0 &&
   isIsoDate(draftEffectiveFrom.value),
 );
+const canUseFtpEstimate = computed(() => ftpEstimate.value.available && ftpEstimate.value.ftp > 0);
+const ftpEstimateConfidenceLabel = computed(() =>
+  ftpEstimate.value.confidence === "unavailable"
+    ? "Unavailable"
+    : `${ftpEstimate.value.confidence.slice(0, 1).toUpperCase()}${ftpEstimate.value.confidence.slice(1)} confidence`,
+);
+const ftpEstimateHint = computed(() => {
+  if (!ftpEstimate.value.available) {
+    return ftpEstimate.value.source || "No usable power data";
+  }
+  return `${ftpEstimateConfidenceLabel.value} - ${ftpEstimate.value.source}`;
+});
+const ftpEstimateActivityLabel = computed(() => {
+  const parts = [ftpEstimate.value.activityName, ftpEstimate.value.activityDate].filter(Boolean);
+  return parts.length > 0 ? parts.join(" - ") : "Unavailable";
+});
 
 const sourceRows = computed(() => [
   {
@@ -123,6 +140,11 @@ const sourceRows = computed(() => [
     label: "Strava FTP",
     value: athleteStore.athleteFtp > 0 ? `${Math.round(athleteStore.athleteFtp)} W` : "Unavailable",
     hint: "Read from Strava profile when exposed by the API",
+  },
+  {
+    label: "Estimated FTP",
+    value: ftpEstimate.value.available ? `${ftpEstimate.value.ftp} W` : "Unavailable",
+    hint: ftpEstimateHint.value,
   },
   {
     label: "Manual weight",
@@ -174,6 +196,7 @@ onMounted(async () => {
     await Promise.all([
       athleteStore.fetchAthlete(),
       athleteStore.fetchPerformanceSettings(),
+      athleteStore.fetchFtpEstimate(),
       athleteStore.fetchHeartRateZoneSettings(),
       statisticsStore.fetchHeartRateZoneAnalysis(),
     ]);
@@ -207,6 +230,16 @@ function addFtpEntry() {
 
 function removeFtpEntry(effectiveFrom: string) {
   draftSettings.ftpHistory = draftSettings.ftpHistory.filter((entry) => entry.effectiveFrom !== effectiveFrom);
+}
+
+function useFtpEstimate() {
+  if (!canUseFtpEstimate.value) {
+    saveError.value = "No FTP estimate available.";
+    return;
+  }
+  draftFtp.value = ftpEstimate.value.ftp;
+  draftEffectiveFrom.value = ftpEstimate.value.activityDate || todayKey();
+  addFtpEntry();
 }
 
 async function saveSettings() {
@@ -331,6 +364,64 @@ function todayKey(): string {
       </section>
 
       <section class="settings-grid">
+        <article class="settings-panel settings-panel--estimate">
+          <header>
+            <h2>
+              Estimated FTP
+              <TooltipHint :text="getMetricTooltip('Estimated FTP') ?? ''" />
+            </h2>
+            <span
+              class="ftp-estimate-badge"
+              :class="`ftp-estimate-badge--${ftpEstimate.confidence}`"
+            >
+              {{ ftpEstimateConfidenceLabel }}
+            </span>
+          </header>
+
+          <div
+            v-if="ftpEstimate.available"
+            class="ftp-estimate-card"
+          >
+            <div class="ftp-estimate-value">
+              <span>Estimated FTP</span>
+              <strong>{{ ftpEstimate.ftp }} W</strong>
+            </div>
+            <dl class="ftp-estimate-details">
+              <div>
+                <dt>Method</dt>
+                <dd>{{ ftpEstimate.methodLabel }}</dd>
+              </div>
+              <div>
+                <dt>Source</dt>
+                <dd>{{ ftpEstimate.source }}</dd>
+              </div>
+              <div>
+                <dt>Activity</dt>
+                <dd>{{ ftpEstimateActivityLabel }}</dd>
+              </div>
+              <div>
+                <dt>Best power</dt>
+                <dd>{{ ftpEstimate.bestPower }} W</dd>
+              </div>
+            </dl>
+            <button
+              type="button"
+              class="btn btn-outline-primary settings-add-btn"
+              :disabled="!canUseFtpEstimate"
+              @click="useFtpEstimate"
+            >
+              <i class="fa-solid fa-check" aria-hidden="true" />
+              Use estimate
+            </button>
+          </div>
+          <p
+            v-else
+            class="settings-empty"
+          >
+            {{ ftpEstimate.source || "No usable power data." }}
+          </p>
+        </article>
+
         <article class="settings-panel">
           <header>
             <h2>
@@ -649,6 +740,88 @@ function todayKey(): string {
   margin: 0;
 }
 
+.settings-panel--estimate {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ftp-estimate-badge {
+  border: 1px solid var(--ms-border);
+  border-radius: 999px;
+  color: var(--ms-text-muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 7px 9px;
+  text-transform: uppercase;
+}
+
+.ftp-estimate-badge--high {
+  background: #eef9f1;
+  border-color: #b9e7c3;
+  color: #20753a;
+}
+
+.ftp-estimate-badge--medium {
+  background: #fff8e8;
+  border-color: #f2d38d;
+  color: #88600d;
+}
+
+.ftp-estimate-badge--low {
+  background: #fff2ec;
+  border-color: #f2b8a0;
+  color: #a13f20;
+}
+
+.ftp-estimate-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ftp-estimate-value {
+  align-items: baseline;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.ftp-estimate-value span,
+.ftp-estimate-details dt {
+  color: var(--ms-text-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.ftp-estimate-value strong {
+  color: var(--ms-text);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.ftp-estimate-details {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.ftp-estimate-details div {
+  border-top: 1px solid var(--ms-border);
+  padding-top: 10px;
+}
+
+.ftp-estimate-details dd {
+  color: var(--ms-text);
+  font-weight: 700;
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+}
+
 .settings-form-grid {
   align-items: end;
   display: grid;
@@ -767,6 +940,7 @@ function todayKey(): string {
 
 @media (max-width: 640px) {
   .settings-summary,
+  .ftp-estimate-details,
   .settings-form-grid,
   .settings-form-grid--single,
   .settings-form-grid--hr,

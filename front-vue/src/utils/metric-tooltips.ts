@@ -54,7 +54,7 @@ const exactMetricTooltips: Record<string, string> = {
   "FTP priority":
     "FTP resolution order for activity analysis: manual dated FTP for the activity date, then Strava profile FTP, then estimate from the power stream.",
   "Estimated FTP":
-    "Fallback FTP estimated from the activity power curve when no manual or Strava FTP is available.",
+    "FTP estimated from recorded power curves. Recent power-meter data is preferred, then all-time power-meter data, then other power streams.",
   "FTP / kg":
     "FTP divided by athlete weight. This is usually a better level indicator than Average W/kg from one ride.",
   "Aerobic power-zone time":
@@ -94,6 +94,18 @@ const exactMetricTooltips: Record<string, string> = {
   "Max elevation gain in a day":
     "Highest accumulated elevation gain across activities done on the same day.",
   "Highest point": "Highest altitude point reached.",
+  "Hiking Difficulty":
+    "Single-activity hiking load estimate based on distance, elevation gain, and the largest continuous climb.",
+  "Elevation per km":
+    "Elevation gain density for this activity: total D+ divided by distance.",
+  "Max continuous climb":
+    "Largest uninterrupted climbing block detected from the altitude stream. Small dips are tolerated; meaningful descents break the climb.",
+  "Vertical speed":
+    "Average ascent rate: total elevation gain divided by moving time.",
+  "Pause ratio":
+    "Share of elapsed time spent stopped: stopped time divided by elapsed time.",
+  "Moving vs elapsed":
+    "Moving time compared with total elapsed time, including pauses and stops.",
   "Max moving time":
     "Longest moving time in a single activity, excluding paused duration.",
   "Moving time by year":

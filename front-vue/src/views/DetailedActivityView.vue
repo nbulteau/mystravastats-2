@@ -86,6 +86,33 @@
       </section>
 
       <section
+        v-if="hikingInsightRows.length > 0"
+        class="detail-card detail-hiking-insights"
+      >
+        <header class="detail-card__header">
+          <h2>Hiking Insights</h2>
+        </header>
+        <div class="detail-hiking-insights__grid">
+          <div
+            v-for="row in hikingInsightRows"
+            :key="row.label"
+            class="detail-hiking-insight"
+            :class="row.tone ? `detail-hiking-insight--${row.tone}` : undefined"
+          >
+            <span class="detail-hiking-insight__label detail-label-with-tooltip">
+              <span>{{ row.label }}</span>
+              <TooltipHint
+                v-if="metricTooltip(row)"
+                :text="metricTooltip(row) ?? ''"
+              />
+            </span>
+            <strong>{{ row.value }}</strong>
+            <small v-if="row.hint">{{ row.hint }}</small>
+          </div>
+        </div>
+      </section>
+
+      <section
         v-if="activity"
         class="detail-insight-grid"
       >
@@ -620,6 +647,7 @@ import {
 import { ErrorService } from "@/services/error.service";
 import TooltipHint from "@/components/TooltipHint.vue";
 import { getMetricTooltip } from "@/utils/metric-tooltips";
+import { buildHikingInsights, type HikingDifficultyLabel } from "@/utils/hiking-insights";
 import type { Options, SeriesAreaOptions, SeriesLineOptions } from "highcharts";
 import Highcharts from "highcharts";
 import { Chart } from "highcharts-vue";
@@ -996,6 +1024,54 @@ type DetailMetricRow = {
 };
 
 const cadenceUnit = computed(() => effectiveActivityType.value.endsWith("Run") ? "spm" : "rpm");
+const hikingInsights = computed(() => buildHikingInsights(activity.value));
+
+const hikingInsightRows = computed<DetailMetricRow[]>(() => {
+  const insights = hikingInsights.value;
+  if (!insights) {
+    return [];
+  }
+
+  const hasAltitudeStream = Boolean(activity.value?.stream?.altitude?.length);
+
+  return [
+    {
+      label: "Hiking Difficulty",
+      value: insights.difficultyLabel,
+      hint: `Score ${insights.difficultyScore.toFixed(1)}`,
+      tone: hikingDifficultyTone(insights.difficultyLabel),
+    },
+    {
+      label: "Elevation per km",
+      value: formatOptionalDecimal(insights.elevationPerKm, "m/km", 0),
+    },
+    {
+      label: "Max continuous climb",
+      value: formatOptionalDecimal(insights.maxContinuousClimbMeters, "m", 0),
+      hint: hasAltitudeStream ? "From altitude stream" : "Altitude stream missing",
+      tone: insights.maxContinuousClimbMeters === null ? "muted" : undefined,
+    },
+    {
+      label: "Highest point",
+      value: formatOptionalDecimal(insights.highestPointMeters, "m", 0),
+      hint: hasAltitudeStream ? "From altitude stream" : "From activity summary",
+    },
+    {
+      label: "Vertical speed",
+      value: formatOptionalDecimal(insights.verticalSpeedMetersPerHour, "m/h", 0),
+      hint: "D+ per moving hour",
+    },
+    {
+      label: "Pause ratio",
+      value: insights.pauseRatio !== null ? `${(insights.pauseRatio * 100).toFixed(0)}%` : "n/a",
+      hint: insights.pausedSeconds > 0 ? `${formatTime(insights.pausedSeconds)} stopped` : "No stopped time",
+    },
+    {
+      label: "Moving vs elapsed",
+      value: `${formatTime(insights.movingTimeSeconds)} / ${formatTime(insights.elapsedTimeSeconds)}`,
+    },
+  ];
+});
 
 type PowerAnalysis = {
   averagePower: number | null;
@@ -1549,6 +1625,22 @@ function formatPowerZoneTime(seconds: number, totalSeconds: number): string {
   }
   const percentage = seconds / totalSeconds * 100;
   return `${formatTime(seconds)} (${percentage.toFixed(0)}%)`;
+}
+
+function formatOptionalDecimal(value: number | null, suffix: string, digits: number): string {
+  return value !== null && Number.isFinite(value)
+    ? `${value.toFixed(digits)} ${suffix}`
+    : "n/a";
+}
+
+function hikingDifficultyTone(label: HikingDifficultyLabel): DetailMetricRow["tone"] {
+  if (label === "Easy" || label === "Moderate") {
+    return "good";
+  }
+  if (label === "Epic" || label === "Very hard") {
+    return "warn";
+  }
+  return undefined;
 }
 
 function resolvePowerDurationSeconds(currentActivity: DetailedActivity): number {
@@ -2787,6 +2879,57 @@ watch([
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 10px;
+}
+
+.detail-hiking-insights {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-hiking-insights__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.detail-hiking-insight {
+  min-width: 0;
+  border-top: 1px solid #edf0f5;
+  padding-top: 8px;
+  display: grid;
+  gap: 3px;
+}
+
+.detail-hiking-insight__label {
+  color: var(--ms-text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.detail-hiking-insight strong {
+  overflow-wrap: anywhere;
+  color: var(--ms-text);
+  font-size: 1rem;
+}
+
+.detail-hiking-insight small {
+  color: var(--ms-text-muted);
+  font-size: 0.72rem;
+}
+
+.detail-hiking-insight--good strong {
+  color: #166534;
+}
+
+.detail-hiking-insight--warn strong {
+  color: #b45309;
+}
+
+.detail-hiking-insight--muted strong {
+  color: #64748b;
 }
 
 .detail-insight-grid {

@@ -9,6 +9,7 @@ import (
 // Infrastructure adapters implement this interface.
 type AthleteReader interface {
 	FindAthlete() strava.Athlete
+	FindActivitiesByYearAndTypes(year *int, activityTypes ...business.ActivityType) []*strava.Activity
 	FindPerformanceSettings() business.AthletePerformanceSettings
 	SavePerformanceSettings(settings business.AthletePerformanceSettings) business.AthletePerformanceSettings
 }

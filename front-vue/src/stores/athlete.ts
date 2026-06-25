@@ -2,10 +2,16 @@ import { defineStore } from "pinia";
 import { requestJson } from "@/stores/api";
 import type { HeartRateZoneSettings } from "@/models/heart-rate-zone.model";
 import {
+  emptyFtpEstimate,
   emptyAthletePerformanceSettings,
+  normalizeFtpEstimate,
   normalizeAthletePerformanceSettings,
   type AthletePerformanceSettings,
+  type FtpEstimate,
 } from "@/models/athlete-performance-settings.model";
+
+const FTP_ESTIMATE_ACTIVITY_TYPE = "Commute_GravelRide_MountainBikeRide_Ride_VirtualRide";
+const FTP_ESTIMATE_WINDOW_DAYS = 180;
 
 export const useAthleteStore = defineStore("athlete", {
   state: () => ({
@@ -15,6 +21,8 @@ export const useAthleteStore = defineStore("athlete", {
     athleteLoaded: false,
     performanceSettings: emptyAthletePerformanceSettings() as AthletePerformanceSettings,
     performanceSettingsLoaded: false,
+    ftpEstimate: emptyFtpEstimate() as FtpEstimate,
+    ftpEstimateLoaded: false,
     heartRateZoneSettings: {
       maxHr: null,
       thresholdHr: null,
@@ -63,6 +71,18 @@ export const useAthleteStore = defineStore("athlete", {
       const settings = await requestJson<AthletePerformanceSettings>("/api/athletes/me/performance-settings");
       this.performanceSettings = normalizeAthletePerformanceSettings(settings);
       this.performanceSettingsLoaded = true;
+    },
+    async fetchFtpEstimate(force = false) {
+      if (this.ftpEstimateLoaded && !force) {
+        return;
+      }
+      const params = new URLSearchParams({
+        activityType: FTP_ESTIMATE_ACTIVITY_TYPE,
+        days: String(FTP_ESTIMATE_WINDOW_DAYS),
+      });
+      const estimate = await requestJson<FtpEstimate>(`/api/athletes/me/ftp-estimate?${params.toString()}`);
+      this.ftpEstimate = normalizeFtpEstimate(estimate);
+      this.ftpEstimateLoaded = true;
     },
     async savePerformanceSettings(settings: AthletePerformanceSettings) {
       const updatedSettings = await requestJson<AthletePerformanceSettings>("/api/athletes/me/performance-settings", {

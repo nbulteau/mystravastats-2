@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	dataqualityInfra "mystravastats/internal/dataquality/infrastructure"
 	"mystravastats/internal/platform/activityprovider"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
@@ -16,6 +17,10 @@ func NewAthleteServiceAdapter() *AthleteServiceAdapter {
 
 func (adapter *AthleteServiceAdapter) FindAthlete() strava.Athlete {
 	return activityprovider.Get().GetAthlete()
+}
+
+func (adapter *AthleteServiceAdapter) FindActivitiesByYearAndTypes(year *int, activityTypes ...business.ActivityType) []*strava.Activity {
+	return dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...))
 }
 
 func (adapter *AthleteServiceAdapter) FindPerformanceSettings() business.AthletePerformanceSettings {

@@ -839,6 +839,27 @@ func ToAthletePerformanceSettings(dto AthletePerformanceSettingsDto) business.At
 	}
 }
 
+func ToFtpEstimateDto(estimate business.FtpEstimate) FtpEstimateDto {
+	return FtpEstimateDto{
+		Available:      estimate.Available,
+		Ftp:            estimate.Ftp,
+		Method:         estimate.Method,
+		MethodLabel:    estimate.MethodLabel,
+		BestPower:      estimate.BestPower,
+		Multiplier:     estimate.Multiplier,
+		BasedOnSeconds: estimate.BasedOnSeconds,
+		Confidence:     estimate.Confidence,
+		Source:         estimate.Source,
+		SourceKind:     estimate.SourceKind,
+		ActivityID:     estimate.ActivityID,
+		ActivityName:   estimate.ActivityName,
+		ActivityType:   estimate.ActivityType,
+		ActivityDate:   estimate.ActivityDate,
+		WindowDays:     estimate.WindowDays,
+		ActivityCount:  estimate.ActivityCount,
+	}
+}
+
 func ToHeartRateZoneAnalysisDto(analysis business.HeartRateZoneAnalysis) HeartRateZoneAnalysisDto {
 	distributions := make([]HeartRateZoneDistributionDto, len(analysis.Zones))
 	for i, zone := range analysis.Zones {
