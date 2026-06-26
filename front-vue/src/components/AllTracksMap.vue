@@ -24,10 +24,7 @@ const emit = defineEmits<{
 
 const DEFAULT_VIEW: [number, number] = [46.2276, 2.2137];
 const DEFAULT_ZOOM = 6;
-const MAX_POINTS_PER_TRACK = 1500;
-const AGGREGATION_ZOOM_THRESHOLD = 9;
-const AGGREGATION_MIN_TRACKS = 24;
-const AGGREGATION_CELL_SIZE_PX = 64;
+const MAX_POINTS_PER_TRACK_AT_HIGH_ZOOM = 1500;
 const HEATMAP_SAMPLE_CELL_SIZE_PX = 8;
 const HEATMAP_MAX_POINTS_PER_TRACK = 360;
 const HEATMAP_RADIUS_PX = 24;
@@ -41,10 +38,6 @@ const latestBounds = ref<L.LatLngBounds | null>(null);
 const lastDatasetKey = ref<string | null>(null);
 const canvasRenderer = L.canvas({ padding: 0.25 });
 const router = useRouter();
-const aggregatedClusterCount = ref(0);
-const aggregatedTrackCount = ref(0);
-const aggregatedDistanceKm = ref(0);
-const aggregatedElevationGainM = ref(0);
 const heatmapCellCount = ref(0);
 const heatmapPointCount = ref(0);
 const passageCorridorCount = ref(0);
@@ -57,7 +50,6 @@ const isValidCoordinate = (coord: number[]) =>
 const hasRenderableTracks = computed(() => latestBounds.value !== null);
 const isHeatmapMode = computed(() => props.renderMode === "HEATMAP");
 const isPassagesMode = computed(() => props.renderMode === "PASSAGES");
-const isAggregatedMode = computed(() => !isHeatmapMode.value && !isPassagesMode.value && aggregatedClusterCount.value > 0);
 const isHeatmapOverlayVisible = computed(() => isHeatmapMode.value && heatmapCellCount.value > 0);
 const isPassagesOverlayVisible = computed(() => isPassagesMode.value && passageCorridorCount.value > 0);
 const emptyMapMessage = computed(() => {
@@ -67,25 +59,46 @@ const emptyMapMessage = computed(() => {
   return "No GPS tracks for the selected filters.";
 });
 
-type MapCluster = {
-  center: L.LatLng;
-  tracks: MapTrack[];
-  points: L.LatLng[];
-  totalDistanceKm: number;
-  totalElevationGainM: number;
-  weightedContribution: number;
-};
-
 type HeatmapCell = {
   point: L.Point;
   count: number;
 };
 
-function simplifyTrackCoordinates(trackCoordinates: number[][]): number[][] {
-  if (trackCoordinates.length <= MAX_POINTS_PER_TRACK) {
+type TraceRenderStyle = {
+  maxPointsPerTrack: number;
+  weight: number;
+  opacity: number;
+  smoothFactor: number;
+};
+
+function traceRenderStyleForZoom(currentZoom: number): TraceRenderStyle {
+  if (currentZoom <= 5) {
+    return { maxPointsPerTrack: 90, weight: 1.15, opacity: 0.42, smoothFactor: 2.4 };
+  }
+  if (currentZoom <= 6) {
+    return { maxPointsPerTrack: 140, weight: 1.25, opacity: 0.48, smoothFactor: 2.2 };
+  }
+  if (currentZoom <= 7) {
+    return { maxPointsPerTrack: 220, weight: 1.45, opacity: 0.55, smoothFactor: 2 };
+  }
+  if (currentZoom <= 8) {
+    return { maxPointsPerTrack: 360, weight: 1.75, opacity: 0.64, smoothFactor: 1.8 };
+  }
+  if (currentZoom <= 9) {
+    return { maxPointsPerTrack: 600, weight: 2.1, opacity: 0.72, smoothFactor: 1.6 };
+  }
+  if (currentZoom <= 11) {
+    return { maxPointsPerTrack: 1000, weight: 2.6, opacity: 0.8, smoothFactor: 1.5 };
+  }
+  return { maxPointsPerTrack: MAX_POINTS_PER_TRACK_AT_HIGH_ZOOM, weight: 3, opacity: 0.88, smoothFactor: 1.5 };
+}
+
+function simplifyTrackCoordinates(trackCoordinates: number[][], maxPoints: number): number[][] {
+  const pointLimit = Math.max(2, Math.floor(maxPoints));
+  if (trackCoordinates.length <= pointLimit) {
     return trackCoordinates;
   }
-  const step = Math.ceil(trackCoordinates.length / MAX_POINTS_PER_TRACK);
+  const step = Math.ceil(trackCoordinates.length / pointLimit);
   const reduced: number[][] = [];
   for (let index = 0; index < trackCoordinates.length; index += step) {
     reduced.push(trackCoordinates[index]);
@@ -153,13 +166,6 @@ function passageWeight(count: number): number {
   return Math.min(9, 2.5 + Math.sqrt(Math.max(1, count)) * 1.4);
 }
 
-function resetTraceAggregationState() {
-  aggregatedClusterCount.value = 0;
-  aggregatedTrackCount.value = 0;
-  aggregatedDistanceKm.value = 0;
-  aggregatedElevationGainM.value = 0;
-}
-
 function resetHeatmapState() {
   heatmapCellCount.value = 0;
   heatmapPointCount.value = 0;
@@ -224,111 +230,6 @@ function handlePopupOpen(event: L.PopupEvent) {
       }
     };
   });
-}
-
-function getDominantActivityType(tracks: MapTrack[]): string {
-  const counts = new Map<string, number>();
-  tracks.forEach((track) => {
-    const type = track.activityType || "Unknown";
-    counts.set(type, (counts.get(type) ?? 0) + 1);
-  });
-  let dominantType = "Unknown";
-  let dominantCount = -1;
-  counts.forEach((count, type) => {
-    if (count > dominantCount) {
-      dominantCount = count;
-      dominantType = type;
-    }
-  });
-  return dominantType;
-}
-
-function trackWeightContribution(track: MapTrack): number {
-  const distanceScore = Number.isFinite(track.distanceKm) ? track.distanceKm : 0;
-  const elevationScore = Number.isFinite(track.elevationGainM) ? track.elevationGainM / 100 : 0;
-  return Math.max(0.5, distanceScore + elevationScore);
-}
-
-function computeClusterRadius(cluster: MapCluster): number {
-  const activityScore = Math.log2(cluster.tracks.length + 1) * 1.8;
-  const effortScore = Math.log2(cluster.weightedContribution + 1) * 3.4;
-  return Math.min(28, Math.max(9, 6 + activityScore + effortScore));
-}
-
-function formatClusterSummary(cluster: MapCluster): string {
-  const distanceLabel = `${cluster.totalDistanceKm.toFixed(0)} km`;
-  const elevationLabel = `${Math.round(cluster.totalElevationGainM).toLocaleString()} m`;
-  return `${cluster.tracks.length} activities · ${distanceLabel} · D+ ${elevationLabel}`;
-}
-
-function shouldUseAggregation(currentZoom: number): boolean {
-  return currentZoom <= AGGREGATION_ZOOM_THRESHOLD && props.mapTracks.length >= AGGREGATION_MIN_TRACKS;
-}
-
-function trackRepresentativePoint(track: MapTrack): L.LatLng | null {
-  const firstValid = track.coordinates.find((coord) => isValidCoordinate(coord));
-  if (!firstValid) {
-    return null;
-  }
-  return L.latLng(firstValid[0], firstValid[1]);
-}
-
-function buildClusters(currentZoom: number): MapCluster[] {
-  if (!map.value) {
-    return [];
-  }
-  const clusters = new Map<string, {
-    weightedLatSum: number;
-    weightedLngSum: number;
-    weightSum: number;
-    tracks: MapTrack[];
-    points: L.LatLng[];
-    totalDistanceKm: number;
-    totalElevationGainM: number;
-    weightedContribution: number;
-  }>();
-  props.mapTracks.forEach((track) => {
-    const representativePoint = trackRepresentativePoint(track);
-    if (!representativePoint) {
-      return;
-    }
-    const contribution = trackWeightContribution(track);
-    const projected = map.value!.project(representativePoint, currentZoom);
-    const cellX = Math.floor(projected.x / AGGREGATION_CELL_SIZE_PX);
-    const cellY = Math.floor(projected.y / AGGREGATION_CELL_SIZE_PX);
-    const key = `${cellX}:${cellY}`;
-    const existing = clusters.get(key);
-    if (existing) {
-      existing.weightedLatSum += representativePoint.lat * contribution;
-      existing.weightedLngSum += representativePoint.lng * contribution;
-      existing.weightSum += contribution;
-      existing.tracks.push(track);
-      existing.points.push(representativePoint);
-      existing.totalDistanceKm += track.distanceKm;
-      existing.totalElevationGainM += track.elevationGainM;
-      existing.weightedContribution += contribution;
-      return;
-    }
-    clusters.set(key, {
-      weightedLatSum: representativePoint.lat * contribution,
-      weightedLngSum: representativePoint.lng * contribution,
-      weightSum: contribution,
-      tracks: [track],
-      points: [representativePoint],
-      totalDistanceKm: track.distanceKm,
-      totalElevationGainM: track.elevationGainM,
-      weightedContribution: contribution,
-    });
-  });
-
-  return Array.from(clusters.values()).map((cluster) => ({
-    center: L.latLng(cluster.weightedLatSum / cluster.weightSum, cluster.weightedLngSum / cluster.weightSum),
-    tracks: cluster.tracks,
-    points: cluster.points,
-    totalDistanceKm: cluster.totalDistanceKm,
-    totalElevationGainM: cluster.totalElevationGainM,
-    weightedContribution: cluster.weightedContribution,
-  }));
 }
 
 function ensureHeatmapCanvas(): HTMLCanvasElement | null {
@@ -576,67 +477,6 @@ function renderPassageLayer(): L.LatLng[] {
   return pointsForBounds;
 }
 
-function zoomToCluster(cluster: MapCluster) {
-  if (!map.value) {
-    return;
-  }
-  if (cluster.points.length === 1) {
-    map.value.setView(cluster.points[0], Math.max(map.value.getZoom() + 2, 13));
-    return;
-  }
-  const bounds = L.latLngBounds(cluster.points);
-  if (bounds.isValid()) {
-    map.value.fitBounds(bounds, { padding: [28, 28], maxZoom: 14 });
-  }
-}
-
-function renderAggregatedClusters(currentZoom: number): L.LatLng[] {
-  if (!tracksLayerGroup.value) {
-    return [];
-  }
-  const clusters = buildClusters(currentZoom);
-  aggregatedClusterCount.value = clusters.length;
-  aggregatedTrackCount.value = props.mapTracks.length;
-  aggregatedDistanceKm.value = clusters.reduce((sum, cluster) => sum + cluster.totalDistanceKm, 0);
-  aggregatedElevationGainM.value = clusters.reduce((sum, cluster) => sum + cluster.totalElevationGainM, 0);
-
-  const pointsForBounds: L.LatLng[] = [];
-  clusters.forEach((cluster) => {
-    pointsForBounds.push(...cluster.points);
-    const activityCount = cluster.tracks.length;
-    const dominantType = getDominantActivityType(cluster.tracks);
-    const marker = L.circleMarker(cluster.center, {
-      radius: computeClusterRadius(cluster),
-      color: "#ffffff",
-      weight: 2,
-      fillColor: getActivityTypeColor(dominantType),
-      fillOpacity: 0.82,
-    }).addTo(tracksLayerGroup.value!);
-    marker.bindTooltip(formatClusterSummary(cluster), { direction: "top", opacity: 0.95 });
-
-    if (activityCount === 1) {
-      marker.bindPopup(popupContent(cluster.tracks[0]), {
-        maxWidth: 320,
-        className: "ms-map-popup",
-      });
-    } else {
-      marker.bindPopup(
-        `<div class="map-popup"><div class="map-popup__title">${activityCount} activities</div><div class="map-popup__meta">${cluster.totalDistanceKm.toFixed(0)} km · D+ ${Math.round(cluster.totalElevationGainM).toLocaleString()} m</div><div class="map-popup__meta">Zoom in for detailed tracks</div></div>`,
-        { maxWidth: 260, className: "ms-map-popup" },
-      );
-    }
-    marker.on("click", () => {
-      if (activityCount === 1) {
-        marker.openPopup();
-        return;
-      }
-      zoomToCluster(cluster);
-    });
-  });
-
-  return pointsForBounds;
-}
-
 function publishViewport() {
   if (!map.value) {
     return;
@@ -707,23 +547,11 @@ function renderTraceLayers() {
   clearHeatmapCanvas();
 
   const currentZoom = map.value.getZoom();
-  if (shouldUseAggregation(currentZoom)) {
-    const aggregatedPoints = renderAggregatedClusters(currentZoom);
-    if (aggregatedPoints.length === 0) {
-      return;
-    }
-    const bounds = L.latLngBounds(aggregatedPoints);
-    if (bounds.isValid()) {
-      latestBounds.value = bounds;
-    }
-    return;
-  }
-
-  resetTraceAggregationState();
+  const traceStyle = traceRenderStyleForZoom(currentZoom);
 
   const allLatLngs: L.LatLng[] = [];
   props.mapTracks.forEach((track) => {
-    const latLngs = simplifyTrackCoordinates(track.coordinates)
+    const latLngs = simplifyTrackCoordinates(track.coordinates, traceStyle.maxPointsPerTrack)
       .filter((coord) => isValidCoordinate(coord))
       .map((coord) => L.latLng(coord[0], coord[1]));
 
@@ -733,10 +561,10 @@ function renderTraceLayers() {
 
     const polyline = L.polyline(latLngs, {
       color: getActivityTypeColor(track.activityType),
-      weight: 3,
-      opacity: 0.88,
+      weight: traceStyle.weight,
+      opacity: traceStyle.opacity,
       renderer: canvasRenderer,
-      smoothFactor: 1.5,
+      smoothFactor: traceStyle.smoothFactor,
     }).addTo(tracksLayerGroup.value!);
     polyline.bindPopup(popupContent(track), {
       maxWidth: 320,
@@ -759,7 +587,6 @@ function renderHeatmapMode() {
   if (!map.value) {
     return;
   }
-  resetTraceAggregationState();
   resetPassagesState();
 
   const heatmapPoints = renderHeatmapLayer();
@@ -778,7 +605,6 @@ function renderPassagesMode() {
     return;
   }
   tracksLayerGroup.value.clearLayers();
-  resetTraceAggregationState();
   resetHeatmapState();
   clearHeatmapCanvas();
 
@@ -889,7 +715,6 @@ onBeforeUnmount(() => {
   tracksLayerGroup.value = undefined;
   heatmapCanvas.value = undefined;
   latestBounds.value = null;
-  resetTraceAggregationState();
   resetHeatmapState();
   resetPassagesState();
 });
@@ -918,13 +743,6 @@ onBeforeUnmount(() => {
       class="map-overlay map-overlay--empty"
     >
       {{ emptyMapMessage }}
-    </div>
-    <div
-      v-if="isAggregatedMode"
-      class="map-overlay map-overlay--aggregation"
-    >
-      Aggregated mode · {{ aggregatedTrackCount }} tracks in {{ aggregatedClusterCount }} clusters
-      · {{ aggregatedDistanceKm.toFixed(0) }} km · D+ {{ Math.round(aggregatedElevationGainM).toLocaleString() }} m
     </div>
     <div
       v-if="isHeatmapOverlayVisible"
@@ -985,14 +803,6 @@ onBeforeUnmount(() => {
   color: var(--ms-text-muted);
   border: 1px solid var(--ms-border);
   background: rgba(255, 255, 255, 0.95);
-}
-
-.map-overlay--aggregation {
-  inset: 14px 14px auto auto;
-  color: #174a2a;
-  border: 1px solid #b8e0c7;
-  background: rgba(236, 250, 241, 0.95);
-  font-size: 0.8rem;
 }
 
 .map-overlay--heatmap {
