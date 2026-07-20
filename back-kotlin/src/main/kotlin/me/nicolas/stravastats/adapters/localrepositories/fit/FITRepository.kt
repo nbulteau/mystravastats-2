@@ -1,6 +1,7 @@
 package me.nicolas.stravastats.adapters.localrepositories.fit
 
 import com.garmin.fit.*
+import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.strava.AthleteRef
 import me.nicolas.stravastats.domain.business.strava.stream.PowerStream
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
@@ -91,8 +92,9 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
         val startDate: String = extractDate(sessionMesg.startTime?.timestamp!!)
         // The time at which the stravaActivity was started in the local timezone.
         val startDateLocal: String = extractDateLocal(sessionMesg.startTime?.timestamp!!)
+        val activityType = extractFITActivityType(sessionMesg.sport, sessionMesg.subSport)
         // StravaActivity name
-        val name = "${extractActivityType(sessionMesg.sport!!)} - $startDateLocal"
+        val name = "$activityType - $startDateLocal"
         // The unique identifier of the stravaActivity
         val id: Long = name.hashCode().toLong().absoluteValue
         // Latitude /longitude of the start point
@@ -106,7 +108,7 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
         val totalElevationGain: Double = sessionMesg.totalAscent?.toDouble() ?: sum
 
         // StravaActivity type (i.e. Ride, Run ...)
-        val type: String = extractActivityType(sessionMesg.sport!!)
+        val type: String = activityType
 
         return StravaActivity(
             athlete = athlete,
@@ -331,17 +333,6 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
         }
     }
 
-    private fun extractActivityType(sport: Sport): String {
-        return when (sport) {
-            Sport.CYCLING -> "Ride"
-            Sport.RUNNING -> "Run"
-            Sport.INLINE_SKATING -> "InlineSkate"
-            Sport.ALPINE_SKIING -> "AlpineSki"
-            Sport.HIKING -> "Hike"
-            else -> "Unknown"
-        }
-    }
-
     private fun extractDateLocal(value: Long): String {
         var localDateTime = LocalDateTime.of(1989, 12, 31, 0, 0, 0, 0)
         if (value >= 0L) {
@@ -407,6 +398,27 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
             }
             index++
         }
+    }
+}
+
+internal fun extractFITActivityType(sport: Sport?, subSport: SubSport?): String {
+    return when (sport) {
+        Sport.CYCLING -> when (subSport) {
+            SubSport.MOUNTAIN -> ActivityType.MountainBikeRide.name
+            SubSport.GRAVEL_CYCLING, SubSport.MIXED_SURFACE -> ActivityType.GravelRide.name
+            SubSport.VIRTUAL_ACTIVITY -> ActivityType.VirtualRide.name
+            else -> ActivityType.Ride.name
+        }
+        Sport.RUNNING -> when (subSport) {
+            SubSport.TRAIL -> ActivityType.TrailRun.name
+            else -> ActivityType.Run.name
+        }
+        Sport.WALKING -> ActivityType.Walk.name
+        Sport.HIKING -> ActivityType.Hike.name
+        Sport.ALPINE_SKIING -> ActivityType.AlpineSki.name
+        Sport.INLINE_SKATING -> ActivityType.InlineSkate.name
+        Sport.E_BIKING -> ActivityType.VirtualRide.name
+        else -> ActivityType.Ride.name
     }
 }
 

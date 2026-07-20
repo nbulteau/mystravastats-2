@@ -815,7 +815,7 @@ func mapFITSportToActivityType(sport fitparser.Sport, subSport fitparser.SubSpor
 		switch subSport {
 		case fitparser.SubSportMountain:
 			return business.MountainBikeRide.String()
-		case fitparser.SubSportGravelCycling:
+		case fitparser.SubSportGravelCycling, fitparser.SubSportMixedSurface:
 			return business.GravelRide.String()
 		case fitparser.SubSportVirtualActivity:
 			return business.VirtualRide.String()
@@ -829,6 +829,8 @@ func mapFITSportToActivityType(sport fitparser.Sport, subSport fitparser.SubSpor
 		default:
 			return business.Run.String()
 		}
+	case fitparser.SportWalking:
+		return business.Walk.String()
 	case fitparser.SportHiking:
 		return business.Hike.String()
 	case fitparser.SportAlpineSkiing:

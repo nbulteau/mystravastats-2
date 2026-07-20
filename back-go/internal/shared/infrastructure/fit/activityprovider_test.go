@@ -6,6 +6,8 @@ import (
 
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
+
+	fitparser "github.com/tormoder/fit"
 )
 
 func TestNewFITActivityProvider_EmptyDirectory(t *testing.T) {
@@ -88,6 +90,78 @@ func TestNormalizeCoordinates_FillsMissingValues(t *testing.T) {
 	}
 	if normalized[5][0] == 0 && normalized[5][1] == 0 {
 		t.Fatal("expected trailing invalid coordinates to be fixed")
+	}
+}
+
+func TestMapFITSportToActivityType_UsesSportAndSubSport(t *testing.T) {
+	tests := []struct {
+		name     string
+		sport    fitparser.Sport
+		subSport fitparser.SubSport
+		expected string
+	}{
+		{
+			name:     "generic cycling",
+			sport:    fitparser.SportCycling,
+			subSport: fitparser.SubSportGeneric,
+			expected: business.Ride.String(),
+		},
+		{
+			name:     "mountain cycling",
+			sport:    fitparser.SportCycling,
+			subSport: fitparser.SubSportMountain,
+			expected: business.MountainBikeRide.String(),
+		},
+		{
+			name:     "gravel cycling",
+			sport:    fitparser.SportCycling,
+			subSport: fitparser.SubSportGravelCycling,
+			expected: business.GravelRide.String(),
+		},
+		{
+			name:     "mixed surface cycling",
+			sport:    fitparser.SportCycling,
+			subSport: fitparser.SubSportMixedSurface,
+			expected: business.GravelRide.String(),
+		},
+		{
+			name:     "virtual cycling",
+			sport:    fitparser.SportCycling,
+			subSport: fitparser.SubSportVirtualActivity,
+			expected: business.VirtualRide.String(),
+		},
+		{
+			name:     "trail running",
+			sport:    fitparser.SportRunning,
+			subSport: fitparser.SubSportTrail,
+			expected: business.TrailRun.String(),
+		},
+		{
+			name:     "walking",
+			sport:    fitparser.SportWalking,
+			subSport: fitparser.SubSportGeneric,
+			expected: business.Walk.String(),
+		},
+		{
+			name:     "hiking",
+			sport:    fitparser.SportHiking,
+			subSport: fitparser.SubSportGeneric,
+			expected: business.Hike.String(),
+		},
+		{
+			name:     "unknown fallback",
+			sport:    fitparser.SportInvalid,
+			subSport: fitparser.SubSportInvalid,
+			expected: business.Ride.String(),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if actual := mapFITSportToActivityType(tt.sport, tt.subSport); actual != tt.expected {
+				t.Fatalf("expected %s, got %s", tt.expected, actual)
+			}
+		})
 	}
 }
 
