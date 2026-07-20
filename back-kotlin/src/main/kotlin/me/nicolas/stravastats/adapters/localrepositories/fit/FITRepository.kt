@@ -69,7 +69,8 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
         // The maximum heart rate of the stravaAthlete during this effort
         val maxHeartRate: Int = sessionMesg?.maxHeartRate?.toInt() ?: 0
         // Whether this stravaActivity is a commute
-        val commute = false
+        val classification = extractFITActivityClassification(sessionMesg.sport, sessionMesg.subSport)
+        val commute = classification.commute
         // The stravaActivity's distance, in meters
         val distance: Double = sessionMesg?.totalDistance?.toDouble() ?: 0.0
         // The stravaActivity's elapsed time, in seconds
@@ -92,9 +93,8 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
         val startDate: String = extractDate(sessionMesg.startTime?.timestamp!!)
         // The time at which the stravaActivity was started in the local timezone.
         val startDateLocal: String = extractDateLocal(sessionMesg.startTime?.timestamp!!)
-        val activityType = extractFITActivityType(sessionMesg.sport, sessionMesg.subSport)
         // StravaActivity name
-        val name = "$activityType - $startDateLocal"
+        val name = "${classification.type} - $startDateLocal"
         // The unique identifier of the stravaActivity
         val id: Long = name.hashCode().toLong().absoluteValue
         // Latitude /longitude of the start point
@@ -108,7 +108,7 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
         val totalElevationGain: Double = sessionMesg.totalAscent?.toDouble() ?: sum
 
         // StravaActivity type (i.e. Ride, Run ...)
-        val type: String = activityType
+        val type: String = classification.type
 
         return StravaActivity(
             athlete = athlete,
@@ -127,6 +127,7 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
             maxSpeed = maxSpeed,
             movingTime = movingTime,
             name = name,
+            _sportType = classification.sportType,
             startDate = startDate,
             startDateLocal = startDateLocal,
             startLatlng = startLatlng,
@@ -401,25 +402,55 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
     }
 }
 
+internal data class FITActivityClassification(
+    val type: String,
+    val sportType: String = type,
+    val commute: Boolean = false,
+)
+
 internal fun extractFITActivityType(sport: Sport?, subSport: SubSport?): String {
+    return extractFITActivityClassification(sport, subSport).type
+}
+
+internal fun extractFITActivityClassification(sport: Sport?, subSport: SubSport?): FITActivityClassification {
     return when (sport) {
         Sport.CYCLING -> when (subSport) {
-            SubSport.MOUNTAIN -> ActivityType.MountainBikeRide.name
-            SubSport.GRAVEL_CYCLING, SubSport.MIXED_SURFACE -> ActivityType.GravelRide.name
-            SubSport.VIRTUAL_ACTIVITY -> ActivityType.VirtualRide.name
-            else -> ActivityType.Ride.name
+            SubSport.COMMUTING -> fitCommuteClassification(ActivityType.Ride.name)
+            SubSport.MOUNTAIN, SubSport.E_BIKE_MOUNTAIN -> FITActivityClassification(ActivityType.MountainBikeRide.name)
+            SubSport.GRAVEL_CYCLING, SubSport.MIXED_SURFACE -> FITActivityClassification(ActivityType.GravelRide.name)
+            SubSport.VIRTUAL_ACTIVITY, SubSport.INDOOR_CYCLING -> FITActivityClassification(ActivityType.VirtualRide.name)
+            else -> FITActivityClassification(ActivityType.Ride.name)
         }
         Sport.RUNNING -> when (subSport) {
-            SubSport.TRAIL -> ActivityType.TrailRun.name
-            else -> ActivityType.Run.name
+            SubSport.TRAIL -> FITActivityClassification(ActivityType.TrailRun.name)
+            else -> FITActivityClassification(ActivityType.Run.name)
         }
-        Sport.WALKING -> ActivityType.Walk.name
-        Sport.HIKING -> ActivityType.Hike.name
-        Sport.ALPINE_SKIING -> ActivityType.AlpineSki.name
-        Sport.INLINE_SKATING -> ActivityType.InlineSkate.name
-        Sport.E_BIKING -> ActivityType.VirtualRide.name
-        else -> ActivityType.Ride.name
+        Sport.FITNESS_EQUIPMENT -> when (subSport) {
+            SubSport.INDOOR_CYCLING -> FITActivityClassification(ActivityType.VirtualRide.name)
+            SubSport.TREADMILL, SubSport.INDOOR_RUNNING -> FITActivityClassification(ActivityType.Run.name)
+            SubSport.INDOOR_WALKING -> FITActivityClassification(ActivityType.Walk.name)
+            else -> FITActivityClassification(ActivityType.Ride.name)
+        }
+        Sport.WALKING -> FITActivityClassification(ActivityType.Walk.name)
+        Sport.HIKING, Sport.MOUNTAINEERING -> FITActivityClassification(ActivityType.Hike.name)
+        Sport.ALPINE_SKIING -> FITActivityClassification(ActivityType.AlpineSki.name)
+        Sport.INLINE_SKATING -> FITActivityClassification(ActivityType.InlineSkate.name)
+        Sport.E_BIKING -> when (subSport) {
+            SubSport.COMMUTING -> fitCommuteClassification(ActivityType.Ride.name)
+            SubSport.E_BIKE_MOUNTAIN -> FITActivityClassification(ActivityType.MountainBikeRide.name)
+            SubSport.VIRTUAL_ACTIVITY, SubSport.INDOOR_CYCLING -> FITActivityClassification(ActivityType.VirtualRide.name)
+            else -> FITActivityClassification(ActivityType.Ride.name)
+        }
+        else -> FITActivityClassification(ActivityType.Ride.name)
     }
+}
+
+private fun fitCommuteClassification(sportType: String): FITActivityClassification {
+    return FITActivityClassification(
+        type = ActivityType.Commute.name,
+        sportType = sportType,
+        commute = true,
+    )
 }
 
 internal fun resolveFitMovingTime(

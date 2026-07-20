@@ -93,75 +93,168 @@ func TestNormalizeCoordinates_FillsMissingValues(t *testing.T) {
 	}
 }
 
-func TestMapFITSportToActivityType_UsesSportAndSubSport(t *testing.T) {
+func TestClassifyFITSport_UsesSportAndSubSport(t *testing.T) {
 	tests := []struct {
 		name     string
 		sport    fitparser.Sport
 		subSport fitparser.SubSport
-		expected string
+		expected fitActivityClassification
 	}{
 		{
 			name:     "generic cycling",
 			sport:    fitparser.SportCycling,
 			subSport: fitparser.SubSportGeneric,
-			expected: business.Ride.String(),
+			expected: fitActivityTypeClassification(business.Ride.String()),
 		},
 		{
 			name:     "mountain cycling",
 			sport:    fitparser.SportCycling,
 			subSport: fitparser.SubSportMountain,
-			expected: business.MountainBikeRide.String(),
+			expected: fitActivityTypeClassification(business.MountainBikeRide.String()),
+		},
+		{
+			name:     "e-bike mountain cycling",
+			sport:    fitparser.SportCycling,
+			subSport: fitparser.SubSportEBikeMountain,
+			expected: fitActivityTypeClassification(business.MountainBikeRide.String()),
 		},
 		{
 			name:     "gravel cycling",
 			sport:    fitparser.SportCycling,
 			subSport: fitparser.SubSportGravelCycling,
-			expected: business.GravelRide.String(),
+			expected: fitActivityTypeClassification(business.GravelRide.String()),
 		},
 		{
 			name:     "mixed surface cycling",
 			sport:    fitparser.SportCycling,
 			subSport: fitparser.SubSportMixedSurface,
-			expected: business.GravelRide.String(),
+			expected: fitActivityTypeClassification(business.GravelRide.String()),
 		},
 		{
 			name:     "virtual cycling",
 			sport:    fitparser.SportCycling,
 			subSport: fitparser.SubSportVirtualActivity,
-			expected: business.VirtualRide.String(),
+			expected: fitActivityTypeClassification(business.VirtualRide.String()),
+		},
+		{
+			name:     "indoor cycling",
+			sport:    fitparser.SportCycling,
+			subSport: fitparser.SubSportIndoorCycling,
+			expected: fitActivityTypeClassification(business.VirtualRide.String()),
+		},
+		{
+			name:     "fitness equipment indoor cycling",
+			sport:    fitparser.SportFitnessEquipment,
+			subSport: fitparser.SubSportIndoorCycling,
+			expected: fitActivityTypeClassification(business.VirtualRide.String()),
+		},
+		{
+			name:     "cycling commute",
+			sport:    fitparser.SportCycling,
+			subSport: fitparser.SubSportCommuting,
+			expected: fitCommuteClassification(business.Ride.String()),
+		},
+		{
+			name:     "generic running",
+			sport:    fitparser.SportRunning,
+			subSport: fitparser.SubSportGeneric,
+			expected: fitActivityTypeClassification(business.Run.String()),
 		},
 		{
 			name:     "trail running",
 			sport:    fitparser.SportRunning,
 			subSport: fitparser.SubSportTrail,
-			expected: business.TrailRun.String(),
+			expected: fitActivityTypeClassification(business.TrailRun.String()),
+		},
+		{
+			name:     "fitness equipment treadmill",
+			sport:    fitparser.SportFitnessEquipment,
+			subSport: fitparser.SubSportTreadmill,
+			expected: fitActivityTypeClassification(business.Run.String()),
 		},
 		{
 			name:     "walking",
 			sport:    fitparser.SportWalking,
 			subSport: fitparser.SubSportGeneric,
-			expected: business.Walk.String(),
+			expected: fitActivityTypeClassification(business.Walk.String()),
+		},
+		{
+			name:     "fitness equipment indoor walking",
+			sport:    fitparser.SportFitnessEquipment,
+			subSport: fitparser.SubSportIndoorWalking,
+			expected: fitActivityTypeClassification(business.Walk.String()),
 		},
 		{
 			name:     "hiking",
 			sport:    fitparser.SportHiking,
 			subSport: fitparser.SubSportGeneric,
-			expected: business.Hike.String(),
+			expected: fitActivityTypeClassification(business.Hike.String()),
+		},
+		{
+			name:     "mountaineering",
+			sport:    fitparser.SportMountaineering,
+			subSport: fitparser.SubSportGeneric,
+			expected: fitActivityTypeClassification(business.Hike.String()),
+		},
+		{
+			name:     "alpine skiing",
+			sport:    fitparser.SportAlpineSkiing,
+			subSport: fitparser.SubSportGeneric,
+			expected: fitActivityTypeClassification(business.AlpineSki.String()),
+		},
+		{
+			name:     "inline skating",
+			sport:    fitparser.SportInlineSkating,
+			subSport: fitparser.SubSportGeneric,
+			expected: fitActivityTypeClassification(business.InlineSkate.String()),
+		},
+		{
+			name:     "generic e-biking",
+			sport:    fitparser.SportEBiking,
+			subSport: fitparser.SubSportGeneric,
+			expected: fitActivityTypeClassification(business.Ride.String()),
+		},
+		{
+			name:     "virtual e-biking",
+			sport:    fitparser.SportEBiking,
+			subSport: fitparser.SubSportVirtualActivity,
+			expected: fitActivityTypeClassification(business.VirtualRide.String()),
 		},
 		{
 			name:     "unknown fallback",
 			sport:    fitparser.SportInvalid,
 			subSport: fitparser.SubSportInvalid,
-			expected: business.Ride.String(),
+			expected: fitActivityTypeClassification(business.Ride.String()),
 		},
 	}
 
+	coveredTypes := make(map[string]bool)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if actual := mapFITSportToActivityType(tt.sport, tt.subSport); actual != tt.expected {
-				t.Fatalf("expected %s, got %s", tt.expected, actual)
+			actual := classifyFITSport(tt.sport, tt.subSport)
+			if actual != tt.expected {
+				t.Fatalf("expected %+v, got %+v", tt.expected, actual)
 			}
 		})
+		coveredTypes[tt.expected.Type] = true
+	}
+
+	for _, activityType := range []business.ActivityType{
+		business.AlpineSki,
+		business.Commute,
+		business.GravelRide,
+		business.Hike,
+		business.InlineSkate,
+		business.MountainBikeRide,
+		business.Ride,
+		business.Run,
+		business.TrailRun,
+		business.VirtualRide,
+		business.Walk,
+	} {
+		if !coveredTypes[activityType.String()] {
+			t.Fatalf("expected FIT mapping coverage for %s", activityType.String())
+		}
 	}
 }
 

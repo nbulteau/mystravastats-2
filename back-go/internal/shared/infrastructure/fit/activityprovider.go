@@ -290,7 +290,7 @@ func DecodeFITActivity(filePath string, athleteID int64) (*strava.Activity, erro
 	}
 
 	stream := buildStreamFromFITRecords(activityFile.Records, session.StartTime)
-	sportType := mapFITSportToActivityType(session.Sport, session.SubSport)
+	classification := classifyFITSport(session.Sport, session.SubSport)
 	startDate := resolveActivityStartDate(session.StartTime, activityFile.Records)
 
 	averageSpeed := firstPositiveFinite(session.GetEnhancedAvgSpeedScaled(), session.GetAvgSpeedScaled())
@@ -335,8 +335,8 @@ func DecodeFITActivity(filePath string, athleteID int64) (*strava.Activity, erro
 	startDateLocal := helpers.ActivityLocalTime(startDate)
 	startLatlng := extractStartLatLng(session, stream)
 
-	activityID := fitActivityID(filePath, startDateUTC, sportType, distance)
-	name := fmt.Sprintf("%s - %s", sportType, startDateLocal.Format("2006-01-02 15:04:05"))
+	activityID := fitActivityID(filePath, startDateUTC, classification.Type, distance)
+	name := fmt.Sprintf("%s - %s", classification.Type, startDateLocal.Format("2006-01-02 15:04:05"))
 
 	return &strava.Activity{
 		Athlete:              strava.AthleteRef{ID: int(athleteID)},
@@ -345,7 +345,7 @@ func DecodeFITActivity(filePath string, athleteID int64) (*strava.Activity, erro
 		AverageHeartrate:     averageHeartRate,
 		MaxHeartrate:         maxHeartRate,
 		AverageWatts:         powerMetrics.averageWatts,
-		Commute:              false,
+		Commute:              classification.Commute,
 		Distance:             distance,
 		DeviceWatts:          powerMetrics.hasDeviceWatts,
 		ElapsedTime:          elapsedTime,
@@ -355,12 +355,12 @@ func DecodeFITActivity(filePath string, athleteID int64) (*strava.Activity, erro
 		MaxSpeed:             maxSpeed,
 		MovingTime:           movingTime,
 		Name:                 name,
-		SportType:            sportType,
+		SportType:            classification.SportType,
 		StartDate:            startDateUTC.Format(time.RFC3339),
 		StartDateLocal:       startDateLocal.Format(time.RFC3339),
 		StartLatlng:          startLatlng,
 		TotalElevationGain:   totalElevationGain,
-		Type:                 sportType,
+		Type:                 classification.Type,
 		UploadId:             activityID,
 		WeightedAverageWatts: powerMetrics.weightedAverageWatts,
 		Stream:               stream,
@@ -809,38 +809,81 @@ func resolveActivityStartDate(startTime time.Time, records []*fitparser.RecordMs
 	return time.Now().UTC()
 }
 
-func mapFITSportToActivityType(sport fitparser.Sport, subSport fitparser.SubSport) string {
+type fitActivityClassification struct {
+	Type      string
+	SportType string
+	Commute   bool
+}
+
+func classifyFITSport(sport fitparser.Sport, subSport fitparser.SubSport) fitActivityClassification {
 	switch sport {
 	case fitparser.SportCycling:
 		switch subSport {
-		case fitparser.SubSportMountain:
-			return business.MountainBikeRide.String()
+		case fitparser.SubSportCommuting:
+			return fitCommuteClassification(business.Ride.String())
+		case fitparser.SubSportMountain, fitparser.SubSportEBikeMountain:
+			return fitActivityTypeClassification(business.MountainBikeRide.String())
 		case fitparser.SubSportGravelCycling, fitparser.SubSportMixedSurface:
-			return business.GravelRide.String()
-		case fitparser.SubSportVirtualActivity:
-			return business.VirtualRide.String()
+			return fitActivityTypeClassification(business.GravelRide.String())
+		case fitparser.SubSportVirtualActivity, fitparser.SubSportIndoorCycling:
+			return fitActivityTypeClassification(business.VirtualRide.String())
 		default:
-			return business.Ride.String()
+			return fitActivityTypeClassification(business.Ride.String())
 		}
 	case fitparser.SportRunning:
 		switch subSport {
 		case fitparser.SubSportTrail:
-			return business.TrailRun.String()
+			return fitActivityTypeClassification(business.TrailRun.String())
 		default:
-			return business.Run.String()
+			return fitActivityTypeClassification(business.Run.String())
+		}
+	case fitparser.SportFitnessEquipment:
+		switch subSport {
+		case fitparser.SubSportIndoorCycling:
+			return fitActivityTypeClassification(business.VirtualRide.String())
+		case fitparser.SubSportTreadmill, fitparser.SubSportIndoorRunning:
+			return fitActivityTypeClassification(business.Run.String())
+		case fitparser.SubSportIndoorWalking:
+			return fitActivityTypeClassification(business.Walk.String())
+		default:
+			return fitActivityTypeClassification(business.Ride.String())
 		}
 	case fitparser.SportWalking:
-		return business.Walk.String()
-	case fitparser.SportHiking:
-		return business.Hike.String()
+		return fitActivityTypeClassification(business.Walk.String())
+	case fitparser.SportHiking, fitparser.SportMountaineering:
+		return fitActivityTypeClassification(business.Hike.String())
 	case fitparser.SportAlpineSkiing:
-		return business.AlpineSki.String()
+		return fitActivityTypeClassification(business.AlpineSki.String())
 	case fitparser.SportInlineSkating:
-		return business.InlineSkate.String()
+		return fitActivityTypeClassification(business.InlineSkate.String())
 	case fitparser.SportEBiking:
-		return business.VirtualRide.String()
+		switch subSport {
+		case fitparser.SubSportCommuting:
+			return fitCommuteClassification(business.Ride.String())
+		case fitparser.SubSportEBikeMountain:
+			return fitActivityTypeClassification(business.MountainBikeRide.String())
+		case fitparser.SubSportVirtualActivity, fitparser.SubSportIndoorCycling:
+			return fitActivityTypeClassification(business.VirtualRide.String())
+		default:
+			return fitActivityTypeClassification(business.Ride.String())
+		}
 	default:
-		return business.Ride.String()
+		return fitActivityTypeClassification(business.Ride.String())
+	}
+}
+
+func fitActivityTypeClassification(activityType string) fitActivityClassification {
+	return fitActivityClassification{
+		Type:      activityType,
+		SportType: activityType,
+	}
+}
+
+func fitCommuteClassification(sportType string) fitActivityClassification {
+	return fitActivityClassification{
+		Type:      business.Commute.String(),
+		SportType: sportType,
+		Commute:   true,
 	}
 }
 
