@@ -396,7 +396,7 @@ internal class StatisticsService(
         PersonalRecordMetricDefinition(
             key = key, label = label,
             effortExtractor = { activity ->
-                if (activity.maxSpeed <= 0.0f) null
+                if (!isPlausibleActivityMaxSpeed(activity)) null
                 else activity.toActivityEffort(scoreValue = activity.maxSpeed.toDouble(), secondsOverride = activity.movingTime.coerceAtLeast(1))
             },
             score = { effort -> effort.distance },

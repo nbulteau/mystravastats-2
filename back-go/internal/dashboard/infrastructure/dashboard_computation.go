@@ -819,7 +819,7 @@ func groupActivitiesByDay(activities []*strava.Activity, year int) map[string][]
 	activitiesByDay := make(map[string][]*strava.Activity)
 
 	for _, activity := range activities {
-		startDate, err := time.Parse("2006-01-02T15:04:05Z", activity.StartDateLocal)
+		startDate, err := time.Parse(time.RFC3339, activity.StartDateLocal)
 		if err != nil {
 			continue
 		}

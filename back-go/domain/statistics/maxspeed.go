@@ -22,6 +22,9 @@ func NewMaxSpeedStatistic(activities []*strava.Activity) *MaxSpeedStatistic {
 
 	var maxSpeedActivity *strava.Activity
 	for _, activity := range activities {
+		if !IsPlausibleActivityMaxSpeed(activity) {
+			continue
+		}
 		if maxSpeedActivity == nil || activity.MaxSpeed > maxSpeedActivity.MaxSpeed {
 			maxSpeedActivity = activity
 		}

@@ -11,7 +11,9 @@ internal class MaxSpeedStatistic(
     private val maxSpeed: Double?
 
     init {
-        val maxSpeedActivity = activities.maxByOrNull { activity -> activity.maxSpeed }
+        val maxSpeedActivity = activities
+            .filter(::isPlausibleActivityMaxSpeed)
+            .maxByOrNull { activity -> activity.maxSpeed }
         maxSpeedActivity?.let { activity -> this.activity = ActivityShort(activity.id, activity.name, activity.type) }
         maxSpeed = maxSpeedActivity?.maxSpeed?.toDouble()
     }

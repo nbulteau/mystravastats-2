@@ -142,4 +142,21 @@ class BestEffortDistanceStatisticTest {
         assertEquals("20s => 36.00 km/h", statistic.value)
         assertEquals(7L, statistic.activity?.id)
     }
+
+    @Test
+    fun `calculateBestTimeForDistance ignores impossible speed segments`() {
+        val activity = StatisticsFixtures.syntheticRideActivity(
+            id = 8,
+            stream = StatisticsFixtures.defaultStream(
+                distances = listOf(0.0, 100.0, 200.0, 1_200.0, 1_300.0, 1_400.0, 1_500.0),
+                times = listOf(0, 10, 20, 21, 31, 41, 51),
+                altitudes = listOf(100.0, 101.0, 102.0, 103.0, 104.0, 105.0, 106.0),
+            )
+        )
+
+        val effort = activity.calculateBestTimeForDistance(distance = 200.0)
+
+        assertNotNull(effort)
+        assertEquals(20, effort?.seconds)
+    }
 }

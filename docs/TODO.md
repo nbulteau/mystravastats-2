@@ -1,6 +1,6 @@
 # TODO list
 
-## Etat des lieux au 2026-05-08
+## Etat des lieux au 2026-07-23
 
 - Monorepo avec trois surfaces principales: `front-vue`, `back-go`, `back-kotlin`.
 - Le frontend Vue 3 couvre dashboard, objectifs annuels, diagnostics, source modes, data quality, charts, heatmap, statistiques, badges, activites, detail activite, segments, carte, materiel et routes.
@@ -10,7 +10,10 @@
 - L'onglet routes a ete repositionne en `GPS Art` / GPS drawing studio: dessiner ou importer une forme, la snapper au reseau routier via OSRM, puis exporter un GPX exploitable.
 - La qualite des donnees locales FIT/GPX dispose maintenant d'un corpus partage et de tests miroir Go/Kotlin sur les anomalies principales: valeurs invalides, streams incomplets, GPS aberrant, altitude spike, corrections proposees et impacts avant/apres correction.
 - Les modes source `STRAVA` / `FIT` / `GPX` ont un smoke test reproductible avec fixtures locales anonymes pour Go et Kotlin.
-- Les risques ouverts les plus visibles sont le contrat API non partage, les parcours frontend peu couverts, la parite Go/Kotlin hors routes/data quality et la fraicheur des indicateurs apres synchronisation.
+- Le frontend surveille maintenant en continu l'empreinte du jeu d'activites backend et invalide les caches derives meme si le nombre total d'activites ne change pas ou si le backend redemarre.
+- Le regroupement journalier du Dashboard Go accepte les timestamps RFC3339 avec offset (`+02:00`) utilises par les FIT; les courbes cumulatives et la heatmap restent ainsi coherentes avec les totaux annuels.
+- Les records de vitesse Go/Kotlin ignorent les fenetres distance/temps contenant un segment physiquement impossible et les `maxSpeed` aberrantes; les caches d'efforts ont ete versionnes pour recalculer les activites deja importees.
+- Les risques ouverts les plus visibles sont le contrat API non partage, les parcours frontend peu couverts et la parite Go/Kotlin hors routes/data quality.
 
 ## Garde-fous permanents
 
@@ -30,6 +33,7 @@
 - Toute reponse JSON issue d'un provider local doit rester serialisable: pas de `NaN`, `Inf`, sentinelle FIT brute ou tableau `null` quand le contrat expose une liste.
 - Toute correction locale doit rester reversible et explicite dans les diagnostics.
 - Toute evolution data quality doit mettre a jour les fixtures partagees et le snapshot attendu si le diagnostic change volontairement.
+- Une anomalie GPS ponctuelle ne doit pas exclure silencieusement l'activite complete des totaux; seuls les segments ou records contamines doivent etre neutralises.
 
 ## Chantiers techniques proposes
 

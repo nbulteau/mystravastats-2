@@ -67,7 +67,7 @@ func BestTimeEffort(activity strava.Activity, distance float64) *business.Activi
 
 	return getOrComputeBestEffort(
 		activity.Id,
-		"best-time-distance-v2",
+		"best-time-distance-v3",
 		effortDistanceTarget(distance),
 		activity.Stream,
 		func() *business.ActivityEffort {
@@ -98,6 +98,7 @@ func BestTimeForDistance(id int64, name, activityType string, stream *strava.Str
 		return nil
 	}
 	elevationPrefix := newElevationGainLossPrefix(altitudes.Data, streamDataSize)
+	invalidSpeedSegments := invalidSpeedSegmentPrefix(distances, times.Data, streamDataSize, activityType)
 
 	for idxEnd < streamDataSize {
 		totalDistance := distances[idxEnd] - distances[idxStart]
@@ -110,6 +111,10 @@ func BestTimeForDistance(id int64, name, activityType string, stream *strava.Str
 		if totalDistance < distance-0.5 {
 			idxEnd++
 		} else {
+			if totalTime <= 0 || hasInvalidSpeedSegment(invalidSpeedSegments, idxStart, idxEnd) {
+				idxStart++
+				continue
+			}
 			estimatedTimeForDistance := distance / totalDistance * float64(totalTime)
 			if estimatedTimeForDistance < bestTime && estimatedTimeForDistance > 1 {
 				bestTime = estimatedTimeForDistance

@@ -139,6 +139,30 @@ func TestCountActiveDays_CountsUniqueCalendarDatesOnly(t *testing.T) {
 	}
 }
 
+func TestGroupActivitiesByDay_IncludesRFC3339TimezoneOffsets(t *testing.T) {
+	// GIVEN
+	activity := &strava.Activity{
+		Id:             4243932727,
+		Name:           "GravelRide - 2026-07-18 07:10:54",
+		Type:           "GravelRide",
+		StartDateLocal: "2026-07-18T07:10:54+02:00",
+		Distance:       205900.6,
+	}
+
+	// WHEN
+	activitiesByDay := groupActivitiesByDay([]*strava.Activity{activity}, 2026)
+	cumulativeDistance := calculateCumulativeDistance(activitiesByDay)
+
+	// THEN
+	activitiesOnJuly18 := activitiesByDay["07-18"]
+	if len(activitiesOnJuly18) != 1 || activitiesOnJuly18[0].Id != activity.Id {
+		t.Fatalf("expected FIT activity %d on 07-18, got %+v", activity.Id, activitiesOnJuly18)
+	}
+	if math.Abs(cumulativeDistance["07-18"]-205.9006) > 0.0001 {
+		t.Fatalf("expected FIT distance in cumulative dashboard, got %.4f km", cumulativeDistance["07-18"])
+	}
+}
+
 func TestActiveDayDistanceStats_AggregateMultipleActivitiesOnSameDay(t *testing.T) {
 	// GIVEN
 	activities := []*strava.Activity{

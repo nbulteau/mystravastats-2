@@ -273,7 +273,7 @@ func maxSpeedActivityMetric(key, label string) personalRecordMetricDefinition {
 		key:   key,
 		label: label,
 		effortExtractor: func(activity *strava.Activity) *business.ActivityEffort {
-			if activity == nil || activity.MaxSpeed <= 0 {
+			if !statistics.IsPlausibleActivityMaxSpeed(activity) {
 				return nil
 			}
 			return activityToEffort(activity, activity.MaxSpeed, maxInt(activity.MovingTime, 1))

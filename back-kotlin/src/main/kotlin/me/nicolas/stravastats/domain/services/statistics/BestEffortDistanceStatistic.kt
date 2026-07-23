@@ -40,7 +40,7 @@ fun StravaActivity.calculateBestTimeForDistance(distance: Double): ActivityEffor
     return if (stream == null) {
         null
     } else {
-        BestEffortCache.getOrCompute(this.id, "best-time-distance-v2", distance.toString(), this.stream!!) {
+        BestEffortCache.getOrCompute(this.id, "best-time-distance-v3", distance.toString(), this.stream!!) {
             activityEffort(this.id, this.name, this.type, this.stream!!, distance)
         }
     }
@@ -52,7 +52,7 @@ fun StravaDetailedActivity.calculateBestTimeForDistance(distance: Double): Activ
     return if (this.stream == null || this.stream?.altitude == null) {
         null
     } else {
-        BestEffortCache.getOrCompute(this.id, "best-time-distance-v2", distance.toString(), this.stream!!) {
+        BestEffortCache.getOrCompute(this.id, "best-time-distance-v3", distance.toString(), this.stream!!) {
             activityEffort(this.id, this.name, this.type, this.stream!!, distance)
         }
     }
@@ -91,6 +91,7 @@ private fun activityEffort(
         return null
     }
     val elevationPrefix = ElevationGainLossPrefix.from(altitudes, streamDataSize)
+    val invalidSpeedSegments = invalidSpeedSegmentPrefix(distances, times, streamDataSize, type)
 
     while (idxEnd < streamDataSize) {
         val totalDistance = distances[idxEnd] - distances[idxStart]
@@ -100,6 +101,10 @@ private fun activityEffort(
         if (totalDistance < distance - 0.5) {
             idxEnd++
         } else {
+            if (totalTime <= 0 || hasInvalidSpeedSegment(invalidSpeedSegments, idxStart, idxEnd)) {
+                idxStart++
+                continue
+            }
             val estimatedTimeForDistance = distance / totalDistance * totalTime
             if (estimatedTimeForDistance < bestTime && estimatedTimeForDistance > 1) {
                 bestTime = estimatedTimeForDistance

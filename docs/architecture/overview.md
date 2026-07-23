@@ -8,6 +8,8 @@ This page gives a high-level view of how My Activity Stats is structured.
 - `back-kotlin`: Spring Boot + Kotlin backend
 - `back-go`: Go backend and local binary packaging path
 - `strava-cache`: local persisted activity cache
+- FIT / GPX directories: local activity sources
+- OSRM: local road-routing engine used by GPS Art
 - Strava API: remote activity source
 
 ## System Diagram
@@ -25,6 +27,10 @@ flowchart LR
     G --> S
 
     K --> D["GPX / FIT files"]
+    G --> D
+
+    K --> O["OSRM"]
+    G --> O
 ```
 
 ## Kotlin Backend Layers
@@ -51,22 +57,25 @@ Typical flow for a frontend request:
 
 ## Data Sources
 
-The Kotlin backend supports:
-- Strava API
-- local Strava cache
-- GPX files
-- FIT files
+Both backends support the same source-provider modes:
 
-The Go backend supports:
-- Strava API
-- local Strava cache
+- Strava API and local Strava cache
 - FIT files
+- GPX files
+- automatic composite mode when two or more sources are explicitly configured
+
+In composite mode, Strava metadata remains canonical for matched activities,
+while local FIT/GPX streams can enrich the combined view. Local activities that
+do not match a Strava activity remain visible.
 
 ## Current Practical Status
 
 Today, the repository contains two backend implementations:
-- Kotlin is the richest implementation for source-provider variety, especially GPX
-- Go still matters for the local binary and should stay aligned on shared behavior
+
+- Kotlin is the historical implementation of several providers and domain services.
+- Go is the local binary packaging path and implements the same current source modes.
+- Neither backend is the sole reference for every feature; shared API and route-generation
+  behavior must remain aligned while the long-term backend strategy is still open.
 
 That is why both appear in the repository and in the build flows.
 

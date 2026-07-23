@@ -2,7 +2,8 @@
 
 This document is the shared contract for the public GPS Art route flow in Go, Kotlin, and the Vue frontend.
 
-Until `TECH-P1-01` centralizes the full OpenAPI source of truth, the contract is maintained as:
+The full application API does not yet have a single shared OpenAPI source of
+truth. Until it does, the GPS Art contract is maintained as:
 
 - OpenAPI fragment: [`../api/strava-art-routes.openapi.yaml`](../api/strava-art-routes.openapi.yaml)
 - Go DTOs: `back-go/api/dto/route_generation.go`

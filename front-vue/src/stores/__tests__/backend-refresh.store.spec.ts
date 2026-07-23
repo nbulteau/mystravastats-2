@@ -52,12 +52,70 @@ describe("backend refresh store", () => {
     const refreshSpy = vi.spyOn(contextStore, "refreshAfterActivityDataChanged").mockResolvedValue();
     const store = useBackendRefreshStore();
 
-    await store.watchStartupActivityRefresh({ pollIntervalMs: 0, maxPolls: 2 });
+    await store.watchStartupActivityRefresh({ pollIntervalMs: 0, maxPolls: 1 });
 
     expect(requestJson).toHaveBeenCalledTimes(1);
     expect(refreshSpy).not.toHaveBeenCalled();
     expect(store.observedStartupRefresh).toBe(false);
     expect(store.lastActivityCount).toBe(10);
     expect(store.isWatchingStartupRefresh).toBe(false);
+  });
+
+  it("refreshes derived caches when the source dataset changes without changing the activity count", async () => {
+    vi.mocked(requestJson)
+      .mockResolvedValueOnce({
+        provider: "strava",
+        activities: 10,
+        composite: {
+          activeProviders: ["strava"],
+          sources: [{ provider: "strava", activities: 10 }],
+        },
+        refresh: {
+          backgroundInProgress: false,
+        },
+      })
+      .mockResolvedValueOnce({
+        provider: "composite",
+        activities: 10,
+        composite: {
+          activeProviders: ["strava", "fit"],
+          sources: [
+            { provider: "strava", activities: 8 },
+            { provider: "fit", activities: 2 },
+          ],
+        },
+        refresh: {
+          backgroundInProgress: false,
+        },
+      });
+    const contextStore = useContextStore();
+    const refreshSpy = vi.spyOn(contextStore, "refreshAfterActivityDataChanged").mockResolvedValue();
+    const store = useBackendRefreshStore();
+
+    await store.watchStartupActivityRefresh({ pollIntervalMs: 0, maxPolls: 2 });
+
+    expect(requestJson).toHaveBeenCalledTimes(2);
+    expect(refreshSpy).toHaveBeenCalledTimes(1);
+    expect(store.lastActivityCount).toBe(10);
+    expect(store.isWatchingStartupRefresh).toBe(false);
+  });
+
+  it("keeps watching after a transient backend error", async () => {
+    vi.mocked(requestJson)
+      .mockRejectedValueOnce(new Error("backend unavailable"))
+      .mockResolvedValueOnce({
+        provider: "composite",
+        activities: 12,
+        refresh: {
+          backgroundInProgress: false,
+        },
+      });
+    const store = useBackendRefreshStore();
+
+    await store.watchStartupActivityRefresh({ pollIntervalMs: 0, maxPolls: 2 });
+
+    expect(requestJson).toHaveBeenCalledTimes(2);
+    expect(store.lastActivityCount).toBe(12);
+    expect(store.error).toBeNull();
   });
 });
