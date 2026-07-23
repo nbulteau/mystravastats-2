@@ -9,6 +9,7 @@ import { useMapStore } from "@/stores/map";
 import { useRoutesStore } from "@/stores/routes";
 import { useSegmentsStore } from "@/stores/segments";
 import { useStatisticsStore } from "@/stores/statistics";
+import { DEFAULT_ACTIVITY_TYPE_FILTER } from "@/utils/activityTypes";
 
 export type AppView =
   | "statistics"
@@ -28,7 +29,7 @@ export type AppView =
 export const useContextStore = defineStore("context", {
   state: () => ({
     currentYear: new Date().getFullYear().toString(),
-    currentActivityType: "Commute_GravelRide_MountainBikeRide_Ride_VirtualRide",
+    currentActivityType: DEFAULT_ACTIVITY_TYPE_FILTER,
     currentView: "dashboard" as AppView,
   }),
   getters: {

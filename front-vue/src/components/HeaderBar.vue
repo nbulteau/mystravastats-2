@@ -3,6 +3,16 @@ import {useContextStore} from "@/stores/context.js";
 import { useAthleteStore } from "@/stores/athlete";
 import {computed, onBeforeUnmount, onMounted, ref, watch} from "vue";
 import Tooltip from "bootstrap/js/dist/tooltip";
+import {
+  ALL_ACTIVITY_TYPE_FILTER,
+  ALL_ACTIVITY_TYPES,
+  CYCLING_ACTIVITY_TYPES,
+  DEFAULT_ACTIVITY_TYPE_FILTER,
+  HIKING_ACTIVITY_TYPES,
+  OTHER_ACTIVITY_TYPES,
+  RUNNING_ACTIVITY_TYPES,
+  type ActivityTypeName,
+} from "@/utils/activityTypes";
 
 const contextStore = useContextStore();
 const athleteStore = useAthleteStore();
@@ -13,17 +23,19 @@ const selectedYear = computed({
 });
 const selectedActivity = computed(() => contextStore.currentActivityType);
 
-const cyclingActivities = ['Ride', 'Commute', 'GravelRide', 'MountainBikeRide', 'VirtualRide'];
-
-const runningActivities = ['Run', 'TrailRun'];
-const hikingActivities = ['Hike', 'Walk'];
-const otherActivities = ['AlpineSki'];
-const allActivitiesForYearFilter = [...cyclingActivities, ...runningActivities, ...hikingActivities, ...otherActivities];
+const cyclingActivities: readonly string[] = CYCLING_ACTIVITY_TYPES;
+const runningActivities: readonly string[] = RUNNING_ACTIVITY_TYPES;
+const hikingActivities: readonly string[] = HIKING_ACTIVITY_TYPES;
+const otherActivities: readonly string[] = OTHER_ACTIVITY_TYPES;
 
 const splitActivities = (v?: string) =>
-    v && v.length > 0 ? v.split('_') as string[] : ['Ride'];
+    v && v.length > 0 ? v.split('_') as string[] : DEFAULT_ACTIVITY_TYPE_FILTER.split('_');
 
 const selectedActivitiesType = ref<string[]>(splitActivities(selectedActivity.value));
+const isAllSportsSelected = computed(() => {
+  const selected = new Set(selectedActivitiesType.value);
+  return selected.size === ALL_ACTIVITY_TYPES.length && ALL_ACTIVITY_TYPES.every((activityType) => selected.has(activityType));
+});
 
 watch(
     () => selectedActivity.value,
@@ -68,8 +80,7 @@ function buildAvailableYears(payload: DashboardYearsPayload): string[] {
 }
 
 async function loadAvailableYears() {
-  const activityType = allActivitiesForYearFilter.join('_');
-  const url = `/api/dashboard?activityType=${encodeURIComponent(activityType)}`;
+  const url = `/api/dashboard?activityType=${encodeURIComponent(ALL_ACTIVITY_TYPE_FILTER)}`;
 
   try {
     const response = await fetch(url);
@@ -109,7 +120,7 @@ onBeforeUnmount(() => {
   tooltipInstances = [];
 });
 
-const toggleActivity = (activity: string, activities: string[], defaultActivity: string) => {
+const toggleActivity = (activity: string, activities: readonly string[], defaultActivity: string) => {
   if (selectedActivitiesType.value.includes(activity)) {
     selectedActivitiesType.value = selectedActivitiesType.value.filter(a => a !== activity);
     if (!selectedActivitiesType.value.some(a => activities.includes(a))) {
@@ -123,8 +134,13 @@ const toggleActivity = (activity: string, activities: string[], defaultActivity:
   }
 };
 
+const selectAllActivities = () => {
+  selectedActivitiesType.value = [...ALL_ACTIVITY_TYPES];
+  void contextStore.updateCurrentActivityType(ALL_ACTIVITY_TYPE_FILTER);
+};
+
 // Function to handle an activity type changes:
-const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 'MountainBikeRide' | 'Commute' | 'Run' | 'TrailRun' | 'Hike' | 'Walk' | 'AlpineSki') => {
+const onChangeActivityType = (activity: ActivityTypeName) => {
 
   if (cyclingActivities.includes(activity)) {
     toggleActivity(activity, cyclingActivities, 'Ride');
@@ -191,6 +207,32 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
             {{ year }}
           </option>
         </select>
+
+        <div
+            class="btn-group btn-group-lg activity-group"
+            role="group"
+            aria-label="AllActivity"
+        >
+          <button
+              id="all-sports"
+              type="button"
+              class="btn icon-btn"
+              :class="{
+              'btn-outline-primary': !isAllSportsSelected,
+              'btn-primary': isAllSportsSelected,
+            }"
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              title="All sports"
+              aria-label="All sports"
+              @click="selectAllActivities"
+          >
+            <i
+                class="fa-solid fa-layer-group"
+                aria-hidden="true"
+            />
+          </button>
+        </div>
 
         <div
             class="btn-group btn-group-lg activity-group"
@@ -391,7 +433,7 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
         <div
             class="btn-group btn-group-lg activity-group"
             role="group"
-            aria-label="WinterActivity"
+            aria-label="OtherActivity"
         >
           <button
               id="alpine-ski"
@@ -410,6 +452,25 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
             <img
                 src="../assets/buttons/alpine-ski.png"
                 alt="Alpine Ski"
+            >
+          </button>
+          <button
+              id="inline-skate"
+              type="button"
+              class="btn icon-btn"
+              :class="{
+              'btn-outline-primary': !selectedActivitiesType.includes('InlineSkate'),
+              'btn-primary': selectedActivitiesType.includes('InlineSkate'),
+            }"
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              title="Inline skate"
+              aria-label="Inline skate"
+              @click="onChangeActivityType('InlineSkate')"
+          >
+            <img
+                src="@/assets/buttons/inlineskate.png"
+                alt="Inline Skate"
             >
           </button>
         </div>
@@ -506,6 +567,15 @@ const onChangeActivityType = (activity: 'Ride' | 'VirtualRide' | 'GravelRide' | 
 .icon-btn img {
   width: 90%;
   height: 90%;
+}
+
+.icon-btn i {
+  color: #3a3f48;
+  font-size: 1rem;
+}
+
+.icon-btn.btn-primary i {
+  color: #fc4c02;
 }
 
 @media (max-width: 992px) {

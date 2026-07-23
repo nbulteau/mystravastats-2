@@ -9,6 +9,7 @@ import {
   type AnnualGoals,
   type AnnualGoalTargets,
 } from "@/models/annual-goals.model";
+import { ALL_ACTIVITY_TYPE_FILTER } from "@/utils/activityTypes";
 
 export type HeatmapScope = "selection" | "all-sports";
 export type EddingtonScope = "lifetime" | "year" | "rolling-12-months";
@@ -22,18 +23,6 @@ type DashboardCacheEntry = {
   dashboardData: DashboardData;
   annualGoals: AnnualGoals;
 };
-
-const ALL_SPORTS_ACTIVITY_TYPE = [
-  "AlpineSki",
-  "Commute",
-  "GravelRide",
-  "Hike",
-  "MountainBikeRide",
-  "Ride",
-  "Run",
-  "TrailRun",
-  "VirtualRide",
-].join("_");
 
 type CumulativeApiPayload = {
   distance: Record<string, Record<string, number>>;
@@ -79,7 +68,7 @@ export const useDashboardStore = defineStore("dashboard", {
     currentHeatmapActivityType(): string {
       const contextStore = useContextStore();
       if (this.heatmapScope === "all-sports") {
-        return ALL_SPORTS_ACTIVITY_TYPE;
+        return ALL_ACTIVITY_TYPE_FILTER;
       }
       return contextStore.currentActivityType;
     },

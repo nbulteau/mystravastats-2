@@ -51,6 +51,7 @@ export function formatActivityTypeLabel(activityType: string | null | undefined)
         Commute: "Commute",
         GravelRide: "Gravel Ride",
         Hike: "Hike",
+        InlineSkate: "Inline Skate",
         MountainBikeRide: "Mountain Bike Ride",
         Ride: "Ride",
         Run: "Run",

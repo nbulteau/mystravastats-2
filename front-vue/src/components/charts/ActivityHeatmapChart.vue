@@ -15,6 +15,7 @@ import iconTrailRun from "@/assets/buttons/trail-run.png";
 import iconHike from "@/assets/buttons/hike.png";
 import iconWalk from "@/assets/buttons/walk.png";
 import iconAlpineSki from "@/assets/buttons/alpine-ski.png";
+import iconInlineSkate from "@/assets/buttons/inlineskate.png";
 import type {
   ActivityHeatmap,
   HeatmapDayData,
@@ -45,6 +46,7 @@ const ICON_BY_ACTIVITY_TYPE: Record<string, string> = {
   Hike: iconHike,
   Walk: iconWalk,
   AlpineSki: iconAlpineSki,
+  InlineSkate: iconInlineSkate,
 };
 
 const props = defineProps<{

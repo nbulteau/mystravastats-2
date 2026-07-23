@@ -9,6 +9,7 @@ const ACTIVITY_TYPE_COLORS: Record<string, string> = {
   Walk: "#6d4c41",
   Hike: "#1b5e20",
   AlpineSki: "#1565c0",
+  InlineSkate: "#00897b",
   Swim: "#0288d1",
   Rowing: "#00796b",
   WeightTraining: "#5d4037",
