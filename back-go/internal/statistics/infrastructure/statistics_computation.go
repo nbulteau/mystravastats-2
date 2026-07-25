@@ -33,8 +33,7 @@ func computeStatisticsByYearAndTypes(year *int, activityTypes ...business.Activi
 		return []domainStatistics.Statistic{}
 	}
 
-	activityType := activityTypes[0]
-	switch activityType {
+	switch resolveStatisticsActivityType(activityTypes) {
 	case business.Ride, business.GravelRide, business.MountainBikeRide:
 		return computeRideStatistics(filteredActivities)
 	case business.VirtualRide:
@@ -52,6 +51,36 @@ func computeStatisticsByYearAndTypes(year *int, activityTypes ...business.Activi
 	default:
 		return []domainStatistics.Statistic{}
 	}
+}
+
+func resolveStatisticsActivityType(activityTypes []business.ActivityType) business.ActivityType {
+	for _, activityType := range activityTypes {
+		if activityType == business.Run || activityType == business.TrailRun {
+			return business.Run
+		}
+	}
+	for _, activityType := range activityTypes {
+		if activityType == business.InlineSkate {
+			return business.InlineSkate
+		}
+	}
+	for _, activityType := range activityTypes {
+		if activityType == business.Hike || activityType == business.Walk {
+			return business.Hike
+		}
+	}
+	for _, activityType := range activityTypes {
+		if activityType == business.AlpineSki {
+			return business.AlpineSki
+		}
+	}
+	if len(activityTypes) == 1 && activityTypes[0] == business.VirtualRide {
+		return business.VirtualRide
+	}
+	if len(activityTypes) == 1 && activityTypes[0] == business.Commute {
+		return business.Commute
+	}
+	return business.Ride
 }
 
 func computeRunStatistics(runActivities []*strava.Activity) []domainStatistics.Statistic {

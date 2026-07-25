@@ -10,10 +10,14 @@ import { useContextStore } from "@/stores/context";
 import { useAthleteStore } from "@/stores/athlete";
 
 type StatisticsCacheEntry = {
-  statistics: Statistics[];
-  personalRecordsTimeline: PersonalRecordTimeline[];
-  heartRateZoneAnalysis: HeartRateZoneAnalysis;
+  statistics?: Statistics[];
+  personalRecordsTimeline?: PersonalRecordTimeline[];
+  heartRateZoneAnalysis?: HeartRateZoneAnalysis;
 };
+
+function isCompleteCacheEntry(entry: StatisticsCacheEntry | undefined): entry is Required<StatisticsCacheEntry> {
+  return !!entry?.statistics && !!entry.personalRecordsTimeline && !!entry.heartRateZoneAnalysis;
+}
 
 export const useStatisticsStore = defineStore("statistics", {
   state: () => ({
@@ -32,17 +36,18 @@ export const useStatisticsStore = defineStore("statistics", {
     currentFiltersKey(): string {
       return useContextStore().currentFiltersKey;
     },
-    applyCacheEntry(entry: StatisticsCacheEntry) {
+    applyCacheEntry(entry: Required<StatisticsCacheEntry>) {
       this.statistics = entry.statistics;
       this.personalRecordsTimeline = entry.personalRecordsTimeline;
       this.heartRateZoneAnalysis = entry.heartRateZoneAnalysis;
     },
-    updateCacheForCurrentKey() {
-      const key = this.currentFiltersKey();
+    isCurrentFiltersKey(key: string): boolean {
+      return this.currentFiltersKey() === key;
+    },
+    updateCacheForKey(key: string, entry: StatisticsCacheEntry) {
       this.cacheByKey[key] = {
-        statistics: this.statistics,
-        personalRecordsTimeline: this.personalRecordsTimeline,
-        heartRateZoneAnalysis: this.heartRateZoneAnalysis,
+        ...(this.cacheByKey[key] ?? {}),
+        ...entry,
       };
     },
     invalidateCache() {
@@ -55,16 +60,24 @@ export const useStatisticsStore = defineStore("statistics", {
       this.isStatisticsLoading = true;
       this.statisticsError = null;
       try {
-        this.statistics = await requestJson<Statistics[]>(url);
-        this.updateCacheForCurrentKey();
+        const statistics = await requestJson<Statistics[]>(url);
+        this.updateCacheForKey(key, { statistics });
+        if (this.isCurrentFiltersKey(key)) {
+          this.statistics = statistics;
+        }
       } catch (error) {
+        if (!this.isCurrentFiltersKey(key)) {
+          return;
+        }
         this.statisticsError = error instanceof Error ? error.message : "Unable to load statistics.";
         const cached = this.cacheByKey[key];
-        if (cached) {
+        if (cached?.statistics) {
           this.statistics = cached.statistics;
         }
       } finally {
-        this.isStatisticsLoading = false;
+        if (this.isCurrentFiltersKey(key)) {
+          this.isStatisticsLoading = false;
+        }
       }
     },
     async fetchPersonalRecordsTimeline() {
@@ -78,16 +91,24 @@ export const useStatisticsStore = defineStore("statistics", {
       this.isPersonalRecordsTimelineLoading = true;
       this.personalRecordsTimelineError = null;
       try {
-        this.personalRecordsTimeline = await requestJson<PersonalRecordTimeline[]>(url);
-        this.updateCacheForCurrentKey();
+        const personalRecordsTimeline = await requestJson<PersonalRecordTimeline[]>(url);
+        this.updateCacheForKey(key, { personalRecordsTimeline });
+        if (this.isCurrentFiltersKey(key)) {
+          this.personalRecordsTimeline = personalRecordsTimeline;
+        }
       } catch (error) {
+        if (!this.isCurrentFiltersKey(key)) {
+          return;
+        }
         this.personalRecordsTimelineError = error instanceof Error ? error.message : "Unable to load PR timeline.";
         const cached = this.cacheByKey[key];
-        if (cached) {
+        if (cached?.personalRecordsTimeline) {
           this.personalRecordsTimeline = cached.personalRecordsTimeline;
         }
       } finally {
-        this.isPersonalRecordsTimelineLoading = false;
+        if (this.isCurrentFiltersKey(key)) {
+          this.isPersonalRecordsTimelineLoading = false;
+        }
       }
     },
     async fetchHeartRateZoneAnalysis() {
@@ -101,22 +122,30 @@ export const useStatisticsStore = defineStore("statistics", {
       this.isHeartRateZoneAnalysisLoading = true;
       this.heartRateZoneAnalysisError = null;
       try {
-        this.heartRateZoneAnalysis = await requestJson<HeartRateZoneAnalysis>(url);
-        this.updateCacheForCurrentKey();
+        const heartRateZoneAnalysis = await requestJson<HeartRateZoneAnalysis>(url);
+        this.updateCacheForKey(key, { heartRateZoneAnalysis });
+        if (this.isCurrentFiltersKey(key)) {
+          this.heartRateZoneAnalysis = heartRateZoneAnalysis;
+        }
       } catch (error) {
+        if (!this.isCurrentFiltersKey(key)) {
+          return;
+        }
         this.heartRateZoneAnalysisError = error instanceof Error ? error.message : "Unable to load HR zone analysis.";
         const cached = this.cacheByKey[key];
-        if (cached) {
+        if (cached?.heartRateZoneAnalysis) {
           this.heartRateZoneAnalysis = cached.heartRateZoneAnalysis;
         }
       } finally {
-        this.isHeartRateZoneAnalysisLoading = false;
+        if (this.isCurrentFiltersKey(key)) {
+          this.isHeartRateZoneAnalysisLoading = false;
+        }
       }
     },
     async ensureLoaded(force = false) {
       const key = this.currentFiltersKey();
       const cached = this.cacheByKey[key];
-      if (!force && cached) {
+      if (!force && isCompleteCacheEntry(cached)) {
         this.applyCacheEntry(cached);
         this.statisticsError = null;
         this.personalRecordsTimelineError = null;
