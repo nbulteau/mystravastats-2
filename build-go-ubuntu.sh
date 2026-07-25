@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 # Check for --verbose flag
 VERBOSE=0
 for arg in "$@"; do
@@ -11,17 +13,19 @@ done
 
 # Start time
 start_time=$(date +%s)
+FRONT_NODE_IMAGE="${FRONT_NODE_IMAGE:-node:26.4.0}"
+GO_IMAGE="${GO_IMAGE:-golang:1.26.2}"
 
 echo "🚀 Starting build process..."
 
 # Build the UI project silently or verbosely
 echo "⌛ Building front-vue project..."
 if [[ $VERBOSE -eq 1 ]]; then
-  docker run --rm -v "$PWD:/app" -w /app/front-vue node:25.9.0 \
-    sh -c "npm install -g npm@latest && npm ci && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build"
+  docker run --rm -v "$PWD:/app" -v mystravastats-front-node-modules:/app/front-vue/node_modules -w /app/front-vue "$FRONT_NODE_IMAGE" \
+    sh -c "npm ci --loglevel=error --no-audit --no-fund --update-notifier=false && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run type-check && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build-only"
 else
-  docker run --rm -v "$PWD:/app" -w /app/front-vue node:25.9.0 \
-    sh -c "npm install -g npm@latest >/dev/null 2>&1 && npm ci >/dev/null 2>&1 && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build >/dev/null 2>&1"
+  docker run --rm -v "$PWD:/app" -v mystravastats-front-node-modules:/app/front-vue/node_modules -w /app/front-vue "$FRONT_NODE_IMAGE" \
+    sh -c "npm ci --loglevel=error --no-audit --no-fund --update-notifier=false >/dev/null && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run --silent type-check && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run --silent build-only -- --logLevel error"
 fi
 
 # Copy the UI build to the back-go/public directory
@@ -39,11 +43,11 @@ fi
 # Build back for Linux silently or verbosely
 echo "🔨 Building Linux binary..."
 if [[ $VERBOSE -eq 1 ]]; then
-  docker run --rm -v "$PWD:/app" -w /app golang:1.26.2 \
+  docker run --rm -v "$PWD:/app" -w /app "$GO_IMAGE" \
     sh -c "cd back-go && GOOS=linux GOARCH=amd64 go build -buildvcs=false -o ../mystravastats"
 else
-  docker run --rm -v "$PWD:/app" -w /app golang:1.26.2 \
-    sh -c "cd back-go && GOOS=linux GOARCH=amd64 go build -buildvcs=false -o ../mystravastats" >/dev/null 2>&1
+  docker run --rm -v "$PWD:/app" -w /app "$GO_IMAGE" \
+    sh -c "cd back-go && GOOS=linux GOARCH=amd64 go build -buildvcs=false -o ../mystravastats"
 fi
 
 # Check if new binary was created

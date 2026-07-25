@@ -101,6 +101,46 @@ func TestBestDistanceForTime_ComputesCumulativeElevationWhenNetDeltaIsZero(t *te
 	}
 }
 
+func TestBestTimeForDistance_IgnoresImpossibleSpeedSegments(t *testing.T) {
+	// GIVEN
+	stream := syntheticStream(
+		[]float64{0, 100, 200, 1200, 1300, 1400, 1500},
+		[]int{0, 10, 20, 21, 31, 41, 51},
+		[]float64{100, 101, 102, 103, 104, 105, 106},
+	)
+
+	// WHEN
+	effort := BestTimeForDistance(1, "Glitched ride", "Ride", stream, 200)
+
+	// THEN
+	if effort == nil {
+		t.Fatalf("expected effort, got nil")
+	}
+	if effort.Seconds != 20 {
+		t.Fatalf("unexpected best time: got %d, want 20", effort.Seconds)
+	}
+}
+
+func TestBestDistanceForTime_IgnoresImpossibleSpeedSegments(t *testing.T) {
+	// GIVEN
+	stream := syntheticStream(
+		[]float64{0, 100, 200, 1200, 1300, 1400, 1500},
+		[]int{0, 10, 20, 21, 31, 41, 51},
+		[]float64{100, 101, 102, 103, 104, 105, 106},
+	)
+
+	// WHEN
+	effort := BestDistanceForTime(1, "Glitched ride", "Ride", stream, 20)
+
+	// THEN
+	if effort == nil {
+		t.Fatalf("expected effort, got nil")
+	}
+	if math.Abs(effort.Distance-200) > 1e-6 {
+		t.Fatalf("unexpected distance: got %.2f, want 200", effort.Distance)
+	}
+}
+
 func TestBestDistanceEffort_ReturnsNilWhenAltitudeDataIsEmpty(t *testing.T) {
 	// GIVEN
 	activity := strava.Activity{

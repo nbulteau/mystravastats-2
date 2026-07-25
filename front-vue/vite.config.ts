@@ -15,6 +15,7 @@ export default defineConfig({
       scss: {
         additionalData: `@use "sass:math";`,
         quietDeps: true,
+        silenceDeprecations: ["import", "global-builtin", "color-functions", "if-function"],
       },
     },
   },
