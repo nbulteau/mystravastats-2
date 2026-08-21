@@ -8,6 +8,7 @@ import me.nicolas.stravastats.domain.business.strava.stream.LatLngStream
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.business.strava.stream.TimeStream
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -104,9 +105,113 @@ class FamousClimbBadgeTest {
         assertTrue(!matched, "Télégraphe descent-only activity should not match")
     }
 
+    @Test
+    fun `check rejects a full ride detour between climb waypoints`() {
+        val badge = FamousClimbBadge(
+            label = "La Hourquette d'Ancizan from Payolle",
+            name = "La Hourquette d'Ancizan",
+            topOfTheAscent = 1564,
+            start = GeoCoordinate(latitude = 42.943493, longitude = 0.278038),
+            end = GeoCoordinate(latitude = 42.899975, longitude = 0.305761),
+            length = 10.0,
+            totalAscent = 535,
+            averageGradient = 5.9,
+            difficulty = 348,
+            category = "2",
+        )
+        val activity = buildRideActivity(
+            startLatLng = listOf(42.943493, 0.278038),
+            streamPoints = listOf(
+                listOf(42.943493, 0.278038),
+                listOf(42.899975, 0.305761),
+            ),
+            streamDistances = listOf(0.0, 52700.0),
+        )
+
+        val (_, matched) = badge.check(listOf(activity))
+
+        assertTrue(!matched, "A 52.7 km detour must not match the 10 km Payolle ascent")
+    }
+
+    @Test
+    fun `check requires the route checkpoint of the selected variant`() {
+        val badge = FamousClimbBadge(
+            label = "Col de la Madeleine from La Chambre, par la D213",
+            name = "Col de la Madeleine",
+            topOfTheAscent = 1993,
+            start = GeoCoordinate(latitude = 45.3597, longitude = 6.29929),
+            end = GeoCoordinate(latitude = 45.4352186, longitude = 6.3756008),
+            routeCheckpoints = listOf(GeoCoordinate(latitude = 45.386825, longitude = 6.331231)),
+            length = 19.6,
+            totalAscent = 1520,
+            averageGradient = 8.0,
+            difficulty = 1305,
+            category = "HC",
+        )
+        val activity = buildRideActivity(
+            startLatLng = listOf(45.3597, 6.29929),
+            streamPoints = listOf(
+                listOf(45.3597, 6.29929),
+                listOf(45.391775, 6.319134), // Montgellafrey, not the D213 checkpoint.
+                listOf(45.4352186, 6.3756008),
+            ),
+            streamDistances = listOf(0.0, 10000.0, 19600.0),
+        )
+
+        val (_, matched) = badge.check(listOf(activity))
+
+        assertFalse(matched, "The Montgellafrey route must not match the D213 variant")
+    }
+
+    @Test
+    fun `badge set assigns one activity to only one variant of the same climb`() {
+        val start = GeoCoordinate(latitude = 45.3597, longitude = 6.29929)
+        val end = GeoCoordinate(latitude = 45.4352186, longitude = 6.3756008)
+        val activity = buildRideActivity(
+            startLatLng = listOf(start.latitude, start.longitude),
+            streamPoints = listOf(
+                listOf(start.latitude, start.longitude),
+                listOf(end.latitude, end.longitude),
+            ),
+            streamDistances = listOf(0.0, 19700.0),
+        )
+        val commonBadgeValues = listOf(
+            FamousClimbBadge(
+                label = "D213",
+                name = "Col de la Madeleine",
+                topOfTheAscent = 1993,
+                start = start,
+                end = end,
+                length = 19.6,
+                totalAscent = 1520,
+                averageGradient = 8.0,
+                difficulty = 1305,
+                category = "HC",
+            ),
+            FamousClimbBadge(
+                label = "Montgellafrey",
+                name = "Col de la Madeleine",
+                topOfTheAscent = 1993,
+                start = start,
+                end = end,
+                length = 19.8,
+                totalAscent = 1520,
+                averageGradient = 7.68,
+                difficulty = 1168,
+                category = "HC",
+            ),
+        )
+
+        val results = BadgeSet("france", commonBadgeValues).check(listOf(activity))
+
+        assertEquals(1, results.count { it.isCompleted })
+        assertEquals(1, results.sumOf { it.activities.size })
+    }
+
     private fun buildRideActivity(
         startLatLng: List<Double>,
         streamPoints: List<List<Double>>,
+        streamDistances: List<Double> = listOf(0.0, 11800.0),
     ): StravaActivity {
         return StravaActivity(
             athlete = AthleteRef(id = 41902),
@@ -134,8 +239,8 @@ class FamousClimbBadgeTest {
             weightedAverageWatts = 0,
             stream = Stream(
                 distance = DistanceStream(
-                    data = listOf(0.0, 1000.0),
-                    originalSize = 2,
+                    data = streamDistances,
+                    originalSize = streamDistances.size,
                     resolution = "high",
                     seriesType = "distance",
                 ),

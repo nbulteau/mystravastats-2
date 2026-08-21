@@ -7,6 +7,7 @@ import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.badges.DistanceBadge
 import me.nicolas.stravastats.domain.business.badges.ElevationBadge
 import me.nicolas.stravastats.domain.business.badges.HikingBadge
+import me.nicolas.stravastats.domain.business.badges.FamousClimbBadge
 import me.nicolas.stravastats.domain.business.badges.MovingTimeBadge
 import me.nicolas.stravastats.domain.business.strava.AthleteRef
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
@@ -107,6 +108,29 @@ class BadgesServiceTest {
 
         // THEN
         assertTrue(results.isEmpty())
+    }
+
+    @Test
+    fun `getFamousBadges loads the three national catalogs with geography`() {
+        val activityTypes = setOf(ActivityType.Ride)
+        every {
+            activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, null)
+        } returns emptyList()
+
+        val results = badgesService.getFamousBadges(activityTypes, null)
+        val climbs = results.map { it.badge as FamousClimbBadge }
+
+        assertEquals(423, climbs.size)
+        assertEquals(mapOf("FR" to 297, "CH" to 48, "IT" to 78), climbs.groupingBy { it.country }.eachCount())
+        assertTrue(climbs.all { it.massif.isNotBlank() })
+        assertEquals(
+            1,
+            climbs.single { it.label == "Col de la Madeleine from La Chambre, par la D213" }.routeCheckpoints.size,
+        )
+        assertEquals(
+            1,
+            climbs.single { it.label == "Col de la Madeleine from La Chambre, via Montgellafrey" }.routeCheckpoints.size,
+        )
     }
 
     private fun activity(

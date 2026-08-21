@@ -1,0 +1,1545 @@
+[
+  {
+    "name": "Colle del Nivolet",
+    "country": "IT",
+    "massif": "Alpes italiennes",
+    "topOfTheAscent": 2612,
+    "geoCoordinate": {
+      "latitude": 45.48023,
+      "longitude": 7.1414
+    },
+    "alternatives": [
+      {
+        "name": "Locana",
+        "geoCoordinate": {
+          "latitude": 45.41784,
+          "longitude": 7.45468
+        },
+        "length": 38,
+        "totalAscent": 1960,
+        "minimumAltitude": 607,
+        "maximumGradient": 14,
+        "difficulty": 1012,
+        "averageGradient": 5.16,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-del-nivolet-depuis-locana-c1246.htm"
+      }
+    ]
+  },
+  {
+    "name": "Colle delle Finestre",
+    "country": "IT",
+    "massif": "Alpes italiennes",
+    "topOfTheAscent": 2176,
+    "geoCoordinate": {
+      "latitude": 45.07208,
+      "longitude": 7.05333
+    },
+    "alternatives": [
+      {
+        "name": "Depot",
+        "geoCoordinate": {
+          "latitude": 45.02645,
+          "longitude": 7.0679
+        },
+        "length": 16,
+        "totalAscent": 1125,
+        "minimumAltitude": 1083,
+        "maximumGradient": 10.7,
+        "difficulty": 791,
+        "averageGradient": 7.03,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-delle-finestre-depuis-depot-c424.htm"
+      },
+      {
+        "name": "Pourrières",
+        "geoCoordinate": {
+          "latitude": 45.04613,
+          "longitude": 6.99917
+        },
+        "length": 11,
+        "totalAscent": 767,
+        "minimumAltitude": 1416,
+        "maximumGradient": 14.7,
+        "difficulty": 534,
+        "averageGradient": 6.97,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-delle-finestre-depuis-pourrieres-c3620.htm"
+      },
+      {
+        "name": "Susa",
+        "geoCoordinate": {
+          "latitude": 45.13509,
+          "longitude": 7.06011
+        },
+        "length": 18.6,
+        "totalAscent": 1694,
+        "minimumAltitude": 486,
+        "maximumGradient": 11.4,
+        "difficulty": 1544,
+        "averageGradient": 9.11,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-delle-finestre-depuis-susa-c425.htm"
+      }
+    ]
+  },
+  {
+    "name": "Colle di Sampeyre",
+    "country": "IT",
+    "massif": "Alpes italiennes",
+    "topOfTheAscent": 2284,
+    "geoCoordinate": {
+      "latitude": 44.55122,
+      "longitude": 7.11906
+    },
+    "alternatives": [
+      {
+        "name": "Sampeyre",
+        "geoCoordinate": {
+          "latitude": 44.57815,
+          "longitude": 7.18762
+        },
+        "length": 15.6,
+        "totalAscent": 1329,
+        "minimumAltitude": 965,
+        "maximumGradient": 9.5,
+        "difficulty": 1132,
+        "averageGradient": 8.52,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-di-sampeyre-depuis-sampeyre-c723.htm"
+      },
+      {
+        "name": "Stroppo",
+        "geoCoordinate": {
+          "latitude": 44.50247,
+          "longitude": 7.12486
+        },
+        "length": 17.8,
+        "totalAscent": 1348,
+        "minimumAltitude": 930,
+        "maximumGradient": 10.8,
+        "difficulty": 1020,
+        "averageGradient": 7.57,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-di-sampeyre-depuis-stroppo-c722.htm"
+      }
+    ]
+  },
+  {
+    "name": "Colle Fauniera",
+    "country": "IT",
+    "massif": "Alpes italiennes",
+    "topOfTheAscent": 2511,
+    "geoCoordinate": {
+      "latitude": 44.38588,
+      "longitude": 7.12173
+    },
+    "alternatives": [
+      {
+        "name": "Demonte",
+        "geoCoordinate": {
+          "latitude": 44.31485,
+          "longitude": 7.29458
+        },
+        "length": 24.7,
+        "totalAscent": 1721,
+        "minimumAltitude": 784,
+        "maximumGradient": 12,
+        "difficulty": 1200,
+        "averageGradient": 6.97,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-fauniera-depuis-demonte-c726.htm"
+      },
+      {
+        "name": "Ponte Marmora",
+        "geoCoordinate": {
+          "latitude": 44.48947,
+          "longitude": 7.09316
+        },
+        "length": 22,
+        "totalAscent": 1567,
+        "minimumAltitude": 951,
+        "maximumGradient": 11.1,
+        "difficulty": 1115,
+        "averageGradient": 7.12,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-fauniera-depuis-ponte-marmora-c725.htm"
+      },
+      {
+        "name": "Pradlèves",
+        "geoCoordinate": {
+          "latitude": 44.41801,
+          "longitude": 7.28182
+        },
+        "length": 22.4,
+        "totalAscent": 1689,
+        "minimumAltitude": 816,
+        "maximumGradient": 14,
+        "difficulty": 1273,
+        "averageGradient": 7.54,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-fauniera-depuis-pradleves-c724.htm"
+      }
+    ]
+  },
+  {
+    "name": "Monte Bondone",
+    "country": "IT",
+    "massif": "Alpes italiennes",
+    "topOfTheAscent": 1654,
+    "geoCoordinate": {
+      "latitude": 46.03608,
+      "longitude": 11.05328
+    },
+    "alternatives": [
+      {
+        "name": "Aldeno",
+        "geoCoordinate": {
+          "latitude": 45.98078,
+          "longitude": 11.09147
+        },
+        "length": 22.5,
+        "totalAscent": 1445,
+        "minimumAltitude": 205,
+        "maximumGradient": 18,
+        "difficulty": 927,
+        "averageGradient": 6.42,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/montagnes-du-lac-de-garde/italie/monte-bondone-depuis-aldeno-c517.htm"
+      },
+      {
+        "name": "Lasino",
+        "geoCoordinate": {
+          "latitude": 46.02382,
+          "longitude": 10.98164
+        },
+        "length": 23.7,
+        "totalAscent": 1203,
+        "minimumAltitude": 443,
+        "maximumGradient": 11,
+        "difficulty": 612,
+        "averageGradient": 5.08,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/montagnes-du-lac-de-garde/italie/monte-bondone-depuis-lasino-c516.htm"
+      },
+      {
+        "name": "Trento",
+        "geoCoordinate": {
+          "latitude": 46.08029,
+          "longitude": 11.09847
+        },
+        "length": 21.5,
+        "totalAscent": 1463,
+        "minimumAltitude": 270,
+        "maximumGradient": 9.3,
+        "difficulty": 994,
+        "averageGradient": 6.8,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/montagnes-du-lac-de-garde/italie/monte-bondone-depuis-trento-c518.htm"
+      }
+    ]
+  },
+  {
+    "name": "Monte Grappa",
+    "country": "IT",
+    "massif": "Alpes italiennes",
+    "topOfTheAscent": 1745,
+    "geoCoordinate": {
+      "latitude": 45.87349,
+      "longitude": 11.80208
+    },
+    "alternatives": [
+      {
+        "name": "Caupo",
+        "geoCoordinate": {
+          "latitude": 45.99417,
+          "longitude": 11.83556
+        },
+        "length": 28.6,
+        "totalAscent": 1618,
+        "minimumAltitude": 336,
+        "maximumGradient": 12,
+        "difficulty": 916,
+        "averageGradient": 5.66,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/monte-grappa-depuis-caupo-c3829.htm"
+      },
+      {
+        "name": "Possagno",
+        "geoCoordinate": {
+          "latitude": 45.85366,
+          "longitude": 11.87316
+        },
+        "length": 20.05,
+        "totalAscent": 1455,
+        "minimumAltitude": 281,
+        "maximumGradient": 19.4,
+        "difficulty": 1057,
+        "averageGradient": 7.26,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/monte-grappa-depuis-possagno-c3632.htm"
+      },
+      {
+        "name": "Romano Ezzelino",
+        "geoCoordinate": {
+          "latitude": 45.79615,
+          "longitude": 11.75835
+        },
+        "length": 25.13,
+        "totalAscent": 1558,
+        "minimumAltitude": 168,
+        "maximumGradient": 9,
+        "difficulty": 966,
+        "averageGradient": 6.2,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/monte-grappa-depuis-romano-ezzelino-c2540.htm"
+      },
+      {
+        "name": "Semonzo del Grappa",
+        "geoCoordinate": {
+          "latitude": 45.81317,
+          "longitude": 11.77057
+        },
+        "length": 18.1,
+        "totalAscent": 1450,
+        "minimumAltitude": 219,
+        "maximumGradient": 17,
+        "difficulty": 1161,
+        "averageGradient": 8.01,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/monte-grappa-depuis-semonzo-del-grappa-c3860.htm"
+      },
+      {
+        "name": "Seren del Grappa",
+        "geoCoordinate": {
+          "latitude": 45.9925,
+          "longitude": 11.83659
+        },
+        "length": 21.1,
+        "totalAscent": 1335,
+        "minimumAltitude": 346,
+        "maximumGradient": 18,
+        "difficulty": 845,
+        "averageGradient": 6.33,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/monte-grappa-depuis-seren-del-grappa-c3631.htm"
+      }
+    ]
+  },
+  {
+    "name": "Monte Zoncolan",
+    "country": "IT",
+    "massif": "Alpes italiennes",
+    "topOfTheAscent": 1735,
+    "geoCoordinate": {
+      "latitude": 46.50173,
+      "longitude": 12.92672
+    },
+    "alternatives": [
+      {
+        "name": "Ovaro",
+        "geoCoordinate": {
+          "latitude": 46.48427,
+          "longitude": 12.86537
+        },
+        "length": 10.5,
+        "totalAscent": 1210,
+        "minimumAltitude": 529,
+        "maximumGradient": 20.3,
+        "difficulty": 1393,
+        "averageGradient": 11.52,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-carniques/italie/monte-zoncolan-depuis-ovaro-c422.htm"
+      },
+      {
+        "name": "Priola",
+        "geoCoordinate": {
+          "latitude": 46.50203,
+          "longitude": 12.992
+        },
+        "length": 8.9,
+        "totalAscent": 1140,
+        "minimumAltitude": 558,
+        "maximumGradient": 16.2,
+        "difficulty": 1460,
+        "averageGradient": 12.81,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-carniques/italie/monte-zoncolan-depuis-priola-c1603.htm"
+      },
+      {
+        "name": "Sutrio, bivio SS 465",
+        "geoCoordinate": {
+          "latitude": 46.51322,
+          "longitude": 12.9984
+        },
+        "length": 13.5,
+        "totalAscent": 1203,
+        "minimumAltitude": 527,
+        "maximumGradient": 13.6,
+        "difficulty": 1072,
+        "averageGradient": 8.91,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-carniques/italie/monte-zoncolan-depuis-sutrio-bivio-ss-465-c423.htm"
+      }
+    ]
+  },
+  {
+    "name": "Mottarone",
+    "country": "IT",
+    "massif": "Alpes italiennes",
+    "topOfTheAscent": 1455,
+    "geoCoordinate": {
+      "latitude": 45.88256,
+      "longitude": 8.45762
+    },
+    "alternatives": [
+      {
+        "name": "Armeno",
+        "geoCoordinate": {
+          "latitude": 45.82172,
+          "longitude": 8.43926
+        },
+        "length": 12.1,
+        "totalAscent": 920,
+        "minimumAltitude": 538,
+        "maximumGradient": 11.6,
+        "difficulty": 699,
+        "averageGradient": 7.6,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-pennines/italie/mottarone-depuis-armeno-c1613.htm"
+      },
+      {
+        "name": "Baveno",
+        "geoCoordinate": {
+          "latitude": 45.90836,
+          "longitude": 8.50541
+        },
+        "length": 21.1,
+        "totalAscent": 1255,
+        "minimumAltitude": 203,
+        "maximumGradient": 11.6,
+        "difficulty": 747,
+        "averageGradient": 5.95,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-pennines/italie/mottarone-depuis-baveno-c1612.htm"
+      },
+      {
+        "name": "Gignese",
+        "geoCoordinate": {
+          "latitude": 45.86096,
+          "longitude": 8.50948
+        },
+        "length": 11.6,
+        "totalAscent": 781,
+        "minimumAltitude": 677,
+        "maximumGradient": 11.6,
+        "difficulty": 525,
+        "averageGradient": 6.73,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-pennines/italie/mottarone-depuis-gignese-c1614.htm"
+      },
+      {
+        "name": "Orta",
+        "geoCoordinate": {
+          "latitude": 45.79627,
+          "longitude": 8.4171
+        },
+        "length": 16.6,
+        "totalAscent": 1127,
+        "minimumAltitude": 326,
+        "maximumGradient": 11.6,
+        "difficulty": 765,
+        "averageGradient": 6.79,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-pennines/italie/mottarone-depuis-orta-c1615.htm"
+      },
+      {
+        "name": "Stresa",
+        "geoCoordinate": {
+          "latitude": 45.88253,
+          "longitude": 8.5356
+        },
+        "length": 20.1,
+        "totalAscent": 1252,
+        "minimumAltitude": 215,
+        "maximumGradient": 10.8,
+        "difficulty": 780,
+        "averageGradient": 6.23,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-pennines/italie/mottarone-depuis-stresa-c1616.htm"
+      }
+    ]
+  },
+  {
+    "name": "Passo del Mortirolo",
+    "country": "IT",
+    "massif": "Alpes italiennes",
+    "topOfTheAscent": 1852,
+    "geoCoordinate": {
+      "latitude": 46.24795,
+      "longitude": 10.29849
+    },
+    "alternatives": [
+      {
+        "name": "Edolo",
+        "geoCoordinate": {
+          "latitude": 46.18038,
+          "longitude": 10.32989
+        },
+        "length": 17.2,
+        "totalAscent": 1153,
+        "minimumAltitude": 685,
+        "maximumGradient": 10.2,
+        "difficulty": 772,
+        "averageGradient": 6.7,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-del-mortirolo-depuis-edolo-c421.htm"
+      },
+      {
+        "name": "Grosio",
+        "geoCoordinate": {
+          "latitude": 46.29803,
+          "longitude": 10.27448
+        },
+        "length": 14.8,
+        "totalAscent": 1222,
+        "minimumAltitude": 661,
+        "maximumGradient": 16,
+        "difficulty": 1010,
+        "averageGradient": 8.26,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-del-mortirolo-depuis-grosio-c419.htm"
+      },
+      {
+        "name": "Mazzo",
+        "geoCoordinate": {
+          "latitude": 46.25993,
+          "longitude": 10.25332
+        },
+        "length": 12.4,
+        "totalAscent": 1300,
+        "minimumAltitude": 551,
+        "maximumGradient": 14.2,
+        "difficulty": 1362,
+        "averageGradient": 10.48,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-del-mortirolo-depuis-mazzo-c420.htm"
+      },
+      {
+        "name": "Tovo di Sant'Agata",
+        "geoCoordinate": {
+          "latitude": 46.24191,
+          "longitude": 10.24537
+        },
+        "length": 12.2,
+        "totalAscent": 1301,
+        "minimumAltitude": 533,
+        "maximumGradient": 23,
+        "difficulty": 1386,
+        "averageGradient": 10.66,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-del-mortirolo-depuis-tovo-di-sant-agata-c3088.htm"
+      }
+    ]
+  },
+  {
+    "name": "Passo del Rombo",
+    "country": "IT",
+    "massif": "Alpes italiennes",
+    "topOfTheAscent": 2474,
+    "geoCoordinate": {
+      "latitude": 46.90526,
+      "longitude": 11.09751
+    },
+    "alternatives": [
+      {
+        "name": "San Leonardo in Passiria",
+        "geoCoordinate": {
+          "latitude": 46.81369,
+          "longitude": 11.24277
+        },
+        "length": 29.1,
+        "totalAscent": 1796,
+        "minimumAltitude": 673,
+        "maximumGradient": 12,
+        "difficulty": 1108,
+        "averageGradient": 6.17,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-de-stubai/italie/passo-del-rombo-depuis-san-leonardo-in-passiria-c1532.htm"
+      }
+    ]
+  },
+  {
+    "name": "Passo del Tonale",
+    "country": "IT",
+    "massif": "Alpes italiennes",
+    "topOfTheAscent": 1884,
+    "geoCoordinate": {
+      "latitude": 46.26039,
+      "longitude": 10.58809
+    },
+    "alternatives": [
+      {
+        "name": "Fucine",
+        "geoCoordinate": {
+          "latitude": 46.31002,
+          "longitude": 10.72979
+        },
+        "length": 15.2,
+        "totalAscent": 919,
+        "minimumAltitude": 988,
+        "maximumGradient": 9.2,
+        "difficulty": 556,
+        "averageGradient": 6.05,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-del-tonale-depuis-fucine-c534.htm"
+      },
+      {
+        "name": "Ponte di Legno",
+        "geoCoordinate": {
+          "latitude": 46.25455,
+          "longitude": 10.51725
+        },
+        "length": 10.9,
+        "totalAscent": 649,
+        "minimumAltitude": 1264,
+        "maximumGradient": 8.4,
+        "difficulty": 386,
+        "averageGradient": 5.95,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-del-tonale-depuis-ponte-di-legno-c533.htm"
+      }
+    ]
+  },
+  {
+    "name": "Passo della Mendola",
+    "country": "IT",
+    "massif": "Alpes italiennes",
+    "topOfTheAscent": 1363,
+    "geoCoordinate": {
+      "latitude": 46.41855,
+      "longitude": 11.204
+    },
+    "alternatives": [
+      {
+        "name": "Appiano",
+        "geoCoordinate": {
+          "latitude": 46.44102,
+          "longitude": 11.25979
+        },
+        "length": 14.8,
+        "totalAscent": 958,
+        "minimumAltitude": 407,
+        "maximumGradient": 7.9,
+        "difficulty": 620,
+        "averageGradient": 6.47,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-della-mendola-depuis-appiano-c2757.htm"
+      },
+      {
+        "name": "Brez",
+        "geoCoordinate": {
+          "latitude": 46.43104,
+          "longitude": 11.10744
+        },
+        "length": 14,
+        "totalAscent": 539,
+        "minimumAltitude": 794,
+        "maximumGradient": 7,
+        "difficulty": 208,
+        "averageGradient": 3.85,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-della-mendola-depuis-brez-c2758.htm"
+      }
+    ]
+  },
+  {
+    "name": "Passo dello Stelvio",
+    "country": "IT",
+    "massif": "Alpes italiennes",
+    "topOfTheAscent": 2758,
+    "geoCoordinate": {
+      "latitude": 46.52863,
+      "longitude": 10.45316
+    },
+    "alternatives": [
+      {
+        "name": "Bormio",
+        "geoCoordinate": {
+          "latitude": 46.46672,
+          "longitude": 10.37092
+        },
+        "length": 22,
+        "totalAscent": 1543,
+        "minimumAltitude": 1199,
+        "maximumGradient": 9.5,
+        "difficulty": 1081,
+        "averageGradient": 7.01,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-dello-stelvio-depuis-bormio-c361.htm"
+      },
+      {
+        "name": "Prato",
+        "geoCoordinate": {
+          "latitude": 46.61708,
+          "longitude": 10.59113
+        },
+        "length": 25.3,
+        "totalAscent": 1842,
+        "minimumAltitude": 911,
+        "maximumGradient": 9.5,
+        "difficulty": 1341,
+        "averageGradient": 7.28,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-dello-stelvio-depuis-prato-c360.htm"
+      }
+    ]
+  },
+  {
+    "name": "Passo di Croce Domini",
+    "country": "IT",
+    "massif": "Alpes italiennes",
+    "topOfTheAscent": 1892,
+    "geoCoordinate": {
+      "latitude": 45.90753,
+      "longitude": 10.40957
+    },
+    "alternatives": [
+      {
+        "name": "Bienno",
+        "geoCoordinate": {
+          "latitude": 45.93596,
+          "longitude": 10.29435
+        },
+        "length": 18.21,
+        "totalAscent": 1546,
+        "minimumAltitude": 441,
+        "maximumGradient": 9.8,
+        "difficulty": 1313,
+        "averageGradient": 8.49,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/montagnes-du-lac-de-garde/italie/passo-di-croce-domini-depuis-bienno-c3731.htm"
+      },
+      {
+        "name": "Lodrone",
+        "geoCoordinate": {
+          "latitude": 45.82725,
+          "longitude": 10.53228
+        },
+        "length": 30.6,
+        "totalAscent": 1496,
+        "minimumAltitude": 393,
+        "maximumGradient": 14,
+        "difficulty": 732,
+        "averageGradient": 4.89,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/montagnes-du-lac-de-garde/italie/passo-di-croce-domini-depuis-lodrone-c3732.htm"
+      }
+    ]
+  },
+  {
+    "name": "Passo di Gavia",
+    "country": "IT",
+    "massif": "Alpes italiennes",
+    "topOfTheAscent": 2621,
+    "geoCoordinate": {
+      "latitude": 46.34355,
+      "longitude": 10.48421
+    },
+    "alternatives": [
+      {
+        "name": "Bormio",
+        "geoCoordinate": {
+          "latitude": 46.46656,
+          "longitude": 10.37076
+        },
+        "length": 25.6,
+        "totalAscent": 1404,
+        "minimumAltitude": 1199,
+        "maximumGradient": 11,
+        "difficulty": 769,
+        "averageGradient": 5.48,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-di-gavia-depuis-bormio-c357.htm"
+      },
+      {
+        "name": "Ponte di Legno",
+        "geoCoordinate": {
+          "latitude": 46.25457,
+          "longitude": 10.51707
+        },
+        "length": 17.3,
+        "totalAscent": 1363,
+        "minimumAltitude": 1262,
+        "maximumGradient": 12.2,
+        "difficulty": 1074,
+        "averageGradient": 7.88,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-di-gavia-depuis-ponte-di-legno-c358.htm"
+      },
+      {
+        "name": "Valfurva",
+        "geoCoordinate": {
+          "latitude": 46.41408,
+          "longitude": 10.49115
+        },
+        "length": 13.5,
+        "totalAscent": 884,
+        "minimumAltitude": 1738,
+        "maximumGradient": 11,
+        "difficulty": 579,
+        "averageGradient": 6.55,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-di-gavia-depuis-valfurva-c359.htm"
+      }
+    ]
+  },
+  {
+    "name": "Passo Manghen",
+    "country": "IT",
+    "massif": "Alpes italiennes",
+    "topOfTheAscent": 2047,
+    "geoCoordinate": {
+      "latitude": 46.17336,
+      "longitude": 11.44128
+    },
+    "alternatives": [
+      {
+        "name": "Borgo Valsugana",
+        "geoCoordinate": {
+          "latitude": 46.05263,
+          "longitude": 11.46217
+        },
+        "length": 23.4,
+        "totalAscent": 1629,
+        "minimumAltitude": 388,
+        "maximumGradient": 10.5,
+        "difficulty": 1134,
+        "averageGradient": 6.96,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-manghen-depuis-borgo-valsugana-c1952.htm"
+      },
+      {
+        "name": "Molina di Fiemme",
+        "geoCoordinate": {
+          "latitude": 46.27118,
+          "longitude": 11.42299
+        },
+        "length": 16.4,
+        "totalAscent": 1229,
+        "minimumAltitude": 825,
+        "maximumGradient": 10.2,
+        "difficulty": 920,
+        "averageGradient": 7.49,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-manghen-depuis-molina-di-fiemme-c1953.htm"
+      }
+    ]
+  },
+  {
+    "name": "Piancavallo",
+    "country": "IT",
+    "massif": "Alpes italiennes",
+    "topOfTheAscent": 1267,
+    "geoCoordinate": {
+      "latitude": 46.10801,
+      "longitude": 12.52003
+    },
+    "alternatives": [
+      {
+        "name": "Barcis",
+        "geoCoordinate": {
+          "latitude": 46.19084,
+          "longitude": 12.56113
+        },
+        "length": 15.4,
+        "totalAscent": 864,
+        "minimumAltitude": 412,
+        "maximumGradient": 9.1,
+        "difficulty": 485,
+        "averageGradient": 5.61,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/piancavallo-depuis-barcis-c1606.htm"
+      },
+      {
+        "name": "Costa di Aviano",
+        "geoCoordinate": {
+          "latitude": 46.08382,
+          "longitude": 12.57991
+        },
+        "length": 20,
+        "totalAscent": 1062,
+        "minimumAltitude": 212,
+        "maximumGradient": 11.7,
+        "difficulty": 564,
+        "averageGradient": 5.31,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/piancavallo-depuis-costa-di-aviano-c1607.htm"
+      },
+      {
+        "name": "Pedemonte di Aviano",
+        "geoCoordinate": {
+          "latitude": 46.06612,
+          "longitude": 12.58369
+        },
+        "length": 13.8,
+        "totalAscent": 1108,
+        "minimumAltitude": 161,
+        "maximumGradient": 13.5,
+        "difficulty": 890,
+        "averageGradient": 8.03,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/piancavallo-depuis-pedemonte-di-aviano-c1608.htm"
+      }
+    ]
+  },
+  {
+    "name": "Station de Sestrières",
+    "country": "IT",
+    "massif": "Alpes italiennes",
+    "topOfTheAscent": 2035,
+    "geoCoordinate": {
+      "latitude": 44.95911,
+      "longitude": 6.88295
+    },
+    "alternatives": [
+      {
+        "name": "Cesana",
+        "geoCoordinate": {
+          "latitude": 44.95044,
+          "longitude": 6.79457
+        },
+        "length": 11.5,
+        "totalAscent": 679,
+        "minimumAltitude": 1348,
+        "maximumGradient": 9.5,
+        "difficulty": 400,
+        "averageGradient": 5.9,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/station-de-sestrieres-depuis-cesana-c226.htm"
+      },
+      {
+        "name": "Oulx",
+        "geoCoordinate": {
+          "latitude": 45.0339,
+          "longitude": 6.83305
+        },
+        "length": 21.2,
+        "totalAscent": 953,
+        "minimumAltitude": 1074,
+        "maximumGradient": 9,
+        "difficulty": 429,
+        "averageGradient": 4.5,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/station-de-sestrieres-depuis-oulx-c225.htm"
+      },
+      {
+        "name": "Perosa Argentina",
+        "geoCoordinate": {
+          "latitude": 44.95649,
+          "longitude": 7.19337
+        },
+        "length": 37.9,
+        "totalAscent": 1427,
+        "minimumAltitude": 625,
+        "maximumGradient": 7.6,
+        "difficulty": 539,
+        "averageGradient": 3.77,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/station-de-sestrieres-depuis-perosa-argentina-c224.htm"
+      }
+    ]
+  },
+  {
+    "name": "Blockhaus",
+    "country": "IT",
+    "massif": "Apennins",
+    "topOfTheAscent": 2142,
+    "geoCoordinate": {
+      "latitude": 42.16091,
+      "longitude": 14.13283
+    },
+    "alternatives": [
+      {
+        "name": "Fara Filiorum Petri",
+        "geoCoordinate": {
+          "latitude": 42.24732,
+          "longitude": 14.18425
+        },
+        "length": 29.6,
+        "totalAscent": 1932,
+        "minimumAltitude": 227,
+        "maximumGradient": 9.4,
+        "difficulty": 1262,
+        "averageGradient": 6.53,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/apennins/italie/blockhaus-depuis-fara-filiorum-petri-c498.htm"
+      },
+      {
+        "name": "Lettomanoppello",
+        "geoCoordinate": {
+          "latitude": 42.26367,
+          "longitude": 14.00389
+        },
+        "length": 28,
+        "totalAscent": 2038,
+        "minimumAltitude": 106,
+        "maximumGradient": 9.4,
+        "difficulty": 1484,
+        "averageGradient": 7.28,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/apennins/italie/blockhaus-depuis-lettomanoppello-c497.htm"
+      },
+      {
+        "name": "Roccamorice",
+        "geoCoordinate": {
+          "latitude": 42.26574,
+          "longitude": 13.99512
+        },
+        "length": 31.6,
+        "totalAscent": 1961,
+        "minimumAltitude": 125,
+        "maximumGradient": 10.8,
+        "difficulty": 1219,
+        "averageGradient": 6.21,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/apennins/italie/blockhaus-depuis-roccamorice-c499.htm"
+      }
+    ]
+  },
+  {
+    "name": "Monte Terminillo / Sella di Leonessa",
+    "country": "IT",
+    "massif": "Apennins",
+    "topOfTheAscent": 1901,
+    "geoCoordinate": {
+      "latitude": 42.47371,
+      "longitude": 13.00624
+    },
+    "alternatives": [
+      {
+        "name": "Leonessa",
+        "geoCoordinate": {
+          "latitude": 42.55956,
+          "longitude": 12.96619
+        },
+        "length": 17,
+        "totalAscent": 951,
+        "minimumAltitude": 936,
+        "maximumGradient": 12,
+        "difficulty": 531,
+        "averageGradient": 5.59,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/apennins/italie/monte-terminillo-sella-di-leonessa-depuis-leonessa-c2752.htm"
+      },
+      {
+        "name": "Rieti",
+        "geoCoordinate": {
+          "latitude": 42.4049,
+          "longitude": 12.87155
+        },
+        "length": 24.9,
+        "totalAscent": 1509,
+        "minimumAltitude": 402,
+        "maximumGradient": 9,
+        "difficulty": 914,
+        "averageGradient": 6.06,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/apennins/italie/monte-terminillo-sella-di-leonessa-depuis-rieti-c2751.htm"
+      }
+    ]
+  },
+  {
+    "name": "Passo delle Erbe",
+    "country": "IT",
+    "massif": "Dolomites",
+    "topOfTheAscent": 1987,
+    "geoCoordinate": {
+      "latitude": 46.67538,
+      "longitude": 11.8142
+    },
+    "alternatives": [
+      {
+        "name": "Brixen / Bressanonne",
+        "geoCoordinate": {
+          "latitude": 46.70585,
+          "longitude": 11.66001
+        },
+        "length": 30.2,
+        "totalAscent": 1614,
+        "minimumAltitude": 576,
+        "maximumGradient": 10,
+        "difficulty": 861,
+        "averageGradient": 5.34,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-delle-erbe-depuis-brixen-bressanonne-c3830.htm"
+      },
+      {
+        "name": "Piccolino",
+        "geoCoordinate": {
+          "latitude": 46.68548,
+          "longitude": 11.89847
+        },
+        "length": 15.2,
+        "totalAscent": 922,
+        "minimumAltitude": 1097,
+        "maximumGradient": 11.2,
+        "difficulty": 560,
+        "averageGradient": 6.07,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-delle-erbe-depuis-piccolino-c2325.htm"
+      },
+      {
+        "name": "Val di Funes",
+        "geoCoordinate": {
+          "latitude": 46.65668,
+          "longitude": 11.60098
+        },
+        "length": 25.6,
+        "totalAscent": 1462,
+        "minimumAltitude": 534,
+        "maximumGradient": 12.2,
+        "difficulty": 835,
+        "averageGradient": 5.71,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-delle-erbe-depuis-val-di-funes-c2326.htm"
+      }
+    ]
+  },
+  {
+    "name": "Passo di Campolongo",
+    "country": "IT",
+    "massif": "Dolomites",
+    "topOfTheAscent": 1875,
+    "geoCoordinate": {
+      "latitude": 46.5138,
+      "longitude": 11.87225
+    },
+    "alternatives": [
+      {
+        "name": "Corvara in Badia",
+        "geoCoordinate": {
+          "latitude": 46.55214,
+          "longitude": 11.87416
+        },
+        "length": 6.15,
+        "totalAscent": 307,
+        "minimumAltitude": 1525,
+        "maximumGradient": 9,
+        "difficulty": 153,
+        "averageGradient": 4.99,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-di-campolongo-depuis-corvara-in-badia-c3436.htm"
+      }
+    ]
+  },
+  {
+    "name": "Passo Falzarego",
+    "country": "IT",
+    "massif": "Dolomites",
+    "topOfTheAscent": 2117,
+    "geoCoordinate": {
+      "latitude": 46.51883,
+      "longitude": 12.00927
+    },
+    "alternatives": [
+      {
+        "name": "Caprile",
+        "geoCoordinate": {
+          "latitude": 46.43495,
+          "longitude": 11.99684
+        },
+        "length": 20.5,
+        "totalAscent": 1119,
+        "minimumAltitude": 1000,
+        "maximumGradient": 8.3,
+        "difficulty": 611,
+        "averageGradient": 5.46,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-falzarego-depuis-caprile-c1950.htm"
+      },
+      {
+        "name": "Cortina d'Ampezzo",
+        "geoCoordinate": {
+          "latitude": 46.53943,
+          "longitude": 12.13315
+        },
+        "length": 16.4,
+        "totalAscent": 916,
+        "minimumAltitude": 1205,
+        "maximumGradient": 8.6,
+        "difficulty": 512,
+        "averageGradient": 5.59,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-falzarego-depuis-cortina-d-ampezzo-c1951.htm"
+      }
+    ]
+  },
+  {
+    "name": "Passo Fedaia",
+    "country": "IT",
+    "massif": "Dolomites",
+    "topOfTheAscent": 2057,
+    "geoCoordinate": {
+      "latitude": 46.4537,
+      "longitude": 11.88867
+    },
+    "alternatives": [
+      {
+        "name": "Canazei",
+        "geoCoordinate": {
+          "latitude": 46.47637,
+          "longitude": 11.77089
+        },
+        "length": 13.9,
+        "totalAscent": 617,
+        "minimumAltitude": 1450,
+        "maximumGradient": 11,
+        "difficulty": 274,
+        "averageGradient": 4.44,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-fedaia-depuis-canazei-c529.htm"
+      },
+      {
+        "name": "Caprile",
+        "geoCoordinate": {
+          "latitude": 46.43438,
+          "longitude": 11.99719
+        },
+        "length": 14.1,
+        "totalAscent": 1059,
+        "minimumAltitude": 998,
+        "maximumGradient": 12.6,
+        "difficulty": 795,
+        "averageGradient": 7.51,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-fedaia-depuis-caprile-c528.htm"
+      }
+    ]
+  },
+  {
+    "name": "Passo Gardena",
+    "country": "IT",
+    "massif": "Dolomites",
+    "topOfTheAscent": 2121,
+    "geoCoordinate": {
+      "latitude": 46.54981,
+      "longitude": 11.80865
+    },
+    "alternatives": [
+      {
+        "name": "Corvara in Badia",
+        "geoCoordinate": {
+          "latitude": 46.55238,
+          "longitude": 11.87446
+        },
+        "length": 9.6,
+        "totalAscent": 599,
+        "minimumAltitude": 1523,
+        "maximumGradient": 10,
+        "difficulty": 374,
+        "averageGradient": 6.24,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-gardena-depuis-corvara-in-badia-c2512.htm"
+      },
+      {
+        "name": "Ponte Gardena",
+        "geoCoordinate": {
+          "latitude": 46.59551,
+          "longitude": 11.52984
+        },
+        "length": 31.9,
+        "totalAscent": 1654,
+        "minimumAltitude": 464,
+        "maximumGradient": 9.5,
+        "difficulty": 856,
+        "averageGradient": 5.18,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-gardena-depuis-ponte-gardena-c2511.htm"
+      }
+    ]
+  },
+  {
+    "name": "Passo Giau",
+    "country": "IT",
+    "massif": "Dolomites",
+    "topOfTheAscent": 2236,
+    "geoCoordinate": {
+      "latitude": 46.4843,
+      "longitude": 12.05145
+    },
+    "alternatives": [
+      {
+        "name": "Pocol",
+        "geoCoordinate": {
+          "latitude": 46.52249,
+          "longitude": 12.11001
+        },
+        "length": 8.6,
+        "totalAscent": 716,
+        "minimumAltitude": 1541,
+        "maximumGradient": 11,
+        "difficulty": 597,
+        "averageGradient": 8.33,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-giau-depuis-pocol-c1610.htm"
+      },
+      {
+        "name": "Selva di Cadore",
+        "geoCoordinate": {
+          "latitude": 46.45117,
+          "longitude": 12.03687
+        },
+        "length": 10.1,
+        "totalAscent": 922,
+        "minimumAltitude": 1335,
+        "maximumGradient": 10.4,
+        "difficulty": 842,
+        "averageGradient": 9.13,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-giau-depuis-selva-di-cadore-c1609.htm"
+      }
+    ]
+  },
+  {
+    "name": "Passo Pordoi",
+    "country": "IT",
+    "massif": "Dolomites",
+    "topOfTheAscent": 2242,
+    "geoCoordinate": {
+      "latitude": 46.48747,
+      "longitude": 11.81271
+    },
+    "alternatives": [
+      {
+        "name": "Arabba",
+        "geoCoordinate": {
+          "latitude": 46.49747,
+          "longitude": 11.8751
+        },
+        "length": 9.4,
+        "totalAscent": 637,
+        "minimumAltitude": 1596,
+        "maximumGradient": 9.7,
+        "difficulty": 432,
+        "averageGradient": 6.78,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-pordoi-depuis-arabba-c1744.htm"
+      },
+      {
+        "name": "Canazei",
+        "geoCoordinate": {
+          "latitude": 46.47617,
+          "longitude": 11.77118
+        },
+        "length": 13,
+        "totalAscent": 786,
+        "minimumAltitude": 1448,
+        "maximumGradient": 7.7,
+        "difficulty": 476,
+        "averageGradient": 6.05,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-pordoi-depuis-canazei-c1743.htm"
+      }
+    ]
+  },
+  {
+    "name": "Passo Rolle",
+    "country": "IT",
+    "massif": "Dolomites",
+    "topOfTheAscent": 1970,
+    "geoCoordinate": {
+      "latitude": 46.29642,
+      "longitude": 11.78419
+    },
+    "alternatives": [
+      {
+        "name": "Fiera di Primiero",
+        "geoCoordinate": {
+          "latitude": 46.17569,
+          "longitude": 11.83035
+        },
+        "length": 23.1,
+        "totalAscent": 1253,
+        "minimumAltitude": 715,
+        "maximumGradient": 9.8,
+        "difficulty": 679,
+        "averageGradient": 5.42,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-rolle-depuis-fiera-di-primiero-c1954.htm"
+      },
+      {
+        "name": "Predazzo",
+        "geoCoordinate": {
+          "latitude": 46.31098,
+          "longitude": 11.60259
+        },
+        "length": 20.5,
+        "totalAscent": 957,
+        "minimumAltitude": 1015,
+        "maximumGradient": 11,
+        "difficulty": 447,
+        "averageGradient": 4.67,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-rolle-depuis-predazzo-c1955.htm"
+      }
+    ]
+  },
+  {
+    "name": "Passo San Pellegrino",
+    "country": "IT",
+    "massif": "Dolomites",
+    "topOfTheAscent": 1918,
+    "geoCoordinate": {
+      "latitude": 46.37842,
+      "longitude": 11.79471
+    },
+    "alternatives": [
+      {
+        "name": "Cencenighe",
+        "geoCoordinate": {
+          "latitude": 46.35231,
+          "longitude": 11.96723
+        },
+        "length": 18.2,
+        "totalAscent": 1144,
+        "minimumAltitude": 771,
+        "maximumGradient": 14,
+        "difficulty": 720,
+        "averageGradient": 6.29,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-san-pellegrino-depuis-cencenighe-c522.htm"
+      },
+      {
+        "name": "Moena",
+        "geoCoordinate": {
+          "latitude": 46.37377,
+          "longitude": 11.66613
+        },
+        "length": 11.4,
+        "totalAscent": 778,
+        "minimumAltitude": 1252,
+        "maximumGradient": 11.2,
+        "difficulty": 530,
+        "averageGradient": 6.82,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-san-pellegrino-depuis-moena-c521.htm"
+      }
+    ]
+  },
+  {
+    "name": "Passo Sella",
+    "country": "IT",
+    "massif": "Dolomites",
+    "topOfTheAscent": 2240,
+    "geoCoordinate": {
+      "latitude": 46.50846,
+      "longitude": 11.76682
+    },
+    "alternatives": [
+      {
+        "name": "Canazei",
+        "geoCoordinate": {
+          "latitude": 46.47613,
+          "longitude": 11.77126
+        },
+        "length": 11.4,
+        "totalAscent": 784,
+        "minimumAltitude": 1451,
+        "maximumGradient": 8.9,
+        "difficulty": 540,
+        "averageGradient": 6.88,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-sella-depuis-canazei-c1796.htm"
+      },
+      {
+        "name": "Plan de gralba",
+        "geoCoordinate": {
+          "latitude": 46.53517,
+          "longitude": 11.77183
+        },
+        "length": 5.4,
+        "totalAscent": 373,
+        "minimumAltitude": 1784,
+        "maximumGradient": 9,
+        "difficulty": 258,
+        "averageGradient": 6.91,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-sella-depuis-plan-de-gralba-c1797.htm"
+      }
+    ]
+  },
+  {
+    "name": "Etna - Rifugio Sapienza",
+    "country": "IT",
+    "massif": "Sicile",
+    "topOfTheAscent": 1921,
+    "geoCoordinate": {
+      "latitude": 37.69999,
+      "longitude": 14.99782
+    },
+    "alternatives": [
+      {
+        "name": "Nicolosi",
+        "geoCoordinate": {
+          "latitude": 37.61755,
+          "longitude": 15.02417
+        },
+        "length": 19,
+        "totalAscent": 1223,
+        "minimumAltitude": 729,
+        "maximumGradient": 8,
+        "difficulty": 788,
+        "averageGradient": 6.44,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/sicile/italie/etna-rifugio-sapienza-depuis-nicolosi-c1597.htm"
+      },
+      {
+        "name": "Pedara",
+        "geoCoordinate": {
+          "latitude": 37.61848,
+          "longitude": 15.06093
+        },
+        "length": 18,
+        "totalAscent": 1286,
+        "minimumAltitude": 609,
+        "maximumGradient": 13,
+        "difficulty": 918,
+        "averageGradient": 7.14,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/sicile/italie/etna-rifugio-sapienza-depuis-pedara-c1598.htm"
+      },
+      {
+        "name": "Piano San Leo",
+        "geoCoordinate": {
+          "latitude": 37.65024,
+          "longitude": 14.98947
+        },
+        "length": 13,
+        "totalAscent": 883,
+        "minimumAltitude": 1053,
+        "maximumGradient": 8,
+        "difficulty": 599,
+        "averageGradient": 6.79,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/sicile/italie/etna-rifugio-sapienza-depuis-piano-san-leo-c1599.htm"
+      },
+      {
+        "name": "Zafferana",
+        "geoCoordinate": {
+          "latitude": 37.68722,
+          "longitude": 15.10361
+        },
+        "length": 18,
+        "totalAscent": 1305,
+        "minimumAltitude": 561,
+        "maximumGradient": 10,
+        "difficulty": 946,
+        "averageGradient": 7.25,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/sicile/italie/etna-rifugio-sapienza-depuis-zafferana-c1596.htm"
+      }
+    ]
+  }
+]
+

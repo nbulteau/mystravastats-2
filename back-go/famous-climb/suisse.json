@@ -1,0 +1,995 @@
+[
+  {
+    "name": "Albulapass",
+    "country": "CH",
+    "massif": "Alpes suisses",
+    "topOfTheAscent": 2312,
+    "geoCoordinate": {
+      "latitude": 46.58229,
+      "longitude": 9.8377
+    },
+    "alternatives": [
+      {
+        "name": "Bergun",
+        "geoCoordinate": {
+          "latitude": 46.62948,
+          "longitude": 9.74613
+        },
+        "length": 13.8,
+        "totalAscent": 945,
+        "minimumAltitude": 1369,
+        "maximumGradient": 11,
+        "difficulty": 648,
+        "averageGradient": 6.85,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-rhetiques/suisse/albulapass-depuis-bergun-c365.htm"
+      },
+      {
+        "name": "La Punt",
+        "geoCoordinate": {
+          "latitude": 46.57908,
+          "longitude": 9.9253
+        },
+        "length": 9.5,
+        "totalAscent": 629,
+        "minimumAltitude": 1692,
+        "maximumGradient": 9.4,
+        "difficulty": 416,
+        "averageGradient": 6.62,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-rhetiques/suisse/albulapass-depuis-la-punt-c366.htm"
+      }
+    ]
+  },
+  {
+    "name": "Alpe di Neggia",
+    "country": "CH",
+    "massif": "Alpes suisses",
+    "topOfTheAscent": 1395,
+    "geoCoordinate": {
+      "latitude": 46.11127,
+      "longitude": 8.84557
+    },
+    "alternatives": [
+      {
+        "name": "Maccagno",
+        "geoCoordinate": {
+          "latitude": 46.04397,
+          "longitude": 8.73945
+        },
+        "length": 21.6,
+        "totalAscent": 1177,
+        "minimumAltitude": 239,
+        "maximumGradient": 10.5,
+        "difficulty": 642,
+        "averageGradient": 5.45,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-lepontines/suisse/alpe-di-neggia-depuis-maccagno-c3359.htm"
+      },
+      {
+        "name": "Vira Gambarogno",
+        "geoCoordinate": {
+          "latitude": 46.1434,
+          "longitude": 8.84224
+        },
+        "length": 12.49,
+        "totalAscent": 1187,
+        "minimumAltitude": 214,
+        "maximumGradient": 11.3,
+        "difficulty": 1127,
+        "averageGradient": 9.5,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-lepontines/suisse/alpe-di-neggia-depuis-vira-gambarogno-c3358.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col des Mosses",
+    "country": "CH",
+    "massif": "Alpes suisses",
+    "topOfTheAscent": 1445,
+    "geoCoordinate": {
+      "latitude": 46.399,
+      "longitude": 7.10258
+    },
+    "alternatives": [
+      {
+        "name": "Aigle",
+        "geoCoordinate": {
+          "latitude": 46.31885,
+          "longitude": 6.97107
+        },
+        "length": 18.8,
+        "totalAscent": 1028,
+        "minimumAltitude": 420,
+        "maximumGradient": 7.5,
+        "difficulty": 563,
+        "averageGradient": 5.47,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-bernoises/suisse/col-des-mosses-depuis-aigle-c180.htm"
+      },
+      {
+        "name": "Les Moulins",
+        "geoCoordinate": {
+          "latitude": 46.46007,
+          "longitude": 7.10655
+        },
+        "length": 13.7,
+        "totalAscent": 562,
+        "minimumAltitude": 895,
+        "maximumGradient": 7.3,
+        "difficulty": 230,
+        "averageGradient": 4.1,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-bernoises/suisse/col-des-mosses-depuis-les-moulins-c1927.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col du Grand-Saint-Bernard",
+    "country": "CH",
+    "massif": "Alpes suisses",
+    "topOfTheAscent": 2469,
+    "geoCoordinate": {
+      "latitude": 45.8690526,
+      "longitude": 7.1704088
+    },
+    "alternatives": [
+      {
+        "name": "Bourg-Saint-Pierre",
+        "geoCoordinate": {
+          "latitude": 45.9489252,
+          "longitude": 7.2088271
+        },
+        "length": 12.6,
+        "totalAscent": 995,
+        "difficulty": 786,
+        "averageGradient": 7.9,
+        "category": "1"
+      },
+      {
+        "name": "Aosta",
+        "geoCoordinate": {
+          "latitude": 45.74194,
+          "longitude": 7.31444
+        },
+        "length": 32,
+        "totalAscent": 1878,
+        "minimumAltitude": 595,
+        "maximumGradient": 8.3,
+        "difficulty": 1103,
+        "averageGradient": 5.87,
+        "category": "HC"
+      }
+    ]
+  },
+  {
+    "name": "Col du Pillon",
+    "country": "CH",
+    "massif": "Alpes suisses",
+    "topOfTheAscent": 1546,
+    "geoCoordinate": {
+      "latitude": 46.35364,
+      "longitude": 7.20556
+    },
+    "alternatives": [
+      {
+        "name": "Aigle",
+        "geoCoordinate": {
+          "latitude": 46.31897,
+          "longitude": 6.9707
+        },
+        "length": 22.6,
+        "totalAscent": 1129,
+        "minimumAltitude": 419,
+        "maximumGradient": 9.7,
+        "difficulty": 565,
+        "averageGradient": 5,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-bernoises/suisse/col-du-pillon-depuis-aigle-c1251.htm"
+      },
+      {
+        "name": "Gsteig",
+        "geoCoordinate": {
+          "latitude": 46.38555,
+          "longitude": 7.26735
+        },
+        "length": 6.9,
+        "totalAscent": 351,
+        "minimumAltitude": 1184,
+        "maximumGradient": 8.5,
+        "difficulty": 179,
+        "averageGradient": 5.09,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-bernoises/suisse/col-du-pillon-depuis-gsteig-c1855.htm"
+      }
+    ]
+  },
+  {
+    "name": "Croix de Coeur",
+    "country": "CH",
+    "massif": "Alpes suisses",
+    "topOfTheAscent": 2173,
+    "geoCoordinate": {
+      "latitude": 46.12194,
+      "longitude": 7.23226
+    },
+    "alternatives": [
+      {
+        "name": "Le Chable",
+        "geoCoordinate": {
+          "latitude": 46.08063,
+          "longitude": 7.21473
+        },
+        "length": 15.5,
+        "totalAscent": 1340,
+        "minimumAltitude": 841,
+        "maximumGradient": 11,
+        "difficulty": 1160,
+        "averageGradient": 8.65,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-valaisannes/suisse/croix-de-coeur-depuis-le-chable-c1926.htm"
+      },
+      {
+        "name": "Tsoumaz",
+        "geoCoordinate": {
+          "latitude": 46.14204,
+          "longitude": 7.23606
+        },
+        "length": 7.6,
+        "totalAscent": 653,
+        "minimumAltitude": 1581,
+        "maximumGradient": 13,
+        "difficulty": 561,
+        "averageGradient": 8.59,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-valaisannes/suisse/croix-de-coeur-depuis-tsoumaz-c1915.htm"
+      }
+    ]
+  },
+  {
+    "name": "Flüelapass",
+    "country": "CH",
+    "massif": "Alpes suisses",
+    "topOfTheAscent": 2383,
+    "geoCoordinate": {
+      "latitude": 46.75028,
+      "longitude": 9.94744
+    },
+    "alternatives": [
+      {
+        "name": "Davos",
+        "geoCoordinate": {
+          "latitude": 46.79952,
+          "longitude": 9.83196
+        },
+        "length": 13,
+        "totalAscent": 829,
+        "minimumAltitude": 1544,
+        "maximumGradient": 8,
+        "difficulty": 529,
+        "averageGradient": 6.38,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-rhetiques/suisse/fluelapass-depuis-davos-c372.htm"
+      },
+      {
+        "name": "Susch",
+        "geoCoordinate": {
+          "latitude": 46.74898,
+          "longitude": 10.07886
+        },
+        "length": 13,
+        "totalAscent": 957,
+        "minimumAltitude": 1430,
+        "maximumGradient": 10,
+        "difficulty": 704,
+        "averageGradient": 7.36,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-rhetiques/suisse/fluelapass-depuis-susch-c369.htm"
+      }
+    ]
+  },
+  {
+    "name": "Furkapass",
+    "country": "CH",
+    "massif": "Alpes suisses",
+    "topOfTheAscent": 2431,
+    "geoCoordinate": {
+      "latitude": 46.57246,
+      "longitude": 8.41488
+    },
+    "alternatives": [
+      {
+        "name": "Oberwald",
+        "geoCoordinate": {
+          "latitude": 46.53492,
+          "longitude": 8.34932
+        },
+        "length": 16.5,
+        "totalAscent": 1063,
+        "minimumAltitude": 1376,
+        "maximumGradient": 8.9,
+        "difficulty": 684,
+        "averageGradient": 6.44,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/saint-gothard/suisse/furkapass-depuis-oberwald-c469.htm"
+      },
+      {
+        "name": "Realp",
+        "geoCoordinate": {
+          "latitude": 46.59884,
+          "longitude": 8.50215
+        },
+        "length": 12.3,
+        "totalAscent": 893,
+        "minimumAltitude": 1544,
+        "maximumGradient": 11.3,
+        "difficulty": 648,
+        "averageGradient": 7.26,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/saint-gothard/suisse/furkapass-depuis-realp-c470.htm"
+      }
+    ]
+  },
+  {
+    "name": "Glaubenberg Passhöhe",
+    "country": "CH",
+    "massif": "Alpes suisses",
+    "topOfTheAscent": 1543,
+    "geoCoordinate": {
+      "latitude": 46.8933,
+      "longitude": 8.108
+    },
+    "alternatives": [
+      {
+        "name": "Entlebuch",
+        "geoCoordinate": {
+          "latitude": 46.99156,
+          "longitude": 8.06571
+        },
+        "length": 16.25,
+        "totalAscent": 820,
+        "minimumAltitude": 731,
+        "maximumGradient": 10.8,
+        "difficulty": 414,
+        "averageGradient": 5.05,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-uranaises/suisse/glaubenberg-passhohe-depuis-entlebuch-c2020.htm"
+      },
+      {
+        "name": "Sarnen",
+        "geoCoordinate": {
+          "latitude": 46.8985,
+          "longitude": 8.24435
+        },
+        "length": 14.03,
+        "totalAscent": 1065,
+        "minimumAltitude": 472,
+        "maximumGradient": 11,
+        "difficulty": 808,
+        "averageGradient": 7.59,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-uranaises/suisse/glaubenberg-passhohe-depuis-sarnen-c2014.htm"
+      }
+    ]
+  },
+  {
+    "name": "Glaubenbielen Passhöhe",
+    "country": "CH",
+    "massif": "Alpes suisses",
+    "topOfTheAscent": 1611,
+    "geoCoordinate": {
+      "latitude": 46.81986,
+      "longitude": 8.09392
+    },
+    "alternatives": [
+      {
+        "name": "Flühli",
+        "geoCoordinate": {
+          "latitude": 46.86577,
+          "longitude": 8.01797
+        },
+        "length": 13,
+        "totalAscent": 676,
+        "minimumAltitude": 927,
+        "maximumGradient": 11,
+        "difficulty": 352,
+        "averageGradient": 5.2,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-uranaises/suisse/glaubenbielen-passhohe-depuis-fluhli-c2457.htm"
+      },
+      {
+        "name": "Kleinteil",
+        "geoCoordinate": {
+          "latitude": 46.8302,
+          "longitude": 8.1587
+        },
+        "length": 11.22,
+        "totalAscent": 1084,
+        "minimumAltitude": 535,
+        "maximumGradient": 12,
+        "difficulty": 1047,
+        "averageGradient": 9.66,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-uranaises/suisse/glaubenbielen-passhohe-depuis-kleinteil-c2009.htm"
+      }
+    ]
+  },
+  {
+    "name": "Gotthardpass",
+    "country": "CH",
+    "massif": "Alpes suisses",
+    "topOfTheAscent": 2108,
+    "geoCoordinate": {
+      "latitude": 46.5591,
+      "longitude": 8.56208
+    },
+    "alternatives": [
+      {
+        "name": "Airolo",
+        "geoCoordinate": {
+          "latitude": 46.52775,
+          "longitude": 8.60778
+        },
+        "length": 14.9,
+        "totalAscent": 949,
+        "minimumAltitude": 1145,
+        "maximumGradient": 8.8,
+        "difficulty": 605,
+        "averageGradient": 6.37,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/saint-gothard/suisse/gotthardpass-depuis-airolo-c475.htm"
+      },
+      {
+        "name": "Airolo (via Tremola)",
+        "geoCoordinate": {
+          "latitude": 46.5296,
+          "longitude": 8.60512
+        },
+        "length": 12.7,
+        "totalAscent": 932,
+        "minimumAltitude": 1194,
+        "maximumGradient": 11.4,
+        "difficulty": 684,
+        "averageGradient": 7.34,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/saint-gothard/suisse/gotthardpass-depuis-airolo-via-tremola-c474.htm"
+      },
+      {
+        "name": "Hospental",
+        "geoCoordinate": {
+          "latitude": 46.61764,
+          "longitude": 8.56631
+        },
+        "length": 8.6,
+        "totalAscent": 610,
+        "minimumAltitude": 1502,
+        "maximumGradient": 9,
+        "difficulty": 432,
+        "averageGradient": 7.09,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/saint-gothard/suisse/gotthardpass-depuis-hospental-c476.htm"
+      }
+    ]
+  },
+  {
+    "name": "Grimselpass",
+    "country": "CH",
+    "massif": "Alpes suisses",
+    "topOfTheAscent": 2165,
+    "geoCoordinate": {
+      "latitude": 46.56119,
+      "longitude": 8.33669
+    },
+    "alternatives": [
+      {
+        "name": "Innertkirchen",
+        "geoCoordinate": {
+          "latitude": 46.70421,
+          "longitude": 8.22979
+        },
+        "length": 26,
+        "totalAscent": 1540,
+        "minimumAltitude": 629,
+        "maximumGradient": 10,
+        "difficulty": 911,
+        "averageGradient": 5.92,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/saint-gothard/suisse/grimselpass-depuis-innertkirchen-c1248.htm"
+      },
+      {
+        "name": "Oberwald",
+        "geoCoordinate": {
+          "latitude": 46.53484,
+          "longitude": 8.34922
+        },
+        "length": 12.1,
+        "totalAscent": 797,
+        "minimumAltitude": 1376,
+        "maximumGradient": 10,
+        "difficulty": 525,
+        "averageGradient": 6.59,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/saint-gothard/suisse/grimselpass-depuis-oberwald-c1902.htm"
+      }
+    ]
+  },
+  {
+    "name": "Grosse Scheidegg",
+    "country": "CH",
+    "massif": "Alpes suisses",
+    "topOfTheAscent": 1962,
+    "geoCoordinate": {
+      "latitude": 46.65558,
+      "longitude": 8.10192
+    },
+    "alternatives": [
+      {
+        "name": "Grindelwald",
+        "geoCoordinate": {
+          "latitude": 46.62436,
+          "longitude": 8.03399
+        },
+        "length": 10,
+        "totalAscent": 905,
+        "minimumAltitude": 1036,
+        "maximumGradient": 16,
+        "difficulty": 819,
+        "averageGradient": 9.05,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-bernoises/suisse/grosse-scheidegg-depuis-grindelwald-c1239.htm"
+      },
+      {
+        "name": "Meiringen",
+        "geoCoordinate": {
+          "latitude": 46.71458,
+          "longitude": 8.21028
+        },
+        "length": 16.4,
+        "totalAscent": 1262,
+        "minimumAltitude": 754,
+        "maximumGradient": 17,
+        "difficulty": 972,
+        "averageGradient": 7.7,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-bernoises/suisse/grosse-scheidegg-depuis-meiringen-c1240.htm"
+      }
+    ]
+  },
+  {
+    "name": "Julierpass",
+    "country": "CH",
+    "massif": "Alpes suisses",
+    "topOfTheAscent": 2284,
+    "geoCoordinate": {
+      "latitude": 46.47222,
+      "longitude": 9.72846
+    },
+    "alternatives": [
+      {
+        "name": "Silvaplana",
+        "geoCoordinate": {
+          "latitude": 46.46014,
+          "longitude": 9.79792
+        },
+        "length": 7,
+        "totalAscent": 469,
+        "minimumAltitude": 1799,
+        "maximumGradient": 11.8,
+        "difficulty": 314,
+        "averageGradient": 6.7,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/bernina/suisse/julierpass-depuis-silvaplana-c367.htm"
+      },
+      {
+        "name": "Tiefencastel",
+        "geoCoordinate": {
+          "latitude": 46.66133,
+          "longitude": 9.57957
+        },
+        "length": 38.6,
+        "totalAscent": 1148,
+        "minimumAltitude": 857,
+        "maximumGradient": 10.9,
+        "difficulty": 340,
+        "averageGradient": 2.97,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/bernina/suisse/julierpass-depuis-tiefencastel-c368.htm"
+      }
+    ]
+  },
+  {
+    "name": "Klausenpass",
+    "country": "CH",
+    "massif": "Alpes suisses",
+    "topOfTheAscent": 1948,
+    "geoCoordinate": {
+      "latitude": 46.86825,
+      "longitude": 8.85614
+    },
+    "alternatives": [
+      {
+        "name": "Altdorf",
+        "geoCoordinate": {
+          "latitude": 46.87539,
+          "longitude": 8.65017
+        },
+        "length": 24.6,
+        "totalAscent": 1497,
+        "minimumAltitude": 491,
+        "maximumGradient": 9.5,
+        "difficulty": 912,
+        "averageGradient": 6.09,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-glaronaises/suisse/klausenpass-depuis-altdorf-c1720.htm"
+      },
+      {
+        "name": "Linthal",
+        "geoCoordinate": {
+          "latitude": 46.91948,
+          "longitude": 8.9957
+        },
+        "length": 23,
+        "totalAscent": 1300,
+        "minimumAltitude": 660,
+        "maximumGradient": 9,
+        "difficulty": 734,
+        "averageGradient": 5.65,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-glaronaises/suisse/klausenpass-depuis-linthal-c1721.htm"
+      }
+    ]
+  },
+  {
+    "name": "Moosalp",
+    "country": "CH",
+    "massif": "Alpes suisses",
+    "topOfTheAscent": 2048,
+    "geoCoordinate": {
+      "latitude": 46.25128,
+      "longitude": 7.82972
+    },
+    "alternatives": [
+      {
+        "name": "Ackersand",
+        "geoCoordinate": {
+          "latitude": 46.24183,
+          "longitude": 7.87505
+        },
+        "length": 17.5,
+        "totalAscent": 1335,
+        "minimumAltitude": 700,
+        "maximumGradient": 10,
+        "difficulty": 1019,
+        "averageGradient": 7.63,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-valaisannes/suisse/moosalp-depuis-ackersand-c1969.htm"
+      },
+      {
+        "name": "Visp",
+        "geoCoordinate": {
+          "latitude": 46.29264,
+          "longitude": 7.87706
+        },
+        "length": 19.8,
+        "totalAscent": 1394,
+        "minimumAltitude": 672,
+        "maximumGradient": 10,
+        "difficulty": 981,
+        "averageGradient": 7.04,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-valaisannes/suisse/moosalp-depuis-visp-c1974.htm"
+      }
+    ]
+  },
+  {
+    "name": "Nufenenpass",
+    "country": "CH",
+    "massif": "Alpes suisses",
+    "topOfTheAscent": 2478,
+    "geoCoordinate": {
+      "latitude": 46.47725,
+      "longitude": 8.38706
+    },
+    "alternatives": [
+      {
+        "name": "Airolo",
+        "geoCoordinate": {
+          "latitude": 46.52734,
+          "longitude": 8.59912
+        },
+        "length": 24.1,
+        "totalAscent": 1139,
+        "minimumAltitude": 1157,
+        "maximumGradient": 9.8,
+        "difficulty": 539,
+        "averageGradient": 4.73,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-lepontines/suisse/nufenenpass-depuis-airolo-c468.htm"
+      },
+      {
+        "name": "Ulrichen",
+        "geoCoordinate": {
+          "latitude": 46.50526,
+          "longitude": 8.31117
+        },
+        "length": 13.3,
+        "totalAscent": 1132,
+        "minimumAltitude": 1348,
+        "maximumGradient": 10.5,
+        "difficulty": 963,
+        "averageGradient": 8.51,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-lepontines/suisse/nufenenpass-depuis-ulrichen-c467.htm"
+      }
+    ]
+  },
+  {
+    "name": "Oberalppass",
+    "country": "CH",
+    "massif": "Alpes suisses",
+    "topOfTheAscent": 2044,
+    "geoCoordinate": {
+      "latitude": 46.66017,
+      "longitude": 8.67115
+    },
+    "alternatives": [
+      {
+        "name": "Disentis",
+        "geoCoordinate": {
+          "latitude": 46.69865,
+          "longitude": 8.84476
+        },
+        "length": 20.4,
+        "totalAscent": 901,
+        "minimumAltitude": 1207,
+        "maximumGradient": 10.4,
+        "difficulty": 399,
+        "averageGradient": 4.42,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/saint-gothard/suisse/oberalppass-depuis-disentis-c2269.htm"
+      },
+      {
+        "name": "Göschenen",
+        "geoCoordinate": {
+          "latitude": 46.66687,
+          "longitude": 8.58876
+        },
+        "length": 16.1,
+        "totalAscent": 942,
+        "minimumAltitude": 1108,
+        "maximumGradient": 10,
+        "difficulty": 551,
+        "averageGradient": 5.85,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/saint-gothard/suisse/oberalppass-depuis-goschenen-c2268.htm"
+      }
+    ]
+  },
+  {
+    "name": "Passo del Bernina",
+    "country": "CH",
+    "massif": "Alpes suisses",
+    "topOfTheAscent": 2328,
+    "geoCoordinate": {
+      "latitude": 46.4107,
+      "longitude": 10.02618
+    },
+    "alternatives": [
+      {
+        "name": "Poschiavo",
+        "geoCoordinate": {
+          "latitude": 46.32607,
+          "longitude": 10.05677
+        },
+        "length": 17.5,
+        "totalAscent": 1307,
+        "minimumAltitude": 1013,
+        "maximumGradient": 9.5,
+        "difficulty": 977,
+        "averageGradient": 7.47,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/bernina/suisse/passo-del-bernina-depuis-poschiavo-c363.htm"
+      },
+      {
+        "name": "Samedan",
+        "geoCoordinate": {
+          "latitude": 46.53029,
+          "longitude": 9.87169
+        },
+        "length": 20.4,
+        "totalAscent": 607,
+        "minimumAltitude": 1708,
+        "maximumGradient": 7.6,
+        "difficulty": 181,
+        "averageGradient": 2.98,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/bernina/suisse/passo-del-bernina-depuis-samedan-c362.htm"
+      }
+    ]
+  },
+  {
+    "name": "Passo del Lucomagno",
+    "country": "CH",
+    "massif": "Alpes suisses",
+    "topOfTheAscent": 1914,
+    "geoCoordinate": {
+      "latitude": 46.56339,
+      "longitude": 8.80117
+    },
+    "alternatives": [
+      {
+        "name": "Disentis",
+        "geoCoordinate": {
+          "latitude": 46.70303,
+          "longitude": 8.8528
+        },
+        "length": 18,
+        "totalAscent": 839,
+        "minimumAltitude": 1137,
+        "maximumGradient": 10.3,
+        "difficulty": 391,
+        "averageGradient": 4.66,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-lepontines/suisse/passo-del-lucomagno-depuis-disentis-c2486.htm"
+      },
+      {
+        "name": "Olivone",
+        "geoCoordinate": {
+          "latitude": 46.52879,
+          "longitude": 8.93461
+        },
+        "length": 20.2,
+        "totalAscent": 1060,
+        "minimumAltitude": 893,
+        "maximumGradient": 8,
+        "difficulty": 557,
+        "averageGradient": 5.25,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-lepontines/suisse/passo-del-lucomagno-depuis-olivone-c2487.htm"
+      }
+    ]
+  },
+  {
+    "name": "Passo del San Bernardino",
+    "country": "CH",
+    "massif": "Alpes suisses",
+    "topOfTheAscent": 2065,
+    "geoCoordinate": {
+      "latitude": 46.49593,
+      "longitude": 9.17064
+    },
+    "alternatives": [
+      {
+        "name": "Hinterrhein",
+        "geoCoordinate": {
+          "latitude": 46.53046,
+          "longitude": 9.19816
+        },
+        "length": 8.8,
+        "totalAscent": 453,
+        "minimumAltitude": 1615,
+        "maximumGradient": 6.2,
+        "difficulty": 233,
+        "averageGradient": 5.15,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-lepontines/suisse/passo-del-san-bernardino-depuis-hinterrhein-c2636.htm"
+      },
+      {
+        "name": "Lostallo",
+        "geoCoordinate": {
+          "latitude": 46.31264,
+          "longitude": 9.19589
+        },
+        "length": 31.3,
+        "totalAscent": 1645,
+        "minimumAltitude": 425,
+        "maximumGradient": 9.7,
+        "difficulty": 866,
+        "averageGradient": 5.26,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-lepontines/suisse/passo-del-san-bernardino-depuis-lostallo-c2635.htm"
+      }
+    ]
+  },
+  {
+    "name": "Sustenpass",
+    "country": "CH",
+    "massif": "Alpes suisses",
+    "topOfTheAscent": 2259,
+    "geoCoordinate": {
+      "latitude": 46.72959,
+      "longitude": 8.44756
+    },
+    "alternatives": [
+      {
+        "name": "Innertkirchen",
+        "geoCoordinate": {
+          "latitude": 46.70639,
+          "longitude": 8.22999
+        },
+        "length": 29,
+        "totalAscent": 1600,
+        "minimumAltitude": 654,
+        "maximumGradient": 10,
+        "difficulty": 884,
+        "averageGradient": 5.52,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/saint-gothard/suisse/sustenpass-depuis-innertkirchen-c1253.htm"
+      },
+      {
+        "name": "Wassen",
+        "geoCoordinate": {
+          "latitude": 46.70491,
+          "longitude": 8.60024
+        },
+        "length": 17.4,
+        "totalAscent": 1308,
+        "minimumAltitude": 894,
+        "maximumGradient": 10,
+        "difficulty": 984,
+        "averageGradient": 7.52,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/saint-gothard/suisse/sustenpass-depuis-wassen-c1901.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col du Marchairuz",
+    "country": "CH",
+    "massif": "Jura suisse",
+    "topOfTheAscent": 1449,
+    "geoCoordinate": {
+      "latitude": 46.55285,
+      "longitude": 6.2503
+    },
+    "alternatives": [
+      {
+        "name": "Biere",
+        "geoCoordinate": {
+          "latitude": 46.53743,
+          "longitude": 6.33381
+        },
+        "length": 10,
+        "totalAscent": 717,
+        "minimumAltitude": 699,
+        "maximumGradient": 8.3,
+        "difficulty": 514,
+        "averageGradient": 7.17,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/jura/suisse/col-du-marchairuz-depuis-biere-c676.htm"
+      },
+      {
+        "name": "Gimel",
+        "geoCoordinate": {
+          "latitude": 46.50897,
+          "longitude": 6.30688
+        },
+        "length": 12.4,
+        "totalAscent": 724,
+        "minimumAltitude": 735,
+        "maximumGradient": 7.3,
+        "difficulty": 423,
+        "averageGradient": 5.84,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/jura/suisse/col-du-marchairuz-depuis-gimel-c1760.htm"
+      },
+      {
+        "name": "Le Brassus",
+        "geoCoordinate": {
+          "latitude": 46.5791,
+          "longitude": 6.206
+        },
+        "length": 7,
+        "totalAscent": 411,
+        "minimumAltitude": 1057,
+        "maximumGradient": 11,
+        "difficulty": 241,
+        "averageGradient": 5.87,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/jura/suisse/col-du-marchairuz-depuis-le-brassus-c1761.htm"
+      }
+    ]
+  }
+]
+

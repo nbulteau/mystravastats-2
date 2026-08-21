@@ -161,6 +161,31 @@ func TestCompositeKeepsUnmatchedLocalActivitiesInUnion(t *testing.T) {
 	}
 }
 
+func TestCompositeUsesStravaStorageIdentity(t *testing.T) {
+	provider := NewCompositeActivityProvider([]Source{
+		{Name: "fit", Provider: testProvider{name: "fit"}},
+		{Name: "strava", Provider: testProvider{name: "strava"}},
+	})
+
+	if provider.CacheRootPath() != "strava-cache" {
+		t.Fatalf("expected Strava cache root, got %q", provider.CacheRootPath())
+	}
+	if provider.ClientID() != "strava-athlete" {
+		t.Fatalf("expected Strava athlete id, got %q", provider.ClientID())
+	}
+}
+
+func TestCompositeFallsBackToFirstLocalStorageIdentity(t *testing.T) {
+	provider := NewCompositeActivityProvider([]Source{
+		{Name: "fit", Provider: testProvider{name: "fit"}},
+		{Name: "gpx", Provider: testProvider{name: "gpx"}},
+	})
+
+	if provider.CacheRootPath() != "fit-cache" || provider.ClientID() != "fit-athlete" {
+		t.Fatalf("expected first local identity, got root=%q id=%q", provider.CacheRootPath(), provider.ClientID())
+	}
+}
+
 func TestCompositeRebuildsWhenSourceActivityCountChanges(t *testing.T) {
 	firstActivity := testActivity(9301, "morning ride", "Ride", "2026-06-08T07:30:00Z", 20000, 3600, nil)
 	nextActivity := testActivity(9302, "lunch ride", "Ride", "2026-06-08T12:00:00Z", 15000, 2700, nil)

@@ -208,16 +208,12 @@ class CompositeActivityProvider(
     }
 
     override fun cacheIdentity(): ActivityProviderCacheIdentity {
-        return ActivityProviderCacheIdentity(
-            cacheRoot = sources.joinToString(";") { source ->
-                val identity = source.provider.cacheIdentity()
-                "${source.name}=${identity?.cacheRoot ?: "unknown"}"
-            },
-            athleteId = sources.joinToString("+") { source ->
-                val identity = source.provider.cacheIdentity()
-                "${source.name}:${identity?.athleteId ?: "unknown"}"
-            },
-        )
+        // Persist composite-scoped settings in one real source directory. The
+        // diagnostic representation ("strava=...;fit=...") is not a valid path
+        // on Windows. Strava is preferred to preserve existing athlete files.
+        return (sources.firstOrNull { source -> source.name == SOURCE_STRAVA }
+            ?: sources.first()).provider.cacheIdentity()
+            ?: ActivityProviderCacheIdentity(cacheRoot = ".", athleteId = "composite")
     }
 
     override fun reload(): Boolean {

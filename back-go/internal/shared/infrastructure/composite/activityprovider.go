@@ -438,19 +438,33 @@ func (provider *CompositeActivityProvider) CacheDiagnostics() map[string]any {
 }
 
 func (provider *CompositeActivityProvider) ClientID() string {
-	ids := make([]string, 0, len(provider.sources))
-	for _, source := range provider.sources {
-		ids = append(ids, fmt.Sprintf("%s:%s", source.Name, source.Provider.ClientID()))
+	if source, ok := provider.storageSource(); ok {
+		return source.Provider.ClientID()
 	}
-	return strings.Join(ids, "+")
+	return "composite"
 }
 
 func (provider *CompositeActivityProvider) CacheRootPath() string {
-	roots := make([]string, 0, len(provider.sources))
-	for _, source := range provider.sources {
-		roots = append(roots, fmt.Sprintf("%s=%s", source.Name, source.Provider.CacheRootPath()))
+	if source, ok := provider.storageSource(); ok {
+		return source.Provider.CacheRootPath()
 	}
-	return strings.Join(roots, ";")
+	return "."
+}
+
+// storageSource returns the single writable identity used by services that persist
+// provider-scoped data. A composite description ("strava=...;fit=...") is useful
+// for diagnostics but is not a valid filesystem path, especially on Windows.
+// Prefer Strava so existing athlete-scoped files keep their historical location.
+func (provider *CompositeActivityProvider) storageSource() (Source, bool) {
+	for _, source := range provider.sources {
+		if source.Name == sourceStrava {
+			return source, true
+		}
+	}
+	if len(provider.sources) == 0 {
+		return Source{}, false
+	}
+	return provider.sources[0], true
 }
 
 func (provider *CompositeActivityProvider) Reload() {

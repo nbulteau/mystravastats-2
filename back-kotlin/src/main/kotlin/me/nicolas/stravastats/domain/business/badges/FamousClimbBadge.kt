@@ -5,6 +5,8 @@ import me.nicolas.stravastats.domain.business.strava.GeoCoordinate
 
 private const val FAMOUS_CLIMB_ACTIVITY_START_RADIUS_KM = 80.0
 private const val FAMOUS_CLIMB_WAYPOINT_TOLERANCE_METERS = 500
+private const val FAMOUS_CLIMB_LENGTH_TOLERANCE_RATIO = 0.35
+private const val FAMOUS_CLIMB_LENGTH_TOLERANCE_MINIMUM_METERS = 750.0
 
 
 data class FamousClimbBadge(
@@ -13,11 +15,17 @@ data class FamousClimbBadge(
     val topOfTheAscent: Int,
     val start: GeoCoordinate,
     val end: GeoCoordinate,
+    val routeCheckpoints: List<GeoCoordinate> = emptyList(),
     val length: Double,
     val totalAscent: Int,
     val averageGradient: Double,
     val difficulty: Int,
     val category: String,
+    val minimumAltitude: Int = 0,
+    val maximumGradient: Double = 0.0,
+    val country: String = "",
+    val massif: String = "",
+    val sourceUrl: String = "",
 ) : Badge(label) {
 
     override fun check(activities: List<StravaActivity>): Pair<List<StravaActivity>, Boolean> {
@@ -29,33 +37,111 @@ data class FamousClimbBadge(
             } else {
                 false
             }
-        }.filter { activity -> checkAscentDirection(activity) }
+        }.filter { activity -> matchQuality(activity) != null }
 
         return Pair(filteredActivities, filteredActivities.isNotEmpty())
     }
 
-    private fun checkAscentDirection(stravaActivity: StravaActivity): Boolean {
-        val latLngStream = stravaActivity.stream?.latlng ?: return false
+    internal fun matchQuality(stravaActivity: StravaActivity): Double? {
+        val stream = stravaActivity.stream ?: return null
+        val latLngStream = stream.latlng ?: return null
+        val checkpointMatchIndices = routeCheckpointMatchIndices(latLngStream.data) ?: return null
+        val distances = stream.distance.data
+        val startIndices = mutableListOf<Int>()
+        var fallbackMatch = false
+        var scoredCandidate = false
+        var bestFallbackQuality = Double.POSITIVE_INFINITY
+        var bestQuality = Double.POSITIVE_INFINITY
+        val referenceLengthMeters = length * 1000.0
+        val lengthToleranceMeters = maxOf(
+            FAMOUS_CLIMB_LENGTH_TOLERANCE_MINIMUM_METERS,
+            referenceLengthMeters * FAMOUS_CLIMB_LENGTH_TOLERANCE_RATIO,
+        )
 
-        var seenStart = false
-        for (coords in latLngStream.data) {
+        for ((index, coords) in latLngStream.data.withIndex()) {
             if (coords.size < 2) {
                 continue
             }
-
-            if (!seenStart) {
-                if (this.start.haversineInM(coords[0], coords[1]) < FAMOUS_CLIMB_WAYPOINT_TOLERANCE_METERS) {
-                    seenStart = true
-                }
+            if (this.start.haversineInM(coords[0], coords[1]) < FAMOUS_CLIMB_WAYPOINT_TOLERANCE_METERS) {
+                startIndices += index
+            }
+            if (this.end.haversineInM(coords[0], coords[1]) >= FAMOUS_CLIMB_WAYPOINT_TOLERANCE_METERS) {
                 continue
             }
 
-            if (this.end.haversineInM(coords[0], coords[1]) < FAMOUS_CLIMB_WAYPOINT_TOLERANCE_METERS) {
-                return true
+            for (startIndex in startIndices) {
+                if (startIndex >= index) {
+                    continue
+                }
+                if (!containsRouteCheckpoints(checkpointMatchIndices, startIndex, index)) {
+                    continue
+                }
+                fallbackMatch = true
+                val startCoords = latLngStream.data[startIndex]
+                val proximityQuality = (
+                        this.start.haversineInM(startCoords[0], startCoords[1]) +
+                                this.end.haversineInM(coords[0], coords[1])
+                        ) / (2.0 * FAMOUS_CLIMB_WAYPOINT_TOLERANCE_METERS)
+                bestFallbackQuality = minOf(bestFallbackQuality, proximityQuality)
+                if (referenceLengthMeters <= 0.0 || startIndex >= distances.size || index >= distances.size) {
+                    continue
+                }
+                val candidateLengthMeters = distances[index] - distances[startIndex]
+                if (!candidateLengthMeters.isFinite() || candidateLengthMeters <= 0.0) {
+                    continue
+                }
+                scoredCandidate = true
+                val lengthDifference = kotlin.math.abs(candidateLengthMeters - referenceLengthMeters)
+                if (lengthDifference <= lengthToleranceMeters) {
+                    val quality = lengthDifference / maxOf(referenceLengthMeters, 1.0) + proximityQuality * 0.01
+                    bestQuality = minOf(bestQuality, quality)
+                }
             }
         }
 
-        return false
+        if (bestQuality.isFinite()) {
+            return bestQuality
+        }
+        if (fallbackMatch && (!scoredCandidate || referenceLengthMeters <= 0.0)) {
+            return bestFallbackQuality
+        }
+        return null
+    }
+
+    private fun routeCheckpointMatchIndices(latLngData: List<List<Double>>): List<List<Int>>? {
+        if (routeCheckpoints.isEmpty()) {
+            return emptyList()
+        }
+
+        val checkpointMatchIndices = routeCheckpoints.map { mutableListOf<Int>() }
+        latLngData.forEachIndexed { index, coords ->
+            if (coords.size < 2) {
+                return@forEachIndexed
+            }
+            routeCheckpoints.forEachIndexed { checkpointIndex, checkpoint ->
+                if (checkpoint.haversineInM(coords[0], coords[1]) < FAMOUS_CLIMB_WAYPOINT_TOLERANCE_METERS) {
+                    checkpointMatchIndices[checkpointIndex] += index
+                }
+            }
+        }
+        return checkpointMatchIndices.takeIf { matches -> matches.all { it.isNotEmpty() } }
+    }
+
+    private fun containsRouteCheckpoints(
+        checkpointMatchIndices: List<List<Int>>,
+        startIndex: Int,
+        endIndex: Int,
+    ): Boolean {
+        var nextMinimumIndex = startIndex
+        for (indices in checkpointMatchIndices) {
+            val searchResult = indices.binarySearch(nextMinimumIndex)
+            val position = if (searchResult >= 0) searchResult else -searchResult - 1
+            if (position >= indices.size || indices[position] > endIndex) {
+                return false
+            }
+            nextMinimumIndex = indices[position] + 1
+        }
+        return true
     }
 
     override fun toString() = name

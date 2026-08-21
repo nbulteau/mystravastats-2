@@ -3,6 +3,7 @@ import { useContextStore } from "@/stores/context.js";
 import { useBadgesStore } from "@/stores/badges";
 import { computed, ref, watch, onMounted } from "vue";
 import BadgeItem from "@/components/BadgeItem.vue";
+import ClimbPosterGenerator from "@/components/ClimbPosterGenerator.vue";
 import type { BadgeCheckResult } from "@/models/badge-check-result.model";
 
 const contextStore = useContextStore();
@@ -106,7 +107,7 @@ const famousSummary = computed(() => sectionSummary(famousClimbBadgesCheckResult
     </section>
 
     <section
-      v-if="famousClimbBadgesCheckResults.length"
+      v-if="allFamousClimbBadgesCheckResults.length"
       class="badges-section"
     >
       <div class="badges-header">
@@ -128,6 +129,10 @@ const famousSummary = computed(() => sectionSummary(famousClimbBadgesCheckResult
               {{ categoryOption === "ALL" ? "All categories" : `Cat. ${categoryOption}` }}
             </option>
           </select>
+          <ClimbPosterGenerator
+            :climbs="allFamousClimbBadgesCheckResults"
+            :year-label="currentYear"
+          />
         </div>
         <div class="badges-summary">
           <span class="summary-chip summary-chip--earned">Earned {{ famousSummary.acquired }}</span>

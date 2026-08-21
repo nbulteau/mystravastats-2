@@ -18,9 +18,17 @@ import (
 
 var (
 	famousBadgeSetsOnce sync.Once
-	alpesBadgeSet       badges.BadgeSet
-	pyreneesBadgeSet    badges.BadgeSet
+	famousBadgeSet      badges.BadgeSet
 )
+
+var famousClimbCatalogs = []struct {
+	name string
+	path string
+}{
+	{name: "france", path: "famous-climb/france.json"},
+	{name: "suisse", path: "famous-climb/suisse.json"},
+	{name: "italie", path: "famous-climb/italie.json"},
+}
 
 // BadgesServiceAdapter computes badges directly from provider activities.
 type BadgesServiceAdapter struct{}
@@ -71,14 +79,18 @@ func (adapter *BadgesServiceAdapter) FindFamousBadges(year *int, activityTypes .
 	}
 
 	famousBadgeSetsOnce.Do(func() {
-		alpesBadgeSet = loadBadgeSet("alpes", "strava-cache/famous-climb/alpes.json")
-		pyreneesBadgeSet = loadBadgeSet("pyrenees", "strava-cache/famous-climb/pyrenees.json")
+		allBadges := make([]badges.Badge, 0)
+		for _, catalog := range famousClimbCatalogs {
+			badgeSet := loadBadgeSet(catalog.name, catalog.path)
+			allBadges = append(allBadges, badgeSet.Badges...)
+		}
+		famousBadgeSet = badges.BadgeSet{Name: "famous-climbs", Badges: allBadges}
 	})
 
 	activities := dataqualityInfra.FilterExcludedFromStats(activityprovider.Get().GetActivitiesByYearAndActivityTypes(year, activityTypes...))
 	representativeActivityType, ok := business.RepresentativeBadgeActivityType(activityTypes...)
 	if ok && representativeActivityType == business.Ride {
-		return append(alpesBadgeSet.Check(activities), pyreneesBadgeSet.Check(activities)...)
+		return famousBadgeSet.Check(activities)
 	}
 
 	return []business.BadgeCheckResult{}
@@ -87,9 +99,9 @@ func (adapter *BadgesServiceAdapter) FindFamousBadges(year *int, activityTypes .
 func loadBadgeSet(name string, climbsJSONFilePath string) badges.BadgeSet {
 	var famousClimbBadgeList []badges.Badge
 
-	filePath, err := filepath.Abs(climbsJSONFilePath)
+	filePath, err := resolveFamousClimbFile(climbsJSONFilePath)
 	if err != nil {
-		log.Printf("Error getting absolute path: %v", err)
+		log.Printf("Error resolving BadgeSet %q: %v", name, err)
 		return badges.BadgeSet{Name: name, Badges: famousClimbBadgeList}
 	}
 
@@ -119,21 +131,45 @@ func loadBadgeSet(name string, climbsJSONFilePath string) badges.BadgeSet {
 	for _, famousClimb := range famousClimbs {
 		for _, alternative := range famousClimb.Alternatives {
 			famousClimbBadgeList = append(famousClimbBadgeList, badges.FamousClimbBadge{
-				Name:            famousClimb.Name,
-				Label:           fmt.Sprintf("%s from %s", famousClimb.Name, alternative.Name),
-				TopOfTheAscent:  famousClimb.TopOfTheAscent,
-				Start:           alternative.GeoCoordinate,
-				End:             famousClimb.GeoCoordinate,
-				Difficulty:      alternative.Difficulty,
-				Category:        normalizeClimbCategory(alternative.Category, alternative.Difficulty),
-				Length:          alternative.Length,
-				TotalAscent:     alternative.TotalAscent,
-				AverageGradient: alternative.AverageGradient,
+				Name:             famousClimb.Name,
+				Label:            fmt.Sprintf("%s from %s", famousClimb.Name, alternative.Name),
+				Country:          famousClimb.Country,
+				Massif:           famousClimb.Massif,
+				SourceURL:        alternative.SourceURL,
+				TopOfTheAscent:   famousClimb.TopOfTheAscent,
+				Start:            alternative.GeoCoordinate,
+				End:              famousClimb.GeoCoordinate,
+				RouteCheckpoints: alternative.RouteCheckpoints,
+				Difficulty:       alternative.Difficulty,
+				Category:         normalizeClimbCategory(alternative.Category, alternative.Difficulty),
+				Length:           alternative.Length,
+				TotalAscent:      alternative.TotalAscent,
+				MinimumAltitude:  alternative.MinimumAltitude,
+				MaximumGradient:  alternative.MaximumGradient,
+				AverageGradient:  alternative.AverageGradient,
 			})
 		}
 	}
 
 	return badges.BadgeSet{Name: name, Badges: famousClimbBadgeList}
+}
+
+func resolveFamousClimbFile(climbsJSONFilePath string) (string, error) {
+	candidates := []string{
+		climbsJSONFilePath,
+		filepath.Join("strava-cache", climbsJSONFilePath),
+		filepath.Join("back-go", climbsJSONFilePath),
+	}
+	for _, candidate := range candidates {
+		filePath, err := filepath.Abs(candidate)
+		if err != nil {
+			continue
+		}
+		if info, statErr := os.Stat(filePath); statErr == nil && !info.IsDir() {
+			return filePath, nil
+		}
+	}
+	return "", fmt.Errorf("file %q not found in %v", climbsJSONFilePath, candidates)
 }
 
 func normalizeClimbCategory(category string, difficulty int) string {

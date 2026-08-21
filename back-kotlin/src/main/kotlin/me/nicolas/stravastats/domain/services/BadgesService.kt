@@ -32,9 +32,11 @@ internal class BadgesService(
         .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
         .build()
 
-    private val alpes: BadgeSet = loadBadgeSet("alpes", "famous-climb/alpes.json")
-
-    private val pyrenees: BadgeSet = loadBadgeSet("pyrenees", "famous-climb/pyrenees.json")
+    private val famousClimbBadgeSets: List<BadgeSet> = listOf(
+        "france" to "famous-climb/france.json",
+        "suisse" to "famous-climb/suisse.json",
+        "italie" to "famous-climb/italie.json",
+    ).map { (name, path) -> loadBadgeSet(name, path) }
 
     override fun getGeneralBadges(activityTypes: Set<ActivityType>, year: Int?): List<BadgeCheckResult> {
         logger.info("Checking general badges for $activityTypes in ${year ?: "all years"}")
@@ -76,7 +78,7 @@ internal class BadgesService(
 
         return when (representativeActivityType) {
             ActivityType.Ride -> {
-                alpes.check(activities) + pyrenees.check(activities)
+                famousClimbBadgeSets.flatMap { it.check(activities) }
             }
 
             else -> emptyList()
@@ -90,13 +92,19 @@ internal class BadgesService(
                 FamousClimbBadge(
                     name = famousClimb.name,
                     label = "${famousClimb.name} from ${alternative.name}",
+                    country = famousClimb.country,
+                    massif = famousClimb.massif,
+                    sourceUrl = alternative.sourceUrl,
                     topOfTheAscent = famousClimb.topOfTheAscent,
                     start = alternative.geoCoordinate,
                     end = famousClimb.geoCoordinate,
+                    routeCheckpoints = alternative.routeCheckpoints,
                     difficulty = alternative.difficulty,
                     category = normalizeClimbCategory(alternative.category, alternative.difficulty),
                     length = alternative.length,
                     totalAscent = alternative.totalAscent,
+                    minimumAltitude = alternative.minimumAltitude,
+                    maximumGradient = alternative.maximumGradient,
                     averageGradient = alternative.averageGradient
                 )
             }

@@ -236,6 +236,30 @@ class CompositeActivityProviderTest {
     }
 
     @Test
+    fun `uses Strava storage identity for a composite provider`() {
+        val provider = CompositeActivityProvider(
+            listOf(
+                CompositeActivitySource("fit", StubProvider("fit", emptyList())),
+                CompositeActivitySource("strava", StubProvider("strava", emptyList())),
+            )
+        )
+
+        assertEquals(ActivityProviderCacheIdentity("strava-cache", "strava-athlete"), provider.cacheIdentity())
+    }
+
+    @Test
+    fun `falls back to the first local storage identity`() {
+        val provider = CompositeActivityProvider(
+            listOf(
+                CompositeActivitySource("fit", StubProvider("fit", emptyList())),
+                CompositeActivitySource("gpx", StubProvider("gpx", emptyList())),
+            )
+        )
+
+        assertEquals(ActivityProviderCacheIdentity("fit-cache", "fit-athlete"), provider.cacheIdentity())
+    }
+
+    @Test
     fun `rebuilds when a source activity count changes`() {
         val firstActivity = testActivity(
             id = 9301,

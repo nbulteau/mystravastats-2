@@ -581,3 +581,148 @@ func TestComputeFamousClimbEffortSeconds_RejectsDescentOrder(t *testing.T) {
 		t.Fatalf("expected descent-only order to be rejected")
 	}
 }
+
+func TestToBadgeCheckResultDto_ExposesClimbPosterDetails(t *testing.T) {
+	badge := badges.FamousClimbBadge{
+		Label:           "Test col from valley",
+		Name:            "Test col",
+		Country:         "FR",
+		Massif:          "Alpes",
+		SourceURL:       "https://example.test/test-col",
+		TopOfTheAscent:  1850,
+		Start:           business.GeoCoordinate{Latitude: 45.1000, Longitude: 6.1000},
+		End:             business.GeoCoordinate{Latitude: 45.2000, Longitude: 6.2000},
+		Length:          12.4,
+		TotalAscent:     980,
+		Difficulty:      800,
+		MinimumAltitude: 870,
+		MaximumGradient: 12.5,
+		AverageGradient: 7.9,
+		Category:        "1",
+	}
+	activity := &strava.Activity{
+		Id:             42,
+		StartDateLocal: "2026-07-14T08:00:00Z",
+		MovingTime:     3600,
+		Stream: &strava.Stream{
+			Distance: strava.DistanceStream{Data: []float64{0, 1000, 7000, 13400}},
+			Time:     strava.TimeStream{Data: []int{0, 100, 650, 1200}},
+			LatLng: &strava.LatLngStream{Data: [][]float64{
+				{45.0000, 6.0000},
+				{45.1000, 6.1000},
+				{45.1500, 6.1500},
+				{45.2000, 6.2000},
+			}},
+			Altitude: &strava.AltitudeStream{Data: []float64{90, 100, 120, 135}},
+		},
+	}
+	slowerActivity := *activity
+	slowerActivity.Id = 43
+	slowerActivity.StartDateLocal = "2025-06-12T08:00:00Z"
+	slowerStream := *activity.Stream
+	slowerStream.Time = strava.TimeStream{Data: []int{0, 100, 750, 1400}}
+	slowerActivity.Stream = &slowerStream
+
+	result := business.BadgeCheckResult{
+		Badge:       badge,
+		Activities:  []*strava.Activity{&slowerActivity, activity},
+		IsCompleted: true,
+	}
+	dto := ToBadgeCheckResultDto(result, business.Ride)
+
+	if dto.ClimbDetails == nil {
+		t.Fatal("expected climb poster details")
+	}
+	details := dto.ClimbDetails
+	if details.Name != "Test col" || details.SummitAltitude != 1850 || details.MinimumAltitude != 870 || details.LengthKm != 12.4 || details.Difficulty != 800 {
+		t.Fatalf("unexpected climb metadata: %#v", details)
+	}
+	if details.Country != "FR" || details.Massif != "Alpes" || details.SourceURL != "https://example.test/test-col" {
+		t.Fatalf("unexpected climb geography or source: %#v", details)
+	}
+	if details.AscentCount != 2 || details.BestAscent == nil || details.BestAscent.DurationSeconds != 1100 || details.BestAscent.ActivityID != 42 || details.BestAscent.Date != "2026-07-14T08:00:00Z" {
+		t.Fatalf("unexpected climb ascent summary: count=%d best=%#v", details.AscentCount, details.BestAscent)
+	}
+	if len(details.Profile) != 3 || details.Profile[0].DistanceKm != 0 || details.Profile[2].DistanceKm != 12.4 {
+		t.Fatalf("unexpected climb profile: %#v", details.Profile)
+	}
+	if details.MaximumGradient == nil || *details.MaximumGradient != 12.5 {
+		t.Fatalf("expected the 12.5%% reference maximum gradient, got %#v", details.MaximumGradient)
+	}
+}
+
+func TestFindFamousClimbBounds_SelectsOccurrenceClosestToReferenceLength(t *testing.T) {
+	badge := badges.FamousClimbBadge{
+		Start:  business.GeoCoordinate{Latitude: 45.1, Longitude: 6.1},
+		End:    business.GeoCoordinate{Latitude: 45.2, Longitude: 6.2},
+		Length: 10,
+	}
+	activity := &strava.Activity{Stream: &strava.Stream{
+		Distance: strava.DistanceStream{Data: []float64{0, 42000, 50000, 55000, 60000}},
+		LatLng: &strava.LatLngStream{Data: [][]float64{
+			{45.1, 6.1},
+			{45.0, 6.0},
+			{45.1, 6.1},
+			{45.15, 6.15},
+			{45.2, 6.2},
+		}},
+	}}
+
+	bounds, matched := findFamousClimbBounds(activity, badge)
+	if !matched {
+		t.Fatal("expected the repeated climb occurrence to match")
+	}
+	if bounds.startIndex != 2 || bounds.endIndex != 4 {
+		t.Fatalf("expected the 10 km occurrence, got %#v", bounds)
+	}
+}
+
+func TestFindFamousClimbBounds_RejectsImplausiblyLongRouteBetweenWaypoints(t *testing.T) {
+	badge := badges.FamousClimbBadge{
+		Start:  business.GeoCoordinate{Latitude: 45.1, Longitude: 6.1},
+		End:    business.GeoCoordinate{Latitude: 45.2, Longitude: 6.2},
+		Length: 10,
+	}
+	activity := &strava.Activity{Stream: &strava.Stream{
+		Distance: strava.DistanceStream{Data: []float64{0, 52000}},
+		LatLng: &strava.LatLngStream{Data: [][]float64{
+			{45.1, 6.1},
+			{45.2, 6.2},
+		}},
+	}}
+
+	if _, matched := findFamousClimbBounds(activity, badge); matched {
+		t.Fatal("expected a 52 km detour to be rejected for a 10 km climb")
+	}
+}
+
+func TestToBadgeCheckResultDto_AcceptsPublishedMaximumGradientAboveComputedCeiling(t *testing.T) {
+	badge := badges.FamousClimbBadge{
+		Label:           "Steep col from valley",
+		Name:            "Steep col",
+		TopOfTheAscent:  1500,
+		Length:          10,
+		TotalAscent:     1000,
+		MaximumGradient: 21,
+		AverageGradient: 10,
+		Difficulty:      1000,
+		Category:        "HC",
+	}
+	dto := ToBadgeCheckResultDto(business.BadgeCheckResult{Badge: badge}, business.Ride)
+	if dto.ClimbDetails == nil || dto.ClimbDetails.MaximumGradient == nil || *dto.ClimbDetails.MaximumGradient != 21 {
+		t.Fatalf("expected the published 21%% maximum gradient, got %#v", dto.ClimbDetails)
+	}
+}
+
+func TestComputeClimbMaximumGradient_IgnoresShortAltitudeSpike(t *testing.T) {
+	activity := &strava.Activity{Stream: &strava.Stream{
+		Distance: strava.DistanceStream{Data: []float64{0, 100, 500}},
+		Altitude: &strava.AltitudeStream{Data: []float64{100, 160, 140}},
+	}}
+
+	maximumGradient := computeClimbMaximumGradient(activity, famousClimbBounds{startIndex: 0, endIndex: 2})
+
+	if maximumGradient == nil || *maximumGradient != 8 {
+		t.Fatalf("expected a 500 m rolling maximum of 8%%, got %#v", maximumGradient)
+	}
+}

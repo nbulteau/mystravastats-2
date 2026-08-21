@@ -1371,6 +1371,7 @@ func calculateBestTimeForDistance(activity *strava.DetailedActivity, f float64) 
 func ToBadgeCheckResultDto(result business.BadgeCheckResult, activityTypes ...business.ActivityType) BadgeCheckResultDto {
 	nbCheckedActivities := len(result.Activities)
 	var activities []ActivityDto
+	var climbDetails *ClimbDetailsDto
 	if nbCheckedActivities > 0 {
 		displayActivity, badgeEffortSeconds := selectBadgeDisplayActivity(result.Badge, result.Activities)
 		if displayActivity != nil {
@@ -1381,12 +1382,270 @@ func ToBadgeCheckResultDto(result business.BadgeCheckResult, activityTypes ...bu
 			activities = append(activities, activityDto)
 		}
 	}
+	if climbBadge, ok := result.Badge.(badges.FamousClimbBadge); ok {
+		climbDetails = buildClimbDetailsDto(climbBadge, result.Activities)
+	}
 
 	return BadgeCheckResultDto{
 		Badge:               ToBadgeDto(result.Badge, activityTypes...),
 		Activities:          activities,
 		NbCheckedActivities: nbCheckedActivities,
+		ClimbDetails:        climbDetails,
 	}
+}
+
+const climbProfilePointLimit = 64
+const climbMaximumGradientWindowMeters = 500.0
+const climbComputedMaximumGradientCeiling = 20.0
+const climbReferenceMaximumGradientCeiling = 30.0
+const climbWaypointToleranceInM = 500.0
+const climbLengthToleranceRatio = 0.35
+const climbLengthToleranceMinimumMeters = 750.0
+
+type famousClimbBounds struct {
+	startIndex int
+	endIndex   int
+}
+
+func buildClimbDetailsDto(badge badges.FamousClimbBadge, activities []*strava.Activity) *ClimbDetailsDto {
+	ascentCount := 0
+	var bestAscent *ClimbAscentDto
+	var profileActivity *strava.Activity
+	var profileBounds famousClimbBounds
+
+	for _, activity := range activities {
+		if activity == nil {
+			continue
+		}
+		bounds, matched := findFamousClimbBounds(activity, badge)
+		if !matched {
+			continue
+		}
+		ascentCount++
+
+		duration := famousClimbDurationSeconds(activity, bounds)
+		if duration <= 0 {
+			duration = activity.MovingTime
+		}
+		candidate := ClimbAscentDto{
+			ActivityID:      activity.Id,
+			Date:            activity.StartDateLocal,
+			DurationSeconds: duration,
+		}
+
+		if profileActivity == nil {
+			profileActivity = activity
+			profileBounds = bounds
+		}
+		if duration > 0 && betterClimbAscent(candidate, bestAscent) {
+			bestAscent = &candidate
+			profileActivity = activity
+			profileBounds = bounds
+		}
+	}
+
+	profile := make([]ClimbProfilePointDto, 0)
+	var maximumGradient *float64
+	if badge.MaximumGradient > 0 && badge.MaximumGradient <= climbReferenceMaximumGradientCeiling {
+		referenceMaximumGradient := math.Round(badge.MaximumGradient*10) / 10
+		maximumGradient = &referenceMaximumGradient
+	}
+	if profileActivity != nil {
+		profile = buildClimbProfile(profileActivity, profileBounds)
+		if maximumGradient == nil {
+			maximumGradient = computeClimbMaximumGradient(profileActivity, profileBounds)
+		}
+	}
+	minimumAltitude := badge.MinimumAltitude
+	if minimumAltitude <= 0 {
+		minimumAltitude = badge.TopOfTheAscent - badge.TotalAscent
+	}
+	if minimumAltitude < 0 {
+		minimumAltitude = 0
+	}
+
+	return &ClimbDetailsDto{
+		Name:            badge.Name,
+		Country:         badge.Country,
+		Massif:          badge.Massif,
+		SourceURL:       badge.SourceURL,
+		SummitAltitude:  badge.TopOfTheAscent,
+		MinimumAltitude: minimumAltitude,
+		LengthKm:        badge.Length,
+		TotalAscent:     badge.TotalAscent,
+		Difficulty:      badge.Difficulty,
+		AverageGradient: badge.AverageGradient,
+		MaximumGradient: maximumGradient,
+		Profile:         profile,
+		AscentCount:     ascentCount,
+		BestAscent:      bestAscent,
+	}
+}
+
+func betterClimbAscent(candidate ClimbAscentDto, current *ClimbAscentDto) bool {
+	if current == nil || candidate.DurationSeconds < current.DurationSeconds {
+		return true
+	}
+	if candidate.DurationSeconds > current.DurationSeconds {
+		return false
+	}
+	if candidate.Date != current.Date {
+		return current.Date == "" || (candidate.Date != "" && candidate.Date < current.Date)
+	}
+	return candidate.ActivityID < current.ActivityID
+}
+
+func findFamousClimbBounds(activity *strava.Activity, badge badges.FamousClimbBadge) (famousClimbBounds, bool) {
+	if activity == nil || activity.Stream == nil || activity.Stream.LatLng == nil {
+		return famousClimbBounds{}, false
+	}
+
+	distances := activity.Stream.Distance.Data
+	startIndices := make([]int, 0)
+	var fallback *famousClimbBounds
+	bestBounds := famousClimbBounds{}
+	bestLengthDelta := math.Inf(1)
+	scoredCandidate := false
+	referenceLengthMeters := badge.Length * 1000
+	lengthToleranceMeters := math.Max(climbLengthToleranceMinimumMeters, referenceLengthMeters*climbLengthToleranceRatio)
+
+	for index, coords := range activity.Stream.LatLng.Data {
+		if len(coords) < 2 {
+			continue
+		}
+		if badge.Start.HaversineInM(coords[0], coords[1]) < climbWaypointToleranceInM {
+			startIndices = append(startIndices, index)
+		}
+		if badge.End.HaversineInM(coords[0], coords[1]) >= climbWaypointToleranceInM {
+			continue
+		}
+
+		for _, startIndex := range startIndices {
+			if startIndex >= index {
+				continue
+			}
+			candidate := famousClimbBounds{startIndex: startIndex, endIndex: index}
+			if fallback == nil {
+				fallback = &candidate
+			}
+			if referenceLengthMeters <= 0 || startIndex >= len(distances) || index >= len(distances) {
+				continue
+			}
+			candidateLengthMeters := distances[index] - distances[startIndex]
+			if !isFiniteNumber(candidateLengthMeters) || candidateLengthMeters <= 0 {
+				continue
+			}
+			scoredCandidate = true
+			lengthDelta := math.Abs(candidateLengthMeters - referenceLengthMeters)
+			if lengthDelta <= lengthToleranceMeters && lengthDelta < bestLengthDelta {
+				bestBounds = candidate
+				bestLengthDelta = lengthDelta
+			}
+		}
+	}
+
+	if !math.IsInf(bestLengthDelta, 1) {
+		return bestBounds, true
+	}
+	if referenceLengthMeters > 0 && scoredCandidate {
+		return famousClimbBounds{}, false
+	}
+	if fallback != nil {
+		return *fallback, true
+	}
+	return famousClimbBounds{}, false
+}
+
+func famousClimbDurationSeconds(activity *strava.Activity, bounds famousClimbBounds) int {
+	if activity == nil || activity.Stream == nil {
+		return 0
+	}
+	times := activity.Stream.Time.Data
+	if bounds.startIndex < 0 || bounds.endIndex <= bounds.startIndex || bounds.endIndex >= len(times) {
+		return 0
+	}
+	duration := times[bounds.endIndex] - times[bounds.startIndex]
+	if duration <= 0 {
+		return 0
+	}
+	return duration
+}
+
+func buildClimbProfile(activity *strava.Activity, bounds famousClimbBounds) []ClimbProfilePointDto {
+	if activity == nil || activity.Stream == nil || activity.Stream.Altitude == nil {
+		return []ClimbProfilePointDto{}
+	}
+	distances := activity.Stream.Distance.Data
+	altitudes := activity.Stream.Altitude.Data
+	if bounds.startIndex < 0 || bounds.endIndex <= bounds.startIndex || bounds.endIndex >= len(distances) || bounds.endIndex >= len(altitudes) {
+		return []ClimbProfilePointDto{}
+	}
+	startDistance := distances[bounds.startIndex]
+	endDistance := distances[bounds.endIndex]
+	if !isFiniteNumber(startDistance) || !isFiniteNumber(endDistance) || endDistance <= startDistance {
+		return []ClimbProfilePointDto{}
+	}
+
+	pointCount := bounds.endIndex - bounds.startIndex + 1
+	sampleCount := pointCount
+	if sampleCount > climbProfilePointLimit {
+		sampleCount = climbProfilePointLimit
+	}
+	profile := make([]ClimbProfilePointDto, 0, sampleCount)
+	for sampleIndex := 0; sampleIndex < sampleCount; sampleIndex++ {
+		offset := 0
+		if sampleCount > 1 {
+			offset = int(math.Round(float64(sampleIndex*(pointCount-1)) / float64(sampleCount-1)))
+		}
+		index := bounds.startIndex + offset
+		distance := distances[index]
+		altitude := altitudes[index]
+		if !isFiniteNumber(distance) || !isFiniteNumber(altitude) {
+			continue
+		}
+		profile = append(profile, ClimbProfilePointDto{
+			DistanceKm: math.Round(((distance-startDistance)/1000)*1000) / 1000,
+			Elevation:  math.Round(altitude*10) / 10,
+		})
+	}
+	return profile
+}
+
+// computeClimbMaximumGradient uses a rolling distance window of at least 500 m
+// and rejects implausible road-gradient outliers. Reference catalogue
+// values still take priority when they are available.
+func computeClimbMaximumGradient(activity *strava.Activity, bounds famousClimbBounds) *float64 {
+	if activity == nil || activity.Stream == nil || activity.Stream.Altitude == nil {
+		return nil
+	}
+	distances := activity.Stream.Distance.Data
+	altitudes := activity.Stream.Altitude.Data
+	if bounds.startIndex < 0 || bounds.endIndex <= bounds.startIndex || bounds.endIndex >= len(distances) || bounds.endIndex >= len(altitudes) {
+		return nil
+	}
+
+	windowStart := bounds.startIndex
+	maximumGradient := 0.0
+	for index := bounds.startIndex + 1; index <= bounds.endIndex; index++ {
+		for windowStart+1 < index && distances[index]-distances[windowStart+1] >= climbMaximumGradientWindowMeters {
+			windowStart++
+		}
+		distanceDelta := distances[index] - distances[windowStart]
+		altitudeDelta := altitudes[index] - altitudes[windowStart]
+		if !isFiniteNumber(distanceDelta) || !isFiniteNumber(altitudeDelta) || distanceDelta < climbMaximumGradientWindowMeters {
+			continue
+		}
+		gradient := (altitudeDelta / distanceDelta) * 100
+		if isFiniteNumber(gradient) && gradient > maximumGradient && gradient <= climbComputedMaximumGradientCeiling {
+			maximumGradient = gradient
+		}
+	}
+
+	if maximumGradient <= 0 {
+		return nil
+	}
+	rounded := math.Round(maximumGradient*10) / 10
+	return &rounded
 }
 
 func selectBadgeDisplayActivity(badge business.Badge, activities []*strava.Activity) (*strava.Activity, int) {
@@ -1448,47 +1707,12 @@ func selectBestFamousClimbActivity(activities []*strava.Activity, badge badges.F
 }
 
 func computeFamousClimbEffortSeconds(activity *strava.Activity, badge badges.FamousClimbBadge) (int, bool) {
-	if activity == nil || activity.Stream == nil || activity.Stream.LatLng == nil {
+	bounds, matched := findFamousClimbBounds(activity, badge)
+	if !matched {
 		return 0, false
 	}
-
-	latlngData := activity.Stream.LatLng.Data
-	timeData := activity.Stream.Time.Data
-	dataSize := len(latlngData)
-	if len(timeData) < dataSize {
-		dataSize = len(timeData)
-	}
-	if dataSize == 0 {
-		return 0, false
-	}
-
-	const waypointToleranceInM = 500
-	startTime := 0
-	seenStart := false
-
-	for i := 0; i < dataSize; i++ {
-		coords := latlngData[i]
-		if len(coords) < 2 {
-			continue
-		}
-
-		if !seenStart {
-			if badge.Start.HaversineInM(coords[0], coords[1]) < waypointToleranceInM {
-				seenStart = true
-				startTime = timeData[i]
-			}
-			continue
-		}
-
-		if badge.End.HaversineInM(coords[0], coords[1]) < waypointToleranceInM {
-			duration := timeData[i] - startTime
-			if duration > 0 {
-				return duration, true
-			}
-		}
-	}
-
-	return 0, false
+	duration := famousClimbDurationSeconds(activity, bounds)
+	return duration, duration > 0
 }
 
 func ToBadgeDto(badge business.Badge, activityTypes ...business.ActivityType) BadgeDto {
