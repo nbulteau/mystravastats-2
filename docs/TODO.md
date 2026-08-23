@@ -125,7 +125,7 @@
   - la navigation est bidirectionnelle entre le marqueur et le versant exact du carnet,
   - les DTO Go/Kotlin exposent desormais les coordonnees de depart et de sommet, avec tests de parite; les tests frontend couvrent regroupement, identifiants, filtres et clustering.
 
-- [ ] `FUNC-P1-18` (`P1`, `L`) - Creer une fiche detaillee pour chaque col et chaque versant.
+- [x] `FUNC-P1-18` (`P1`, `L`) - Creer une fiche detaillee pour chaque col et chaque versant.
   Owners: `Product`, `Front`, `Stats`, `Back-Go`, `Back-Kotlin`, `QA`.
   Proposition:
   - afficher le profil kilometre par kilometre avec couleurs de pente, altitudes intermediaires et secteurs les plus difficiles,
@@ -138,6 +138,14 @@
   - les metriques cataloguees et personnelles sont visuellement distinguees,
   - une donnee absente est signalee comme indisponible et n'est jamais remplacee par une valeur incoherente,
   - les profils reutilisent le meme moteur de rendu et les memes regles de plausibilite que les posters.
+  Fait:
+  - une route stable ouvre la fiche du versant exact depuis le carnet ou la carte, y compris pour un col encore a decouvrir,
+  - la fiche conserve le titre complet du versant, regroupe les autres departs du meme sommet et distingue visuellement les donnees catalogue des donnees personnelles,
+  - le profil kilometrique reutilise le moteur SVG des posters avec couleurs de pente, altitudes intermediaires et classement des cinq secteurs les plus difficiles,
+  - les caracteristiques cataloguees affichent longueur, denivele, pentes, altitudes, difficulte, categorie, coordonnees et source; les valeurs ou dates absentes sont explicitement indiquees `Indisponible`,
+  - les DTO Go et Kotlin exposent toutes les ascensions detectees avec temps, date, VAM, vitesse et moyennes de puissance/frequence cardiaque sur le seul intervalle du versant,
+  - chaque ascension renvoie vers l'activite detaillee d'origine et le meilleur temps est identifie sans confondre deux versants proches,
+  - les tests Go/Kotlin couvrent l'historique et les metriques personnelles; les tests frontend couvrent titres, tri, secteurs et reutilisation du profil poster.
 
 - [ ] `FUNC-P1-19` (`P1`, `M`) - Stabiliser l'identite sommet/versant et la qualite du catalogue.
   Owners: `Data`, `Back-Go`, `Back-Kotlin`, `QA`.
@@ -147,6 +155,13 @@
   - ajouter des controles sur les doublons semantiques, les profils plats suspects, les deniveles incompatibles avec les altitudes et les pentes maximales aberrantes,
   - produire un rapport de couverture par pays, massif, sommet et nombre de versants attendus/trouves,
   - conserver la possibilite de corriger une variante sans casser l'historique des badges deja attribues.
+  Avancement classification:
+  - un collecteur reproductible rapproche les 567 versants avec l'API publique Climbfinder sans recalculer l'indice depuis la seule pente moyenne,
+  - 490 versants disposent d'une fiche candidate, dont 442 correspondances exactes appliquees avec leur indice Cotacol et leur categorie publies; `SHC` est normalise en `HC`,
+  - 48 rapprochements proches restent volontairement a verifier et 77 versants absents de la source conservent leur classification precedente au lieu de recevoir celle d'un col voisin,
+  - le rapport `docs/data-sources/climb-classification-audit.json` conserve l'URL, l'identifiant source et les ecarts de depart, sommet, distance et denivele; les trois copies Go/Kotlin/cache sont synchronisees,
+  - les regressions Alpe d'Huez (979 points, HC) et Croix-de-Fer depuis Allemond (1 092 points, HC) sont couvertes dans les tests catalogue Go et Kotlin.
+  - la tolerance de sommet peut etre resserree par versant lorsque deux routes se separent a proximite immediate: le Glandon depuis Allemond exige un passage a moins de 100 m, ce qui conserve la visite reelle du 12 aout apres la Croix-de-Fer sans compter le simple passage du 19 aout sur la route commune.
   Acceptance:
   - un meme effort ne cree jamais deux badges pour un seul versant,
   - deux vrais versants d'un meme sommet restent selectionnables et comparables separement,

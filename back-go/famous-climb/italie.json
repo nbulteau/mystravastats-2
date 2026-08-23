@@ -19,7 +19,7 @@
         "totalAscent": 1960,
         "minimumAltitude": 607,
         "maximumGradient": 14,
-        "difficulty": 1012,
+        "difficulty": 1474,
         "averageGradient": 5.16,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-del-nivolet-depuis-locana-c1246.htm"
@@ -46,9 +46,9 @@
         "totalAscent": 1125,
         "minimumAltitude": 1083,
         "maximumGradient": 10.7,
-        "difficulty": 791,
+        "difficulty": 1021,
         "averageGradient": 7.03,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-delle-finestre-depuis-depot-c424.htm"
       },
       {
@@ -61,9 +61,9 @@
         "totalAscent": 767,
         "minimumAltitude": 1416,
         "maximumGradient": 14.7,
-        "difficulty": 534,
+        "difficulty": 636,
         "averageGradient": 6.97,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-delle-finestre-depuis-pourrieres-c3620.htm"
       },
       {
@@ -76,7 +76,7 @@
         "totalAscent": 1694,
         "minimumAltitude": 486,
         "maximumGradient": 11.4,
-        "difficulty": 1544,
+        "difficulty": 1961,
         "averageGradient": 9.11,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-delle-finestre-depuis-susa-c425.htm"
@@ -103,7 +103,7 @@
         "totalAscent": 1329,
         "minimumAltitude": 965,
         "maximumGradient": 9.5,
-        "difficulty": 1132,
+        "difficulty": 1226,
         "averageGradient": 8.52,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-di-sampeyre-depuis-sampeyre-c723.htm"
@@ -118,7 +118,7 @@
         "totalAscent": 1348,
         "minimumAltitude": 930,
         "maximumGradient": 10.8,
-        "difficulty": 1020,
+        "difficulty": 1287,
         "averageGradient": 7.57,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-di-sampeyre-depuis-stroppo-c722.htm"
@@ -145,7 +145,7 @@
         "totalAscent": 1721,
         "minimumAltitude": 784,
         "maximumGradient": 12,
-        "difficulty": 1200,
+        "difficulty": 1428,
         "averageGradient": 6.97,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-fauniera-depuis-demonte-c726.htm"
@@ -160,7 +160,7 @@
         "totalAscent": 1567,
         "minimumAltitude": 951,
         "maximumGradient": 11.1,
-        "difficulty": 1115,
+        "difficulty": 1215,
         "averageGradient": 7.12,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-fauniera-depuis-ponte-marmora-c725.htm"
@@ -175,7 +175,7 @@
         "totalAscent": 1689,
         "minimumAltitude": 816,
         "maximumGradient": 14,
-        "difficulty": 1273,
+        "difficulty": 1465,
         "averageGradient": 7.54,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-fauniera-depuis-pradleves-c724.htm"
@@ -202,9 +202,9 @@
         "totalAscent": 1445,
         "minimumAltitude": 205,
         "maximumGradient": 18,
-        "difficulty": 927,
+        "difficulty": 1142,
         "averageGradient": 6.42,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/montagnes-du-lac-de-garde/italie/monte-bondone-depuis-aldeno-c517.htm"
       },
       {
@@ -217,9 +217,9 @@
         "totalAscent": 1203,
         "minimumAltitude": 443,
         "maximumGradient": 11,
-        "difficulty": 612,
+        "difficulty": 999,
         "averageGradient": 5.08,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/montagnes-du-lac-de-garde/italie/monte-bondone-depuis-lasino-c516.htm"
       },
       {
@@ -232,9 +232,9 @@
         "totalAscent": 1463,
         "minimumAltitude": 270,
         "maximumGradient": 9.3,
-        "difficulty": 994,
+        "difficulty": 1240,
         "averageGradient": 6.8,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/montagnes-du-lac-de-garde/italie/monte-bondone-depuis-trento-c518.htm"
       }
     ]
@@ -259,9 +259,9 @@
         "totalAscent": 1618,
         "minimumAltitude": 336,
         "maximumGradient": 12,
-        "difficulty": 916,
+        "difficulty": 1161,
         "averageGradient": 5.66,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/monte-grappa-depuis-caupo-c3829.htm"
       },
       {
@@ -274,7 +274,7 @@
         "totalAscent": 1455,
         "minimumAltitude": 281,
         "maximumGradient": 19.4,
-        "difficulty": 1057,
+        "difficulty": 1771,
         "averageGradient": 7.26,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/monte-grappa-depuis-possagno-c3632.htm"
@@ -289,9 +289,9 @@
         "totalAscent": 1558,
         "minimumAltitude": 168,
         "maximumGradient": 9,
-        "difficulty": 966,
+        "difficulty": 1131,
         "averageGradient": 6.2,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/monte-grappa-depuis-romano-ezzelino-c2540.htm"
       },
       {
@@ -304,7 +304,7 @@
         "totalAscent": 1450,
         "minimumAltitude": 219,
         "maximumGradient": 17,
-        "difficulty": 1161,
+        "difficulty": 1510,
         "averageGradient": 8.01,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/monte-grappa-depuis-semonzo-del-grappa-c3860.htm"
@@ -319,9 +319,9 @@
         "totalAscent": 1335,
         "minimumAltitude": 346,
         "maximumGradient": 18,
-        "difficulty": 845,
+        "difficulty": 1334,
         "averageGradient": 6.33,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/monte-grappa-depuis-seren-del-grappa-c3631.htm"
       }
     ]
@@ -346,7 +346,7 @@
         "totalAscent": 1210,
         "minimumAltitude": 529,
         "maximumGradient": 20.3,
-        "difficulty": 1393,
+        "difficulty": 1764,
         "averageGradient": 11.52,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-carniques/italie/monte-zoncolan-depuis-ovaro-c422.htm"
@@ -361,7 +361,7 @@
         "totalAscent": 1140,
         "minimumAltitude": 558,
         "maximumGradient": 16.2,
-        "difficulty": 1460,
+        "difficulty": 1649,
         "averageGradient": 12.81,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-carniques/italie/monte-zoncolan-depuis-priola-c1603.htm"
@@ -376,7 +376,7 @@
         "totalAscent": 1203,
         "minimumAltitude": 527,
         "maximumGradient": 13.6,
-        "difficulty": 1072,
+        "difficulty": 1263,
         "averageGradient": 8.91,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-carniques/italie/monte-zoncolan-depuis-sutrio-bivio-ss-465-c423.htm"
@@ -403,7 +403,7 @@
         "totalAscent": 920,
         "minimumAltitude": 538,
         "maximumGradient": 11.6,
-        "difficulty": 699,
+        "difficulty": 788,
         "averageGradient": 7.6,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-pennines/italie/mottarone-depuis-armeno-c1613.htm"
@@ -418,9 +418,9 @@
         "totalAscent": 1255,
         "minimumAltitude": 203,
         "maximumGradient": 11.6,
-        "difficulty": 747,
+        "difficulty": 966,
         "averageGradient": 5.95,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-pennines/italie/mottarone-depuis-baveno-c1612.htm"
       },
       {
@@ -463,9 +463,9 @@
         "totalAscent": 1252,
         "minimumAltitude": 215,
         "maximumGradient": 10.8,
-        "difficulty": 780,
+        "difficulty": 958,
         "averageGradient": 6.23,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-pennines/italie/mottarone-depuis-stresa-c1616.htm"
       }
     ]
@@ -505,7 +505,7 @@
         "totalAscent": 1222,
         "minimumAltitude": 661,
         "maximumGradient": 16,
-        "difficulty": 1010,
+        "difficulty": 1163,
         "averageGradient": 8.26,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-del-mortirolo-depuis-grosio-c419.htm"
@@ -520,7 +520,7 @@
         "totalAscent": 1300,
         "minimumAltitude": 551,
         "maximumGradient": 14.2,
-        "difficulty": 1362,
+        "difficulty": 1525,
         "averageGradient": 10.48,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-del-mortirolo-depuis-mazzo-c420.htm"
@@ -535,7 +535,7 @@
         "totalAscent": 1301,
         "minimumAltitude": 533,
         "maximumGradient": 23,
-        "difficulty": 1386,
+        "difficulty": 1695,
         "averageGradient": 10.66,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-del-mortirolo-depuis-tovo-di-sant-agata-c3088.htm"
@@ -562,7 +562,7 @@
         "totalAscent": 1796,
         "minimumAltitude": 673,
         "maximumGradient": 12,
-        "difficulty": 1108,
+        "difficulty": 1422,
         "averageGradient": 6.17,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-de-stubai/italie/passo-del-rombo-depuis-san-leonardo-in-passiria-c1532.htm"
@@ -589,9 +589,9 @@
         "totalAscent": 919,
         "minimumAltitude": 988,
         "maximumGradient": 9.2,
-        "difficulty": 556,
+        "difficulty": 613,
         "averageGradient": 6.05,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-del-tonale-depuis-fucine-c534.htm"
       },
       {
@@ -631,7 +631,7 @@
         "totalAscent": 958,
         "minimumAltitude": 407,
         "maximumGradient": 7.9,
-        "difficulty": 620,
+        "difficulty": 729,
         "averageGradient": 6.47,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-della-mendola-depuis-appiano-c2757.htm"
@@ -673,7 +673,7 @@
         "totalAscent": 1543,
         "minimumAltitude": 1199,
         "maximumGradient": 9.5,
-        "difficulty": 1081,
+        "difficulty": 1223,
         "averageGradient": 7.01,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-dello-stelvio-depuis-bormio-c361.htm"
@@ -688,7 +688,7 @@
         "totalAscent": 1842,
         "minimumAltitude": 911,
         "maximumGradient": 9.5,
-        "difficulty": 1341,
+        "difficulty": 1474,
         "averageGradient": 7.28,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-dello-stelvio-depuis-prato-c360.htm"
@@ -757,9 +757,9 @@
         "totalAscent": 1404,
         "minimumAltitude": 1199,
         "maximumGradient": 11,
-        "difficulty": 769,
+        "difficulty": 982,
         "averageGradient": 5.48,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-di-gavia-depuis-bormio-c357.htm"
       },
       {
@@ -772,7 +772,7 @@
         "totalAscent": 1363,
         "minimumAltitude": 1262,
         "maximumGradient": 12.2,
-        "difficulty": 1074,
+        "difficulty": 1166,
         "averageGradient": 7.88,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-di-gavia-depuis-ponte-di-legno-c358.htm"
@@ -814,7 +814,7 @@
         "totalAscent": 1629,
         "minimumAltitude": 388,
         "maximumGradient": 10.5,
-        "difficulty": 1134,
+        "difficulty": 1350,
         "averageGradient": 6.96,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-manghen-depuis-borgo-valsugana-c1952.htm"
@@ -829,9 +829,9 @@
         "totalAscent": 1229,
         "minimumAltitude": 825,
         "maximumGradient": 10.2,
-        "difficulty": 920,
+        "difficulty": 1144,
         "averageGradient": 7.49,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-manghen-depuis-molina-di-fiemme-c1953.htm"
       }
     ]
@@ -856,9 +856,9 @@
         "totalAscent": 864,
         "minimumAltitude": 412,
         "maximumGradient": 9.1,
-        "difficulty": 485,
+        "difficulty": 645,
         "averageGradient": 5.61,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/piancavallo-depuis-barcis-c1606.htm"
       },
       {
@@ -886,9 +886,9 @@
         "totalAscent": 1108,
         "minimumAltitude": 161,
         "maximumGradient": 13.5,
-        "difficulty": 890,
+        "difficulty": 995,
         "averageGradient": 8.03,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/piancavallo-depuis-pedemonte-di-aviano-c1608.htm"
       }
     ]
@@ -913,7 +913,7 @@
         "totalAscent": 679,
         "minimumAltitude": 1348,
         "maximumGradient": 9.5,
-        "difficulty": 400,
+        "difficulty": 505,
         "averageGradient": 5.9,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/station-de-sestrieres-depuis-cesana-c226.htm"
@@ -943,9 +943,9 @@
         "totalAscent": 1427,
         "minimumAltitude": 625,
         "maximumGradient": 7.6,
-        "difficulty": 539,
+        "difficulty": 713,
         "averageGradient": 3.77,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/station-de-sestrieres-depuis-perosa-argentina-c224.htm"
       }
     ]
@@ -970,7 +970,7 @@
         "totalAscent": 1932,
         "minimumAltitude": 227,
         "maximumGradient": 9.4,
-        "difficulty": 1262,
+        "difficulty": 1226,
         "averageGradient": 6.53,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/apennins/italie/blockhaus-depuis-fara-filiorum-petri-c498.htm"
@@ -1000,7 +1000,7 @@
         "totalAscent": 1961,
         "minimumAltitude": 125,
         "maximumGradient": 10.8,
-        "difficulty": 1219,
+        "difficulty": 1582,
         "averageGradient": 6.21,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/apennins/italie/blockhaus-depuis-roccamorice-c499.htm"
@@ -1027,9 +1027,9 @@
         "totalAscent": 951,
         "minimumAltitude": 936,
         "maximumGradient": 12,
-        "difficulty": 531,
+        "difficulty": 756,
         "averageGradient": 5.59,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/apennins/italie/monte-terminillo-sella-di-leonessa-depuis-leonessa-c2752.htm"
       },
       {
@@ -1042,9 +1042,9 @@
         "totalAscent": 1509,
         "minimumAltitude": 402,
         "maximumGradient": 9,
-        "difficulty": 914,
+        "difficulty": 1070,
         "averageGradient": 6.06,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/apennins/italie/monte-terminillo-sella-di-leonessa-depuis-rieti-c2751.htm"
       }
     ]
@@ -1069,9 +1069,9 @@
         "totalAscent": 1614,
         "minimumAltitude": 576,
         "maximumGradient": 10,
-        "difficulty": 861,
+        "difficulty": 1087,
         "averageGradient": 5.34,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-delle-erbe-depuis-brixen-bressanonne-c3830.htm"
       },
       {
@@ -1084,9 +1084,9 @@
         "totalAscent": 922,
         "minimumAltitude": 1097,
         "maximumGradient": 11.2,
-        "difficulty": 560,
+        "difficulty": 873,
         "averageGradient": 6.07,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-delle-erbe-depuis-piccolino-c2325.htm"
       },
       {
@@ -1099,9 +1099,9 @@
         "totalAscent": 1462,
         "minimumAltitude": 534,
         "maximumGradient": 12.2,
-        "difficulty": 835,
+        "difficulty": 1126,
         "averageGradient": 5.71,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-delle-erbe-depuis-val-di-funes-c2326.htm"
       }
     ]
@@ -1126,7 +1126,7 @@
         "totalAscent": 307,
         "minimumAltitude": 1525,
         "maximumGradient": 9,
-        "difficulty": 153,
+        "difficulty": 229,
         "averageGradient": 4.99,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-di-campolongo-depuis-corvara-in-badia-c3436.htm"
@@ -1153,7 +1153,7 @@
         "totalAscent": 1119,
         "minimumAltitude": 1000,
         "maximumGradient": 8.3,
-        "difficulty": 611,
+        "difficulty": 708,
         "averageGradient": 5.46,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-falzarego-depuis-caprile-c1950.htm"
@@ -1168,7 +1168,7 @@
         "totalAscent": 916,
         "minimumAltitude": 1205,
         "maximumGradient": 8.6,
-        "difficulty": 512,
+        "difficulty": 585,
         "averageGradient": 5.59,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-falzarego-depuis-cortina-d-ampezzo-c1951.htm"
@@ -1195,9 +1195,9 @@
         "totalAscent": 617,
         "minimumAltitude": 1450,
         "maximumGradient": 11,
-        "difficulty": 274,
+        "difficulty": 427,
         "averageGradient": 4.44,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-fedaia-depuis-canazei-c529.htm"
       },
       {
@@ -1210,9 +1210,9 @@
         "totalAscent": 1059,
         "minimumAltitude": 998,
         "maximumGradient": 12.6,
-        "difficulty": 795,
+        "difficulty": 996,
         "averageGradient": 7.51,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-fedaia-depuis-caprile-c528.htm"
       }
     ]
@@ -1237,7 +1237,7 @@
         "totalAscent": 599,
         "minimumAltitude": 1523,
         "maximumGradient": 10,
-        "difficulty": 374,
+        "difficulty": 429,
         "averageGradient": 6.24,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-gardena-depuis-corvara-in-badia-c2512.htm"
@@ -1294,9 +1294,9 @@
         "totalAscent": 922,
         "minimumAltitude": 1335,
         "maximumGradient": 10.4,
-        "difficulty": 842,
+        "difficulty": 914,
         "averageGradient": 9.13,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-giau-depuis-selva-di-cadore-c1609.htm"
       }
     ]
@@ -1321,7 +1321,7 @@
         "totalAscent": 637,
         "minimumAltitude": 1596,
         "maximumGradient": 9.7,
-        "difficulty": 432,
+        "difficulty": 471,
         "averageGradient": 6.78,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-pordoi-depuis-arabba-c1744.htm"
@@ -1336,7 +1336,7 @@
         "totalAscent": 786,
         "minimumAltitude": 1448,
         "maximumGradient": 7.7,
-        "difficulty": 476,
+        "difficulty": 535,
         "averageGradient": 6.05,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-pordoi-depuis-canazei-c1743.htm"
@@ -1363,7 +1363,7 @@
         "totalAscent": 1253,
         "minimumAltitude": 715,
         "maximumGradient": 9.8,
-        "difficulty": 679,
+        "difficulty": 769,
         "averageGradient": 5.42,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-rolle-depuis-fiera-di-primiero-c1954.htm"
@@ -1378,9 +1378,9 @@
         "totalAscent": 957,
         "minimumAltitude": 1015,
         "maximumGradient": 11,
-        "difficulty": 447,
+        "difficulty": 607,
         "averageGradient": 4.67,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-rolle-depuis-predazzo-c1955.htm"
       }
     ]
@@ -1405,9 +1405,9 @@
         "totalAscent": 1144,
         "minimumAltitude": 771,
         "maximumGradient": 14,
-        "difficulty": 720,
+        "difficulty": 975,
         "averageGradient": 6.29,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-san-pellegrino-depuis-cencenighe-c522.htm"
       },
       {
@@ -1420,7 +1420,7 @@
         "totalAscent": 778,
         "minimumAltitude": 1252,
         "maximumGradient": 11.2,
-        "difficulty": 530,
+        "difficulty": 508,
         "averageGradient": 6.82,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-san-pellegrino-depuis-moena-c521.htm"
@@ -1447,7 +1447,7 @@
         "totalAscent": 784,
         "minimumAltitude": 1451,
         "maximumGradient": 8.9,
-        "difficulty": 540,
+        "difficulty": 591,
         "averageGradient": 6.88,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-sella-depuis-canazei-c1796.htm"
@@ -1462,7 +1462,7 @@
         "totalAscent": 373,
         "minimumAltitude": 1784,
         "maximumGradient": 9,
-        "difficulty": 258,
+        "difficulty": 287,
         "averageGradient": 6.91,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-sella-depuis-plan-de-gralba-c1797.htm"
@@ -1489,7 +1489,7 @@
         "totalAscent": 1223,
         "minimumAltitude": 729,
         "maximumGradient": 8,
-        "difficulty": 788,
+        "difficulty": 815,
         "averageGradient": 6.44,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/sicile/italie/etna-rifugio-sapienza-depuis-nicolosi-c1597.htm"
@@ -1504,9 +1504,9 @@
         "totalAscent": 1286,
         "minimumAltitude": 609,
         "maximumGradient": 13,
-        "difficulty": 918,
+        "difficulty": 1047,
         "averageGradient": 7.14,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/sicile/italie/etna-rifugio-sapienza-depuis-pedara-c1598.htm"
       },
       {
@@ -1519,9 +1519,9 @@
         "totalAscent": 883,
         "minimumAltitude": 1053,
         "maximumGradient": 8,
-        "difficulty": 599,
+        "difficulty": 959,
         "averageGradient": 6.79,
-        "category": "2",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/sicile/italie/etna-rifugio-sapienza-depuis-piano-san-leo-c1599.htm"
       },
       {
@@ -1534,12 +1534,11 @@
         "totalAscent": 1305,
         "minimumAltitude": 561,
         "maximumGradient": 10,
-        "difficulty": 946,
+        "difficulty": 1066,
         "averageGradient": 7.25,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/sicile/italie/etna-rifugio-sapienza-depuis-zafferana-c1596.htm"
       }
     ]
   }
 ]
-

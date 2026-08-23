@@ -1,5 +1,28 @@
 # Scripts
 
+## refresh-climb-classifications.py
+
+Refresh the difficulty points and categories of the four national famous-climb
+catalogs from the public Climbfinder API:
+
+```shell
+py -3 scripts/refresh-climb-classifications.py
+py -3 scripts/refresh-climb-classifications.py --apply
+```
+
+The first command is a dry run. The second writes high-confidence, one-to-one
+matches to `back-go/famous-climb`, `back-kotlin/famous-climb` and
+`strava-cache/famous-climb`. Matching uses the country, start and summit
+coordinates, route length, ascent, full variant name and existing source URL.
+`SHC` is normalized to `HC` because the application exposes categories
+`HC` through `4`.
+
+The full provenance and all rejected or ambiguous matches are written to
+`docs/data-sources/climb-classification-audit.json`. The France and Spain
+profile scrapers only build geometry and base metrics; always run this
+classification refresh after regenerating either catalog so their provisional
+average-gradient estimate is not committed as a published difficulty.
+
 ## setup-strava-oauth.mjs
 
 Guide the local Strava enrollment after the Strava developer application has

@@ -16,6 +16,7 @@ data class FamousClimbBadge(
     val start: GeoCoordinate,
     val end: GeoCoordinate,
     val routeCheckpoints: List<GeoCoordinate> = emptyList(),
+    val summitToleranceMeters: Int = 0,
     val length: Double,
     val totalAscent: Int,
     val averageGradient: Double,
@@ -53,6 +54,7 @@ data class FamousClimbBadge(
         var bestFallbackQuality = Double.POSITIVE_INFINITY
         var bestQuality = Double.POSITIVE_INFINITY
         val referenceLengthMeters = length * 1000.0
+        val resolvedSummitToleranceMeters = resolvedSummitToleranceMeters()
         val lengthToleranceMeters = maxOf(
             FAMOUS_CLIMB_LENGTH_TOLERANCE_MINIMUM_METERS,
             referenceLengthMeters * FAMOUS_CLIMB_LENGTH_TOLERANCE_RATIO,
@@ -65,7 +67,8 @@ data class FamousClimbBadge(
             if (this.start.haversineInM(coords[0], coords[1]) < FAMOUS_CLIMB_WAYPOINT_TOLERANCE_METERS) {
                 startIndices += index
             }
-            if (this.end.haversineInM(coords[0], coords[1]) >= FAMOUS_CLIMB_WAYPOINT_TOLERANCE_METERS) {
+            val endDistanceMeters = this.end.haversineInM(coords[0], coords[1])
+            if (endDistanceMeters >= resolvedSummitToleranceMeters) {
                 continue
             }
 
@@ -78,10 +81,10 @@ data class FamousClimbBadge(
                 }
                 fallbackMatch = true
                 val startCoords = latLngStream.data[startIndex]
-                val proximityQuality = (
-                        this.start.haversineInM(startCoords[0], startCoords[1]) +
-                                this.end.haversineInM(coords[0], coords[1])
-                        ) / (2.0 * FAMOUS_CLIMB_WAYPOINT_TOLERANCE_METERS)
+                val startProximity = this.start.haversineInM(startCoords[0], startCoords[1]) /
+                    FAMOUS_CLIMB_WAYPOINT_TOLERANCE_METERS.toDouble()
+                val endProximity = endDistanceMeters / resolvedSummitToleranceMeters.toDouble()
+                val proximityQuality = (startProximity + endProximity) / 2.0
                 bestFallbackQuality = minOf(bestFallbackQuality, proximityQuality)
                 if (referenceLengthMeters <= 0.0 || startIndex >= distances.size || index >= distances.size) {
                     continue
@@ -107,6 +110,9 @@ data class FamousClimbBadge(
         }
         return null
     }
+
+    private fun resolvedSummitToleranceMeters(): Int =
+        summitToleranceMeters.takeIf { it > 0 } ?: FAMOUS_CLIMB_WAYPOINT_TOLERANCE_METERS
 
     private fun routeCheckpointMatchIndices(latLngData: List<List<Double>>): List<List<Int>>? {
         if (routeCheckpoints.isEmpty()) {

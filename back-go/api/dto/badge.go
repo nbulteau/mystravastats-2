@@ -33,6 +33,7 @@ type ClimbDetailsDto struct {
 	Profile          []ClimbProfilePointDto `json:"profile"`
 	AscentCount      int                    `json:"ascentCount"`
 	BestAscent       *ClimbAscentDto        `json:"bestAscent,omitempty"`
+	Ascents          []ClimbAscentDto       `json:"ascents"`
 }
 
 type ClimbCoordinateDto struct {
@@ -46,7 +47,12 @@ type ClimbProfilePointDto struct {
 }
 
 type ClimbAscentDto struct {
-	ActivityID      int64  `json:"activityId"`
-	Date            string `json:"date"`
-	DurationSeconds int    `json:"durationSeconds"`
+	ActivityID          int64    `json:"activityId"`
+	ActivityName        string   `json:"activityName"`
+	Date                string   `json:"date"`
+	DurationSeconds     int      `json:"durationSeconds"`
+	VAMMetersPerHour    *int     `json:"vamMetersPerHour,omitempty"`
+	AverageSpeedKph     *float64 `json:"averageSpeedKph,omitempty"`
+	AveragePowerWatts   *int     `json:"averagePowerWatts,omitempty"`
+	AverageHeartRateBpm *int     `json:"averageHeartRateBpm,omitempty"`
 }

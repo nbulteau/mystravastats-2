@@ -25,6 +25,7 @@ export interface ClimbDetails {
     profile: ClimbProfilePoint[];
     ascentCount: number;
     bestAscent?: ClimbAscent | null;
+    ascents?: ClimbAscent[];
 }
 
 export interface ClimbCoordinate {
@@ -39,6 +40,11 @@ export interface ClimbProfilePoint {
 
 export interface ClimbAscent {
     activityId: number;
+    activityName?: string;
     date: string;
     durationSeconds: number;
+    vamMetersPerHour?: number | null;
+    averageSpeedKph?: number | null;
+    averagePowerWatts?: number | null;
+    averageHeartRateBpm?: number | null;
 }

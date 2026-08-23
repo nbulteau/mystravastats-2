@@ -16,6 +16,7 @@ data class Alternative(
     val name: String,
     val geoCoordinate: GeoCoordinate,
     val routeCheckpoints: List<GeoCoordinate> = emptyList(),
+    val summitToleranceMeters: Int = 0,
     val length: Double,
     val totalAscent: Int,
     val difficulty: Int,

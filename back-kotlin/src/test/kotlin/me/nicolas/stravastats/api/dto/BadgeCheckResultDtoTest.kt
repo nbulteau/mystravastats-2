@@ -8,6 +8,8 @@ import me.nicolas.stravastats.domain.business.strava.GeoCoordinate
 import me.nicolas.stravastats.domain.business.strava.stream.AltitudeStream
 import me.nicolas.stravastats.domain.business.strava.stream.DistanceStream
 import me.nicolas.stravastats.domain.business.strava.stream.LatLngStream
+import me.nicolas.stravastats.domain.business.strava.stream.HeartRateStream
+import me.nicolas.stravastats.domain.business.strava.stream.PowerStream
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.business.strava.stream.TimeStream
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -47,6 +49,8 @@ class BadgeCheckResultDtoTest {
             time = TimeStream(time, time.size, "high", "time"),
             latlng = LatLngStream(coordinates, coordinates.size, "high", "distance"),
             altitude = AltitudeStream(listOf(90.0, 100.0, 120.0, 135.0)),
+            watts = PowerStream(listOf(0, 200, 220, 240), 4, "high", "distance"),
+            heartrate = HeartRateStream(listOf(0, 140, 150, 160), 4, "high", "distance"),
         )
         val activity = TestHelper.stravaActivity.copy(
             id = 42,
@@ -83,6 +87,12 @@ class BadgeCheckResultDtoTest {
         assertEquals(1100, details.bestAscent?.durationSeconds)
         assertEquals(42, details.bestAscent?.activityId)
         assertEquals("2026-07-14T08:00:00Z", details.bestAscent?.date)
+        assertEquals(listOf(42L, 43L), details.ascents.map { it.activityId })
+        assertEquals(activity.name, details.ascents.first().activityName)
+        assertEquals(3207, details.ascents.first().vamMetersPerHour)
+        assertEquals(40.6, details.ascents.first().averageSpeedKph)
+        assertEquals(220, details.ascents.first().averagePowerWatts)
+        assertEquals(150, details.ascents.first().averageHeartRateBpm)
         assertEquals(3, details.profile.size)
         assertEquals(0.0, details.profile.first().distanceKm)
         assertEquals(12.4, details.profile.last().distanceKm)

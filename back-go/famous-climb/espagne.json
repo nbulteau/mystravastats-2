@@ -61,9 +61,9 @@
         "totalAscent": 1052,
         "minimumAltitude": 928,
         "maximumGradient": 16.0,
-        "difficulty": 522,
+        "difficulty": 638,
         "averageGradient": 4.96,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-campoofuente-del-chivo-depuis-espinilla-c2630.htm"
       }
     ]
@@ -88,9 +88,9 @@
         "totalAscent": 743,
         "minimumAltitude": 906,
         "maximumGradient": 10.0,
-        "difficulty": 416,
+        "difficulty": 664,
         "averageGradient": 5.59,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/alto-de-abantos-depuis-el-escorial-c480.htm"
       }
     ]
@@ -115,7 +115,7 @@
         "totalAscent": 1450,
         "minimumAltitude": 312,
         "maximumGradient": 12.5,
-        "difficulty": 1322,
+        "difficulty": 1540,
         "averageGradient": 9.12,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-de-gamoniteiro-depuis-pola-de-lena-c482.htm"
@@ -130,9 +130,9 @@
         "totalAscent": 1290,
         "minimumAltitude": 483,
         "maximumGradient": 12.2,
-        "difficulty": 979,
+        "difficulty": 1303,
         "averageGradient": 7.59,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-de-gamoniteiro-depuis-san-martin-c481.htm"
       }
     ]
@@ -157,7 +157,7 @@
         "totalAscent": 1248,
         "minimumAltitude": 313,
         "maximumGradient": 23.0,
-        "difficulty": 1245,
+        "difficulty": 1549,
         "averageGradient": 9.98,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-de-l-angliru-depuis-la-vega-c189.htm"
@@ -172,7 +172,7 @@
         "totalAscent": 1403,
         "minimumAltitude": 179,
         "maximumGradient": 23.0,
-        "difficulty": 1113,
+        "difficulty": 1708,
         "averageGradient": 7.93,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-de-l-angliru-depuis-santa-eulalia-c3630.htm"
@@ -199,7 +199,7 @@
         "totalAscent": 1078,
         "minimumAltitude": 639,
         "maximumGradient": 13.0,
-        "difficulty": 620,
+        "difficulty": 834,
         "averageGradient": 5.76,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-de-la-farrapona-depuis-as-227-c2631.htm"
@@ -352,9 +352,9 @@
         "totalAscent": 450,
         "minimumAltitude": 859,
         "maximumGradient": 9.0,
-        "difficulty": 254,
+        "difficulty": 334,
         "averageGradient": 5.63,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/arres-de-sus-depuis-pont-d-arros-c2251.htm"
       }
     ]
@@ -406,7 +406,7 @@
         "totalAscent": 890,
         "minimumAltitude": 873,
         "maximumGradient": 8.1,
-        "difficulty": 320,
+        "difficulty": 470,
         "averageGradient": 3.59,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/barrage-de-cavallers-depuis-n230-c1980.htm"
@@ -433,7 +433,7 @@
         "totalAscent": 295,
         "minimumAltitude": 610,
         "maximumGradient": 12.0,
-        "difficulty": 241,
+        "difficulty": 234,
         "averageGradient": 8.19,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/bausen-depuis-pontaut-c2389.htm"
@@ -460,7 +460,7 @@
         "totalAscent": 665,
         "minimumAltitude": 33,
         "maximumGradient": 9.0,
-        "difficulty": 375,
+        "difficulty": 395,
         "averageGradient": 5.64,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/bianditzko-mandatea-depuis-altzibar-karrika-c2412.htm"
@@ -475,9 +475,9 @@
         "totalAscent": 385,
         "minimumAltitude": 326,
         "maximumGradient": 12.0,
-        "difficulty": 192,
+        "difficulty": 339,
         "averageGradient": 5.0,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/bianditzko-mandatea-depuis-artikutza-c3183.htm"
       }
     ]
@@ -502,7 +502,7 @@
         "totalAscent": 1377,
         "minimumAltitude": 757,
         "maximumGradient": 7.7,
-        "difficulty": 639,
+        "difficulty": 866,
         "averageGradient": 4.64,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/calar-alto-depuis-aulago-c1415.htm"
@@ -517,9 +517,9 @@
         "totalAscent": 1390,
         "minimumAltitude": 733,
         "maximumGradient": 10.2,
-        "difficulty": 848,
+        "difficulty": 1079,
         "averageGradient": 6.1,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/calar-alto-depuis-gergal-c1416.htm"
       }
     ]
@@ -544,7 +544,7 @@
         "totalAscent": 315,
         "minimumAltitude": 595,
         "maximumGradient": 10.0,
-        "difficulty": 165,
+        "difficulty": 218,
         "averageGradient": 5.25,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/canejan-depuis-pontaut-c2388.htm"
@@ -598,7 +598,7 @@
         "totalAscent": 781,
         "minimumAltitude": 197,
         "maximumGradient": 10.0,
-        "difficulty": 392,
+        "difficulty": 494,
         "averageGradient": 5.01,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-d-artesiaga-depuis-irurita-c1659.htm"
@@ -625,7 +625,7 @@
         "totalAscent": 269,
         "minimumAltitude": 45,
         "maximumGradient": 7.0,
-        "difficulty": 120,
+        "difficulty": 144,
         "averageGradient": 4.48,
         "category": "4",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-d-ibardin-depuis-vera-de-bidasoa-c1072.htm"
@@ -652,7 +652,7 @@
         "totalAscent": 424,
         "minimumAltitude": 244,
         "maximumGradient": 7.0,
-        "difficulty": 152,
+        "difficulty": 195,
         "averageGradient": 3.59,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-d-ispeguy-depuis-arizkun-c3786.htm"
@@ -706,9 +706,9 @@
         "totalAscent": 706,
         "minimumAltitude": 116,
         "maximumGradient": 6.8,
-        "difficulty": 175,
+        "difficulty": 368,
         "averageGradient": 2.48,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/col-de-coustouges-depuis-darnius-c898.htm"
       }
     ]
@@ -733,9 +733,9 @@
         "totalAscent": 780,
         "minimumAltitude": 608,
         "maximumGradient": 8.0,
-        "difficulty": 264,
+        "difficulty": 389,
         "averageGradient": 3.39,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/col-de-fanlo-depuis-escalona-c1507.htm"
       },
       {
@@ -748,9 +748,9 @@
         "totalAscent": 520,
         "minimumAltitude": 878,
         "maximumGradient": 12.0,
-        "difficulty": 246,
+        "difficulty": 392,
         "averageGradient": 4.73,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/col-de-fanlo-depuis-sarvise-c1461.htm"
       }
     ]
@@ -802,9 +802,9 @@
         "totalAscent": 341,
         "minimumAltitude": 100,
         "maximumGradient": 6.6,
-        "difficulty": 145,
+        "difficulty": 176,
         "averageGradient": 4.26,
-        "category": "4",
+        "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-de-lizarrieta-depuis-etxalar-c1649.htm"
       }
     ]
@@ -829,7 +829,7 @@
         "totalAscent": 384,
         "minimumAltitude": 169,
         "maximumGradient": 12.0,
-        "difficulty": 189,
+        "difficulty": 238,
         "averageGradient": 4.92,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/col-de-sa-batalla-depuis-caimari-c2138.htm"
@@ -856,9 +856,9 @@
         "totalAscent": 679,
         "minimumAltitude": 956,
         "maximumGradient": 8.0,
-        "difficulty": 288,
+        "difficulty": 434,
         "averageGradient": 4.24,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-du-somport-depuis-villanuja-c251.htm"
       }
     ]
@@ -883,7 +883,7 @@
         "totalAscent": 812,
         "minimumAltitude": 257,
         "maximumGradient": 7.1,
-        "difficulty": 366,
+        "difficulty": 503,
         "averageGradient": 4.51,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-ibaneta-depuis-arneguy-c245.htm"
@@ -898,7 +898,7 @@
         "totalAscent": 227,
         "minimumAltitude": 871,
         "maximumGradient": 6.7,
-        "difficulty": 75,
+        "difficulty": 116,
         "averageGradient": 3.29,
         "category": "4",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-ibaneta-depuis-burguete-c244.htm"
@@ -925,7 +925,7 @@
         "totalAscent": 780,
         "minimumAltitude": 566,
         "maximumGradient": 8.0,
-        "difficulty": 386,
+        "difficulty": 463,
         "averageGradient": 4.94,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/coll-de-boixols-depuis-coll-de-nargo-c3092.htm"
@@ -952,7 +952,7 @@
         "totalAscent": 576,
         "minimumAltitude": 146,
         "maximumGradient": 6.5,
-        "difficulty": 328,
+        "difficulty": 382,
         "averageGradient": 5.7,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/coll-de-manrella-depuis-agullana-c900.htm"
@@ -979,9 +979,9 @@
         "totalAscent": 1235,
         "minimumAltitude": 803,
         "maximumGradient": 9.0,
-        "difficulty": 803,
+        "difficulty": 963,
         "averageGradient": 6.5,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/coll-de-pal-depuis-baga-c1676.htm"
       }
     ]
@@ -1006,9 +1006,9 @@
         "totalAscent": 325,
         "minimumAltitude": 171,
         "maximumGradient": 6.5,
-        "difficulty": 141,
+        "difficulty": 162,
         "averageGradient": 4.33,
-        "category": "4",
+        "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/coll-de-soller-depuis-bunyola-c1842.htm"
       },
       {
@@ -1021,7 +1021,7 @@
         "totalAscent": 472,
         "minimumAltitude": 26,
         "maximumGradient": 9.1,
-        "difficulty": 250,
+        "difficulty": 267,
         "averageGradient": 5.29,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/coll-de-soller-depuis-soller-c1841.htm"
@@ -1048,7 +1048,7 @@
         "totalAscent": 669,
         "minimumAltitude": 31,
         "maximumGradient": 11.7,
-        "difficulty": 477,
+        "difficulty": 513,
         "averageGradient": 7.12,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/coll-dels-reis-depuis-sa-calobra-c2137.htm"
@@ -1105,7 +1105,7 @@
         "totalAscent": 710,
         "minimumAltitude": 1104,
         "maximumGradient": 5.5,
-        "difficulty": 232,
+        "difficulty": 269,
         "averageGradient": 3.26,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/collada-de-toses-depuis-urtx-c1984.htm"
@@ -1255,7 +1255,7 @@
         "totalAscent": 235,
         "minimumAltitude": 1302,
         "maximumGradient": 7.0,
-        "difficulty": 123,
+        "difficulty": 147,
         "averageGradient": 5.22,
         "category": "4",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/formigal-depuis-sallent-de-gallego-c2952.htm"
@@ -1336,9 +1336,9 @@
         "totalAscent": 440,
         "minimumAltitude": 15,
         "maximumGradient": 8.8,
-        "difficulty": 213,
+        "difficulty": 385,
         "averageGradient": 4.84,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/jaizkibel-depuis-hondarribia-c1055.htm"
       },
       {
@@ -1351,9 +1351,9 @@
         "totalAscent": 446,
         "minimumAltitude": 13,
         "maximumGradient": 9.0,
-        "difficulty": 269,
+        "difficulty": 378,
         "averageGradient": 6.03,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/jaizkibel-depuis-pasaia-c1059.htm"
       },
       {
@@ -1366,9 +1366,9 @@
         "totalAscent": 446,
         "minimumAltitude": 13,
         "maximumGradient": 14.4,
-        "difficulty": 273,
+        "difficulty": 469,
         "averageGradient": 6.11,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/jaizkibel-depuis-pasaia-via-larrabide-errepidea-c3191.htm"
       }
     ]
@@ -1393,7 +1393,7 @@
         "totalAscent": 1146,
         "minimumAltitude": 968,
         "maximumGradient": 10.6,
-        "difficulty": 660,
+        "difficulty": 822,
         "averageGradient": 5.76,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/la-covatilla-depuis-bejar-c478.htm"
@@ -1420,7 +1420,7 @@
         "totalAscent": 1000,
         "minimumAltitude": 641,
         "maximumGradient": 7.5,
-        "difficulty": 476,
+        "difficulty": 548,
         "averageGradient": 4.76,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/la-guardia-d-ares-depuis-noves-de-segre-c3115.htm"
@@ -1447,9 +1447,9 @@
         "totalAscent": 1056,
         "minimumAltitude": 83,
         "maximumGradient": 12.5,
-        "difficulty": 786,
+        "difficulty": 996,
         "averageGradient": 7.44,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/lagos-de-covadonga-depuis-soto-de-cangas-c479.htm"
       }
     ]
@@ -1474,9 +1474,9 @@
         "totalAscent": 525,
         "minimumAltitude": 587,
         "maximumGradient": 12.0,
-        "difficulty": 246,
+        "difficulty": 564,
         "averageGradient": 4.69,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/monastere-de-san-victorian-depuis-arro-c2604.htm"
       }
     ]
@@ -1501,7 +1501,7 @@
         "totalAscent": 606,
         "minimumAltitude": 555,
         "maximumGradient": 8.0,
-        "difficulty": 319,
+        "difficulty": 393,
         "averageGradient": 5.27,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/montant-de-tost-depuis-c14-lv4001-c3093.htm"
@@ -1597,9 +1597,9 @@
         "totalAscent": 515,
         "minimumAltitude": 861,
         "maximumGradient": 8.0,
-        "difficulty": 279,
+        "difficulty": 308,
         "averageGradient": 5.42,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/paso-tapia-depuis-irati-c1827.htm"
       },
       {
@@ -1612,9 +1612,9 @@
         "totalAscent": 570,
         "minimumAltitude": 755,
         "maximumGradient": 8.0,
-        "difficulty": 221,
+        "difficulty": 379,
         "averageGradient": 3.88,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/paso-tapia-depuis-ochagavia-c1826.htm"
       }
     ]
@@ -1639,7 +1639,7 @@
         "totalAscent": 2700,
         "minimumAltitude": 700,
         "maximumGradient": 9.7,
-        "difficulty": 1696,
+        "difficulty": 2161,
         "averageGradient": 6.28,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/pico-de-veleta-depuis-granada-c477.htm"
@@ -1747,9 +1747,9 @@
         "totalAscent": 1100,
         "minimumAltitude": 629,
         "maximumGradient": 8.0,
-        "difficulty": 460,
+        "difficulty": 735,
         "averageGradient": 4.18,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/port-del-canto-depuis-adrall-c3089.htm"
       },
       {
@@ -1762,9 +1762,9 @@
         "totalAscent": 1045,
         "minimumAltitude": 684,
         "maximumGradient": 7.4,
-        "difficulty": 565,
+        "difficulty": 671,
         "averageGradient": 5.41,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/port-del-canto-depuis-sort-c3090.htm"
       }
     ]
@@ -1789,9 +1789,9 @@
         "totalAscent": 1153,
         "minimumAltitude": 545,
         "maximumGradient": 12.6,
-        "difficulty": 781,
+        "difficulty": 1094,
         "averageGradient": 6.78,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/puerto-de-ancares-depuis-murias-c2632.htm"
       }
     ]
@@ -1816,9 +1816,9 @@
         "totalAscent": 579,
         "minimumAltitude": 866,
         "maximumGradient": 9.0,
-        "difficulty": 243,
+        "difficulty": 375,
         "averageGradient": 4.2,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/puerto-de-cotefablo-depuis-biescas-c2415.htm"
       },
       {
@@ -1858,7 +1858,7 @@
         "totalAscent": 1127,
         "minimumAltitude": 954,
         "maximumGradient": 9.0,
-        "difficulty": 641,
+        "difficulty": 730,
         "averageGradient": 5.69,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/puerto-de-la-bonaigua-depuis-esterri-d-aneu-c543.htm"
@@ -1873,9 +1873,9 @@
         "totalAscent": 1102,
         "minimumAltitude": 988,
         "maximumGradient": 7.0,
-        "difficulty": 528,
+        "difficulty": 621,
         "averageGradient": 4.79,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/puerto-de-la-bonaigua-depuis-vielha-c542.htm"
       }
     ]
@@ -1900,9 +1900,9 @@
         "totalAscent": 926,
         "minimumAltitude": 855,
         "maximumGradient": 10.0,
-        "difficulty": 505,
+        "difficulty": 602,
         "averageGradient": 5.45,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-la-morcuera-depuis-guadalix-de-la-sierra-c1428.htm"
       },
       {
@@ -1930,7 +1930,7 @@
         "totalAscent": 658,
         "minimumAltitude": 1123,
         "maximumGradient": 7.9,
-        "difficulty": 309,
+        "difficulty": 402,
         "averageGradient": 4.7,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-la-morcuera-depuis-rascafria-c1427.htm"
@@ -1957,9 +1957,9 @@
         "totalAscent": 1536,
         "minimumAltitude": 533,
         "maximumGradient": 7.9,
-        "difficulty": 908,
+        "difficulty": 1002,
         "averageGradient": 5.91,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/puerto-de-la-ragua-depuis-cherin-c1417.htm"
       },
       {
@@ -1972,7 +1972,7 @@
         "totalAscent": 921,
         "minimumAltitude": 1196,
         "maximumGradient": 6.9,
-        "difficulty": 499,
+        "difficulty": 560,
         "averageGradient": 5.42,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/puerto-de-la-ragua-depuis-la-calahorra-c1418.htm"
@@ -1999,7 +1999,7 @@
         "totalAscent": 318,
         "minimumAltitude": 833,
         "maximumGradient": 8.6,
-        "difficulty": 195,
+        "difficulty": 222,
         "averageGradient": 6.12,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-de-matamachos-depuis-anso-c1823.htm"
@@ -2014,9 +2014,9 @@
         "totalAscent": 466,
         "minimumAltitude": 683,
         "maximumGradient": 8.4,
-        "difficulty": 184,
+        "difficulty": 327,
         "averageGradient": 3.95,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-de-matamachos-depuis-roncal-c1822.htm"
       }
     ]
@@ -2041,7 +2041,7 @@
         "totalAscent": 759,
         "minimumAltitude": 821,
         "maximumGradient": 5.8,
-        "difficulty": 359,
+        "difficulty": 397,
         "averageGradient": 4.74,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-mijares-depuis-burgohondo-c1422.htm"
@@ -2056,9 +2056,9 @@
         "totalAscent": 1109,
         "minimumAltitude": 676,
         "maximumGradient": 8.0,
-        "difficulty": 559,
+        "difficulty": 628,
         "averageGradient": 5.04,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-mijares-depuis-gavilanes-c1423.htm"
       },
       {
@@ -2125,9 +2125,9 @@
         "totalAscent": 953,
         "minimumAltitude": 879,
         "maximumGradient": 8.8,
-        "difficulty": 494,
+        "difficulty": 649,
         "averageGradient": 5.18,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-navacerrada-depuis-collado-villalba-c1426.htm"
       },
       {
@@ -2140,7 +2140,7 @@
         "totalAscent": 651,
         "minimumAltitude": 1166,
         "maximumGradient": 7.6,
-        "difficulty": 354,
+        "difficulty": 465,
         "averageGradient": 5.43,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-navacerrada-depuis-la-granja-c1424.htm"
@@ -2155,7 +2155,7 @@
         "totalAscent": 757,
         "minimumAltitude": 1063,
         "maximumGradient": 8.5,
-        "difficulty": 440,
+        "difficulty": 597,
         "averageGradient": 5.82,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-navacerrada-depuis-los-molinos-c1425.htm"
@@ -2182,9 +2182,9 @@
         "totalAscent": 503,
         "minimumAltitude": 70,
         "maximumGradient": 6.9,
-        "difficulty": 253,
+        "difficulty": 369,
         "averageGradient": 5.03,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-de-otxondo-depuis-dancharia-c1987.htm"
       },
       {
@@ -2224,7 +2224,7 @@
         "totalAscent": 691,
         "minimumAltitude": 595,
         "maximumGradient": 9.0,
-        "difficulty": 357,
+        "difficulty": 417,
         "averageGradient": 5.16,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/puerto-de-serrablo-depuis-boltana-c2603.htm"
@@ -2278,9 +2278,9 @@
         "totalAscent": 331,
         "minimumAltitude": 623,
         "maximumGradient": 6.0,
-        "difficulty": 137,
+        "difficulty": 170,
         "averageGradient": 4.14,
-        "category": "4",
+        "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-las-coronas-depuis-burgui-c2667.htm"
       },
       {
@@ -2293,7 +2293,7 @@
         "totalAscent": 341,
         "minimumAltitude": 609,
         "maximumGradient": 7.0,
-        "difficulty": 162,
+        "difficulty": 184,
         "averageGradient": 4.74,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-las-coronas-depuis-navascues-c2666.htm"
@@ -2335,7 +2335,7 @@
         "totalAscent": 851,
         "minimumAltitude": 10,
         "maximumGradient": 8.0,
-        "difficulty": 506,
+        "difficulty": 543,
         "averageGradient": 5.95,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/puig-major-depuis-soller-c493.htm"
@@ -2362,7 +2362,7 @@
         "totalAscent": 996,
         "minimumAltitude": 966,
         "maximumGradient": 11.0,
-        "difficulty": 604,
+        "difficulty": 682,
         "averageGradient": 6.07,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/refuge-de-cap-de-rec-depuis-martinet-c2628.htm"
@@ -2389,7 +2389,7 @@
         "totalAscent": 620,
         "minimumAltitude": 897,
         "maximumGradient": 9.0,
-        "difficulty": 312,
+        "difficulty": 422,
         "averageGradient": 5.04,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/refuge-de-lizara-depuis-jasa-c2955.htm"
@@ -2416,7 +2416,7 @@
         "totalAscent": 2250,
         "minimumAltitude": 147,
         "maximumGradient": 11.0,
-        "difficulty": 1268,
+        "difficulty": 1835,
         "averageGradient": 5.63,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/canaries/espagne/roque-de-los-muchachos-depuis-costa-de-miranda-c486.htm"
@@ -2431,7 +2431,7 @@
         "totalAscent": 2015,
         "minimumAltitude": 317,
         "maximumGradient": 18.7,
-        "difficulty": 1262,
+        "difficulty": 2201,
         "averageGradient": 6.26,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/canaries/espagne/roque-de-los-muchachos-depuis-el-tablado-c485.htm"
@@ -2446,7 +2446,7 @@
         "totalAscent": 2100,
         "minimumAltitude": 368,
         "maximumGradient": 10.3,
-        "difficulty": 1634,
+        "difficulty": 1775,
         "averageGradient": 7.78,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/canaries/espagne/roque-de-los-muchachos-depuis-santo-domingo-de-garafia-c484.htm"
@@ -2500,9 +2500,9 @@
         "totalAscent": 420,
         "minimumAltitude": 596,
         "maximumGradient": 10.0,
-        "difficulty": 229,
+        "difficulty": 333,
         "averageGradient": 5.45,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/sant-joan-de-toran-depuis-pontaut-c2387.htm"
       }
     ]
@@ -2527,7 +2527,7 @@
         "totalAscent": 512,
         "minimumAltitude": 9,
         "maximumGradient": 15.0,
-        "difficulty": 313,
+        "difficulty": 474,
         "averageGradient": 6.1,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/sant-pere-de-rodes-depuis-selva-de-mar-c2897.htm"
@@ -2542,9 +2542,9 @@
         "totalAscent": 484,
         "minimumAltitude": 26,
         "maximumGradient": 8.0,
-        "difficulty": 266,
+        "difficulty": 334,
         "averageGradient": 5.5,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/sant-pere-de-rodes-depuis-vilajuiga-c2896.htm"
       }
     ]
@@ -2569,9 +2569,9 @@
         "totalAscent": 685,
         "minimumAltitude": 880,
         "maximumGradient": 14.0,
-        "difficulty": 423,
+        "difficulty": 613,
         "averageGradient": 6.17,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/saut-deth-pish-depuis-pont-d-arros-c2637.htm"
       }
     ]
@@ -2596,9 +2596,9 @@
         "totalAscent": 1237,
         "minimumAltitude": 639,
         "maximumGradient": 12.1,
-        "difficulty": 637,
+        "difficulty": 1051,
         "averageGradient": 5.15,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/sierra-de-la-pandera-depuis-los-villares-c1419.htm"
       },
       {
@@ -2611,9 +2611,9 @@
         "totalAscent": 931,
         "minimumAltitude": 901,
         "maximumGradient": 12.1,
-        "difficulty": 578,
+        "difficulty": 912,
         "averageGradient": 6.21,
-        "category": "2",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/sierra-de-la-pandera-depuis-valdepenas-de-jaen-c1420.htm"
       }
     ]
@@ -2692,7 +2692,7 @@
         "totalAscent": 945,
         "minimumAltitude": 1101,
         "maximumGradient": 9.0,
-        "difficulty": 490,
+        "difficulty": 574,
         "averageGradient": 5.19,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/station-de-boi-taull-depuis-baruera-c3091.htm"
@@ -2746,7 +2746,7 @@
         "totalAscent": 762,
         "minimumAltitude": 1142,
         "maximumGradient": 12.0,
-        "difficulty": 474,
+        "difficulty": 545,
         "averageGradient": 6.22,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/station-de-guils-fontanera-depuis-puigcerda-c2626.htm"
@@ -2773,7 +2773,7 @@
         "totalAscent": 920,
         "minimumAltitude": 798,
         "maximumGradient": 7.5,
-        "difficulty": 408,
+        "difficulty": 534,
         "averageGradient": 4.44,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/station-de-san-joan-de-l-erm-depuis-castelbo-c3116.htm"
@@ -2854,7 +2854,7 @@
         "totalAscent": 1190,
         "minimumAltitude": 948,
         "maximumGradient": 9.4,
-        "difficulty": 615,
+        "difficulty": 819,
         "averageGradient": 5.17,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/vallter-2000-depuis-camprodon-c1981.htm"
@@ -2881,7 +2881,7 @@
         "totalAscent": 437,
         "minimumAltitude": 653,
         "maximumGradient": 22.0,
-        "difficulty": 478,
+        "difficulty": 573,
         "averageGradient": 10.93,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/xorret-de-cati-depuis-castalla-c1411.htm"
@@ -2896,9 +2896,9 @@
         "totalAscent": 627,
         "minimumAltitude": 445,
         "maximumGradient": 18.0,
-        "difficulty": 293,
+        "difficulty": 583,
         "averageGradient": 4.68,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/xorret-de-cati-depuis-petrer-c1412.htm"
       }
     ]

@@ -24,17 +24,18 @@ type FamousClimb struct {
 }
 
 type Alternative struct {
-	Name             string
-	GeoCoordinate    business.GeoCoordinate
-	RouteCheckpoints []business.GeoCoordinate
-	Length           float64
-	TotalAscent      int
-	MinimumAltitude  int
-	MaximumGradient  float64
-	Difficulty       int
-	Category         string
-	AverageGradient  float64
-	SourceURL        string
+	Name                  string
+	GeoCoordinate         business.GeoCoordinate
+	RouteCheckpoints      []business.GeoCoordinate
+	SummitToleranceMeters int
+	Length                float64
+	TotalAscent           int
+	MinimumAltitude       int
+	MaximumGradient       float64
+	Difficulty            int
+	Category              string
+	AverageGradient       float64
+	SourceURL             string
 }
 
 func NewFamousClimb(name string, topOfTheAscent int, geoCoordinate business.GeoCoordinate, alternatives []Alternative) FamousClimb {
@@ -47,22 +48,23 @@ func NewFamousClimb(name string, topOfTheAscent int, geoCoordinate business.GeoC
 }
 
 type FamousClimbBadge struct {
-	Label            string
-	Name             string
-	Country          string
-	Massif           string
-	SourceURL        string
-	TopOfTheAscent   int
-	Start            business.GeoCoordinate
-	End              business.GeoCoordinate
-	RouteCheckpoints []business.GeoCoordinate
-	Length           float64
-	TotalAscent      int
-	MinimumAltitude  int
-	MaximumGradient  float64
-	AverageGradient  float64
-	Difficulty       int
-	Category         string
+	Label                 string
+	Name                  string
+	Country               string
+	Massif                string
+	SourceURL             string
+	TopOfTheAscent        int
+	Start                 business.GeoCoordinate
+	End                   business.GeoCoordinate
+	RouteCheckpoints      []business.GeoCoordinate
+	SummitToleranceMeters int
+	Length                float64
+	TotalAscent           int
+	MinimumAltitude       int
+	MaximumGradient       float64
+	AverageGradient       float64
+	Difficulty            int
+	Category              string
 }
 
 func (f FamousClimbBadge) Check(activities []*strava.Activity) ([]*strava.Activity, bool) {
@@ -102,6 +104,7 @@ func (f FamousClimbBadge) matchQuality(activity *strava.Activity) (float64, bool
 	bestFallbackQuality := math.MaxFloat64
 	bestQuality := math.MaxFloat64
 	referenceLengthMeters := f.Length * 1000
+	summitToleranceMeters := f.summitToleranceMeters()
 	lengthToleranceMeters := math.Max(famousClimbLengthToleranceMinM, referenceLengthMeters*famousClimbLengthToleranceRatio)
 	distances := activity.Stream.Distance.Data
 
@@ -112,7 +115,8 @@ func (f FamousClimbBadge) matchQuality(activity *strava.Activity) (float64, bool
 		if f.Start.HaversineInM(coords[0], coords[1]) < famousClimbWaypointToleranceInM {
 			startIndices = append(startIndices, index)
 		}
-		if f.End.HaversineInM(coords[0], coords[1]) >= famousClimbWaypointToleranceInM {
+		endDistanceMeters := f.End.HaversineInM(coords[0], coords[1])
+		if endDistanceMeters >= summitToleranceMeters {
 			continue
 		}
 
@@ -125,8 +129,9 @@ func (f FamousClimbBadge) matchQuality(activity *strava.Activity) (float64, bool
 			}
 			fallbackMatch = true
 			startCoords := latLngData[startIndex]
-			proximityQuality := float64(f.Start.HaversineInM(startCoords[0], startCoords[1])+
-				f.End.HaversineInM(coords[0], coords[1])) / float64(2*famousClimbWaypointToleranceInM)
+			startProximity := float64(f.Start.HaversineInM(startCoords[0], startCoords[1])) / famousClimbWaypointToleranceInM
+			endProximity := float64(endDistanceMeters) / float64(summitToleranceMeters)
+			proximityQuality := (startProximity + endProximity) / 2
 			bestFallbackQuality = math.Min(bestFallbackQuality, proximityQuality)
 			if referenceLengthMeters <= 0 || startIndex >= len(distances) || index >= len(distances) {
 				continue
@@ -151,6 +156,13 @@ func (f FamousClimbBadge) matchQuality(activity *strava.Activity) (float64, bool
 		return bestFallbackQuality, true
 	}
 	return 0, false
+}
+
+func (f FamousClimbBadge) summitToleranceMeters() int {
+	if f.SummitToleranceMeters > 0 {
+		return f.SummitToleranceMeters
+	}
+	return famousClimbWaypointToleranceInM
 }
 
 func (f FamousClimbBadge) routeCheckpointMatchIndices(latLngData [][]float64) ([][]int, bool) {

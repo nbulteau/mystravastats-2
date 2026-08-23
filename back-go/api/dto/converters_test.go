@@ -613,7 +613,9 @@ func TestToBadgeCheckResultDto_ExposesClimbPosterDetails(t *testing.T) {
 				{45.1500, 6.1500},
 				{45.2000, 6.2000},
 			}},
-			Altitude: &strava.AltitudeStream{Data: []float64{90, 100, 120, 135}},
+			Altitude:  &strava.AltitudeStream{Data: []float64{90, 100, 120, 135}},
+			Watts:     &strava.PowerStream{Data: []float64{0, 200, 220, 240}},
+			HeartRate: &strava.HeartRateStream{Data: []int{0, 140, 150, 160}},
 		},
 	}
 	slowerActivity := *activity
@@ -645,6 +647,16 @@ func TestToBadgeCheckResultDto_ExposesClimbPosterDetails(t *testing.T) {
 	}
 	if details.AscentCount != 2 || details.BestAscent == nil || details.BestAscent.DurationSeconds != 1100 || details.BestAscent.ActivityID != 42 || details.BestAscent.Date != "2026-07-14T08:00:00Z" {
 		t.Fatalf("unexpected climb ascent summary: count=%d best=%#v", details.AscentCount, details.BestAscent)
+	}
+	if len(details.Ascents) != 2 || details.Ascents[0].ActivityID != 42 || details.Ascents[1].ActivityID != 43 {
+		t.Fatalf("expected every climb ascent ordered newest first, got %#v", details.Ascents)
+	}
+	best := details.Ascents[0]
+	if best.ActivityName != activity.Name || best.VAMMetersPerHour == nil || *best.VAMMetersPerHour != 3207 || best.AverageSpeedKph == nil || *best.AverageSpeedKph != 40.6 {
+		t.Fatalf("unexpected computed climb performance: %#v", best)
+	}
+	if best.AveragePowerWatts == nil || *best.AveragePowerWatts != 220 || best.AverageHeartRateBpm == nil || *best.AverageHeartRateBpm != 150 {
+		t.Fatalf("unexpected climb sensor averages: %#v", best)
 	}
 	if len(details.Profile) != 3 || details.Profile[0].DistanceKm != 0 || details.Profile[2].DistanceKm != 12.4 {
 		t.Fatalf("unexpected climb profile: %#v", details.Profile)

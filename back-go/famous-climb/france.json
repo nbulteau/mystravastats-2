@@ -19,7 +19,7 @@
         "totalAscent": 1118,
         "minimumAltitude": 732,
         "maximumGradient": 15,
-        "difficulty": 994,
+        "difficulty": 979,
         "averageGradient": 8,
         "category": "HC",
         "sourceUrl": "https://climbfinder.com/en/climbs/alpe-d-huez"
@@ -34,9 +34,9 @@
         "totalAscent": 1104,
         "minimumAltitude": 710,
         "maximumGradient": 8.8,
-        "difficulty": 538,
+        "difficulty": 871,
         "averageGradient": 4.88,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/arves-et-grandes-rousses/france/station-de-l-alpe-d-huez-depuis-rochetaille-c4.htm"
       }
     ]
@@ -59,9 +59,9 @@
         },
         "length": 12.6,
         "totalAscent": 1001,
-        "difficulty": 959,
+        "difficulty": 931,
         "averageGradient": 7.7,
-        "category": "1"
+        "category": "HC"
       }
     ]
   },
@@ -83,7 +83,7 @@
         },
         "length": 25.4,
         "totalAscent": 1663,
-        "difficulty": 1260,
+        "difficulty": 1150,
         "averageGradient": 6.5,
         "category": "HC"
       },
@@ -95,7 +95,7 @@
         },
         "length": 23.3,
         "totalAscent": 1590,
-        "difficulty": 1281,
+        "difficulty": 1185,
         "averageGradient": 6.8,
         "category": "HC"
       }
@@ -119,7 +119,7 @@
         },
         "length": 20.7,
         "totalAscent": 1364,
-        "difficulty": 1030,
+        "difficulty": 1034,
         "averageGradient": 6.6,
         "category": "HC"
       },
@@ -157,7 +157,7 @@
         },
         "length": 17.5,
         "totalAscent": 1250,
-        "difficulty": 930,
+        "difficulty": 790,
         "averageGradient": 7.1,
         "category": "1"
       },
@@ -171,7 +171,7 @@
         "totalAscent": 1007,
         "minimumAltitude": 1250,
         "maximumGradient": 8,
-        "difficulty": 452,
+        "difficulty": 559,
         "averageGradient": 4.48,
         "category": "2"
       }
@@ -195,7 +195,7 @@
         },
         "length": 14.1,
         "totalAscent": 1000,
-        "difficulty": 810,
+        "difficulty": 887,
         "averageGradient": 7,
         "category": "1"
       },
@@ -207,7 +207,7 @@
         },
         "length": 19.1,
         "totalAscent": 1174,
-        "difficulty": 866,
+        "difficulty": 854,
         "averageGradient": 6,
         "category": "1"
       }
@@ -231,9 +231,9 @@
         },
         "length": 10.5,
         "totalAscent": 706,
-        "difficulty": 590,
+        "difficulty": 683,
         "averageGradient": 7.1,
-        "category": "2"
+        "category": "1"
       },
       {
         "name": "Samoëns",
@@ -245,7 +245,7 @@
         "totalAscent": 988,
         "minimumAltitude": 707,
         "maximumGradient": 11.6,
-        "difficulty": 849,
+        "difficulty": 889,
         "averageGradient": 8.59,
         "category": "1"
       }
@@ -269,7 +269,7 @@
         },
         "length": 10.3,
         "totalAscent": 620,
-        "difficulty": 430,
+        "difficulty": 440,
         "averageGradient": 6,
         "category": "2"
       },
@@ -283,7 +283,7 @@
         "totalAscent": 717,
         "minimumAltitude": 260,
         "maximumGradient": 7.2,
-        "difficulty": 330,
+        "difficulty": 538,
         "averageGradient": 4.6,
         "category": "2"
       }
@@ -307,7 +307,7 @@
         },
         "length": 32.2,
         "totalAscent": 1461,
-        "difficulty": 1151,
+        "difficulty": 1054,
         "averageGradient": 4.2,
         "category": "HC"
       },
@@ -321,9 +321,9 @@
         "totalAscent": 1955,
         "minimumAltitude": 839,
         "maximumGradient": 6.9,
-        "difficulty": 795,
+        "difficulty": 1232,
         "averageGradient": 4.07,
-        "category": "1"
+        "category": "HC"
       }
     ]
   },
@@ -385,7 +385,7 @@
         "totalAscent": 1291,
         "minimumAltitude": 1035,
         "maximumGradient": 10.7,
-        "difficulty": 955,
+        "difficulty": 894,
         "averageGradient": 6.3,
         "category": "1"
       },
@@ -399,7 +399,7 @@
         "totalAscent": 1190,
         "minimumAltitude": 1136,
         "maximumGradient": 8.2,
-        "difficulty": 674,
+        "difficulty": 634,
         "averageGradient": 4.1,
         "category": "1"
       }
@@ -437,7 +437,7 @@
         "totalAscent": 690,
         "minimumAltitude": 932,
         "maximumGradient": 9,
-        "difficulty": 407,
+        "difficulty": 452,
         "averageGradient": 5.9,
         "category": "2"
       }
@@ -461,9 +461,9 @@
         },
         "length": 15.7,
         "totalAscent": 1151,
-        "difficulty": 880,
+        "difficulty": 926,
         "averageGradient": 7.3,
-        "category": "1"
+        "category": "HC"
       },
       {
         "name": "Pont du Cians",
@@ -499,7 +499,7 @@
         },
         "length": 28.1,
         "totalAscent": 1545,
-        "difficulty": 1209,
+        "difficulty": 1161,
         "averageGradient": 6.3,
         "category": "HC"
       },
@@ -513,9 +513,9 @@
         "totalAscent": 1292,
         "minimumAltitude": 787,
         "maximumGradient": 11.8,
-        "difficulty": 605,
+        "difficulty": 1092,
         "averageGradient": 4.68,
-        "category": "1"
+        "category": "HC"
       },
       {
         "name": "Saint-Étienne-de-Cuines",
@@ -551,9 +551,9 @@
         },
         "length": 21.7,
         "totalAscent": 1405,
-        "difficulty": 913,
+        "difficulty": 1122,
         "averageGradient": 6.5,
-        "category": "1"
+        "category": "HC"
       },
       {
         "name": "Pratolungo",
@@ -565,9 +565,9 @@
         "totalAscent": 1447,
         "minimumAltitude": 912,
         "maximumGradient": 9.1,
-        "difficulty": 982,
+        "difficulty": 1115,
         "averageGradient": 6.79,
-        "category": "1"
+        "category": "HC"
       }
     ]
   },
@@ -589,7 +589,7 @@
         },
         "length": 8.8,
         "totalAscent": 594,
-        "difficulty": 515,
+        "difficulty": 497,
         "averageGradient": 6.3,
         "category": "2"
       },
@@ -603,7 +603,7 @@
         "totalAscent": 1715,
         "minimumAltitude": 561,
         "maximumGradient": 20,
-        "difficulty": 1310,
+        "difficulty": 1432,
         "averageGradient": 7.64,
         "category": "HC"
       }
@@ -633,7 +633,7 @@
         ],
         "length": 19.6,
         "totalAscent": 1520,
-        "difficulty": 1305,
+        "difficulty": 1235,
         "averageGradient": 8,
         "category": "HC"
       },
@@ -645,7 +645,7 @@
         },
         "length": 25.9,
         "totalAscent": 1588,
-        "difficulty": 1215,
+        "difficulty": 1235,
         "averageGradient": 6.1,
         "category": "HC"
       },
@@ -665,7 +665,7 @@
         "totalAscent": 1520,
         "minimumAltitude": 469,
         "maximumGradient": 12.5,
-        "difficulty": 1168,
+        "difficulty": 1321,
         "averageGradient": 7.68,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/vanoise/france/col-de-la-madeleine-depuis-la-chambre-via-montgellafrey-c3112.htm"
@@ -690,7 +690,7 @@
         },
         "length": 25.4,
         "totalAscent": 1663,
-        "difficulty": 1260,
+        "difficulty": 1066,
         "averageGradient": 7,
         "category": "HC"
       },
@@ -728,7 +728,7 @@
         },
         "length": 13.9,
         "totalAscent": 930,
-        "difficulty": 700,
+        "difficulty": 770,
         "averageGradient": 6.7,
         "category": "1"
       },
@@ -742,9 +742,9 @@
         "totalAscent": 970,
         "minimumAltitude": 646,
         "maximumGradient": 10.6,
-        "difficulty": 588,
+        "difficulty": 824,
         "averageGradient": 6.06,
-        "category": "2"
+        "category": "1"
       }
     ]
   },
@@ -766,9 +766,9 @@
         },
         "length": 9.5,
         "totalAscent": 520,
-        "difficulty": 390,
+        "difficulty": 295,
         "averageGradient": 5.5,
-        "category": "2"
+        "category": "3"
       },
       {
         "name": "La Bâtie Neuve",
@@ -780,7 +780,7 @@
         "totalAscent": 416,
         "minimumAltitude": 855,
         "maximumGradient": 7.8,
-        "difficulty": 203,
+        "difficulty": 277,
         "averageGradient": 4.89,
         "category": "3"
       }
@@ -804,7 +804,7 @@
         },
         "length": 17,
         "totalAscent": 1000,
-        "difficulty": 650,
+        "difficulty": 707,
         "averageGradient": 5.9,
         "category": "1"
       },
@@ -818,9 +818,9 @@
         "totalAscent": 1116,
         "minimumAltitude": 217,
         "maximumGradient": 10.1,
-        "difficulty": 705,
+        "difficulty": 951,
         "averageGradient": 6.31,
-        "category": "1"
+        "category": "HC"
       },
       {
         "name": "La Diat",
@@ -856,7 +856,7 @@
         },
         "length": 8.8,
         "totalAscent": 830,
-        "difficulty": 820,
+        "difficulty": 786,
         "averageGradient": 9.4,
         "category": "1"
       },
@@ -870,9 +870,9 @@
         "totalAscent": 337,
         "minimumAltitude": 974,
         "maximumGradient": 8.6,
-        "difficulty": 172,
+        "difficulty": 319,
         "averageGradient": 5.11,
-        "category": "3"
+        "category": "2"
       }
     ]
   },
@@ -896,9 +896,9 @@
         "totalAscent": 907,
         "minimumAltitude": 1092,
         "maximumGradient": 10.7,
-        "difficulty": 1000,
+        "difficulty": 855,
         "averageGradient": 7.1,
-        "category": "HC"
+        "category": "1"
       },
       {
         "name": "Bourg-d'Oisans",
@@ -934,7 +934,7 @@
         },
         "length": 18.9,
         "totalAscent": 1108,
-        "difficulty": 899,
+        "difficulty": 855,
         "averageGradient": 5.7,
         "category": "1"
       },
@@ -948,9 +948,9 @@
         "totalAscent": 798,
         "minimumAltitude": 1309,
         "maximumGradient": 10.6,
-        "difficulty": 452,
+        "difficulty": 642,
         "averageGradient": 5.66,
-        "category": "2"
+        "category": "1"
       }
     ]
   },
@@ -972,7 +972,7 @@
         },
         "length": 11.5,
         "totalAscent": 620,
-        "difficulty": 450,
+        "difficulty": 413,
         "averageGradient": 5.4,
         "category": "2"
       },
@@ -986,7 +986,7 @@
         "totalAscent": 866,
         "minimumAltitude": 633,
         "maximumGradient": 8.6,
-        "difficulty": 396,
+        "difficulty": 468,
         "averageGradient": 4.58,
         "category": "2"
       }
@@ -1010,7 +1010,7 @@
         },
         "length": 16.3,
         "totalAscent": 1057,
-        "difficulty": 837,
+        "difficulty": 841,
         "averageGradient": 6.4,
         "category": "1"
       },
@@ -1024,9 +1024,9 @@
         "totalAscent": 842,
         "minimumAltitude": 1276,
         "maximumGradient": 9.3,
-        "difficulty": 591,
+        "difficulty": 645,
         "averageGradient": 7.02,
-        "category": "2"
+        "category": "1"
       }
     ]
   },
@@ -1041,16 +1041,32 @@
     },
     "alternatives": [
       {
-        "name": "Flumet",
+        "name": "Flumet via Le Planay",
         "geoCoordinate": {
-          "latitude": 45.8219,
-          "longitude": 6.5147
+          "latitude": 45.81808,
+          "longitude": 6.51646
         },
-        "length": 13.7,
-        "totalAscent": 700,
-        "difficulty": 480,
-        "averageGradient": 5.1,
-        "category": "2"
+        "length": 14.8,
+        "totalAscent": 747,
+        "minimumAltitude": 908,
+        "maximumGradient": 10.8,
+        "difficulty": 571,
+        "averageGradient": 5.05,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/beaufortain/france/col-des-saisies-depuis-flumet-c55.htm"
+      },
+      {
+        "name": "Flumet (D1212 / D218B), via Crest-Voland",
+        "geoCoordinate": {
+          "latitude": 45.82128,
+          "longitude": 6.53094
+        },
+        "length": 13.106,
+        "totalAscent": 782,
+        "difficulty": 602,
+        "averageGradient": 6,
+        "category": "1",
+        "sourceUrl": "https://climbfinder.com/en/climbs/col-des-saisies-flumet-route-notre-dame"
       },
       {
         "name": "Beaufort",
@@ -1062,9 +1078,9 @@
         "totalAscent": 916,
         "minimumAltitude": 744,
         "maximumGradient": 10,
-        "difficulty": 525,
+        "difficulty": 640,
         "averageGradient": 5.73,
-        "category": "2"
+        "category": "1"
       },
       {
         "name": "L'Arly",
@@ -1076,9 +1092,9 @@
         "totalAscent": 919,
         "minimumAltitude": 781,
         "maximumGradient": 10,
-        "difficulty": 599,
+        "difficulty": 758,
         "averageGradient": 6.52,
-        "category": "2"
+        "category": "1"
       }
     ]
   },
@@ -1100,7 +1116,7 @@
         },
         "length": 14.7,
         "totalAscent": 1118,
-        "difficulty": 930,
+        "difficulty": 821,
         "averageGradient": 7.6,
         "category": "1"
       },
@@ -1114,7 +1130,7 @@
         "totalAscent": 1062,
         "minimumAltitude": 475,
         "maximumGradient": 12,
-        "difficulty": 784,
+        "difficulty": 816,
         "averageGradient": 7.38,
         "category": "1"
       }
@@ -1138,9 +1154,9 @@
         },
         "length": 5.9,
         "totalAscent": 638,
-        "difficulty": 760,
+        "difficulty": 310,
         "averageGradient": 10.8,
-        "category": "1"
+        "category": "2"
       },
       {
         "name": "Seytroux",
@@ -1152,7 +1168,7 @@
         "totalAscent": 517,
         "minimumAltitude": 743,
         "maximumGradient": 11.1,
-        "difficulty": 446,
+        "difficulty": 453,
         "averageGradient": 8.62,
         "category": "2"
       }
@@ -1176,7 +1192,7 @@
         },
         "length": 34.8,
         "totalAscent": 2069,
-        "difficulty": 1612,
+        "difficulty": 1556,
         "averageGradient": 5.5,
         "category": "HC"
       },
@@ -1226,7 +1242,7 @@
         },
         "length": 20.9,
         "totalAscent": 1471,
-        "difficulty": 1199,
+        "difficulty": 1175,
         "averageGradient": 7,
         "category": "HC"
       },
@@ -1236,13 +1252,14 @@
           "latitude": 45.12809,
           "longitude": 6.0456
         },
+        "summitToleranceMeters": 100,
         "length": 25.2,
         "totalAscent": 1152,
         "minimumAltitude": 787,
         "maximumGradient": 11.8,
-        "difficulty": 526,
+        "difficulty": 1065,
         "averageGradient": 4.57,
-        "category": "2"
+        "category": "HC"
       }
     ]
   },
@@ -1264,7 +1281,7 @@
         },
         "length": 11.4,
         "totalAscent": 1059,
-        "difficulty": 1058,
+        "difficulty": 996,
         "averageGradient": 8.7,
         "category": "HC"
       }
@@ -1302,9 +1319,9 @@
         "totalAscent": 1312,
         "minimumAltitude": 756,
         "maximumGradient": 8.1,
-        "difficulty": 505,
+        "difficulty": 805,
         "averageGradient": 3.85,
-        "category": "2"
+        "category": "1"
       }
     ]
   },
@@ -1326,7 +1343,7 @@
         },
         "length": 19.3,
         "totalAscent": 1160,
-        "difficulty": 760,
+        "difficulty": 761,
         "averageGradient": 6,
         "category": "1"
       },
@@ -1340,9 +1357,9 @@
         "totalAscent": 413,
         "minimumAltitude": 1239,
         "maximumGradient": 11,
-        "difficulty": 284,
+        "difficulty": 321,
         "averageGradient": 6.88,
-        "category": "3"
+        "category": "2"
       },
       {
         "name": "Villargondran",
@@ -1354,7 +1371,7 @@
         "totalAscent": 1038,
         "minimumAltitude": 587,
         "maximumGradient": 8.8,
-        "difficulty": 635,
+        "difficulty": 698,
         "averageGradient": 6.11,
         "category": "1"
       }
@@ -1380,7 +1397,7 @@
         "totalAscent": 682,
         "minimumAltitude": 1398,
         "maximumGradient": 10.6,
-        "difficulty": 475,
+        "difficulty": 537,
         "averageGradient": 6.96,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/massif-du-mont-cenis/france/col-du-mont-cenis-depuis-lanslebourg-c87.htm"
@@ -1395,9 +1412,9 @@
         "totalAscent": 1581,
         "minimumAltitude": 504,
         "maximumGradient": 11,
-        "difficulty": 818,
+        "difficulty": 1196,
         "averageGradient": 5.18,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/massif-du-mont-cenis/italie/col-du-mont-cenis-depuis-susa-c88.htm"
       }
     ]
@@ -1420,9 +1437,9 @@
         },
         "length": 7.5,
         "totalAscent": 500,
-        "difficulty": 420,
+        "difficulty": 278,
         "averageGradient": 6.7,
-        "category": "2"
+        "category": "3"
       },
       {
         "name": "Le Noyer",
@@ -1434,7 +1451,7 @@
         "totalAscent": 616,
         "minimumAltitude": 1052,
         "maximumGradient": 14.5,
-        "difficulty": 506,
+        "difficulty": 508,
         "averageGradient": 8.21,
         "category": "2"
       }
@@ -1458,7 +1475,7 @@
         },
         "length": 29.9,
         "totalAscent": 1379,
-        "difficulty": 720,
+        "difficulty": 651,
         "averageGradient": 4.5,
         "category": "1"
       },
@@ -1472,9 +1489,9 @@
         "totalAscent": 1184,
         "minimumAltitude": 1007,
         "maximumGradient": 7.1,
-        "difficulty": 597,
+        "difficulty": 683,
         "averageGradient": 5.04,
-        "category": "2"
+        "category": "1"
       }
     ]
   },
@@ -1496,7 +1513,7 @@
         },
         "length": 12.2,
         "totalAscent": 935,
-        "difficulty": 920,
+        "difficulty": 838,
         "averageGradient": 7.7,
         "category": "1"
       },
@@ -1510,9 +1527,9 @@
         "totalAscent": 168,
         "minimumAltitude": 1570,
         "maximumGradient": 10.5,
-        "difficulty": 88,
+        "difficulty": 157,
         "averageGradient": 5.25,
-        "category": "4"
+        "category": "3"
       }
     ]
   },
@@ -1534,7 +1551,7 @@
         },
         "length": 14.4,
         "totalAscent": 1279,
-        "difficulty": 1191,
+        "difficulty": 1185,
         "averageGradient": 8.5,
         "category": "HC"
       }
@@ -1560,7 +1577,7 @@
         "totalAscent": 954,
         "minimumAltitude": 752,
         "maximumGradient": 10.2,
-        "difficulty": 1050,
+        "difficulty": 986,
         "averageGradient": 8.4,
         "category": "HC"
       },
@@ -1574,7 +1591,7 @@
         "totalAscent": 950,
         "minimumAltitude": 726,
         "maximumGradient": 10,
-        "difficulty": 630,
+        "difficulty": 842,
         "averageGradient": 6.64,
         "category": "1"
       }
@@ -1598,7 +1615,7 @@
         },
         "length": 11.8,
         "totalAscent": 837,
-        "difficulty": 628,
+        "difficulty": 618,
         "averageGradient": 7.1,
         "category": "1"
       },
@@ -1612,7 +1629,7 @@
         "totalAscent": 156,
         "minimumAltitude": 1411,
         "maximumGradient": 6,
-        "difficulty": 52,
+        "difficulty": 74,
         "averageGradient": 3.32,
         "category": "4"
       }
@@ -1712,7 +1729,7 @@
         },
         "length": 21.7,
         "totalAscent": 1300,
-        "difficulty": 980,
+        "difficulty": 891,
         "averageGradient": 5.7,
         "category": "1"
       },
@@ -1726,7 +1743,7 @@
         "totalAscent": 1154,
         "minimumAltitude": 817,
         "maximumGradient": 8.9,
-        "difficulty": 690,
+        "difficulty": 803,
         "averageGradient": 5.98,
         "category": "1"
       }
@@ -1776,7 +1793,7 @@
         },
         "length": 15.5,
         "totalAscent": 1396,
-        "difficulty": 1454,
+        "difficulty": 1327,
         "averageGradient": 9,
         "category": "HC"
       }
@@ -1802,9 +1819,9 @@
         "totalAscent": 604,
         "minimumAltitude": 1056,
         "maximumGradient": 8.3,
-        "difficulty": 650,
+        "difficulty": 507,
         "averageGradient": 7.4,
-        "category": "1"
+        "category": "2"
       }
     ]
   },
@@ -1838,7 +1855,7 @@
         },
         "length": 21,
         "totalAscent": 1564,
-        "difficulty": 1288,
+        "difficulty": 1313,
         "averageGradient": 7.5,
         "category": "HC"
       },
@@ -1850,7 +1867,7 @@
         },
         "length": 24.4,
         "totalAscent": 1204,
-        "difficulty": 748,
+        "difficulty": 750,
         "averageGradient": 4.9,
         "category": "1"
       }
@@ -1876,7 +1893,7 @@
         "totalAscent": 590,
         "minimumAltitude": 823,
         "maximumGradient": 10.9,
-        "difficulty": 700,
+        "difficulty": 664,
         "averageGradient": 9.4,
         "category": "1"
       }
@@ -1902,7 +1919,7 @@
         "totalAscent": 886,
         "minimumAltitude": 973,
         "maximumGradient": 8,
-        "difficulty": 710,
+        "difficulty": 683,
         "averageGradient": 7,
         "category": "1",
         "sourceUrl": "https://mycols.app/fr/col/risoul-1850"
@@ -1927,7 +1944,7 @@
         },
         "length": 36.3,
         "totalAscent": 1897,
-        "difficulty": 1269,
+        "difficulty": 1287,
         "averageGradient": 5.2,
         "category": "HC"
       }
@@ -1975,7 +1992,7 @@
         },
         "length": 17,
         "totalAscent": 1171,
-        "difficulty": 874,
+        "difficulty": 821,
         "averageGradient": 6.8,
         "category": "1"
       }
@@ -2001,9 +2018,9 @@
         "totalAscent": 1065,
         "minimumAltitude": 256,
         "maximumGradient": 11.8,
-        "difficulty": 554,
+        "difficulty": 844,
         "averageGradient": 5.2,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/bugey/france/col-de-la-biche-depuis-artemare-c1058.htm"
       },
       {
@@ -2016,9 +2033,9 @@
         "totalAscent": 958,
         "minimumAltitude": 385,
         "maximumGradient": 14,
-        "difficulty": 665,
+        "difficulty": 947,
         "averageGradient": 6.94,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/bugey/france/col-de-la-biche-depuis-gignez-c1044.htm"
       }
     ]
@@ -2043,7 +2060,7 @@
         "totalAscent": 640,
         "minimumAltitude": 422,
         "maximumGradient": 7,
-        "difficulty": 303,
+        "difficulty": 348,
         "averageGradient": 4.74,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/jura/france/col-de-la-croix-de-la-serra-depuis-saint-claude-c1342.htm"
@@ -2058,7 +2075,7 @@
         "totalAscent": 546,
         "minimumAltitude": 510,
         "maximumGradient": 6.1,
-        "difficulty": 170,
+        "difficulty": 295,
         "averageGradient": 3.12,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/jura/france/col-de-la-croix-de-la-serra-depuis-saint-germain-de-joux-c2375.htm"
@@ -2085,7 +2102,7 @@
         "totalAscent": 703,
         "minimumAltitude": 598,
         "maximumGradient": 8.1,
-        "difficulty": 419,
+        "difficulty": 465,
         "averageGradient": 5.96,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/jura/france/col-de-la-faucille-depuis-gex-c587.htm"
@@ -2100,9 +2117,9 @@
         "totalAscent": 338,
         "minimumAltitude": 995,
         "maximumGradient": 7.2,
-        "difficulty": 135,
+        "difficulty": 254,
         "averageGradient": 3.98,
-        "category": "4",
+        "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/jura/france/col-de-la-faucille-depuis-mijoux-c588.htm"
       },
       {
@@ -2115,9 +2132,9 @@
         "totalAscent": 618,
         "minimumAltitude": 754,
         "maximumGradient": 5.9,
-        "difficulty": 143,
+        "difficulty": 277,
         "averageGradient": 2.31,
-        "category": "4",
+        "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/jura/france/col-de-la-faucille-depuis-morez-c589.htm"
       }
     ]
@@ -2142,7 +2159,7 @@
         "totalAscent": 482,
         "minimumAltitude": 553,
         "maximumGradient": 7,
-        "difficulty": 223,
+        "difficulty": 266,
         "averageGradient": 4.63,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/jura/france/col-de-la-joux-depuis-d-28-c2641.htm"
@@ -2169,7 +2186,7 @@
         "totalAscent": 620,
         "minimumAltitude": 553,
         "maximumGradient": 9,
-        "difficulty": 481,
+        "difficulty": 484,
         "averageGradient": 7.75,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/jura/france/col-de-menthieres-depuis-confort-c1255.htm"
@@ -2196,9 +2213,9 @@
         "totalAscent": 1205,
         "minimumAltitude": 289,
         "maximumGradient": 14,
-        "difficulty": 956,
+        "difficulty": 1133,
         "averageGradient": 7.93,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/bugey/france/col-du-grand-colombier-depuis-anglefort-c157.htm"
       },
       {
@@ -2226,7 +2243,7 @@
         "totalAscent": 1244,
         "minimumAltitude": 256,
         "maximumGradient": 21,
-        "difficulty": 1005,
+        "difficulty": 1190,
         "averageGradient": 8.08,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/bugey/france/col-du-grand-colombier-depuis-artemare-via-virieu-le-petit-c155.htm"
@@ -2241,9 +2258,9 @@
         "totalAscent": 1255,
         "minimumAltitude": 246,
         "maximumGradient": 14,
-        "difficulty": 861,
+        "difficulty": 1091,
         "averageGradient": 6.86,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/bugey/france/col-du-grand-colombier-depuis-culoz-c158.htm"
       },
       {
@@ -2256,9 +2273,9 @@
         "totalAscent": 900,
         "minimumAltitude": 607,
         "maximumGradient": 14,
-        "difficulty": 659,
+        "difficulty": 984,
         "averageGradient": 7.32,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/bugey/france/col-du-grand-colombier-depuis-lochieu-c1407.htm"
       }
     ]
@@ -2283,7 +2300,7 @@
         "totalAscent": 622,
         "minimumAltitude": 490,
         "maximumGradient": 10,
-        "difficulty": 403,
+        "difficulty": 394,
         "averageGradient": 6.48,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/chaine-des-puys-monts-dore/france/col-de-ceyssat-depuis-royat-c1045.htm"
@@ -2310,7 +2327,7 @@
         "totalAscent": 379,
         "minimumAltitude": 890,
         "maximumGradient": 6,
-        "difficulty": 171,
+        "difficulty": 262,
         "averageGradient": 4.51,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/chaine-des-puys-monts-dore/france/col-de-guery-depuis-orcival-c1438.htm"
@@ -2337,7 +2354,7 @@
         "totalAscent": 207,
         "minimumAltitude": 1194,
         "maximumGradient": 6.6,
-        "difficulty": 95,
+        "difficulty": 119,
         "averageGradient": 4.6,
         "category": "4",
         "sourceUrl": "https://www.cols-cyclisme.com/chaine-des-puys-monts-dore/france/col-de-la-croix-morand-depuis-d983-c596.htm"
@@ -2352,9 +2369,9 @@
         "totalAscent": 511,
         "minimumAltitude": 881,
         "maximumGradient": 8.2,
-        "difficulty": 249,
+        "difficulty": 331,
         "averageGradient": 4.87,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/chaine-des-puys-monts-dore/france/col-de-la-croix-morand-depuis-lac-chambon-c595.htm"
       }
     ]
@@ -2379,7 +2396,7 @@
         "totalAscent": 381,
         "minimumAltitude": 1046,
         "maximumGradient": 10.3,
-        "difficulty": 231,
+        "difficulty": 248,
         "averageGradient": 6.05,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/chaine-des-puys-monts-dore/france/col-de-la-croix-saint-robert-depuis-le-mont-dore-c597.htm"
@@ -2394,9 +2411,9 @@
         "totalAscent": 566,
         "minimumAltitude": 833,
         "maximumGradient": 7.2,
-        "difficulty": 229,
+        "difficulty": 357,
         "averageGradient": 4.04,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/chaine-des-puys-monts-dore/france/col-de-la-croix-saint-robert-depuis-murol-c598.htm"
       }
     ]
@@ -2436,7 +2453,7 @@
         "totalAscent": 505,
         "minimumAltitude": 901,
         "maximumGradient": 9.8,
-        "difficulty": 311,
+        "difficulty": 356,
         "averageGradient": 6.16,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/monts-du-cantal/france/col-de-prat-de-bouc-depuis-murat-c1047.htm"
@@ -2451,9 +2468,9 @@
         "totalAscent": 503,
         "minimumAltitude": 897,
         "maximumGradient": 9.8,
-        "difficulty": 232,
+        "difficulty": 328,
         "averageGradient": 4.61,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/monts-du-cantal/france/col-de-prat-de-bouc-depuis-pignou-c3621.htm"
       }
     ]
@@ -2478,7 +2495,7 @@
         "totalAscent": 384,
         "minimumAltitude": 931,
         "maximumGradient": 14,
-        "difficulty": 321,
+        "difficulty": 388,
         "averageGradient": 8.35,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/monts-du-cantal/france/col-du-pertus-depuis-mandailles-c1749.htm"
@@ -2493,7 +2510,7 @@
         "totalAscent": 312,
         "minimumAltitude": 1004,
         "maximumGradient": 9.5,
-        "difficulty": 170,
+        "difficulty": 273,
         "averageGradient": 5.43,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/monts-du-cantal/france/col-du-pertus-depuis-saint-jacques-des-blats-c3790.htm"
@@ -2520,9 +2537,9 @@
         "totalAscent": 604,
         "minimumAltitude": 962,
         "maximumGradient": 10.2,
-        "difficulty": 218,
+        "difficulty": 474,
         "averageGradient": 3.6,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/monts-du-cantal/france/pas-de-peyrol-depuis-cheylade-c77.htm"
       },
       {
@@ -2535,9 +2552,9 @@
         "totalAscent": 533,
         "minimumAltitude": 1065,
         "maximumGradient": 9.5,
-        "difficulty": 229,
+        "difficulty": 346,
         "averageGradient": 4.3,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/monts-du-cantal/france/pas-de-peyrol-depuis-dienne-c76.htm"
       },
       {
@@ -2550,7 +2567,7 @@
         "totalAscent": 647,
         "minimumAltitude": 932,
         "maximumGradient": 6.9,
-        "difficulty": 314,
+        "difficulty": 475,
         "averageGradient": 4.86,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/monts-du-cantal/france/pas-de-peyrol-depuis-mandailles-c75.htm"
@@ -2565,9 +2582,9 @@
         "totalAscent": 636,
         "minimumAltitude": 938,
         "maximumGradient": 12.8,
-        "difficulty": 197,
+        "difficulty": 560,
         "averageGradient": 3.1,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/monts-du-cantal/france/pas-de-peyrol-depuis-salers-c74.htm"
       }
     ]
@@ -2590,7 +2607,7 @@
         },
         "length": 10,
         "totalAscent": 786,
-        "difficulty": 680,
+        "difficulty": 732,
         "averageGradient": 7.9,
         "category": "1"
       },
@@ -2604,9 +2621,9 @@
         "totalAscent": 921,
         "minimumAltitude": 641,
         "maximumGradient": 8.2,
-        "difficulty": 481,
+        "difficulty": 668,
         "averageGradient": 5.23,
-        "category": "2"
+        "category": "1"
       }
     ]
   },
@@ -2664,9 +2681,9 @@
         },
         "length": 16.5,
         "totalAscent": 1190,
-        "difficulty": 857,
+        "difficulty": 944,
         "averageGradient": 7.2,
-        "category": "1"
+        "category": "HC"
       },
       {
         "name": "Argelès-Gazost",
@@ -2678,9 +2695,9 @@
         "totalAscent": 1247,
         "minimumAltitude": 444,
         "maximumGradient": 11,
-        "difficulty": 516,
+        "difficulty": 963,
         "averageGradient": 4.14,
-        "category": "2"
+        "category": "HC"
       }
     ]
   },
@@ -2702,9 +2719,9 @@
         },
         "length": 7.4,
         "totalAscent": 622,
-        "difficulty": 613,
+        "difficulty": 533,
         "averageGradient": 8.4,
-        "category": "1"
+        "category": "2"
       },
       {
         "name": "Bourisp",
@@ -2766,7 +2783,7 @@
         "totalAscent": 896,
         "minimumAltitude": 603,
         "maximumGradient": 10.7,
-        "difficulty": 600,
+        "difficulty": 733,
         "averageGradient": 6.69,
         "category": "1"
       }
@@ -2790,7 +2807,7 @@
         },
         "length": 14.1,
         "totalAscent": 1000,
-        "difficulty": 780,
+        "difficulty": 642,
         "averageGradient": 7.1,
         "category": "1"
       },
@@ -2804,9 +2821,9 @@
         "totalAscent": 885,
         "minimumAltitude": 520,
         "maximumGradient": 8,
-        "difficulty": 567,
+        "difficulty": 701,
         "averageGradient": 6.41,
-        "category": "2"
+        "category": "1"
       }
     ]
   },
@@ -2828,9 +2845,9 @@
         },
         "length": 25,
         "totalAscent": 1500,
-        "difficulty": 900,
+        "difficulty": 1087,
         "averageGradient": 6,
-        "category": "1"
+        "category": "HC"
       },
       {
         "name": "Belasaisa",
@@ -2842,7 +2859,7 @@
         "totalAscent": 966,
         "minimumAltitude": 792,
         "maximumGradient": 7.4,
-        "difficulty": 346,
+        "difficulty": 586,
         "averageGradient": 3.58,
         "category": "2"
       },
@@ -2882,7 +2899,7 @@
         "totalAscent": 423,
         "minimumAltitude": 698,
         "maximumGradient": 11,
-        "difficulty": 303,
+        "difficulty": 334,
         "averageGradient": 7.17,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/col-de-latrape-depuis-serac-c1635.htm"
@@ -2897,7 +2914,7 @@
         "totalAscent": 368,
         "minimumAltitude": 744,
         "maximumGradient": 10,
-        "difficulty": 271,
+        "difficulty": 292,
         "averageGradient": 7.36,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/col-de-latrape-depuis-aulus-les-bains-c1636.htm"
@@ -2936,9 +2953,9 @@
         "totalAscent": 807,
         "minimumAltitude": 713,
         "maximumGradient": 10.9,
-        "difficulty": 567,
+        "difficulty": 642,
         "averageGradient": 7.02,
-        "category": "2"
+        "category": "1"
       }
     ]
   },
@@ -2960,7 +2977,7 @@
         },
         "length": 9.3,
         "totalAscent": 715,
-        "difficulty": 620,
+        "difficulty": 674,
         "averageGradient": 7.7,
         "category": "1"
       },
@@ -2974,9 +2991,9 @@
         "totalAscent": 615,
         "minimumAltitude": 422,
         "maximumGradient": 8.5,
-        "difficulty": 252,
+        "difficulty": 449,
         "averageGradient": 4.1,
-        "category": "3"
+        "category": "2"
       }
     ]
   },
@@ -2998,9 +3015,9 @@
         },
         "length": 9.3,
         "totalAscent": 664,
-        "difficulty": 530,
+        "difficulty": 801,
         "averageGradient": 7.1,
-        "category": "2"
+        "category": "1"
       },
       {
         "name": "Pont de l'Oule",
@@ -3012,9 +3029,9 @@
         "totalAscent": 716,
         "minimumAltitude": 679,
         "maximumGradient": 11.4,
-        "difficulty": 470,
+        "difficulty": 610,
         "averageGradient": 6.57,
-        "category": "2"
+        "category": "1"
       }
     ]
   },
@@ -3036,7 +3053,7 @@
         },
         "length": 15.3,
         "totalAscent": 939,
-        "difficulty": 650,
+        "difficulty": 717,
         "averageGradient": 6.1,
         "category": "1"
       },
@@ -3050,7 +3067,7 @@
         "totalAscent": 659,
         "minimumAltitude": 898,
         "maximumGradient": 11,
-        "difficulty": 458,
+        "difficulty": 565,
         "averageGradient": 6.94,
         "category": "2"
       }
@@ -3112,7 +3129,7 @@
         },
         "length": 16.1,
         "totalAscent": 1409,
-        "difficulty": 1381,
+        "difficulty": 1273,
         "averageGradient": 8.7,
         "category": "HC"
       }
@@ -3136,9 +3153,9 @@
         },
         "length": 23.8,
         "totalAscent": 1454,
-        "difficulty": 887,
+        "difficulty": 931,
         "averageGradient": 6.1,
-        "category": "1"
+        "category": "HC"
       },
       {
         "name": "Tardets",
@@ -3150,9 +3167,9 @@
         "totalAscent": 1323,
         "minimumAltitude": 222,
         "maximumGradient": 10.5,
-        "difficulty": 579,
+        "difficulty": 950,
         "averageGradient": 4.37,
-        "category": "2"
+        "category": "HC"
       },
       {
         "name": "D918 / D632 via la Hourcère",
@@ -3189,7 +3206,7 @@
         },
         "length": 10.3,
         "totalAscent": 780,
-        "difficulty": 650,
+        "difficulty": 729,
         "averageGradient": 7.6,
         "category": "1"
       },
@@ -3203,9 +3220,9 @@
         "totalAscent": 851,
         "minimumAltitude": 521,
         "maximumGradient": 10.8,
-        "difficulty": 730,
+        "difficulty": 771,
         "averageGradient": 8.5,
-        "category": "HC"
+        "category": "1"
       }
     ]
   },
@@ -3227,7 +3244,7 @@
         },
         "length": 14.2,
         "totalAscent": 640,
-        "difficulty": 390,
+        "difficulty": 545,
         "averageGradient": 4.5,
         "category": "2"
       },
@@ -3241,9 +3258,9 @@
         "totalAscent": 557,
         "minimumAltitude": 511,
         "maximumGradient": 10.8,
-        "difficulty": 172,
+        "difficulty": 380,
         "averageGradient": 3.08,
-        "category": "3"
+        "category": "2"
       }
     ]
   },
@@ -3265,7 +3282,7 @@
         },
         "length": 8.3,
         "totalAscent": 620,
-        "difficulty": 520,
+        "difficulty": 567,
         "averageGradient": 7.4,
         "category": "2"
       },
@@ -3279,7 +3296,7 @@
         "totalAscent": 583,
         "minimumAltitude": 732,
         "maximumGradient": 8.2,
-        "difficulty": 395,
+        "difficulty": 432,
         "averageGradient": 6.78,
         "category": "2"
       }
@@ -3317,7 +3334,7 @@
         "totalAscent": 900,
         "minimumAltitude": 557,
         "maximumGradient": 9,
-        "difficulty": 675,
+        "difficulty": 776,
         "averageGradient": 7.5,
         "category": "1"
       }
@@ -3341,7 +3358,7 @@
         },
         "length": 18.3,
         "totalAscent": 1401,
-        "difficulty": 1133,
+        "difficulty": 1124,
         "averageGradient": 7.7,
         "category": "HC"
       },
@@ -3403,7 +3420,7 @@
         "totalAscent": 805,
         "minimumAltitude": 759,
         "maximumGradient": 11.2,
-        "difficulty": 589,
+        "difficulty": 661,
         "averageGradient": 7.82,
         "category": "1"
       },
@@ -3417,9 +3434,9 @@
         "totalAscent": 764,
         "minimumAltitude": 852,
         "maximumGradient": 8.4,
-        "difficulty": 563,
+        "difficulty": 558,
         "averageGradient": 5,
-        "category": "1",
+        "category": "2",
         "sourceUrl": "https://mycols.app/fr/col/hourquette-dancizan-campan"
       },
       {
@@ -3457,9 +3474,9 @@
         },
         "length": 19.2,
         "totalAscent": 1200,
-        "difficulty": 756,
+        "difficulty": 997,
         "averageGradient": 6.3,
-        "category": "1"
+        "category": "HC"
       },
       {
         "name": "Bagnères-de-Luchon",
@@ -3471,7 +3488,7 @@
         "totalAscent": 1125,
         "minimumAltitude": 639,
         "maximumGradient": 11.2,
-        "difficulty": 642,
+        "difficulty": 834,
         "averageGradient": 5.71,
         "category": "1"
       }
@@ -3495,9 +3512,9 @@
         },
         "length": 14.7,
         "totalAscent": 1205,
-        "difficulty": 988,
+        "difficulty": 1266,
         "averageGradient": 8.2,
-        "category": "1"
+        "category": "HC"
       },
       {
         "name": "Ochagavia",
@@ -3509,7 +3526,7 @@
         "totalAscent": 815,
         "minimumAltitude": 763,
         "maximumGradient": 8,
-        "difficulty": 344,
+        "difficulty": 519,
         "averageGradient": 4.22,
         "category": "2"
       }
@@ -3533,9 +3550,9 @@
         },
         "length": 16.8,
         "totalAscent": 1130,
-        "difficulty": 768,
+        "difficulty": 1007,
         "averageGradient": 6.8,
-        "category": "1"
+        "category": "HC"
       },
       {
         "name": "Usson-les-Bains",
@@ -3547,13 +3564,13 @@
         "totalAscent": 1207,
         "minimumAltitude": 805,
         "maximumGradient": 12,
-        "difficulty": 978,
+        "difficulty": 966,
         "averageGradient": 8.1,
-        "category": "1"
+        "category": "HC"
       }
     ]
   },
-{
+  {
     "name": "Ballon d'Alsace",
     "country": "FR",
     "massif": "Vosges",
@@ -3573,7 +3590,7 @@
         "totalAscent": 643,
         "minimumAltitude": 548,
         "maximumGradient": 7.2,
-        "difficulty": 334,
+        "difficulty": 361,
         "averageGradient": 5.19,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/ballon-d-alsace-depuis-malvaux-c24.htm"
@@ -3588,7 +3605,7 @@
         "totalAscent": 619,
         "minimumAltitude": 552,
         "maximumGradient": 8.0,
-        "difficulty": 426,
+        "difficulty": 436,
         "averageGradient": 6.88,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/ballon-d-alsace-depuis-saint-maurice-sur-moselle-c26.htm"
@@ -3603,7 +3620,7 @@
         "totalAscent": 678,
         "minimumAltitude": 503,
         "maximumGradient": 8.6,
-        "difficulty": 349,
+        "difficulty": 446,
         "averageGradient": 5.14,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/ballon-d-alsace-depuis-sewen-c25.htm"
@@ -3630,9 +3647,9 @@
         "totalAscent": 1048,
         "minimumAltitude": 292,
         "maximumGradient": 9.3,
-        "difficulty": 476,
+        "difficulty": 817,
         "averageGradient": 4.54,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/grand-ballon-depuis-cernay-c79.htm"
       },
       {
@@ -3645,7 +3662,7 @@
         "totalAscent": 951,
         "minimumAltitude": 388,
         "maximumGradient": 12.0,
-        "difficulty": 735,
+        "difficulty": 806,
         "averageGradient": 7.73,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/grand-ballon-depuis-moosch-c1440.htm"
@@ -3660,9 +3677,9 @@
         "totalAscent": 932,
         "minimumAltitude": 411,
         "maximumGradient": 12.0,
-        "difficulty": 684,
+        "difficulty": 911,
         "averageGradient": 7.34,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/grand-ballon-depuis-saint-amarin-c78.htm"
       },
       {
@@ -3675,7 +3692,7 @@
         "totalAscent": 1072,
         "minimumAltitude": 275,
         "maximumGradient": 12.0,
-        "difficulty": 604,
+        "difficulty": 724,
         "averageGradient": 5.64,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/grand-ballon-depuis-soultz-c80.htm"
@@ -3690,9 +3707,9 @@
         "totalAscent": 992,
         "minimumAltitude": 352,
         "maximumGradient": 9.3,
-        "difficulty": 482,
+        "difficulty": 829,
         "averageGradient": 4.86,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/grand-ballon-depuis-wattwiller-c2115.htm"
       },
       {
@@ -3705,9 +3722,9 @@
         "totalAscent": 974,
         "minimumAltitude": 368,
         "maximumGradient": 8.6,
-        "difficulty": 593,
+        "difficulty": 675,
         "averageGradient": 6.09,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/grand-ballon-depuis-willer-sur-thur-c81.htm"
       }
     ]
@@ -3732,7 +3749,7 @@
         "totalAscent": 678,
         "minimumAltitude": 479,
         "maximumGradient": 7.2,
-        "difficulty": 360,
+        "difficulty": 457,
         "averageGradient": 5.3,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/petit-ballon-depuis-metzeral-c389.htm"
@@ -3747,9 +3764,9 @@
         "totalAscent": 773,
         "minimumAltitude": 382,
         "maximumGradient": 8.7,
-        "difficulty": 515,
+        "difficulty": 669,
         "averageGradient": 6.66,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/petit-ballon-depuis-munster-c387.htm"
       },
       {
@@ -3762,9 +3779,9 @@
         "totalAscent": 844,
         "minimumAltitude": 310,
         "maximumGradient": 9.3,
-        "difficulty": 446,
+        "difficulty": 688,
         "averageGradient": 5.28,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/petit-ballon-depuis-wihr-au-val-c388.htm"
       }
     ]
@@ -3816,7 +3833,7 @@
         "totalAscent": 465,
         "minimumAltitude": 496,
         "maximumGradient": 22.0,
-        "difficulty": 393,
+        "difficulty": 515,
         "averageGradient": 8.45,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/station-de-la-planche-des-belles-filles-depuis-plancher-les-mines-c1126.htm"
@@ -3843,7 +3860,7 @@
         "totalAscent": 632,
         "minimumAltitude": 501,
         "maximumGradient": 7.0,
-        "difficulty": 190,
+        "difficulty": 288,
         "averageGradient": 3.01,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/col-de-la-schlucht-depuis-fraize-c230.htm"
@@ -3858,7 +3875,7 @@
         "totalAscent": 494,
         "minimumAltitude": 636,
         "maximumGradient": 8.3,
-        "difficulty": 151,
+        "difficulty": 279,
         "averageGradient": 3.05,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/col-de-la-schlucht-depuis-la-bresse-c229.htm"
@@ -3873,7 +3890,7 @@
         "totalAscent": 531,
         "minimumAltitude": 615,
         "maximumGradient": 6.7,
-        "difficulty": 165,
+        "difficulty": 218,
         "averageGradient": 3.12,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/col-de-la-schlucht-depuis-le-kertoff-c227.htm"
@@ -3888,7 +3905,7 @@
         "totalAscent": 759,
         "minimumAltitude": 391,
         "maximumGradient": 5.3,
-        "difficulty": 321,
+        "difficulty": 341,
         "averageGradient": 4.22,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/col-de-la-schlucht-depuis-munster-c228.htm"
@@ -3903,7 +3920,7 @@
         "totalAscent": 421,
         "minimumAltitude": 735,
         "maximumGradient": 6.7,
-        "difficulty": 177,
+        "difficulty": 277,
         "averageGradient": 4.21,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/col-de-la-schlucht-depuis-xonrupt-c1228.htm"
@@ -3930,7 +3947,7 @@
         "totalAscent": 702,
         "minimumAltitude": 400,
         "maximumGradient": 8.3,
-        "difficulty": 460,
+        "difficulty": 443,
         "averageGradient": 6.56,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/station-de-champ-du-feu-depuis-fouday-c378.htm"
@@ -3960,7 +3977,7 @@
         "totalAscent": 921,
         "minimumAltitude": 178,
         "maximumGradient": 9.0,
-        "difficulty": 346,
+        "difficulty": 481,
         "averageGradient": 3.76,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/station-de-champ-du-feu-depuis-saint-pierre-c382.htm"
@@ -3990,7 +4007,7 @@
         "totalAscent": 840,
         "minimumAltitude": 268,
         "maximumGradient": 9.0,
-        "difficulty": 504,
+        "difficulty": 588,
         "averageGradient": 6.0,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/station-de-champ-du-feu-depuis-ville-c380.htm"
@@ -4017,7 +4034,7 @@
         "totalAscent": 1468,
         "minimumAltitude": 122,
         "maximumGradient": 5.9,
-        "difficulty": 620,
+        "difficulty": 827,
         "averageGradient": 4.22,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-du-vergio-depuis-porto-marina-c2681.htm"
@@ -4044,9 +4061,9 @@
         "totalAscent": 1230,
         "minimumAltitude": 7,
         "maximumGradient": 11.2,
-        "difficulty": 504,
+        "difficulty": 1092,
         "averageGradient": 4.1,
-        "category": "2",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-bavella-depuis-solenzara-c2682.htm"
       },
       {
@@ -4059,7 +4076,7 @@
         "totalAscent": 460,
         "minimumAltitude": 778,
         "maximumGradient": 7.0,
-        "difficulty": 238,
+        "difficulty": 275,
         "averageGradient": 5.17,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-bavella-depuis-zonza-c664.htm"
@@ -4101,9 +4118,9 @@
         "totalAscent": 503,
         "minimumAltitude": 636,
         "maximumGradient": 12.0,
-        "difficulty": 204,
+        "difficulty": 492,
         "averageGradient": 4.06,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-vizzavona-depuis-vivario-c1780.htm"
       }
     ]
@@ -4170,9 +4187,9 @@
         "totalAscent": 799,
         "minimumAltitude": 398,
         "maximumGradient": 9.0,
-        "difficulty": 560,
+        "difficulty": 628,
         "averageGradient": 7.0,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-scalella-depuis-tavera-c2685.htm"
       }
     ]
@@ -4209,17 +4226,421 @@
     "country": "FR",
     "massif": "Corse",
     "topOfTheAscent": 1289,
-    "geoCoordinate": {"latitude": 42.02822, "longitude": 9.19481},
-    "alternatives": [{"name":"Pont de Cannareccia","geoCoordinate":{"latitude":42.05672,"longitude":9.19288},"length":7.66,"totalAscent":439,"minimumAltitude":847,"maximumGradient":6.0,"difficulty":252,"averageGradient":5.73,"category":"3","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-verde-depuis-pont-de-cannareccia-c3564.htm"}]
+    "geoCoordinate": {
+      "latitude": 42.02822,
+      "longitude": 9.19481
+    },
+    "alternatives": [
+      {
+        "name": "Pont de Cannareccia",
+        "geoCoordinate": {
+          "latitude": 42.05672,
+          "longitude": 9.19288
+        },
+        "length": 7.66,
+        "totalAscent": 439,
+        "minimumAltitude": 847,
+        "maximumGradient": 6.0,
+        "difficulty": 252,
+        "averageGradient": 5.73,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-verde-depuis-pont-de-cannareccia-c3564.htm"
+      }
+    ]
   },
-  {"name":"Col de Sorba","country":"FR","massif":"Corse","topOfTheAscent":1311,"geoCoordinate":{"latitude":42.14416,"longitude":9.19033},"alternatives":[{"name":"Ghisoni","geoCoordinate":{"latitude":42.10562,"longitude":9.21287},"length":10.1,"totalAscent":641,"minimumAltitude":635,"maximumGradient":6.9,"difficulty":407,"averageGradient":6.35,"category":"2","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-sorba-depuis-ghisoni-c2690.htm"},{"name":"Vivario","geoCoordinate":{"latitude":42.17181,"longitude":9.17062},"length":9.2,"totalAscent":651,"minimumAltitude":664,"maximumGradient":8.5,"difficulty":461,"averageGradient":7.08,"category":"2","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-sorba-depuis-vivario-c2689.htm"}]},
-  {"name":"Col de Prato","country":"FR","massif":"Corse","topOfTheAscent":985,"geoCoordinate":{"latitude":42.42752,"longitude":9.33146},"alternatives":[{"name":"Pont de Rimitorio","geoCoordinate":{"latitude":42.42848,"longitude":9.40242},"length":15.6,"totalAscent":786,"minimumAltitude":205,"maximumGradient":11.5,"difficulty":396,"averageGradient":5.04,"category":"2","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-prato-depuis-pont-de-rimitorio-c2716.htm"},{"name":"Ponte Leccia","geoCoordinate":{"latitude":42.46354,"longitude":9.20728},"length":17.8,"totalAscent":790,"minimumAltitude":197,"maximumGradient":6.1,"difficulty":351,"averageGradient":4.44,"category":"2","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-prato-depuis-ponte-leccia-c2171.htm"}]},
-  {"name":"Col de Teghime","country":"FR","massif":"Corse","topOfTheAscent":536,"geoCoordinate":{"latitude":42.67733,"longitude":9.38344},"alternatives":[{"name":"Bastia","geoCoordinate":{"latitude":42.70201,"longitude":9.45199},"length":11.2,"totalAscent":533,"minimumAltitude":4,"maximumGradient":10.4,"difficulty":254,"averageGradient":4.76,"category":"3","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-teghime-depuis-bastia-c1681.htm"},{"name":"Montesoro","geoCoordinate":{"latitude":42.67688,"longitude":9.44398},"length":7.2,"totalAscent":512,"minimumAltitude":24,"maximumGradient":11.8,"difficulty":364,"averageGradient":7.11,"category":"2","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-teghime-depuis-montesoro-c1684.htm"},{"name":"Saint-Florent, via Patrimonio","geoCoordinate":{"latitude":42.68064,"longitude":9.3026},"length":12.6,"totalAscent":533,"minimumAltitude":7,"maximumGradient":9.9,"difficulty":225,"averageGradient":4.23,"category":"3","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-teghime-depuis-saint-florent-c1682.htm","routeCheckpoints":[{"latitude":42.69554,"longitude":9.36851}]},{"name":"Saint-Florent, via Oletta","geoCoordinate":{"latitude":42.68048,"longitude":9.30274},"length":14.3,"totalAscent":533,"minimumAltitude":0,"maximumGradient":6.5,"difficulty":199,"averageGradient":3.73,"category":"3","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-teghime-depuis-saint-florent-c1683.htm","routeCheckpoints":[{"latitude":42.6468,"longitude":9.35799}]}]},
-  {"name":"Col de Sevi","country":"FR","massif":"Corse","topOfTheAscent":1102,"geoCoordinate":{"latitude":42.2232,"longitude":8.82988},"alternatives":[{"name":"D84 / D124","geoCoordinate":{"latitude":42.24943,"longitude":8.74879},"length":19.64,"totalAscent":765,"minimumAltitude":327,"maximumGradient":7.0,"difficulty":299,"averageGradient":3.9,"category":"3","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-sevi-depuis-d84-d124-c2684.htm"},{"name":"Sagone","geoCoordinate":{"latitude":42.11344,"longitude":8.70183},"length":21.0,"totalAscent":1097,"minimumAltitude":7,"maximumGradient":11.4,"difficulty":572,"averageGradient":5.22,"category":"2","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-sevi-depuis-sagone-c2683.htm"}]},
-  {"name":"Col de Bigorno","country":"FR","massif":"Corse","topOfTheAscent":885,"geoCoordinate":{"latitude":42.53809,"longitude":9.29627},"alternatives":[{"name":"Biguglia","geoCoordinate":{"latitude":42.61895,"longitude":9.43559},"length":22.7,"totalAscent":861,"minimumAltitude":24,"maximumGradient":6.6,"difficulty":326,"averageGradient":3.79,"category":"2","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-bigorno-depuis-biguglia-c2559.htm"},{"name":"Ponte Novu","geoCoordinate":{"latitude":42.48728,"longitude":9.28136},"length":16.0,"totalAscent":732,"minimumAltitude":147,"maximumGradient":8.2,"difficulty":336,"averageGradient":4.58,"category":"2","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-bigorno-depuis-ponte-novu-c2713.htm"},{"name":"Volpajola","geoCoordinate":{"latitude":42.52654,"longitude":9.3537},"length":12.0,"totalAscent":498,"minimumAltitude":367,"maximumGradient":5.6,"difficulty":207,"averageGradient":4.15,"category":"3","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-bigorno-depuis-volpajola-c2170.htm"}]},
-  {"name":"Col de Saint-Eustache","country":"FR","massif":"Corse","topOfTheAscent":986,"geoCoordinate":{"latitude":41.77415,"longitude":9.02149},"alternatives":[{"name":"Moca","geoCoordinate":{"latitude":41.80806,"longitude":9.01273},"length":8.4,"totalAscent":528,"minimumAltitude":460,"maximumGradient":8.6,"difficulty":332,"averageGradient":6.29,"category":"2","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-saint-eustache-depuis-moca-c2699.htm"},{"name":"Moulin d'Arnia","geoCoordinate":{"latitude":41.78349,"longitude":9.07449},"length":8.7,"totalAscent":395,"minimumAltitude":706,"maximumGradient":6.0,"difficulty":179,"averageGradient":4.54,"category":"3","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-saint-eustache-depuis-moulin-d-arnia-c3566.htm"},{"name":"Petreto","geoCoordinate":{"latitude":41.78719,"longitude":8.97312},"length":11.0,"totalAscent":567,"minimumAltitude":429,"maximumGradient":6.7,"difficulty":292,"averageGradient":5.15,"category":"3","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-saint-eustache-depuis-petreto-c2700.htm"}]},
-  {"name":"Col de la Vaccia","country":"FR","massif":"Corse","topOfTheAscent":1193,"geoCoordinate":{"latitude":41.82199,"longitude":9.08448},"alternatives":[{"name":"Olivese","geoCoordinate":{"latitude":41.84198,"longitude":9.05617},"length":12.6,"totalAscent":703,"minimumAltitude":474,"maximumGradient":9.8,"difficulty":392,"averageGradient":5.58,"category":"2","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-la-vaccia-depuis-olivese-c2704.htm"}]},
-  {"name":"Col de Palmarella","country":"FR","massif":"Corse","topOfTheAscent":408,"geoCoordinate":{"latitude":42.36384,"longitude":8.64902},"alternatives":[{"name":"Le Fango","geoCoordinate":{"latitude":42.41569,"longitude":8.68253},"length":11.3,"totalAscent":379,"minimumAltitude":8,"maximumGradient":8.0,"difficulty":127,"averageGradient":3.35,"category":"4","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-palmarella-depuis-le-fango-c1789.htm"},{"name":"Porto","geoCoordinate":{"latitude":42.26613,"longitude":8.70589},"length":34.4,"totalAscent":349,"minimumAltitude":38,"maximumGradient":6.0,"difficulty":35,"averageGradient":1.01,"category":"4","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-palmarella-depuis-porto-c1790.htm"}]},
+  {
+    "name": "Col de Sorba",
+    "country": "FR",
+    "massif": "Corse",
+    "topOfTheAscent": 1311,
+    "geoCoordinate": {
+      "latitude": 42.14416,
+      "longitude": 9.19033
+    },
+    "alternatives": [
+      {
+        "name": "Ghisoni",
+        "geoCoordinate": {
+          "latitude": 42.10562,
+          "longitude": 9.21287
+        },
+        "length": 10.1,
+        "totalAscent": 641,
+        "minimumAltitude": 635,
+        "maximumGradient": 6.9,
+        "difficulty": 427,
+        "averageGradient": 6.35,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-sorba-depuis-ghisoni-c2690.htm"
+      },
+      {
+        "name": "Vivario",
+        "geoCoordinate": {
+          "latitude": 42.17181,
+          "longitude": 9.17062
+        },
+        "length": 9.2,
+        "totalAscent": 651,
+        "minimumAltitude": 664,
+        "maximumGradient": 8.5,
+        "difficulty": 393,
+        "averageGradient": 7.08,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-sorba-depuis-vivario-c2689.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col de Prato",
+    "country": "FR",
+    "massif": "Corse",
+    "topOfTheAscent": 985,
+    "geoCoordinate": {
+      "latitude": 42.42752,
+      "longitude": 9.33146
+    },
+    "alternatives": [
+      {
+        "name": "Pont de Rimitorio",
+        "geoCoordinate": {
+          "latitude": 42.42848,
+          "longitude": 9.40242
+        },
+        "length": 15.6,
+        "totalAscent": 786,
+        "minimumAltitude": 205,
+        "maximumGradient": 11.5,
+        "difficulty": 497,
+        "averageGradient": 5.04,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-prato-depuis-pont-de-rimitorio-c2716.htm"
+      },
+      {
+        "name": "Ponte Leccia",
+        "geoCoordinate": {
+          "latitude": 42.46354,
+          "longitude": 9.20728
+        },
+        "length": 17.8,
+        "totalAscent": 790,
+        "minimumAltitude": 197,
+        "maximumGradient": 6.1,
+        "difficulty": 370,
+        "averageGradient": 4.44,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-prato-depuis-ponte-leccia-c2171.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col de Teghime",
+    "country": "FR",
+    "massif": "Corse",
+    "topOfTheAscent": 536,
+    "geoCoordinate": {
+      "latitude": 42.67733,
+      "longitude": 9.38344
+    },
+    "alternatives": [
+      {
+        "name": "Bastia",
+        "geoCoordinate": {
+          "latitude": 42.70201,
+          "longitude": 9.45199
+        },
+        "length": 11.2,
+        "totalAscent": 533,
+        "minimumAltitude": 4,
+        "maximumGradient": 10.4,
+        "difficulty": 303,
+        "averageGradient": 4.76,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-teghime-depuis-bastia-c1681.htm"
+      },
+      {
+        "name": "Montesoro",
+        "geoCoordinate": {
+          "latitude": 42.67688,
+          "longitude": 9.44398
+        },
+        "length": 7.2,
+        "totalAscent": 512,
+        "minimumAltitude": 24,
+        "maximumGradient": 11.8,
+        "difficulty": 364,
+        "averageGradient": 7.11,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-teghime-depuis-montesoro-c1684.htm"
+      },
+      {
+        "name": "Saint-Florent, via Patrimonio",
+        "geoCoordinate": {
+          "latitude": 42.68064,
+          "longitude": 9.3026
+        },
+        "length": 12.6,
+        "totalAscent": 533,
+        "minimumAltitude": 7,
+        "maximumGradient": 9.9,
+        "difficulty": 264,
+        "averageGradient": 4.23,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-teghime-depuis-saint-florent-c1682.htm",
+        "routeCheckpoints": [
+          {
+            "latitude": 42.69554,
+            "longitude": 9.36851
+          }
+        ]
+      },
+      {
+        "name": "Saint-Florent, via Oletta",
+        "geoCoordinate": {
+          "latitude": 42.68048,
+          "longitude": 9.30274
+        },
+        "length": 14.3,
+        "totalAscent": 533,
+        "minimumAltitude": 0,
+        "maximumGradient": 6.5,
+        "difficulty": 348,
+        "averageGradient": 3.73,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-teghime-depuis-saint-florent-c1683.htm",
+        "routeCheckpoints": [
+          {
+            "latitude": 42.6468,
+            "longitude": 9.35799
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Col de Sevi",
+    "country": "FR",
+    "massif": "Corse",
+    "topOfTheAscent": 1102,
+    "geoCoordinate": {
+      "latitude": 42.2232,
+      "longitude": 8.82988
+    },
+    "alternatives": [
+      {
+        "name": "D84 / D124",
+        "geoCoordinate": {
+          "latitude": 42.24943,
+          "longitude": 8.74879
+        },
+        "length": 19.64,
+        "totalAscent": 765,
+        "minimumAltitude": 327,
+        "maximumGradient": 7.0,
+        "difficulty": 487,
+        "averageGradient": 3.9,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-sevi-depuis-d84-d124-c2684.htm"
+      },
+      {
+        "name": "Sagone",
+        "geoCoordinate": {
+          "latitude": 42.11344,
+          "longitude": 8.70183
+        },
+        "length": 21.0,
+        "totalAscent": 1097,
+        "minimumAltitude": 7,
+        "maximumGradient": 11.4,
+        "difficulty": 786,
+        "averageGradient": 5.22,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-sevi-depuis-sagone-c2683.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col de Bigorno",
+    "country": "FR",
+    "massif": "Corse",
+    "topOfTheAscent": 885,
+    "geoCoordinate": {
+      "latitude": 42.53809,
+      "longitude": 9.29627
+    },
+    "alternatives": [
+      {
+        "name": "Biguglia",
+        "geoCoordinate": {
+          "latitude": 42.61895,
+          "longitude": 9.43559
+        },
+        "length": 22.7,
+        "totalAscent": 861,
+        "minimumAltitude": 24,
+        "maximumGradient": 6.6,
+        "difficulty": 326,
+        "averageGradient": 3.79,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-bigorno-depuis-biguglia-c2559.htm"
+      },
+      {
+        "name": "Ponte Novu",
+        "geoCoordinate": {
+          "latitude": 42.48728,
+          "longitude": 9.28136
+        },
+        "length": 16.0,
+        "totalAscent": 732,
+        "minimumAltitude": 147,
+        "maximumGradient": 8.2,
+        "difficulty": 424,
+        "averageGradient": 4.58,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-bigorno-depuis-ponte-novu-c2713.htm"
+      },
+      {
+        "name": "Volpajola",
+        "geoCoordinate": {
+          "latitude": 42.52654,
+          "longitude": 9.3537
+        },
+        "length": 12.0,
+        "totalAscent": 498,
+        "minimumAltitude": 367,
+        "maximumGradient": 5.6,
+        "difficulty": 263,
+        "averageGradient": 4.15,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-bigorno-depuis-volpajola-c2170.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col de Saint-Eustache",
+    "country": "FR",
+    "massif": "Corse",
+    "topOfTheAscent": 986,
+    "geoCoordinate": {
+      "latitude": 41.77415,
+      "longitude": 9.02149
+    },
+    "alternatives": [
+      {
+        "name": "Moca",
+        "geoCoordinate": {
+          "latitude": 41.80806,
+          "longitude": 9.01273
+        },
+        "length": 8.4,
+        "totalAscent": 528,
+        "minimumAltitude": 460,
+        "maximumGradient": 8.6,
+        "difficulty": 332,
+        "averageGradient": 6.29,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-saint-eustache-depuis-moca-c2699.htm"
+      },
+      {
+        "name": "Moulin d'Arnia",
+        "geoCoordinate": {
+          "latitude": 41.78349,
+          "longitude": 9.07449
+        },
+        "length": 8.7,
+        "totalAscent": 395,
+        "minimumAltitude": 706,
+        "maximumGradient": 6.0,
+        "difficulty": 179,
+        "averageGradient": 4.54,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-saint-eustache-depuis-moulin-d-arnia-c3566.htm"
+      },
+      {
+        "name": "Petreto",
+        "geoCoordinate": {
+          "latitude": 41.78719,
+          "longitude": 8.97312
+        },
+        "length": 11.0,
+        "totalAscent": 567,
+        "minimumAltitude": 429,
+        "maximumGradient": 6.7,
+        "difficulty": 292,
+        "averageGradient": 5.15,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-saint-eustache-depuis-petreto-c2700.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col de la Vaccia",
+    "country": "FR",
+    "massif": "Corse",
+    "topOfTheAscent": 1193,
+    "geoCoordinate": {
+      "latitude": 41.82199,
+      "longitude": 9.08448
+    },
+    "alternatives": [
+      {
+        "name": "Olivese",
+        "geoCoordinate": {
+          "latitude": 41.84198,
+          "longitude": 9.05617
+        },
+        "length": 12.6,
+        "totalAscent": 703,
+        "minimumAltitude": 474,
+        "maximumGradient": 9.8,
+        "difficulty": 695,
+        "averageGradient": 5.58,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-la-vaccia-depuis-olivese-c2704.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col de Palmarella",
+    "country": "FR",
+    "massif": "Corse",
+    "topOfTheAscent": 408,
+    "geoCoordinate": {
+      "latitude": 42.36384,
+      "longitude": 8.64902
+    },
+    "alternatives": [
+      {
+        "name": "Le Fango",
+        "geoCoordinate": {
+          "latitude": 42.41569,
+          "longitude": 8.68253
+        },
+        "length": 11.3,
+        "totalAscent": 379,
+        "minimumAltitude": 8,
+        "maximumGradient": 8.0,
+        "difficulty": 146,
+        "averageGradient": 3.35,
+        "category": "4",
+        "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-palmarella-depuis-le-fango-c1789.htm"
+      },
+      {
+        "name": "Porto",
+        "geoCoordinate": {
+          "latitude": 42.26613,
+          "longitude": 8.70589
+        },
+        "length": 34.4,
+        "totalAscent": 349,
+        "minimumAltitude": 38,
+        "maximumGradient": 6.0,
+        "difficulty": 210,
+        "averageGradient": 1.01,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-palmarella-depuis-porto-c1790.htm"
+      }
+    ]
+  },
   {
     "name": "Plateau de Beille",
     "country": "FR",
@@ -4240,9 +4661,9 @@
         "totalAscent": 1255,
         "minimumAltitude": 548,
         "maximumGradient": 10.8,
-        "difficulty": 996,
+        "difficulty": 1070,
         "averageGradient": 7.94,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/plateau-de-beille-depuis-les-cabannes-c27.htm"
       }
     ]
@@ -4267,7 +4688,7 @@
         "totalAscent": 1010,
         "minimumAltitude": 697,
         "maximumGradient": 10.0,
-        "difficulty": 694,
+        "difficulty": 807,
         "averageGradient": 6.87,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/station-de-luz-ardiden-depuis-luz-saint-sauveur-c61.htm"
@@ -4282,7 +4703,7 @@
         "totalAscent": 1100,
         "minimumAltitude": 617,
         "maximumGradient": 11.0,
-        "difficulty": 835,
+        "difficulty": 881,
         "averageGradient": 7.59,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/station-de-luz-ardiden-depuis-viscos-c1508.htm"
@@ -4309,7 +4730,7 @@
         "totalAscent": 1170,
         "minimumAltitude": 638,
         "maximumGradient": 10.0,
-        "difficulty": 739,
+        "difficulty": 892,
         "averageGradient": 6.32,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/station-de-superbagneres-depuis-bagneres-de-luchon-c538.htm"
@@ -4336,9 +4757,9 @@
         "totalAscent": 670,
         "minimumAltitude": 714,
         "maximumGradient": 11.6,
-        "difficulty": 576,
+        "difficulty": 624,
         "averageGradient": 8.59,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/plateau-d-ax-bonascre-depuis-ax-les-thermes-c14.htm"
       }
     ]
@@ -4363,9 +4784,9 @@
         "totalAscent": 1264,
         "minimumAltitude": 499,
         "maximumGradient": 9.0,
-        "difficulty": 551,
+        "difficulty": 720,
         "averageGradient": 4.36,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/france/col-du-pourtalet-depuis-laruns-c539.htm"
       },
       {
@@ -4420,9 +4841,9 @@
         "totalAscent": 1497,
         "minimumAltitude": 698,
         "maximumGradient": 10.7,
-        "difficulty": 747,
+        "difficulty": 1022,
         "averageGradient": 4.99,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/col-de-tentes-depuis-luz-saint-sauveur-c1859.htm"
       }
     ]
@@ -4447,7 +4868,7 @@
         "totalAscent": 894,
         "minimumAltitude": 479,
         "maximumGradient": 12.0,
-        "difficulty": 605,
+        "difficulty": 725,
         "averageGradient": 6.77,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/col-de-peguere-depuis-estaniels-c1638.htm"
@@ -4462,7 +4883,7 @@
         "totalAscent": 872,
         "minimumAltitude": 504,
         "maximumGradient": 10.0,
-        "difficulty": 422,
+        "difficulty": 537,
         "averageGradient": 4.84,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/col-de-peguere-depuis-la-mouline-c1368.htm"
@@ -4477,9 +4898,9 @@
         "totalAscent": 726,
         "minimumAltitude": 627,
         "maximumGradient": 14.7,
-        "difficulty": 538,
+        "difficulty": 746,
         "averageGradient": 7.41,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/col-de-peguere-depuis-massat-c1637.htm"
       }
     ]
@@ -4519,9 +4940,9 @@
         "totalAscent": 1017,
         "minimumAltitude": 299,
         "maximumGradient": 11.5,
-        "difficulty": 488,
+        "difficulty": 1095,
         "averageGradient": 4.8,
-        "category": "2",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/france/col-bagargui-depuis-est-c23.htm"
       },
       {
@@ -4576,9 +4997,9 @@
         "totalAscent": 1030,
         "minimumAltitude": 845,
         "maximumGradient": 13.0,
-        "difficulty": 542,
+        "difficulty": 670,
         "averageGradient": 5.26,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/station-de-piau-engaly-depuis-saint-lary-soulan-c312.htm"
       }
     ]
@@ -4603,7 +5024,7 @@
         "totalAscent": 1070,
         "minimumAltitude": 414,
         "maximumGradient": 10.1,
-        "difficulty": 686,
+        "difficulty": 782,
         "averageGradient": 6.41,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/bout-de-touron-prat-d-albis-depuis-foix-c1366.htm"
@@ -4630,9 +5051,9 @@
         "totalAscent": 995,
         "minimumAltitude": 501,
         "maximumGradient": 9.5,
-        "difficulty": 545,
+        "difficulty": 674,
         "averageGradient": 5.47,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/pont-d-espagne-depuis-pierrefitte-nestalas-c1195.htm"
       }
     ]
@@ -4657,7 +5078,7 @@
         "totalAscent": 713,
         "minimumAltitude": 671,
         "maximumGradient": 12.5,
-        "difficulty": 644,
+        "difficulty": 880,
         "averageGradient": 9.03,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/aravis/france/col-des-glieres-depuis-le-petit-bornand-c1652.htm"
@@ -4699,9 +5120,9 @@
         "totalAscent": 1017,
         "minimumAltitude": 459,
         "maximumGradient": 12.5,
-        "difficulty": 732,
+        "difficulty": 1093,
         "averageGradient": 7.2,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/bugey/france/mont-du-chat-depuis-d921-d41a-c2454.htm"
       },
       {
@@ -4714,7 +5135,7 @@
         "totalAscent": 1266,
         "minimumAltitude": 238,
         "maximumGradient": 11.0,
-        "difficulty": 1120,
+        "difficulty": 1183,
         "averageGradient": 8.85,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/bugey/france/mont-du-chat-depuis-le-bourget-du-lac-c142.htm"
@@ -4729,9 +5150,9 @@
         "totalAscent": 1264,
         "minimumAltitude": 237,
         "maximumGradient": 12.0,
-        "difficulty": 941,
+        "difficulty": 1161,
         "averageGradient": 7.44,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/bugey/france/mont-du-chat-depuis-yenne-c143.htm"
       }
     ]
@@ -4756,7 +5177,7 @@
         "totalAscent": 864,
         "minimumAltitude": 278,
         "maximumGradient": 7.8,
-        "difficulty": 488,
+        "difficulty": 531,
         "averageGradient": 5.65,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/chartreuse/france/col-du-granier-depuis-chambery-c108.htm"
@@ -4771,7 +5192,7 @@
         "totalAscent": 854,
         "minimumAltitude": 282,
         "maximumGradient": 10.4,
-        "difficulty": 694,
+        "difficulty": 874,
         "averageGradient": 8.13,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/chartreuse/france/col-du-granier-depuis-chapareillan-c106.htm"
@@ -4786,9 +5207,9 @@
         "totalAscent": 823,
         "minimumAltitude": 380,
         "maximumGradient": 10.3,
-        "difficulty": 590,
+        "difficulty": 767,
         "averageGradient": 7.16,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/chartreuse/france/col-du-granier-depuis-saint-baldoph-c109.htm"
       },
       {
@@ -4801,9 +5222,9 @@
         "totalAscent": 494,
         "minimumAltitude": 639,
         "maximumGradient": 9.2,
-        "difficulty": 260,
+        "difficulty": 341,
         "averageGradient": 5.26,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/chartreuse/france/col-du-granier-depuis-saint-pierre-d-entremont-c107.htm"
       }
     ]
@@ -4828,9 +5249,9 @@
         "totalAscent": 507,
         "minimumAltitude": 964,
         "maximumGradient": 7.3,
-        "difficulty": 249,
+        "difficulty": 319,
         "averageGradient": 4.92,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/aravis/france/col-de-la-croix-fry-depuis-saint-jean-de-sixt-c504.htm"
       },
       {
@@ -4843,9 +5264,9 @@
         "totalAscent": 842,
         "minimumAltitude": 631,
         "maximumGradient": 9.3,
-        "difficulty": 554,
+        "difficulty": 630,
         "averageGradient": 6.58,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/aravis/france/col-de-la-croix-fry-depuis-thones-c505.htm"
       }
     ]
@@ -4870,7 +5291,7 @@
         "totalAscent": 660,
         "minimumAltitude": 487,
         "maximumGradient": 12.6,
-        "difficulty": 427,
+        "difficulty": 470,
         "averageGradient": 6.47,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/aravis/france/col-de-la-forclaz-de-montmin-depuis-menthon-saint-bernard-c43.htm"
@@ -4885,9 +5306,9 @@
         "totalAscent": 655,
         "minimumAltitude": 500,
         "maximumGradient": 13.0,
-        "difficulty": 523,
+        "difficulty": 661,
         "averageGradient": 7.99,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/aravis/france/col-de-la-forclaz-de-montmin-depuis-vesonne-c42.htm"
       }
     ]
@@ -4912,9 +5333,9 @@
         "totalAscent": 761,
         "minimumAltitude": 242,
         "maximumGradient": 8.4,
-        "difficulty": 471,
+        "difficulty": 606,
         "averageGradient": 6.19,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/vercors/france/col-de-la-machine-depuis-saint-jean-en-royans-c570.htm"
       },
       {
@@ -4927,9 +5348,9 @@
         "totalAscent": 699,
         "minimumAltitude": 335,
         "maximumGradient": 10.2,
-        "difficulty": 279,
+        "difficulty": 596,
         "averageGradient": 3.99,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/vercors/france/col-de-la-machine-depuis-saint-laurent-en-royans-c571.htm"
       }
     ]
@@ -4954,7 +5375,7 @@
         "totalAscent": 559,
         "minimumAltitude": 882,
         "maximumGradient": 16.0,
-        "difficulty": 304,
+        "difficulty": 580,
         "averageGradient": 5.45,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/chartreuse/france/col-du-coq-depuis-saint-hugues-c914.htm"
@@ -4969,7 +5390,7 @@
         "totalAscent": 1146,
         "minimumAltitude": 351,
         "maximumGradient": 12.0,
-        "difficulty": 1011,
+        "difficulty": 964,
         "averageGradient": 8.82,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/chartreuse/france/col-du-coq-depuis-saint-nazaire-les-eymes-c913.htm"
@@ -4996,7 +5417,7 @@
         "totalAscent": 1107,
         "minimumAltitude": 514,
         "maximumGradient": 9.0,
-        "difficulty": 802,
+        "difficulty": 878,
         "averageGradient": 7.24,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/prealpes-de-nice/france/col-de-turini-depuis-d-2565-c140.htm"
@@ -5011,9 +5432,9 @@
         "totalAscent": 1242,
         "minimumAltitude": 368,
         "maximumGradient": 11.0,
-        "difficulty": 571,
+        "difficulty": 831,
         "averageGradient": 4.6,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/prealpes-de-nice/france/col-de-turini-depuis-l-escarene-c3864.htm"
       },
       {
@@ -5026,7 +5447,7 @@
         "totalAscent": 1237,
         "minimumAltitude": 367,
         "maximumGradient": 8.0,
-        "difficulty": 634,
+        "difficulty": 832,
         "averageGradient": 5.13,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/prealpes-de-nice/france/col-de-turini-depuis-sospel-c141.htm"
@@ -5164,9 +5585,9 @@
         "totalAscent": 1336,
         "minimumAltitude": 228,
         "maximumGradient": 6.4,
-        "difficulty": 478,
+        "difficulty": 677,
         "averageGradient": 3.58,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/cevennes/france/mont-aigoual-depuis-le-vigan-c154.htm"
       },
       {
@@ -5179,9 +5600,9 @@
         "totalAscent": 1530,
         "minimumAltitude": 239,
         "maximumGradient": 15.0,
-        "difficulty": 670,
+        "difficulty": 1024,
         "averageGradient": 4.38,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/cevennes/france/mont-aigoual-depuis-le-vigan-via-le-col-de-la-lusette-c2207.htm"
       },
       {
@@ -5194,9 +5615,9 @@
         "totalAscent": 862,
         "minimumAltitude": 702,
         "maximumGradient": 8.3,
-        "difficulty": 287,
+        "difficulty": 447,
         "averageGradient": 3.32,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/cevennes/france/mont-aigoual-depuis-meyrueis-c152.htm"
       },
       {
@@ -5209,7 +5630,7 @@
         "totalAscent": 835,
         "minimumAltitude": 736,
         "maximumGradient": 8.3,
-        "difficulty": 420,
+        "difficulty": 529,
         "averageGradient": 5.03,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/cevennes/france/mont-aigoual-depuis-rousses-c151.htm"
@@ -5224,9 +5645,9 @@
         "totalAscent": 1115,
         "minimumAltitude": 446,
         "maximumGradient": 9.0,
-        "difficulty": 458,
+        "difficulty": 715,
         "averageGradient": 4.11,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/cevennes/france/mont-aigoual-depuis-saint-andre-de-valborgne-c671.htm"
       },
       {
@@ -5239,7 +5660,7 @@
         "totalAscent": 1225,
         "minimumAltitude": 361,
         "maximumGradient": 7.0,
-        "difficulty": 527,
+        "difficulty": 594,
         "averageGradient": 4.3,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/cevennes/france/mont-aigoual-depuis-valleraugue-c153.htm"
@@ -5266,9 +5687,9 @@
         "totalAscent": 1115,
         "minimumAltitude": 247,
         "maximumGradient": 11.5,
-        "difficulty": 745,
+        "difficulty": 908,
         "averageGradient": 6.68,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/cevennes/france/col-de-la-lusette-depuis-l-arboux-c669.htm"
       },
       {
@@ -5323,7 +5744,7 @@
         "totalAscent": 745,
         "minimumAltitude": 642,
         "maximumGradient": 7.3,
-        "difficulty": 309,
+        "difficulty": 426,
         "averageGradient": 4.14,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/livradois-forez/france/col-du-beal-depuis-job-c6.htm"
@@ -5338,7 +5759,7 @@
         "totalAscent": 578,
         "minimumAltitude": 814,
         "maximumGradient": 9.5,
-        "difficulty": 303,
+        "difficulty": 333,
         "averageGradient": 5.25,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/livradois-forez/france/col-du-beal-depuis-le-brugeron-c974.htm"
@@ -5353,7 +5774,7 @@
         "totalAscent": 975,
         "minimumAltitude": 402,
         "maximumGradient": 6.6,
-        "difficulty": 352,
+        "difficulty": 556,
         "averageGradient": 3.61,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/livradois-forez/france/col-du-beal-depuis-leigneux-c3.htm"
@@ -5368,9 +5789,9 @@
         "totalAscent": 896,
         "minimumAltitude": 496,
         "maximumGradient": 8.5,
-        "difficulty": 586,
+        "difficulty": 631,
         "averageGradient": 6.54,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/livradois-forez/france/col-du-beal-depuis-vertolaye-c892.htm"
       }
     ]
@@ -5395,7 +5816,7 @@
         "totalAscent": 292,
         "minimumAltitude": 937,
         "maximumGradient": 4.6,
-        "difficulty": 98,
+        "difficulty": 128,
         "averageGradient": 3.36,
         "category": "4",
         "sourceUrl": "https://www.cols-cyclisme.com/monts-du-cantal/france/col-de-neronne-depuis-salers-c345.htm"
@@ -5422,7 +5843,7 @@
         "totalAscent": 656,
         "minimumAltitude": 547,
         "maximumGradient": 8.5,
-        "difficulty": 310,
+        "difficulty": 358,
         "averageGradient": 4.72,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/massif-du-pilat/france/col-de-la-croix-de-chaubouret-depuis-bourg-argental-c1397.htm"
@@ -5437,7 +5858,7 @@
         "totalAscent": 839,
         "minimumAltitude": 402,
         "maximumGradient": 7.8,
-        "difficulty": 445,
+        "difficulty": 527,
         "averageGradient": 5.31,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/massif-du-pilat/france/col-de-la-croix-de-chaubouret-depuis-saint-chamond-c946.htm"
@@ -5452,7 +5873,7 @@
         "totalAscent": 611,
         "minimumAltitude": 617,
         "maximumGradient": 7.2,
-        "difficulty": 233,
+        "difficulty": 283,
         "averageGradient": 3.82,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/massif-du-pilat/france/col-de-la-croix-de-chaubouret-depuis-saint-etienne-c500.htm"
@@ -5521,7 +5942,7 @@
         "totalAscent": 719,
         "minimumAltitude": 703,
         "maximumGradient": 7.0,
-        "difficulty": 421,
+        "difficulty": 337,
         "averageGradient": 5.85,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/monts-du-vivarais/france/col-du-gerbier-de-jonc-depuis-la-chazotte-c2372.htm"
@@ -5551,7 +5972,7 @@
         "totalAscent": 177,
         "minimumAltitude": 1228,
         "maximumGradient": 8.0,
-        "difficulty": 63,
+        "difficulty": 118,
         "averageGradient": 3.54,
         "category": "4",
         "sourceUrl": "https://www.cols-cyclisme.com/monts-du-vivarais/france/col-du-gerbier-de-jonc-depuis-sainte-eulalie-c757.htm"
@@ -5578,7 +5999,7 @@
         "totalAscent": 298,
         "minimumAltitude": 484,
         "maximumGradient": 16.0,
-        "difficulty": 178,
+        "difficulty": 217,
         "averageGradient": 5.96,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/jura/france/col-de-berthiand-depuis-nurieux-volognat-c1456.htm"
@@ -5593,7 +6014,7 @@
         "totalAscent": 460,
         "minimumAltitude": 270,
         "maximumGradient": 15.0,
-        "difficulty": 353,
+        "difficulty": 411,
         "averageGradient": 7.67,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/jura/france/col-de-berthiand-depuis-serrieres-sur-ain-c665.htm"
@@ -5620,9 +6041,9 @@
         "totalAscent": 453,
         "minimumAltitude": 529,
         "maximumGradient": 5.8,
-        "difficulty": 81,
+        "difficulty": 200,
         "averageGradient": 1.78,
-        "category": "4",
+        "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/jura/france/col-de-la-savine-depuis-champagnole-c1756.htm"
       },
       {
@@ -5635,9 +6056,9 @@
         "totalAscent": 279,
         "minimumAltitude": 708,
         "maximumGradient": 5.9,
-        "difficulty": 122,
+        "difficulty": 182,
         "averageGradient": 4.36,
-        "category": "4",
+        "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/jura/france/col-de-la-savine-depuis-morez-c1755.htm"
       }
     ]
@@ -5662,7 +6083,7 @@
         "totalAscent": 496,
         "minimumAltitude": 915,
         "maximumGradient": 19.0,
-        "difficulty": 473,
+        "difficulty": 573,
         "averageGradient": 9.54,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/jura/france/le-mont-d-or-depuis-longevilles-mt-d-or-c1281.htm"
@@ -5689,9 +6110,9 @@
         "totalAscent": 1419,
         "minimumAltitude": 661,
         "maximumGradient": 10.4,
-        "difficulty": 941,
+        "difficulty": 1078,
         "averageGradient": 6.63,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/vanoise/france/station-de-la-plagne-2000-depuis-aime-c38.htm"
       }
     ]
@@ -5716,7 +6137,7 @@
         "totalAscent": 1145,
         "minimumAltitude": 550,
         "maximumGradient": 8.8,
-        "difficulty": 685,
+        "difficulty": 829,
         "averageGradient": 5.99,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/arves-et-grandes-rousses/france/station-de-la-toussuire-depuis-saint-jean-de-maurienne-c417.htm"
@@ -5731,7 +6152,7 @@
         "totalAscent": 1145,
         "minimumAltitude": 550,
         "maximumGradient": 8.8,
-        "difficulty": 749,
+        "difficulty": 882,
         "averageGradient": 6.54,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/arves-et-grandes-rousses/france/station-de-la-toussuire-depuis-saint-jean-de-maurienne-via-saint-pancrace-c416.htm"
@@ -5785,9 +6206,9 @@
         "totalAscent": 416,
         "minimumAltitude": 1226,
         "maximumGradient": 9.0,
-        "difficulty": 270,
+        "difficulty": 336,
         "averageGradient": 6.5,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/trois-eveches/france/station-de-pra-loup-depuis-uvernet-fours-d908-d109-c211.htm"
       }
     ]
@@ -5812,9 +6233,9 @@
         "totalAscent": 780,
         "minimumAltitude": 788,
         "maximumGradient": 8.3,
-        "difficulty": 344,
+        "difficulty": 618,
         "averageGradient": 4.41,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/ubaye/france/station-des-orres-depuis-embrun-c186.htm"
       }
     ]
@@ -5893,9 +6314,9 @@
         "totalAscent": 1390,
         "minimumAltitude": 695,
         "maximumGradient": 12.0,
-        "difficulty": 689,
+        "difficulty": 949,
         "averageGradient": 4.96,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/cirque-de-troumouse-depuis-luz-saint-sauveur-c1459.htm"
       }
     ]
@@ -5920,9 +6341,9 @@
         "totalAscent": 1341,
         "minimumAltitude": 800,
         "maximumGradient": 12.0,
-        "difficulty": 795,
+        "difficulty": 958,
         "averageGradient": 5.93,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/lac-de-cap-de-long-depuis-saint-lary-soulan-c311.htm"
       }
     ]

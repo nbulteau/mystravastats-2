@@ -68,6 +68,11 @@ const router: Router = createRouter({
       component: () => import('@/views/BadgesView.vue'),
     },
     {
+      path: '/badges/climbs/:variantId',
+      name: 'climb-detail',
+      component: () => import('@/views/ClimbDetailView.vue'),
+    },
+    {
       path: '/activities/:id',
       name: 'activity',
       component: () => import('@/views/DetailedActivityView.vue'),

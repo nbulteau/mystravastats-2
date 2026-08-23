@@ -100,6 +100,7 @@ internal class BadgesService(
                     start = alternative.geoCoordinate,
                     end = famousClimb.geoCoordinate,
                     routeCheckpoints = alternative.routeCheckpoints,
+                    summitToleranceMeters = alternative.summitToleranceMeters,
                     difficulty = alternative.difficulty,
                     category = normalizeClimbCategory(alternative.category, alternative.difficulty),
                     length = alternative.length,
@@ -158,7 +159,7 @@ internal class BadgesService(
         }
 
         return when {
-            difficulty >= 1000 -> "HC"
+            difficulty >= 900 -> "HC"
             difficulty >= 600 -> "1"
             difficulty >= 300 -> "2"
             difficulty >= 150 -> "3"

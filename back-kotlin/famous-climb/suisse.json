@@ -34,7 +34,7 @@
         "totalAscent": 629,
         "minimumAltitude": 1692,
         "maximumGradient": 9.4,
-        "difficulty": 416,
+        "difficulty": 559,
         "averageGradient": 6.62,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-rhetiques/suisse/albulapass-depuis-la-punt-c366.htm"
@@ -61,9 +61,9 @@
         "totalAscent": 1177,
         "minimumAltitude": 239,
         "maximumGradient": 10.5,
-        "difficulty": 642,
+        "difficulty": 978,
         "averageGradient": 5.45,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-lepontines/suisse/alpe-di-neggia-depuis-maccagno-c3359.htm"
       },
       {
@@ -76,7 +76,7 @@
         "totalAscent": 1187,
         "minimumAltitude": 214,
         "maximumGradient": 11.3,
-        "difficulty": 1127,
+        "difficulty": 1181,
         "averageGradient": 9.5,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-lepontines/suisse/alpe-di-neggia-depuis-vira-gambarogno-c3358.htm"
@@ -103,9 +103,9 @@
         "totalAscent": 1028,
         "minimumAltitude": 420,
         "maximumGradient": 7.5,
-        "difficulty": 563,
+        "difficulty": 702,
         "averageGradient": 5.47,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-bernoises/suisse/col-des-mosses-depuis-aigle-c180.htm"
       },
       {
@@ -118,9 +118,9 @@
         "totalAscent": 562,
         "minimumAltitude": 895,
         "maximumGradient": 7.3,
-        "difficulty": 230,
+        "difficulty": 371,
         "averageGradient": 4.1,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-bernoises/suisse/col-des-mosses-depuis-les-moulins-c1927.htm"
       }
     ]
@@ -157,7 +157,7 @@
         "totalAscent": 1878,
         "minimumAltitude": 595,
         "maximumGradient": 8.3,
-        "difficulty": 1103,
+        "difficulty": 1164,
         "averageGradient": 5.87,
         "category": "HC"
       }
@@ -183,9 +183,9 @@
         "totalAscent": 1129,
         "minimumAltitude": 419,
         "maximumGradient": 9.7,
-        "difficulty": 565,
+        "difficulty": 750,
         "averageGradient": 5,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-bernoises/suisse/col-du-pillon-depuis-aigle-c1251.htm"
       },
       {
@@ -225,7 +225,7 @@
         "totalAscent": 1340,
         "minimumAltitude": 841,
         "maximumGradient": 11,
-        "difficulty": 1160,
+        "difficulty": 1197,
         "averageGradient": 8.65,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-valaisannes/suisse/croix-de-coeur-depuis-le-chable-c1926.htm"
@@ -267,9 +267,9 @@
         "totalAscent": 829,
         "minimumAltitude": 1544,
         "maximumGradient": 8,
-        "difficulty": 529,
+        "difficulty": 601,
         "averageGradient": 6.38,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-rhetiques/suisse/fluelapass-depuis-davos-c372.htm"
       },
       {
@@ -282,7 +282,7 @@
         "totalAscent": 957,
         "minimumAltitude": 1430,
         "maximumGradient": 10,
-        "difficulty": 704,
+        "difficulty": 805,
         "averageGradient": 7.36,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-rhetiques/suisse/fluelapass-depuis-susch-c369.htm"
@@ -309,7 +309,7 @@
         "totalAscent": 1063,
         "minimumAltitude": 1376,
         "maximumGradient": 8.9,
-        "difficulty": 684,
+        "difficulty": 761,
         "averageGradient": 6.44,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/saint-gothard/suisse/furkapass-depuis-oberwald-c469.htm"
@@ -324,7 +324,7 @@
         "totalAscent": 893,
         "minimumAltitude": 1544,
         "maximumGradient": 11.3,
-        "difficulty": 648,
+        "difficulty": 722,
         "averageGradient": 7.26,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/saint-gothard/suisse/furkapass-depuis-realp-c470.htm"
@@ -492,9 +492,9 @@
         "totalAscent": 1540,
         "minimumAltitude": 629,
         "maximumGradient": 10,
-        "difficulty": 911,
+        "difficulty": 1065,
         "averageGradient": 5.92,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/saint-gothard/suisse/grimselpass-depuis-innertkirchen-c1248.htm"
       },
       {
@@ -507,7 +507,7 @@
         "totalAscent": 797,
         "minimumAltitude": 1376,
         "maximumGradient": 10,
-        "difficulty": 525,
+        "difficulty": 591,
         "averageGradient": 6.59,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/saint-gothard/suisse/grimselpass-depuis-oberwald-c1902.htm"
@@ -534,9 +534,9 @@
         "totalAscent": 905,
         "minimumAltitude": 1036,
         "maximumGradient": 16,
-        "difficulty": 819,
+        "difficulty": 928,
         "averageGradient": 9.05,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-bernoises/suisse/grosse-scheidegg-depuis-grindelwald-c1239.htm"
       },
       {
@@ -549,9 +549,9 @@
         "totalAscent": 1262,
         "minimumAltitude": 754,
         "maximumGradient": 17,
-        "difficulty": 972,
+        "difficulty": 1180,
         "averageGradient": 7.7,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-bernoises/suisse/grosse-scheidegg-depuis-meiringen-c1240.htm"
       }
     ]
@@ -576,7 +576,7 @@
         "totalAscent": 469,
         "minimumAltitude": 1799,
         "maximumGradient": 11.8,
-        "difficulty": 314,
+        "difficulty": 353,
         "averageGradient": 6.7,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/bernina/suisse/julierpass-depuis-silvaplana-c367.htm"
@@ -591,9 +591,9 @@
         "totalAscent": 1148,
         "minimumAltitude": 857,
         "maximumGradient": 10.9,
-        "difficulty": 340,
+        "difficulty": 1056,
         "averageGradient": 2.97,
-        "category": "2",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/bernina/suisse/julierpass-depuis-tiefencastel-c368.htm"
       }
     ]
@@ -618,9 +618,9 @@
         "totalAscent": 1497,
         "minimumAltitude": 491,
         "maximumGradient": 9.5,
-        "difficulty": 912,
+        "difficulty": 1151,
         "averageGradient": 6.09,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-glaronaises/suisse/klausenpass-depuis-altdorf-c1720.htm"
       },
       {
@@ -633,9 +633,9 @@
         "totalAscent": 1300,
         "minimumAltitude": 660,
         "maximumGradient": 9,
-        "difficulty": 734,
+        "difficulty": 902,
         "averageGradient": 5.65,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-glaronaises/suisse/klausenpass-depuis-linthal-c1721.htm"
       }
     ]
@@ -660,7 +660,7 @@
         "totalAscent": 1335,
         "minimumAltitude": 700,
         "maximumGradient": 10,
-        "difficulty": 1019,
+        "difficulty": 998,
         "averageGradient": 7.63,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-valaisannes/suisse/moosalp-depuis-ackersand-c1969.htm"
@@ -675,9 +675,9 @@
         "totalAscent": 1394,
         "minimumAltitude": 672,
         "maximumGradient": 10,
-        "difficulty": 981,
+        "difficulty": 1231,
         "averageGradient": 7.04,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-valaisannes/suisse/moosalp-depuis-visp-c1974.htm"
       }
     ]
@@ -702,9 +702,9 @@
         "totalAscent": 1139,
         "minimumAltitude": 1157,
         "maximumGradient": 9.8,
-        "difficulty": 539,
+        "difficulty": 973,
         "averageGradient": 4.73,
-        "category": "2",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-lepontines/suisse/nufenenpass-depuis-airolo-c468.htm"
       },
       {
@@ -717,9 +717,9 @@
         "totalAscent": 1132,
         "minimumAltitude": 1348,
         "maximumGradient": 10.5,
-        "difficulty": 963,
+        "difficulty": 1028,
         "averageGradient": 8.51,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-lepontines/suisse/nufenenpass-depuis-ulrichen-c467.htm"
       }
     ]
@@ -744,7 +744,7 @@
         "totalAscent": 901,
         "minimumAltitude": 1207,
         "maximumGradient": 10.4,
-        "difficulty": 399,
+        "difficulty": 533,
         "averageGradient": 4.42,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/saint-gothard/suisse/oberalppass-depuis-disentis-c2269.htm"
@@ -759,9 +759,9 @@
         "totalAscent": 942,
         "minimumAltitude": 1108,
         "maximumGradient": 10,
-        "difficulty": 551,
+        "difficulty": 668,
         "averageGradient": 5.85,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/saint-gothard/suisse/oberalppass-depuis-goschenen-c2268.htm"
       }
     ]
@@ -801,7 +801,7 @@
         "totalAscent": 607,
         "minimumAltitude": 1708,
         "maximumGradient": 7.6,
-        "difficulty": 181,
+        "difficulty": 275,
         "averageGradient": 2.98,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/bernina/suisse/passo-del-bernina-depuis-samedan-c362.htm"
@@ -828,9 +828,9 @@
         "totalAscent": 839,
         "minimumAltitude": 1137,
         "maximumGradient": 10.3,
-        "difficulty": 391,
+        "difficulty": 604,
         "averageGradient": 4.66,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-lepontines/suisse/passo-del-lucomagno-depuis-disentis-c2486.htm"
       },
       {
@@ -843,9 +843,9 @@
         "totalAscent": 1060,
         "minimumAltitude": 893,
         "maximumGradient": 8,
-        "difficulty": 557,
+        "difficulty": 643,
         "averageGradient": 5.25,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-lepontines/suisse/passo-del-lucomagno-depuis-olivone-c2487.htm"
       }
     ]
@@ -870,7 +870,7 @@
         "totalAscent": 453,
         "minimumAltitude": 1615,
         "maximumGradient": 6.2,
-        "difficulty": 233,
+        "difficulty": 287,
         "averageGradient": 5.15,
         "category": "3",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-lepontines/suisse/passo-del-san-bernardino-depuis-hinterrhein-c2636.htm"
@@ -885,9 +885,9 @@
         "totalAscent": 1645,
         "minimumAltitude": 425,
         "maximumGradient": 9.7,
-        "difficulty": 866,
+        "difficulty": 1305,
         "averageGradient": 5.26,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-lepontines/suisse/passo-del-san-bernardino-depuis-lostallo-c2635.htm"
       }
     ]
@@ -912,9 +912,9 @@
         "totalAscent": 1600,
         "minimumAltitude": 654,
         "maximumGradient": 10,
-        "difficulty": 884,
+        "difficulty": 1072,
         "averageGradient": 5.52,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/saint-gothard/suisse/sustenpass-depuis-innertkirchen-c1253.htm"
       },
       {
@@ -927,9 +927,9 @@
         "totalAscent": 1308,
         "minimumAltitude": 894,
         "maximumGradient": 10,
-        "difficulty": 984,
+        "difficulty": 1004,
         "averageGradient": 7.52,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/saint-gothard/suisse/sustenpass-depuis-wassen-c1901.htm"
       }
     ]
@@ -954,7 +954,7 @@
         "totalAscent": 717,
         "minimumAltitude": 699,
         "maximumGradient": 8.3,
-        "difficulty": 514,
+        "difficulty": 543,
         "averageGradient": 7.17,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/jura/suisse/col-du-marchairuz-depuis-biere-c676.htm"
@@ -969,7 +969,7 @@
         "totalAscent": 724,
         "minimumAltitude": 735,
         "maximumGradient": 7.3,
-        "difficulty": 423,
+        "difficulty": 470,
         "averageGradient": 5.84,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/jura/suisse/col-du-marchairuz-depuis-gimel-c1760.htm"
@@ -984,12 +984,11 @@
         "totalAscent": 411,
         "minimumAltitude": 1057,
         "maximumGradient": 11,
-        "difficulty": 241,
+        "difficulty": 336,
         "averageGradient": 5.87,
-        "category": "3",
+        "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/jura/suisse/col-du-marchairuz-depuis-le-brassus-c1761.htm"
       }
     ]
   }
 ]
-

@@ -8,6 +8,7 @@ import (
 	"mystravastats/domain/statistics"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -1408,10 +1409,10 @@ type famousClimbBounds struct {
 }
 
 func buildClimbDetailsDto(badge badges.FamousClimbBadge, activities []*strava.Activity) *ClimbDetailsDto {
-	ascentCount := 0
 	var bestAscent *ClimbAscentDto
 	var profileActivity *strava.Activity
 	var profileBounds famousClimbBounds
+	ascents := make([]ClimbAscentDto, 0, len(activities))
 
 	for _, activity := range activities {
 		if activity == nil {
@@ -1421,17 +1422,12 @@ func buildClimbDetailsDto(badge badges.FamousClimbBadge, activities []*strava.Ac
 		if !matched {
 			continue
 		}
-		ascentCount++
-
 		duration := famousClimbDurationSeconds(activity, bounds)
 		if duration <= 0 {
 			duration = activity.MovingTime
 		}
-		candidate := ClimbAscentDto{
-			ActivityID:      activity.Id,
-			Date:            activity.StartDateLocal,
-			DurationSeconds: duration,
-		}
+		candidate := buildClimbAscentDto(activity, bounds, badge, duration)
+		ascents = append(ascents, candidate)
 
 		if profileActivity == nil {
 			profileActivity = activity
@@ -1443,6 +1439,12 @@ func buildClimbDetailsDto(badge badges.FamousClimbBadge, activities []*strava.Ac
 			profileBounds = bounds
 		}
 	}
+	sort.SliceStable(ascents, func(left, right int) bool {
+		if ascents[left].Date != ascents[right].Date {
+			return ascents[left].Date > ascents[right].Date
+		}
+		return ascents[left].ActivityID > ascents[right].ActivityID
+	})
 
 	profile := make([]ClimbProfilePointDto, 0)
 	var maximumGradient *float64
@@ -1479,9 +1481,81 @@ func buildClimbDetailsDto(badge badges.FamousClimbBadge, activities []*strava.Ac
 		AverageGradient:  badge.AverageGradient,
 		MaximumGradient:  maximumGradient,
 		Profile:          profile,
-		AscentCount:      ascentCount,
+		AscentCount:      len(ascents),
 		BestAscent:       bestAscent,
+		Ascents:          ascents,
 	}
+}
+
+func buildClimbAscentDto(activity *strava.Activity, bounds famousClimbBounds, badge badges.FamousClimbBadge, duration int) ClimbAscentDto {
+	ascent := ClimbAscentDto{
+		ActivityID:      activity.Id,
+		ActivityName:    activity.Name,
+		Date:            activity.StartDateLocal,
+		DurationSeconds: duration,
+	}
+	if duration > 0 {
+		if badge.TotalAscent > 0 {
+			vam := int(math.Round(float64(badge.TotalAscent) * 3600 / float64(duration)))
+			ascent.VAMMetersPerHour = &vam
+		}
+		distanceMeters := badge.Length * 1000
+		if stream := activity.Stream; stream != nil && bounds.startIndex >= 0 && bounds.endIndex < len(stream.Distance.Data) {
+			candidateDistance := stream.Distance.Data[bounds.endIndex] - stream.Distance.Data[bounds.startIndex]
+			if isFiniteNumber(candidateDistance) && candidateDistance > 0 {
+				distanceMeters = candidateDistance
+			}
+		}
+		if isFiniteNumber(distanceMeters) && distanceMeters > 0 {
+			speed := math.Round((distanceMeters/float64(duration)*3.6)*10) / 10
+			ascent.AverageSpeedKph = &speed
+		}
+	}
+	if activity.Stream != nil {
+		ascent.AveragePowerWatts = averagePositiveFloatRange(activity.Stream.Watts, bounds)
+		ascent.AverageHeartRateBpm = averagePositiveIntRange(activity.Stream.HeartRate, bounds)
+	}
+	return ascent
+}
+
+func averagePositiveFloatRange(stream *strava.PowerStream, bounds famousClimbBounds) *int {
+	if stream == nil || bounds.startIndex < 0 || bounds.endIndex < bounds.startIndex || bounds.startIndex >= len(stream.Data) {
+		return nil
+	}
+	endIndex := min(bounds.endIndex, len(stream.Data)-1)
+	total := 0.0
+	count := 0
+	for _, value := range stream.Data[bounds.startIndex : endIndex+1] {
+		if isFiniteNumber(value) && value > 0 {
+			total += value
+			count++
+		}
+	}
+	if count == 0 {
+		return nil
+	}
+	average := int(math.Round(total / float64(count)))
+	return &average
+}
+
+func averagePositiveIntRange(stream *strava.HeartRateStream, bounds famousClimbBounds) *int {
+	if stream == nil || bounds.startIndex < 0 || bounds.endIndex < bounds.startIndex || bounds.startIndex >= len(stream.Data) {
+		return nil
+	}
+	endIndex := min(bounds.endIndex, len(stream.Data)-1)
+	total := 0
+	count := 0
+	for _, value := range stream.Data[bounds.startIndex : endIndex+1] {
+		if value > 0 {
+			total += value
+			count++
+		}
+	}
+	if count == 0 {
+		return nil
+	}
+	average := int(math.Round(float64(total) / float64(count)))
+	return &average
 }
 
 func betterClimbAscent(candidate ClimbAscentDto, current *ClimbAscentDto) bool {
@@ -1509,6 +1583,10 @@ func findFamousClimbBounds(activity *strava.Activity, badge badges.FamousClimbBa
 	bestLengthDelta := math.Inf(1)
 	scoredCandidate := false
 	referenceLengthMeters := badge.Length * 1000
+	summitToleranceMeters := climbWaypointToleranceInM
+	if badge.SummitToleranceMeters > 0 {
+		summitToleranceMeters = float64(badge.SummitToleranceMeters)
+	}
 	lengthToleranceMeters := math.Max(climbLengthToleranceMinimumMeters, referenceLengthMeters*climbLengthToleranceRatio)
 
 	for index, coords := range activity.Stream.LatLng.Data {
@@ -1518,7 +1596,7 @@ func findFamousClimbBounds(activity *strava.Activity, badge badges.FamousClimbBa
 		if badge.Start.HaversineInM(coords[0], coords[1]) < climbWaypointToleranceInM {
 			startIndices = append(startIndices, index)
 		}
-		if badge.End.HaversineInM(coords[0], coords[1]) >= climbWaypointToleranceInM {
+		if float64(badge.End.HaversineInM(coords[0], coords[1])) >= summitToleranceMeters {
 			continue
 		}
 

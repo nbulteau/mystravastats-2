@@ -431,6 +431,12 @@ defineExpose({ focusSummit });
               <span v-else>No personal ascent in {{ yearLabel.toLowerCase() }}</span>
             </div>
             <div class="climb-variant-actions">
+              <RouterLink
+                class="btn btn-sm btn-primary"
+                :to="{ name: 'climb-detail', params: { variantId: variant.id } }"
+              >
+                Detailed sheet
+              </RouterLink>
               <button type="button" class="btn btn-sm btn-primary" @click="emit('open-climb-log', variant.id)">
                 Open in climb log
               </button>

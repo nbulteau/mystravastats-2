@@ -53,6 +53,7 @@ data class ClimbDetailsDto(
     val profile: List<ClimbProfilePointDto>,
     val ascentCount: Int,
     val bestAscent: ClimbAscentDto? = null,
+    val ascents: List<ClimbAscentDto> = emptyList(),
 )
 
 data class ClimbCoordinateDto(
@@ -67,8 +68,13 @@ data class ClimbProfilePointDto(
 
 data class ClimbAscentDto(
     val activityId: Long,
+    val activityName: String,
     val date: String,
     val durationSeconds: Int,
+    val vamMetersPerHour: Int? = null,
+    val averageSpeedKph: Double? = null,
+    val averagePowerWatts: Int? = null,
+    val averageHeartRateBpm: Int? = null,
 )
 
 private const val CLIMB_PROFILE_POINT_LIMIT = 64
@@ -88,21 +94,17 @@ private fun buildClimbDetailsDto(
     badge: FamousClimbBadge,
     activities: List<StravaActivity>,
 ): ClimbDetailsDto {
-    var ascentCount = 0
     var bestAscent: ClimbAscentDto? = null
     var profileActivity: StravaActivity? = null
     var profileBounds: FamousClimbBounds? = null
+    val ascents = mutableListOf<ClimbAscentDto>()
 
     activities.forEach { activity ->
         val bounds = findFamousClimbBounds(activity, badge) ?: return@forEach
-        ascentCount++
         val detectedDuration = famousClimbDurationSeconds(activity, bounds)
         val duration = detectedDuration.takeIf { it > 0 } ?: activity.movingTime
-        val candidate = ClimbAscentDto(
-            activityId = activity.id,
-            date = activity.startDateLocal,
-            durationSeconds = duration,
-        )
+        val candidate = buildClimbAscentDto(activity, bounds, badge, duration)
+        ascents += candidate
 
         if (profileActivity == null) {
             profileActivity = activity
@@ -148,9 +150,58 @@ private fun buildClimbDetailsDto(
         averageGradient = badge.averageGradient,
         maximumGradient = maximumGradient,
         profile = profile,
-        ascentCount = ascentCount,
+        ascentCount = ascents.size,
         bestAscent = bestAscent,
+        ascents = ascents.sortedWith(compareByDescending<ClimbAscentDto> { it.date }.thenByDescending { it.activityId }),
     )
+}
+
+private fun buildClimbAscentDto(
+    activity: StravaActivity,
+    bounds: FamousClimbBounds,
+    badge: FamousClimbBadge,
+    duration: Int,
+): ClimbAscentDto {
+    val stream = activity.stream
+    val catalogueDistanceMeters = badge.length * 1000.0
+    val detectedDistanceMeters = stream?.distance?.data?.let { distances ->
+        if (bounds.startIndex >= 0 && bounds.endIndex < distances.size) {
+            (distances[bounds.endIndex] - distances[bounds.startIndex]).takeIf { it.isUsable() && it > 0.0 }
+        } else {
+            null
+        }
+    }
+    val distanceMeters = detectedDistanceMeters ?: catalogueDistanceMeters
+    val vam = if (duration > 0 && badge.totalAscent > 0) {
+        round(badge.totalAscent.toDouble() * 3600.0 / duration).toInt()
+    } else {
+        null
+    }
+    val speed = if (duration > 0 && distanceMeters.isUsable() && distanceMeters > 0.0) {
+        round((distanceMeters / duration * 3.6) * 10.0) / 10.0
+    } else {
+        null
+    }
+
+    return ClimbAscentDto(
+        activityId = activity.id,
+        activityName = activity.name,
+        date = activity.startDateLocal,
+        durationSeconds = duration,
+        vamMetersPerHour = vam,
+        averageSpeedKph = speed,
+        averagePowerWatts = averagePositiveValues(stream?.watts?.data, bounds),
+        averageHeartRateBpm = averagePositiveValues(stream?.heartrate?.data, bounds),
+    )
+}
+
+private fun averagePositiveValues(values: List<Int?>?, bounds: FamousClimbBounds): Int? {
+    if (values == null || bounds.startIndex < 0 || bounds.endIndex < bounds.startIndex || bounds.startIndex >= values.size) {
+        return null
+    }
+    val endIndex = minOf(bounds.endIndex, values.lastIndex)
+    val samples = values.subList(bounds.startIndex, endIndex + 1).filterNotNull().filter { it > 0 }
+    return samples.takeIf { it.isNotEmpty() }?.average()?.let { round(it).toInt() }
 }
 
 private fun betterClimbAscent(candidate: ClimbAscentDto, current: ClimbAscentDto?): Boolean {
@@ -175,6 +226,9 @@ private fun findFamousClimbBounds(
     var bestLengthDelta = Double.POSITIVE_INFINITY
     var scoredCandidate = false
     val referenceLengthMeters = badge.length * 1000.0
+    val summitToleranceMeters = badge.summitToleranceMeters
+        .takeIf { it > 0 }
+        ?: CLIMB_WAYPOINT_TOLERANCE_METERS
     val lengthToleranceMeters = maxOf(
         CLIMB_LENGTH_TOLERANCE_MINIMUM_METERS,
         referenceLengthMeters * CLIMB_LENGTH_TOLERANCE_RATIO,
@@ -187,7 +241,7 @@ private fun findFamousClimbBounds(
         if (badge.start.haversineInM(coords[0], coords[1]) < CLIMB_WAYPOINT_TOLERANCE_METERS) {
             startIndices += index
         }
-        if (badge.end.haversineInM(coords[0], coords[1]) >= CLIMB_WAYPOINT_TOLERANCE_METERS) {
+        if (badge.end.haversineInM(coords[0], coords[1]) >= summitToleranceMeters) {
             return@forEachIndexed
         }
 

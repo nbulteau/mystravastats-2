@@ -120,8 +120,8 @@ class BadgesServiceTest {
         val results = badgesService.getFamousBadges(activityTypes, null)
         val climbs = results.map { it.badge as FamousClimbBadge }
 
-        assertEquals(567, climbs.size)
-        assertEquals(mapOf("FR" to 317, "CH" to 48, "IT" to 78, "ES" to 124), climbs.groupingBy { it.country }.eachCount())
+        assertEquals(568, climbs.size)
+        assertEquals(mapOf("FR" to 318, "CH" to 48, "IT" to 78, "ES" to 124), climbs.groupingBy { it.country }.eachCount())
         assertTrue(climbs.all { it.massif.isNotBlank() })
         assertEquals(climbs.size, climbs.map { it.label }.distinct().size)
         climbs.forEach { climb ->
@@ -141,6 +141,7 @@ class BadgesServiceTest {
                 "Maximum gradient is below average gradient for ${climb.label}",
             )
             assertTrue(climb.category in setOf("HC", "1", "2", "3", "4"), "Invalid category for ${climb.label}")
+            assertTrue(climb.summitToleranceMeters in 0..500, "Invalid summit tolerance for ${climb.label}")
             assertTrue(climb.start.latitude in -90.0..90.0 && climb.start.longitude in -180.0..180.0, "Invalid start for ${climb.label}")
             assertTrue(climb.end.latitude in -90.0..90.0 && climb.end.longitude in -180.0..180.0, "Invalid end for ${climb.label}")
             assertTrue(
@@ -159,7 +160,16 @@ class BadgesServiceTest {
         assertEquals(29, climbs.count { it.massif == "Corse" })
         val alpeDHuez = climbs.single { it.label == "Alpe d'Huez from Le Bourg-d'Oisans" }
         assertEquals("HC", alpeDHuez.category)
-        assertEquals(994, alpeDHuez.difficulty)
+        assertEquals(979, alpeDHuez.difficulty)
+        val croixDeFerAllemond = climbs.single {
+            it.label == "Col de la Croix-de-Fer from Allemond (Barrage du Verney)"
+        }
+        assertEquals("HC", croixDeFerAllemond.category)
+        assertEquals(1092, croixDeFerAllemond.difficulty)
+        assertEquals(
+            100,
+            climbs.single { it.label == "Col du Glandon from Allemond (Barrage du Verney)" }.summitToleranceMeters,
+        )
         assertEquals(
             1,
             climbs.single { it.label == "Col de la Madeleine from La Chambre, par la D213" }.routeCheckpoints.size,

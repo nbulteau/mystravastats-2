@@ -55,12 +55,10 @@ if ($LASTEXITCODE -ne 0) {
 $ErrorActionPreference = $previousErrorActionPreference
 
 if ($SkipFrontBuild -ne "1") {
-    # Clean the front-vue directory
-    Write-VerboseOutput "[FRONT] Cleaning front-vue directory..."
-    if (Test-Path -Path (Join-Path $FrontDir "node_modules")) {
-        Remove-Item -Recurse -Force (Join-Path $FrontDir "node_modules")
-        Write-VerboseOutput "[CLEAN] Removed node_modules directory."
-    }
+    # npm ci removes node_modules itself. Let it do so from inside the Linux
+    # build container, which also avoids Windows Remove-Item failures on deeply
+    # nested dependency paths.
+    Write-VerboseOutput "[FRONT] node_modules will be replaced by npm ci inside the build container."
 
     # Build the UI project using Docker
     Write-VerboseOutput "[FRONT] Building front-vue project..."

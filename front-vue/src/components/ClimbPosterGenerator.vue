@@ -9,6 +9,10 @@ import {
   type ClimbPosterDesign,
   type ClimbPosterEntry,
 } from "@/utils/climb-poster";
+import {
+  orderClimbsForPoster,
+  type ClimbSelectionOrder,
+} from "@/utils/climb-poster-selection";
 
 const props = defineProps<{
   climbs: BadgeCheckResult[];
@@ -20,6 +24,7 @@ const dialogRef = ref<HTMLDialogElement | null>(null);
 const previewRef = ref<HTMLElement | null>(null);
 const selectedDesign = ref<ClimbPosterDesign>("altitude");
 const selectedClimbLabels = ref<string[]>([]);
+const climbSelectionOrder = ref<ClimbSelectionOrder>("hardest");
 const generatedSvg = ref("");
 const generationError = ref("");
 
@@ -33,6 +38,9 @@ const selectedDesignDefinition = computed(() => (
   CLIMB_POSTER_DESIGNS.find((design) => design.id === selectedDesign.value) ?? CLIMB_POSTER_DESIGNS[0]
 ));
 const selectionLimit = computed(() => posterDesignMaxClimbs(selectedDesign.value));
+const displayedClimbs = computed(() => (
+  orderClimbsForPoster(availableClimbs.value, climbSelectionOrder.value)
+));
 const selectedClimbs = computed(() => {
   const climbsByLabel = new Map(availableClimbs.value.map((result) => [result.badge.label, result]));
   return selectedClimbLabels.value
@@ -62,24 +70,16 @@ function openGenerator() {
 }
 
 function selectHardest() {
-  selectBy((left, right) => (
-    (right.climbDetails?.difficulty ?? 0) - (left.climbDetails?.difficulty ?? 0) ||
-    (right.climbDetails?.lengthKm ?? 0) - (left.climbDetails?.lengthKm ?? 0) ||
-    left.badge.label.localeCompare(right.badge.label)
-  ));
+  selectBy("hardest");
 }
 
 function selectLongest() {
-  selectBy((left, right) => (
-    (right.climbDetails?.lengthKm ?? 0) - (left.climbDetails?.lengthKm ?? 0) ||
-    (right.climbDetails?.difficulty ?? 0) - (left.climbDetails?.difficulty ?? 0) ||
-    left.badge.label.localeCompare(right.badge.label)
-  ));
+  selectBy("longest");
 }
 
-function selectBy(compare: (left: BadgeCheckResult, right: BadgeCheckResult) => number) {
-  selectedClimbLabels.value = [...availableClimbs.value]
-    .sort(compare)
+function selectBy(order: ClimbSelectionOrder) {
+  climbSelectionOrder.value = order;
+  selectedClimbLabels.value = orderClimbsForPoster(availableClimbs.value, order)
     .slice(0, selectionLimit.value)
     .map((result) => result.badge.label);
   invalidateGeneratedPoster();
@@ -225,17 +225,29 @@ function slugify(value: string): string {
             </div>
           </div>
           <div class="poster-selection-actions">
-            <button type="button" class="btn btn-sm btn-outline-secondary" @click="selectHardest">
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary"
+              :class="{ active: climbSelectionOrder === 'hardest' }"
+              :aria-pressed="climbSelectionOrder === 'hardest'"
+              @click="selectHardest"
+            >
               Select hardest {{ selectionLimit }}
             </button>
-            <button type="button" class="btn btn-sm btn-outline-secondary" @click="selectLongest">
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary"
+              :class="{ active: climbSelectionOrder === 'longest' }"
+              :aria-pressed="climbSelectionOrder === 'longest'"
+              @click="selectLongest"
+            >
               Select longest {{ selectionLimit }}
             </button>
           </div>
         </div>
         <div class="poster-climb-grid">
           <label
-            v-for="result in availableClimbs"
+            v-for="result in displayedClimbs"
             :key="result.badge.label"
             class="poster-climb-choice"
             :class="{ 'poster-climb-choice--selected': selectedClimbLabels.includes(result.badge.label) }"

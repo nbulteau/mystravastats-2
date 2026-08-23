@@ -14,7 +14,7 @@ func TestNationalFamousClimbCatalogs(t *testing.T) {
 		expectedSides int
 		requireSource bool
 	}{
-		{name: "france", country: "FR", expectedSides: 317},
+		{name: "france", country: "FR", expectedSides: 318},
 		{name: "suisse", country: "CH", expectedSides: 48},
 		{name: "italie", country: "IT", expectedSides: 78, requireSource: true},
 		{name: "espagne", country: "ES", expectedSides: 124, requireSource: true},
@@ -56,6 +56,9 @@ func TestNationalFamousClimbCatalogs(t *testing.T) {
 				if climb.MinimumAltitude < 0 || climb.MaximumGradient < 0 || climb.MaximumGradient > 30 {
 					t.Fatalf("invalid optional climb metrics for %q", climb.Label)
 				}
+				if climb.SummitToleranceMeters < 0 || climb.SummitToleranceMeters > 500 {
+					t.Fatalf("invalid summit tolerance for %q", climb.Label)
+				}
 				if climb.MaximumGradient > 0 && climb.MaximumGradient+0.1 < climb.AverageGradient {
 					t.Fatalf("maximum gradient is below average gradient for %q", climb.Label)
 				}
@@ -93,10 +96,41 @@ func TestNationalFamousClimbCatalogs(t *testing.T) {
 				}
 				assertMadeleineVariantCheckpoint(t, badgeSet, "Col de la Madeleine from La Chambre, par la D213")
 				assertMadeleineVariantCheckpoint(t, badgeSet, "Col de la Madeleine from La Chambre, via Montgellafrey")
-				assertClimbClassification(t, badgeSet, "Alpe d'Huez from Le Bourg-d'Oisans", "HC", 994)
+				assertClimbClassification(t, badgeSet, "Alpe d'Huez from Le Bourg-d'Oisans", "HC", 979)
+				assertClimbClassification(t, badgeSet, "Col de la Croix-de-Fer from Allemond (Barrage du Verney)", "HC", 1092)
+				assertClimbSummitTolerance(t, badgeSet, "Col du Glandon from Allemond (Barrage du Verney)", 100)
+				assertClimbStart(t, badgeSet, "Col des Saisies from Flumet (D1212 / D218B), via Crest-Voland", 45.82128, 6.53094)
 			}
 		})
 	}
+}
+
+func assertClimbStart(t *testing.T, badgeSet badges.BadgeSet, label string, latitude, longitude float64) {
+	t.Helper()
+	for _, badge := range badgeSet.Badges {
+		climb, ok := badge.(badges.FamousClimbBadge)
+		if ok && climb.Label == label {
+			if climb.Start.Latitude != latitude || climb.Start.Longitude != longitude {
+				t.Fatalf("expected %q to start at %.5f, %.5f, got %.5f, %.5f", label, latitude, longitude, climb.Start.Latitude, climb.Start.Longitude)
+			}
+			return
+		}
+	}
+	t.Fatalf("missing climb alternative %q", label)
+}
+
+func assertClimbSummitTolerance(t *testing.T, badgeSet badges.BadgeSet, label string, toleranceMeters int) {
+	t.Helper()
+	for _, badge := range badgeSet.Badges {
+		climb, ok := badge.(badges.FamousClimbBadge)
+		if ok && climb.Label == label {
+			if climb.SummitToleranceMeters != toleranceMeters {
+				t.Fatalf("expected %q to use a %d m summit tolerance, got %d", label, toleranceMeters, climb.SummitToleranceMeters)
+			}
+			return
+		}
+	}
+	t.Fatalf("missing climb alternative %q", label)
 }
 
 func validClimbCategory(category string) bool {

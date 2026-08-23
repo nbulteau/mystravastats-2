@@ -76,6 +76,51 @@ class FamousClimbBadgeTest {
     }
 
     @Test
+    fun `check uses tighter summit tolerance for Glandon from Allemond`() {
+        val start = GeoCoordinate(latitude = 45.12809, longitude = 6.0456)
+        val glandon = GeoCoordinate(latitude = 45.2396101, longitude = 6.1754635)
+        val badge = FamousClimbBadge(
+            label = "Col du Glandon from Allemond (Barrage du Verney)",
+            name = "Col du Glandon",
+            topOfTheAscent = 1924,
+            start = start,
+            end = glandon,
+            summitToleranceMeters = 100,
+            length = 25.2,
+            totalAscent = 1152,
+            averageGradient = 4.57,
+            difficulty = 1065,
+            category = "HC",
+        )
+        val passesOnlyOnCroixDeFerRoad = buildRideActivity(
+            startLatLng = listOf(start.latitude, start.longitude),
+            streamPoints = listOf(
+                listOf(start.latitude, start.longitude),
+                listOf(45.238498, 6.175907), // 128 m away, on the shared Croix-de-Fer road.
+            ),
+            streamDistances = listOf(0.0, 25200.0),
+        )
+        val visitsGlandonAfterCroixDeFer = buildRideActivity(
+            startLatLng = listOf(start.latitude, start.longitude),
+            streamPoints = listOf(
+                listOf(start.latitude, start.longitude),
+                listOf(45.2274902, 6.2033309),
+                listOf(glandon.latitude, glandon.longitude),
+            ),
+            streamDistances = listOf(0.0, 27600.0, 31200.0),
+        )
+
+        assertFalse(
+            badge.check(listOf(passesOnlyOnCroixDeFerRoad)).second,
+            "The shared road to Croix-de-Fer must not earn the Glandon badge",
+        )
+        assertTrue(
+            badge.check(listOf(visitsGlandonAfterCroixDeFer)).second,
+            "A real Glandon visit after Croix-de-Fer must earn the Glandon badge",
+        )
+    }
+
+    @Test
     fun `check does not match Télégraphe descent only`() {
         // GIVEN
         val badge = FamousClimbBadge(
@@ -205,6 +250,54 @@ class FamousClimbBadgeTest {
         val results = BadgeSet("france", commonBadgeValues).check(listOf(activity))
 
         assertEquals(1, results.count { it.isCompleted })
+        assertEquals(1, results.sumOf { it.activities.size })
+    }
+
+    @Test
+    fun `badge set assigns Saisies activity to eastern Flumet variant`() {
+        val summit = GeoCoordinate(latitude = 45.76102, longitude = 6.53341)
+        val mainStart = GeoCoordinate(latitude = 45.81808, longitude = 6.51646)
+        val eastStart = GeoCoordinate(latitude = 45.82128, longitude = 6.53094)
+        val activity = buildRideActivity(
+            startLatLng = listOf(summit.latitude, summit.longitude),
+            streamPoints = listOf(
+                listOf(summit.latitude, summit.longitude),
+                listOf(45.821362, 6.531259), // Turnaround recorded on 4 August 2026.
+                listOf(summit.latitude, summit.longitude),
+            ),
+            streamDistances = listOf(0.0, 13778.0, 27556.0),
+        )
+        val eastLabel = "Col des Saisies from Flumet (D1212 / D218B), via Crest-Voland"
+        val variants = listOf(
+            FamousClimbBadge(
+                label = "Col des Saisies from Flumet via Le Planay",
+                name = "Col des Saisies",
+                topOfTheAscent = 1650,
+                start = mainStart,
+                end = summit,
+                length = 14.8,
+                totalAscent = 747,
+                averageGradient = 5.05,
+                difficulty = 571,
+                category = "2",
+            ),
+            FamousClimbBadge(
+                label = eastLabel,
+                name = "Col des Saisies",
+                topOfTheAscent = 1650,
+                start = eastStart,
+                end = summit,
+                length = 13.106,
+                totalAscent = 782,
+                averageGradient = 6.0,
+                difficulty = 602,
+                category = "1",
+            ),
+        )
+
+        val results = BadgeSet("france", variants).check(listOf(activity))
+
+        assertEquals(eastLabel, (results.single { it.isCompleted }.badge as FamousClimbBadge).label)
         assertEquals(1, results.sumOf { it.activities.size })
     }
 

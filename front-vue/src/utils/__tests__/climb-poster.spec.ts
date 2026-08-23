@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildClimbGradientSegments,
+  buildDetailedClimbProfileSvg,
   buildClimbPosterSvg,
   posterDesignMaxClimbs,
   type ClimbPosterEntry,
@@ -72,6 +73,16 @@ describe("climb poster", () => {
     expect(segments).toHaveLength(3);
     expect(segments.map((segment) => segment.averageGradient)).toEqual([5, -2, 12]);
     expect(segments.at(-1)).toMatchObject({ startKm: 2, endKm: 3, startElevation: 130, endElevation: 250 });
+  });
+
+  it("uses the poster profile engine for the detailed kilometre view", () => {
+    const svg = buildDetailedClimbProfileSvg(climb.details);
+    const segments = [...svg.matchAll(/data-profile-segment=/g)];
+
+    expect(svg).toContain('aria-label="Profil kilométrique de l\'ascension"');
+    expect(segments).toHaveLength(14);
+    expect(svg).toContain('data-profile-altitude-label="740"');
+    expect(svg).toContain('data-profile-altitude-label="1 850"');
   });
 
   it("keeps altitude annotations far enough apart to remain readable", () => {

@@ -132,22 +132,23 @@ func loadBadgeSet(name string, climbsJSONFilePath string) badges.BadgeSet {
 	for _, famousClimb := range famousClimbs {
 		for _, alternative := range famousClimb.Alternatives {
 			famousClimbBadgeList = append(famousClimbBadgeList, badges.FamousClimbBadge{
-				Name:             famousClimb.Name,
-				Label:            fmt.Sprintf("%s from %s", famousClimb.Name, alternative.Name),
-				Country:          famousClimb.Country,
-				Massif:           famousClimb.Massif,
-				SourceURL:        alternative.SourceURL,
-				TopOfTheAscent:   famousClimb.TopOfTheAscent,
-				Start:            alternative.GeoCoordinate,
-				End:              famousClimb.GeoCoordinate,
-				RouteCheckpoints: alternative.RouteCheckpoints,
-				Difficulty:       alternative.Difficulty,
-				Category:         normalizeClimbCategory(alternative.Category, alternative.Difficulty),
-				Length:           alternative.Length,
-				TotalAscent:      alternative.TotalAscent,
-				MinimumAltitude:  alternative.MinimumAltitude,
-				MaximumGradient:  alternative.MaximumGradient,
-				AverageGradient:  alternative.AverageGradient,
+				Name:                  famousClimb.Name,
+				Label:                 fmt.Sprintf("%s from %s", famousClimb.Name, alternative.Name),
+				Country:               famousClimb.Country,
+				Massif:                famousClimb.Massif,
+				SourceURL:             alternative.SourceURL,
+				TopOfTheAscent:        famousClimb.TopOfTheAscent,
+				Start:                 alternative.GeoCoordinate,
+				End:                   famousClimb.GeoCoordinate,
+				RouteCheckpoints:      alternative.RouteCheckpoints,
+				SummitToleranceMeters: alternative.SummitToleranceMeters,
+				Difficulty:            alternative.Difficulty,
+				Category:              normalizeClimbCategory(alternative.Category, alternative.Difficulty),
+				Length:                alternative.Length,
+				TotalAscent:           alternative.TotalAscent,
+				MinimumAltitude:       alternative.MinimumAltitude,
+				MaximumGradient:       alternative.MaximumGradient,
+				AverageGradient:       alternative.AverageGradient,
 			})
 		}
 	}
@@ -183,7 +184,7 @@ func normalizeClimbCategory(category string, difficulty int) string {
 	}
 
 	switch {
-	case difficulty >= 1000:
+	case difficulty >= 900:
 		return "HC"
 	case difficulty >= 600:
 		return "1"

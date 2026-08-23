@@ -4,6 +4,7 @@ import type { BadgeCheckResult } from "@/models/badge-check-result.model";
 import { formatTime } from '@/utils/formatters';
 import { Tooltip } from 'bootstrap';
 import { useRouter } from "vue-router";
+import { climbVariantId } from "@/utils/climb-map";
 
 const props = defineProps<{
   badgeCheckResult: BadgeCheckResult;
@@ -41,8 +42,11 @@ const buildBadgeImageUrl = (type: string) => {
 };
 
 const isUnlocked = computed(() => props.badgeCheckResult.nbCheckedActivities > 0);
+const isFamousClimb = computed(() => props.badgeCheckResult.badge.type.endsWith("FamousClimbBadge"));
+const hasDetailedSheet = computed(() => isFamousClimb.value && Boolean(props.badgeCheckResult.climbDetails));
 const statusLabel = computed(() => (isUnlocked.value ? 'Earned' : 'Locked'));
 const representativeActivity = computed(() => props.badgeCheckResult.activities?.[0] ?? null);
+const isNavigable = computed(() => hasDetailedSheet.value || (isUnlocked.value && Boolean(representativeActivity.value?.id)));
 const isHikingAdventureBadge = computed(() => props.badgeCheckResult.badge.type === 'HikeHikingBadge');
 const climbCategoryLabel = computed(() => {
   const category = props.badgeCheckResult.badge.category?.trim().toUpperCase();
@@ -91,7 +95,14 @@ const bestTimeAndDateLabel = computed(() => {
     : `Best time: ${movingTimeLabel}`;
 });
 
-const navigateToActivity = () => {
+const navigate = () => {
+  if (hasDetailedSheet.value) {
+    void router.push({
+      name: "climb-detail",
+      params: { variantId: climbVariantId(props.badgeCheckResult) },
+    });
+    return;
+  }
   if (!isUnlocked.value || !representativeActivity.value) {
     return;
   }
@@ -100,7 +111,7 @@ const navigateToActivity = () => {
     return;
   }
 
-  router.push(`/activities/${representativeActivity.value.id}`);
+  void router.push(`/activities/${representativeActivity.value.id}`);
 };
 
 const badgeRef = ref<HTMLElement | null>(null);
@@ -113,7 +124,7 @@ Matched activities: ${props.badgeCheckResult.nbCheckedActivities}<br>
 ${climbCategoryLabel.value ? `Climb category: ${climbCategoryLabel.value}<br>` : ''}
 ${climbAscentsLabel.value ? `${climbAscentsLabel.value}<br>` : ''}
 ${isHikingAdventureBadge.value && props.badgeCheckResult.badge.description ? `${props.badgeCheckResult.badge.description}<br>` : ''}
-${isUnlocked.value ? `${bestTimeAndDateLabel.value}<br>Representative activity: ${representativeName}` : 'Unlock this badge to see your best attempt.'}`;
+${isUnlocked.value ? `${bestTimeAndDateLabel.value}<br>Representative activity: ${representativeName}` : hasDetailedSheet.value ? 'Open the detailed climb sheet.' : 'Unlock this badge to see your best attempt.'}`;
 });
 
 function initTooltip() {
@@ -166,10 +177,14 @@ onBeforeUnmount(() => {
   <div
     ref="badgeRef"
     class="badge-item card text-center"
-    :class="{ 'badge-item--earned': isUnlocked, 'badge-item--locked': !isUnlocked }"
+    :class="{ 'badge-item--earned': isUnlocked, 'badge-item--locked': !isUnlocked, 'badge-item--navigable': isNavigable }"
+    :role="isNavigable ? 'link' : undefined"
+    :tabindex="isNavigable ? 0 : undefined"
     data-bs-toggle="tooltip"
     data-bs-html="true"
-    @click="navigateToActivity" 
+    @click="navigate"
+    @keydown.enter.prevent="navigate"
+    @keydown.space.prevent="navigate"
   >
     <div
       class="badge-status-pill"
@@ -255,6 +270,15 @@ onBeforeUnmount(() => {
   background: linear-gradient(180deg, #f7f8fb 0%, #f1f4f8 100%);
   border-color: #d9e0ea;
   box-shadow: 0 8px 16px rgba(26, 34, 48, 0.08);
+}
+
+.badge-item--navigable {
+  cursor: pointer;
+}
+
+.badge-item--navigable:focus-visible {
+  outline: 3px solid rgba(252, 76, 2, 0.35);
+  outline-offset: 3px;
 }
 
 .badge-status-pill {

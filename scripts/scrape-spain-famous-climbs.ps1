@@ -91,7 +91,7 @@ function Get-TableMetric {
 function Get-ClimbCategory {
     param([int] $Difficulty)
 
-    if ($Difficulty -ge 1000) { return "HC" }
+    if ($Difficulty -ge 900) { return "HC" }
     if ($Difficulty -ge 600) { return "1" }
     if ($Difficulty -ge 300) { return "2" }
     if ($Difficulty -ge 150) { return "3" }

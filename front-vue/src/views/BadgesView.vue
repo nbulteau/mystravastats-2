@@ -276,6 +276,13 @@ async function openClimbInLog(variantId: string) {
           class="climb-log-entry col-lg-2 col-md-3 col-sm-4 col-6 d-flex flex-column align-items-center justify-content-start"
         >
           <BadgeItem :badge-check-result="badge" />
+          <RouterLink
+            class="show-on-map-button climb-detail-link"
+            :to="{ name: 'climb-detail', params: { variantId: climbVariantId(badge) } }"
+          >
+            <i class="fa-solid fa-file-lines" aria-hidden="true" />
+            Detailed sheet
+          </RouterLink>
           <button
             v-if="badge.climbDetails?.summitCoordinate"
             type="button"
@@ -689,6 +696,11 @@ async function openClimbInLog(variantId: string) {
 .show-on-map-button:hover {
   border-color: #91c9b3;
   background: #e4f6ee;
+}
+
+.climb-detail-link {
+  color: #9f3709;
+  text-decoration: none;
 }
 
 @media (max-width: 992px) {

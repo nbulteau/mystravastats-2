@@ -70,6 +70,47 @@ func TestFamousClimbBadgeCheck_AllowsWaypointWithinFiveHundredMeters(t *testing.
 	}
 }
 
+func TestFamousClimbBadgeCheck_UsesTighterSummitToleranceForGlandonFromAllemond(t *testing.T) {
+	start := business.GeoCoordinate{Latitude: 45.12809, Longitude: 6.0456}
+	glandon := business.GeoCoordinate{Latitude: 45.2396101, Longitude: 6.1754635}
+	badge := FamousClimbBadge{
+		Name:                  "Col du Glandon",
+		Label:                 "Col du Glandon from Allemond (Barrage du Verney)",
+		Start:                 start,
+		End:                   glandon,
+		SummitToleranceMeters: 100,
+		Length:                25.2,
+	}
+	passesOnlyOnCroixDeFerRoad := &strava.Activity{
+		StartLatlng: []float64{start.Latitude, start.Longitude},
+		Stream: &strava.Stream{
+			Distance: strava.DistanceStream{Data: []float64{0, 25200}},
+			LatLng: &strava.LatLngStream{Data: [][]float64{
+				{start.Latitude, start.Longitude},
+				{45.238498, 6.175907}, // 128 m from Glandon, on the shared Croix-de-Fer road.
+			}},
+		},
+	}
+	visitsGlandonAfterCroixDeFer := &strava.Activity{
+		StartLatlng: []float64{start.Latitude, start.Longitude},
+		Stream: &strava.Stream{
+			Distance: strava.DistanceStream{Data: []float64{0, 27600, 31200}},
+			LatLng: &strava.LatLngStream{Data: [][]float64{
+				{start.Latitude, start.Longitude},
+				{45.2274902, 6.2033309},
+				{glandon.Latitude, glandon.Longitude},
+			}},
+		},
+	}
+
+	if _, matched := badge.Check([]*strava.Activity{passesOnlyOnCroixDeFerRoad}); matched {
+		t.Fatal("expected the shared road to Croix-de-Fer not to earn the Glandon badge")
+	}
+	if _, matched := badge.Check([]*strava.Activity{visitsGlandonAfterCroixDeFer}); !matched {
+		t.Fatal("expected a real Glandon visit after Croix-de-Fer to earn the Glandon badge")
+	}
+}
+
 func TestFamousClimbBadgeCheck_DoesNotMatchDescentOnly(t *testing.T) {
 	// GIVEN
 	badge := FamousClimbBadge{
@@ -182,5 +223,42 @@ func TestBadgeSetCheck_AssignsOneActivityToOnlyOneVariantOfSameClimb(t *testing.
 	}
 	if completedCount != 1 || assignedActivityCount != 1 {
 		t.Fatalf("expected one activity to earn exactly one variant, got completed=%d assigned=%d", completedCount, assignedActivityCount)
+	}
+}
+
+func TestBadgeSetCheck_AssignsSaisiesActivityToEasternFlumetVariant(t *testing.T) {
+	summit := business.GeoCoordinate{Latitude: 45.76102, Longitude: 6.53341}
+	mainStart := business.GeoCoordinate{Latitude: 45.81808, Longitude: 6.51646}
+	eastStart := business.GeoCoordinate{Latitude: 45.82128, Longitude: 6.53094}
+	activity := &strava.Activity{
+		Id:          19593558916,
+		StartLatlng: []float64{summit.Latitude, summit.Longitude},
+		Stream: &strava.Stream{
+			Distance: strava.DistanceStream{Data: []float64{0, 13778, 27556}},
+			LatLng: &strava.LatLngStream{Data: [][]float64{
+				{summit.Latitude, summit.Longitude},
+				{45.821362, 6.531259}, // Turnaround recorded on 4 August 2026.
+				{summit.Latitude, summit.Longitude},
+			}},
+		},
+	}
+	const eastLabel = "Col des Saisies from Flumet (D1212 / D218B), via Crest-Voland"
+	badgeSet := BadgeSet{Name: "france", Badges: []Badge{
+		FamousClimbBadge{Name: "Col des Saisies", Label: "Col des Saisies from Flumet via Le Planay", Start: mainStart, End: summit, Length: 14.8},
+		FamousClimbBadge{Name: "Col des Saisies", Label: eastLabel, Start: eastStart, End: summit, Length: 13.106},
+	}}
+
+	results := badgeSet.Check([]*strava.Activity{activity})
+	for _, result := range results {
+		climb := result.Badge.(FamousClimbBadge)
+		if climb.Label == eastLabel {
+			if !result.IsCompleted || len(result.Activities) != 1 {
+				t.Fatalf("expected activity %d to earn the eastern Flumet variant", activity.Id)
+			}
+			continue
+		}
+		if result.IsCompleted || len(result.Activities) != 0 {
+			t.Fatalf("expected activity %d not to earn %q", activity.Id, climb.Label)
+		}
 	}
 }

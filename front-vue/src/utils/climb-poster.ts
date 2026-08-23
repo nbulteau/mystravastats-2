@@ -397,6 +397,7 @@ function profileMarkup(
   width: number,
   height: number,
   lineClass: string,
+  options: { maxSegments?: number; labelScale?: number } = {},
 ): string {
   const points = normalizedProfilePoints(details.profile);
   const baseY = y + height;
@@ -424,7 +425,8 @@ function profileMarkup(
     const clampedElevation = Math.min(maxElevation, Math.max(minElevation, elevation));
     return y + plotHeight - ((clampedElevation - minElevation) / elevationRange) * (plotHeight - 8);
   };
-  const maxSegments = Math.min(20, Math.max(4, Math.floor(width / 28)));
+  const maxSegments = options.maxSegments ?? Math.min(20, Math.max(4, Math.floor(width / 28)));
+  const labelScale = options.labelScale ?? 1;
   const segments = buildClimbGradientSegments(points, maxSegments);
   const steepestGradient = Math.max(...segments.map((segment) => segment.averageGradient));
   const segmentMarkup = segments.map((segment, index) => {
@@ -440,14 +442,14 @@ function profileMarkup(
     const gradeLabel = `${formatCompactDecimal(gradient)}%`;
     const distanceLabel = `${formatCompactDecimal(segment.endKm - minDistance)}${segment === segments.at(-1) ? " KM" : ""}`;
     const labelX = startX + segmentWidth / 2;
-    const labelFontSize = height >= 100 ? 9 : 7.5;
+    const labelFontSize = (height >= 100 ? 9 : 7.5) * labelScale;
     const gradeText = segmentWidth >= 27
       ? `<text x="${round(labelX)}" y="${round(plotBaseY - 4)}" text-anchor="middle" style="font:700 ${labelFontSize}px ui-monospace,monospace;fill:${textColor}">${gradeLabel}</text>`
       : segmentWidth >= 13 && height >= 70
         ? `<text transform="translate(${round(labelX)} ${round(plotBaseY - 4)}) rotate(-90)" text-anchor="start" style="font:700 ${labelFontSize}px ui-monospace,monospace;fill:${textColor}">${gradeLabel}</text>`
         : "";
     const distanceText = segmentWidth >= 24
-      ? `<text x="${round(endX - 1)}" y="${round(baseY - 2)}" text-anchor="end" style="font:500 ${height >= 80 ? 7.5 : 6.5}px ui-monospace,monospace;fill:#4d5961;fill-opacity:.9">${distanceLabel}</text>`
+      ? `<text x="${round(endX - 1)}" y="${round(baseY - 2)}" text-anchor="end" style="font:500 ${(height >= 80 ? 7.5 : 6.5) * labelScale}px ui-monospace,monospace;fill:#4d5961;fill-opacity:.9">${distanceLabel}</text>`
       : "";
     return `<g data-profile-segment="${round(segment.startKm)}-${round(segment.endKm)}" data-gradient="${gradient}">
       <path d="M ${round(startX)},${round(startY)} L ${round(endX)},${round(endY)} L ${round(endX)},${round(plotBaseY)} L ${round(startX)},${round(plotBaseY)} Z" fill="${color}"${isSteepest ? ' stroke="#2a2526" stroke-width="1.2"' : ' stroke="#ffffff" stroke-opacity=".55" stroke-width=".7"'}>
@@ -505,10 +507,31 @@ function profileMarkup(
       const anchor = index === 0 ? "start" : isLast ? "end" : "middle";
       const offsetX = index === 0 ? 2 : isLast ? -2 : 0;
       const altitudeOffsetY = index === 0 ? (height >= 100 ? 18 : 15) : 4;
-      return `<text data-profile-altitude-label="${formatInteger(boundary.elevation)}" x="${round(px + offsetX)}" y="${round(Math.max(y + 9, py - altitudeOffsetY))}" text-anchor="${anchor}" style="font:600 ${height >= 100 ? 8 : 7}px ui-monospace,monospace;fill:#283238;paint-order:stroke;stroke:#ffffff;stroke-width:2px;stroke-opacity:.72">${formatInteger(boundary.elevation)} M</text>`;
+      return `<text data-profile-altitude-label="${formatInteger(boundary.elevation)}" x="${round(px + offsetX)}" y="${round(Math.max(y + 9, py - altitudeOffsetY))}" text-anchor="${anchor}" style="font:600 ${(height >= 100 ? 8 : 7) * labelScale}px ui-monospace,monospace;fill:#283238;paint-order:stroke;stroke:#ffffff;stroke-width:2px;stroke-opacity:.72">${formatInteger(boundary.elevation)} M</text>`;
     }).join("")
     : "";
   return `<line x1="${round(x)}" y1="${round(plotBaseY)}" x2="${round(x + width)}" y2="${round(plotBaseY)}" class="profile-base"/>${segmentMarkup}<path d="${linePath}" class="${lineClass}"/>${altitudeMarkup}`;
+}
+
+export function buildDetailedClimbProfileSvg(details: ClimbDetails): string {
+  const width = 1200;
+  const height = 360;
+  const horizontalPadding = 28;
+  const profileHeight = 318;
+  const kilometerSegments = Math.max(1, Math.ceil(details.lengthKm));
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Profil kilométrique de l'ascension" preserveAspectRatio="xMidYMid meet">
+    <rect width="${width}" height="${height}" rx="18" fill="#fbf8f1"/>
+    <style>.detail-profile{fill:none;stroke:#172129;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.profile-base{stroke:#9f9588;stroke-width:1.5}.profile-missing{font:500 18px ui-sans-serif,system-ui;fill:#756c62;letter-spacing:1px}</style>
+    ${profileMarkup(
+      details,
+      horizontalPadding,
+      18,
+      width - horizontalPadding * 2,
+      profileHeight,
+      "detail-profile",
+      { maxSegments: kilometerSegments, labelScale: 1.45 },
+    )}
+  </svg>`;
 }
 
 export function buildClimbGradientSegments(
