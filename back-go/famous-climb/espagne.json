@@ -2902,5 +2902,86 @@
         "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/xorret-de-cati-depuis-petrer-c1412.htm"
       }
     ]
+  },
+  {
+    "name": "Puerto Camacho",
+    "country": "ES",
+    "massif": "Cordillère bétique",
+    "topOfTheAscent": 1124,
+    "geoCoordinate": {
+      "latitude": 36.841281,
+      "longitude": -3.367847
+    },
+    "alternatives": [
+      {
+        "name": "Los Tablones",
+        "geoCoordinate": {
+          "latitude": 36.88338,
+          "longitude": -3.41501
+        },
+        "length": 11.904,
+        "totalAscent": 806,
+        "minimumAltitude": 318,
+        "maximumGradient": 13.4,
+        "difficulty": 597,
+        "averageGradient": 6.8,
+        "category": "2",
+        "sourceUrl": "https://climbfinder.com/en/climbs/puerto-camacho-los-tablones"
+      }
+    ]
+  },
+  {
+    "name": "Puerto del Boyar",
+    "country": "ES",
+    "massif": "Cordillère bétique",
+    "topOfTheAscent": 1106,
+    "geoCoordinate": {
+      "latitude": 36.755663,
+      "longitude": -5.394829
+    },
+    "alternatives": [
+      {
+        "name": "Benamahoma",
+        "geoCoordinate": {
+          "latitude": 36.759067,
+          "longitude": -5.464094
+        },
+        "length": 8.763,
+        "totalAscent": 589,
+        "minimumAltitude": 464,
+        "maximumGradient": 13.1,
+        "difficulty": 460,
+        "averageGradient": 6.7,
+        "category": "2",
+        "sourceUrl": "https://www.strava.com/segments/11670332"
+      }
+    ]
+  },
+  {
+    "name": "Collado del Cebollar",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1907,
+    "geoCoordinate": {
+      "latitude": 42.656178,
+      "longitude": -0.125932
+    },
+    "alternatives": [
+      {
+        "name": "Camping de San Antón, par la piste forestière",
+        "geoCoordinate": {
+          "latitude": 42.617375,
+          "longitude": -0.126704
+        },
+        "length": 9.228,
+        "totalAscent": 733,
+        "minimumAltitude": 1174,
+        "maximumGradient": 10.3,
+        "difficulty": 600,
+        "averageGradient": 7.94,
+        "category": "1",
+        "sourceUrl": "https://www.torla-ordesa.net/es/pr-hu-135-ruta-torla-ordesa-a-cebollar/"
+      }
+    ]
   }
 ]

@@ -913,6 +913,21 @@
         "difficulty": 776,
         "averageGradient": 6.05,
         "category": "1"
+      },
+      {
+        "name": "Alpe d'Huez",
+        "geoCoordinate": {
+          "latitude": 45.08844,
+          "longitude": 6.07535
+        },
+        "length": 8.025,
+        "totalAscent": 335,
+        "minimumAltitude": 1664,
+        "maximumGradient": 9.4,
+        "difficulty": 251,
+        "averageGradient": 4.2,
+        "category": "3",
+        "sourceUrl": "https://climbfinder.com/en/climbs/col-de-sarenne-alpe-d-huez"
       }
     ]
   },
@@ -1221,6 +1236,27 @@
         "difficulty": 782,
         "averageGradient": 4,
         "category": "1"
+      },
+      {
+        "name": "La Grave, via le col du Lautaret",
+        "geoCoordinate": {
+          "latitude": 45.046758,
+          "longitude": 6.309786
+        },
+        "routeCheckpoints": [
+          {
+            "latitude": 45.0358,
+            "longitude": 6.4026
+          }
+        ],
+        "length": 19.171,
+        "totalAscent": 1161,
+        "minimumAltitude": 1481,
+        "maximumGradient": 11.1,
+        "difficulty": 807,
+        "averageGradient": 6.06,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/arves-et-grandes-rousses/france/col-du-galibier-depuis-col-du-lautaret-c36.htm"
       }
     ]
   },
@@ -1322,6 +1358,21 @@
         "difficulty": 805,
         "averageGradient": 3.85,
         "category": "1"
+      },
+      {
+        "name": "La Grave",
+        "geoCoordinate": {
+          "latitude": 45.046758,
+          "longitude": 6.309786
+        },
+        "length": 10.311,
+        "totalAscent": 579,
+        "minimumAltitude": 1479,
+        "maximumGradient": 10.1,
+        "difficulty": 350,
+        "averageGradient": 5.62,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/arves-et-grandes-rousses/france/col-du-lautaret-depuis-le-clapier-c48.htm"
       }
     ]
   },
@@ -2304,6 +2355,21 @@
         "averageGradient": 6.48,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/chaine-des-puys-monts-dore/france/col-de-ceyssat-depuis-royat-c1045.htm"
+      },
+      {
+        "name": "Volvic, par la GTMC",
+        "geoCoordinate": {
+          "latitude": 45.875463,
+          "longitude": 3.026763
+        },
+        "length": 37.019,
+        "totalAscent": 841,
+        "minimumAltitude": 605,
+        "maximumGradient": 13.9,
+        "difficulty": 394,
+        "averageGradient": 2.27,
+        "category": "2",
+        "sourceUrl": "https://www.clermontauvergnevolcans.com/fiches/gtmc-vtt-etape-13-volvic-laschamps/"
       }
     ]
   },
@@ -6345,6 +6411,249 @@
         "averageGradient": 5.93,
         "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/lac-de-cap-de-long-depuis-saint-lary-soulan-c311.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col de la Geneste",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 1372,
+    "geoCoordinate": {
+      "latitude": 45.497699,
+      "longitude": 2.822765
+    },
+    "alternatives": [
+      {
+        "name": "Besse-en-Chandesse, via Super-Besse",
+        "geoCoordinate": {
+          "latitude": 45.50972,
+          "longitude": 2.9314
+        },
+        "length": 11.8,
+        "totalAscent": 321,
+        "minimumAltitude": 1051,
+        "maximumGradient": 8.4,
+        "difficulty": 164,
+        "averageGradient": 2.72,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/chaine-des-puys-monts-dore/france/col-de-la-geneste-depuis-besse-en-chandesse-c1759.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col de Vestizoux",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 1317,
+    "geoCoordinate": {
+      "latitude": 45.36653,
+      "longitude": 2.99606
+    },
+    "alternatives": [
+      {
+        "name": "Boutaresse",
+        "geoCoordinate": {
+          "latitude": 45.36249,
+          "longitude": 2.97044
+        },
+        "length": 2.467,
+        "totalAscent": 94,
+        "minimumAltitude": 1223,
+        "maximumGradient": 8,
+        "difficulty": 46,
+        "averageGradient": 3.8,
+        "category": "4",
+        "sourceUrl": "https://climbfinder.com/en/climbs/col-de-vestizoux-boutaresse"
+      }
+    ]
+  },
+  {
+    "name": "Col du Chamaroux",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 1291,
+    "geoCoordinate": {
+      "latitude": 45.339875,
+      "longitude": 2.94157
+    },
+    "alternatives": [
+      {
+        "name": "Boutaresse",
+        "geoCoordinate": {
+          "latitude": 45.35347,
+          "longitude": 2.95597
+        },
+        "length": 2.474,
+        "totalAscent": 58,
+        "minimumAltitude": 1233,
+        "maximumGradient": 5.7,
+        "difficulty": 18,
+        "averageGradient": 2.35,
+        "category": "4",
+        "sourceUrl": "https://climbfinder.com/en/climbs/col-du-chamaroux-boutaresse"
+      }
+    ]
+  },
+  {
+    "name": "Col de Fortunier",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 1278,
+    "geoCoordinate": {
+      "latitude": 45.27933,
+      "longitude": 2.942634
+    },
+    "alternatives": [
+      {
+        "name": "Allanche, par Pradiers",
+        "geoCoordinate": {
+          "latitude": 45.23591,
+          "longitude": 2.93529
+        },
+        "length": 6.021,
+        "totalAscent": 297,
+        "minimumAltitude": 981,
+        "maximumGradient": 10.1,
+        "difficulty": 181,
+        "averageGradient": 4.9,
+        "category": "3",
+        "sourceUrl": "https://climbfinder.com/en/climbs/col-de-fortunier-allanche-pradiers"
+      }
+    ]
+  },
+  {
+    "name": "Col d'Anelle",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1739,
+    "geoCoordinate": {
+      "latitude": 44.273038,
+      "longitude": 6.890847
+    },
+    "alternatives": [
+      {
+        "name": "Saint-Étienne-de-Tinée",
+        "geoCoordinate": {
+          "latitude": 44.259105,
+          "longitude": 6.92103
+        },
+        "length": 7.419,
+        "totalAscent": 586,
+        "minimumAltitude": 1153,
+        "maximumGradient": 20,
+        "difficulty": 480,
+        "averageGradient": 7.9,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/mercantour/france/col-d-anelle-depuis-saint-etienne-de-tinee-c3058.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col du Parchit",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1735,
+    "geoCoordinate": {
+      "latitude": 45.477659,
+      "longitude": 6.580437
+    },
+    "alternatives": [
+      {
+        "name": "La Thuile",
+        "geoCoordinate": {
+          "latitude": 45.464417,
+          "longitude": 6.574784
+        },
+        "length": 10.546,
+        "totalAscent": 677,
+        "minimumAltitude": 1058,
+        "maximumGradient": 10,
+        "difficulty": 450,
+        "averageGradient": 6.42,
+        "category": "2",
+        "sourceUrl": "https://www.auvergnerhonealpes-tourisme.com/fiches/mont-jovet-a-r-depuis-la-thuile-de-montagny/"
+      }
+    ]
+  },
+  {
+    "name": "Col de Cluy",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1801,
+    "geoCoordinate": {
+      "latitude": 45.06985,
+      "longitude": 6.10336
+    },
+    "alternatives": [
+      {
+        "name": "Puy-le-Haut",
+        "geoCoordinate": {
+          "latitude": 45.049405,
+          "longitude": 6.112698
+        },
+        "length": 4.835,
+        "totalAscent": 464,
+        "minimumAltitude": 1337,
+        "maximumGradient": 15.6,
+        "difficulty": 500,
+        "averageGradient": 9.6,
+        "category": "2",
+        "sourceUrl": "https://www.strava.com/segments/12284923"
+      }
+    ]
+  },
+  {
+    "name": "Pas des Alpins",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 1750,
+    "geoCoordinate": {
+      "latitude": 45.066937,
+      "longitude": 2.76622
+    },
+    "alternatives": [
+      {
+        "name": "Le Lioran",
+        "geoCoordinate": {
+          "latitude": 45.080563,
+          "longitude": 2.749415
+        },
+        "length": 3.75,
+        "totalAscent": 498,
+        "minimumAltitude": 1252,
+        "maximumGradient": 18.2,
+        "difficulty": 660,
+        "averageGradient": 13.28,
+        "category": "1",
+        "sourceUrl": "https://www.strava.com/segments/5326332"
+      }
+    ]
+  },
+  {
+    "name": "Col du Signal",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 1350,
+    "geoCoordinate": {
+      "latitude": 45.033837,
+      "longitude": 3.26541
+    },
+    "alternatives": [
+      {
+        "name": "Ruynes-en-Margeride",
+        "geoCoordinate": {
+          "latitude": 45.001471,
+          "longitude": 3.217213
+        },
+        "length": 6.586,
+        "totalAscent": 466,
+        "minimumAltitude": 884,
+        "maximumGradient": 16,
+        "difficulty": 350,
+        "averageGradient": 7.08,
+        "category": "2",
+        "sourceUrl": "https://www.pays-saint-flour.fr/equipement/gtmc-en-vtt-etape-18-ruynes-en-margeride-domaine-du-sauvage/"
       }
     ]
   }

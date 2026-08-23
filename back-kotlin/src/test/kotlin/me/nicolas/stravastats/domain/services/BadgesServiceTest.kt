@@ -120,8 +120,8 @@ class BadgesServiceTest {
         val results = badgesService.getFamousBadges(activityTypes, null)
         val climbs = results.map { it.badge as FamousClimbBadge }
 
-        assertEquals(568, climbs.size)
-        assertEquals(mapOf("FR" to 318, "CH" to 48, "IT" to 78, "ES" to 124), climbs.groupingBy { it.country }.eachCount())
+        assertEquals(584, climbs.size)
+        assertEquals(mapOf("FR" to 331, "CH" to 48, "IT" to 78, "ES" to 127), climbs.groupingBy { it.country }.eachCount())
         assertTrue(climbs.all { it.massif.isNotBlank() })
         assertEquals(climbs.size, climbs.map { it.label }.distinct().size)
         climbs.forEach { climb ->

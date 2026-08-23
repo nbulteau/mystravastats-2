@@ -14,10 +14,10 @@ func TestNationalFamousClimbCatalogs(t *testing.T) {
 		expectedSides int
 		requireSource bool
 	}{
-		{name: "france", country: "FR", expectedSides: 318},
+		{name: "france", country: "FR", expectedSides: 331},
 		{name: "suisse", country: "CH", expectedSides: 48},
 		{name: "italie", country: "IT", expectedSides: 78, requireSource: true},
-		{name: "espagne", country: "ES", expectedSides: 124, requireSource: true},
+		{name: "espagne", country: "ES", expectedSides: 127, requireSource: true},
 	}
 	allLabels := make(map[string]string)
 
@@ -98,8 +98,15 @@ func TestNationalFamousClimbCatalogs(t *testing.T) {
 				assertMadeleineVariantCheckpoint(t, badgeSet, "Col de la Madeleine from La Chambre, via Montgellafrey")
 				assertClimbClassification(t, badgeSet, "Alpe d'Huez from Le Bourg-d'Oisans", "HC", 979)
 				assertClimbClassification(t, badgeSet, "Col de la Croix-de-Fer from Allemond (Barrage du Verney)", "HC", 1092)
+				assertClimbClassification(t, badgeSet, "Col d'Anelle from Saint-Étienne-de-Tinée", "2", 480)
+				assertClimbClassification(t, badgeSet, "Col du Galibier from La Grave, via le col du Lautaret", "1", 807)
+				assertClimbClassification(t, badgeSet, "Col du Signal from Ruynes-en-Margeride", "2", 350)
 				assertClimbSummitTolerance(t, badgeSet, "Col du Glandon from Allemond (Barrage du Verney)", 100)
 				assertClimbStart(t, badgeSet, "Col des Saisies from Flumet (D1212 / D218B), via Crest-Voland", 45.82128, 6.53094)
+			}
+			if test.name == "espagne" {
+				assertClimbClassification(t, badgeSet, "Puerto Camacho from Los Tablones", "2", 597)
+				assertClimbClassification(t, badgeSet, "Collado del Cebollar from Camping de San Antón, par la piste forestière", "1", 600)
 			}
 		})
 	}
