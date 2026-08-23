@@ -28,6 +28,7 @@ var famousClimbCatalogs = []struct {
 	{name: "france", path: "famous-climb/france.json"},
 	{name: "suisse", path: "famous-climb/suisse.json"},
 	{name: "italie", path: "famous-climb/italie.json"},
+	{name: "espagne", path: "famous-climb/espagne.json"},
 }
 
 // BadgesServiceAdapter computes badges directly from provider activities.

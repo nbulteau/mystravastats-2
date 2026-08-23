@@ -111,7 +111,7 @@ class BadgesServiceTest {
     }
 
     @Test
-    fun `getFamousBadges loads the three national catalogs with geography`() {
+    fun `getFamousBadges loads the four national catalogs with geography`() {
         val activityTypes = setOf(ActivityType.Ride)
         every {
             activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, null)
@@ -120,8 +120,8 @@ class BadgesServiceTest {
         val results = badgesService.getFamousBadges(activityTypes, null)
         val climbs = results.map { it.badge as FamousClimbBadge }
 
-        assertEquals(443, climbs.size)
-        assertEquals(mapOf("FR" to 317, "CH" to 48, "IT" to 78), climbs.groupingBy { it.country }.eachCount())
+        assertEquals(567, climbs.size)
+        assertEquals(mapOf("FR" to 317, "CH" to 48, "IT" to 78, "ES" to 124), climbs.groupingBy { it.country }.eachCount())
         assertTrue(climbs.all { it.massif.isNotBlank() })
         assertEquals(climbs.size, climbs.map { it.label }.distinct().size)
         climbs.forEach { climb ->
@@ -148,6 +148,13 @@ class BadgesServiceTest {
                 "Direct distance exceeds published length for ${climb.label}",
             )
             assertTrue(climb.sourceUrl.isBlank() || climb.sourceUrl.startsWith("https://"), "Invalid source for ${climb.label}")
+            if (climb.country in setOf("IT", "ES")) {
+                assertTrue(climb.sourceUrl.isNotBlank(), "Missing source for ${climb.label}")
+            }
+            if (climb.country == "ES") {
+                assertTrue(climb.start.latitude in 27.0..44.5 && climb.start.longitude in -19.0..5.0, "Implausible Spanish start for ${climb.label}")
+                assertTrue(climb.end.latitude in 27.0..44.5 && climb.end.longitude in -19.0..5.0, "Implausible Spanish summit for ${climb.label}")
+            }
         }
         assertEquals(29, climbs.count { it.massif == "Corse" })
         val alpeDHuez = climbs.single { it.label == "Alpe d'Huez from Le Bourg-d'Oisans" }

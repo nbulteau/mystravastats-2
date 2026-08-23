@@ -512,20 +512,48 @@ function slugify(value: string): string {
 
 .poster-design-miniature span:nth-child(2) { width: 78%; }
 .poster-design-miniature span:nth-child(3) { width: 56%; }
+.poster-design-miniature--altitude {
+  justify-content: flex-end;
+  gap: 8px;
+  background: #fbf8f1;
+}
+.poster-design-miniature--altitude span {
+  height: 5px;
+  background: #d65d2d;
+  transform: rotate(-5deg);
+  transform-origin: left center;
+}
+.poster-design-miniature--altitude span:nth-child(2) { width: 88%; }
+.poster-design-miniature--altitude span:nth-child(3) { width: 70%; }
 .poster-design-miniature--topo {
   background-color: #edf0eb;
   background-image: linear-gradient(rgba(30, 40, 50, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(30, 40, 50, 0.08) 1px, transparent 1px);
   background-size: 12px 12px;
 }
+.poster-design-miniature--topo span {
+  height: 3px;
+  border-radius: 0;
+  background: #19303a;
+}
+.poster-design-miniature--topo span:first-child {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #d34f2f;
+}
 .poster-design-miniature--collection {
   flex-direction: row;
   align-items: flex-end;
   gap: 8px;
+  background: #efe7d9;
 }
 .poster-design-miniature--collection span {
   width: 24%;
   height: 70%;
-  border-radius: 4px 4px 0 0;
+  border: 1px solid #c8bca9;
+  border-top: 4px solid #b74d2d;
+  border-radius: 5px;
+  background: #fbf8f1;
 }
 .poster-design-miniature--collection span:nth-child(2) { width: 24%; height: 92%; }
 .poster-design-miniature--collection span:nth-child(3) { width: 24%; height: 58%; }

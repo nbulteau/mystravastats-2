@@ -1,0 +1,2906 @@
+[
+  {
+    "name": "Agina Mendatea",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 550,
+    "geoCoordinate": {
+      "latitude": 43.26497,
+      "longitude": -1.75973
+    },
+    "alternatives": [
+      {
+        "name": "Lesaka",
+        "geoCoordinate": {
+          "latitude": 43.24735,
+          "longitude": -1.70243
+        },
+        "length": 8.5,
+        "totalAscent": 470,
+        "minimumAltitude": 73,
+        "maximumGradient": 10.0,
+        "difficulty": 260,
+        "averageGradient": 5.53,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/agina-mendatea-depuis-lesaka-c2404.htm"
+      },
+      {
+        "name": "San Anton",
+        "geoCoordinate": {
+          "latitude": 43.27452,
+          "longitude": -1.76906
+        },
+        "length": 4.8,
+        "totalAscent": 305,
+        "minimumAltitude": 255,
+        "maximumGradient": 12.0,
+        "difficulty": 194,
+        "averageGradient": 6.35,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/agina-mendatea-depuis-san-anton-c2403.htm"
+      }
+    ]
+  },
+  {
+    "name": "Alto Campoo/Fuente Del Chivo",
+    "country": "ES",
+    "massif": "Monts cantabriques",
+    "topOfTheAscent": 1982,
+    "geoCoordinate": {
+      "latitude": 43.04534,
+      "longitude": -4.39436
+    },
+    "alternatives": [
+      {
+        "name": "Espinilla",
+        "geoCoordinate": {
+          "latitude": 43.02099,
+          "longitude": -4.225
+        },
+        "length": 21.2,
+        "totalAscent": 1052,
+        "minimumAltitude": 928,
+        "maximumGradient": 16.0,
+        "difficulty": 522,
+        "averageGradient": 4.96,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-campoofuente-del-chivo-depuis-espinilla-c2630.htm"
+      }
+    ]
+  },
+  {
+    "name": "Alto de Abantos",
+    "country": "ES",
+    "massif": "Sistema Central",
+    "topOfTheAscent": 1650,
+    "geoCoordinate": {
+      "latitude": 40.61644,
+      "longitude": -4.17648
+    },
+    "alternatives": [
+      {
+        "name": "El Escorial",
+        "geoCoordinate": {
+          "latitude": 40.58669,
+          "longitude": -4.12779
+        },
+        "length": 13.3,
+        "totalAscent": 743,
+        "minimumAltitude": 906,
+        "maximumGradient": 10.0,
+        "difficulty": 416,
+        "averageGradient": 5.59,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/alto-de-abantos-depuis-el-escorial-c480.htm"
+      }
+    ]
+  },
+  {
+    "name": "Alto de Gamoniteiro",
+    "country": "ES",
+    "massif": "Monts cantabriques",
+    "topOfTheAscent": 1772,
+    "geoCoordinate": {
+      "latitude": 43.1878,
+      "longitude": -5.92371
+    },
+    "alternatives": [
+      {
+        "name": "Pola de Lena",
+        "geoCoordinate": {
+          "latitude": 43.15779,
+          "longitude": -5.8287
+        },
+        "length": 15.9,
+        "totalAscent": 1450,
+        "minimumAltitude": 312,
+        "maximumGradient": 12.5,
+        "difficulty": 1322,
+        "averageGradient": 9.12,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-de-gamoniteiro-depuis-pola-de-lena-c482.htm"
+      },
+      {
+        "name": "San Martin",
+        "geoCoordinate": {
+          "latitude": 43.1488,
+          "longitude": -5.96008
+        },
+        "length": 17.0,
+        "totalAscent": 1290,
+        "minimumAltitude": 483,
+        "maximumGradient": 12.2,
+        "difficulty": 979,
+        "averageGradient": 7.59,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-de-gamoniteiro-depuis-san-martin-c481.htm"
+      }
+    ]
+  },
+  {
+    "name": "Alto de l'Angliru",
+    "country": "ES",
+    "massif": "Monts cantabriques",
+    "topOfTheAscent": 1570,
+    "geoCoordinate": {
+      "latitude": 43.22143,
+      "longitude": -5.94194
+    },
+    "alternatives": [
+      {
+        "name": "La vega",
+        "geoCoordinate": {
+          "latitude": 43.23075,
+          "longitude": -5.88227
+        },
+        "length": 12.5,
+        "totalAscent": 1248,
+        "minimumAltitude": 313,
+        "maximumGradient": 23.0,
+        "difficulty": 1245,
+        "averageGradient": 9.98,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-de-l-angliru-depuis-la-vega-c189.htm"
+      },
+      {
+        "name": "Santa Eulalia",
+        "geoCoordinate": {
+          "latitude": 43.27755,
+          "longitude": -5.88902
+        },
+        "length": 17.7,
+        "totalAscent": 1403,
+        "minimumAltitude": 179,
+        "maximumGradient": 23.0,
+        "difficulty": 1113,
+        "averageGradient": 7.93,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-de-l-angliru-depuis-santa-eulalia-c3630.htm"
+      }
+    ]
+  },
+  {
+    "name": "Alto de la Farrapona",
+    "country": "ES",
+    "massif": "Monts cantabriques",
+    "topOfTheAscent": 1708,
+    "geoCoordinate": {
+      "latitude": 43.05701,
+      "longitude": -6.08996
+    },
+    "alternatives": [
+      {
+        "name": "AS-227",
+        "geoCoordinate": {
+          "latitude": 43.11774,
+          "longitude": -6.25208
+        },
+        "length": 18.7,
+        "totalAscent": 1078,
+        "minimumAltitude": 639,
+        "maximumGradient": 13.0,
+        "difficulty": 620,
+        "averageGradient": 5.76,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-de-la-farrapona-depuis-as-227-c2631.htm"
+      }
+    ]
+  },
+  {
+    "name": "Alto de Zuriza",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 1290,
+    "geoCoordinate": {
+      "latitude": 42.86721,
+      "longitude": -0.82678
+    },
+    "alternatives": [
+      {
+        "name": "Anso",
+        "geoCoordinate": {
+          "latitude": 42.75328,
+          "longitude": -0.82985
+        },
+        "length": 14.0,
+        "totalAscent": 428,
+        "minimumAltitude": 824,
+        "maximumGradient": 7.2,
+        "difficulty": 131,
+        "averageGradient": 3.06,
+        "category": "4",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/alto-de-zuriza-depuis-anso-c1818.htm"
+      },
+      {
+        "name": "Isaba",
+        "geoCoordinate": {
+          "latitude": 42.86088,
+          "longitude": -0.92285
+        },
+        "length": 12.5,
+        "totalAscent": 500,
+        "minimumAltitude": 790,
+        "maximumGradient": 8.0,
+        "difficulty": 200,
+        "averageGradient": 4.0,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/alto-de-zuriza-depuis-isaba-c1819.htm"
+      }
+    ]
+  },
+  {
+    "name": "Alto Lazar",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 1129,
+    "geoCoordinate": {
+      "latitude": 42.92042,
+      "longitude": -0.98941
+    },
+    "alternatives": [
+      {
+        "name": "Isaba",
+        "geoCoordinate": {
+          "latitude": 42.8612,
+          "longitude": -0.92261
+        },
+        "length": 12.0,
+        "totalAscent": 314,
+        "minimumAltitude": 786,
+        "maximumGradient": 7.6,
+        "difficulty": 82,
+        "averageGradient": 2.62,
+        "category": "4",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/alto-lazar-depuis-isaba-c248.htm"
+      },
+      {
+        "name": "Ochagavia",
+        "geoCoordinate": {
+          "latitude": 42.90554,
+          "longitude": -1.09013
+        },
+        "length": 13.3,
+        "totalAscent": 359,
+        "minimumAltitude": 761,
+        "maximumGradient": 7.3,
+        "difficulty": 97,
+        "averageGradient": 2.7,
+        "category": "4",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/alto-lazar-depuis-ochagavia-c249.htm"
+      }
+    ]
+  },
+  {
+    "name": "Aritxulegi Mendatea",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 455,
+    "geoCoordinate": {
+      "latitude": 43.27281,
+      "longitude": -1.7954
+    },
+    "alternatives": [
+      {
+        "name": "Ergoien",
+        "geoCoordinate": {
+          "latitude": 43.28662,
+          "longitude": -1.83438
+        },
+        "length": 6.0,
+        "totalAscent": 390,
+        "minimumAltitude": 66,
+        "maximumGradient": 11.0,
+        "difficulty": 254,
+        "averageGradient": 6.5,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/aritxulegi-mendatea-depuis-ergoien-c2401.htm"
+      },
+      {
+        "name": "San Anton",
+        "geoCoordinate": {
+          "latitude": 43.27368,
+          "longitude": -1.76809
+        },
+        "length": 3.3,
+        "totalAscent": 210,
+        "minimumAltitude": 240,
+        "maximumGradient": 12.0,
+        "difficulty": 133,
+        "averageGradient": 6.36,
+        "category": "4",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/aritxulegi-mendatea-depuis-san-anton-c2402.htm"
+      }
+    ]
+  },
+  {
+    "name": "Arres de Sus",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1310,
+    "geoCoordinate": {
+      "latitude": 42.75771,
+      "longitude": 0.71203
+    },
+    "alternatives": [
+      {
+        "name": "Pont d'Arros",
+        "geoCoordinate": {
+          "latitude": 42.73765,
+          "longitude": 0.7536
+        },
+        "length": 8.0,
+        "totalAscent": 450,
+        "minimumAltitude": 859,
+        "maximumGradient": 9.0,
+        "difficulty": 254,
+        "averageGradient": 5.63,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/arres-de-sus-depuis-pont-d-arros-c2251.htm"
+      }
+    ]
+  },
+  {
+    "name": "Banos de Panticosa",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1610,
+    "geoCoordinate": {
+      "latitude": 42.75696,
+      "longitude": -0.23787
+    },
+    "alternatives": [
+      {
+        "name": "Biescas",
+        "geoCoordinate": {
+          "latitude": 42.63059,
+          "longitude": -0.32756
+        },
+        "length": 22.5,
+        "totalAscent": 735,
+        "minimumAltitude": 870,
+        "maximumGradient": 9.0,
+        "difficulty": 241,
+        "averageGradient": 3.27,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/banos-de-panticosa-depuis-biescas-c1986.htm"
+      }
+    ]
+  },
+  {
+    "name": "Barrage de Cavallers",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1760,
+    "geoCoordinate": {
+      "latitude": 42.58428,
+      "longitude": 0.85513
+    },
+    "alternatives": [
+      {
+        "name": "N230",
+        "geoCoordinate": {
+          "latitude": 42.42546,
+          "longitude": 0.73257
+        },
+        "length": 24.8,
+        "totalAscent": 890,
+        "minimumAltitude": 873,
+        "maximumGradient": 8.1,
+        "difficulty": 320,
+        "averageGradient": 3.59,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/barrage-de-cavallers-depuis-n230-c1980.htm"
+      }
+    ]
+  },
+  {
+    "name": "Bausen",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 915,
+    "geoCoordinate": {
+      "latitude": 42.83439,
+      "longitude": 0.71705
+    },
+    "alternatives": [
+      {
+        "name": "Pontaut",
+        "geoCoordinate": {
+          "latitude": 42.8258,
+          "longitude": 0.72514
+        },
+        "length": 3.6,
+        "totalAscent": 295,
+        "minimumAltitude": 610,
+        "maximumGradient": 12.0,
+        "difficulty": 241,
+        "averageGradient": 8.19,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/bausen-depuis-pontaut-c2389.htm"
+      }
+    ]
+  },
+  {
+    "name": "Bianditzko Mandatea",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 711,
+    "geoCoordinate": {
+      "latitude": 43.24714,
+      "longitude": -1.8149
+    },
+    "alternatives": [
+      {
+        "name": "Altzibar-Karrika",
+        "geoCoordinate": {
+          "latitude": 43.29322,
+          "longitude": -1.8563
+        },
+        "length": 11.8,
+        "totalAscent": 665,
+        "minimumAltitude": 33,
+        "maximumGradient": 9.0,
+        "difficulty": 375,
+        "averageGradient": 5.64,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/bianditzko-mandatea-depuis-altzibar-karrika-c2412.htm"
+      },
+      {
+        "name": "Artikutza",
+        "geoCoordinate": {
+          "latitude": 43.21317,
+          "longitude": -1.79669
+        },
+        "length": 7.7,
+        "totalAscent": 385,
+        "minimumAltitude": 326,
+        "maximumGradient": 12.0,
+        "difficulty": 192,
+        "averageGradient": 5.0,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/bianditzko-mandatea-depuis-artikutza-c3183.htm"
+      }
+    ]
+  },
+  {
+    "name": "Calar Alto",
+    "country": "ES",
+    "massif": "Cordillère bétique",
+    "topOfTheAscent": 2161,
+    "geoCoordinate": {
+      "latitude": 37.22212,
+      "longitude": -2.54705
+    },
+    "alternatives": [
+      {
+        "name": "Aulago",
+        "geoCoordinate": {
+          "latitude": 37.11814,
+          "longitude": -2.59171
+        },
+        "length": 29.7,
+        "totalAscent": 1377,
+        "minimumAltitude": 757,
+        "maximumGradient": 7.7,
+        "difficulty": 639,
+        "averageGradient": 4.64,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/calar-alto-depuis-aulago-c1415.htm"
+      },
+      {
+        "name": "Gérgal",
+        "geoCoordinate": {
+          "latitude": 37.11754,
+          "longitude": -2.54099
+        },
+        "length": 22.8,
+        "totalAscent": 1390,
+        "minimumAltitude": 733,
+        "maximumGradient": 10.2,
+        "difficulty": 848,
+        "averageGradient": 6.1,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/calar-alto-depuis-gergal-c1416.htm"
+      }
+    ]
+  },
+  {
+    "name": "Canejan",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 915,
+    "geoCoordinate": {
+      "latitude": 42.83818,
+      "longitude": 0.73912
+    },
+    "alternatives": [
+      {
+        "name": "Pontaut",
+        "geoCoordinate": {
+          "latitude": 42.83543,
+          "longitude": 0.73041
+        },
+        "length": 6.0,
+        "totalAscent": 315,
+        "minimumAltitude": 595,
+        "maximumGradient": 10.0,
+        "difficulty": 165,
+        "averageGradient": 5.25,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/canejan-depuis-pontaut-c2388.htm"
+      }
+    ]
+  },
+  {
+    "name": "Cerler",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1911,
+    "geoCoordinate": {
+      "latitude": 42.56316,
+      "longitude": 0.56856
+    },
+    "alternatives": [
+      {
+        "name": "Eristè",
+        "geoCoordinate": {
+          "latitude": 42.58656,
+          "longitude": 0.49028
+        },
+        "length": 18.8,
+        "totalAscent": 834,
+        "minimumAltitude": 1078,
+        "maximumGradient": 9.5,
+        "difficulty": 371,
+        "averageGradient": 4.44,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/cerler-depuis-eriste-c1985.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col d'Artesiaga",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 999,
+    "geoCoordinate": {
+      "latitude": 43.0501,
+      "longitude": -1.53888
+    },
+    "alternatives": [
+      {
+        "name": "Irurita",
+        "geoCoordinate": {
+          "latitude": 43.13102,
+          "longitude": -1.54559
+        },
+        "length": 15.6,
+        "totalAscent": 781,
+        "minimumAltitude": 197,
+        "maximumGradient": 10.0,
+        "difficulty": 392,
+        "averageGradient": 5.01,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-d-artesiaga-depuis-irurita-c1659.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col d'Ibardin",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 317,
+    "geoCoordinate": {
+      "latitude": 43.30969,
+      "longitude": -1.68432
+    },
+    "alternatives": [
+      {
+        "name": "Vera de Bidasoa",
+        "geoCoordinate": {
+          "latitude": 43.2823,
+          "longitude": -1.67869
+        },
+        "length": 6.0,
+        "totalAscent": 269,
+        "minimumAltitude": 45,
+        "maximumGradient": 7.0,
+        "difficulty": 120,
+        "averageGradient": 4.48,
+        "category": "4",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-d-ibardin-depuis-vera-de-bidasoa-c1072.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col d'Ispéguy",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 671,
+    "geoCoordinate": {
+      "latitude": 43.17568,
+      "longitude": -1.40213
+    },
+    "alternatives": [
+      {
+        "name": "Arizkun",
+        "geoCoordinate": {
+          "latitude": 43.18053,
+          "longitude": -1.49037
+        },
+        "length": 11.8,
+        "totalAscent": 424,
+        "minimumAltitude": 244,
+        "maximumGradient": 7.0,
+        "difficulty": 152,
+        "averageGradient": 3.59,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-d-ispeguy-depuis-arizkun-c3786.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col d'Orden",
+    "country": "ES",
+    "massif": "Pyrénées est",
+    "topOfTheAscent": 1513,
+    "geoCoordinate": {
+      "latitude": 42.39471,
+      "longitude": 1.77801
+    },
+    "alternatives": [
+      {
+        "name": "Bellver de Cerdanya",
+        "geoCoordinate": {
+          "latitude": 42.37396,
+          "longitude": 1.77603
+        },
+        "length": 5.24,
+        "totalAscent": 492,
+        "minimumAltitude": 1027,
+        "maximumGradient": 14.0,
+        "difficulty": 462,
+        "averageGradient": 9.39,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/col-d-orden-depuis-bellver-de-cerdanya-c2627.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col de Coustouges",
+    "country": "ES",
+    "massif": "Pyrénées est",
+    "topOfTheAscent": 830,
+    "geoCoordinate": {
+      "latitude": 42.367,
+      "longitude": 2.64986
+    },
+    "alternatives": [
+      {
+        "name": "Darnius",
+        "geoCoordinate": {
+          "latitude": 42.36379,
+          "longitude": 2.85864
+        },
+        "length": 28.5,
+        "totalAscent": 706,
+        "minimumAltitude": 116,
+        "maximumGradient": 6.8,
+        "difficulty": 175,
+        "averageGradient": 2.48,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/col-de-coustouges-depuis-darnius-c898.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col de Fanlo",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1383,
+    "geoCoordinate": {
+      "latitude": 42.59074,
+      "longitude": -0.02293
+    },
+    "alternatives": [
+      {
+        "name": "Escalona",
+        "geoCoordinate": {
+          "latitude": 42.49976,
+          "longitude": 0.14416
+        },
+        "length": 23.0,
+        "totalAscent": 780,
+        "minimumAltitude": 608,
+        "maximumGradient": 8.0,
+        "difficulty": 264,
+        "averageGradient": 3.39,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/col-de-fanlo-depuis-escalona-c1507.htm"
+      },
+      {
+        "name": "Sarvise",
+        "geoCoordinate": {
+          "latitude": 42.57881,
+          "longitude": -0.11362
+        },
+        "length": 11.0,
+        "totalAscent": 520,
+        "minimumAltitude": 878,
+        "maximumGradient": 12.0,
+        "difficulty": 246,
+        "averageGradient": 4.73,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/col-de-fanlo-depuis-sarvise-c1461.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col de l'Espina",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1407,
+    "geoCoordinate": {
+      "latitude": 42.46374,
+      "longitude": 0.62422
+    },
+    "alternatives": [
+      {
+        "name": "N260 / N230",
+        "geoCoordinate": {
+          "latitude": 42.44945,
+          "longitude": 0.7065
+        },
+        "length": 12.2,
+        "totalAscent": 507,
+        "minimumAltitude": 900,
+        "maximumGradient": 9.0,
+        "difficulty": 211,
+        "averageGradient": 4.16,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/col-de-l-espina-depuis-n260-n230-c3114.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col de Lizarrieta",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 442,
+    "geoCoordinate": {
+      "latitude": 43.2606,
+      "longitude": -1.61915
+    },
+    "alternatives": [
+      {
+        "name": "Etxalar",
+        "geoCoordinate": {
+          "latitude": 43.23402,
+          "longitude": -1.63694
+        },
+        "length": 8.0,
+        "totalAscent": 341,
+        "minimumAltitude": 100,
+        "maximumGradient": 6.6,
+        "difficulty": 145,
+        "averageGradient": 4.26,
+        "category": "4",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-de-lizarrieta-depuis-etxalar-c1649.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col de sa Batalla",
+    "country": "ES",
+    "massif": "Sierra de Tramontana",
+    "topOfTheAscent": 577,
+    "geoCoordinate": {
+      "latitude": 39.81239,
+      "longitude": 2.88966
+    },
+    "alternatives": [
+      {
+        "name": "Caimari",
+        "geoCoordinate": {
+          "latitude": 39.77026,
+          "longitude": 2.90221
+        },
+        "length": 7.8,
+        "totalAscent": 384,
+        "minimumAltitude": 169,
+        "maximumGradient": 12.0,
+        "difficulty": 189,
+        "averageGradient": 4.92,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/col-de-sa-batalla-depuis-caimari-c2138.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col du Somport",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 1631,
+    "geoCoordinate": {
+      "latitude": 42.79578,
+      "longitude": -0.52582
+    },
+    "alternatives": [
+      {
+        "name": "Villanuja",
+        "geoCoordinate": {
+          "latitude": 42.68084,
+          "longitude": -0.53655
+        },
+        "length": 16.0,
+        "totalAscent": 679,
+        "minimumAltitude": 956,
+        "maximumGradient": 8.0,
+        "difficulty": 288,
+        "averageGradient": 4.24,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-du-somport-depuis-villanuja-c251.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col Ibaneta",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 1057,
+    "geoCoordinate": {
+      "latitude": 43.02039,
+      "longitude": -1.32464
+    },
+    "alternatives": [
+      {
+        "name": "Arneguy",
+        "geoCoordinate": {
+          "latitude": 43.10974,
+          "longitude": -1.28129
+        },
+        "length": 18.0,
+        "totalAscent": 812,
+        "minimumAltitude": 257,
+        "maximumGradient": 7.1,
+        "difficulty": 366,
+        "averageGradient": 4.51,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-ibaneta-depuis-arneguy-c245.htm"
+      },
+      {
+        "name": "Burguete",
+        "geoCoordinate": {
+          "latitude": 42.97728,
+          "longitude": -1.34843
+        },
+        "length": 6.9,
+        "totalAscent": 227,
+        "minimumAltitude": 871,
+        "maximumGradient": 6.7,
+        "difficulty": 75,
+        "averageGradient": 3.29,
+        "category": "4",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-ibaneta-depuis-burguete-c244.htm"
+      }
+    ]
+  },
+  {
+    "name": "Coll de Boixols",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1330,
+    "geoCoordinate": {
+      "latitude": 42.16964,
+      "longitude": 1.18514
+    },
+    "alternatives": [
+      {
+        "name": "Coll de Nargo",
+        "geoCoordinate": {
+          "latitude": 42.16579,
+          "longitude": 1.29259
+        },
+        "length": 15.8,
+        "totalAscent": 780,
+        "minimumAltitude": 566,
+        "maximumGradient": 8.0,
+        "difficulty": 386,
+        "averageGradient": 4.94,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/coll-de-boixols-depuis-coll-de-nargo-c3092.htm"
+      }
+    ]
+  },
+  {
+    "name": "Coll de Manrella",
+    "country": "ES",
+    "massif": "Pyrénées est",
+    "topOfTheAscent": 732,
+    "geoCoordinate": {
+      "latitude": 42.42065,
+      "longitude": 2.80155
+    },
+    "alternatives": [
+      {
+        "name": "Agullana",
+        "geoCoordinate": {
+          "latitude": 42.3946,
+          "longitude": 2.84863
+        },
+        "length": 10.1,
+        "totalAscent": 576,
+        "minimumAltitude": 146,
+        "maximumGradient": 6.5,
+        "difficulty": 328,
+        "averageGradient": 5.7,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/coll-de-manrella-depuis-agullana-c900.htm"
+      }
+    ]
+  },
+  {
+    "name": "Coll de Pal",
+    "country": "ES",
+    "massif": "Pyrénées est",
+    "topOfTheAscent": 2080,
+    "geoCoordinate": {
+      "latitude": 42.30361,
+      "longitude": 1.92244
+    },
+    "alternatives": [
+      {
+        "name": "Baga",
+        "geoCoordinate": {
+          "latitude": 42.25404,
+          "longitude": 1.86101
+        },
+        "length": 19.0,
+        "totalAscent": 1235,
+        "minimumAltitude": 803,
+        "maximumGradient": 9.0,
+        "difficulty": 803,
+        "averageGradient": 6.5,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/coll-de-pal-depuis-baga-c1676.htm"
+      }
+    ]
+  },
+  {
+    "name": "Coll de Soller",
+    "country": "ES",
+    "massif": "Sierra de Tramontana",
+    "topOfTheAscent": 499,
+    "geoCoordinate": {
+      "latitude": 39.73111,
+      "longitude": 2.68624
+    },
+    "alternatives": [
+      {
+        "name": "Bunyola",
+        "geoCoordinate": {
+          "latitude": 39.69568,
+          "longitude": 2.68735
+        },
+        "length": 7.5,
+        "totalAscent": 325,
+        "minimumAltitude": 171,
+        "maximumGradient": 6.5,
+        "difficulty": 141,
+        "averageGradient": 4.33,
+        "category": "4",
+        "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/coll-de-soller-depuis-bunyola-c1842.htm"
+      },
+      {
+        "name": "Soller",
+        "geoCoordinate": {
+          "latitude": 39.77083,
+          "longitude": 2.70622
+        },
+        "length": 8.92,
+        "totalAscent": 472,
+        "minimumAltitude": 26,
+        "maximumGradient": 9.1,
+        "difficulty": 250,
+        "averageGradient": 5.29,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/coll-de-soller-depuis-soller-c1841.htm"
+      }
+    ]
+  },
+  {
+    "name": "Coll dels Reis",
+    "country": "ES",
+    "massif": "Sierra de Tramontana",
+    "topOfTheAscent": 731,
+    "geoCoordinate": {
+      "latitude": 39.8276,
+      "longitude": 2.81789
+    },
+    "alternatives": [
+      {
+        "name": "Sa Calobra",
+        "geoCoordinate": {
+          "latitude": 39.85032,
+          "longitude": 2.79994
+        },
+        "length": 9.4,
+        "totalAscent": 669,
+        "minimumAltitude": 31,
+        "maximumGradient": 11.7,
+        "difficulty": 477,
+        "averageGradient": 7.12,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/coll-dels-reis-depuis-sa-calobra-c2137.htm"
+      }
+    ]
+  },
+  {
+    "name": "Collada de Toses",
+    "country": "ES",
+    "massif": "Pyrénées est",
+    "topOfTheAscent": 1800,
+    "geoCoordinate": {
+      "latitude": 42.33601,
+      "longitude": 1.99115
+    },
+    "alternatives": [
+      {
+        "name": "Alp (via La Molina)",
+        "geoCoordinate": {
+          "latitude": 42.37173,
+          "longitude": 1.88061
+        },
+        "length": 18.0,
+        "totalAscent": 710,
+        "minimumAltitude": 1133,
+        "maximumGradient": 8.0,
+        "difficulty": 279,
+        "averageGradient": 3.94,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/collada-de-toses-depuis-alp-via-la-molina-c2001.htm"
+      },
+      {
+        "name": "Alp (via Masella et Super Molina)",
+        "geoCoordinate": {
+          "latitude": 42.37301,
+          "longitude": 1.88803
+        },
+        "length": 22.5,
+        "totalAscent": 815,
+        "minimumAltitude": 1155,
+        "maximumGradient": 8.0,
+        "difficulty": 295,
+        "averageGradient": 3.62,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/collada-de-toses-depuis-alp-via-masella-et-super-molina-c2000.htm"
+      },
+      {
+        "name": "Urtx",
+        "geoCoordinate": {
+          "latitude": 42.40036,
+          "longitude": 1.91552
+        },
+        "length": 21.8,
+        "totalAscent": 710,
+        "minimumAltitude": 1104,
+        "maximumGradient": 5.5,
+        "difficulty": 232,
+        "averageGradient": 3.26,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/collada-de-toses-depuis-urtx-c1984.htm"
+      }
+    ]
+  },
+  {
+    "name": "Collado de Foradada",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1020,
+    "geoCoordinate": {
+      "latitude": 42.41057,
+      "longitude": 0.34754
+    },
+    "alternatives": [
+      {
+        "name": "Arro",
+        "geoCoordinate": {
+          "latitude": 42.40961,
+          "longitude": 0.22667
+        },
+        "length": 11.1,
+        "totalAscent": 435,
+        "minimumAltitude": 600,
+        "maximumGradient": 10.0,
+        "difficulty": 171,
+        "averageGradient": 3.92,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/collado-de-foradada-depuis-arro-c2605.htm"
+      }
+    ]
+  },
+  {
+    "name": "Collado de Urquiaga",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 890,
+    "geoCoordinate": {
+      "latitude": 43.03593,
+      "longitude": -1.47036
+    },
+    "alternatives": [
+      {
+        "name": "Aldudes",
+        "geoCoordinate": {
+          "latitude": 43.09542,
+          "longitude": -1.42558
+        },
+        "length": 13.0,
+        "totalAscent": 520,
+        "minimumAltitude": 378,
+        "maximumGradient": 9.6,
+        "difficulty": 208,
+        "averageGradient": 4.0,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/collado-de-urquiaga-depuis-aldudes-c1657.htm"
+      },
+      {
+        "name": "Zubiri",
+        "geoCoordinate": {
+          "latitude": 42.93595,
+          "longitude": -1.50313
+        },
+        "length": 18.9,
+        "totalAscent": 365,
+        "minimumAltitude": 532,
+        "maximumGradient": 5.1,
+        "difficulty": 70,
+        "averageGradient": 1.93,
+        "category": "4",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/collado-de-urquiaga-depuis-zubiri-c1658.htm"
+      }
+    ]
+  },
+  {
+    "name": "El Teide",
+    "country": "ES",
+    "massif": "Canaries",
+    "topOfTheAscent": 2356,
+    "geoCoordinate": {
+      "latitude": 28.22379,
+      "longitude": -16.62868
+    },
+    "alternatives": [
+      {
+        "name": "Los Cristianos",
+        "geoCoordinate": {
+          "latitude": 28.05302,
+          "longitude": -16.7134
+        },
+        "length": 45.0,
+        "totalAscent": 2356,
+        "minimumAltitude": 19,
+        "maximumGradient": 12.0,
+        "difficulty": 1236,
+        "averageGradient": 5.24,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/canaries/espagne/el-teide-depuis-los-cristianos-c3572.htm"
+      }
+    ]
+  },
+  {
+    "name": "Ermita de Betlem",
+    "country": "ES",
+    "massif": "Sierra de Tramontana",
+    "topOfTheAscent": 372,
+    "geoCoordinate": {
+      "latitude": 39.73264,
+      "longitude": 3.31717
+    },
+    "alternatives": [
+      {
+        "name": "Arta",
+        "geoCoordinate": {
+          "latitude": 39.69559,
+          "longitude": 3.35071
+        },
+        "length": 5.1,
+        "totalAscent": 240,
+        "minimumAltitude": 121,
+        "maximumGradient": 7.6,
+        "difficulty": 113,
+        "averageGradient": 4.71,
+        "category": "4",
+        "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/ermita-de-betlem-depuis-arta-c2139.htm"
+      }
+    ]
+  },
+  {
+    "name": "Formigal",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1535,
+    "geoCoordinate": {
+      "latitude": 42.7728,
+      "longitude": -0.36053
+    },
+    "alternatives": [
+      {
+        "name": "Sallent de Gallego",
+        "geoCoordinate": {
+          "latitude": 42.77201,
+          "longitude": -0.33477
+        },
+        "length": 4.5,
+        "totalAscent": 235,
+        "minimumAltitude": 1302,
+        "maximumGradient": 7.0,
+        "difficulty": 123,
+        "averageGradient": 5.22,
+        "category": "4",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/formigal-depuis-sallent-de-gallego-c2952.htm"
+      }
+    ]
+  },
+  {
+    "name": "Hospital de Benasque",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1915,
+    "geoCoordinate": {
+      "latitude": 42.6835,
+      "longitude": 0.61167
+    },
+    "alternatives": [
+      {
+        "name": "Benasque",
+        "geoCoordinate": {
+          "latitude": 42.60304,
+          "longitude": 0.52128
+        },
+        "length": 15.4,
+        "totalAscent": 775,
+        "minimumAltitude": 1132,
+        "maximumGradient": 10.2,
+        "difficulty": 390,
+        "averageGradient": 5.03,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/hospital-de-benasque-depuis-benasque-c1979.htm"
+      }
+    ]
+  },
+  {
+    "name": "Iondogorta",
+    "country": "ES",
+    "massif": "Monts cantabriques",
+    "topOfTheAscent": 733,
+    "geoCoordinate": {
+      "latitude": 43.05457,
+      "longitude": -2.77634
+    },
+    "alternatives": [
+      {
+        "name": "Lanbreabe",
+        "geoCoordinate": {
+          "latitude": 43.06619,
+          "longitude": -2.75738
+        },
+        "length": 2.7,
+        "totalAscent": 436,
+        "minimumAltitude": 309,
+        "maximumGradient": 25.0,
+        "difficulty": 704,
+        "averageGradient": 16.15,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/iondogorta-depuis-lanbreabe-c483.htm"
+      }
+    ]
+  },
+  {
+    "name": "Jaizkibel",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 475,
+    "geoCoordinate": {
+      "latitude": 43.34764,
+      "longitude": -1.85823
+    },
+    "alternatives": [
+      {
+        "name": "Hondarribia",
+        "geoCoordinate": {
+          "latitude": 43.36631,
+          "longitude": -1.80221
+        },
+        "length": 9.1,
+        "totalAscent": 440,
+        "minimumAltitude": 15,
+        "maximumGradient": 8.8,
+        "difficulty": 213,
+        "averageGradient": 4.84,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/jaizkibel-depuis-hondarribia-c1055.htm"
+      },
+      {
+        "name": "Pasaia",
+        "geoCoordinate": {
+          "latitude": 43.32446,
+          "longitude": -1.90973
+        },
+        "length": 7.4,
+        "totalAscent": 446,
+        "minimumAltitude": 13,
+        "maximumGradient": 9.0,
+        "difficulty": 269,
+        "averageGradient": 6.03,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/jaizkibel-depuis-pasaia-c1059.htm"
+      },
+      {
+        "name": "Pasaia (via Larrabide Errepidea)",
+        "geoCoordinate": {
+          "latitude": 43.32446,
+          "longitude": -1.90973
+        },
+        "length": 7.3,
+        "totalAscent": 446,
+        "minimumAltitude": 13,
+        "maximumGradient": 14.4,
+        "difficulty": 273,
+        "averageGradient": 6.11,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/jaizkibel-depuis-pasaia-via-larrabide-errepidea-c3191.htm"
+      }
+    ]
+  },
+  {
+    "name": "La Covatilla",
+    "country": "ES",
+    "massif": "Sistema Central",
+    "topOfTheAscent": 1966,
+    "geoCoordinate": {
+      "latitude": 40.35491,
+      "longitude": -5.68994
+    },
+    "alternatives": [
+      {
+        "name": "Bejar",
+        "geoCoordinate": {
+          "latitude": 40.38914,
+          "longitude": -5.75117
+        },
+        "length": 19.9,
+        "totalAscent": 1146,
+        "minimumAltitude": 968,
+        "maximumGradient": 10.6,
+        "difficulty": 660,
+        "averageGradient": 5.76,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/la-covatilla-depuis-bejar-c478.htm"
+      }
+    ]
+  },
+  {
+    "name": "La Guardia d'Ares",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1590,
+    "geoCoordinate": {
+      "latitude": 42.286,
+      "longitude": 1.23429
+    },
+    "alternatives": [
+      {
+        "name": "Noves de segre",
+        "geoCoordinate": {
+          "latitude": 42.29401,
+          "longitude": 1.34632
+        },
+        "length": 21.0,
+        "totalAscent": 1000,
+        "minimumAltitude": 641,
+        "maximumGradient": 7.5,
+        "difficulty": 476,
+        "averageGradient": 4.76,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/la-guardia-d-ares-depuis-noves-de-segre-c3115.htm"
+      }
+    ]
+  },
+  {
+    "name": "Lagos de Covadonga",
+    "country": "ES",
+    "massif": "Monts cantabriques",
+    "topOfTheAscent": 1134,
+    "geoCoordinate": {
+      "latitude": 43.27446,
+      "longitude": -4.98651
+    },
+    "alternatives": [
+      {
+        "name": "Soto de Cangas",
+        "geoCoordinate": {
+          "latitude": 43.34643,
+          "longitude": -5.08593
+        },
+        "length": 14.2,
+        "totalAscent": 1056,
+        "minimumAltitude": 83,
+        "maximumGradient": 12.5,
+        "difficulty": 786,
+        "averageGradient": 7.44,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/lagos-de-covadonga-depuis-soto-de-cangas-c479.htm"
+      }
+    ]
+  },
+  {
+    "name": "Monastère de San Victorian",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1110,
+    "geoCoordinate": {
+      "latitude": 42.45787,
+      "longitude": 0.22051
+    },
+    "alternatives": [
+      {
+        "name": "Arro",
+        "geoCoordinate": {
+          "latitude": 42.40999,
+          "longitude": 0.22459
+        },
+        "length": 11.2,
+        "totalAscent": 525,
+        "minimumAltitude": 587,
+        "maximumGradient": 12.0,
+        "difficulty": 246,
+        "averageGradient": 4.69,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/monastere-de-san-victorian-depuis-arro-c2604.htm"
+      }
+    ]
+  },
+  {
+    "name": "Montant de Tost",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1171,
+    "geoCoordinate": {
+      "latitude": 42.23846,
+      "longitude": 1.38058
+    },
+    "alternatives": [
+      {
+        "name": "C14 / LV4001",
+        "geoCoordinate": {
+          "latitude": 42.24711,
+          "longitude": 1.34631
+        },
+        "length": 11.5,
+        "totalAscent": 606,
+        "minimumAltitude": 555,
+        "maximumGradient": 8.0,
+        "difficulty": 319,
+        "averageGradient": 5.27,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/montant-de-tost-depuis-c14-lv4001-c3093.htm"
+      }
+    ]
+  },
+  {
+    "name": "Orzanzurieta",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 1573,
+    "geoCoordinate": {
+      "latitude": 43.02198,
+      "longitude": -1.27651
+    },
+    "alternatives": [
+      {
+        "name": "Arneguy",
+        "geoCoordinate": {
+          "latitude": 43.1094,
+          "longitude": -1.28233
+        },
+        "length": 26.0,
+        "totalAscent": 1301,
+        "minimumAltitude": 249,
+        "maximumGradient": 12.1,
+        "difficulty": 650,
+        "averageGradient": 5.0,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/orzanzurieta-depuis-arneguy-c1982.htm"
+      },
+      {
+        "name": "Burguete",
+        "geoCoordinate": {
+          "latitude": 42.97709,
+          "longitude": -1.34862
+        },
+        "length": 11.0,
+        "totalAscent": 672,
+        "minimumAltitude": 871,
+        "maximumGradient": 11.3,
+        "difficulty": 411,
+        "averageGradient": 6.11,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/orzanzurieta-depuis-burguete-c1983.htm"
+      }
+    ]
+  },
+  {
+    "name": "Parc national d'Ordesa",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1320,
+    "geoCoordinate": {
+      "latitude": 42.64955,
+      "longitude": -0.06125
+    },
+    "alternatives": [
+      {
+        "name": "Broto",
+        "geoCoordinate": {
+          "latitude": 42.60452,
+          "longitude": -0.12299
+        },
+        "length": 12.3,
+        "totalAscent": 420,
+        "minimumAltitude": 896,
+        "maximumGradient": 9.5,
+        "difficulty": 143,
+        "averageGradient": 3.41,
+        "category": "4",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/parc-national-d-ordesa-depuis-broto-c2608.htm"
+      }
+    ]
+  },
+  {
+    "name": "Paso Tapia",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 1340,
+    "geoCoordinate": {
+      "latitude": 42.95726,
+      "longitude": -1.13536
+    },
+    "alternatives": [
+      {
+        "name": "Irati",
+        "geoCoordinate": {
+          "latitude": 42.98846,
+          "longitude": -1.10554
+        },
+        "length": 9.5,
+        "totalAscent": 515,
+        "minimumAltitude": 861,
+        "maximumGradient": 8.0,
+        "difficulty": 279,
+        "averageGradient": 5.42,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/paso-tapia-depuis-irati-c1827.htm"
+      },
+      {
+        "name": "Ochagavia",
+        "geoCoordinate": {
+          "latitude": 42.90554,
+          "longitude": -1.09013
+        },
+        "length": 14.7,
+        "totalAscent": 570,
+        "minimumAltitude": 755,
+        "maximumGradient": 8.0,
+        "difficulty": 221,
+        "averageGradient": 3.88,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/paso-tapia-depuis-ochagavia-c1826.htm"
+      }
+    ]
+  },
+  {
+    "name": "Pico de Veleta",
+    "country": "ES",
+    "massif": "Cordillère bétique",
+    "topOfTheAscent": 3400,
+    "geoCoordinate": {
+      "latitude": 37.05567,
+      "longitude": -3.36608
+    },
+    "alternatives": [
+      {
+        "name": "Granada",
+        "geoCoordinate": {
+          "latitude": 37.15464,
+          "longitude": -3.58405
+        },
+        "length": 43.0,
+        "totalAscent": 2700,
+        "minimumAltitude": 700,
+        "maximumGradient": 9.7,
+        "difficulty": 1696,
+        "averageGradient": 6.28,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/pico-de-veleta-depuis-granada-c477.htm"
+      }
+    ]
+  },
+  {
+    "name": "Pico Gorramakil",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 1090,
+    "geoCoordinate": {
+      "latitude": 43.21967,
+      "longitude": -1.43179
+    },
+    "alternatives": [
+      {
+        "name": "Dancharia",
+        "geoCoordinate": {
+          "latitude": 43.29377,
+          "longitude": -1.50401
+        },
+        "length": 21.6,
+        "totalAscent": 1023,
+        "minimumAltitude": 71,
+        "maximumGradient": 9.2,
+        "difficulty": 485,
+        "averageGradient": 4.74,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/pico-gorramakil-depuis-dancharia-c1558.htm"
+      }
+    ]
+  },
+  {
+    "name": "Pla de Beret",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1904,
+    "geoCoordinate": {
+      "latitude": 42.72888,
+      "longitude": 0.96604
+    },
+    "alternatives": [
+      {
+        "name": "Vielha",
+        "geoCoordinate": {
+          "latitude": 42.69746,
+          "longitude": 0.80918
+        },
+        "length": 21.7,
+        "totalAscent": 884,
+        "minimumAltitude": 1009,
+        "maximumGradient": 6.4,
+        "difficulty": 359,
+        "averageGradient": 4.07,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/pla-de-beret-depuis-vielha-c415.htm"
+      }
+    ]
+  },
+  {
+    "name": "Port de Bielsa",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1821,
+    "geoCoordinate": {
+      "latitude": 42.74817,
+      "longitude": 0.19123
+    },
+    "alternatives": [
+      {
+        "name": "Salinas de Sin",
+        "geoCoordinate": {
+          "latitude": 42.58472,
+          "longitude": 0.22183
+        },
+        "length": 21.0,
+        "totalAscent": 1028,
+        "minimumAltitude": 819,
+        "maximumGradient": 10.6,
+        "difficulty": 504,
+        "averageGradient": 4.9,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/port-de-bielsa-depuis-salinas-de-sin-c1857.htm"
+      }
+    ]
+  },
+  {
+    "name": "Port del Canto",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1730,
+    "geoCoordinate": {
+      "latitude": 42.37013,
+      "longitude": 1.23645
+    },
+    "alternatives": [
+      {
+        "name": "Adrall",
+        "geoCoordinate": {
+          "latitude": 42.32595,
+          "longitude": 1.39863
+        },
+        "length": 26.3,
+        "totalAscent": 1100,
+        "minimumAltitude": 629,
+        "maximumGradient": 8.0,
+        "difficulty": 460,
+        "averageGradient": 4.18,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/port-del-canto-depuis-adrall-c3089.htm"
+      },
+      {
+        "name": "Sort",
+        "geoCoordinate": {
+          "latitude": 42.40944,
+          "longitude": 1.13029
+        },
+        "length": 19.3,
+        "totalAscent": 1045,
+        "minimumAltitude": 684,
+        "maximumGradient": 7.4,
+        "difficulty": 565,
+        "averageGradient": 5.41,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/port-del-canto-depuis-sort-c3090.htm"
+      }
+    ]
+  },
+  {
+    "name": "Puerto de Ancares",
+    "country": "ES",
+    "massif": "Monts cantabriques",
+    "topOfTheAscent": 1675,
+    "geoCoordinate": {
+      "latitude": 42.86855,
+      "longitude": -6.818
+    },
+    "alternatives": [
+      {
+        "name": "Murias",
+        "geoCoordinate": {
+          "latitude": 42.93127,
+          "longitude": -6.87237
+        },
+        "length": 17.0,
+        "totalAscent": 1153,
+        "minimumAltitude": 545,
+        "maximumGradient": 12.6,
+        "difficulty": 781,
+        "averageGradient": 6.78,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/puerto-de-ancares-depuis-murias-c2632.htm"
+      }
+    ]
+  },
+  {
+    "name": "Puerto de Cotefablo",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1423,
+    "geoCoordinate": {
+      "latitude": 42.6129,
+      "longitude": -0.20202
+    },
+    "alternatives": [
+      {
+        "name": "Biescas",
+        "geoCoordinate": {
+          "latitude": 42.63089,
+          "longitude": -0.32393
+        },
+        "length": 13.8,
+        "totalAscent": 579,
+        "minimumAltitude": 866,
+        "maximumGradient": 9.0,
+        "difficulty": 243,
+        "averageGradient": 4.2,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/puerto-de-cotefablo-depuis-biescas-c2415.htm"
+      },
+      {
+        "name": "Broto",
+        "geoCoordinate": {
+          "latitude": 42.6045,
+          "longitude": -0.12296
+        },
+        "length": 12.8,
+        "totalAscent": 528,
+        "minimumAltitude": 897,
+        "maximumGradient": 10.0,
+        "difficulty": 218,
+        "averageGradient": 4.13,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/puerto-de-cotefablo-depuis-broto-c2416.htm"
+      }
+    ]
+  },
+  {
+    "name": "Puerto de la Bonaigua",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 2072,
+    "geoCoordinate": {
+      "latitude": 42.66342,
+      "longitude": 0.9835
+    },
+    "alternatives": [
+      {
+        "name": "Esterri d'Aneu",
+        "geoCoordinate": {
+          "latitude": 42.60811,
+          "longitude": 1.12524
+        },
+        "length": 19.8,
+        "totalAscent": 1127,
+        "minimumAltitude": 954,
+        "maximumGradient": 9.0,
+        "difficulty": 641,
+        "averageGradient": 5.69,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/puerto-de-la-bonaigua-depuis-esterri-d-aneu-c543.htm"
+      },
+      {
+        "name": "Vielha",
+        "geoCoordinate": {
+          "latitude": 42.70297,
+          "longitude": 0.79313
+        },
+        "length": 23.0,
+        "totalAscent": 1102,
+        "minimumAltitude": 988,
+        "maximumGradient": 7.0,
+        "difficulty": 528,
+        "averageGradient": 4.79,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/puerto-de-la-bonaigua-depuis-vielha-c542.htm"
+      }
+    ]
+  },
+  {
+    "name": "Puerto de la Morcuera",
+    "country": "ES",
+    "massif": "Sistema Central",
+    "topOfTheAscent": 1776,
+    "geoCoordinate": {
+      "latitude": 40.82825,
+      "longitude": -3.83177
+    },
+    "alternatives": [
+      {
+        "name": "Guadalix de la Sierra",
+        "geoCoordinate": {
+          "latitude": 40.78763,
+          "longitude": -3.70653
+        },
+        "length": 17.0,
+        "totalAscent": 926,
+        "minimumAltitude": 855,
+        "maximumGradient": 10.0,
+        "difficulty": 505,
+        "averageGradient": 5.45,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-la-morcuera-depuis-guadalix-de-la-sierra-c1428.htm"
+      },
+      {
+        "name": "Miraflores de la Sierra",
+        "geoCoordinate": {
+          "latitude": 40.81034,
+          "longitude": -3.77281
+        },
+        "length": 9.2,
+        "totalAscent": 603,
+        "minimumAltitude": 1104,
+        "maximumGradient": 12.0,
+        "difficulty": 395,
+        "averageGradient": 6.55,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-la-morcuera-depuis-miraflores-de-la-sierra-c1429.htm"
+      },
+      {
+        "name": "Rascafria",
+        "geoCoordinate": {
+          "latitude": 40.90542,
+          "longitude": -3.87771
+        },
+        "length": 14.0,
+        "totalAscent": 658,
+        "minimumAltitude": 1123,
+        "maximumGradient": 7.9,
+        "difficulty": 309,
+        "averageGradient": 4.7,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-la-morcuera-depuis-rascafria-c1427.htm"
+      }
+    ]
+  },
+  {
+    "name": "Puerto de la Ragua",
+    "country": "ES",
+    "massif": "Cordillère bétique",
+    "topOfTheAscent": 2060,
+    "geoCoordinate": {
+      "latitude": 37.11342,
+      "longitude": -3.02988
+    },
+    "alternatives": [
+      {
+        "name": "Cherin",
+        "geoCoordinate": {
+          "latitude": 36.96611,
+          "longitude": -3.01244
+        },
+        "length": 26.0,
+        "totalAscent": 1536,
+        "minimumAltitude": 533,
+        "maximumGradient": 7.9,
+        "difficulty": 908,
+        "averageGradient": 5.91,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/puerto-de-la-ragua-depuis-cherin-c1417.htm"
+      },
+      {
+        "name": "La Calahorra",
+        "geoCoordinate": {
+          "latitude": 37.18253,
+          "longitude": -3.05975
+        },
+        "length": 17.0,
+        "totalAscent": 921,
+        "minimumAltitude": 1196,
+        "maximumGradient": 6.9,
+        "difficulty": 499,
+        "averageGradient": 5.42,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/puerto-de-la-ragua-depuis-la-calahorra-c1418.htm"
+      }
+    ]
+  },
+  {
+    "name": "Puerto de Matamachos",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 1148,
+    "geoCoordinate": {
+      "latitude": 42.76734,
+      "longitude": -0.86368
+    },
+    "alternatives": [
+      {
+        "name": "Anso",
+        "geoCoordinate": {
+          "latitude": 42.7546,
+          "longitude": -0.82959
+        },
+        "length": 5.2,
+        "totalAscent": 318,
+        "minimumAltitude": 833,
+        "maximumGradient": 8.6,
+        "difficulty": 195,
+        "averageGradient": 6.12,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-de-matamachos-depuis-anso-c1823.htm"
+      },
+      {
+        "name": "Roncal",
+        "geoCoordinate": {
+          "latitude": 42.80965,
+          "longitude": -0.95549
+        },
+        "length": 11.8,
+        "totalAscent": 466,
+        "minimumAltitude": 683,
+        "maximumGradient": 8.4,
+        "difficulty": 184,
+        "averageGradient": 3.95,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-de-matamachos-depuis-roncal-c1822.htm"
+      }
+    ]
+  },
+  {
+    "name": "Puerto de Mijares",
+    "country": "ES",
+    "massif": "Sistema Central",
+    "topOfTheAscent": 1577,
+    "geoCoordinate": {
+      "latitude": 40.33136,
+      "longitude": -4.81416
+    },
+    "alternatives": [
+      {
+        "name": "Burgohondo",
+        "geoCoordinate": {
+          "latitude": 40.41285,
+          "longitude": -4.78771
+        },
+        "length": 16.0,
+        "totalAscent": 759,
+        "minimumAltitude": 821,
+        "maximumGradient": 5.8,
+        "difficulty": 359,
+        "averageGradient": 4.74,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-mijares-depuis-burgohondo-c1422.htm"
+      },
+      {
+        "name": "Gavilanes",
+        "geoCoordinate": {
+          "latitude": 40.27743,
+          "longitude": -4.8523
+        },
+        "length": 22.0,
+        "totalAscent": 1109,
+        "minimumAltitude": 676,
+        "maximumGradient": 8.0,
+        "difficulty": 559,
+        "averageGradient": 5.04,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-mijares-depuis-gavilanes-c1423.htm"
+      },
+      {
+        "name": "Mijares",
+        "geoCoordinate": {
+          "latitude": 40.29671,
+          "longitude": -4.83774
+        },
+        "length": 21.0,
+        "totalAscent": 1119,
+        "minimumAltitude": 840,
+        "maximumGradient": 7.9,
+        "difficulty": 597,
+        "averageGradient": 5.33,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-mijares-depuis-mijares-c1421.htm"
+      }
+    ]
+  },
+  {
+    "name": "Puerto de Monrepos",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 1270,
+    "geoCoordinate": {
+      "latitude": 42.35366,
+      "longitude": -0.39474
+    },
+    "alternatives": [
+      {
+        "name": "Lanave",
+        "geoCoordinate": {
+          "latitude": 42.41806,
+          "longitude": -0.39465
+        },
+        "length": 10.7,
+        "totalAscent": 575,
+        "minimumAltitude": 714,
+        "maximumGradient": 8.5,
+        "difficulty": 309,
+        "averageGradient": 5.37,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-de-monrepos-depuis-lanave-c2414.htm"
+      }
+    ]
+  },
+  {
+    "name": "Puerto de Navacerrada",
+    "country": "ES",
+    "massif": "Sistema Central",
+    "topOfTheAscent": 1860,
+    "geoCoordinate": {
+      "latitude": 40.78887,
+      "longitude": -4.00362
+    },
+    "alternatives": [
+      {
+        "name": "Collado Villalba",
+        "geoCoordinate": {
+          "latitude": 40.64097,
+          "longitude": -4.00537
+        },
+        "length": 18.4,
+        "totalAscent": 953,
+        "minimumAltitude": 879,
+        "maximumGradient": 8.8,
+        "difficulty": 494,
+        "averageGradient": 5.18,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-navacerrada-depuis-collado-villalba-c1426.htm"
+      },
+      {
+        "name": "La Granja",
+        "geoCoordinate": {
+          "latitude": 40.90016,
+          "longitude": -4.00947
+        },
+        "length": 12.0,
+        "totalAscent": 651,
+        "minimumAltitude": 1166,
+        "maximumGradient": 7.6,
+        "difficulty": 354,
+        "averageGradient": 5.43,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-navacerrada-depuis-la-granja-c1424.htm"
+      },
+      {
+        "name": "Los Molinos",
+        "geoCoordinate": {
+          "latitude": 40.70538,
+          "longitude": -4.06892
+        },
+        "length": 13.0,
+        "totalAscent": 757,
+        "minimumAltitude": 1063,
+        "maximumGradient": 8.5,
+        "difficulty": 440,
+        "averageGradient": 5.82,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-navacerrada-depuis-los-molinos-c1425.htm"
+      }
+    ]
+  },
+  {
+    "name": "Puerto de Otxondo",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 570,
+    "geoCoordinate": {
+      "latitude": 43.23667,
+      "longitude": -1.49421
+    },
+    "alternatives": [
+      {
+        "name": "Dancharia",
+        "geoCoordinate": {
+          "latitude": 43.29288,
+          "longitude": -1.50538
+        },
+        "length": 10.0,
+        "totalAscent": 503,
+        "minimumAltitude": 70,
+        "maximumGradient": 6.9,
+        "difficulty": 253,
+        "averageGradient": 5.03,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-de-otxondo-depuis-dancharia-c1987.htm"
+      },
+      {
+        "name": "Elizondo",
+        "geoCoordinate": {
+          "latitude": 43.14323,
+          "longitude": -1.51981
+        },
+        "length": 13.0,
+        "totalAscent": 270,
+        "minimumAltitude": 197,
+        "maximumGradient": 6.0,
+        "difficulty": 56,
+        "averageGradient": 2.08,
+        "category": "4",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-de-otxondo-depuis-elizondo-c1988.htm"
+      }
+    ]
+  },
+  {
+    "name": "Puerto de Serrablo",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1291,
+    "geoCoordinate": {
+      "latitude": 42.4021,
+      "longitude": -0.02979
+    },
+    "alternatives": [
+      {
+        "name": "Boltaña",
+        "geoCoordinate": {
+          "latitude": 42.45015,
+          "longitude": 0.05709
+        },
+        "length": 13.4,
+        "totalAscent": 691,
+        "minimumAltitude": 595,
+        "maximumGradient": 9.0,
+        "difficulty": 357,
+        "averageGradient": 5.16,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/puerto-de-serrablo-depuis-boltana-c2603.htm"
+      }
+    ]
+  },
+  {
+    "name": "Puerto de Velefique",
+    "country": "ES",
+    "massif": "Cordillère bétique",
+    "topOfTheAscent": 1769,
+    "geoCoordinate": {
+      "latitude": 37.22572,
+      "longitude": -2.41134
+    },
+    "alternatives": [
+      {
+        "name": "Velefique",
+        "geoCoordinate": {
+          "latitude": 37.19089,
+          "longitude": -2.40305
+        },
+        "length": 14.0,
+        "totalAscent": 891,
+        "minimumAltitude": 881,
+        "maximumGradient": 12.0,
+        "difficulty": 566,
+        "averageGradient": 6.36,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/puerto-de-velefique-depuis-velefique-c1413.htm"
+      }
+    ]
+  },
+  {
+    "name": "Puerto Las Coronas",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 951,
+    "geoCoordinate": {
+      "latitude": 42.71908,
+      "longitude": -1.04407
+    },
+    "alternatives": [
+      {
+        "name": "Burgui",
+        "geoCoordinate": {
+          "latitude": 42.72418,
+          "longitude": -1.00107
+        },
+        "length": 8.0,
+        "totalAscent": 331,
+        "minimumAltitude": 623,
+        "maximumGradient": 6.0,
+        "difficulty": 137,
+        "averageGradient": 4.14,
+        "category": "4",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-las-coronas-depuis-burgui-c2667.htm"
+      },
+      {
+        "name": "Navascues",
+        "geoCoordinate": {
+          "latitude": 42.71787,
+          "longitude": -1.11825
+        },
+        "length": 7.2,
+        "totalAscent": 341,
+        "minimumAltitude": 609,
+        "maximumGradient": 7.0,
+        "difficulty": 162,
+        "averageGradient": 4.74,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-las-coronas-depuis-navascues-c2666.htm"
+      }
+    ]
+  },
+  {
+    "name": "Puig Major",
+    "country": "ES",
+    "massif": "Sierra de Tramontana",
+    "topOfTheAscent": 861,
+    "geoCoordinate": {
+      "latitude": 39.78822,
+      "longitude": 2.77865
+    },
+    "alternatives": [
+      {
+        "name": "Caimari",
+        "geoCoordinate": {
+          "latitude": 39.76167,
+          "longitude": 2.90208
+        },
+        "length": 25.8,
+        "totalAscent": 734,
+        "minimumAltitude": 148,
+        "maximumGradient": 9.4,
+        "difficulty": 208,
+        "averageGradient": 2.84,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/puig-major-depuis-caimari-c492.htm"
+      },
+      {
+        "name": "Soller",
+        "geoCoordinate": {
+          "latitude": 39.77851,
+          "longitude": 2.70453
+        },
+        "length": 14.3,
+        "totalAscent": 851,
+        "minimumAltitude": 10,
+        "maximumGradient": 8.0,
+        "difficulty": 506,
+        "averageGradient": 5.95,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/puig-major-depuis-soller-c493.htm"
+      }
+    ]
+  },
+  {
+    "name": "Refuge de Cap de Rec",
+    "country": "ES",
+    "massif": "Pyrénées est",
+    "topOfTheAscent": 1957,
+    "geoCoordinate": {
+      "latitude": 42.43107,
+      "longitude": 1.66792
+    },
+    "alternatives": [
+      {
+        "name": "Martinet",
+        "geoCoordinate": {
+          "latitude": 42.36058,
+          "longitude": 1.68951
+        },
+        "length": 16.4,
+        "totalAscent": 996,
+        "minimumAltitude": 966,
+        "maximumGradient": 11.0,
+        "difficulty": 604,
+        "averageGradient": 6.07,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/refuge-de-cap-de-rec-depuis-martinet-c2628.htm"
+      }
+    ]
+  },
+  {
+    "name": "Refuge de Lizara",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 1520,
+    "geoCoordinate": {
+      "latitude": 42.76316,
+      "longitude": -0.6336
+    },
+    "alternatives": [
+      {
+        "name": "Jasa",
+        "geoCoordinate": {
+          "latitude": 42.69135,
+          "longitude": -0.6699
+        },
+        "length": 12.3,
+        "totalAscent": 620,
+        "minimumAltitude": 897,
+        "maximumGradient": 9.0,
+        "difficulty": 312,
+        "averageGradient": 5.04,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/refuge-de-lizara-depuis-jasa-c2955.htm"
+      }
+    ]
+  },
+  {
+    "name": "Roque de los Muchachos",
+    "country": "ES",
+    "massif": "Canaries",
+    "topOfTheAscent": 2426,
+    "geoCoordinate": {
+      "latitude": 28.75386,
+      "longitude": -17.88702
+    },
+    "alternatives": [
+      {
+        "name": "Costa de Miranda",
+        "geoCoordinate": {
+          "latitude": 28.70077,
+          "longitude": -17.75921
+        },
+        "length": 40.0,
+        "totalAscent": 2250,
+        "minimumAltitude": 147,
+        "maximumGradient": 11.0,
+        "difficulty": 1268,
+        "averageGradient": 5.63,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/canaries/espagne/roque-de-los-muchachos-depuis-costa-de-miranda-c486.htm"
+      },
+      {
+        "name": "El Tablado",
+        "geoCoordinate": {
+          "latitude": 28.83321,
+          "longitude": -17.87711
+        },
+        "length": 32.2,
+        "totalAscent": 2015,
+        "minimumAltitude": 317,
+        "maximumGradient": 18.7,
+        "difficulty": 1262,
+        "averageGradient": 6.26,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/canaries/espagne/roque-de-los-muchachos-depuis-el-tablado-c485.htm"
+      },
+      {
+        "name": "Santo Domingo de Garafia",
+        "geoCoordinate": {
+          "latitude": 28.82931,
+          "longitude": -17.94651
+        },
+        "length": 27.0,
+        "totalAscent": 2100,
+        "minimumAltitude": 368,
+        "maximumGradient": 10.3,
+        "difficulty": 1634,
+        "averageGradient": 7.78,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/canaries/espagne/roque-de-los-muchachos-depuis-santo-domingo-de-garafia-c484.htm"
+      }
+    ]
+  },
+  {
+    "name": "Sanctuaire de San Migel d'Aralar",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 1341,
+    "geoCoordinate": {
+      "latitude": 42.94675,
+      "longitude": -1.96609
+    },
+    "alternatives": [
+      {
+        "name": "Uharte - Arakil",
+        "geoCoordinate": {
+          "latitude": 42.91709,
+          "longitude": -1.96987
+        },
+        "length": 11.0,
+        "totalAscent": 886,
+        "minimumAltitude": 458,
+        "maximumGradient": 14.0,
+        "difficulty": 713,
+        "averageGradient": 8.05,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/sanctuaire-de-san-migel-d-aralar-depuis-uharte-arakil-c2385.htm"
+      }
+    ]
+  },
+  {
+    "name": "Sant Joan de Toran",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1020,
+    "geoCoordinate": {
+      "latitude": 42.82379,
+      "longitude": 0.79709
+    },
+    "alternatives": [
+      {
+        "name": "Pontaut",
+        "geoCoordinate": {
+          "latitude": 42.83539,
+          "longitude": 0.73124
+        },
+        "length": 7.7,
+        "totalAscent": 420,
+        "minimumAltitude": 596,
+        "maximumGradient": 10.0,
+        "difficulty": 229,
+        "averageGradient": 5.45,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/sant-joan-de-toran-depuis-pontaut-c2387.htm"
+      }
+    ]
+  },
+  {
+    "name": "Sant Pere de Rodes",
+    "country": "ES",
+    "massif": "Pyrénées est",
+    "topOfTheAscent": 517,
+    "geoCoordinate": {
+      "latitude": 42.32965,
+      "longitude": 3.15753
+    },
+    "alternatives": [
+      {
+        "name": "Selva de Mar",
+        "geoCoordinate": {
+          "latitude": 42.33387,
+          "longitude": 3.19693
+        },
+        "length": 8.4,
+        "totalAscent": 512,
+        "minimumAltitude": 9,
+        "maximumGradient": 15.0,
+        "difficulty": 313,
+        "averageGradient": 6.1,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/sant-pere-de-rodes-depuis-selva-de-mar-c2897.htm"
+      },
+      {
+        "name": "Vilajuiga",
+        "geoCoordinate": {
+          "latitude": 42.32387,
+          "longitude": 3.09063
+        },
+        "length": 8.8,
+        "totalAscent": 484,
+        "minimumAltitude": 26,
+        "maximumGradient": 8.0,
+        "difficulty": 266,
+        "averageGradient": 5.5,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/sant-pere-de-rodes-depuis-vilajuiga-c2896.htm"
+      }
+    ]
+  },
+  {
+    "name": "Saut deth Pish",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1550,
+    "geoCoordinate": {
+      "latitude": 42.77653,
+      "longitude": 0.83251
+    },
+    "alternatives": [
+      {
+        "name": "Pont d'Arros",
+        "geoCoordinate": {
+          "latitude": 42.73795,
+          "longitude": 0.7563
+        },
+        "length": 11.1,
+        "totalAscent": 685,
+        "minimumAltitude": 880,
+        "maximumGradient": 14.0,
+        "difficulty": 423,
+        "averageGradient": 6.17,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/saut-deth-pish-depuis-pont-d-arros-c2637.htm"
+      }
+    ]
+  },
+  {
+    "name": "Sierra de la Pandera",
+    "country": "ES",
+    "massif": "Cordillère bétique",
+    "topOfTheAscent": 1779,
+    "geoCoordinate": {
+      "latitude": 37.63124,
+      "longitude": -3.77613
+    },
+    "alternatives": [
+      {
+        "name": "Los Villares",
+        "geoCoordinate": {
+          "latitude": 37.68872,
+          "longitude": -3.81384
+        },
+        "length": 24.0,
+        "totalAscent": 1237,
+        "minimumAltitude": 639,
+        "maximumGradient": 12.1,
+        "difficulty": 637,
+        "averageGradient": 5.15,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/sierra-de-la-pandera-depuis-los-villares-c1419.htm"
+      },
+      {
+        "name": "Valdepeñas de Jaen",
+        "geoCoordinate": {
+          "latitude": 37.59347,
+          "longitude": -3.81511
+        },
+        "length": 15.0,
+        "totalAscent": 931,
+        "minimumAltitude": 901,
+        "maximumGradient": 12.1,
+        "difficulty": 578,
+        "averageGradient": 6.21,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/sierra-de-la-pandera-depuis-valdepenas-de-jaen-c1420.htm"
+      }
+    ]
+  },
+  {
+    "name": "Sierra Nevada",
+    "country": "ES",
+    "massif": "Cordillère bétique",
+    "topOfTheAscent": 2513,
+    "geoCoordinate": {
+      "latitude": 37.09661,
+      "longitude": -3.40136
+    },
+    "alternatives": [
+      {
+        "name": "Granada",
+        "geoCoordinate": {
+          "latitude": 37.16536,
+          "longitude": -3.58002
+        },
+        "length": 30.0,
+        "totalAscent": 1743,
+        "minimumAltitude": 704,
+        "maximumGradient": 8.1,
+        "difficulty": 1013,
+        "averageGradient": 5.81,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/sierra-nevada-depuis-granada-c1538.htm"
+      }
+    ]
+  },
+  {
+    "name": "Station d'Espot",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1506,
+    "geoCoordinate": {
+      "latitude": 42.56439,
+      "longitude": 1.09774
+    },
+    "alternatives": [
+      {
+        "name": "C13 / LV5004",
+        "geoCoordinate": {
+          "latitude": 42.57701,
+          "longitude": 1.14023
+        },
+        "length": 10.4,
+        "totalAscent": 566,
+        "minimumAltitude": 948,
+        "maximumGradient": 8.5,
+        "difficulty": 308,
+        "averageGradient": 5.44,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/station-d-espot-depuis-c13-lv5004-c3113.htm"
+      }
+    ]
+  },
+  {
+    "name": "Station de Boi-Taull",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 2045,
+    "geoCoordinate": {
+      "latitude": 42.47943,
+      "longitude": 0.86731
+    },
+    "alternatives": [
+      {
+        "name": "Baruera",
+        "geoCoordinate": {
+          "latitude": 42.5043,
+          "longitude": 0.80095
+        },
+        "length": 18.2,
+        "totalAscent": 945,
+        "minimumAltitude": 1101,
+        "maximumGradient": 9.0,
+        "difficulty": 490,
+        "averageGradient": 5.19,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/station-de-boi-taull-depuis-baruera-c3091.htm"
+      }
+    ]
+  },
+  {
+    "name": "Station de Formigal-Sarrios",
+    "country": "ES",
+    "massif": "Pyrénées ouest",
+    "topOfTheAscent": 1803,
+    "geoCoordinate": {
+      "latitude": 42.76608,
+      "longitude": -0.39368
+    },
+    "alternatives": [
+      {
+        "name": "Formigal",
+        "geoCoordinate": {
+          "latitude": 42.77552,
+          "longitude": -0.36994
+        },
+        "length": 5.5,
+        "totalAscent": 288,
+        "minimumAltitude": 1515,
+        "maximumGradient": 7.5,
+        "difficulty": 151,
+        "averageGradient": 5.24,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/station-de-formigal-sarrios-depuis-formigal-c2951.htm"
+      }
+    ]
+  },
+  {
+    "name": "Station de Guils Fontanera",
+    "country": "ES",
+    "massif": "Pyrénées est",
+    "topOfTheAscent": 1907,
+    "geoCoordinate": {
+      "latitude": 42.45934,
+      "longitude": 1.84473
+    },
+    "alternatives": [
+      {
+        "name": "Puigcerda",
+        "geoCoordinate": {
+          "latitude": 42.42621,
+          "longitude": 1.91455
+        },
+        "length": 12.26,
+        "totalAscent": 762,
+        "minimumAltitude": 1142,
+        "maximumGradient": 12.0,
+        "difficulty": 474,
+        "averageGradient": 6.22,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/station-de-guils-fontanera-depuis-puigcerda-c2626.htm"
+      }
+    ]
+  },
+  {
+    "name": "Station de San Joan de l'Erm",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1720,
+    "geoCoordinate": {
+      "latitude": 42.41768,
+      "longitude": 1.28794
+    },
+    "alternatives": [
+      {
+        "name": "Castelbo",
+        "geoCoordinate": {
+          "latitude": 42.37499,
+          "longitude": 1.35551
+        },
+        "length": 20.7,
+        "totalAscent": 920,
+        "minimumAltitude": 798,
+        "maximumGradient": 7.5,
+        "difficulty": 408,
+        "averageGradient": 4.44,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/station-de-san-joan-de-l-erm-depuis-castelbo-c3116.htm"
+      }
+    ]
+  },
+  {
+    "name": "Tetica de Bacares",
+    "country": "ES",
+    "massif": "Cordillère bétique",
+    "topOfTheAscent": 1985,
+    "geoCoordinate": {
+      "latitude": 37.25207,
+      "longitude": -2.41276
+    },
+    "alternatives": [
+      {
+        "name": "Velefique",
+        "geoCoordinate": {
+          "latitude": 37.19058,
+          "longitude": -2.403
+        },
+        "length": 17.5,
+        "totalAscent": 1107,
+        "minimumAltitude": 878,
+        "maximumGradient": 13.0,
+        "difficulty": 701,
+        "averageGradient": 6.33,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/tetica-de-bacares-depuis-velefique-c1414.htm"
+      }
+    ]
+  },
+  {
+    "name": "Val de la Artiga",
+    "country": "ES",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1470,
+    "geoCoordinate": {
+      "latitude": 42.67777,
+      "longitude": 0.70589
+    },
+    "alternatives": [
+      {
+        "name": "Es Bordes",
+        "geoCoordinate": {
+          "latitude": 42.73788,
+          "longitude": 0.72069
+        },
+        "length": 9.5,
+        "totalAscent": 660,
+        "minimumAltitude": 838,
+        "maximumGradient": 11.0,
+        "difficulty": 459,
+        "averageGradient": 6.95,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/val-de-la-artiga-depuis-es-bordes-c2249.htm"
+      }
+    ]
+  },
+  {
+    "name": "Vallter 2000",
+    "country": "ES",
+    "massif": "Pyrénées est",
+    "topOfTheAscent": 2140,
+    "geoCoordinate": {
+      "latitude": 42.42668,
+      "longitude": 2.26595
+    },
+    "alternatives": [
+      {
+        "name": "Camprodon",
+        "geoCoordinate": {
+          "latitude": 42.31371,
+          "longitude": 2.36528
+        },
+        "length": 23.0,
+        "totalAscent": 1190,
+        "minimumAltitude": 948,
+        "maximumGradient": 9.4,
+        "difficulty": 615,
+        "averageGradient": 5.17,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/vallter-2000-depuis-camprodon-c1981.htm"
+      }
+    ]
+  },
+  {
+    "name": "Xorret de cati",
+    "country": "ES",
+    "massif": "Cordillère bétique",
+    "topOfTheAscent": 1097,
+    "geoCoordinate": {
+      "latitude": 38.53184,
+      "longitude": -0.66891
+    },
+    "alternatives": [
+      {
+        "name": "Castalla",
+        "geoCoordinate": {
+          "latitude": 38.56092,
+          "longitude": -0.66313
+        },
+        "length": 4.0,
+        "totalAscent": 437,
+        "minimumAltitude": 653,
+        "maximumGradient": 22.0,
+        "difficulty": 478,
+        "averageGradient": 10.93,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/xorret-de-cati-depuis-castalla-c1411.htm"
+      },
+      {
+        "name": "Petrer",
+        "geoCoordinate": {
+          "latitude": 38.48855,
+          "longitude": -0.77674
+        },
+        "length": 13.4,
+        "totalAscent": 627,
+        "minimumAltitude": 445,
+        "maximumGradient": 18.0,
+        "difficulty": 293,
+        "averageGradient": 4.68,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/xorret-de-cati-depuis-petrer-c1412.htm"
+      }
+    ]
+  }
+]

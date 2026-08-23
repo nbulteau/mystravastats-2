@@ -10,12 +10,16 @@ import (
 func TestNationalFamousClimbCatalogs(t *testing.T) {
 	tests := []struct {
 		name          string
+		country       string
 		expectedSides int
+		requireSource bool
 	}{
-		{name: "france", expectedSides: 317},
-		{name: "suisse", expectedSides: 48},
-		{name: "italie", expectedSides: 78},
+		{name: "france", country: "FR", expectedSides: 317},
+		{name: "suisse", country: "CH", expectedSides: 48},
+		{name: "italie", country: "IT", expectedSides: 78, requireSource: true},
+		{name: "espagne", country: "ES", expectedSides: 124, requireSource: true},
 	}
+	allLabels := make(map[string]string)
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -31,13 +35,17 @@ func TestNationalFamousClimbCatalogs(t *testing.T) {
 				if !ok {
 					t.Fatalf("unexpected badge type %T", badge)
 				}
-				if climb.Country == "" || climb.Massif == "" {
+				if climb.Country != test.country || climb.Massif == "" {
 					t.Fatalf("missing geography for %q", climb.Label)
 				}
 				if _, duplicate := labels[climb.Label]; duplicate {
 					t.Fatalf("duplicate climb alternative %q", climb.Label)
 				}
 				labels[climb.Label] = struct{}{}
+				if existingCatalog, duplicate := allLabels[climb.Label]; duplicate {
+					t.Fatalf("climb alternative %q is duplicated in %s and %s", climb.Label, existingCatalog, test.name)
+				}
+				allLabels[climb.Label] = test.name
 				if climb.Length <= 0 || climb.TotalAscent <= 0 || climb.AverageGradient <= 0 || climb.Difficulty < 0 {
 					t.Fatalf("invalid climb metrics for %q", climb.Label)
 				}
@@ -69,6 +77,12 @@ func TestNationalFamousClimbCatalogs(t *testing.T) {
 				if climb.SourceURL != "" && !strings.HasPrefix(climb.SourceURL, "https://") {
 					t.Fatalf("invalid source URL for %q", climb.Label)
 				}
+				if test.requireSource && climb.SourceURL == "" {
+					t.Fatalf("missing source URL for %q", climb.Label)
+				}
+				if test.country == "ES" && (!validSpanishCoordinate(climb.Start.Latitude, climb.Start.Longitude) || !validSpanishCoordinate(climb.End.Latitude, climb.End.Longitude)) {
+					t.Fatalf("implausible Spanish coordinates for %q", climb.Label)
+				}
 				if climb.Massif == "Corse" {
 					corsicaSides++
 				}
@@ -96,6 +110,10 @@ func validClimbCategory(category string) bool {
 
 func validCoordinate(latitude, longitude float64) bool {
 	return latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180
+}
+
+func validSpanishCoordinate(latitude, longitude float64) bool {
+	return latitude >= 27 && latitude <= 44.5 && longitude >= -19 && longitude <= 5
 }
 
 func assertClimbClassification(t *testing.T, badgeSet badges.BadgeSet, label, category string, difficulty int) {

@@ -50,6 +50,8 @@ describe("climb poster", () => {
       expect(svg).toContain("PTS");
       expect(svg).toContain("12.06.25");
       expect(svg).toContain("59:48");
+      expect(svg).toContain("1 COL · 2 ASCENSIONS");
+      expect(svg).not.toContain("M D+");
       expect(svg).toContain("data-profile-segment=");
       expect(svg).toContain("data-gradient=");
       expect(svg).not.toMatch(/class="(?:climb-name|topo-name|vertical-name)"[^>]*lengthAdjust=/);
@@ -146,11 +148,13 @@ describe("climb poster", () => {
     });
 
     expect(altitude).toContain("dense-divider");
-    expect(topo).toContain("dense-topo-divider");
-    expect(collection).toContain("dense-collection-rule");
+    expect(topo).toContain("dense-topo-card");
+    expect(collection).toContain("dense-collection-card");
     expect(altitude).toContain(".dense-name{font:500");
-    expect(topo).toContain(".dense-topo-name{font:500");
-    expect(collection).toContain(".dense-collection-name{font:500");
+    expect(topo).toContain(".dense-topo-name{font:600");
+    expect(collection).toContain(".dense-collection-name{font:600");
+    expect(topo).toContain("TECHNICAL");
+    expect(collection).toContain("FR · ALPES");
     expect(altitude).not.toMatch(/class="dense-name"[^>]*lengthAdjust=/);
     expect(topo).not.toMatch(/class="dense-topo-name"[^>]*lengthAdjust=/);
     expect(collection).not.toMatch(/class="dense-collection-name"[^>]*lengthAdjust=/);
