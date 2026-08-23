@@ -13,6 +13,8 @@ const climb: ClimbPosterEntry = {
     name: "Col <Test>",
     country: "FR",
     massif: "Alpes",
+    summitCoordinate: { latitude: 45.2, longitude: 6.2 },
+    startCoordinate: { latitude: 45.1, longitude: 6.1 },
     summitAltitude: 1850,
     minimumAltitude: 740,
     lengthKm: 13.8,
@@ -155,6 +157,8 @@ describe("climb poster", () => {
     expect(collection).toContain(".dense-collection-name{font:600");
     expect(topo).toContain("TECHNICAL");
     expect(collection).toContain("FR · ALPES");
+    expect(collection).toContain('id="collection-title-clip-0"');
+    expect(collection).toContain("<tspan");
     expect(altitude).not.toMatch(/class="dense-name"[^>]*lengthAdjust=/);
     expect(topo).not.toMatch(/class="dense-topo-name"[^>]*lengthAdjust=/);
     expect(collection).not.toMatch(/class="dense-collection-name"[^>]*lengthAdjust=/);

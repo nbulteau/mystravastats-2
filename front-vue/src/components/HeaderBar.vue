@@ -92,6 +92,7 @@ async function loadAvailableYears() {
     const availableYears = buildAvailableYears(payload);
     if (availableYears.length === 0) {
       years.value = ["All years"];
+      contextStore.setAvailableYears(years.value);
       if (selectedYear.value !== "All years") {
         selectedYear.value = "All years";
       }
@@ -99,6 +100,7 @@ async function loadAvailableYears() {
     }
 
     years.value = [...availableYears, "All years"];
+    contextStore.setAvailableYears(years.value);
     if (!years.value.includes(selectedYear.value)) {
       selectedYear.value = availableYears[0];
     }

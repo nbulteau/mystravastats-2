@@ -325,7 +325,19 @@ function buildDenseCollectionDesign(climbs: ClimbPosterEntry[], options: ClimbPo
     const y = top + row * rowHeight;
     const name = posterClimbName(climb).toUpperCase();
     const location = `${climb.details.country} · ${climb.details.massif}`.toUpperCase();
-    const profileTop = y + (tenRowLayout ? 58 : fiveRowLayout ? 60 : 63);
+    const titleLines = splitPosterTitle(name, largePoster ? 34 : 23);
+    const titleFontSize = fittedTextFontSize(
+      Math.max(...titleLines.map((line) => line.length)),
+      columnWidth - 44,
+      15,
+      8.5,
+      0.62,
+    );
+    const multilineTitle = titleLines.length > 1;
+    const profileTop = y + (tenRowLayout ? 58 : fiveRowLayout ? 60 : 63) + (multilineTitle ? 11 : 0);
+    const titleFirstY = y + (multilineTitle ? 19 : 24);
+    const locationY = y + (multilineTitle ? 50 : 43);
+    const titleClipId = `collection-title-clip-${index}`;
     const tileBottom = y + rowHeight - 22;
     const ascentY = tileBottom - 8;
     const averageY = ascentY - (tenRowLayout ? 19 : fiveRowLayout ? 20 : 21);
@@ -337,9 +349,10 @@ function buildDenseCollectionDesign(climbs: ClimbPosterEntry[], options: ClimbPo
     return `<g data-grid-column="${column}" data-grid-row="${row}" data-profile-bottom-y="${round(profileBottom)}" data-metrics-y="${round(metricsY)}" data-ascent-y="${round(ascentY)}" data-tile-bottom-y="${round(tileBottom)}">
       <rect x="${round(x - 5)}" y="${round(y - 7)}" width="${round(columnWidth + 10)}" height="${round(rowHeight - 10)}" rx="10" class="dense-collection-card"/>
       <rect x="${round(x - 5)}" y="${round(y - 7)}" width="4" height="${round(rowHeight - 10)}" rx="2" class="dense-collection-accent"/>
+      <clipPath id="${titleClipId}"><rect x="${round(x + 34)}" y="${round(y + 5)}" width="${round(columnWidth - 44)}" height="36"/></clipPath>
       <text x="${round(x)}" y="${round(y + 24)}" class="dense-collection-index">${String(index + 1).padStart(2, "0")}</text>
-      <text x="${round(x + 34)}" y="${round(y + 24)}" class="dense-collection-name"${fitTextAttributes(name, 17, columnWidth - 44, 15, 8.5)}>${escapeXml(name)}</text>
-      <text x="${round(x + 34)}" y="${round(y + 43)}" class="dense-collection-location"${fitTextAttributes(location, 24, columnWidth - 44, 9, 6.5, 0.52)}>${escapeXml(location)}</text>
+      <text x="${round(x + 34)}" y="${round(titleFirstY)}" class="dense-collection-name" style="font-size:${round(titleFontSize)}px" clip-path="url(#${titleClipId})">${titleLines.map((line, lineIndex) => `<tspan x="${round(x + 34)}" y="${round(titleFirstY + lineIndex * 15)}">${escapeXml(line)}</tspan>`).join("")}</text>
+      <text x="${round(x + 34)}" y="${round(locationY)}" class="dense-collection-location"${fitTextAttributes(location, 24, columnWidth - 44, 9, 6.5, 0.52)}>${escapeXml(location)}</text>
       ${profileMarkup(climb.details, x, profileTop, columnWidth, profileHeight, "dense-collection-profile")}
       <text x="${round(x)}" y="${round(metricsY)}" class="dense-collection-metrics"${metricsFit}>${escapeXml(metrics)}</text>
       <text x="${round(x)}" y="${round(averageY)}" class="dense-collection-stat">${formatDecimal(climb.details.averageGradient)} % AVG · ${formatMaximumGradient(climb.details.maximumGradient)} % MAX</text>
@@ -708,6 +721,43 @@ function fitTextAttributes(
     Math.min(baseFontSize, width / Math.max(1, value.length * averageGlyphWidth)),
   );
   return fittedFontSize < baseFontSize ? ` style="font-size:${round(fittedFontSize)}px"` : "";
+}
+
+function fittedTextFontSize(
+  characterCount: number,
+  width: number,
+  baseFontSize: number,
+  minimumFontSize: number,
+  averageGlyphWidth = 0.56,
+): number {
+  return Math.max(
+    minimumFontSize,
+    Math.min(baseFontSize, width / Math.max(1, characterCount * averageGlyphWidth)),
+  );
+}
+
+function splitPosterTitle(value: string, preferredLineLength: number): string[] {
+  if (value.length <= preferredLineLength) {
+    return [value];
+  }
+  const words = value.trim().split(/\s+/);
+  if (words.length < 2) {
+    return [value];
+  }
+
+  let bestSplit = 1;
+  let bestScore = Number.POSITIVE_INFINITY;
+  for (let index = 1; index < words.length; index += 1) {
+    const firstLength = words.slice(0, index).join(" ").length;
+    const secondLength = words.slice(index).join(" ").length;
+    const overflow = Math.max(0, firstLength - preferredLineLength) + Math.max(0, secondLength - preferredLineLength);
+    const score = overflow * 4 + Math.abs(firstLength - secondLength);
+    if (score < bestScore) {
+      bestScore = score;
+      bestSplit = index;
+    }
+  }
+  return [words.slice(0, bestSplit).join(" "), words.slice(bestSplit).join(" ")];
 }
 
 function round(value: number): number {

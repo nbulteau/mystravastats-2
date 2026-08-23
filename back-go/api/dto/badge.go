@@ -17,20 +17,27 @@ type BadgeDto struct {
 // ClimbDetailsDto contains the print-ready data attached to a famous-climb badge.
 // BestAscent stays nil when no matching activity has usable timing data.
 type ClimbDetailsDto struct {
-	Name            string                 `json:"name"`
-	Country         string                 `json:"country"`
-	Massif          string                 `json:"massif"`
-	SourceURL       string                 `json:"sourceUrl,omitempty"`
-	SummitAltitude  int                    `json:"summitAltitude"`
-	MinimumAltitude int                    `json:"minimumAltitude"`
-	LengthKm        float64                `json:"lengthKm"`
-	TotalAscent     int                    `json:"totalAscent"`
-	Difficulty      int                    `json:"difficulty"`
-	AverageGradient float64                `json:"averageGradient"`
-	MaximumGradient *float64               `json:"maximumGradient,omitempty"`
-	Profile         []ClimbProfilePointDto `json:"profile"`
-	AscentCount     int                    `json:"ascentCount"`
-	BestAscent      *ClimbAscentDto        `json:"bestAscent,omitempty"`
+	Name             string                 `json:"name"`
+	Country          string                 `json:"country"`
+	Massif           string                 `json:"massif"`
+	SourceURL        string                 `json:"sourceUrl,omitempty"`
+	SummitCoordinate ClimbCoordinateDto     `json:"summitCoordinate"`
+	StartCoordinate  ClimbCoordinateDto     `json:"startCoordinate"`
+	SummitAltitude   int                    `json:"summitAltitude"`
+	MinimumAltitude  int                    `json:"minimumAltitude"`
+	LengthKm         float64                `json:"lengthKm"`
+	TotalAscent      int                    `json:"totalAscent"`
+	Difficulty       int                    `json:"difficulty"`
+	AverageGradient  float64                `json:"averageGradient"`
+	MaximumGradient  *float64               `json:"maximumGradient,omitempty"`
+	Profile          []ClimbProfilePointDto `json:"profile"`
+	AscentCount      int                    `json:"ascentCount"`
+	BestAscent       *ClimbAscentDto        `json:"bestAscent,omitempty"`
+}
+
+type ClimbCoordinateDto struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
 }
 
 type ClimbProfilePointDto struct {

@@ -41,6 +41,8 @@ data class ClimbDetailsDto(
     val country: String,
     val massif: String,
     val sourceUrl: String? = null,
+    val summitCoordinate: ClimbCoordinateDto,
+    val startCoordinate: ClimbCoordinateDto,
     val summitAltitude: Int,
     val minimumAltitude: Int,
     val lengthKm: Double,
@@ -51,6 +53,11 @@ data class ClimbDetailsDto(
     val profile: List<ClimbProfilePointDto>,
     val ascentCount: Int,
     val bestAscent: ClimbAscentDto? = null,
+)
+
+data class ClimbCoordinateDto(
+    val latitude: Double,
+    val longitude: Double,
 )
 
 data class ClimbProfilePointDto(
@@ -131,6 +138,8 @@ private fun buildClimbDetailsDto(
         country = badge.country,
         massif = badge.massif,
         sourceUrl = badge.sourceUrl.ifBlank { null },
+        summitCoordinate = ClimbCoordinateDto(badge.end.latitude, badge.end.longitude),
+        startCoordinate = ClimbCoordinateDto(badge.start.latitude, badge.start.longitude),
         summitAltitude = badge.topOfTheAscent,
         minimumAltitude = minimumAltitude,
         lengthKm = badge.length,

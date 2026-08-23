@@ -73,6 +73,8 @@ class BadgeCheckResultDtoTest {
         assertEquals("FR", details.country)
         assertEquals("Alpes", details.massif)
         assertEquals("https://example.test/test-col", details.sourceUrl)
+        assertEquals(ClimbCoordinateDto(45.2, 6.2), details.summitCoordinate)
+        assertEquals(ClimbCoordinateDto(45.1, 6.1), details.startCoordinate)
         assertEquals(1850, details.summitAltitude)
         assertEquals(870, details.minimumAltitude)
         assertEquals(12.4, details.lengthKm)

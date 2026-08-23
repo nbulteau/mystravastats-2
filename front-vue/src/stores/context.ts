@@ -29,6 +29,7 @@ export type AppView =
 export const useContextStore = defineStore("context", {
   state: () => ({
     currentYear: new Date().getFullYear().toString(),
+    availableYears: [] as string[],
     currentActivityType: DEFAULT_ACTIVITY_TYPE_FILTER,
     currentView: "dashboard" as AppView,
   }),
@@ -36,6 +37,9 @@ export const useContextStore = defineStore("context", {
     currentFiltersKey: (state) => `${state.currentActivityType}__${state.currentYear}`,
   },
   actions: {
+    setAvailableYears(years: string[]) {
+      this.availableYears = [...new Set(years)];
+    },
     invalidateActivityDerivedCaches() {
       useActivitiesStore().invalidateCache();
       useBadgesStore().invalidateCache();

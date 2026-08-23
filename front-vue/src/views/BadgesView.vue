@@ -4,7 +4,9 @@ import { useBadgesStore } from "@/stores/badges";
 import { computed, nextTick, ref, watch, onMounted } from "vue";
 import BadgeItem from "@/components/BadgeItem.vue";
 import ClimbPosterGenerator from "@/components/ClimbPosterGenerator.vue";
+import ClimbMap from "@/components/ClimbMap.vue";
 import type { BadgeCheckResult } from "@/models/badge-check-result.model";
+import { climbSummitId, climbVariantId } from "@/utils/climb-map";
 
 type BadgesSectionId = "badges" | "climbs" | "posters" | "map";
 
@@ -13,7 +15,14 @@ const badgesStore = useBadgesStore();
 onMounted(() => contextStore.updateCurrentView("badges"));
 
 const currentYear = computed(() => contextStore.currentYear);
+const climbMapYearOptions = computed(() => {
+  const options = contextStore.availableYears.length > 0
+    ? contextStore.availableYears
+    : [currentYear.value, "All years"];
+  return [...new Set([currentYear.value, ...options])];
+});
 const activeSection = ref<BadgesSectionId>("badges");
+const focusedMapSummitId = ref<string | null>(null);
 const sections: ReadonlyArray<{
   id: BadgesSectionId;
   label: string;
@@ -126,6 +135,18 @@ async function selectAdjacentSection(offset: number) {
   activeSection.value = sections[nextIndex].id;
   await nextTick();
   document.getElementById(`badges-section-${activeSection.value}`)?.focus();
+}
+
+async function showClimbOnMap(result: BadgeCheckResult) {
+  focusedMapSummitId.value = climbSummitId(result);
+  activeSection.value = "map";
+  await nextTick();
+}
+
+async function openClimbInLog(variantId: string) {
+  activeSection.value = "climbs";
+  await nextTick();
+  document.getElementById(`climb-log-${variantId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 </script>
 
@@ -250,10 +271,20 @@ async function selectAdjacentSection(offset: number) {
       <div v-if="famousClimbBadgesCheckResults.length" class="row g-3 justify-content-center">
         <div
           v-for="badge in famousClimbBadgesCheckResults"
-          :key="badge.badge.label"
-          class="col-lg-2 col-md-3 col-sm-4 col-6 d-flex justify-content-center"
+          :id="`climb-log-${climbVariantId(badge)}`"
+          :key="climbVariantId(badge)"
+          class="climb-log-entry col-lg-2 col-md-3 col-sm-4 col-6 d-flex flex-column align-items-center justify-content-start"
         >
           <BadgeItem :badge-check-result="badge" />
+          <button
+            v-if="badge.climbDetails?.summitCoordinate"
+            type="button"
+            class="show-on-map-button"
+            @click="showClimbOnMap(badge)"
+          >
+            <i class="fa-solid fa-location-dot" aria-hidden="true" />
+            Show on map
+          </button>
         </div>
       </div>
       <div v-else class="chart-empty">No famous climbs found for this category.</div>
@@ -293,21 +324,16 @@ async function selectAdjacentSection(offset: number) {
       role="tabpanel"
       aria-labelledby="badges-section-map"
     >
-      <div class="map-workspace-copy">
-        <span class="workspace-icon workspace-icon--map" aria-hidden="true">
-          <i class="fa-solid fa-map-location-dot" />
-        </span>
-        <span class="planned-chip">Next step</span>
-        <p class="badges-section-kicker">Climb map</p>
-        <h2 class="badges-title">See climbed and unexplored cols at a glance</h2>
-        <p>
-          This space is reserved for the interactive map: climbed cols, remaining summits and favourites,
-          with filters by massif, country, category and year.
-        </p>
-        <button type="button" class="btn btn-outline-primary" @click="activeSection = 'climbs'">
-          Browse the climb log
-        </button>
-      </div>
+      <ClimbMap
+        :climbs="allFamousClimbBadgesCheckResults"
+        :year-label="currentYear"
+        :year-options="climbMapYearOptions"
+        :category="selectedFamousClimbCategory"
+        :focus-summit-id="focusedMapSummitId"
+        @update:category="selectedFamousClimbCategory = $event"
+        @update:year="contextStore.updateCurrentYear($event)"
+        @open-climb-log="openClimbInLog"
+      />
     </section>
   </div>
 </template>
@@ -561,6 +587,13 @@ async function selectAdjacentSection(offset: number) {
     var(--ms-surface-strong);
 }
 
+.map-workspace {
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  padding: 16px;
+}
+
 .poster-workspace-copy,
 .map-workspace-copy {
   display: flex;
@@ -633,6 +666,29 @@ async function selectAdjacentSection(offset: number) {
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+.climb-log-entry {
+  gap: 8px;
+  scroll-margin-top: 90px;
+}
+
+.show-on-map-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border: 1px solid #c8ddd5;
+  border-radius: 999px;
+  color: #176d50;
+  background: #f1faf6;
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+.show-on-map-button:hover {
+  border-color: #91c9b3;
+  background: #e4f6ee;
 }
 
 @media (max-width: 992px) {

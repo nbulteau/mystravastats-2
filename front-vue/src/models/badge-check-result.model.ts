@@ -13,6 +13,8 @@ export interface ClimbDetails {
     country: string;
     massif: string;
     sourceUrl?: string | null;
+    summitCoordinate: ClimbCoordinate;
+    startCoordinate: ClimbCoordinate;
     summitAltitude: number;
     minimumAltitude: number;
     lengthKm: number;
@@ -23,6 +25,11 @@ export interface ClimbDetails {
     profile: ClimbProfilePoint[];
     ascentCount: number;
     bestAscent?: ClimbAscent | null;
+}
+
+export interface ClimbCoordinate {
+    latitude: number;
+    longitude: number;
 }
 
 export interface ClimbProfilePoint {

@@ -129,6 +129,7 @@ function initTooltip() {
     html: true,
     container: 'body',
     trigger: 'hover focus',
+    animation: false,
   });
   tooltip.setContent({ '.tooltip-inner': tooltipText.value });
 }

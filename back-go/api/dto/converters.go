@@ -1465,20 +1465,22 @@ func buildClimbDetailsDto(badge badges.FamousClimbBadge, activities []*strava.Ac
 	}
 
 	return &ClimbDetailsDto{
-		Name:            badge.Name,
-		Country:         badge.Country,
-		Massif:          badge.Massif,
-		SourceURL:       badge.SourceURL,
-		SummitAltitude:  badge.TopOfTheAscent,
-		MinimumAltitude: minimumAltitude,
-		LengthKm:        badge.Length,
-		TotalAscent:     badge.TotalAscent,
-		Difficulty:      badge.Difficulty,
-		AverageGradient: badge.AverageGradient,
-		MaximumGradient: maximumGradient,
-		Profile:         profile,
-		AscentCount:     ascentCount,
-		BestAscent:      bestAscent,
+		Name:             badge.Name,
+		Country:          badge.Country,
+		Massif:           badge.Massif,
+		SourceURL:        badge.SourceURL,
+		SummitCoordinate: ClimbCoordinateDto{Latitude: badge.End.Latitude, Longitude: badge.End.Longitude},
+		StartCoordinate:  ClimbCoordinateDto{Latitude: badge.Start.Latitude, Longitude: badge.Start.Longitude},
+		SummitAltitude:   badge.TopOfTheAscent,
+		MinimumAltitude:  minimumAltitude,
+		LengthKm:         badge.Length,
+		TotalAscent:      badge.TotalAscent,
+		Difficulty:       badge.Difficulty,
+		AverageGradient:  badge.AverageGradient,
+		MaximumGradient:  maximumGradient,
+		Profile:          profile,
+		AscentCount:      ascentCount,
+		BestAscent:       bestAscent,
 	}
 }
 

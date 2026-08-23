@@ -76,7 +76,9 @@ class BadgesControllerTest {
         val badgeCheckResults = listOf(
             BadgeCheckResult(
                 badge = FamousClimbBadge(
-                    "badge1", "Alpe d'Huez", 1850,
+                    label = "badge1",
+                    name = "Alpe d'Huez",
+                    topOfTheAscent = 1850,
                     start = GeoCoordinate(
                         latitude = 45.092401,
                         longitude = 6.0699443
@@ -85,11 +87,11 @@ class BadgesControllerTest {
                         latitude = 45.0642762,
                         longitude = 6.0390149
                     ),
-                    13.9,
-                    1118,
-                    8.0,
-                    994,
-                    "1",
+                    length = 13.9,
+                    totalAscent = 1118,
+                    averageGradient = 8.0,
+                    difficulty = 994,
+                    category = "1",
                 ),
                 activities = emptyList(),
                 isCompleted = false,

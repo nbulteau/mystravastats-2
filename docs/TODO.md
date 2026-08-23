@@ -12,7 +12,7 @@
 - Les modes source `STRAVA` / `FIT` / `GPX` ont un smoke test reproductible avec fixtures locales anonymes pour Go et Kotlin.
 - Le frontend surveille maintenant en continu l'empreinte du jeu d'activites backend et invalide les caches derives meme si le nombre total d'activites ne change pas ou si le backend redemarre.
 - L'onglet Badges peut generer un poster SVG imprimable des cols franchis, avec choix entre trois compositions clairement differenciees: Altitude met les profils en avant dans une mise en page chaleureuse et minimale, Carnet topo utilise une grille technique et une typographie monospaces, et Collection organise des cartes editoriales par pays et massif. Les trois designs acceptent jusqu'a 50 cols, sur une grille de cinq cols par ligne; l'utilisateur peut preselectionner les 50 plus difficiles ou les 50 plus longs. Au-dela de 25 cols, le document passe automatiquement au format 2:3 de 2000 x 3000, adapte a une impression 60 x 90 cm. Le pied de poster resume desormais sans ambiguite le nombre de cols selectionnes et le nombre reel d'ascensions (`… COLS · … ASCENSIONS`); le denivele reste une caracteristique propre a chaque versant et n'est plus additionne comme s'il avait ete parcouru une seule fois. Les DTO Go/Kotlin exposent profils, pays, massif, source, indice de difficulte, caracteristiques, nombre total d'ascensions et uniquement le meilleur temps avec sa date. Les profils ont encore ete agrandis et sont decoupes en surfaces colorees par pente avec kilometres, altitudes intermediaires sans chevauchement et legende; les designs denses Altitude et Carnet topo exploitent maintenant toute la hauteur libre de chaque vignette, et l'altitude de depart est relevee pour ne plus masquer la pente du premier troncon. Dans le design Collection, le profil occupe toute la hauteur disponible et une ligne compacte regroupe distance, denivele, altitude maximale et difficulte sans repeter le nombre d'ascensions. Chaque vignette affiche explicitement `ALT MAX … M · DIFFICULTÉ … PTS`, et les titres utilisent une graisse uniforme sans compression des glyphes. Leurs bornes GPS sont choisies selon la longueur cataloguee pour eviter d'inclure un detour de sortie complet. Une activite ne peut valider qu'un seul versant d'un meme col; des points de passage propres aux variantes proches permettent notamment de distinguer la Madeleine par la D213 de celle via Montgellafrey. Les statistiques cataloguees priment sur un calcul GPS de secours lisse sur 500 m. Les catalogues nationaux synchronises `france.json`, `suisse.json`, `italie.json` et `espagne.json` remplacent les anciens fichiers Alpes/Pyrenees et contiennent 295 sommets / 567 versants: France 154/317, Suisse 23/48, Italie 31/78 et Espagne 87/124. Le catalogue France couvre desormais 15 cols et 29 versants corses, ainsi que les Vosges et davantage d'ascensions du Massif central, du Jura, des Alpes et des Pyrenees. Les catalogues sont controles automatiquement (unicite locale et entre pays, mesures positives, categorie, coordonnees, sources et plausibilite geographique). Les valeurs nouvelles sont recoupees avec cols-cyclisme.com et leurs coordonnees proviennent des GPX de reference; les valeurs de pente cataloguees jusqu'a 30 % sont acceptees, tandis que le calcul GPS de secours reste plafonne a 20 %.
-- L'ecran Badges est organise en quatre espaces: recompenses generales, carnet des cols, atelier de posters et future carte des cols. Un resume commun affiche les badges gagnes, les cols reconnus, le nombre d'ascensions et les massifs parcourus.
+- L'ecran Badges est organise en quatre espaces: recompenses generales, carnet des cols, atelier de posters et carte interactive des cols. Cette carte regroupe les 567 versants en 295 marqueurs sommet, distingue les cols gravis, a decouvrir et favoris, et partage ses filtres et sa navigation avec le carnet. Un resume commun affiche les badges gagnes, les cols reconnus, le nombre d'ascensions et les massifs parcourus.
 - En mode de sources combinees, Go et Kotlin utilisent une seule identite de stockage valide pour les corrections de qualite, exclusions, objectifs et autres donnees persistantes: la source Strava est prioritaire, sinon la premiere source locale. Les descriptions composites restent reservees aux diagnostics et ne sont plus interpretees comme des chemins de fichiers Windows.
 - Le regroupement journalier du Dashboard Go accepte les timestamps RFC3339 avec offset (`+02:00`) utilises par les FIT; les courbes cumulatives et la heatmap restent ainsi coherentes avec les totaux annuels.
 - Les records de vitesse Go/Kotlin ignorent les fenetres distance/temps contenant un segment physiquement impossible et les `maxSpeed` aberrantes; les caches d'efforts ont ete versionnes pour recalculer les activites deja importees.
@@ -98,13 +98,13 @@
   - les badges generaux et les cols ne partagent plus une liste verticale unique,
   - l'utilisateur accede au generateur de posters depuis un espace dedie sans perdre les fonctions existantes,
   - la navigation reste utilisable au clavier et s'adapte aux petits ecrans,
-  - la future carte est identifiee comme telle et ne laisse pas croire qu'elle est deja fonctionnelle.
+  - l'espace carte reste clairement separe du carnet et des posters.
   Fait:
   - navigation locale `Badges` / `Climb log` / `Posters` / `Climb map`,
   - resume des badges, cols, ascensions et massifs,
   - filtre de categorie conserve dans le carnet et generateur de posters deplace dans son atelier.
 
-- [ ] `FUNC-P1-17` (`P1`, `L`) - Ajouter une carte interactive des cols.
+- [x] `FUNC-P1-17` (`P1`, `L`) - Ajouter une carte interactive des cols.
   Owners: `Product`, `Front`, `Geo`, `Back-Go`, `Back-Kotlin`, `QA`.
   Proposition:
   - representer chaque sommet par un marqueur dont l'etat distingue `gravi`, `non gravi` et `favori`,
@@ -117,6 +117,13 @@
   - les filtres de la carte et du carnet reposent sur les memes identifiants de sommets et de versants,
   - la carte reste fluide avec plusieurs centaines de variantes et ne duplique pas visuellement un meme sommet,
   - les API et DTO necessaires restent alignes entre Go et Kotlin.
+  Fait:
+  - un marqueur stable par sommet regroupe les 567 variantes cataloguees en 295 sommets et le clustering s'adapte au niveau de zoom,
+  - les marqueurs et la legende distinguent les sommets gravis, a decouvrir et favoris; les favoris sont conserves localement,
+  - les filtres couvrent pays, massif, categorie, annee et statut; l'annee suit le contexte global et la categorie reste synchronisee avec le carnet,
+  - le panneau de detail presente chaque versant avec altitude, difficulte, distance, denivele, pentes, source et statistiques personnelles,
+  - la navigation est bidirectionnelle entre le marqueur et le versant exact du carnet,
+  - les DTO Go/Kotlin exposent desormais les coordonnees de depart et de sommet, avec tests de parite; les tests frontend couvrent regroupement, identifiants, filtres et clustering.
 
 - [ ] `FUNC-P1-18` (`P1`, `L`) - Creer une fiche detaillee pour chaque col et chaque versant.
   Owners: `Product`, `Front`, `Stats`, `Back-Go`, `Back-Kotlin`, `QA`.

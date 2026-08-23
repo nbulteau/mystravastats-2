@@ -640,6 +640,9 @@ func TestToBadgeCheckResultDto_ExposesClimbPosterDetails(t *testing.T) {
 	if details.Country != "FR" || details.Massif != "Alpes" || details.SourceURL != "https://example.test/test-col" {
 		t.Fatalf("unexpected climb geography or source: %#v", details)
 	}
+	if details.SummitCoordinate.Latitude != 45.2 || details.SummitCoordinate.Longitude != 6.2 || details.StartCoordinate.Latitude != 45.1 || details.StartCoordinate.Longitude != 6.1 {
+		t.Fatalf("unexpected climb map coordinates: summit=%#v start=%#v", details.SummitCoordinate, details.StartCoordinate)
+	}
 	if details.AscentCount != 2 || details.BestAscent == nil || details.BestAscent.DurationSeconds != 1100 || details.BestAscent.ActivityID != 42 || details.BestAscent.Date != "2026-07-14T08:00:00Z" {
 		t.Fatalf("unexpected climb ascent summary: count=%d best=%#v", details.AscentCount, details.BestAscent)
 	}
