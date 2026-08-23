@@ -12,6 +12,7 @@
 - Les modes source `STRAVA` / `FIT` / `GPX` ont un smoke test reproductible avec fixtures locales anonymes pour Go et Kotlin.
 - Le frontend surveille maintenant en continu l'empreinte du jeu d'activites backend et invalide les caches derives meme si le nombre total d'activites ne change pas ou si le backend redemarre.
 - L'onglet Badges peut generer un poster SVG imprimable des cols franchis, avec choix entre les designs Altitude, Carnet topo et Collection. Les trois designs acceptent desormais jusqu'a 50 cols, sur une grille de cinq cols par ligne; l'utilisateur peut preselectionner les 50 plus difficiles ou les 50 plus longs. Au-dela de 25 cols, le document passe automatiquement au format 2:3 de 2000 x 3000, adapte a une impression 60 x 90 cm. Les DTO Go/Kotlin exposent profils, pays, massif, source, indice de difficulte, caracteristiques, nombre total d'ascensions et uniquement le meilleur temps avec sa date. Les profils ont encore ete agrandis et sont decoupes en surfaces colorees par pente avec kilometres, altitudes intermediaires sans chevauchement et legende; les designs denses Altitude et Carnet topo exploitent maintenant toute la hauteur libre de chaque vignette, et l'altitude de depart est relevee pour ne plus masquer la pente du premier troncon. Dans le design Collection, le profil occupe toute la hauteur disponible et une ligne compacte regroupe distance, denivele, altitude maximale et difficulte sans repeter le nombre d'ascensions. Chaque vignette affiche explicitement `ALT MAX … M · DIFFICULTÉ … PTS`, et les titres utilisent une graisse uniforme sans compression des glyphes. Leurs bornes GPS sont choisies selon la longueur cataloguee pour eviter d'inclure un detour de sortie complet. Une activite ne peut valider qu'un seul versant d'un meme col; des points de passage propres aux variantes proches permettent notamment de distinguer la Madeleine par la D213 de celle via Montgellafrey. Les statistiques cataloguees priment sur un calcul GPS de secours lisse sur 500 m. Les catalogues nationaux synchronises `france.json`, `suisse.json` et `italie.json` remplacent les anciens fichiers Alpes/Pyrenees et contiennent 208 sommets / 443 versants: France 154/317, Suisse 23/48 et Italie 31/78. Le catalogue France couvre desormais 15 cols et 29 versants corses, ainsi que les Vosges et davantage d'ascensions du Massif central, du Jura, des Alpes et des Pyrenees. Les 317 alternatives françaises sont controlees automatiquement (unicite, mesures positives, categorie, coordonnees et plausibilite geographique). Les valeurs nouvelles sont recoupees avec cols-cyclisme.com et leurs coordonnees proviennent des GPX de reference; les valeurs de pente cataloguees jusqu'a 30 % sont acceptees, tandis que le calcul GPS de secours reste plafonne a 20 %.
+- L'ecran Badges est organise en quatre espaces: recompenses generales, carnet des cols, atelier de posters et future carte des cols. Un resume commun affiche les badges gagnes, les cols reconnus, le nombre d'ascensions et les massifs parcourus.
 - En mode de sources combinees, Go et Kotlin utilisent une seule identite de stockage valide pour les corrections de qualite, exclusions, objectifs et autres donnees persistantes: la source Strava est prioritaire, sinon la premiere source locale. Les descriptions composites restent reservees aux diagnostics et ne sont plus interpretees comme des chemins de fichiers Windows.
 - Le regroupement journalier du Dashboard Go accepte les timestamps RFC3339 avec offset (`+02:00`) utilises par les FIT; les courbes cumulatives et la heatmap restent ainsi coherentes avec les totaux annuels.
 - Les records de vitesse Go/Kotlin ignorent les fenetres distance/temps contenant un segment physiquement impossible et les `maxSpeed` aberrantes; les caches d'efforts ont ete versionnes pour recalculer les activites deja importees.
@@ -84,6 +85,67 @@
 
 ## Chantiers fonctionnels proposes
 
+### Priorite haute
+
+- [x] `FUNC-P1-16` (`P1`, `S`) - Organiser Badges comme le point d'entree de l'experience cols.
+  Owners: `Product`, `Front`, `UX`.
+  Proposition:
+  - separer les recompenses generales, le carnet des cols, les posters et la future carte dans quatre sous-espaces lisibles,
+  - conserver les filtres globaux d'activite et d'annee et rendre visibles les chiffres essentiels avant d'entrer dans le detail,
+  - ne plus enfouir la generation de poster dans l'en-tete de la liste des cols,
+  - preparer des points d'entree stables pour les evolutions suivantes sans multiplier les onglets principaux de l'application.
+  Acceptance:
+  - les badges generaux et les cols ne partagent plus une liste verticale unique,
+  - l'utilisateur accede au generateur de posters depuis un espace dedie sans perdre les fonctions existantes,
+  - la navigation reste utilisable au clavier et s'adapte aux petits ecrans,
+  - la future carte est identifiee comme telle et ne laisse pas croire qu'elle est deja fonctionnelle.
+  Fait:
+  - navigation locale `Badges` / `Climb log` / `Posters` / `Climb map`,
+  - resume des badges, cols, ascensions et massifs,
+  - filtre de categorie conserve dans le carnet et generateur de posters deplace dans son atelier.
+
+- [ ] `FUNC-P1-17` (`P1`, `L`) - Ajouter une carte interactive des cols.
+  Owners: `Product`, `Front`, `Geo`, `Back-Go`, `Back-Kotlin`, `QA`.
+  Proposition:
+  - representer chaque sommet par un marqueur dont l'etat distingue `gravi`, `non gravi` et `favori`,
+  - regrouper les marqueurs proches et proposer les filtres pays, massif, categorie, annee et statut,
+  - afficher dans l'aperçu le nom complet du versant, altitude, difficulte, distance, denivele, nombre d'ascensions et meilleur temps,
+  - ouvrir la fiche du col depuis la carte et permettre de retrouver le marqueur depuis le carnet,
+  - definir un comportement explicite pour un sommet possedant plusieurs versants: un marqueur sommet, puis le detail des variantes.
+  Acceptance:
+  - une legende rend les etats immediatement compréhensibles,
+  - les filtres de la carte et du carnet reposent sur les memes identifiants de sommets et de versants,
+  - la carte reste fluide avec plusieurs centaines de variantes et ne duplique pas visuellement un meme sommet,
+  - les API et DTO necessaires restent alignes entre Go et Kotlin.
+
+- [ ] `FUNC-P1-18` (`P1`, `L`) - Creer une fiche detaillee pour chaque col et chaque versant.
+  Owners: `Product`, `Front`, `Stats`, `Back-Go`, `Back-Kotlin`, `QA`.
+  Proposition:
+  - afficher le profil kilometre par kilometre avec couleurs de pente, altitudes intermediaires et secteurs les plus difficiles,
+  - presenter clairement le sommet puis toutes ses variantes de depart sans confondre deux traces proches,
+  - regrouper longueur, denivele, pentes moyenne/maximale, altitude min/max, difficulte, source et date de derniere verification,
+  - lister les ascensions personnelles avec meilleur temps, date, VAM, vitesse, puissance et frequence cardiaque quand ces donnees existent,
+  - permettre de passer d'une ascension a l'activite detaillee d'origine.
+  Acceptance:
+  - le titre contient toujours la variante complete, par exemple `Col du Galibier depuis Saint-Jean-de-Maurienne`,
+  - les metriques cataloguees et personnelles sont visuellement distinguees,
+  - une donnee absente est signalee comme indisponible et n'est jamais remplacee par une valeur incoherente,
+  - les profils reutilisent le meme moteur de rendu et les memes regles de plausibilite que les posters.
+
+- [ ] `FUNC-P1-19` (`P1`, `M`) - Stabiliser l'identite sommet/versant et la qualite du catalogue.
+  Owners: `Data`, `Back-Go`, `Back-Kotlin`, `QA`.
+  Proposition:
+  - attribuer un identifiant stable au sommet et un autre a chaque versant, independamment du libelle affiche,
+  - documenter les conventions de nommage, les points de depart, les points de passage discriminants et les sources,
+  - ajouter des controles sur les doublons semantiques, les profils plats suspects, les deniveles incompatibles avec les altitudes et les pentes maximales aberrantes,
+  - produire un rapport de couverture par pays, massif, sommet et nombre de versants attendus/trouves,
+  - conserver la possibilite de corriger une variante sans casser l'historique des badges deja attribues.
+  Acceptance:
+  - un meme effort ne cree jamais deux badges pour un seul versant,
+  - deux vrais versants d'un meme sommet restent selectionnables et comparables separement,
+  - les catalogues Go/Kotlin restent identiques et leurs validations sont automatisees,
+  - toute correction de profil ou de metrique conserve une source traçable.
+
 ### Priorite moyenne
 
 - [ ] `FUNC-P1-15` (`P1`, `L`) - Edition aimantee des routes generees `GPS Art`.
@@ -120,6 +182,91 @@
   - permettre une validation explicite et reversible des corrections sures.
   Acceptance:
   - la data quality devient un workflow de decision, pas seulement un rapport technique.
+
+- [ ] `FUNC-P2-20` (`P2`, `M`) - Proposer des collections et des defis de cols.
+  Owners: `Product`, `Front`, `Stats`.
+  Proposition:
+  - proposer des collections par massif, pays et theme: tous les HC, sommets de plus de 2 000 m, classiques du Tour, routes des Grandes Alpes ou cols corses,
+  - afficher la progression en sommets et en versants, avec une definition claire de la condition de validation,
+  - permettre a l'utilisateur de suivre quelques defis et de masquer ceux qui ne l'interessent pas,
+  - distinguer les collections permanentes des defis limites a une saison.
+  Acceptance:
+  - chaque collection expose son perimetre, sa source et sa progression exacte,
+  - l'ajout d'un nouveau col au catalogue ne rend pas silencieusement un ancien succes incoherent,
+  - les recompenses obtenues apparaissent dans l'espace Badges sans dupliquer les badges de versant.
+
+- [ ] `FUNC-P2-21` (`P2`, `L`) - Suggérer les prochains cols pertinents.
+  Owners: `Product`, `Front`, `Geo`, `Stats`.
+  Proposition:
+  - classer les cols non gravis selon la proximite, la difficulte habituelle du cycliste, la saison, l'altitude et les massifs deja visites,
+  - expliquer chaque suggestion avec des raisons lisibles plutot qu'un score opaque,
+  - permettre de filtrer par rayon, difficulte maximale, longueur, denivele et pays,
+  - ajouter aux favoris un sommet ou un versant depuis une suggestion, la carte ou la fiche detaillee.
+  Acceptance:
+  - aucune suggestion ne depend d'une localisation implicite non consentie,
+  - les donnees manquantes ou une fermeture saisonniere inconnue sont signalees,
+  - une suggestion explique au moins sa distance, son niveau et son lien avec l'historique du cycliste.
+
+- [ ] `FUNC-P2-22` (`P2`, `L`) - Composer un parcours reliant plusieurs cols.
+  Owners: `Product`, `Front`, `Routes`, `Back-Go`, `Back-Kotlin`, `QA`.
+  Proposition:
+  - selectionner de deux a quatre sommets ou versants depuis la carte, les favoris ou les suggestions,
+  - proposer une boucle ou un point-a-point et afficher distance, denivele, profil global et ordre de passage,
+  - permettre de verrouiller un versant precis afin de ne pas atteindre le sommet par le mauvais cote,
+  - reutiliser le routage existant avec diagnostics explicites et export GPX.
+  Acceptance:
+  - l'itineraire traverse les points de passage discriminants des variantes selectionnees,
+  - les estimations sont recalculees apres chaque changement d'ordre,
+  - l'export GPX reprend exactement l'itineraire valide,
+  - les comportements et diagnostics de generation restent couverts et alignes en Go/Kotlin.
+
+- [ ] `FUNC-P2-23` (`P2`, `M`) - Comparer plusieurs ascensions d'un meme versant.
+  Owners: `Product`, `Front`, `Stats`.
+  Proposition:
+  - superposer progression, temps intermediaires, vitesse, VAM, puissance et frequence cardiaque par distance,
+  - comparer par defaut le meilleur temps, la derniere ascension et une ascension choisie,
+  - signaler les traces GPS incompletes ou les differences de point de depart qui rendent une comparaison fragile,
+  - afficher les gains/pertes par secteur sans transformer une estimation en chronometrage exact.
+  Acceptance:
+  - seules les ascensions rattachees au meme identifiant de versant sont comparees automatiquement,
+  - les donnees absentes n'empechent pas la comparaison des metriques restantes,
+  - la methode d'alignement et la precision estimee sont visibles.
+
+- [ ] `FUNC-P2-24` (`P2`, `M`) - Ajouter un tableau de bord du grimpeur.
+  Owners: `Product`, `Front`, `Stats`.
+  Proposition:
+  - calculer altitude cumulee, denivele sur cols, VAM record, plus long versant, col le plus difficile et col le plus gravi,
+  - suivre la progression par annee, pays, massif, categorie et tranche d'altitude,
+  - separer les statistiques sur tous les cols de celles limitees a la periode selectionnee,
+  - permettre d'ouvrir le carnet filtre depuis chaque indicateur.
+  Acceptance:
+  - chaque statistique renvoie aux ascensions qui la composent,
+  - les records ignores par les garde-fous de qualite sont explicites,
+  - les totaux restent coherents entre Dashboard, carnet et posters.
+
+- [ ] `FUNC-P2-25` (`P2`, `M`) - Enrichir les posters thematiques et partageables.
+  Owners: `Product`, `Front`, `Design`.
+  Proposition:
+  - generer un poster par massif, pays, saison, annee, collection ou selection libre,
+  - proposer une variante avec carte miniature et une autre centree sur les profils,
+  - ajouter en option un QR code pointant vers une page locale/exportable de la collection,
+  - conserver SVG comme format maitre et preparer un export PDF haute definition verifie pour l'impression.
+  Acceptance:
+  - les trois designs existants conservent le meme nombre maximal de cols,
+  - le theme et les filtres actifs sont rappeles dans le titre du poster,
+  - le QR code reste optionnel et n'expose aucune donnee privee sans action explicite.
+
+- [ ] `FUNC-P2-26` (`P2`, `L`) - Etendre progressivement le catalogue europeen.
+  Owners: `Product`, `Data`, `Back-Go`, `Back-Kotlin`, `QA`.
+  Proposition:
+  - consolider France, Suisse et Italie avant d'ajouter Espagne, Andorre, Autriche, Slovenie, Allemagne, Belgique, Royaume-Uni, Norvege et Balkans,
+  - prioriser les massifs et ascensions cyclistes documentes plutot qu'une liste exhaustive de cols routiers,
+  - exiger pour chaque variante un profil, des metriques plausibles, des coordonnees, une source et si necessaire un point de passage discriminant,
+  - publier un rapport de couverture et une liste des variantes a verifier manuellement.
+  Acceptance:
+  - chaque nouveau catalogue passe les memes validations que `france.json`,
+  - les sommets transfrontaliers utilisent des identifiants communs et ne sont pas dupliques,
+  - l'origine et la date de verification des donnees sont conservees.
 
 ### Priorite basse
 

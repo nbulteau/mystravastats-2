@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useContextStore } from "@/stores/context.js";
 import { useBadgesStore } from "@/stores/badges";
-import { computed, ref, watch, onMounted } from "vue";
+import { computed, nextTick, ref, watch, onMounted } from "vue";
 import BadgeItem from "@/components/BadgeItem.vue";
 import ClimbPosterGenerator from "@/components/ClimbPosterGenerator.vue";
 import type { BadgeCheckResult } from "@/models/badge-check-result.model";
@@ -13,7 +13,6 @@ const badgesStore = useBadgesStore();
 onMounted(() => contextStore.updateCurrentView("badges"));
 
 const currentYear = computed(() => contextStore.currentYear);
-const currentActivity = computed(() => contextStore.currentActivityType);
 const activeSection = ref<BadgesSectionId>("badges");
 const sections: ReadonlyArray<{
   id: BadgesSectionId;
@@ -121,10 +120,12 @@ const famousClimbBadgesCheckResults = computed(() => {
 const generalSummary = computed(() => sectionSummary(generalBadgesCheckResults.value));
 const famousSummary = computed(() => sectionSummary(famousClimbBadgesCheckResults.value));
 
-function selectAdjacentSection(offset: number) {
+async function selectAdjacentSection(offset: number) {
   const currentIndex = sections.findIndex((section) => section.id === activeSection.value);
   const nextIndex = (currentIndex + offset + sections.length) % sections.length;
   activeSection.value = sections[nextIndex].id;
+  await nextTick();
+  document.getElementById(`badges-section-${activeSection.value}`)?.focus();
 }
 </script>
 
@@ -168,6 +169,7 @@ function selectAdjacentSection(offset: number) {
           :class="{ 'badges-section-tab--active': activeSection === section.id }"
           :aria-selected="activeSection === section.id"
           :aria-controls="`badges-panel-${section.id}`"
+          :tabindex="activeSection === section.id ? 0 : -1"
           @click="activeSection = section.id"
           @keydown.left.prevent="selectAdjacentSection(-1)"
           @keydown.right.prevent="selectAdjacentSection(1)"
@@ -191,7 +193,7 @@ function selectAdjacentSection(offset: number) {
       <div class="badges-header">
         <div>
           <p class="badges-section-kicker">Season achievements</p>
-          <h2 class="badges-title">{{ currentActivity }} general badges for {{ currentYear }}</h2>
+          <h2 class="badges-title">General badges for {{ currentYear }}</h2>
         </div>
         <div class="badges-summary">
           <span class="summary-chip summary-chip--earned">Earned {{ generalSummary.acquired }}</span>
@@ -221,7 +223,7 @@ function selectAdjacentSection(offset: number) {
       <div class="badges-header badges-header--split">
         <div>
           <p class="badges-section-kicker">Your summit collection</p>
-          <h2 class="badges-title">Famous climb {{ currentActivity }} log for {{ currentYear }}</h2>
+          <h2 class="badges-title">Famous climb log for {{ currentYear }}</h2>
         </div>
         <div class="badges-header-controls">
           <label for="famous-category-filter" class="category-filter-label">Category</label>
