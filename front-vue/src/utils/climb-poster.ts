@@ -112,7 +112,7 @@ function buildAltitudeDesign(climbs: ClimbPosterEntry[], options: ClimbPosterOpt
       ${index > 0 ? `<line x1="82" y1="${round(y - 18)}" x2="1118" y2="${round(y - 18)}" class="rule"/>` : ""}
       <text x="82" y="${round(y + 25)}" class="index">${String(index + 1).padStart(2, "0")}</text>
       <text x="155" y="${round(y + 25)}" class="climb-name"${fitTextAttributes(name, 28, 700, 31, 18)}>${escapeXml(name)}</text>
-      <text x="1118" y="${round(y + 25)}" text-anchor="end" class="summit">ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFF. ${formatInteger(climb.details.difficulty)}</text>
+      <text x="1118" y="${round(y + 25)}" text-anchor="end" class="summit">ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTÉ ${formatInteger(climb.details.difficulty)} PTS</text>
       ${profileMarkup(climb.details, 155, profileTop, 963, profileHeight, "profile-altitude")}
       <text x="155" y="${round(statsY)}" class="stat">${formatDecimal(climb.details.lengthKm)} KM</text>
       <text x="365" y="${round(statsY)}" class="stat">${formatDecimal(climb.details.averageGradient)} % AVG</text>
@@ -149,7 +149,7 @@ function buildTopoDesign(climbs: ClimbPosterEntry[], options: ClimbPosterOptions
     const name = posterClimbName(climb).toUpperCase();
     return `<g>
       <circle cx="95" cy="${round(y + 15)}" r="10" class="summit-dot"/>
-      <text x="132" y="${round(y - 2)}" class="code">ALT.MAX ${formatInteger(climb.details.summitAltitude)} · DIFF.${formatInteger(climb.details.difficulty)} · CAT.${escapeXml(climb.category ?? "—")}</text>
+      <text x="132" y="${round(y - 2)}" class="code">ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTÉ ${formatInteger(climb.details.difficulty)} PTS · CAT. ${escapeXml(climb.category ?? "—")}</text>
       <text x="132" y="${round(y + 27)}" class="topo-name"${fitTextAttributes(name, 27, 690, 26, 16, 0.6)}>${escapeXml(name)}</text>
       ${profileMarkup(climb.details, 132, profileTop, 710, profileHeight, "profile-topo")}
       <text x="880" y="${round(y + 7)}" class="metric">${formatDecimal(climb.details.lengthKm)} KM</text>
@@ -191,7 +191,7 @@ function buildCollectionDesign(climbs: ClimbPosterEntry[], options: ClimbPosterO
       <text x="${x}" y="285" class="collection-index">${String(index + 1).padStart(2, "0")}</text>
       <text transform="translate(${x + 34} 780) rotate(-90)" class="vertical-name"${fitTextAttributes(name, 28, 470, 27, 14)}>${escapeXml(name)}</text>
       ${profileMarkup(climb.details, profileX, 380, profileWidth, 420, "profile-collection")}
-      <text x="${profileX}" y="825" class="collection-alt">ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFF. ${formatInteger(climb.details.difficulty)}</text>
+      <text x="${profileX}" y="825" class="collection-alt"${fitTextAttributes(`ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTÉ ${formatInteger(climb.details.difficulty)} PTS`, 18, profileWidth, 18, 11)}>ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTÉ ${formatInteger(climb.details.difficulty)} PTS</text>
       <text x="${profileX}" y="915" class="collection-distance">${formatDecimal(climb.details.lengthKm)}</text>
       <text x="${profileX + 182}" y="915" class="collection-unit">KM</text>
       <text x="${profileX}" y="960" class="collection-stat">${formatDecimal(climb.details.averageGradient)} % AVG</text>
@@ -242,7 +242,7 @@ function buildDenseAltitudeDesign(climbs: ClimbPosterEntry[], options: ClimbPost
       ${column > 0 ? `<line x1="${round(x - columnGap / 2)}" y1="${round(y)}" x2="${round(x - columnGap / 2)}" y2="${round(y + rowHeight - 22)}" class="dense-divider"/>` : ""}
       <text x="${round(x)}" y="${round(y + 23)}" class="dense-index">${String(index + 1).padStart(2, "0")}</text>
       <text x="${round(x + 35)}" y="${round(y + 23)}" class="dense-name"${fitTextAttributes(name, 17, columnWidth - 45, 16, 8.5)}>${escapeXml(name)}</text>
-      <text x="${round(x + columnWidth)}" y="${round(y + 46)}" text-anchor="end" class="dense-summit">ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFF. ${formatInteger(climb.details.difficulty)}</text>
+      <text x="${round(x + columnWidth)}" y="${round(y + 46)}" text-anchor="end" class="dense-summit">ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTÉ ${formatInteger(climb.details.difficulty)} PTS</text>
       ${profileMarkup(climb.details, x, profileTop, columnWidth, profileHeight, "dense-profile")}
       <text x="${round(x)}" y="${round(statsY)}" class="dense-stat">${formatDecimal(climb.details.lengthKm)} KM · +${formatInteger(climb.details.totalAscent)} M</text>
       <text x="${round(x)}" y="${round(averageY)}" class="dense-stat">${formatDecimal(climb.details.averageGradient)} % AVG · ${formatMaximumGradient(climb.details.maximumGradient)} % MAX</text>
@@ -289,7 +289,7 @@ function buildDenseTopoDesign(climbs: ClimbPosterEntry[], options: ClimbPosterOp
       ${column > 0 ? `<line x1="${round(x - columnGap / 2)}" y1="${round(y)}" x2="${round(x - columnGap / 2)}" y2="${round(y + rowHeight - 18)}" class="dense-topo-divider"/>` : ""}
       ${row > 0 ? `<line x1="${round(x)}" y1="${round(y - 12)}" x2="${round(x + columnWidth)}" y2="${round(y - 12)}" class="dense-topo-divider"/>` : ""}
       <circle cx="${round(x + 8)}" cy="${round(y + 17)}" r="7" class="dense-topo-dot"/>
-      <text x="${round(x + 25)}" y="${round(y + 5)}" class="dense-topo-code">ALT.MAX ${formatInteger(climb.details.summitAltitude)} · DIFF.${formatInteger(climb.details.difficulty)} · CAT.${escapeXml(climb.category ?? "—")}</text>
+      <text x="${round(x + 25)}" y="${round(y + 5)}" class="dense-topo-code">ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTÉ ${formatInteger(climb.details.difficulty)} PTS · CAT. ${escapeXml(climb.category ?? "—")}</text>
       <text x="${round(x + 25)}" y="${round(y + 31)}" class="dense-topo-name"${fitTextAttributes(name, 17, columnWidth - 35, 14, 8, 0.6)}>${escapeXml(name)}</text>
       ${profileMarkup(climb.details, x, profileTop, columnWidth, profileHeight, "dense-topo-profile")}
       <text x="${round(x)}" y="${round(metricsY)}" class="dense-topo-metric">${formatDecimal(climb.details.lengthKm)} KM · +${formatInteger(climb.details.totalAscent)} M</text>
@@ -334,7 +334,7 @@ function buildDenseCollectionDesign(climbs: ClimbPosterEntry[], options: ClimbPo
     const metricsY = averageY - (tenRowLayout ? 21 : fiveRowLayout ? 22 : 23);
     const profileBottom = metricsY - (tenRowLayout ? 16 : fiveRowLayout ? 16 : 18);
     const profileHeight = Math.max(70, profileBottom - profileTop);
-    const metrics = `${formatDecimal(climb.details.lengthKm)} KM · +${formatInteger(climb.details.totalAscent)} M · ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFF. ${formatInteger(climb.details.difficulty)}`;
+    const metrics = `${formatDecimal(climb.details.lengthKm)} KM · +${formatInteger(climb.details.totalAscent)} M · ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTÉ ${formatInteger(climb.details.difficulty)} PTS`;
     const metricsFit = fitTextAttributes(metrics, 32, columnWidth, 13, 7, 0.56);
     return `<g data-grid-column="${column}" data-grid-row="${row}" data-profile-bottom-y="${round(profileBottom)}" data-metrics-y="${round(metricsY)}" data-ascent-y="${round(ascentY)}" data-tile-bottom-y="${round(tileBottom)}">
       ${column > 0 ? `<line x1="${round(x - columnGap / 2)}" y1="${round(y)}" x2="${round(x - columnGap / 2)}" y2="${round(y + rowHeight - 22)}" class="dense-collection-rule"/>` : ""}

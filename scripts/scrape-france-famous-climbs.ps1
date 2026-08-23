@@ -72,6 +72,7 @@ function Format-StartName {
         "Saint Jean le Vieux" = "Saint-Jean-le-Vieux"
         "Saint Lary Soulan" = "Saint-Lary-Soulan"
         "Pierrefitte Nestalas" = "Pierrefitte-Nestalas"
+        "Aulus les Bains" = "Aulus-les-Bains"
         "Le Petit Bornand" = "Le Petit-Bornand"
         "Le Bourget du Lac" = "Le Bourget-du-Lac"
         "Chambery" = "Chambéry"
@@ -217,6 +218,10 @@ function Get-ProfileData {
             latitude = [double]::Parse($summit.lat, $invariantCulture)
             longitude = [double]::Parse($summit.lon, $invariantCulture)
         }
+        midpointCoordinate = [pscustomobject][ordered]@{
+            latitude = [double]::Parse($trackPoints[[math]::Floor($trackPoints.Count / 2)].lat, $invariantCulture)
+            longitude = [double]::Parse($trackPoints[[math]::Floor($trackPoints.Count / 2)].lon, $invariantCulture)
+        }
         alternative = [pscustomobject][ordered]@{
             name = $startName
             geoCoordinate = [pscustomobject][ordered]@{
@@ -250,6 +255,15 @@ $definitions = @(
     @{ source = "Col de l'Ospedale"; name = "Col de l'Ospedale"; massif = "Corse" },
     @{ source = "Col de Scalella"; name = "Col de Scalella"; massif = "Corse" },
     @{ source = "Gorges de la Restonica"; name = "Gorges de la Restonica"; massif = "Corse" },
+    @{ source = "Col de Verde"; name = "Col de Verde"; massif = "Corse" },
+    @{ source = "Col de Sorba"; name = "Col de Sorba"; massif = "Corse" },
+    @{ source = "Col de Prato"; name = "Col de Prato"; massif = "Corse" },
+    @{ source = "Col de Teghime"; name = "Col de Teghime"; massif = "Corse" },
+    @{ source = "Col de Sevi"; name = "Col de Sevi"; massif = "Corse" },
+    @{ source = "Col de Bigorno"; name = "Col de Bigorno"; massif = "Corse" },
+    @{ source = "Col de Saint Eustache"; name = "Col de Saint-Eustache"; massif = "Corse" },
+    @{ source = "Col de la Vaccia"; name = "Col de la Vaccia"; massif = "Corse" },
+    @{ source = "Col de Palmarella"; name = "Col de Palmarella"; massif = "Corse" },
 
     @{ source = "Plateau de Beille"; name = "Plateau de Beille"; massif = "Pyrénées" },
     @{ source = "Station de Luz Ardiden"; name = "Luz Ardiden"; massif = "Pyrénées" },
@@ -262,6 +276,7 @@ $definitions = @(
     @{ source = "Station de Piau Engaly"; name = "Piau-Engaly"; massif = "Pyrénées" },
     @{ source = "Bout de Touron - Prat d'Albis"; name = "Prat d'Albis"; massif = "Pyrénées" },
     @{ source = "Pont d'Espagne"; name = "Pont d'Espagne"; massif = "Pyrénées" },
+    @{ source = "Col de Latrape"; name = "Col de Latrape"; massif = "Pyrénées" },
 
     @{ source = "Col des Glières"; name = "Col des Glières"; massif = "Alpes" },
     @{ source = "Mont du Chat"; name = "Mont du Chat"; massif = "Jura" },
@@ -274,6 +289,7 @@ $definitions = @(
     @{ source = "Signal de Lure"; name = "Signal de Lure"; massif = "Alpes" },
     @{ source = "Mont Faron"; name = "Mont Faron"; massif = "Alpes" },
     @{ source = "Roche Beranger (Station de Chamrousse)"; name = "Chamrousse (Roche Béranger)"; massif = "Alpes" },
+    @{ source = "Col du Mont Cenis"; name = "Col du Mont-Cenis"; massif = "Alpes" },
 
     @{ source = "Mont Aigoual"; name = "Mont Aigoual"; massif = "Massif central" },
     @{ source = "Col de la Lusette"; name = "Col de la Lusette"; massif = "Massif central" },
@@ -332,6 +348,26 @@ Col de l'Ospedale|/corse/france/col-de-l-ospedale-depuis-palavese-c2698.htm
 Col de Scalella|/corse/france/col-de-scalella-depuis-bastelica-c2161.htm
 Col de Scalella|/corse/france/col-de-scalella-depuis-tavera-c2685.htm
 Gorges de la Restonica|/corse/france/gorges-de-la-restonica-depuis-corte-c2688.htm
+Col de Verde|/corse/france/col-de-verde-depuis-pont-de-cannareccia-c3564.htm|Pont de Cannareccia
+Col de Sorba|/corse/france/col-de-sorba-depuis-ghisoni-c2690.htm
+Col de Sorba|/corse/france/col-de-sorba-depuis-vivario-c2689.htm
+Col de Prato|/corse/france/col-de-prato-depuis-pont-de-rimitorio-c2716.htm
+Col de Prato|/corse/france/col-de-prato-depuis-ponte-leccia-c2171.htm
+Col de Teghime|/corse/france/col-de-teghime-depuis-bastia-c1681.htm
+Col de Teghime|/corse/france/col-de-teghime-depuis-montesoro-c1684.htm
+Col de Teghime|/corse/france/col-de-teghime-depuis-saint-florent-c1682.htm|Saint-Florent, via Patrimonio|checkpoint
+Col de Teghime|/corse/france/col-de-teghime-depuis-saint-florent-c1683.htm|Saint-Florent, via Oletta|checkpoint
+Col de Sevi|/corse/france/col-de-sevi-depuis-d84-d124-c2684.htm
+Col de Sevi|/corse/france/col-de-sevi-depuis-sagone-c2683.htm
+Col de Bigorno|/corse/france/col-de-bigorno-depuis-biguglia-c2559.htm
+Col de Bigorno|/corse/france/col-de-bigorno-depuis-ponte-novu-c2713.htm
+Col de Bigorno|/corse/france/col-de-bigorno-depuis-volpajola-c2170.htm
+Col de Saint Eustache|/corse/france/col-de-saint-eustache-depuis-moca-c2699.htm
+Col de Saint Eustache|/corse/france/col-de-saint-eustache-depuis-moulin-d-arnia-c3566.htm
+Col de Saint Eustache|/corse/france/col-de-saint-eustache-depuis-petreto-c2700.htm
+Col de la Vaccia|/corse/france/col-de-la-vaccia-depuis-olivese-c2704.htm
+Col de Palmarella|/corse/france/col-de-palmarella-depuis-le-fango-c1789.htm
+Col de Palmarella|/corse/france/col-de-palmarella-depuis-porto-c1790.htm
 Plateau de Beille|/pyrenees-centrales/france/plateau-de-beille-depuis-les-cabannes-c27.htm
 Station de Luz Ardiden|/pyrenees-centrales/france/station-de-luz-ardiden-depuis-luz-saint-sauveur-c61.htm
 Station de Luz Ardiden|/pyrenees-centrales/france/station-de-luz-ardiden-depuis-viscos-c1508.htm
@@ -351,6 +387,8 @@ Col Bagargui|/pyrenees-ouest/france/col-bagargui-depuis-saint-jean-le-vieux-c616
 Station de Piau Engaly|/pyrenees-centrales/france/station-de-piau-engaly-depuis-saint-lary-soulan-c312.htm
 Bout de Touron - Prat d'Albis|/pyrenees-centrales/france/bout-de-touron-prat-d-albis-depuis-foix-c1366.htm
 Pont d'Espagne|/pyrenees-centrales/france/pont-d-espagne-depuis-pierrefitte-nestalas-c1195.htm
+Col de Latrape|/pyrenees-centrales/france/col-de-latrape-depuis-aulus-les-bains-c1636.htm
+Col de Latrape|/pyrenees-centrales/france/col-de-latrape-depuis-serac-c1635.htm
 Col des Glières|/aravis/france/col-des-glieres-depuis-le-petit-bornand-c1652.htm
 Col des Glières|/aravis/france/col-des-glieres-depuis-nant-sec-thorens-glieres-c1653.htm
 Mont du Chat|/bugey/france/mont-du-chat-depuis-d921-d41a-c2454.htm
@@ -376,6 +414,8 @@ Signal de Lure|/provence/france/signal-de-lure-depuis-valbelle-vallee-du-jabron-
 Mont Faron|/monts-toulonnais/france/mont-faron-depuis-toulon-c176.htm
 Roche Beranger (Station de Chamrousse)|/belledonne/france/roche-beranger-station-de-chamrousse-depuis-uriage-les-bains-c130.htm
 Roche Beranger (Station de Chamrousse)|/belledonne/france/roche-beranger-station-de-chamrousse-depuis-vaulnaveys-le-haut-c1276.htm
+Col du Mont Cenis|/massif-du-mont-cenis/france/col-du-mont-cenis-depuis-lanslebourg-c87.htm
+Col du Mont Cenis|/massif-du-mont-cenis/italie/col-du-mont-cenis-depuis-susa-c88.htm
 Mont Aigoual|/cevennes/france/mont-aigoual-depuis-le-vigan-c154.htm
 Mont Aigoual|/cevennes/france/mont-aigoual-depuis-le-vigan-via-le-col-de-la-lusette-c2207.htm
 Mont Aigoual|/cevennes/france/mont-aigoual-depuis-meyrueis-c152.htm
@@ -419,10 +459,12 @@ $profileRows = [System.Collections.Generic.List[object]]::new()
 foreach ($line in ($profileManifest -split "`n")) {
     $trimmedLine = $line.Trim()
     if (-not $trimmedLine) { continue }
-    $parts = $trimmedLine.Split("|", 2)
+    $parts = $trimmedLine.Split("|")
     $profileRows.Add([pscustomobject]@{
         sourceName = $parts[0]
         url = "https://www.cols-cyclisme.com$($parts[1])"
+        alternativeName = if ($parts.Count -ge 3) { $parts[2] } else { "" }
+        checkpoint = $parts.Count -ge 4 -and $parts[3] -eq "checkpoint"
     })
 }
 
@@ -437,7 +479,14 @@ foreach ($definition in $definitions) {
 
     $profiles = [System.Collections.Generic.List[object]]::new()
     foreach ($profileRow in $matchingRows) {
-        $profiles.Add((Get-ProfileData $profileRow.url))
+        $profile = Get-ProfileData $profileRow.url $profileRow.alternativeName
+        if ($profileRow.checkpoint) {
+            $profile.alternative | Add-Member `
+                -NotePropertyName routeCheckpoints `
+                -NotePropertyValue @($profile.midpointCoordinate) `
+                -Force
+        }
+        $profiles.Add($profile)
         $processed++
         if (($processed % 10) -eq 0 -or $processed -eq $profileCount) {
             Write-Host "Profiles: $processed / $profileCount"
@@ -462,6 +511,17 @@ if ($madeleineDirect) {
     $madeleineDirect | Add-Member -NotePropertyName routeCheckpoints -NotePropertyValue @(
         [pscustomobject][ordered]@{ latitude = 45.386825; longitude = 6.331231 }
     ) -Force
+}
+
+# The published Sainte-Eulalie profile describes only the final 2.5 km, while
+# its GPX start point is in Sainte-Eulalie. Keep the full village-to-summit
+# distance so badge matching and the displayed average remain consistent.
+$gerbier = $climbs | Where-Object { $_.name -eq "Col du Gerbier-de-Jonc" } | Select-Object -First 1
+$gerbierSainteEulalie = $gerbier.alternatives | Where-Object { $_.name -eq "Sainte-Eulalie" } | Select-Object -First 1
+if ($gerbierSainteEulalie) {
+    $gerbierSainteEulalie.length = 5.0
+    $gerbierSainteEulalie.difficulty = 63
+    $gerbierSainteEulalie.averageGradient = 3.54
 }
 
 $variantDefinitions = @(

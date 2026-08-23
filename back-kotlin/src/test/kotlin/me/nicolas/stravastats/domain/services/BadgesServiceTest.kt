@@ -120,9 +120,39 @@ class BadgesServiceTest {
         val results = badgesService.getFamousBadges(activityTypes, null)
         val climbs = results.map { it.badge as FamousClimbBadge }
 
-        assertEquals(423, climbs.size)
-        assertEquals(mapOf("FR" to 297, "CH" to 48, "IT" to 78), climbs.groupingBy { it.country }.eachCount())
+        assertEquals(443, climbs.size)
+        assertEquals(mapOf("FR" to 317, "CH" to 48, "IT" to 78), climbs.groupingBy { it.country }.eachCount())
         assertTrue(climbs.all { it.massif.isNotBlank() })
+        assertEquals(climbs.size, climbs.map { it.label }.distinct().size)
+        climbs.forEach { climb ->
+            assertTrue(climb.length > 0, "Invalid length for ${climb.label}")
+            assertTrue(climb.totalAscent > 0, "Invalid ascent for ${climb.label}")
+            assertTrue(climb.averageGradient > 0, "Invalid average gradient for ${climb.label}")
+            assertTrue(climb.difficulty >= 0, "Invalid difficulty for ${climb.label}")
+            val estimatedAscent = climb.length * climb.averageGradient * 10
+            assertTrue(
+                estimatedAscent in (climb.totalAscent * 0.75)..(climb.totalAscent * 1.25),
+                "Average gradient is inconsistent with length and ascent for ${climb.label}",
+            )
+            assertTrue(climb.minimumAltitude >= 0, "Invalid minimum altitude for ${climb.label}")
+            assertTrue(climb.maximumGradient in 0.0..30.0, "Invalid maximum gradient for ${climb.label}")
+            assertTrue(
+                climb.maximumGradient == 0.0 || climb.maximumGradient + 0.1 >= climb.averageGradient,
+                "Maximum gradient is below average gradient for ${climb.label}",
+            )
+            assertTrue(climb.category in setOf("HC", "1", "2", "3", "4"), "Invalid category for ${climb.label}")
+            assertTrue(climb.start.latitude in -90.0..90.0 && climb.start.longitude in -180.0..180.0, "Invalid start for ${climb.label}")
+            assertTrue(climb.end.latitude in -90.0..90.0 && climb.end.longitude in -180.0..180.0, "Invalid end for ${climb.label}")
+            assertTrue(
+                climb.start.haversineInKM(climb.end.latitude, climb.end.longitude) <= climb.length + 0.5,
+                "Direct distance exceeds published length for ${climb.label}",
+            )
+            assertTrue(climb.sourceUrl.isBlank() || climb.sourceUrl.startsWith("https://"), "Invalid source for ${climb.label}")
+        }
+        assertEquals(29, climbs.count { it.massif == "Corse" })
+        val alpeDHuez = climbs.single { it.label == "Alpe d'Huez from Le Bourg-d'Oisans" }
+        assertEquals("HC", alpeDHuez.category)
+        assertEquals(994, alpeDHuez.difficulty)
         assertEquals(
             1,
             climbs.single { it.label == "Col de la Madeleine from La Chambre, par la D213" }.routeCheckpoints.size,

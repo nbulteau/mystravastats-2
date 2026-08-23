@@ -17,9 +17,12 @@
         },
         "length": 13.9,
         "totalAscent": 1118,
+        "minimumAltitude": 732,
+        "maximumGradient": 15,
         "difficulty": 994,
         "averageGradient": 8,
-        "category": "1"
+        "category": "HC",
+        "sourceUrl": "https://climbfinder.com/en/climbs/alpe-d-huez"
       },
       {
         "name": "Rochetaille via Villard-Reculas",
@@ -1361,23 +1364,26 @@
     "name": "Col du Mont-Cenis",
     "country": "FR",
     "massif": "Alpes",
-    "topOfTheAscent": 2085,
+    "topOfTheAscent": 2081,
     "geoCoordinate": {
-      "latitude": 45.2598281,
-      "longitude": 6.9008841
+      "latitude": 45.25976,
+      "longitude": 6.90096
     },
     "alternatives": [
       {
         "name": "Lanslebourg",
         "geoCoordinate": {
-          "latitude": 45.2855825,
-          "longitude": 6.8826311
+          "latitude": 45.28518,
+          "longitude": 6.88274
         },
-        "length": 32.2,
-        "totalAscent": 1461,
-        "difficulty": 1151,
-        "averageGradient": 6.9,
-        "category": "HC"
+        "length": 9.8,
+        "totalAscent": 682,
+        "minimumAltitude": 1398,
+        "maximumGradient": 10.6,
+        "difficulty": 475,
+        "averageGradient": 6.96,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-du-mont-cenis/france/col-du-mont-cenis-depuis-lanslebourg-c87.htm"
       },
       {
         "name": "Susa",
@@ -1391,7 +1397,8 @@
         "maximumGradient": 11,
         "difficulty": 818,
         "averageGradient": 5.18,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-du-mont-cenis/italie/col-du-mont-cenis-depuis-susa-c88.htm"
       }
     ]
   },
@@ -2859,23 +2866,26 @@
     "name": "Col de Latrape",
     "country": "FR",
     "massif": "Pyrénées",
-    "topOfTheAscent": 1110,
+    "topOfTheAscent": 1111,
     "geoCoordinate": {
       "latitude": 42.79549,
       "longitude": 1.31551
     },
     "alternatives": [
       {
-        "name": "Seix",
+        "name": "Sérac",
         "geoCoordinate": {
-          "latitude": 42.8617,
-          "longitude": 1.2013
+          "latitude": 42.8039,
+          "longitude": 1.26843
         },
-        "length": 11.2,
-        "totalAscent": 725,
-        "difficulty": 560,
-        "averageGradient": 6.5,
-        "category": "2"
+        "length": 5.9,
+        "totalAscent": 423,
+        "minimumAltitude": 698,
+        "maximumGradient": 11,
+        "difficulty": 303,
+        "averageGradient": 7.17,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/col-de-latrape-depuis-serac-c1635.htm"
       },
       {
         "name": "Aulus-les-Bains",
@@ -2885,11 +2895,12 @@
         },
         "length": 5,
         "totalAscent": 368,
-        "minimumAltitude": 758,
+        "minimumAltitude": 744,
         "maximumGradient": 10,
         "difficulty": 271,
         "averageGradient": 7.36,
-        "category": "3"
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/col-de-latrape-depuis-aulus-les-bains-c1636.htm"
       }
     ]
   },
@@ -4193,6 +4204,22 @@
       }
     ]
   },
+  {
+    "name": "Col de Verde",
+    "country": "FR",
+    "massif": "Corse",
+    "topOfTheAscent": 1289,
+    "geoCoordinate": {"latitude": 42.02822, "longitude": 9.19481},
+    "alternatives": [{"name":"Pont de Cannareccia","geoCoordinate":{"latitude":42.05672,"longitude":9.19288},"length":7.66,"totalAscent":439,"minimumAltitude":847,"maximumGradient":6.0,"difficulty":252,"averageGradient":5.73,"category":"3","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-verde-depuis-pont-de-cannareccia-c3564.htm"}]
+  },
+  {"name":"Col de Sorba","country":"FR","massif":"Corse","topOfTheAscent":1311,"geoCoordinate":{"latitude":42.14416,"longitude":9.19033},"alternatives":[{"name":"Ghisoni","geoCoordinate":{"latitude":42.10562,"longitude":9.21287},"length":10.1,"totalAscent":641,"minimumAltitude":635,"maximumGradient":6.9,"difficulty":407,"averageGradient":6.35,"category":"2","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-sorba-depuis-ghisoni-c2690.htm"},{"name":"Vivario","geoCoordinate":{"latitude":42.17181,"longitude":9.17062},"length":9.2,"totalAscent":651,"minimumAltitude":664,"maximumGradient":8.5,"difficulty":461,"averageGradient":7.08,"category":"2","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-sorba-depuis-vivario-c2689.htm"}]},
+  {"name":"Col de Prato","country":"FR","massif":"Corse","topOfTheAscent":985,"geoCoordinate":{"latitude":42.42752,"longitude":9.33146},"alternatives":[{"name":"Pont de Rimitorio","geoCoordinate":{"latitude":42.42848,"longitude":9.40242},"length":15.6,"totalAscent":786,"minimumAltitude":205,"maximumGradient":11.5,"difficulty":396,"averageGradient":5.04,"category":"2","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-prato-depuis-pont-de-rimitorio-c2716.htm"},{"name":"Ponte Leccia","geoCoordinate":{"latitude":42.46354,"longitude":9.20728},"length":17.8,"totalAscent":790,"minimumAltitude":197,"maximumGradient":6.1,"difficulty":351,"averageGradient":4.44,"category":"2","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-prato-depuis-ponte-leccia-c2171.htm"}]},
+  {"name":"Col de Teghime","country":"FR","massif":"Corse","topOfTheAscent":536,"geoCoordinate":{"latitude":42.67733,"longitude":9.38344},"alternatives":[{"name":"Bastia","geoCoordinate":{"latitude":42.70201,"longitude":9.45199},"length":11.2,"totalAscent":533,"minimumAltitude":4,"maximumGradient":10.4,"difficulty":254,"averageGradient":4.76,"category":"3","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-teghime-depuis-bastia-c1681.htm"},{"name":"Montesoro","geoCoordinate":{"latitude":42.67688,"longitude":9.44398},"length":7.2,"totalAscent":512,"minimumAltitude":24,"maximumGradient":11.8,"difficulty":364,"averageGradient":7.11,"category":"2","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-teghime-depuis-montesoro-c1684.htm"},{"name":"Saint-Florent, via Patrimonio","geoCoordinate":{"latitude":42.68064,"longitude":9.3026},"length":12.6,"totalAscent":533,"minimumAltitude":7,"maximumGradient":9.9,"difficulty":225,"averageGradient":4.23,"category":"3","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-teghime-depuis-saint-florent-c1682.htm","routeCheckpoints":[{"latitude":42.69554,"longitude":9.36851}]},{"name":"Saint-Florent, via Oletta","geoCoordinate":{"latitude":42.68048,"longitude":9.30274},"length":14.3,"totalAscent":533,"minimumAltitude":0,"maximumGradient":6.5,"difficulty":199,"averageGradient":3.73,"category":"3","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-teghime-depuis-saint-florent-c1683.htm","routeCheckpoints":[{"latitude":42.6468,"longitude":9.35799}]}]},
+  {"name":"Col de Sevi","country":"FR","massif":"Corse","topOfTheAscent":1102,"geoCoordinate":{"latitude":42.2232,"longitude":8.82988},"alternatives":[{"name":"D84 / D124","geoCoordinate":{"latitude":42.24943,"longitude":8.74879},"length":19.64,"totalAscent":765,"minimumAltitude":327,"maximumGradient":7.0,"difficulty":299,"averageGradient":3.9,"category":"3","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-sevi-depuis-d84-d124-c2684.htm"},{"name":"Sagone","geoCoordinate":{"latitude":42.11344,"longitude":8.70183},"length":21.0,"totalAscent":1097,"minimumAltitude":7,"maximumGradient":11.4,"difficulty":572,"averageGradient":5.22,"category":"2","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-sevi-depuis-sagone-c2683.htm"}]},
+  {"name":"Col de Bigorno","country":"FR","massif":"Corse","topOfTheAscent":885,"geoCoordinate":{"latitude":42.53809,"longitude":9.29627},"alternatives":[{"name":"Biguglia","geoCoordinate":{"latitude":42.61895,"longitude":9.43559},"length":22.7,"totalAscent":861,"minimumAltitude":24,"maximumGradient":6.6,"difficulty":326,"averageGradient":3.79,"category":"2","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-bigorno-depuis-biguglia-c2559.htm"},{"name":"Ponte Novu","geoCoordinate":{"latitude":42.48728,"longitude":9.28136},"length":16.0,"totalAscent":732,"minimumAltitude":147,"maximumGradient":8.2,"difficulty":336,"averageGradient":4.58,"category":"2","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-bigorno-depuis-ponte-novu-c2713.htm"},{"name":"Volpajola","geoCoordinate":{"latitude":42.52654,"longitude":9.3537},"length":12.0,"totalAscent":498,"minimumAltitude":367,"maximumGradient":5.6,"difficulty":207,"averageGradient":4.15,"category":"3","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-bigorno-depuis-volpajola-c2170.htm"}]},
+  {"name":"Col de Saint-Eustache","country":"FR","massif":"Corse","topOfTheAscent":986,"geoCoordinate":{"latitude":41.77415,"longitude":9.02149},"alternatives":[{"name":"Moca","geoCoordinate":{"latitude":41.80806,"longitude":9.01273},"length":8.4,"totalAscent":528,"minimumAltitude":460,"maximumGradient":8.6,"difficulty":332,"averageGradient":6.29,"category":"2","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-saint-eustache-depuis-moca-c2699.htm"},{"name":"Moulin d'Arnia","geoCoordinate":{"latitude":41.78349,"longitude":9.07449},"length":8.7,"totalAscent":395,"minimumAltitude":706,"maximumGradient":6.0,"difficulty":179,"averageGradient":4.54,"category":"3","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-saint-eustache-depuis-moulin-d-arnia-c3566.htm"},{"name":"Petreto","geoCoordinate":{"latitude":41.78719,"longitude":8.97312},"length":11.0,"totalAscent":567,"minimumAltitude":429,"maximumGradient":6.7,"difficulty":292,"averageGradient":5.15,"category":"3","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-saint-eustache-depuis-petreto-c2700.htm"}]},
+  {"name":"Col de la Vaccia","country":"FR","massif":"Corse","topOfTheAscent":1193,"geoCoordinate":{"latitude":41.82199,"longitude":9.08448},"alternatives":[{"name":"Olivese","geoCoordinate":{"latitude":41.84198,"longitude":9.05617},"length":12.6,"totalAscent":703,"minimumAltitude":474,"maximumGradient":9.8,"difficulty":392,"averageGradient":5.58,"category":"2","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-la-vaccia-depuis-olivese-c2704.htm"}]},
+  {"name":"Col de Palmarella","country":"FR","massif":"Corse","topOfTheAscent":408,"geoCoordinate":{"latitude":42.36384,"longitude":8.64902},"alternatives":[{"name":"Le Fango","geoCoordinate":{"latitude":42.41569,"longitude":8.68253},"length":11.3,"totalAscent":379,"minimumAltitude":8,"maximumGradient":8.0,"difficulty":127,"averageGradient":3.35,"category":"4","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-palmarella-depuis-le-fango-c1789.htm"},{"name":"Porto","geoCoordinate":{"latitude":42.26613,"longitude":8.70589},"length":34.4,"totalAscent":349,"minimumAltitude":38,"maximumGradient":6.0,"difficulty":35,"averageGradient":1.01,"category":"4","sourceUrl":"https://www.cols-cyclisme.com/corse/france/col-de-palmarella-depuis-porto-c1790.htm"}]},
   {
     "name": "Plateau de Beille",
     "country": "FR",
@@ -5520,12 +5547,12 @@
           "latitude": 44.81274,
           "longitude": 4.19032
         },
-        "length": 2.5,
+        "length": 5.0,
         "totalAscent": 177,
         "minimumAltitude": 1228,
         "maximumGradient": 8.0,
-        "difficulty": 125,
-        "averageGradient": 7.08,
+        "difficulty": 63,
+        "averageGradient": 3.54,
         "category": "4",
         "sourceUrl": "https://www.cols-cyclisme.com/monts-du-vivarais/france/col-du-gerbier-de-jonc-depuis-sainte-eulalie-c757.htm"
       }

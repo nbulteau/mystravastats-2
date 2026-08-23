@@ -46,7 +46,8 @@ describe("climb poster", () => {
       expect(svg).toContain("NICOLAS &amp; CO");
       expect(svg).toContain("12,6");
       expect(svg).toMatch(/ALT[ .]MAX/);
-      expect(svg).toContain("DIFF.");
+      expect(svg).toContain("DIFFICULTÉ");
+      expect(svg).toContain("PTS");
       expect(svg).toContain("12.06.25");
       expect(svg).toContain("59:48");
       expect(svg).toContain("data-profile-segment=");
@@ -196,7 +197,7 @@ describe("climb poster", () => {
     expect(firstTile).not.toBeNull();
     expect(Number(firstTile?.[2]) - Number(firstTile?.[1])).toBeGreaterThanOrEqual(16);
     expect(Number(firstTile?.[4]) - Number(firstTile?.[3])).toBe(8);
-    expect(svg).toContain("13,8 KM · +1 110 M · ALT MAX 1 850 M · DIFF. 800");
+    expect(svg).toContain("13,8 KM · +1 110 M · ALT MAX 1 850 M · DIFFICULTÉ 800 PTS");
     expect(svg).toContain("2 ASCENTS");
     expect(svg).not.toContain("2×");
   });
