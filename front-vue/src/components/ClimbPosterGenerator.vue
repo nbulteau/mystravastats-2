@@ -24,11 +24,18 @@ const props = defineProps<{
 const athleteStore = useAthleteStore();
 const dialogRef = ref<HTMLDialogElement | null>(null);
 const previewRef = ref<HTMLElement | null>(null);
-const selectedDesign = ref<ClimbPosterDesign>("altitude");
+const selectedDesign = ref<ClimbPosterDesign>("alpine-index");
 const selectedClimbLabels = ref<string[]>([]);
 const climbSelectionOrder = ref<ClimbSelectionOrder>("hardest");
 const generatedSvg = ref("");
 const generationError = ref("");
+const selectionPresets: Array<{ order: ClimbSelectionOrder; label: string }> = [
+  { order: "hardest", label: "Select Hardest" },
+  { order: "longest", label: "Select Longest" },
+  { order: "steepest", label: "Select Steepest" },
+  { order: "elevation-gain", label: "Select Elevation gain" },
+  { order: "highest", label: "Select Highest" },
+];
 
 const availableClimbs = computed(() => props.climbs.filter((result) => (
   result.nbCheckedActivities > 0 &&
@@ -66,18 +73,10 @@ watch(
 );
 
 function openGenerator() {
-  selectHardest();
+  selectBy("hardest");
   generatedSvg.value = "";
   generationError.value = "";
   dialogRef.value?.showModal();
-}
-
-function selectHardest() {
-  selectBy("hardest");
-}
-
-function selectLongest() {
-  selectBy("longest");
 }
 
 function selectBy(order: ClimbSelectionOrder) {
@@ -231,22 +230,15 @@ function slugify(value: string): string {
           </div>
           <div class="poster-selection-actions">
             <button
+              v-for="preset in selectionPresets"
+              :key="preset.order"
               type="button"
               class="btn btn-sm btn-outline-secondary"
-              :class="{ active: climbSelectionOrder === 'hardest' }"
-              :aria-pressed="climbSelectionOrder === 'hardest'"
-              @click="selectHardest"
+              :class="{ active: climbSelectionOrder === preset.order }"
+              :aria-pressed="climbSelectionOrder === preset.order"
+              @click="selectBy(preset.order)"
             >
-              Select hardest {{ selectionPresetCount }}
-            </button>
-            <button
-              type="button"
-              class="btn btn-sm btn-outline-secondary"
-              :class="{ active: climbSelectionOrder === 'longest' }"
-              :aria-pressed="climbSelectionOrder === 'longest'"
-              @click="selectLongest"
-            >
-              Select longest {{ selectionPresetCount }}
+              {{ preset.label }} {{ selectionPresetCount }}
             </button>
           </div>
         </div>
@@ -529,51 +521,46 @@ function slugify(value: string): string {
 
 .poster-design-miniature span:nth-child(2) { width: 78%; }
 .poster-design-miniature span:nth-child(3) { width: 56%; }
-.poster-design-miniature--altitude {
+.poster-design-miniature--alpine-index {
   justify-content: flex-end;
   gap: 8px;
-  background: #fbf8f1;
+  background: #f7f8f6;
 }
-.poster-design-miniature--altitude span {
-  height: 5px;
-  background: #d65d2d;
-  transform: rotate(-5deg);
-  transform-origin: left center;
-}
-.poster-design-miniature--altitude span:nth-child(2) { width: 88%; }
-.poster-design-miniature--altitude span:nth-child(3) { width: 70%; }
-.poster-design-miniature--topo {
-  background-color: #edf0eb;
-  background-image: linear-gradient(rgba(30, 40, 50, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(30, 40, 50, 0.08) 1px, transparent 1px);
-  background-size: 12px 12px;
-}
-.poster-design-miniature--topo span {
+.poster-design-miniature--alpine-index span {
   height: 3px;
-  border-radius: 0;
-  background: #19303a;
+  background: #15191c;
 }
-.poster-design-miniature--topo span:first-child {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #d34f2f;
+.poster-design-miniature--alpine-index span:first-child {
+  width: 32%;
+  background: #a44531;
 }
-.poster-design-miniature--collection {
+.poster-design-miniature--alpine-index span:nth-child(2) { width: 88%; }
+.poster-design-miniature--alpine-index span:nth-child(3) { width: 68%; }
+.poster-design-miniature--massif-atlas {
+  background: #edf3ef;
+}
+.poster-design-miniature--massif-atlas span {
+  height: 11px;
+  border-radius: 2px;
+  background: #2c6e60;
+}
+.poster-design-miniature--massif-atlas span:nth-child(2) { width: 84%; background: #b64b37; }
+.poster-design-miniature--massif-atlas span:nth-child(3) { width: 62%; background: #416c9c; }
+.poster-design-miniature--profile-wall {
   flex-direction: row;
   align-items: flex-end;
-  gap: 8px;
-  background: #efe7d9;
+  gap: 7px;
+  background: #121416;
 }
-.poster-design-miniature--collection span {
+.poster-design-miniature--profile-wall span {
   width: 24%;
   height: 70%;
-  border: 1px solid #c8bca9;
-  border-top: 4px solid #b74d2d;
-  border-radius: 5px;
-  background: #fbf8f1;
+  border: 1px solid #343c3f;
+  border-radius: 4px;
+  background: linear-gradient(160deg, #1a1e21 55%, #ef7d4c 56%, #f4f2e9 68%, #1a1e21 69%);
 }
-.poster-design-miniature--collection span:nth-child(2) { width: 24%; height: 92%; }
-.poster-design-miniature--collection span:nth-child(3) { width: 24%; height: 58%; }
+.poster-design-miniature--profile-wall span:nth-child(2) { width: 24%; height: 92%; }
+.poster-design-miniature--profile-wall span:nth-child(3) { width: 24%; height: 58%; }
 
 .poster-climb-grid {
   display: grid;

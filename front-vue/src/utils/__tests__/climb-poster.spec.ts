@@ -35,7 +35,7 @@ const climb: ClimbPosterEntry = {
 
 describe("climb poster", () => {
   it("generates all three printable designs with escaped climb content", () => {
-    for (const design of ["altitude", "topo", "collection"] as const) {
+    for (const design of ["alpine-index", "massif-atlas", "profile-wall"] as const) {
       const svg = buildClimbPosterSvg({
         design,
         climbs: [climb],
@@ -45,7 +45,8 @@ describe("climb poster", () => {
 
       expect(svg).toContain('<svg xmlns="http://www.w3.org/2000/svg"');
       expect(svg).toContain("&lt;TEST&gt;");
-      expect(svg).toContain("COL &lt;TEST&gt; DEPUIS VALLEY &amp; LAKE");
+      expect(svg).toContain("COL &lt;TEST&gt;");
+      expect(svg).toContain("VALLEY &amp; LAKE");
       expect(svg).toContain("NICOLAS &amp; CO");
       expect(svg).toContain("12,6");
       expect(svg).toMatch(/ALT[ .]MAX/);
@@ -57,7 +58,7 @@ describe("climb poster", () => {
       expect(svg).not.toContain("M D+");
       expect(svg).toContain("data-profile-segment=");
       expect(svg).toContain("data-gradient=");
-      expect(svg).not.toMatch(/class="(?:climb-name|topo-name|vertical-name)"[^>]*lengthAdjust=/);
+      expect(svg).not.toMatch(/class="(?:alpine-name|atlas-name|wall-name)"[^>]*lengthAdjust=/);
       expect(svg).not.toContain("Col <Test>");
     }
   });
@@ -100,7 +101,7 @@ describe("climb poster", () => {
     crowdedProfile.details.profile.push({ distanceKm: 18.6, elevation: 1850 });
 
     const svg = buildClimbPosterSvg({
-      design: "altitude",
+      design: "alpine-index",
       climbs: [crowdedProfile],
       yearLabel: "2026",
     });
@@ -115,7 +116,7 @@ describe("climb poster", () => {
 
   it("raises the starting altitude above the first gradient label", () => {
     const svg = buildClimbPosterSvg({
-      design: "altitude",
+      design: "alpine-index",
       climbs: [climb],
       yearLabel: "2026",
     });
@@ -128,12 +129,12 @@ describe("climb poster", () => {
   });
 
   it("enforces the layout capacity", () => {
-    expect(posterDesignMaxClimbs("altitude")).toBe(50);
-    expect(posterDesignMaxClimbs("topo")).toBe(50);
-    expect(posterDesignMaxClimbs("collection")).toBe(50);
+    expect(posterDesignMaxClimbs("alpine-index")).toBe(50);
+    expect(posterDesignMaxClimbs("massif-atlas")).toBe(50);
+    expect(posterDesignMaxClimbs("profile-wall")).toBe(50);
 
     const svg = buildClimbPosterSvg({
-      design: "collection",
+      design: "profile-wall",
       climbs: [
         ...Array.from({ length: 50 }, (_, index) => ({ ...climb, label: `Climb ${index + 1}` })),
         { ...climb, label: "Should not render" },
@@ -144,41 +145,42 @@ describe("climb poster", () => {
   });
 
   it("switches to dense multi-column layouts when needed", () => {
-    const altitude = buildClimbPosterSvg({
-      design: "altitude",
-      climbs: Array.from({ length: 50 }, (_, index) => ({ ...climb, label: `Altitude ${index + 1}` })),
+    const alpineIndex = buildClimbPosterSvg({
+      design: "alpine-index",
+      climbs: Array.from({ length: 50 }, (_, index) => ({ ...climb, label: `Alpine ${index + 1}` })),
       yearLabel: "All time",
     });
-    const topo = buildClimbPosterSvg({
-      design: "topo",
-      climbs: Array.from({ length: 50 }, (_, index) => ({ ...climb, label: `Topo ${index + 1}` })),
+    const massifAtlas = buildClimbPosterSvg({
+      design: "massif-atlas",
+      climbs: Array.from({ length: 50 }, (_, index) => ({ ...climb, label: `Atlas ${index + 1}` })),
       yearLabel: "All time",
     });
-    const collection = buildClimbPosterSvg({
-      design: "collection",
-      climbs: Array.from({ length: 50 }, (_, index) => ({ ...climb, label: `Collection ${index + 1}` })),
+    const profileWall = buildClimbPosterSvg({
+      design: "profile-wall",
+      climbs: Array.from({ length: 50 }, (_, index) => ({ ...climb, label: `Wall ${index + 1}` })),
       yearLabel: "All time",
     });
 
-    expect(altitude).toContain("dense-divider");
-    expect(topo).toContain("dense-topo-card");
-    expect(collection).toContain("dense-collection-card");
-    expect(altitude).toContain(".dense-name{font:500");
-    expect(topo).toContain(".dense-topo-name{font:600");
-    expect(collection).toContain(".dense-collection-name{font:600");
-    expect(topo).toContain("TECHNICAL");
-    expect(collection).toContain("FR · ALPES");
-    expect(collection).toContain('id="collection-title-clip-0"');
-    expect(collection).toContain("<tspan");
-    expect(altitude).not.toMatch(/class="dense-name"[^>]*lengthAdjust=/);
-    expect(topo).not.toMatch(/class="dense-topo-name"[^>]*lengthAdjust=/);
-    expect(collection).not.toMatch(/class="dense-collection-name"[^>]*lengthAdjust=/);
-    expect(altitude).toContain('width="2000" height="3000"');
-    expect(altitude).toContain('data-grid-column="4" data-grid-row="9"');
+    expect(alpineIndex).toContain("alpine-grid-rule");
+    expect(massifAtlas).toContain("atlas-entry");
+    expect(profileWall).toContain("wall-tile");
+    expect(alpineIndex).toContain(".alpine-name{font:600");
+    expect(massifAtlas).toContain(".atlas-name{font:650");
+    expect(profileWall).toContain(".wall-name{font:650");
+    expect(alpineIndex).toContain("ALPINE INDEX");
+    expect(massifAtlas).toContain("MASSIF ATLAS");
+    expect(profileWall).toContain("PROFILE WALL");
+    expect(massifAtlas).toContain("FR · ALPES");
+    expect(massifAtlas).toContain("<tspan");
+    expect(alpineIndex).not.toMatch(/class="alpine-name"[^>]*lengthAdjust=/);
+    expect(massifAtlas).not.toMatch(/class="atlas-name"[^>]*lengthAdjust=/);
+    expect(profileWall).not.toMatch(/class="wall-name"[^>]*lengthAdjust=/);
+    expect(alpineIndex).toContain('width="2000" height="3000"');
+    expect(alpineIndex).toContain('data-grid-column="4" data-grid-row="9"');
   });
 
   it("places five climbs on each dense poster row", () => {
-    for (const design of ["altitude", "topo", "collection"] as const) {
+    for (const design of ["alpine-index", "massif-atlas", "profile-wall"] as const) {
       const svg = buildClimbPosterSvg({
         design,
         climbs: Array.from({ length: 6 }, (_, index) => ({ ...climb, label: `${design} ${index + 1}` })),
@@ -191,8 +193,8 @@ describe("climb poster", () => {
     }
   });
 
-  it("expands dense Altitude and Topo profiles into the available tile height", () => {
-    for (const design of ["altitude", "topo"] as const) {
+  it("expands profile-driven poster profiles into the available tile height", () => {
+    for (const design of ["alpine-index", "profile-wall"] as const) {
       const svg = buildClimbPosterSvg({
         design,
         climbs: Array.from({ length: 20 }, (_, index) => ({ ...climb, label: `${design} ${index + 1}` })),
@@ -205,19 +207,20 @@ describe("climb poster", () => {
     }
   });
 
-  it("uses the full Collection tile height without overlapping the profile labels", () => {
+  it("uses the full Profile Wall tile height without forcing profile labels", () => {
     const svg = buildClimbPosterSvg({
-      design: "collection",
-      climbs: Array.from({ length: 50 }, (_, index) => ({ ...climb, label: `Collection ${index + 1}` })),
+      design: "profile-wall",
+      climbs: Array.from({ length: 50 }, (_, index) => ({ ...climb, label: `Wall ${index + 1}` })),
       yearLabel: "All time",
     });
-    const firstTile = svg.match(/<g data-grid-column="0" data-grid-row="0" data-profile-bottom-y="([\d.]+)" data-metrics-y="([\d.]+)" data-ascent-y="([\d.]+)" data-tile-bottom-y="([\d.]+)">/);
+    const firstTile = svg.match(/<g data-grid-column="0" data-grid-row="0" data-profile-height="([\d.]+)">/);
 
     expect(firstTile).not.toBeNull();
-    expect(Number(firstTile?.[2]) - Number(firstTile?.[1])).toBeGreaterThanOrEqual(16);
-    expect(Number(firstTile?.[4]) - Number(firstTile?.[3])).toBe(8);
-    expect(svg).toContain("13,8 KM · +1 110 M · ALT MAX 1 850 M · DIFFICULTÉ 800 PTS");
+    expect(Number(firstTile?.[1])).toBeGreaterThanOrEqual(90);
+    expect(svg).toContain("13,8 KM · +1 110 M · 8,1 % AVG · 12,6 % MAX");
+    expect(svg).toContain("ALT MAX 1 850 M · DIFFICULTÉ 800 PTS");
     expect(svg).toContain("2 ASCENTS");
     expect(svg).not.toContain("2×");
+    expect(svg).not.toContain("data-profile-altitude-label");
   });
 });

@@ -312,8 +312,8 @@ async function openClimbInLog(variantId: string) {
         <p class="badges-section-kicker">Print studio</p>
         <h2 class="badges-title">Create a poster from your climbed cols</h2>
         <p>
-          Choose Altitude, Topographic log or Collection, then compose an SVG poster with up to 50 climbs.
-          The hardest and longest selections are available as shortcuts.
+          Choose Alpine Index, Massif Atlas or Profile Wall, then compose an SVG poster with up to 50 climbs.
+          Ranking presets are available as shortcuts.
         </p>
         <div class="poster-facts" aria-label="Poster generator capabilities">
           <span><strong>3</strong> designs</span>

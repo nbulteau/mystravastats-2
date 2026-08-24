@@ -1,6 +1,6 @@
 import type { ClimbDetails } from "@/models/badge-check-result.model";
 
-export type ClimbPosterDesign = "altitude" | "topo" | "collection";
+export type ClimbPosterDesign = "alpine-index" | "massif-atlas" | "profile-wall";
 
 export interface ClimbPosterEntry {
   label: string;
@@ -30,21 +30,21 @@ export const CLIMB_POSTER_DESIGNS: Array<{
   maxClimbs: number;
 }> = [
   {
-    id: "altitude",
-    name: "Altitude",
-    description: "Profile-first, warm and minimal",
+    id: "alpine-index",
+    name: "Alpine Index",
+    description: "Minimal atlas with fine profile lines",
     maxClimbs: 50,
   },
   {
-    id: "topo",
-    name: "Topo log",
-    description: "Graph paper and technical ride data",
+    id: "massif-atlas",
+    name: "Massif Atlas",
+    description: "Grouped by massif with restrained colour",
     maxClimbs: 50,
   },
   {
-    id: "collection",
-    name: "Collection",
-    description: "Editorial cards with country and massif",
+    id: "profile-wall",
+    name: "Profile Wall",
+    description: "Visual gallery of climb silhouettes",
     maxClimbs: 50,
   },
 ];
@@ -69,11 +69,11 @@ export function buildClimbPosterSvg(options: ClimbPosterOptions): string {
   const posterWidth = largePoster ? LARGE_POSTER_WIDTH : STANDARD_POSTER_WIDTH;
   const posterHeight = largePoster ? LARGE_POSTER_HEIGHT : STANDARD_POSTER_HEIGHT;
 
-  const content = options.design === "altitude"
-    ? buildAltitudeDesign(climbs, options)
-    : options.design === "topo"
-      ? buildTopoDesign(climbs, options)
-      : buildCollectionDesign(climbs, options);
+  const content = options.design === "alpine-index"
+    ? buildAlpineIndexDesign(climbs, options)
+    : options.design === "massif-atlas"
+      ? buildMassifAtlasDesign(climbs, options)
+      : buildProfileWallDesign(climbs, options);
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${posterWidth}" height="${posterHeight}" viewBox="0 0 ${posterWidth} ${posterHeight}" role="img" aria-labelledby="poster-title poster-description">
   <title id="poster-title">${escapeXml(posterTitle(options.design))}</title>
@@ -94,131 +94,11 @@ function posterClimbName(climb: ClimbPosterEntry): string {
   return label.replace(/\s+from\s+/i, " depuis ");
 }
 
-function buildAltitudeDesign(climbs: ClimbPosterEntry[], options: ClimbPosterOptions): string {
-  if (climbs.length > 3) {
-    return buildDenseAltitudeDesign(climbs, options);
-  }
-  const top = 250;
-  const availableHeight = 1245;
-  const rowHeight = availableHeight / climbs.length;
-  const rows = climbs.map((climb, index) => {
-    const y = top + index * rowHeight;
-    const profileTop = y + 46;
-    const profileHeight = Math.max(68, Math.min(150, rowHeight - 116));
-    const statsY = profileTop + profileHeight + 25;
-    const ascentY = statsY + 27;
-    const name = posterClimbName(climb).toUpperCase();
-    return `<g>
-      ${index > 0 ? `<line x1="82" y1="${round(y - 18)}" x2="1118" y2="${round(y - 18)}" class="rule"/>` : ""}
-      <text x="82" y="${round(y + 25)}" class="index">${String(index + 1).padStart(2, "0")}</text>
-      <text x="155" y="${round(y + 25)}" class="climb-name"${fitTextAttributes(name, 28, 700, 31, 18)}>${escapeXml(name)}</text>
-      <text x="1118" y="${round(y + 25)}" text-anchor="end" class="summit">ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTÉ ${formatInteger(climb.details.difficulty)} PTS</text>
-      ${profileMarkup(climb.details, 155, profileTop, 963, profileHeight, "profile-altitude")}
-      <text x="155" y="${round(statsY)}" class="stat">${formatDecimal(climb.details.lengthKm)} KM</text>
-      <text x="365" y="${round(statsY)}" class="stat">${formatDecimal(climb.details.averageGradient)} % AVG</text>
-      <text x="620" y="${round(statsY)}" class="stat">${formatMaximumGradient(climb.details.maximumGradient)} % MAX</text>
-      <text x="865" y="${round(statsY)}" class="stat">+${formatInteger(climb.details.totalAscent)} M</text>
-      ${ascentSummaryMarkup(climb.details, 155, ascentY, 963, "ascent")}
-    </g>`;
-  }).join("");
-
-  return `<style>
-    .paper{fill:#f8f4ec}.ink{fill:#16202a}.muted{fill:#68727a}.accent-fill{fill:#df6b35;fill-opacity:.16}.accent{stroke:#df6b35}.rule{stroke:#c8c1b6;stroke-width:2}.index{font:500 23px ui-sans-serif,system-ui;fill:#8a8f91;letter-spacing:2px}.climb-name{font:500 31px ui-sans-serif,system-ui;fill:#16202a;letter-spacing:.5px}.summit{font:500 23px ui-sans-serif,system-ui;fill:#16202a}.stat{font:500 18px ui-sans-serif,system-ui;fill:#4d5961;letter-spacing:.6px}.ascent{font:400 17px ui-monospace,monospace;fill:#68727a}.profile-altitude{fill:none;stroke:#df6b35;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}.profile-area{fill:#df6b35;fill-opacity:.13}.profile-base{stroke:#bdb7ad;stroke-width:2}.profile-missing{font:400 16px ui-sans-serif,system-ui;fill:#8a8f91;letter-spacing:1px}
-  </style>
-  <rect width="1200" height="1680" class="paper"/>
-  <text x="82" y="92" class="muted" style="font:500 18px ui-sans-serif,system-ui;letter-spacing:5px">CYCLING ASCENTS · ${escapeXml(options.yearLabel.toUpperCase())}</text>
-  <text x="82" y="182" class="ink" style="font:500 76px ui-sans-serif,system-ui;letter-spacing:-3px">MY COLS</text>
-  <text x="1118" y="178" text-anchor="end" class="ink" style="font:400 31px ui-sans-serif,system-ui;letter-spacing:2px">${escapeXml(options.yearLabel)}</text>
-  <line x1="82" y1="214" x2="1118" y2="214" style="stroke:#16202a;stroke-width:3"/>
-  ${rows}
-  ${footerMarkup(options, climbs, "#68727a")}`;
-}
-
-function buildTopoDesign(climbs: ClimbPosterEntry[], options: ClimbPosterOptions): string {
-  if (climbs.length > 3) {
-    return buildDenseTopoDesign(climbs, options);
-  }
-  const top = 240;
-  const availableHeight = 1280;
-  const rowHeight = availableHeight / climbs.length;
-  const rows = climbs.map((climb, index) => {
-    const y = top + index * rowHeight;
-    const profileHeight = Math.max(62, Math.min(125, rowHeight - 94));
-    const profileTop = y + 40;
-    const ascentY = profileTop + profileHeight + 25;
-    const name = posterClimbName(climb).toUpperCase();
-    return `<g>
-      <circle cx="95" cy="${round(y + 15)}" r="10" class="summit-dot"/>
-      <text x="132" y="${round(y - 2)}" class="code">ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTÉ ${formatInteger(climb.details.difficulty)} PTS · CAT. ${escapeXml(climb.category ?? "—")}</text>
-      <text x="132" y="${round(y + 27)}" class="topo-name"${fitTextAttributes(name, 27, 690, 26, 16, 0.6)}>${escapeXml(name)}</text>
-      ${profileMarkup(climb.details, 132, profileTop, 710, profileHeight, "profile-topo")}
-      <text x="880" y="${round(y + 7)}" class="metric">${formatDecimal(climb.details.lengthKm)} KM</text>
-      <text x="880" y="${round(y + 34)}" class="metric">+${formatInteger(climb.details.totalAscent)} M</text>
-      <text x="1040" y="${round(y + 7)}" class="metric">AVG ${formatDecimal(climb.details.averageGradient)} %</text>
-      <text x="1040" y="${round(y + 34)}" class="metric">MAX ${formatMaximumGradient(climb.details.maximumGradient)} %</text>
-      ${ascentSummaryMarkup(climb.details, 132, ascentY, 986, "topo-ascent")}
-    </g>`;
-  }).join("");
-
-  return `<defs><pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#293541" stroke-opacity=".1" stroke-width="1"/></pattern></defs>
-  <style>
-    .paper{fill:#edf0eb}.grid{fill:url(#grid)}.topo-ink{fill:#1d2a32}.topo-muted{fill:#65727a}.axis{stroke:#1d2a32;stroke-width:4}.summit-dot{fill:#d65932;stroke:#edf0eb;stroke-width:5}.code{font:500 15px ui-monospace,monospace;fill:#65727a;letter-spacing:2px}.topo-name{font:500 26px ui-monospace,monospace;fill:#1d2a32}.metric{font:500 17px ui-monospace,monospace;fill:#1d2a32}.topo-ascent{font:400 15px ui-monospace,monospace;fill:#65727a}.profile-topo{fill:none;stroke:#d65932;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.profile-area{fill:#d65932;fill-opacity:.12}.profile-base{stroke:#849098;stroke-width:2}.profile-missing{font:400 15px ui-monospace,monospace;fill:#65727a}
-  </style>
-  <rect width="1200" height="1680" class="paper"/><rect width="1200" height="1680" class="grid"/>
-  <text x="76" y="84" class="topo-muted" style="font:500 17px ui-monospace,monospace;letter-spacing:3px">RIDE LOG / COLS / ${escapeXml(options.yearLabel.toUpperCase())}</text>
-  <text x="76" y="164" class="topo-ink" style="font:500 62px ui-monospace,monospace;letter-spacing:-2px">${String(climbs.length).padStart(2, "0")} SUMMITS</text>
-  <text x="1124" y="124" text-anchor="end" class="topo-ink" style="font:500 36px ui-monospace,monospace;letter-spacing:1px">TECHNICAL</text>
-  <text x="1124" y="151" text-anchor="end" class="topo-muted" style="font:500 15px ui-monospace,monospace;letter-spacing:2px">PROFILE INDEX</text>
-  <line x1="95" y1="${top + 15}" x2="95" y2="1510" class="axis"/>
-  ${rows}
-  ${footerMarkup(options, climbs, "#65727a")}`;
-}
-
-function buildCollectionDesign(climbs: ClimbPosterEntry[], options: ClimbPosterOptions): string {
-  if (climbs.length > 3) {
-    return buildDenseCollectionDesign(climbs, options);
-  }
-  const columnWidth = 344;
-  const startX = 72;
-  const columns = climbs.map((climb, index) => {
-    const x = startX + index * columnWidth;
-    const profileX = x + 72;
-    const profileWidth = 238;
-    const ascents = ascentSummaryMarkup(climb.details, profileX, 1125, profileWidth, "collection-ascent");
-    const name = posterClimbName(climb).toUpperCase();
-    return `<g>
-      ${index > 0 ? `<line x1="${x - 18}" y1="250" x2="${x - 18}" y2="1480" class="column-rule"/>` : ""}
-      <text x="${x}" y="285" class="collection-index">${String(index + 1).padStart(2, "0")}</text>
-      <text transform="translate(${x + 34} 780) rotate(-90)" class="vertical-name"${fitTextAttributes(name, 28, 470, 27, 14)}>${escapeXml(name)}</text>
-      ${profileMarkup(climb.details, profileX, 380, profileWidth, 420, "profile-collection")}
-      <text x="${profileX}" y="825" class="collection-alt"${fitTextAttributes(`ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTÉ ${formatInteger(climb.details.difficulty)} PTS`, 18, profileWidth, 18, 11)}>ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTÉ ${formatInteger(climb.details.difficulty)} PTS</text>
-      <text x="${profileX}" y="915" class="collection-distance">${formatDecimal(climb.details.lengthKm)}</text>
-      <text x="${profileX + 182}" y="915" class="collection-unit">KM</text>
-      <text x="${profileX}" y="960" class="collection-stat">${formatDecimal(climb.details.averageGradient)} % AVG</text>
-      <text x="${profileX}" y="995" class="collection-stat">${formatMaximumGradient(climb.details.maximumGradient)} % MAX</text>
-      <text x="${profileX}" y="1030" class="collection-stat">+${formatInteger(climb.details.totalAscent)} M</text>
-      <line x1="${profileX}" y1="1065" x2="${profileX + profileWidth}" y2="1065" class="column-rule"/>
-      ${ascents}
-    </g>`;
-  }).join("");
-
-  return `<style>
-    .paper{fill:#f2eee4}.collection-ink{fill:#1f2022}.collection-muted{fill:#6d6b67}.column-rule{stroke:#c7bfb1;stroke-width:2}.collection-index{font:500 21px ui-sans-serif,system-ui;fill:#77736c;letter-spacing:2px}.vertical-name{font:500 27px ui-sans-serif,system-ui;fill:#1f2022;letter-spacing:2px}.collection-alt{font:500 18px ui-sans-serif,system-ui;fill:#1f2022}.collection-distance{font:500 60px ui-sans-serif,system-ui;fill:#1f2022;letter-spacing:-2px}.collection-unit{font:500 18px ui-sans-serif,system-ui;fill:#6d6b67}.collection-stat{font:500 18px ui-sans-serif,system-ui;fill:#6d6b67;letter-spacing:.5px}.collection-ascent{font:400 16px ui-monospace,monospace;fill:#6d6b67}.profile-collection{fill:none;stroke:#ca5430;stroke-width:6;stroke-linecap:round;stroke-linejoin:round}.profile-area{fill:#ca5430;fill-opacity:.16}.profile-base{stroke:#b9b1a4;stroke-width:2}.profile-missing{font:400 14px ui-sans-serif,system-ui;fill:#77736c}
-  </style>
-  <rect width="1200" height="1680" class="paper"/>
-  <text x="72" y="92" class="collection-muted" style="font:500 17px ui-sans-serif,system-ui;letter-spacing:5px">THE GIANTS COLLECTION</text>
-  <text x="72" y="185" class="collection-ink" style="font:500 68px ui-sans-serif,system-ui;letter-spacing:-2px">COLS · ${String(climbs.length).padStart(2, "0")}</text>
-  <text x="1128" y="181" text-anchor="end" class="collection-ink" style="font:400 28px ui-sans-serif,system-ui;letter-spacing:2px">${escapeXml(options.yearLabel)}</text>
-  <line x1="72" y1="220" x2="1128" y2="220" style="stroke:#1f2022;stroke-width:3"/>
-  ${columns}
-  ${footerMarkup(options, climbs, "#6d6b67")}`;
-}
-
-function buildDenseAltitudeDesign(climbs: ClimbPosterEntry[], options: ClimbPosterOptions): string {
-  const geometry = densePosterGeometry(climbs, 240, 1265);
+function buildAlpineIndexDesign(climbs: ClimbPosterEntry[], options: ClimbPosterOptions): string {
+  const geometry = densePosterGeometry(climbs, 260, 1260);
   const { largePoster, width, height, margin, right, top, contentHeight } = geometry;
-  const columnCount = DENSE_COLUMN_COUNT;
-  const columnGap = largePoster ? 24 : 16;
+  const columnCount = posterColumnCount(climbs.length);
+  const columnGap = largePoster ? 30 : 16;
   const columnWidth = (width - margin * 2 - columnGap * (columnCount - 1)) / columnCount;
   const rowCount = Math.ceil(climbs.length / columnCount);
   const rowHeight = contentHeight / rowCount;
@@ -227,149 +107,175 @@ function buildDenseAltitudeDesign(climbs: ClimbPosterEntry[], options: ClimbPost
     const row = Math.floor(index / columnCount);
     const x = margin + column * (columnWidth + columnGap);
     const y = top + row * rowHeight;
-    const profileTop = y + 50;
-    const tileBottom = y + rowHeight - 22;
-    const ascentY = tileBottom - 9;
-    const statsY = ascentY - 23;
-    const profileBottom = statsY - 15;
-    const profileHeight = Math.max(70, profileBottom - profileTop);
-    const name = posterClimbName(climb).toUpperCase();
-    return `<g data-grid-column="${column}" data-grid-row="${row}" data-profile-height="${round(profileHeight)}">
-      ${row > 0 ? `<line x1="${round(x)}" y1="${round(y - 14)}" x2="${round(x + columnWidth)}" y2="${round(y - 14)}" class="dense-rule"/>` : ""}
-      ${column > 0 ? `<line x1="${round(x - columnGap / 2)}" y1="${round(y)}" x2="${round(x - columnGap / 2)}" y2="${round(y + rowHeight - 22)}" class="dense-divider"/>` : ""}
-      <text x="${round(x)}" y="${round(y + 23)}" class="dense-index">${String(index + 1).padStart(2, "0")}</text>
-      <text x="${round(x + 35)}" y="${round(y + 23)}" class="dense-name"${fitTextAttributes(name, 17, columnWidth - 45, 16, 8.5)}>${escapeXml(name)}</text>
-      <text x="${round(x + columnWidth)}" y="${round(y + 46)}" text-anchor="end" class="dense-summit">ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTÉ ${formatInteger(climb.details.difficulty)} PTS</text>
-      ${profileMarkup(climb.details, x, profileTop, columnWidth, profileHeight, "dense-profile")}
-      <text x="${round(x)}" y="${round(statsY)}" class="dense-stat"${fitTextAttributes(`${formatDecimal(climb.details.lengthKm)} KM · +${formatInteger(climb.details.totalAscent)} M · ${formatDecimal(climb.details.averageGradient)} % AVG · ${formatMaximumGradient(climb.details.maximumGradient)} % MAX`, 52, columnWidth, 11, 7.5, 0.5)}>${formatDecimal(climb.details.lengthKm)} KM · +${formatInteger(climb.details.totalAscent)} M · ${formatDecimal(climb.details.averageGradient)} % AVG · ${formatMaximumGradient(climb.details.maximumGradient)} % MAX</text>
-      ${ascentSummaryMarkup(climb.details, x, ascentY, columnWidth, "dense-ascent")}
-    </g>`;
-  }).join("");
-
-  return `<style>
-    .dense-paper{fill:#fbf8f1}.dense-ink{fill:#172129}.dense-muted{fill:#756c62}.dense-rule{stroke:#d8cfc1;stroke-width:1.2}.dense-divider{stroke:#d65d2d;stroke-opacity:.16;stroke-width:1.2}.dense-index{font:500 14px ui-sans-serif,system-ui;fill:#d65d2d;letter-spacing:1px}.dense-name{font:500 16px ui-sans-serif,system-ui;fill:#172129}.dense-summit{font:500 10px ui-sans-serif,system-ui;fill:#756c62}.dense-stat{font:500 11px ui-sans-serif,system-ui;fill:#4d565c;letter-spacing:0}.dense-ascent{font:400 10px ui-monospace,monospace;fill:#756c62}.dense-profile{fill:none;stroke:#d65d2d;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}.profile-base{stroke:#a9a196;stroke-width:1}.profile-missing{font:400 12px ui-sans-serif,system-ui;fill:#8a8178;letter-spacing:1px}
-  </style>
-  <rect width="${width}" height="${height}" class="dense-paper"/>
-  <text x="${margin}" y="${largePoster ? 118 : 84}" class="dense-muted" style="font:500 ${largePoster ? 21 : 17}px ui-sans-serif,system-ui;letter-spacing:5px">CYCLING ASCENTS · ${escapeXml(options.yearLabel.toUpperCase())}</text>
-  <text x="${margin}" y="${largePoster ? 245 : 175}" class="dense-ink" style="font:500 ${largePoster ? 96 : 70}px ui-sans-serif,system-ui;letter-spacing:-3px">MY COLS</text>
-  <text x="${right}" y="${largePoster ? 239 : 171}" text-anchor="end" class="dense-ink" style="font:400 ${largePoster ? 36 : 28}px ui-sans-serif,system-ui;letter-spacing:2px">${escapeXml(options.yearLabel)}</text>
-  <line x1="${margin}" y1="${top - 33}" x2="${right}" y2="${top - 33}" style="stroke:#16202a;stroke-width:3"/>
-  ${rows}
-  ${footerMarkup(options, climbs, "#68727a")}`;
-}
-
-function buildDenseTopoDesign(climbs: ClimbPosterEntry[], options: ClimbPosterOptions): string {
-  const geometry = densePosterGeometry(climbs, 235, 1270);
-  const { largePoster, width, height, margin, right, top, contentHeight } = geometry;
-  const columnCount = DENSE_COLUMN_COUNT;
-  const columnGap = largePoster ? 24 : 16;
-  const columnWidth = (width - margin * 2 - columnGap * (columnCount - 1)) / columnCount;
-  const rowCount = Math.ceil(climbs.length / columnCount);
-  const rowHeight = contentHeight / rowCount;
-  const fiveRowLayout = rowCount >= 5;
-  const tenRowLayout = rowCount >= 8;
-  const rows = climbs.map((climb, index) => {
-    const column = index % columnCount;
-    const row = Math.floor(index / columnCount);
-    const x = margin + column * (columnWidth + columnGap);
-    const y = top + row * rowHeight;
-    const profileTop = y + 52;
-    const tileBottom = y + rowHeight - 18;
+    const profileTop = y + (largePoster ? 64 : 52);
+    const tileBottom = y + rowHeight - (largePoster ? 28 : 20);
     const ascentY = tileBottom - 8;
-    const averageY = ascentY - 18;
-    const metricsY = averageY - 23;
-    const profileBottom = metricsY - 15;
-    const profileHeight = Math.max(70, profileBottom - profileTop);
+    const statsY = ascentY - (largePoster ? 27 : 23);
+    const profileBottom = statsY - 17;
+    const profileHeight = Math.max(74, profileBottom - profileTop);
     const name = posterClimbName(climb).toUpperCase();
+    const summitLine = `ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTÉ ${formatInteger(climb.details.difficulty)} PTS`;
+    const statsLine = `${formatDecimal(climb.details.lengthKm)} KM · +${formatInteger(climb.details.totalAscent)} M · ${formatDecimal(climb.details.averageGradient)} % AVG · ${formatMaximumGradient(climb.details.maximumGradient)} % MAX`;
     return `<g data-grid-column="${column}" data-grid-row="${row}" data-profile-height="${round(profileHeight)}">
-      <rect x="${round(x - 7)}" y="${round(y - 6)}" width="${round(columnWidth + 14)}" height="${round(rowHeight - 9)}" rx="7" class="dense-topo-card"/>
-      ${column > 0 ? `<line x1="${round(x - columnGap / 2)}" y1="${round(y)}" x2="${round(x - columnGap / 2)}" y2="${round(y + rowHeight - 18)}" class="dense-topo-divider"/>` : ""}
-      ${row > 0 ? `<line x1="${round(x)}" y1="${round(y - 12)}" x2="${round(x + columnWidth)}" y2="${round(y - 12)}" class="dense-topo-divider"/>` : ""}
-      <circle cx="${round(x + 8)}" cy="${round(y + 17)}" r="7" class="dense-topo-dot"/>
-      <text x="${round(x + 25)}" y="${round(y + 5)}" class="dense-topo-code">ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTÉ ${formatInteger(climb.details.difficulty)} PTS · CAT. ${escapeXml(climb.category ?? "—")}</text>
-      <text x="${round(x + 25)}" y="${round(y + 31)}" class="dense-topo-name"${fitTextAttributes(name, 17, columnWidth - 35, 14, 8, 0.6)}>${escapeXml(name)}</text>
-      ${profileMarkup(climb.details, x, profileTop, columnWidth, profileHeight, "dense-topo-profile")}
-      <text x="${round(x)}" y="${round(metricsY)}" class="dense-topo-metric">${formatDecimal(climb.details.lengthKm)} KM · +${formatInteger(climb.details.totalAscent)} M</text>
-      <text x="${round(x)}" y="${round(averageY)}" class="dense-topo-metric">AVG ${formatDecimal(climb.details.averageGradient)} % · MAX ${formatMaximumGradient(climb.details.maximumGradient)} %</text>
-      ${ascentSummaryMarkup(climb.details, x, ascentY, columnWidth, "dense-topo-ascent")}
+      ${column > 0 ? `<line x1="${round(x - columnGap / 2)}" y1="${round(y)}" x2="${round(x - columnGap / 2)}" y2="${round(tileBottom)}" class="alpine-grid-rule"/>` : ""}
+      ${row > 0 ? `<line x1="${round(x)}" y1="${round(y - 16)}" x2="${round(x + columnWidth)}" y2="${round(y - 16)}" class="alpine-grid-rule"/>` : ""}
+      <text x="${round(x)}" y="${round(y + 20)}" class="alpine-index">${String(index + 1).padStart(2, "0")}</text>
+      <text x="${round(x + 34)}" y="${round(y + 20)}" class="alpine-name"${fitTextAttributes(name, largePoster ? 22 : 16, columnWidth - 40, largePoster ? 18 : 15, 8.5, 0.58)}>${escapeXml(name)}</text>
+      <text x="${round(x)}" y="${round(y + 46)}" class="alpine-summit"${fitTextAttributes(summitLine, 39, columnWidth, largePoster ? 12 : 10, 7, 0.53)}>${escapeXml(summitLine)}</text>
+      ${profileMarkup(climb.details, x, profileTop, columnWidth, profileHeight, "alpine-profile", { maxSegments: largePoster ? 14 : 10, labelScale: largePoster ? 0.9 : 0.72 })}
+      <text x="${round(x)}" y="${round(statsY)}" class="alpine-stat"${fitTextAttributes(statsLine, 50, columnWidth, largePoster ? 12 : 10, 7, 0.52)}>${escapeXml(statsLine)}</text>
+      ${ascentSummaryMarkup(climb.details, x, ascentY, columnWidth, "alpine-ascent")}
     </g>`;
   }).join("");
 
-  return `<defs><pattern id="dense-grid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M28 0H0V28" fill="none" stroke="#293541" stroke-opacity=".09" stroke-width="1"/></pattern></defs>
-  <style>
-    .dense-topo-paper{fill:#e8eeec}.dense-topo-grid{fill:url(#dense-grid)}.dense-topo-card{fill:#f7faf8;fill-opacity:.7;stroke:#263942;stroke-opacity:.24;stroke-width:1.2}.dense-topo-ink{fill:#19303a}.dense-topo-muted{fill:#526a71}.dense-topo-divider{stroke:#19303a;stroke-opacity:.14;stroke-width:1}.dense-topo-dot{fill:#d34f2f;stroke:#f7faf8;stroke-width:3}.dense-topo-code{font:500 9px ui-monospace,monospace;fill:#526a71;letter-spacing:.5px}.dense-topo-name{font:600 14px ui-monospace,monospace;fill:#19303a}.dense-topo-metric{font:500 11px ui-monospace,monospace;fill:#19303a}.dense-topo-ascent{font:400 10px ui-monospace,monospace;fill:#526a71}.dense-topo-profile{fill:none;stroke:#19303a;stroke-width:2.2;stroke-linecap:square;stroke-linejoin:miter}.profile-base{stroke:#526a71;stroke-width:1.1;stroke-dasharray:3 3}.profile-missing{font:400 11px ui-monospace,monospace;fill:#526a71}
+  return `<style>
+    .alpine-paper{fill:#f7f8f6}.alpine-ink{fill:#15191c}.alpine-muted{fill:#5b6569}.alpine-hairline{stroke:#15191c;stroke-width:2}.alpine-grid-rule{stroke:#c9d0cd;stroke-width:1}.alpine-index{font:600 13px ui-monospace,monospace;fill:#a44531;letter-spacing:0}.alpine-name{font:600 16px ui-sans-serif,system-ui;fill:#15191c;letter-spacing:0}.alpine-summit{font:600 10px ui-sans-serif,system-ui;fill:#5b6569;letter-spacing:0}.alpine-stat{font:500 10px ui-sans-serif,system-ui;fill:#293136;letter-spacing:0}.alpine-ascent{font:400 10px ui-monospace,monospace;fill:#5b6569;letter-spacing:0}.alpine-profile{fill:none;stroke:#15191c;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.profile-base{stroke:#9aa5a1;stroke-width:1}.profile-missing{font:500 11px ui-sans-serif,system-ui;fill:#7a8380;letter-spacing:0}
   </style>
-  <rect width="${width}" height="${height}" class="dense-topo-paper"/><rect width="${width}" height="${height}" class="dense-topo-grid"/>
-  <text x="${margin}" y="${largePoster ? 112 : 78}" class="dense-topo-muted" style="font:500 ${largePoster ? 20 : 16}px ui-monospace,monospace;letter-spacing:3px">RIDE LOG / COLS / ${escapeXml(options.yearLabel.toUpperCase())}</text>
-  <text x="${margin}" y="${largePoster ? 226 : 158}" class="dense-topo-ink" style="font:500 ${largePoster ? 82 : 58}px ui-monospace,monospace;letter-spacing:-2px">${String(climbs.length).padStart(2, "0")} SUMMITS</text>
-  <text x="${right}" y="${largePoster ? 170 : 120}" text-anchor="end" class="dense-topo-ink" style="font:500 ${largePoster ? 42 : 31}px ui-monospace,monospace;letter-spacing:1px">TECHNICAL</text>
-  <text x="${right}" y="${largePoster ? 207 : 146}" text-anchor="end" class="dense-topo-muted" style="font:500 ${largePoster ? 18 : 14}px ui-monospace,monospace;letter-spacing:2px">PROFILE INDEX</text>
+  <rect width="${width}" height="${height}" class="alpine-paper"/>
+  <text x="${margin}" y="${largePoster ? 108 : 78}" class="alpine-muted" style="font:600 ${largePoster ? 18 : 14}px ui-sans-serif,system-ui;letter-spacing:0">ALPINE INDEX · ${escapeXml(options.yearLabel.toUpperCase())}</text>
+  <text x="${margin}" y="${largePoster ? 224 : 164}" class="alpine-ink" style="font:600 ${largePoster ? 92 : 64}px ui-sans-serif,system-ui;letter-spacing:0">COLS ${String(climbs.length).padStart(2, "0")}</text>
+  <text x="${right}" y="${largePoster ? 210 : 154}" text-anchor="end" class="alpine-ink" style="font:500 ${largePoster ? 34 : 24}px ui-sans-serif,system-ui;letter-spacing:0">${escapeXml(options.yearLabel)}</text>
+  <line x1="${margin}" y1="${top - 34}" x2="${right}" y2="${top - 34}" class="alpine-hairline"/>
   ${rows}
-  ${footerMarkup(options, climbs, "#65727a")}`;
+  ${footerMarkup(options, climbs, "#5b6569")}`;
 }
 
-function buildDenseCollectionDesign(climbs: ClimbPosterEntry[], options: ClimbPosterOptions): string {
-  const geometry = densePosterGeometry(climbs, 235, 1270);
+function buildMassifAtlasDesign(climbs: ClimbPosterEntry[], options: ClimbPosterOptions): string {
+  const arrangedClimbs = climbsByMassif(climbs);
+  const geometry = densePosterGeometry(arrangedClimbs, 270, 1245);
   const { largePoster, width, height, margin, right, top, contentHeight } = geometry;
-  const columnCount = DENSE_COLUMN_COUNT;
+  const columnCount = posterColumnCount(arrangedClimbs.length);
+  const columnGap = largePoster ? 28 : 16;
+  const columnWidth = (width - margin * 2 - columnGap * (columnCount - 1)) / columnCount;
+  const rowCount = Math.ceil(arrangedClimbs.length / columnCount);
+  const rowHeight = contentHeight / rowCount;
+  const entries = arrangedClimbs.map((climb, index) => {
+    const column = index % columnCount;
+    const row = Math.floor(index / columnCount);
+    const x = margin + column * (columnWidth + columnGap);
+    const y = top + row * rowHeight;
+    const massif = climb.details.massif || "Unknown";
+    const color = massifColor(massif);
+    const titleLines = splitPosterTitle(posterClimbName(climb).toUpperCase(), largePoster ? 31 : 22);
+    const titleFontSize = fittedTextFontSize(
+      Math.max(...titleLines.map((line) => line.length)),
+      columnWidth - 18,
+      largePoster ? 16 : 13,
+      7.5,
+      0.58,
+    );
+    const profileTop = y + (titleLines.length > 1 ? 74 : 60);
+    const tileBottom = y + rowHeight - (largePoster ? 26 : 20);
+    const ascentY = tileBottom - 8;
+    const summitY = ascentY - (largePoster ? 24 : 20);
+    const metricsY = summitY - (largePoster ? 20 : 17);
+    const profileBottom = metricsY - 16;
+    const profileHeight = Math.max(70, profileBottom - profileTop);
+    const metrics = `${formatDecimal(climb.details.lengthKm)} KM · +${formatInteger(climb.details.totalAscent)} M · ${formatDecimal(climb.details.averageGradient)} % AVG · ${formatMaximumGradient(climb.details.maximumGradient)} % MAX`;
+    const summit = `ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTÉ ${formatInteger(climb.details.difficulty)} PTS`;
+    return `<g data-grid-column="${column}" data-grid-row="${row}" data-massif="${escapeXml(massif)}" data-profile-height="${round(profileHeight)}">
+      <rect x="${round(x)}" y="${round(y - 5)}" width="${round(columnWidth)}" height="${round(rowHeight - 13)}" rx="6" class="atlas-entry"/>
+      <rect x="${round(x)}" y="${round(y - 5)}" width="${round(columnWidth)}" height="5" rx="2" fill="${color}"/>
+      <text x="${round(x)}" y="${round(y + 22)}" class="atlas-index">${String(index + 1).padStart(2, "0")}</text>
+      <text x="${round(x + 34)}" y="${round(y + 22)}" class="atlas-name" style="font-size:${round(titleFontSize)}px">${titleLines.map((line, lineIndex) => `<tspan x="${round(x + 34)}" y="${round(y + 22 + lineIndex * (largePoster ? 16 : 13))}">${escapeXml(line)}</tspan>`).join("")}</text>
+      <text x="${round(x + 34)}" y="${round(y + (titleLines.length > 1 ? 54 : 42))}" class="atlas-location">${escapeXml(locationLabel(climb))}</text>
+      ${profileMarkup(climb.details, x + 8, profileTop, columnWidth - 16, profileHeight, "atlas-profile", { maxSegments: largePoster ? 12 : 9, showLabels: false })}
+      <text x="${round(x + 8)}" y="${round(metricsY)}" class="atlas-metrics"${fitTextAttributes(metrics, 42, columnWidth - 16, largePoster ? 11 : 9, 6.5, 0.5)}>${escapeXml(metrics)}</text>
+      <text x="${round(x + 8)}" y="${round(summitY)}" class="atlas-summit"${fitTextAttributes(summit, 39, columnWidth - 16, largePoster ? 11 : 9, 6.5, 0.5)}>${escapeXml(summit)}</text>
+      ${ascentSummaryMarkup(climb.details, x + 8, ascentY, columnWidth - 16, "atlas-ascent")}
+    </g>`;
+  }).join("");
+
+  return `<style>
+    .atlas-paper{fill:#edf3ef}.atlas-ink{fill:#172321}.atlas-muted{fill:#5a6d67}.atlas-rule{stroke:#31423d;stroke-width:2}.atlas-entry{fill:#f9fbf8;stroke:#b8c8c0;stroke-width:1}.atlas-index{font:700 13px ui-monospace,monospace;fill:#172321;letter-spacing:0}.atlas-name{font:650 14px ui-sans-serif,system-ui;fill:#172321;letter-spacing:0}.atlas-location{font:700 9px ui-sans-serif,system-ui;fill:#5a6d67;letter-spacing:0}.atlas-metrics{font:600 10px ui-sans-serif,system-ui;fill:#172321;letter-spacing:0}.atlas-summit{font:600 10px ui-sans-serif,system-ui;fill:#5a6d67;letter-spacing:0}.atlas-ascent{font:400 9.5px ui-monospace,monospace;fill:#5a6d67;letter-spacing:0}.atlas-profile{fill:none;stroke:#172321;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}.profile-base{stroke:#8da099;stroke-width:1}.profile-missing{font:500 10px ui-sans-serif,system-ui;fill:#6f817b;letter-spacing:0}
+  </style>
+  <rect width="${width}" height="${height}" class="atlas-paper"/>
+  <text x="${margin}" y="${largePoster ? 108 : 80}" class="atlas-muted" style="font:600 ${largePoster ? 18 : 14}px ui-sans-serif,system-ui;letter-spacing:0">MASSIF ATLAS · ${escapeXml(options.yearLabel.toUpperCase())}</text>
+  <text x="${margin}" y="${largePoster ? 224 : 164}" class="atlas-ink" style="font:650 ${largePoster ? 90 : 62}px ui-sans-serif,system-ui;letter-spacing:0">${escapeXml(massifSummary(climbs))}</text>
+  <text x="${right}" y="${largePoster ? 210 : 154}" text-anchor="end" class="atlas-muted" style="font:600 ${largePoster ? 28 : 20}px ui-sans-serif,system-ui;letter-spacing:0">${posterCountLabel(climbs.length)}</text>
+  <line x1="${margin}" y1="${top - 34}" x2="${right}" y2="${top - 34}" class="atlas-rule"/>
+  ${entries}
+  ${footerMarkup(options, climbs, "#5a6d67")}`;
+}
+
+function buildProfileWallDesign(climbs: ClimbPosterEntry[], options: ClimbPosterOptions): string {
+  const geometry = densePosterGeometry(climbs, 270, 1240);
+  const { largePoster, width, height, margin, right, top, contentHeight } = geometry;
+  const columnCount = posterColumnCount(climbs.length);
   const columnGap = largePoster ? 24 : 16;
   const columnWidth = (width - margin * 2 - columnGap * (columnCount - 1)) / columnCount;
   const rowCount = Math.ceil(climbs.length / columnCount);
   const rowHeight = contentHeight / rowCount;
-  const fiveRowLayout = rowCount >= 5;
-  const tenRowLayout = rowCount >= 8;
   const tiles = climbs.map((climb, index) => {
     const column = index % columnCount;
     const row = Math.floor(index / columnCount);
     const x = margin + column * (columnWidth + columnGap);
     const y = top + row * rowHeight;
-    const name = posterClimbName(climb).toUpperCase();
-    const location = `${climb.details.country} · ${climb.details.massif}`.toUpperCase();
-    const titleLines = splitPosterTitle(name, largePoster ? 34 : 23);
-    const titleFontSize = fittedTextFontSize(
-      Math.max(...titleLines.map((line) => line.length)),
-      columnWidth - 44,
-      15,
-      8.5,
-      0.62,
-    );
-    const multilineTitle = titleLines.length > 1;
-    const profileTop = y + (tenRowLayout ? 58 : fiveRowLayout ? 60 : 63) + (multilineTitle ? 11 : 0);
-    const titleFirstY = y + (multilineTitle ? 19 : 24);
-    const locationY = y + (multilineTitle ? 50 : 43);
-    const titleClipId = `collection-title-clip-${index}`;
-    const tileBottom = y + rowHeight - 22;
-    const ascentY = tileBottom - 8;
-    const averageY = ascentY - (tenRowLayout ? 19 : fiveRowLayout ? 20 : 21);
-    const metricsY = averageY - (tenRowLayout ? 21 : fiveRowLayout ? 22 : 23);
-    const profileBottom = metricsY - (tenRowLayout ? 16 : fiveRowLayout ? 16 : 18);
-    const profileHeight = Math.max(70, profileBottom - profileTop);
-    const metrics = `${formatDecimal(climb.details.lengthKm)} KM · +${formatInteger(climb.details.totalAscent)} M · ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTÉ ${formatInteger(climb.details.difficulty)} PTS`;
-    const metricsFit = fitTextAttributes(metrics, 32, columnWidth, 13, 7, 0.56);
-    return `<g data-grid-column="${column}" data-grid-row="${row}" data-profile-bottom-y="${round(profileBottom)}" data-metrics-y="${round(metricsY)}" data-ascent-y="${round(ascentY)}" data-tile-bottom-y="${round(tileBottom)}">
-      <rect x="${round(x - 5)}" y="${round(y - 7)}" width="${round(columnWidth + 10)}" height="${round(rowHeight - 10)}" rx="10" class="dense-collection-card"/>
-      <rect x="${round(x - 5)}" y="${round(y - 7)}" width="4" height="${round(rowHeight - 10)}" rx="2" class="dense-collection-accent"/>
-      <clipPath id="${titleClipId}"><rect x="${round(x + 34)}" y="${round(y + 5)}" width="${round(columnWidth - 44)}" height="36"/></clipPath>
-      <text x="${round(x)}" y="${round(y + 24)}" class="dense-collection-index">${String(index + 1).padStart(2, "0")}</text>
-      <text x="${round(x + 34)}" y="${round(titleFirstY)}" class="dense-collection-name" style="font-size:${round(titleFontSize)}px" clip-path="url(#${titleClipId})">${titleLines.map((line, lineIndex) => `<tspan x="${round(x + 34)}" y="${round(titleFirstY + lineIndex * 15)}">${escapeXml(line)}</tspan>`).join("")}</text>
-      <text x="${round(x + 34)}" y="${round(locationY)}" class="dense-collection-location"${fitTextAttributes(location, 24, columnWidth - 44, 9, 6.5, 0.52)}>${escapeXml(location)}</text>
-      ${profileMarkup(climb.details, x, profileTop, columnWidth, profileHeight, "dense-collection-profile")}
-      <text x="${round(x)}" y="${round(metricsY)}" class="dense-collection-metrics"${metricsFit}>${escapeXml(metrics)}</text>
-      <text x="${round(x)}" y="${round(averageY)}" class="dense-collection-stat">${formatDecimal(climb.details.averageGradient)} % AVG · ${formatMaximumGradient(climb.details.maximumGradient)} % MAX</text>
-      ${ascentSummaryMarkup(climb.details, x, ascentY, columnWidth, "dense-collection-ascent")}
+    const profileTop = y + (largePoster ? 52 : 42);
+    const tileBottom = y + rowHeight - (largePoster ? 26 : 20);
+    const ascentY = tileBottom - 7;
+    const summitY = ascentY - (largePoster ? 22 : 19);
+    const metricsY = summitY - (largePoster ? 20 : 17);
+    const profileBottom = metricsY - 18;
+    const profileHeight = Math.max(78, profileBottom - profileTop);
+    const title = posterClimbName(climb).toUpperCase();
+    const metrics = `${formatDecimal(climb.details.lengthKm)} KM · +${formatInteger(climb.details.totalAscent)} M · ${formatDecimal(climb.details.averageGradient)} % AVG · ${formatMaximumGradient(climb.details.maximumGradient)} % MAX`;
+    const summit = `ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTÉ ${formatInteger(climb.details.difficulty)} PTS`;
+    return `<g data-grid-column="${column}" data-grid-row="${row}" data-profile-height="${round(profileHeight)}">
+      <rect x="${round(x - 4)}" y="${round(y - 6)}" width="${round(columnWidth + 8)}" height="${round(rowHeight - 10)}" rx="4" class="wall-tile"/>
+      <text x="${round(x)}" y="${round(y + 19)}" class="wall-index">${String(index + 1).padStart(2, "0")}</text>
+      <text x="${round(x + 35)}" y="${round(y + 19)}" class="wall-name"${fitTextAttributes(title, largePoster ? 22 : 16, columnWidth - 42, largePoster ? 16 : 13, 7.5, 0.58)}>${escapeXml(title)}</text>
+      ${profileMarkup(climb.details, x, profileTop, columnWidth, profileHeight, "wall-profile", { maxSegments: largePoster ? 18 : 13, showLabels: false })}
+      <text x="${round(x)}" y="${round(metricsY)}" class="wall-metrics"${fitTextAttributes(metrics, 42, columnWidth, largePoster ? 12 : 10, 7, 0.5)}>${escapeXml(metrics)}</text>
+      <text x="${round(x)}" y="${round(summitY)}" class="wall-summit"${fitTextAttributes(summit, 39, columnWidth, largePoster ? 11 : 9.5, 6.5, 0.5)}>${escapeXml(summit)}</text>
+      ${ascentSummaryMarkup(climb.details, x, ascentY, columnWidth, "wall-ascent")}
     </g>`;
   }).join("");
 
   return `<style>
-    .dense-collection-paper{fill:#efe7d9}.dense-collection-card{fill:#fbf8f1;stroke:#c8bca9;stroke-width:1}.dense-collection-accent{fill:#b74d2d}.dense-collection-ink{fill:#24201d}.dense-collection-muted{fill:#756b61}.dense-collection-index{font:600 13px ui-sans-serif,system-ui;fill:#b74d2d;letter-spacing:1px}.dense-collection-name{font:600 15px Georgia,ui-serif,serif;fill:#24201d}.dense-collection-location{font:600 9px ui-sans-serif,system-ui;fill:#8a6d5e;letter-spacing:.8px}.dense-collection-metrics{font:600 12px ui-sans-serif,system-ui;fill:#24201d;letter-spacing:-.1px}.dense-collection-stat{font:500 11px ui-sans-serif,system-ui;fill:#756b61}.dense-collection-ascent{font:400 10px ui-monospace,monospace;fill:#756b61}.dense-collection-profile{fill:none;stroke:#9f4229;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round}.profile-base{stroke:#9b8f81;stroke-width:1}.profile-missing{font:400 11px ui-sans-serif,system-ui;fill:#77736c}
+    .wall-paper{fill:#121416}.wall-ink{fill:#f4f2e9}.wall-muted{fill:#aeb7b2}.wall-rule{stroke:#d7ddd8;stroke-opacity:.34;stroke-width:2}.wall-tile{fill:#1a1e21;stroke:#343c3f;stroke-width:1}.wall-index{font:700 13px ui-monospace,monospace;fill:#ef7d4c;letter-spacing:0}.wall-name{font:650 15px ui-sans-serif,system-ui;fill:#f4f2e9;letter-spacing:0}.wall-metrics{font:600 10px ui-sans-serif,system-ui;fill:#f4f2e9;letter-spacing:0}.wall-summit{font:600 10px ui-sans-serif,system-ui;fill:#aeb7b2;letter-spacing:0}.wall-ascent{font:400 9.5px ui-monospace,monospace;fill:#aeb7b2;letter-spacing:0}.wall-profile{fill:none;stroke:#f4f2e9;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.profile-base{stroke:#6d7775;stroke-width:1}.profile-missing{font:500 10px ui-sans-serif,system-ui;fill:#aeb7b2;letter-spacing:0}
   </style>
-  <rect width="${width}" height="${height}" class="dense-collection-paper"/>
-  <text x="${margin}" y="${largePoster ? 116 : 82}" class="dense-collection-muted" style="font:500 ${largePoster ? 20 : 16}px ui-sans-serif,system-ui;letter-spacing:5px">THE GIANTS COLLECTION</text>
-  <text x="${margin}" y="${largePoster ? 244 : 174}" class="dense-collection-ink" style="font:500 ${largePoster ? 90 : 64}px ui-sans-serif,system-ui;letter-spacing:-2px">COLS · ${String(climbs.length).padStart(2, "0")}</text>
-  <text x="${right}" y="${largePoster ? 238 : 170}" text-anchor="end" class="dense-collection-ink" style="font:400 ${largePoster ? 36 : 27}px ui-sans-serif,system-ui;letter-spacing:2px">${escapeXml(options.yearLabel)}</text>
-  <line x1="${margin}" y1="${top - 28}" x2="${right}" y2="${top - 28}" style="stroke:#1f2022;stroke-width:3"/>
+  <rect width="${width}" height="${height}" class="wall-paper"/>
+  <text x="${margin}" y="${largePoster ? 108 : 80}" class="wall-muted" style="font:600 ${largePoster ? 18 : 14}px ui-sans-serif,system-ui;letter-spacing:0">PROFILE WALL · ${escapeXml(options.yearLabel.toUpperCase())}</text>
+  <text x="${margin}" y="${largePoster ? 224 : 164}" class="wall-ink" style="font:650 ${largePoster ? 90 : 62}px ui-sans-serif,system-ui;letter-spacing:0">${posterCountLabel(climbs.length)}</text>
+  <text x="${right}" y="${largePoster ? 210 : 154}" text-anchor="end" class="wall-muted" style="font:600 ${largePoster ? 28 : 20}px ui-sans-serif,system-ui;letter-spacing:0">${escapeXml(options.yearLabel)}</text>
+  <line x1="${margin}" y1="${top - 34}" x2="${right}" y2="${top - 34}" class="wall-rule"/>
   ${tiles}
-  ${footerMarkup(options, climbs, "#6d6b67")}`;
+  ${footerMarkup(options, climbs, "#aeb7b2")}`;
+}
+
+function climbsByMassif(climbs: ClimbPosterEntry[]): ClimbPosterEntry[] {
+  return climbs
+    .map((climb, index) => ({ climb, index }))
+    .sort((left, right) => (
+      (left.climb.details.massif || "").localeCompare(right.climb.details.massif || "") ||
+      right.climb.details.difficulty - left.climb.details.difficulty ||
+      left.index - right.index
+    ))
+    .map(({ climb }) => climb);
+}
+
+function locationLabel(climb: ClimbPosterEntry): string {
+  return `${climb.details.country} · ${climb.details.massif}`.toUpperCase();
+}
+
+function massifSummary(climbs: ClimbPosterEntry[]): string {
+  const count = new Set(climbs.map((climb) => climb.details.massif).filter(Boolean)).size;
+  return `${count} MASSIF${count === 1 ? "" : "S"}`;
+}
+
+function posterCountLabel(count: number): string {
+  return `${String(count).padStart(2, "0")} COL${count === 1 ? "" : "S"}`;
+}
+
+function massifColor(massif: string): string {
+  const palette = ["#2c6e60", "#b64b37", "#416c9c", "#8a6f2a", "#7b4d8b", "#4e7d3a", "#9c5b31"];
+  const hash = [...massif].reduce((sum, character) => sum + character.charCodeAt(0), 0);
+  return palette[hash % palette.length] ?? palette[0];
+}
+
+function posterColumnCount(climbCount: number): number {
+  return climbCount <= 3 ? Math.max(1, climbCount) : DENSE_COLUMN_COUNT;
 }
 
 function densePosterGeometry(climbs: ClimbPosterEntry[], standardTop: number, standardContentHeight: number) {
@@ -397,7 +303,7 @@ function profileMarkup(
   width: number,
   height: number,
   lineClass: string,
-  options: { maxSegments?: number; labelScale?: number } = {},
+  options: { maxSegments?: number; labelScale?: number; showLabels?: boolean } = {},
 ): string {
   const points = normalizedProfilePoints(details.profile);
   const baseY = y + height;
@@ -427,6 +333,7 @@ function profileMarkup(
   };
   const maxSegments = options.maxSegments ?? Math.min(20, Math.max(4, Math.floor(width / 28)));
   const labelScale = options.labelScale ?? 1;
+  const showLabels = options.showLabels ?? true;
   const segments = buildClimbGradientSegments(points, maxSegments);
   const steepestGradient = Math.max(...segments.map((segment) => segment.averageGradient));
   const segmentMarkup = segments.map((segment, index) => {
@@ -443,12 +350,12 @@ function profileMarkup(
     const distanceLabel = `${formatCompactDecimal(segment.endKm - minDistance)}${segment === segments.at(-1) ? " KM" : ""}`;
     const labelX = startX + segmentWidth / 2;
     const labelFontSize = (height >= 100 ? 9 : 7.5) * labelScale;
-    const gradeText = segmentWidth >= 27
+    const gradeText = showLabels && segmentWidth >= 27
       ? `<text x="${round(labelX)}" y="${round(plotBaseY - 4)}" text-anchor="middle" style="font:700 ${labelFontSize}px ui-monospace,monospace;fill:${textColor}">${gradeLabel}</text>`
-      : segmentWidth >= 13 && height >= 70
+      : showLabels && segmentWidth >= 13 && height >= 70
         ? `<text transform="translate(${round(labelX)} ${round(plotBaseY - 4)}) rotate(-90)" text-anchor="start" style="font:700 ${labelFontSize}px ui-monospace,monospace;fill:${textColor}">${gradeLabel}</text>`
         : "";
-    const distanceText = segmentWidth >= 24
+    const distanceText = showLabels && segmentWidth >= 24
       ? `<text x="${round(endX - 1)}" y="${round(baseY - 2)}" text-anchor="end" style="font:500 ${(height >= 80 ? 7.5 : 6.5) * labelScale}px ui-monospace,monospace;fill:#4d5961;fill-opacity:.9">${distanceLabel}</text>`
       : "";
     return `<g data-profile-segment="${round(segment.startKm)}-${round(segment.endKm)}" data-gradient="${gradient}">
@@ -498,7 +405,7 @@ function profileMarkup(
       return selected;
     }, []).sort((left, right) => left.distanceKm - right.distanceKm)
     : [];
-  const altitudeMarkup = height >= 70
+  const altitudeMarkup = showLabels && height >= 70
     ? altitudeLabelBoundaries.map((boundary) => {
       const index = altitudeBoundaries.indexOf(boundary);
       const isLast = index === altitudeBoundaries.length - 1;
@@ -521,7 +428,7 @@ export function buildDetailedClimbProfileSvg(details: ClimbDetails): string {
   const kilometerSegments = Math.max(1, Math.ceil(details.lengthKm));
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Profil kilométrique de l'ascension" preserveAspectRatio="xMidYMid meet">
     <rect width="${width}" height="${height}" rx="18" fill="#fbf8f1"/>
-    <style>.detail-profile{fill:none;stroke:#172129;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.profile-base{stroke:#9f9588;stroke-width:1.5}.profile-missing{font:500 18px ui-sans-serif,system-ui;fill:#756c62;letter-spacing:1px}</style>
+    <style>.detail-profile{fill:none;stroke:#172129;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.profile-base{stroke:#9f9588;stroke-width:1.5}.profile-missing{font:500 18px ui-sans-serif,system-ui;fill:#756c62;letter-spacing:0}</style>
     ${profileMarkup(
       details,
       horizontalPadding,
@@ -651,9 +558,9 @@ function footerMarkup(options: ClimbPosterOptions, climbs: ClimbPosterEntry[], c
   const fontSize = largePoster ? 19 : 16;
   return `${gradientLegendMarkup(color, width / 2, height - 136, largePoster)}
   <line x1="${margin}" y1="${lineY}" x2="${width - margin}" y2="${lineY}" style="stroke:${color};stroke-width:2"/>
-  <text x="${margin}" y="${textY}" style="font:500 ${fontSize}px ui-sans-serif,system-ui;fill:${color};letter-spacing:2px">${escapeXml(athlete.toUpperCase())}</text>
-  <text x="${width / 2}" y="${textY}" text-anchor="middle" style="font:500 ${fontSize}px ui-sans-serif,system-ui;fill:${color};letter-spacing:2px">${climbLabel} · ${ascentLabel}</text>
-  <text x="${width - margin}" y="${textY}" text-anchor="end" style="font:500 ${fontSize}px ui-sans-serif,system-ui;fill:${color};letter-spacing:2px">MYSTRAVASTATS</text>`;
+  <text x="${margin}" y="${textY}" style="font:500 ${fontSize}px ui-sans-serif,system-ui;fill:${color};letter-spacing:0">${escapeXml(athlete.toUpperCase())}</text>
+  <text x="${width / 2}" y="${textY}" text-anchor="middle" style="font:500 ${fontSize}px ui-sans-serif,system-ui;fill:${color};letter-spacing:0">${climbLabel} · ${ascentLabel}</text>
+  <text x="${width - margin}" y="${textY}" text-anchor="end" style="font:500 ${fontSize}px ui-sans-serif,system-ui;fill:${color};letter-spacing:0">MYSTRAVASTATS</text>`;
 }
 
 function gradientLegendMarkup(color: string, centerX: number, y: number, largePoster: boolean): string {
@@ -671,7 +578,7 @@ function gradientLegendMarkup(color: string, centerX: number, y: number, largePo
   const swatchHeight = largePoster ? 15 : 12;
   const labelFontSize = largePoster ? 10 : 8;
   return `<g aria-label="Gradient colour legend">
-    <text x="${round(startX - (largePoster ? 68 : 52))}" y="${y}" style="font:600 ${largePoster ? 11 : 9}px ui-monospace,monospace;fill:${color};letter-spacing:1px">PENTE</text>
+    <text x="${round(startX - (largePoster ? 68 : 52))}" y="${y}" style="font:600 ${largePoster ? 11 : 9}px ui-monospace,monospace;fill:${color};letter-spacing:0">PENTE</text>
     ${entries.map((entry, index) => {
       const x = startX + index * itemWidth;
       return `<rect x="${round(x)}" y="${round(y - swatchHeight + 2)}" width="${swatchWidth}" height="${swatchHeight}" rx="1" fill="${gradientColor(entry.gradient)}" stroke="#283238" stroke-opacity=".2"/><text x="${round(x + swatchWidth + 6)}" y="${y}" style="font:600 ${labelFontSize}px ui-monospace,monospace;fill:${color}">${escapeXml(entry.label)}</text>`;
