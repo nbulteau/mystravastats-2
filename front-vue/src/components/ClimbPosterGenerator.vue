@@ -11,6 +11,7 @@ import {
 } from "@/utils/climb-poster";
 import {
   orderClimbsForPoster,
+  selectTopClimbsForPoster,
   type ClimbSelectionOrder,
 } from "@/utils/climb-poster-selection";
 
@@ -38,6 +39,7 @@ const selectedDesignDefinition = computed(() => (
   CLIMB_POSTER_DESIGNS.find((design) => design.id === selectedDesign.value) ?? CLIMB_POSTER_DESIGNS[0]
 ));
 const selectionLimit = computed(() => posterDesignMaxClimbs(selectedDesign.value));
+const selectionPresetCount = computed(() => Math.min(selectionLimit.value, availableClimbs.value.length));
 const displayedClimbs = computed(() => (
   orderClimbsForPoster(availableClimbs.value, climbSelectionOrder.value)
 ));
@@ -79,8 +81,7 @@ function selectLongest() {
 
 function selectBy(order: ClimbSelectionOrder) {
   climbSelectionOrder.value = order;
-  selectedClimbLabels.value = orderClimbsForPoster(availableClimbs.value, order)
-    .slice(0, selectionLimit.value)
+  selectedClimbLabels.value = selectTopClimbsForPoster(availableClimbs.value, order, selectionLimit.value)
     .map((result) => result.badge.label);
   invalidateGeneratedPoster();
 }
@@ -221,7 +222,7 @@ function slugify(value: string): string {
             <span>2</span>
             <div>
               <h3 id="poster-climbs-heading">Select climbed cols</h3>
-              <p>{{ selectedClimbLabels.length }} of {{ selectionLimit }} selected for {{ selectedDesignDefinition.name }}.</p>
+              <p>{{ selectedClimbLabels.length }} of {{ selectionLimit }} selected from {{ availableClimbs.length }} climbed cols for {{ selectedDesignDefinition.name }}.</p>
             </div>
           </div>
           <div class="poster-selection-actions">
@@ -232,7 +233,7 @@ function slugify(value: string): string {
               :aria-pressed="climbSelectionOrder === 'hardest'"
               @click="selectHardest"
             >
-              Select hardest {{ selectionLimit }}
+              Select hardest {{ selectionPresetCount }}
             </button>
             <button
               type="button"
@@ -241,7 +242,7 @@ function slugify(value: string): string {
               :aria-pressed="climbSelectionOrder === 'longest'"
               @click="selectLongest"
             >
-              Select longest {{ selectionLimit }}
+              Select longest {{ selectionPresetCount }}
             </button>
           </div>
         </div>

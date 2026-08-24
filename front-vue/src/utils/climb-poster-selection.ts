@@ -9,6 +9,14 @@ export function orderClimbsForPoster(
   return [...climbs].sort(order === "hardest" ? compareHardest : compareLongest);
 }
 
+export function selectTopClimbsForPoster(
+  climbs: BadgeCheckResult[],
+  order: ClimbSelectionOrder,
+  limit: number,
+): BadgeCheckResult[] {
+  return orderClimbsForPoster(climbs, order).slice(0, Math.max(0, limit));
+}
+
 function compareHardest(left: BadgeCheckResult, right: BadgeCheckResult): number {
   return (
     (right.climbDetails?.difficulty ?? 0) - (left.climbDetails?.difficulty ?? 0) ||

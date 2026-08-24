@@ -136,18 +136,6 @@
     },
     "alternatives": [
       {
-        "name": "Bourg-Saint-Pierre",
-        "geoCoordinate": {
-          "latitude": 45.9489252,
-          "longitude": 7.2088271
-        },
-        "length": 12.6,
-        "totalAscent": 995,
-        "difficulty": 786,
-        "averageGradient": 7.9,
-        "category": "1"
-      },
-      {
         "name": "Aosta",
         "geoCoordinate": {
           "latitude": 45.74194,
@@ -159,7 +147,8 @@
         "maximumGradient": 8.3,
         "difficulty": 1164,
         "averageGradient": 5.87,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-valaisannes/italie/col-du-grand-saint-bernard-depuis-aosta-c145.htm"
       }
     ]
   },

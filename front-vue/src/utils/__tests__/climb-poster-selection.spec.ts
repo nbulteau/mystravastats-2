@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { BadgeCheckResult, ClimbDetails } from "@/models/badge-check-result.model";
-import { orderClimbsForPoster } from "@/utils/climb-poster-selection";
+import { orderClimbsForPoster, selectTopClimbsForPoster } from "@/utils/climb-poster-selection";
 
 function climb(label: string, difficulty: number, lengthKm: number): BadgeCheckResult {
   const details: ClimbDetails = {
@@ -49,5 +49,12 @@ describe("climb poster selection ordering", () => {
 
     expect(climbs.map((result) => result.badge.label))
       .toEqual(["Long col", "Hard col", "Medium col"]);
+  });
+
+  it("selects only the first climbs from the requested ordering", () => {
+    expect(selectTopClimbsForPoster(climbs, "hardest", 2).map((result) => result.badge.label))
+      .toEqual(["Hard col", "Medium col"]);
+    expect(selectTopClimbsForPoster(climbs, "longest", 2).map((result) => result.badge.label))
+      .toEqual(["Long col", "Medium col"]);
   });
 });

@@ -21,6 +21,12 @@ class BadgesServiceTest {
     private lateinit var badgesService: IBadgesService
 
     private val activityProvider = mockk<IActivityProvider>()
+    private val officialClimbSourceDomains = setOf(
+        "mycols.app",
+        "cols-cyclisme.com",
+        "bigcycling.eu",
+        "climbfinder.com",
+    )
 
     @BeforeEach
     fun setUp() {
@@ -120,8 +126,8 @@ class BadgesServiceTest {
         val results = badgesService.getFamousBadges(activityTypes, null)
         val climbs = results.map { it.badge as FamousClimbBadge }
 
-        assertEquals(584, climbs.size)
-        assertEquals(mapOf("FR" to 331, "CH" to 48, "IT" to 78, "ES" to 127), climbs.groupingBy { it.country }.eachCount())
+        assertEquals(606, climbs.size)
+        assertEquals(mapOf("FR" to 354, "CH" to 47, "IT" to 78, "ES" to 127), climbs.groupingBy { it.country }.eachCount())
         assertTrue(climbs.all { it.massif.isNotBlank() })
         assertEquals(climbs.size, climbs.map { it.label }.distinct().size)
         climbs.forEach { climb ->
@@ -148,10 +154,8 @@ class BadgesServiceTest {
                 climb.start.haversineInKM(climb.end.latitude, climb.end.longitude) <= climb.length + 0.5,
                 "Direct distance exceeds published length for ${climb.label}",
             )
-            assertTrue(climb.sourceUrl.isBlank() || climb.sourceUrl.startsWith("https://"), "Invalid source for ${climb.label}")
-            if (climb.country in setOf("IT", "ES")) {
-                assertTrue(climb.sourceUrl.isNotBlank(), "Missing source for ${climb.label}")
-            }
+            assertTrue(climb.sourceUrl.startsWith("https://"), "Invalid source for ${climb.label}")
+            assertTrue(hasOfficialClimbSource(climb.sourceUrl), "Non-official source for ${climb.label}: ${climb.sourceUrl}")
             if (climb.country == "ES") {
                 assertTrue(climb.start.latitude in 27.0..44.5 && climb.start.longitude in -19.0..5.0, "Implausible Spanish start for ${climb.label}")
                 assertTrue(climb.end.latitude in 27.0..44.5 && climb.end.longitude in -19.0..5.0, "Implausible Spanish summit for ${climb.label}")
@@ -161,23 +165,22 @@ class BadgesServiceTest {
         val alpeDHuez = climbs.single { it.label == "Alpe d'Huez from Le Bourg-d'Oisans" }
         assertEquals("HC", alpeDHuez.category)
         assertEquals(979, alpeDHuez.difficulty)
-        val croixDeFerAllemond = climbs.single {
-            it.label == "Col de la Croix-de-Fer from Allemond (Barrage du Verney)"
-        }
-        assertEquals("HC", croixDeFerAllemond.category)
-        assertEquals(1092, croixDeFerAllemond.difficulty)
-        assertEquals(
-            100,
-            climbs.single { it.label == "Col du Glandon from Allemond (Barrage du Verney)" }.summitToleranceMeters,
-        )
-        assertEquals(
-            1,
-            climbs.single { it.label == "Col de la Madeleine from La Chambre, par la D213" }.routeCheckpoints.size,
-        )
         assertEquals(
             1,
             climbs.single { it.label == "Col de la Madeleine from La Chambre, via Montgellafrey" }.routeCheckpoints.size,
         )
+    }
+
+    private fun hasOfficialClimbSource(sourceUrl: String): Boolean {
+        val host = runCatching {
+            java.net.URI(sourceUrl).host
+                ?.removePrefix("www.")
+                ?.lowercase()
+        }.getOrNull() ?: return false
+
+        return officialClimbSourceDomains.any { domain ->
+            host == domain || host.endsWith(".$domain")
+        }
     }
 
     private fun activity(

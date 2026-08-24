@@ -61,7 +61,8 @@
         "totalAscent": 1001,
         "difficulty": 931,
         "averageGradient": 7.7,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/vanoise/france/bellecombe-plan-du-lac-depuis-termignon-c1831.htm"
       }
     ]
   },
@@ -85,7 +86,8 @@
         "totalAscent": 1663,
         "difficulty": 1150,
         "averageGradient": 6.5,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/cime-de-la-bonette-saint-etienne-de-tinee"
       },
       {
         "name": "Jausiers",
@@ -97,7 +99,8 @@
         "totalAscent": 1590,
         "difficulty": 1185,
         "averageGradient": 6.8,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/cime-de-la-bonette-jausiers"
       }
     ]
   },
@@ -121,7 +124,8 @@
         "totalAscent": 1364,
         "difficulty": 1034,
         "averageGradient": 6.6,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/col-agnel"
       },
       {
         "name": "Casteldelfino",
@@ -135,7 +139,8 @@
         "maximumGradient": 12.9,
         "difficulty": 958,
         "averageGradient": 6.54,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/queyras/italie/col-agnel-depuis-casteldelfino-c117.htm"
       }
     ]
   },
@@ -159,7 +164,8 @@
         "totalAscent": 1250,
         "difficulty": 790,
         "averageGradient": 7.1,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/pelat/france/col-d-allos-depuis-barcelonnette-c113.htm"
       },
       {
         "name": "Colmars",
@@ -173,7 +179,8 @@
         "maximumGradient": 8,
         "difficulty": 559,
         "averageGradient": 4.48,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://mycols.app/fr/col/col-dallos-colmars"
       }
     ]
   },
@@ -197,7 +204,8 @@
         "totalAscent": 1000,
         "difficulty": 887,
         "averageGradient": 7,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-dizoard-chateau-ville-vieille"
       },
       {
         "name": "Briançon",
@@ -209,7 +217,8 @@
         "totalAscent": 1174,
         "difficulty": 854,
         "averageGradient": 6,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-dizoard-briancon"
       }
     ]
   },
@@ -233,7 +242,8 @@
         "totalAscent": 706,
         "difficulty": 683,
         "averageGradient": 7.1,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-joux-plane-morzine"
       },
       {
         "name": "Samoëns",
@@ -247,7 +257,8 @@
         "maximumGradient": 11.6,
         "difficulty": 889,
         "averageGradient": 8.59,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-joux-plane-samoens"
       }
     ]
   },
@@ -271,7 +282,8 @@
         "totalAscent": 620,
         "difficulty": 440,
         "averageGradient": 6,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-lepine-novalaise"
       },
       {
         "name": "Chambéry",
@@ -285,7 +297,8 @@
         "maximumGradient": 7.2,
         "difficulty": 538,
         "averageGradient": 4.6,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/bugey/france/col-de-l-epine-depuis-chambery-c400.htm"
       }
     ]
   },
@@ -309,7 +322,8 @@
         "totalAscent": 1461,
         "difficulty": 1054,
         "averageGradient": 4.2,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/vanoise/france/col-de-l-iseran-depuis-lanslebourg-c104.htm"
       },
       {
         "name": "Bourg-Saint-Maurice",
@@ -323,7 +337,8 @@
         "maximumGradient": 6.9,
         "difficulty": 1232,
         "averageGradient": 4.07,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/vanoise/france/col-de-l-iseran-depuis-bourg-saint-maurice-c105.htm"
       }
     ]
   },
@@ -338,30 +353,19 @@
     },
     "alternatives": [
       {
-        "name": "Le Bourg-d'Oisans",
+        "name": "La Paute (D526)",
         "geoCoordinate": {
-          "latitude": 45.0543,
-          "longitude": 6.0349
+          "latitude": 45.0721,
+          "longitude": 6.0103
         },
-        "length": 14.1,
-        "totalAscent": 853,
-        "difficulty": 620,
-        "averageGradient": 6,
-        "category": "1"
-      },
-      {
-        "name": "Entraigues",
-        "geoCoordinate": {
-          "latitude": 44.9015,
-          "longitude": 5.94894
-        },
-        "length": 14.4,
-        "totalAscent": 563,
-        "minimumAltitude": 810,
-        "maximumGradient": 7.4,
-        "difficulty": 220,
-        "averageGradient": 3.91,
-        "category": "3"
+        "length": 10.5,
+        "totalAscent": 647,
+        "minimumAltitude": 723,
+        "maximumGradient": 10.9,
+        "difficulty": 471,
+        "averageGradient": 6.1,
+        "category": "2",
+        "sourceUrl": "https://climbfinder.com/fr/montees/col-d-ornon"
       }
     ]
   },
@@ -387,7 +391,8 @@
         "maximumGradient": 10.7,
         "difficulty": 894,
         "averageGradient": 6.3,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-la-cayolle-saint-martin-dentraunes"
       },
       {
         "name": "Barcelonnette",
@@ -401,7 +406,8 @@
         "maximumGradient": 8.2,
         "difficulty": 634,
         "averageGradient": 4.1,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/mercantour/france/col-de-la-cayolle-depuis-barcelonnette-c97.htm"
       }
     ]
   },
@@ -425,7 +431,8 @@
         "totalAscent": 618,
         "difficulty": 640,
         "averageGradient": 8.7,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-la-colombiere-le-reposoir"
       },
       {
         "name": "Le Grand-Bornand",
@@ -439,7 +446,8 @@
         "maximumGradient": 9,
         "difficulty": 452,
         "averageGradient": 5.9,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-la-colombiere-le-grand-bornand"
       }
     ]
   },
@@ -463,7 +471,8 @@
         "totalAscent": 1151,
         "difficulty": 926,
         "averageGradient": 7.3,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-la-couillole-saint-sauveur-sur-tinee"
       },
       {
         "name": "Pont du Cians",
@@ -477,7 +486,8 @@
         "maximumGradient": 9.2,
         "difficulty": 611,
         "averageGradient": 4.56,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/mercantour/france/col-de-la-couillole-depuis-pont-du-cians-c351.htm"
       }
     ]
   },
@@ -501,7 +511,8 @@
         "totalAscent": 1545,
         "difficulty": 1161,
         "averageGradient": 6.3,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-la-croix-de-fer-saint-jean-de-maurienne"
       },
       {
         "name": "Allemond (Barrage du Verney)",
@@ -515,7 +526,8 @@
         "maximumGradient": 11.8,
         "difficulty": 1092,
         "averageGradient": 4.68,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/arves-et-grandes-rousses/france/col-de-la-croix-de-fer-depuis-barrage-du-verney-c41.htm"
       },
       {
         "name": "Saint-Étienne-de-Cuines",
@@ -529,7 +541,8 @@
         "maximumGradient": 13,
         "difficulty": 1094,
         "averageGradient": 6.93,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/arves-et-grandes-rousses/france/col-de-la-croix-de-fer-depuis-saint-etienne-de-cuines-c2590.htm"
       }
     ]
   },
@@ -553,7 +566,8 @@
         "totalAscent": 1405,
         "difficulty": 1122,
         "averageGradient": 6.5,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-la-lombarde-isola"
       },
       {
         "name": "Pratolungo",
@@ -567,7 +581,8 @@
         "maximumGradient": 9.1,
         "difficulty": 1115,
         "averageGradient": 6.79,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/mercantour/italie/col-de-la-lombarde-depuis-pratolungo-c353.htm"
       }
     ]
   },
@@ -591,7 +606,8 @@
         "totalAscent": 594,
         "difficulty": 497,
         "averageGradient": 6.3,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-la-loze-brides-les-bains-courchevel-le-praz"
       },
       {
         "name": "Brides-les-Bains via Méribel",
@@ -605,7 +621,8 @@
         "maximumGradient": 20,
         "difficulty": 1432,
         "averageGradient": 7.64,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-la-loze-brides-les-bains"
       }
     ]
   },
@@ -635,7 +652,8 @@
         "totalAscent": 1520,
         "difficulty": 1235,
         "averageGradient": 8,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-la-madeleine-la-chambre"
       },
       {
         "name": "Feissons-sur-Isère",
@@ -647,7 +665,8 @@
         "totalAscent": 1588,
         "difficulty": 1235,
         "averageGradient": 6.1,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/vanoise/france/col-de-la-madeleine-depuis-feissons-sur-isere-c344.htm"
       },
       {
         "name": "La Chambre, via Montgellafrey",
@@ -692,7 +711,8 @@
         "totalAscent": 1663,
         "difficulty": 1066,
         "averageGradient": 7,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/mercantour/france/col-de-la-moutiere-depuis-saint-etienne-de-tinee-c1060.htm"
       },
       {
         "name": "Refuge de Bayasse",
@@ -706,7 +726,8 @@
         "maximumGradient": 11.5,
         "difficulty": 491,
         "averageGradient": 7.43,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/mercantour/france/col-de-la-moutiere-depuis-refuge-de-bayasse-c1061.htm"
       }
     ]
   },
@@ -730,7 +751,8 @@
         "totalAscent": 930,
         "difficulty": 770,
         "averageGradient": 6.7,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-la-ramaz-mieussy"
       },
       {
         "name": "Taninges",
@@ -744,7 +766,8 @@
         "maximumGradient": 10.6,
         "difficulty": 824,
         "averageGradient": 6.06,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-la-ramaz-taninges"
       }
     ]
   },
@@ -768,7 +791,8 @@
         "totalAscent": 520,
         "difficulty": 295,
         "averageGradient": 5.5,
-        "category": "3"
+        "category": "3",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-manse-arrondissement-of-gap"
       },
       {
         "name": "La Bâtie Neuve",
@@ -782,7 +806,8 @@
         "maximumGradient": 7.8,
         "difficulty": 277,
         "averageGradient": 4.89,
-        "category": "3"
+        "category": "3",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-manse-la-batie-neuve"
       }
     ]
   },
@@ -806,7 +831,8 @@
         "totalAscent": 1000,
         "difficulty": 707,
         "averageGradient": 5.9,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-porte-saint-laurent-du-pont"
       },
       {
         "name": "Grenoble",
@@ -820,7 +846,8 @@
         "maximumGradient": 10.1,
         "difficulty": 951,
         "averageGradient": 6.31,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-porte-grenoble"
       },
       {
         "name": "La Diat",
@@ -834,7 +861,8 @@
         "maximumGradient": 9,
         "difficulty": 326,
         "averageGradient": 6.29,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/chartreuse/france/col-de-porte-depuis-la-diat-c89.htm"
       }
     ]
   },
@@ -858,7 +886,8 @@
         "totalAscent": 830,
         "difficulty": 786,
         "averageGradient": 9.4,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/aravis/france/col-de-romme-depuis-cluses-c1160.htm"
       },
       {
         "name": "Reposoir",
@@ -872,7 +901,8 @@
         "maximumGradient": 8.6,
         "difficulty": 319,
         "averageGradient": 5.11,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/aravis/france/col-de-romme-depuis-reposoir-c1159.htm"
       }
     ]
   },
@@ -898,7 +928,8 @@
         "maximumGradient": 10.7,
         "difficulty": 855,
         "averageGradient": 7.1,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-sarenne-mizoen"
       },
       {
         "name": "Bourg-d'Oisans",
@@ -912,7 +943,8 @@
         "maximumGradient": 10.5,
         "difficulty": 776,
         "averageGradient": 6.05,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/arves-et-grandes-rousses/france/col-de-sarenne-depuis-bourg-d-oisans-c963.htm"
       },
       {
         "name": "Alpe d'Huez",
@@ -928,6 +960,21 @@
         "averageGradient": 4.2,
         "category": "3",
         "sourceUrl": "https://climbfinder.com/en/climbs/col-de-sarenne-alpe-d-huez"
+      },
+      {
+        "name": "Lac du Chambon",
+        "geoCoordinate": {
+          "latitude": 45.0476,
+          "longitude": 6.1411
+        },
+        "length": 12.8,
+        "totalAscent": 958,
+        "minimumAltitude": 1041,
+        "maximumGradient": 14.1,
+        "difficulty": 855,
+        "averageGradient": 7.5,
+        "category": "1",
+        "sourceUrl": "https://climbfinder.com/fr/montees/col-de-sarenne-lac-du-chambon"
       }
     ]
   },
@@ -951,7 +998,8 @@
         "totalAscent": 1108,
         "difficulty": 855,
         "averageGradient": 5.7,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-vars-guillestre"
       },
       {
         "name": "Les Gleizolles",
@@ -965,7 +1013,8 @@
         "maximumGradient": 10.6,
         "difficulty": 642,
         "averageGradient": 5.66,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/ubaye/france/col-de-vars-depuis-les-gleizolles-c92.htm"
       }
     ]
   },
@@ -989,7 +1038,8 @@
         "totalAscent": 620,
         "difficulty": 413,
         "averageGradient": 5.4,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://mycols.app/fr/col/col-des-aravis-flumet"
       },
       {
         "name": "Thônes",
@@ -1003,7 +1053,8 @@
         "maximumGradient": 8.6,
         "difficulty": 468,
         "averageGradient": 4.58,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://mycols.app/fr/col/col-des-aravis-thones"
       }
     ]
   },
@@ -1027,7 +1078,8 @@
         "totalAscent": 1057,
         "difficulty": 841,
         "averageGradient": 6.4,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-des-champs-saint-martin-dentraunes"
       },
       {
         "name": "Colmars",
@@ -1041,7 +1093,8 @@
         "maximumGradient": 9.3,
         "difficulty": 645,
         "averageGradient": 7.02,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-des-champs-colmars"
       }
     ]
   },
@@ -1095,7 +1148,8 @@
         "maximumGradient": 10,
         "difficulty": 640,
         "averageGradient": 5.73,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-des-saisies-beaufort"
       },
       {
         "name": "L'Arly",
@@ -1109,7 +1163,38 @@
         "maximumGradient": 10,
         "difficulty": 758,
         "averageGradient": 6.52,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/beaufortain/france/col-des-saisies-depuis-l-arly-c54.htm"
+      },
+      {
+        "name": "Flons",
+        "geoCoordinate": {
+          "latitude": 45.7934,
+          "longitude": 6.4872
+        },
+        "length": 14,
+        "totalAscent": 937,
+        "minimumAltitude": 721,
+        "maximumGradient": 19,
+        "difficulty": 758,
+        "averageGradient": 6.7,
+        "category": "1",
+        "sourceUrl": "https://climbfinder.com/fr/montees/col-des-saisies-flons"
+      },
+      {
+        "name": "Villard-sur-Doron",
+        "geoCoordinate": {
+          "latitude": 45.7268,
+          "longitude": 6.5459
+        },
+        "length": 15.2,
+        "totalAscent": 989,
+        "minimumAltitude": 669,
+        "maximumGradient": 8.9,
+        "difficulty": 690,
+        "averageGradient": 6.5,
+        "category": "1",
+        "sourceUrl": "https://climbfinder.com/fr/montees/col-des-saisies-villard-sur-doron"
       }
     ]
   },
@@ -1133,7 +1218,8 @@
         "totalAscent": 1118,
         "difficulty": 821,
         "averageGradient": 7.6,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/vanoise/france/col-de-chaussy-depuis-pontamafrey-c401.htm"
       },
       {
         "name": "La Chambre",
@@ -1147,7 +1233,8 @@
         "maximumGradient": 12,
         "difficulty": 816,
         "averageGradient": 7.38,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-du-chaussy-saint-martin-sur-la-chambre"
       }
     ]
   },
@@ -1171,7 +1258,8 @@
         "totalAscent": 638,
         "difficulty": 310,
         "averageGradient": 10.8,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://mycols.app/fr/col/col-du-corbier-le-biot"
       },
       {
         "name": "Seytroux",
@@ -1185,7 +1273,8 @@
         "maximumGradient": 11.1,
         "difficulty": 453,
         "averageGradient": 8.62,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://mycols.app/fr/col/col-du-corbier-seytroux"
       }
     ]
   },
@@ -1209,7 +1298,8 @@
         "totalAscent": 2069,
         "difficulty": 1556,
         "averageGradient": 5.5,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/telegraph-col-du-galibier"
       },
       {
         "name": "Valloire",
@@ -1223,19 +1313,8 @@
         "maximumGradient": 9.7,
         "difficulty": 933,
         "averageGradient": 7,
-        "category": "HC"
-      },
-      {
-        "name": "Briançon",
-        "geoCoordinate": {
-          "latitude": 44.8984037,
-          "longitude": 6.6436313
-        },
-        "length": 34.8,
-        "totalAscent": 1398,
-        "difficulty": 782,
-        "averageGradient": 4,
-        "category": "1"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/col-du-galibier-valloire"
       },
       {
         "name": "La Grave, via le col du Lautaret",
@@ -1257,6 +1336,21 @@
         "averageGradient": 6.06,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/arves-et-grandes-rousses/france/col-du-galibier-depuis-col-du-lautaret-c36.htm"
+      },
+      {
+        "name": "Col du Lautaret",
+        "geoCoordinate": {
+          "latitude": 45.0355,
+          "longitude": 6.4051
+        },
+        "length": 8.6,
+        "totalAscent": 585,
+        "minimumAltitude": 2057,
+        "maximumGradient": 13.4,
+        "difficulty": 457,
+        "averageGradient": 6.8,
+        "category": "2",
+        "sourceUrl": "https://climbfinder.com/fr/montees/col-du-galibier-lautaret"
       }
     ]
   },
@@ -1280,7 +1374,8 @@
         "totalAscent": 1471,
         "difficulty": 1175,
         "averageGradient": 7,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/arves-et-grandes-rousses/france/col-du-glandon-depuis-la-chambre-c44.htm"
       },
       {
         "name": "Allemond (Barrage du Verney)",
@@ -1295,7 +1390,8 @@
         "maximumGradient": 11.8,
         "difficulty": 1065,
         "averageGradient": 4.57,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/arves-et-grandes-rousses/france/col-du-glandon-depuis-barrage-du-verney-c45.htm"
       }
     ]
   },
@@ -1319,7 +1415,8 @@
         "totalAscent": 1059,
         "difficulty": 996,
         "averageGradient": 8.7,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/col-du-granon"
       }
     ]
   },
@@ -1334,18 +1431,6 @@
     },
     "alternatives": [
       {
-        "name": "Le Monêtier-les-Bains",
-        "geoCoordinate": {
-          "latitude": 44.9769,
-          "longitude": 6.5047
-        },
-        "length": 12,
-        "totalAscent": 455,
-        "difficulty": 300,
-        "averageGradient": 3.8,
-        "category": "2"
-      },
-      {
         "name": "Le Clapier",
         "geoCoordinate": {
           "latitude": 45.02835,
@@ -1357,7 +1442,8 @@
         "maximumGradient": 8.1,
         "difficulty": 805,
         "averageGradient": 3.85,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/arves-et-grandes-rousses/france/col-du-lautaret-depuis-le-clapier-c48.htm"
       },
       {
         "name": "La Grave",
@@ -1396,7 +1482,8 @@
         "totalAscent": 1160,
         "difficulty": 761,
         "averageGradient": 6,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-du-mollard-saint-jean-de-maurienne"
       },
       {
         "name": "Pont de Belleville",
@@ -1410,7 +1497,8 @@
         "maximumGradient": 11,
         "difficulty": 321,
         "averageGradient": 6.88,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/arves-et-grandes-rousses/france/col-du-mollard-depuis-pont-de-belleville-c952.htm"
       },
       {
         "name": "Villargondran",
@@ -1424,7 +1512,8 @@
         "maximumGradient": 8.8,
         "difficulty": 698,
         "averageGradient": 6.11,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-du-mollard-villargondran"
       }
     ]
   },
@@ -1481,18 +1570,6 @@
     },
     "alternatives": [
       {
-        "name": "Saint-Étienne-en-Dévoluy",
-        "geoCoordinate": {
-          "latitude": 44.6874,
-          "longitude": 5.9408
-        },
-        "length": 7.5,
-        "totalAscent": 500,
-        "difficulty": 278,
-        "averageGradient": 6.7,
-        "category": "3"
-      },
-      {
         "name": "Le Noyer",
         "geoCoordinate": {
           "latitude": 44.69583,
@@ -1504,7 +1581,8 @@
         "maximumGradient": 14.5,
         "difficulty": 508,
         "averageGradient": 8.21,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://mycols.app/fr/col/col-du-noyer"
       }
     ]
   },
@@ -1528,7 +1606,8 @@
         "totalAscent": 1379,
         "difficulty": 651,
         "averageGradient": 4.5,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-du-petit-saint-bernard"
       },
       {
         "name": "Pré-Saint-Didier",
@@ -1542,7 +1621,23 @@
         "maximumGradient": 7.1,
         "difficulty": 683,
         "averageGradient": 5.04,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-du-mont-blanc/italie/col-du-petit-saint-bernard-depuis-pre-st-didier-c1154.htm"
+      },
+      {
+        "name": "Bourg-Saint-Maurice",
+        "geoCoordinate": {
+          "latitude": 45.6236,
+          "longitude": 6.7785
+        },
+        "length": 29.8,
+        "totalAscent": 1378,
+        "minimumAltitude": 811,
+        "maximumGradient": 6,
+        "difficulty": 651,
+        "averageGradient": 4.6,
+        "category": "1",
+        "sourceUrl": "https://climbfinder.com/fr/montees/col-du-petit-saint-bernard-bourg-saint-maurice-route-de-petit-saint-bernard"
       }
     ]
   },
@@ -1566,7 +1661,8 @@
         "totalAscent": 935,
         "difficulty": 838,
         "averageGradient": 7.7,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-du-pre"
       },
       {
         "name": "Lac de Roselend",
@@ -1580,7 +1676,8 @@
         "maximumGradient": 10.5,
         "difficulty": 157,
         "averageGradient": 5.25,
-        "category": "3"
+        "category": "3",
+        "sourceUrl": "https://mycols.app/fr/col/col-du-pre-barrage-de-roselend"
       }
     ]
   },
@@ -1604,7 +1701,8 @@
         "totalAscent": 1279,
         "difficulty": 1185,
         "averageGradient": 8.5,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/col-du-sabot"
       }
     ]
   },
@@ -1630,7 +1728,8 @@
         "maximumGradient": 10.2,
         "difficulty": 986,
         "averageGradient": 8.4,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/col-du-solude"
       },
       {
         "name": "La Paute",
@@ -1644,7 +1743,8 @@
         "maximumGradient": 10,
         "difficulty": 842,
         "averageGradient": 6.64,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/ecrins/france/col-du-solude-depuis-la-paute-c318.htm"
       }
     ]
   },
@@ -1668,7 +1768,8 @@
         "totalAscent": 837,
         "difficulty": 618,
         "averageGradient": 7.1,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-du-telegraph"
       },
       {
         "name": "Valloire",
@@ -1682,7 +1783,8 @@
         "maximumGradient": 6,
         "difficulty": 74,
         "averageGradient": 3.32,
-        "category": "4"
+        "category": "4",
+        "sourceUrl": "https://mycols.app/fr/col/col-du-telegraph-valloire"
       }
     ]
   },
@@ -1697,18 +1799,6 @@
     },
     "alternatives": [
       {
-        "name": "La Bolline",
-        "geoCoordinate": {
-          "latitude": 44.0707,
-          "longitude": 7.2398
-        },
-        "length": 7.8,
-        "totalAscent": 620,
-        "difficulty": 560,
-        "averageGradient": 7.9,
-        "category": "2"
-      },
-      {
         "name": "Saint-Martin-Vésubie",
         "geoCoordinate": {
           "latitude": 44.07401,
@@ -1720,7 +1810,8 @@
         "maximumGradient": 7.9,
         "difficulty": 368,
         "averageGradient": 7.05,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://mycols.app/fr/col/la-colmiane-col-saint-martin-saint-martin-vesubie"
       }
     ]
   },
@@ -1744,7 +1835,8 @@
         "totalAscent": 1410,
         "difficulty": 1118,
         "averageGradient": 7.1,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/cormet-dareches-beaufort"
       },
       {
         "name": "Aime",
@@ -1758,7 +1850,8 @@
         "maximumGradient": 14,
         "difficulty": 1183,
         "averageGradient": 7.89,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/cormet-d-areches-aime"
       }
     ]
   },
@@ -1782,7 +1875,8 @@
         "totalAscent": 1300,
         "difficulty": 891,
         "averageGradient": 5.7,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/cormet-de-roselend-beaufort"
       },
       {
         "name": "Bourg-Saint-Maurice",
@@ -1796,7 +1890,8 @@
         "maximumGradient": 8.9,
         "difficulty": 803,
         "averageGradient": 5.98,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/cormet-de-roselend-bourg-saint-maurice"
       }
     ]
   },
@@ -1822,7 +1917,8 @@
         "maximumGradient": 10,
         "difficulty": 1000,
         "averageGradient": 6.9,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/isola-2000-isola"
       }
     ]
   },
@@ -1846,7 +1942,8 @@
         "totalAscent": 1396,
         "difficulty": 1327,
         "averageGradient": 9,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/vanoise/france/la-saussaz-depuis-saint-martin-de-la-porte-c3190.htm"
       }
     ]
   },
@@ -1872,7 +1969,8 @@
         "maximumGradient": 8.3,
         "difficulty": 507,
         "averageGradient": 7.4,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://mycols.app/fr/col/les-deux-alpes-lac-du-chambon"
       }
     ]
   },
@@ -1896,7 +1994,8 @@
         "totalAscent": 1594,
         "difficulty": 1352,
         "averageGradient": 7.7,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/mont-ventoux-bedoin"
       },
       {
         "name": "Malaucène",
@@ -1908,7 +2007,8 @@
         "totalAscent": 1564,
         "difficulty": 1313,
         "averageGradient": 7.5,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/mont-ventoux-malaucene"
       },
       {
         "name": "Sault",
@@ -1920,7 +2020,8 @@
         "totalAscent": 1204,
         "difficulty": 750,
         "averageGradient": 4.9,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/mont-ventoux-sault"
       }
     ]
   },
@@ -1946,7 +2047,8 @@
         "maximumGradient": 10.9,
         "difficulty": 664,
         "averageGradient": 9.4,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/oulles"
       }
     ]
   },
@@ -1997,7 +2099,8 @@
         "totalAscent": 1897,
         "difficulty": 1287,
         "averageGradient": 5.2,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/vanoise/france/station-de-val-thorens-depuis-moutiers-c131.htm"
       }
     ]
   },
@@ -2021,7 +2124,8 @@
         "totalAscent": 891,
         "difficulty": 686,
         "averageGradient": 6.7,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-valberg"
       }
     ]
   },
@@ -2045,7 +2149,8 @@
         "totalAscent": 1171,
         "difficulty": 821,
         "averageGradient": 6.8,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/valmeinier"
       }
     ]
   },
@@ -2355,21 +2460,33 @@
         "averageGradient": 6.48,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/chaine-des-puys-monts-dore/france/col-de-ceyssat-depuis-royat-c1045.htm"
-      },
+      }
+    ]
+  },
+  {
+    "name": "Puy de Dôme",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 1415,
+    "geoCoordinate": {
+      "latitude": 45.7709,
+      "longitude": 2.96331
+    },
+    "alternatives": [
       {
-        "name": "Volvic, par la GTMC",
+        "name": "Route du Puy de Dôme",
         "geoCoordinate": {
-          "latitude": 45.875463,
-          "longitude": 3.026763
+          "latitude": 45.768485,
+          "longitude": 3.0011
         },
-        "length": 37.019,
-        "totalAscent": 841,
-        "minimumAltitude": 605,
-        "maximumGradient": 13.9,
-        "difficulty": 394,
-        "averageGradient": 2.27,
-        "category": "2",
-        "sourceUrl": "https://www.clermontauvergnevolcans.com/fiches/gtmc-vtt-etape-13-volvic-laschamps/"
+        "length": 5.8,
+        "totalAscent": 592,
+        "minimumAltitude": 823,
+        "maximumGradient": 13.7,
+        "difficulty": 658,
+        "averageGradient": 10.3,
+        "category": "1",
+        "sourceUrl": "https://climbfinder.com/en/climbs/puy-de-dome"
       }
     ]
   },
@@ -2675,7 +2792,8 @@
         "totalAscent": 786,
         "difficulty": 732,
         "averageGradient": 7.9,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-dagnes-aulus-les-bains"
       },
       {
         "name": "Massat",
@@ -2689,7 +2807,8 @@
         "maximumGradient": 8.2,
         "difficulty": 668,
         "averageGradient": 5.23,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-dagnes-massat"
       }
     ]
   },
@@ -2713,7 +2832,8 @@
         "totalAscent": 802,
         "difficulty": 589,
         "averageGradient": 6.5,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://mycols.app/fr/col/col-daspin-arreau"
       },
       {
         "name": "Sainte Marie de Campan",
@@ -2725,7 +2845,8 @@
         "totalAscent": 652,
         "difficulty": 431,
         "averageGradient": 5.1,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://mycols.app/fr/col/col-daspin-campan"
       }
     ]
   },
@@ -2749,7 +2870,8 @@
         "totalAscent": 1190,
         "difficulty": 944,
         "averageGradient": 7.2,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/col-daubisque-laruns"
       },
       {
         "name": "Argelès-Gazost",
@@ -2763,7 +2885,8 @@
         "maximumGradient": 11,
         "difficulty": 963,
         "averageGradient": 4.14,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/col-d-aubisque-depuis-argeles-gazost-c12.htm"
       }
     ]
   },
@@ -2787,7 +2910,8 @@
         "totalAscent": 622,
         "difficulty": 533,
         "averageGradient": 8.4,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://mycols.app/fr/col/col-dval-louron-azet"
       },
       {
         "name": "Bourisp",
@@ -2799,7 +2923,8 @@
         "totalAscent": 770,
         "difficulty": 647,
         "averageGradient": 7.4,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-dazet-bourisp"
       },
       {
         "name": "Bazus-Aure",
@@ -2813,7 +2938,8 @@
         "maximumGradient": 14,
         "difficulty": 544,
         "averageGradient": 6.73,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/col-d-azet-depuis-bazus-aure-c258.htm"
       }
     ]
   },
@@ -2837,7 +2963,8 @@
         "totalAscent": 980,
         "difficulty": 790,
         "averageGradient": 8,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/france/col-de-jau-depuis-mosset-c239.htm"
       },
       {
         "name": "Sainte-Colombe-sur-Guette",
@@ -2851,7 +2978,8 @@
         "maximumGradient": 10.7,
         "difficulty": 733,
         "averageGradient": 6.69,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/france/col-de-jau-depuis-sainte-colombe-sur-guette-c238.htm"
       }
     ]
   },
@@ -2866,18 +2994,6 @@
     },
     "alternatives": [
       {
-        "name": "Castillon-en-Couserans",
-        "geoCoordinate": {
-          "latitude": 42.9188,
-          "longitude": 1.0356
-        },
-        "length": 14.1,
-        "totalAscent": 1000,
-        "difficulty": 642,
-        "averageGradient": 7.1,
-        "category": "1"
-      },
-      {
         "name": "Seix",
         "geoCoordinate": {
           "latitude": 42.86436,
@@ -2889,7 +3005,8 @@
         "maximumGradient": 8,
         "difficulty": 701,
         "averageGradient": 6.41,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-la-core-seix"
       }
     ]
   },
@@ -2913,7 +3030,8 @@
         "totalAscent": 1500,
         "difficulty": 1087,
         "averageGradient": 6,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/france/col-de-la-pierre-saint-martin-depuis-arette-c253.htm"
       },
       {
         "name": "Belasaisa",
@@ -2927,7 +3045,8 @@
         "maximumGradient": 7.4,
         "difficulty": 586,
         "averageGradient": 3.58,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/france/col-de-la-pierre-saint-martin-depuis-belasaisa-c255.htm"
       },
       {
         "name": "Tardets",
@@ -2941,7 +3060,8 @@
         "maximumGradient": 10.2,
         "difficulty": 757,
         "averageGradient": 4.72,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/france/col-de-la-pierre-saint-martin-depuis-tardets-c254.htm"
       }
     ]
   },
@@ -3007,7 +3127,8 @@
         "totalAscent": 760,
         "difficulty": 580,
         "averageGradient": 6.7,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/port-de-lers-depuis-massat-c541.htm"
       },
       {
         "name": "Vicdessos",
@@ -3021,7 +3142,8 @@
         "maximumGradient": 10.9,
         "difficulty": 642,
         "averageGradient": 7.02,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/port-de-lers-depuis-vicdessos-c540.htm"
       }
     ]
   },
@@ -3045,7 +3167,8 @@
         "totalAscent": 715,
         "difficulty": 674,
         "averageGradient": 7.7,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-marie-blanque-escot"
       },
       {
         "name": "Louvie Juzon",
@@ -3059,7 +3182,8 @@
         "maximumGradient": 8.5,
         "difficulty": 449,
         "averageGradient": 4.1,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/france/col-de-marie-blanque-depuis-louvie-juzon-c166.htm"
       }
     ]
   },
@@ -3083,7 +3207,8 @@
         "totalAscent": 664,
         "difficulty": 801,
         "averageGradient": 7.1,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/col-de-mente-depuis-saint-beat-c69.htm"
       },
       {
         "name": "Pont de l'Oule",
@@ -3097,7 +3222,8 @@
         "maximumGradient": 11.4,
         "difficulty": 610,
         "averageGradient": 6.57,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-mente-boutx"
       }
     ]
   },
@@ -3121,7 +3247,8 @@
         "totalAscent": 939,
         "difficulty": 717,
         "averageGradient": 6.1,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-peyresourde-bagneres-de-luchon"
       },
       {
         "name": "Avajan",
@@ -3135,7 +3262,8 @@
         "maximumGradient": 11,
         "difficulty": 565,
         "averageGradient": 6.94,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-peyresourde-avajan"
       }
     ]
   },
@@ -3159,7 +3287,8 @@
         "totalAscent": 1100,
         "difficulty": 760,
         "averageGradient": 6.5,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-port-tarascon"
       },
       {
         "name": "Massat",
@@ -3173,7 +3302,8 @@
         "maximumGradient": 6.5,
         "difficulty": 283,
         "averageGradient": 4.7,
-        "category": "3"
+        "category": "3",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-port-massat"
       }
     ]
   },
@@ -3197,7 +3327,8 @@
         "totalAscent": 1409,
         "difficulty": 1273,
         "averageGradient": 8.7,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/col-de-portet-depuis-saint-lary-soulan-c127.htm"
       }
     ]
   },
@@ -3221,7 +3352,8 @@
         "totalAscent": 1454,
         "difficulty": 931,
         "averageGradient": 6.1,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-soudet-arette"
       },
       {
         "name": "Tardets",
@@ -3235,7 +3367,8 @@
         "maximumGradient": 10.5,
         "difficulty": 950,
         "averageGradient": 4.37,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/france/col-de-soudet-depuis-tardets-c171.htm"
       },
       {
         "name": "D918 / D632 via la Hourcère",
@@ -3274,7 +3407,8 @@
         "totalAscent": 780,
         "difficulty": 729,
         "averageGradient": 7.6,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-spandelles-argeles-gazost"
       },
       {
         "name": "Ferrières",
@@ -3288,7 +3422,8 @@
         "maximumGradient": 10.8,
         "difficulty": 771,
         "averageGradient": 8.5,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-spandelles-ferrieres"
       }
     ]
   },
@@ -3312,7 +3447,8 @@
         "totalAscent": 640,
         "difficulty": 545,
         "averageGradient": 4.5,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/col-de-portet-d-aspet-depuis-aspet-c234.htm"
       },
       {
         "name": "Audressein",
@@ -3326,7 +3462,8 @@
         "maximumGradient": 10.8,
         "difficulty": 380,
         "averageGradient": 3.08,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/col-de-portet-d-aspet-depuis-audressein-c233.htm"
       }
     ]
   },
@@ -3350,7 +3487,8 @@
         "totalAscent": 620,
         "difficulty": 567,
         "averageGradient": 7.4,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://mycols.app/fr/col/col-du-portillon"
       },
       {
         "name": "Bossost",
@@ -3364,7 +3502,8 @@
         "maximumGradient": 8.2,
         "difficulty": 432,
         "averageGradient": 6.78,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/col-du-portillon-depuis-bossost-c326.htm"
       }
     ]
   },
@@ -3388,7 +3527,8 @@
         "totalAscent": 1256,
         "difficulty": 791,
         "averageGradient": 6.3,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-du-soulor-argeles-gazost"
       },
       {
         "name": "Ferrières",
@@ -3402,7 +3542,8 @@
         "maximumGradient": 9,
         "difficulty": 776,
         "averageGradient": 7.5,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-du-soulor-ferrieres"
       }
     ]
   },
@@ -3426,7 +3567,8 @@
         "totalAscent": 1401,
         "difficulty": 1124,
         "averageGradient": 7.7,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/col-du-tourmalet-luz-saint-sauveur"
       },
       {
         "name": "Sainte-Marie de Campan",
@@ -3438,7 +3580,8 @@
         "totalAscent": 1266,
         "difficulty": 1055,
         "averageGradient": 7.5,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/rue-pene-negre-col-du-tourmalet-campan"
       }
     ]
   },
@@ -3462,7 +3605,8 @@
         "totalAscent": 1170,
         "difficulty": 1050,
         "averageGradient": 8.6,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/station-d-hautacam-depuis-argeles-gazost-c58.htm"
       }
     ]
   },
@@ -3488,7 +3632,8 @@
         "maximumGradient": 11.2,
         "difficulty": 661,
         "averageGradient": 7.82,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/france/hourquette-d-ancizan-depuis-ancizan-c309.htm"
       },
       {
         "name": "Campan",
@@ -3542,7 +3687,8 @@
         "totalAscent": 1200,
         "difficulty": 997,
         "averageGradient": 6.3,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/port-de-bales-mauleon-barousse"
       },
       {
         "name": "Bagnères-de-Luchon",
@@ -3556,7 +3702,8 @@
         "maximumGradient": 11.2,
         "difficulty": 834,
         "averageGradient": 5.71,
-        "category": "1"
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/port-de-bales-bagneres-de-luchon"
       }
     ]
   },
@@ -3580,7 +3727,8 @@
         "totalAscent": 1205,
         "difficulty": 1266,
         "averageGradient": 8.2,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/port-de-larrau"
       },
       {
         "name": "Ochagavia",
@@ -3594,7 +3742,8 @@
         "maximumGradient": 8,
         "difficulty": 519,
         "averageGradient": 4.22,
-        "category": "2"
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/port-de-larrau-depuis-ochagavia-c247.htm"
       }
     ]
   },
@@ -3618,7 +3767,8 @@
         "totalAscent": 1130,
         "difficulty": 1007,
         "averageGradient": 6.8,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://mycols.app/fr/col/port-de-pailheres-ax-les-thermes"
       },
       {
         "name": "Usson-les-Bains",
@@ -3632,7 +3782,8 @@
         "maximumGradient": 12,
         "difficulty": 966,
         "averageGradient": 8.1,
-        "category": "HC"
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/france/port-de-pailheres-depuis-usson-les-bains-c325.htm"
       }
     ]
   },
@@ -3667,10 +3818,10 @@
           "latitude": 47.85538,
           "longitude": 6.81961
         },
-        "length": 9.0,
+        "length": 9,
         "totalAscent": 619,
         "minimumAltitude": 552,
-        "maximumGradient": 8.0,
+        "maximumGradient": 8,
         "difficulty": 436,
         "averageGradient": 6.88,
         "category": "2",
@@ -3727,7 +3878,7 @@
         "length": 12.3,
         "totalAscent": 951,
         "minimumAltitude": 388,
-        "maximumGradient": 12.0,
+        "maximumGradient": 12,
         "difficulty": 806,
         "averageGradient": 7.73,
         "category": "1",
@@ -3742,7 +3893,7 @@
         "length": 12.7,
         "totalAscent": 932,
         "minimumAltitude": 411,
-        "maximumGradient": 12.0,
+        "maximumGradient": 12,
         "difficulty": 911,
         "averageGradient": 7.34,
         "category": "HC",
@@ -3754,10 +3905,10 @@
           "latitude": 47.88337,
           "longitude": 7.22534
         },
-        "length": 19.0,
+        "length": 19,
         "totalAscent": 1072,
         "minimumAltitude": 275,
-        "maximumGradient": 12.0,
+        "maximumGradient": 12,
         "difficulty": 724,
         "averageGradient": 5.64,
         "category": "1",
@@ -3784,7 +3935,7 @@
           "latitude": 47.84197,
           "longitude": 7.07263
         },
-        "length": 16.0,
+        "length": 16,
         "totalAscent": 974,
         "minimumAltitude": 368,
         "maximumGradient": 8.6,
@@ -3841,7 +3992,7 @@
           "latitude": 48.04631,
           "longitude": 7.20798
         },
-        "length": 16.0,
+        "length": 16,
         "totalAscent": 844,
         "minimumAltitude": 310,
         "maximumGradient": 9.3,
@@ -3871,7 +4022,7 @@
         "length": 16.2,
         "totalAscent": 781,
         "minimumAltitude": 389,
-        "maximumGradient": 12.0,
+        "maximumGradient": 12,
         "difficulty": 376,
         "averageGradient": 4.82,
         "category": "2",
@@ -3898,11 +4049,38 @@
         "length": 5.5,
         "totalAscent": 465,
         "minimumAltitude": 496,
-        "maximumGradient": 22.0,
+        "maximumGradient": 22,
         "difficulty": 515,
         "averageGradient": 8.45,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/station-de-la-planche-des-belles-filles-depuis-plancher-les-mines-c1126.htm"
+      }
+    ]
+  },
+  {
+    "name": "Super Planche des Belles Filles",
+    "country": "FR",
+    "massif": "Vosges",
+    "topOfTheAscent": 1148,
+    "geoCoordinate": {
+      "latitude": 47.76726,
+      "longitude": 6.77363
+    },
+    "alternatives": [
+      {
+        "name": "Plancher-les-Mines",
+        "geoCoordinate": {
+          "latitude": 47.772607,
+          "longitude": 6.75151
+        },
+        "length": 7,
+        "totalAscent": 614,
+        "minimumAltitude": 534,
+        "maximumGradient": 22.9,
+        "difficulty": 674,
+        "averageGradient": 8.8,
+        "category": "1",
+        "sourceUrl": "https://climbfinder.com/en/climbs/planche-des-belles-filles"
       }
     ]
   },
@@ -3922,10 +4100,10 @@
           "latitude": 48.18423,
           "longitude": 7.00184
         },
-        "length": 21.0,
+        "length": 21,
         "totalAscent": 632,
         "minimumAltitude": 501,
-        "maximumGradient": 7.0,
+        "maximumGradient": 7,
         "difficulty": 288,
         "averageGradient": 3.01,
         "category": "3",
@@ -3952,7 +4130,7 @@
           "latitude": 48.10158,
           "longitude": 6.87355
         },
-        "length": 17.0,
+        "length": 17,
         "totalAscent": 531,
         "minimumAltitude": 615,
         "maximumGradient": 6.7,
@@ -3967,7 +4145,7 @@
           "latitude": 48.04184,
           "longitude": 7.13178
         },
-        "length": 18.0,
+        "length": 18,
         "totalAscent": 759,
         "minimumAltitude": 391,
         "maximumGradient": 5.3,
@@ -3982,7 +4160,7 @@
           "latitude": 48.08386,
           "longitude": 6.93259
         },
-        "length": 10.0,
+        "length": 10,
         "totalAscent": 421,
         "minimumAltitude": 735,
         "maximumGradient": 6.7,
@@ -4042,7 +4220,7 @@
         "length": 24.5,
         "totalAscent": 921,
         "minimumAltitude": 178,
-        "maximumGradient": 9.0,
+        "maximumGradient": 9,
         "difficulty": 481,
         "averageGradient": 3.76,
         "category": "2",
@@ -4057,7 +4235,7 @@
         "length": 22.5,
         "totalAscent": 805,
         "minimumAltitude": 313,
-        "maximumGradient": 8.0,
+        "maximumGradient": 8,
         "difficulty": 288,
         "averageGradient": 3.58,
         "category": "3",
@@ -4069,12 +4247,12 @@
           "latitude": 48.34413,
           "longitude": 7.30492
         },
-        "length": 14.0,
+        "length": 14,
         "totalAscent": 840,
         "minimumAltitude": 268,
-        "maximumGradient": 9.0,
+        "maximumGradient": 9,
         "difficulty": 588,
-        "averageGradient": 6.0,
+        "averageGradient": 6,
         "category": "2",
         "sourceUrl": "https://www.cols-cyclisme.com/vosges/france/station-de-champ-du-feu-depuis-ville-c380.htm"
       }
@@ -4123,7 +4301,7 @@
           "latitude": 41.85698,
           "longitude": 9.39942
         },
-        "length": 30.0,
+        "length": 30,
         "totalAscent": 1230,
         "minimumAltitude": 7,
         "maximumGradient": 11.2,
@@ -4141,7 +4319,7 @@
         "length": 8.9,
         "totalAscent": 460,
         "minimumAltitude": 778,
-        "maximumGradient": 7.0,
+        "maximumGradient": 7,
         "difficulty": 275,
         "averageGradient": 5.17,
         "category": "3",
@@ -4183,7 +4361,7 @@
         "length": 12.4,
         "totalAscent": 503,
         "minimumAltitude": 636,
-        "maximumGradient": 12.0,
+        "maximumGradient": 12,
         "difficulty": 492,
         "averageGradient": 4.06,
         "category": "2",
@@ -4207,7 +4385,7 @@
           "latitude": 41.62738,
           "longitude": 9.25138
         },
-        "length": 14.0,
+        "length": 14,
         "totalAscent": 880,
         "minimumAltitude": 78,
         "maximumGradient": 10.4,
@@ -4237,7 +4415,7 @@
         "length": 10.2,
         "totalAscent": 443,
         "minimumAltitude": 739,
-        "maximumGradient": 11.0,
+        "maximumGradient": 11,
         "difficulty": 192,
         "averageGradient": 4.34,
         "category": "3",
@@ -4252,9 +4430,9 @@
         "length": 11.42,
         "totalAscent": 799,
         "minimumAltitude": 398,
-        "maximumGradient": 9.0,
+        "maximumGradient": 9,
         "difficulty": 628,
-        "averageGradient": 7.0,
+        "averageGradient": 7,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/corse/france/col-de-scalella-depuis-tavera-c2685.htm"
       }
@@ -4279,7 +4457,7 @@
         "length": 14.9,
         "totalAscent": 960,
         "minimumAltitude": 407,
-        "maximumGradient": 11.0,
+        "maximumGradient": 11,
         "difficulty": 618,
         "averageGradient": 6.44,
         "category": "1",
@@ -4306,7 +4484,7 @@
         "length": 7.66,
         "totalAscent": 439,
         "minimumAltitude": 847,
-        "maximumGradient": 6.0,
+        "maximumGradient": 6,
         "difficulty": 252,
         "averageGradient": 5.73,
         "category": "3",
@@ -4501,7 +4679,7 @@
         "length": 19.64,
         "totalAscent": 765,
         "minimumAltitude": 327,
-        "maximumGradient": 7.0,
+        "maximumGradient": 7,
         "difficulty": 487,
         "averageGradient": 3.9,
         "category": "2",
@@ -4513,7 +4691,7 @@
           "latitude": 42.11344,
           "longitude": 8.70183
         },
-        "length": 21.0,
+        "length": 21,
         "totalAscent": 1097,
         "minimumAltitude": 7,
         "maximumGradient": 11.4,
@@ -4555,7 +4733,7 @@
           "latitude": 42.48728,
           "longitude": 9.28136
         },
-        "length": 16.0,
+        "length": 16,
         "totalAscent": 732,
         "minimumAltitude": 147,
         "maximumGradient": 8.2,
@@ -4570,7 +4748,7 @@
           "latitude": 42.52654,
           "longitude": 9.3537
         },
-        "length": 12.0,
+        "length": 12,
         "totalAscent": 498,
         "minimumAltitude": 367,
         "maximumGradient": 5.6,
@@ -4615,7 +4793,7 @@
         "length": 8.7,
         "totalAscent": 395,
         "minimumAltitude": 706,
-        "maximumGradient": 6.0,
+        "maximumGradient": 6,
         "difficulty": 179,
         "averageGradient": 4.54,
         "category": "3",
@@ -4627,7 +4805,7 @@
           "latitude": 41.78719,
           "longitude": 8.97312
         },
-        "length": 11.0,
+        "length": 11,
         "totalAscent": 567,
         "minimumAltitude": 429,
         "maximumGradient": 6.7,
@@ -4684,7 +4862,7 @@
         "length": 11.3,
         "totalAscent": 379,
         "minimumAltitude": 8,
-        "maximumGradient": 8.0,
+        "maximumGradient": 8,
         "difficulty": 146,
         "averageGradient": 3.35,
         "category": "4",
@@ -4699,7 +4877,7 @@
         "length": 34.4,
         "totalAscent": 349,
         "minimumAltitude": 38,
-        "maximumGradient": 6.0,
+        "maximumGradient": 6,
         "difficulty": 210,
         "averageGradient": 1.01,
         "category": "3",
@@ -4753,7 +4931,7 @@
         "length": 14.7,
         "totalAscent": 1010,
         "minimumAltitude": 697,
-        "maximumGradient": 10.0,
+        "maximumGradient": 10,
         "difficulty": 807,
         "averageGradient": 6.87,
         "category": "1",
@@ -4768,7 +4946,7 @@
         "length": 14.5,
         "totalAscent": 1100,
         "minimumAltitude": 617,
-        "maximumGradient": 11.0,
+        "maximumGradient": 11,
         "difficulty": 881,
         "averageGradient": 7.59,
         "category": "1",
@@ -4795,7 +4973,7 @@
         "length": 18.5,
         "totalAscent": 1170,
         "minimumAltitude": 638,
-        "maximumGradient": 10.0,
+        "maximumGradient": 10,
         "difficulty": 892,
         "averageGradient": 6.32,
         "category": "1",
@@ -4846,10 +5024,10 @@
           "latitude": 42.98588,
           "longitude": -0.42733
         },
-        "length": 29.0,
+        "length": 29,
         "totalAscent": 1264,
         "minimumAltitude": 499,
-        "maximumGradient": 9.0,
+        "maximumGradient": 9,
         "difficulty": 720,
         "averageGradient": 4.36,
         "category": "1",
@@ -4861,10 +5039,10 @@
           "latitude": 42.63019,
           "longitude": -0.32714
         },
-        "length": 32.0,
+        "length": 32,
         "totalAscent": 919,
         "minimumAltitude": 875,
-        "maximumGradient": 13.0,
+        "maximumGradient": 13,
         "difficulty": 264,
         "averageGradient": 2.87,
         "category": "3",
@@ -4903,7 +5081,7 @@
           "latitude": 42.87339,
           "longitude": -0.00325
         },
-        "length": 30.0,
+        "length": 30,
         "totalAscent": 1497,
         "minimumAltitude": 698,
         "maximumGradient": 10.7,
@@ -4933,7 +5111,7 @@
         "length": 13.2,
         "totalAscent": 894,
         "minimumAltitude": 479,
-        "maximumGradient": 12.0,
+        "maximumGradient": 12,
         "difficulty": 725,
         "averageGradient": 6.77,
         "category": "1",
@@ -4945,10 +5123,10 @@
           "latitude": 42.96517,
           "longitude": 1.51668
         },
-        "length": 18.0,
+        "length": 18,
         "totalAscent": 872,
         "minimumAltitude": 504,
-        "maximumGradient": 10.0,
+        "maximumGradient": 10,
         "difficulty": 537,
         "averageGradient": 4.84,
         "category": "2",
@@ -4987,10 +5165,10 @@
           "latitude": 43.09465,
           "longitude": -0.90831
         },
-        "length": 22.0,
+        "length": 22,
         "totalAscent": 1082,
         "minimumAltitude": 252,
-        "maximumGradient": 13.0,
+        "maximumGradient": 13,
         "difficulty": 533,
         "averageGradient": 4.92,
         "category": "2",
@@ -5020,7 +5198,7 @@
         "length": 29.5,
         "totalAscent": 1096,
         "minimumAltitude": 240,
-        "maximumGradient": 12.0,
+        "maximumGradient": 12,
         "difficulty": 408,
         "averageGradient": 3.72,
         "category": "2",
@@ -5032,7 +5210,7 @@
           "latitude": 43.16437,
           "longitude": -1.19268
         },
-        "length": 29.0,
+        "length": 29,
         "totalAscent": 1117,
         "minimumAltitude": 202,
         "maximumGradient": 11.3,
@@ -5062,7 +5240,7 @@
         "length": 19.6,
         "totalAscent": 1030,
         "minimumAltitude": 845,
-        "maximumGradient": 13.0,
+        "maximumGradient": 13,
         "difficulty": 670,
         "averageGradient": 5.26,
         "category": "1",
@@ -5158,7 +5336,7 @@
         "length": 9.3,
         "totalAscent": 673,
         "minimumAltitude": 767,
-        "maximumGradient": 11.0,
+        "maximumGradient": 11,
         "difficulty": 487,
         "averageGradient": 7.24,
         "category": "2",
@@ -5200,7 +5378,7 @@
         "length": 14.3,
         "totalAscent": 1266,
         "minimumAltitude": 238,
-        "maximumGradient": 11.0,
+        "maximumGradient": 11,
         "difficulty": 1183,
         "averageGradient": 8.85,
         "category": "HC",
@@ -5212,10 +5390,10 @@
           "latitude": 45.69963,
           "longitude": 5.75687
         },
-        "length": 17.0,
+        "length": 17,
         "totalAscent": 1264,
         "minimumAltitude": 237,
-        "maximumGradient": 12.0,
+        "maximumGradient": 12,
         "difficulty": 1161,
         "averageGradient": 7.44,
         "category": "HC",
@@ -5371,11 +5549,38 @@
         "length": 8.2,
         "totalAscent": 655,
         "minimumAltitude": 500,
-        "maximumGradient": 13.0,
+        "maximumGradient": 13,
         "difficulty": 661,
         "averageGradient": 7.99,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/aravis/france/col-de-la-forclaz-de-montmin-depuis-vesonne-c42.htm"
+      }
+    ]
+  },
+  {
+    "name": "Crêt de Châtillon / Semnoz",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1667,
+    "geoCoordinate": {
+      "latitude": 45.79778,
+      "longitude": 6.10724
+    },
+    "alternatives": [
+      {
+        "name": "Annecy",
+        "geoCoordinate": {
+          "latitude": 45.89666,
+          "longitude": 6.13148
+        },
+        "length": 16.9,
+        "totalAscent": 1219,
+        "minimumAltitude": 448,
+        "maximumGradient": 14.8,
+        "difficulty": 1015,
+        "averageGradient": 7.2,
+        "category": "HC",
+        "sourceUrl": "https://climbfinder.com/en/climbs/semnoz-annecy"
       }
     ]
   },
@@ -5440,7 +5645,7 @@
         "length": 10.25,
         "totalAscent": 559,
         "minimumAltitude": 882,
-        "maximumGradient": 16.0,
+        "maximumGradient": 16,
         "difficulty": 580,
         "averageGradient": 5.45,
         "category": "2",
@@ -5452,10 +5657,10 @@
           "latitude": 45.25629,
           "longitude": 5.84706
         },
-        "length": 13.0,
+        "length": 13,
         "totalAscent": 1146,
         "minimumAltitude": 351,
-        "maximumGradient": 12.0,
+        "maximumGradient": 12,
         "difficulty": 964,
         "averageGradient": 8.82,
         "category": "HC",
@@ -5482,7 +5687,7 @@
         "length": 15.3,
         "totalAscent": 1107,
         "minimumAltitude": 514,
-        "maximumGradient": 9.0,
+        "maximumGradient": 9,
         "difficulty": 878,
         "averageGradient": 7.24,
         "category": "1",
@@ -5494,10 +5699,10 @@
           "latitude": 43.83733,
           "longitude": 7.35524
         },
-        "length": 27.0,
+        "length": 27,
         "totalAscent": 1242,
         "minimumAltitude": 368,
-        "maximumGradient": 11.0,
+        "maximumGradient": 11,
         "difficulty": 831,
         "averageGradient": 4.6,
         "category": "1",
@@ -5512,11 +5717,65 @@
         "length": 24.1,
         "totalAscent": 1237,
         "minimumAltitude": 367,
-        "maximumGradient": 8.0,
+        "maximumGradient": 8,
         "difficulty": 832,
         "averageGradient": 5.13,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/prealpes-de-nice/france/col-de-turini-depuis-sospel-c141.htm"
+      }
+    ]
+  },
+  {
+    "name": "Col d'Èze",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 482,
+    "geoCoordinate": {
+      "latitude": 43.72323,
+      "longitude": 7.33594
+    },
+    "alternatives": [
+      {
+        "name": "Nice",
+        "geoCoordinate": {
+          "latitude": 43.7083,
+          "longitude": 7.29281
+        },
+        "length": 7.8,
+        "totalAscent": 455,
+        "minimumAltitude": 27,
+        "maximumGradient": 8.6,
+        "difficulty": 334,
+        "averageGradient": 5.8,
+        "category": "2",
+        "sourceUrl": "https://mycols.app/fr/col/col-deze-nice"
+      }
+    ]
+  },
+  {
+    "name": "Col de Vence",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 962,
+    "geoCoordinate": {
+      "latitude": 43.76068,
+      "longitude": 7.07513
+    },
+    "alternatives": [
+      {
+        "name": "Vence",
+        "geoCoordinate": {
+          "latitude": 43.72462,
+          "longitude": 7.10705
+        },
+        "length": 9.6,
+        "totalAscent": 640,
+        "minimumAltitude": 321,
+        "maximumGradient": 8.3,
+        "difficulty": 445,
+        "averageGradient": 6.7,
+        "category": "1",
+        "sourceUrl": "https://mycols.app/fr/col/col-de-vence-vence"
       }
     ]
   },
@@ -5536,10 +5795,10 @@
           "latitude": 44.04542,
           "longitude": 5.78006
         },
-        "length": 19.0,
+        "length": 19,
         "totalAscent": 1141,
         "minimumAltitude": 696,
-        "maximumGradient": 10.0,
+        "maximumGradient": 10,
         "difficulty": 686,
         "averageGradient": 6.01,
         "category": "1",
@@ -5551,10 +5810,10 @@
           "latitude": 44.15005,
           "longitude": 5.87665
         },
-        "length": 25.0,
+        "length": 25,
         "totalAscent": 1256,
         "minimumAltitude": 544,
-        "maximumGradient": 9.0,
+        "maximumGradient": 9,
         "difficulty": 630,
         "averageGradient": 5.02,
         "category": "1",
@@ -5581,7 +5840,7 @@
         "length": 4.1,
         "totalAscent": 380,
         "minimumAltitude": 56,
-        "maximumGradient": 11.0,
+        "maximumGradient": 11,
         "difficulty": 352,
         "averageGradient": 9.27,
         "category": "2",
@@ -5665,7 +5924,7 @@
         "length": 34.9,
         "totalAscent": 1530,
         "minimumAltitude": 239,
-        "maximumGradient": 15.0,
+        "maximumGradient": 15,
         "difficulty": 1024,
         "averageGradient": 4.38,
         "category": "HC",
@@ -5677,7 +5936,7 @@
           "latitude": 44.17936,
           "longitude": 3.4303
         },
-        "length": 26.0,
+        "length": 26,
         "totalAscent": 862,
         "minimumAltitude": 702,
         "maximumGradient": 8.3,
@@ -5710,7 +5969,7 @@
         "length": 27.1,
         "totalAscent": 1115,
         "minimumAltitude": 446,
-        "maximumGradient": 9.0,
+        "maximumGradient": 9,
         "difficulty": 715,
         "averageGradient": 4.11,
         "category": "1",
@@ -5725,7 +5984,7 @@
         "length": 28.5,
         "totalAscent": 1225,
         "minimumAltitude": 361,
-        "maximumGradient": 7.0,
+        "maximumGradient": 7,
         "difficulty": 594,
         "averageGradient": 4.3,
         "category": "2",
@@ -5782,7 +6041,7 @@
         "length": 21.7,
         "totalAscent": 1179,
         "minimumAltitude": 228,
-        "maximumGradient": 15.0,
+        "maximumGradient": 15,
         "difficulty": 640,
         "averageGradient": 5.43,
         "category": "1",
@@ -5806,7 +6065,7 @@
           "latitude": 45.61574,
           "longitude": 3.7454
         },
-        "length": 18.0,
+        "length": 18,
         "totalAscent": 745,
         "minimumAltitude": 642,
         "maximumGradient": 7.3,
@@ -5821,7 +6080,7 @@
           "latitude": 45.71429,
           "longitude": 3.71528
         },
-        "length": 11.0,
+        "length": 11,
         "totalAscent": 578,
         "minimumAltitude": 814,
         "maximumGradient": 9.5,
@@ -5836,7 +6095,7 @@
           "latitude": 45.75347,
           "longitude": 3.97781
         },
-        "length": 27.0,
+        "length": 27,
         "totalAscent": 975,
         "minimumAltitude": 402,
         "maximumGradient": 6.6,
@@ -5935,7 +6194,7 @@
           "latitude": 45.41611,
           "longitude": 4.41078
         },
-        "length": 16.0,
+        "length": 16,
         "totalAscent": 611,
         "minimumAltitude": 617,
         "maximumGradient": 7.2,
@@ -5962,7 +6221,7 @@
           "latitude": 45.29694,
           "longitude": 4.56022
         },
-        "length": 12.0,
+        "length": 12,
         "totalAscent": 626,
         "minimumAltitude": 546,
         "maximumGradient": 7.9,
@@ -5977,7 +6236,7 @@
           "latitude": 45.41027,
           "longitude": 4.39864
         },
-        "length": 17.0,
+        "length": 17,
         "totalAscent": 644,
         "minimumAltitude": 590,
         "maximumGradient": 6.3,
@@ -6007,7 +6266,7 @@
         "length": 12.29,
         "totalAscent": 719,
         "minimumAltitude": 703,
-        "maximumGradient": 7.0,
+        "maximumGradient": 7,
         "difficulty": 337,
         "averageGradient": 5.85,
         "category": "2",
@@ -6022,7 +6281,7 @@
         "length": 3.2,
         "totalAscent": 46,
         "minimumAltitude": 1371,
-        "maximumGradient": 7.0,
+        "maximumGradient": 7,
         "difficulty": 7,
         "averageGradient": 1.44,
         "category": "4",
@@ -6034,10 +6293,10 @@
           "latitude": 44.81274,
           "longitude": 4.19032
         },
-        "length": 5.0,
+        "length": 5,
         "totalAscent": 177,
         "minimumAltitude": 1228,
-        "maximumGradient": 8.0,
+        "maximumGradient": 8,
         "difficulty": 118,
         "averageGradient": 3.54,
         "category": "4",
@@ -6061,10 +6320,10 @@
           "latitude": 46.18738,
           "longitude": 5.52358
         },
-        "length": 5.0,
+        "length": 5,
         "totalAscent": 298,
         "minimumAltitude": 484,
-        "maximumGradient": 16.0,
+        "maximumGradient": 16,
         "difficulty": 217,
         "averageGradient": 5.96,
         "category": "3",
@@ -6076,10 +6335,10 @@
           "latitude": 46.15089,
           "longitude": 5.44701
         },
-        "length": 6.0,
+        "length": 6,
         "totalAscent": 460,
         "minimumAltitude": 270,
-        "maximumGradient": 15.0,
+        "maximumGradient": 15,
         "difficulty": 411,
         "averageGradient": 7.67,
         "category": "2",
@@ -6148,7 +6407,7 @@
         "length": 5.2,
         "totalAscent": 496,
         "minimumAltitude": 915,
-        "maximumGradient": 19.0,
+        "maximumGradient": 19,
         "difficulty": 573,
         "averageGradient": 9.54,
         "category": "2",
@@ -6241,10 +6500,10 @@
           "latitude": 45.59035,
           "longitude": 6.88394
         },
-        "length": 18.0,
+        "length": 18,
         "totalAscent": 1052,
         "minimumAltitude": 1052,
-        "maximumGradient": 9.0,
+        "maximumGradient": 9,
         "difficulty": 614,
         "averageGradient": 5.84,
         "category": "1",
@@ -6271,7 +6530,7 @@
         "length": 6.4,
         "totalAscent": 416,
         "minimumAltitude": 1226,
-        "maximumGradient": 9.0,
+        "maximumGradient": 9,
         "difficulty": 336,
         "averageGradient": 6.5,
         "category": "2",
@@ -6322,10 +6581,10 @@
           "latitude": 44.79494,
           "longitude": 6.55948
         },
-        "length": 15.0,
+        "length": 15,
         "totalAscent": 850,
         "minimumAltitude": 980,
-        "maximumGradient": 9.0,
+        "maximumGradient": 9,
         "difficulty": 482,
         "averageGradient": 5.67,
         "category": "2",
@@ -6352,7 +6611,7 @@
         "length": 16.5,
         "totalAscent": 845,
         "minimumAltitude": 490,
-        "maximumGradient": 12.0,
+        "maximumGradient": 12,
         "difficulty": 433,
         "averageGradient": 5.12,
         "category": "2",
@@ -6376,10 +6635,10 @@
           "latitude": 42.87357,
           "longitude": -0.00322
         },
-        "length": 28.0,
+        "length": 28,
         "totalAscent": 1390,
         "minimumAltitude": 695,
-        "maximumGradient": 12.0,
+        "maximumGradient": 12,
         "difficulty": 949,
         "averageGradient": 4.96,
         "category": "HC",
@@ -6406,7 +6665,7 @@
         "length": 22.6,
         "totalAscent": 1341,
         "minimumAltitude": 800,
-        "maximumGradient": 12.0,
+        "maximumGradient": 12,
         "difficulty": 958,
         "averageGradient": 5.93,
         "category": "HC",
@@ -6558,23 +6817,7 @@
       "latitude": 45.477659,
       "longitude": 6.580437
     },
-    "alternatives": [
-      {
-        "name": "La Thuile",
-        "geoCoordinate": {
-          "latitude": 45.464417,
-          "longitude": 6.574784
-        },
-        "length": 10.546,
-        "totalAscent": 677,
-        "minimumAltitude": 1058,
-        "maximumGradient": 10,
-        "difficulty": 450,
-        "averageGradient": 6.42,
-        "category": "2",
-        "sourceUrl": "https://www.auvergnerhonealpes-tourisme.com/fiches/mont-jovet-a-r-depuis-la-thuile-de-montagny/"
-      }
-    ]
+    "alternatives": []
   },
   {
     "name": "Col de Cluy",
@@ -6585,23 +6828,7 @@
       "latitude": 45.06985,
       "longitude": 6.10336
     },
-    "alternatives": [
-      {
-        "name": "Puy-le-Haut",
-        "geoCoordinate": {
-          "latitude": 45.049405,
-          "longitude": 6.112698
-        },
-        "length": 4.835,
-        "totalAscent": 464,
-        "minimumAltitude": 1337,
-        "maximumGradient": 15.6,
-        "difficulty": 500,
-        "averageGradient": 9.6,
-        "category": "2",
-        "sourceUrl": "https://www.strava.com/segments/12284923"
-      }
-    ]
+    "alternatives": []
   },
   {
     "name": "Pas des Alpins",
@@ -6612,23 +6839,7 @@
       "latitude": 45.066937,
       "longitude": 2.76622
     },
-    "alternatives": [
-      {
-        "name": "Le Lioran",
-        "geoCoordinate": {
-          "latitude": 45.080563,
-          "longitude": 2.749415
-        },
-        "length": 3.75,
-        "totalAscent": 498,
-        "minimumAltitude": 1252,
-        "maximumGradient": 18.2,
-        "difficulty": 660,
-        "averageGradient": 13.28,
-        "category": "1",
-        "sourceUrl": "https://www.strava.com/segments/5326332"
-      }
-    ]
+    "alternatives": []
   },
   {
     "name": "Col du Signal",
@@ -6639,21 +6850,653 @@
       "latitude": 45.033837,
       "longitude": 3.26541
     },
+    "alternatives": []
+  },
+  {
+    "name": "Les Bauches",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1782,
+    "geoCoordinate": {
+      "latitude": 45.52396,
+      "longitude": 6.739849
+    },
     "alternatives": [
       {
-        "name": "Ruynes-en-Margeride",
+        "name": "Landry",
         "geoCoordinate": {
-          "latitude": 45.001471,
-          "longitude": 3.217213
+          "latitude": 45.5691,
+          "longitude": 6.7325
         },
-        "length": 6.586,
-        "totalAscent": 466,
-        "minimumAltitude": 884,
-        "maximumGradient": 16,
-        "difficulty": 350,
-        "averageGradient": 7.08,
+        "length": 14.6,
+        "totalAscent": 1022,
+        "minimumAltitude": 760,
+        "maximumGradient": 13,
+        "difficulty": 804,
+        "averageGradient": 7,
+        "category": "1",
+        "sourceUrl": "https://climbfinder.com/fr/montees/les-bauches-landry"
+      }
+    ]
+  },
+  {
+    "name": "Les Deux Alpes",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1661,
+    "geoCoordinate": {
+      "latitude": 45.01489,
+      "longitude": 6.12414
+    },
+    "alternatives": [
+      {
+        "name": "Bons",
+        "geoCoordinate": {
+          "latitude": 45.0346,
+          "longitude": 6.0922
+        },
+        "length": 10.3,
+        "totalAscent": 727,
+        "minimumAltitude": 934,
+        "maximumGradient": 13.5,
+        "difficulty": 612,
+        "averageGradient": 7.1,
+        "category": "1",
+        "sourceUrl": "https://climbfinder.com/fr/montees/les-deux-alpes-bons"
+      }
+    ]
+  },
+  {
+    "name": "Les Bettières",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1553,
+    "geoCoordinate": {
+      "latitude": 45.518645,
+      "longitude": 6.803935
+    },
+    "alternatives": [
+      {
+        "name": "Landry",
+        "geoCoordinate": {
+          "latitude": 45.571,
+          "longitude": 6.7387
+        },
+        "length": 12.1,
+        "totalAscent": 774,
+        "minimumAltitude": 779,
+        "maximumGradient": 11.7,
+        "difficulty": 588,
+        "averageGradient": 6.4,
         "category": "2",
-        "sourceUrl": "https://www.pays-saint-flour.fr/equipement/gtmc-en-vtt-etape-18-ruynes-en-margeride-domaine-du-sauvage/"
+        "sourceUrl": "https://climbfinder.com/fr/montees/les-bettieres-landry"
+      }
+    ]
+  },
+  {
+    "name": "La Bérarde",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1713,
+    "geoCoordinate": {
+      "latitude": 44.93328,
+      "longitude": 6.29102
+    },
+    "alternatives": [
+      {
+        "name": "D530",
+        "geoCoordinate": {
+          "latitude": 45.0277,
+          "longitude": 6.0719
+        },
+        "length": 27.3,
+        "totalAscent": 1021,
+        "minimumAltitude": 692,
+        "maximumGradient": 11.7,
+        "difficulty": 584,
+        "averageGradient": 3.7,
+        "category": "2",
+        "sourceUrl": "https://climbfinder.com/fr/montees/la-berarde"
+      }
+    ]
+  },
+  {
+    "name": "Ceillac",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1640,
+    "geoCoordinate": {
+      "latitude": 44.665917,
+      "longitude": 6.772946
+    },
+    "alternatives": [
+      {
+        "name": "D60",
+        "geoCoordinate": {
+          "latitude": 44.6769,
+          "longitude": 6.694
+        },
+        "length": 8,
+        "totalAscent": 583,
+        "minimumAltitude": 1057,
+        "maximumGradient": 14.5,
+        "difficulty": 520,
+        "averageGradient": 7.3,
+        "category": "2",
+        "sourceUrl": "https://climbfinder.com/fr/montees/ceillac"
+      }
+    ]
+  },
+  {
+    "name": "Auron",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1655,
+    "geoCoordinate": {
+      "latitude": 44.22153,
+      "longitude": 6.926449
+    },
+    "alternatives": [
+      {
+        "name": "Drogon",
+        "geoCoordinate": {
+          "latitude": 44.2427,
+          "longitude": 6.9368
+        },
+        "length": 7.6,
+        "totalAscent": 447,
+        "minimumAltitude": 1208,
+        "maximumGradient": 13.7,
+        "difficulty": 356,
+        "averageGradient": 5.8,
+        "category": "2",
+        "sourceUrl": "https://climbfinder.com/fr/montees/auron"
+      }
+    ]
+  },
+  {
+    "name": "Le Chazelet",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1805,
+    "geoCoordinate": {
+      "latitude": 45.060195,
+      "longitude": 6.280894
+    },
+    "alternatives": [
+      {
+        "name": "La Grave",
+        "geoCoordinate": {
+          "latitude": 45.0484,
+          "longitude": 6.3143
+        },
+        "length": 6,
+        "totalAscent": 328,
+        "minimumAltitude": 1477,
+        "maximumGradient": 17.4,
+        "difficulty": 313,
+        "averageGradient": 5.5,
+        "category": "2",
+        "sourceUrl": "https://climbfinder.com/fr/montees/le-chazelet-la-grave"
+      }
+    ]
+  },
+  {
+    "name": "Les Hières",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1790,
+    "geoCoordinate": {
+      "latitude": 45.05847,
+      "longitude": 6.31618
+    },
+    "alternatives": [
+      {
+        "name": "La Grave",
+        "geoCoordinate": {
+          "latitude": 45.0484,
+          "longitude": 6.3143
+        },
+        "length": 3.6,
+        "totalAscent": 293,
+        "minimumAltitude": 1497,
+        "maximumGradient": 13.5,
+        "difficulty": 285,
+        "averageGradient": 8.2,
+        "category": "3",
+        "sourceUrl": "https://climbfinder.com/fr/montees/les-hieres"
+      }
+    ]
+  },
+  {
+    "name": "Le Collet",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1195,
+    "geoCoordinate": {
+      "latitude": 44.99299,
+      "longitude": 6.10795
+    },
+    "alternatives": [
+      {
+        "name": "Venosc",
+        "geoCoordinate": {
+          "latitude": 44.988,
+          "longitude": 6.113
+        },
+        "length": 3.1,
+        "totalAscent": 246,
+        "minimumAltitude": 949,
+        "maximumGradient": 13.6,
+        "difficulty": 217,
+        "averageGradient": 8,
+        "category": "3",
+        "sourceUrl": "https://climbfinder.com/fr/montees/le-collet-venosc"
+      }
+    ]
+  },
+  {
+    "name": "Col de la Lézette",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1787,
+    "geoCoordinate": {
+      "latitude": 45.76059,
+      "longitude": 6.55271
+    },
+    "alternatives": [
+      {
+        "name": "Col des Saisies",
+        "geoCoordinate": {
+          "latitude": 45.7604,
+          "longitude": 6.5337
+        },
+        "length": 1.8,
+        "totalAscent": 133,
+        "minimumAltitude": 1654,
+        "maximumGradient": 13.4,
+        "difficulty": 110,
+        "averageGradient": 7.4,
+        "category": "4",
+        "sourceUrl": "https://climbfinder.com/fr/montees/col-de-la-lezette-col-des-saisies"
+      }
+    ]
+  },
+  {
+    "name": "La Côte des Sagnes",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1272,
+    "geoCoordinate": {
+      "latitude": 45.21117,
+      "longitude": 6.05049
+    },
+    "alternatives": [
+      {
+        "name": "Les Sagnes",
+        "geoCoordinate": {
+          "latitude": 45.2089,
+          "longitude": 6.0576
+        },
+        "length": 1.2,
+        "totalAscent": 98,
+        "minimumAltitude": 1174,
+        "maximumGradient": 13.4,
+        "difficulty": 96,
+        "averageGradient": 8,
+        "category": "4",
+        "sourceUrl": "https://climbfinder.com/fr/montees/la-cote-des-sagnes"
+      }
+    ]
+  },
+  {
+    "name": "Côte de Saint-Médard-sur-Ille",
+    "country": "FR",
+    "massif": "Massif armoricain",
+    "topOfTheAscent": 85,
+    "geoCoordinate": {
+      "latitude": 48.27284,
+      "longitude": -1.65755
+    },
+    "alternatives": [
+      {
+        "name": "Saint-Médard-sur-Ille",
+        "geoCoordinate": {
+          "latitude": 48.2722,
+          "longitude": -1.6636
+        },
+        "length": 0.5,
+        "totalAscent": 30,
+        "minimumAltitude": 55,
+        "maximumGradient": 12.4,
+        "difficulty": 31,
+        "averageGradient": 6.3,
+        "category": "4",
+        "sourceUrl": "https://climbfinder.com/fr/montees/cote-de-saint-medard-sur-ille"
+      }
+    ]
+  },
+  {
+    "name": "Saint-Germain-sur-Ille",
+    "country": "FR",
+    "massif": "Massif armoricain",
+    "topOfTheAscent": 89,
+    "geoCoordinate": {
+      "latitude": 48.24886,
+      "longitude": -1.66021
+    },
+    "alternatives": [
+      {
+        "name": "Le Moulin Neuf",
+        "geoCoordinate": {
+          "latitude": 48.2478,
+          "longitude": -1.6671
+        },
+        "length": 0.9,
+        "totalAscent": 43,
+        "minimumAltitude": 46,
+        "maximumGradient": 6.8,
+        "difficulty": 22,
+        "averageGradient": 4.8,
+        "category": "4",
+        "sourceUrl": "https://climbfinder.com/fr/montees/saint-germain-sur-ille"
+      }
+    ]
+  },
+  {
+    "name": "Côte de La Bouëxière",
+    "country": "FR",
+    "massif": "Massif armoricain",
+    "topOfTheAscent": 111,
+    "geoCoordinate": {
+      "latitude": 48.1783,
+      "longitude": -1.46613
+    },
+    "alternatives": [
+      {
+        "name": "Bâton Roulant",
+        "geoCoordinate": {
+          "latitude": 48.1832,
+          "longitude": -1.4985
+        },
+        "length": 2.6,
+        "totalAscent": 67,
+        "minimumAltitude": 44,
+        "maximumGradient": 4.5,
+        "difficulty": 21,
+        "averageGradient": 2.5,
+        "category": "4",
+        "sourceUrl": "https://climbfinder.com/fr/montees/cote-de-la-bouexiere-baton-roulant"
+      }
+    ]
+  },
+  {
+    "name": "Côte de la Débinerie",
+    "country": "FR",
+    "massif": "Massif armoricain",
+    "topOfTheAscent": 109,
+    "geoCoordinate": {
+      "latitude": 48.17739,
+      "longitude": -1.46378
+    },
+    "alternatives": [
+      {
+        "name": "Ruisseau",
+        "geoCoordinate": {
+          "latitude": 48.1706,
+          "longitude": -1.4737
+        },
+        "length": 1.2,
+        "totalAscent": 45,
+        "minimumAltitude": 64,
+        "maximumGradient": 5.5,
+        "difficulty": 19,
+        "averageGradient": 3.9,
+        "category": "4",
+        "sourceUrl": "https://climbfinder.com/fr/montees/cote-de-la-debinerie-ruisseau"
+      }
+    ]
+  },
+  {
+    "name": "Côte des Boulains",
+    "country": "FR",
+    "massif": "Massif armoricain",
+    "topOfTheAscent": 85,
+    "geoCoordinate": {
+      "latitude": 48.16381,
+      "longitude": -1.54672
+    },
+    "alternatives": [
+      {
+        "name": "Les Boulains",
+        "geoCoordinate": {
+          "latitude": 48.1566,
+          "longitude": -1.5485
+        },
+        "length": 0.8,
+        "totalAscent": 34,
+        "minimumAltitude": 51,
+        "maximumGradient": 7.4,
+        "difficulty": 16,
+        "averageGradient": 4.1,
+        "category": "4",
+        "sourceUrl": "https://climbfinder.com/fr/montees/cote-des-boulains"
+      }
+    ]
+  },
+  {
+    "name": "Mouazé",
+    "country": "FR",
+    "massif": "Massif armoricain",
+    "topOfTheAscent": 82,
+    "geoCoordinate": {
+      "latitude": 48.23513,
+      "longitude": -1.62386
+    },
+    "alternatives": [
+      {
+        "name": "La Houssais",
+        "geoCoordinate": {
+          "latitude": 48.2384,
+          "longitude": -1.6375
+        },
+        "length": 1.1,
+        "totalAscent": 37,
+        "minimumAltitude": 45,
+        "maximumGradient": 5.5,
+        "difficulty": 15,
+        "averageGradient": 3.4,
+        "category": "4",
+        "sourceUrl": "https://climbfinder.com/fr/montees/mouaze-la-houssais"
+      }
+    ]
+  },
+  {
+    "name": "Le Pont d'Ohin",
+    "country": "FR",
+    "massif": "Massif armoricain",
+    "topOfTheAscent": 59,
+    "geoCoordinate": {
+      "latitude": 48.1379,
+      "longitude": -1.55552
+    },
+    "alternatives": [
+      {
+        "name": "D29",
+        "geoCoordinate": {
+          "latitude": 48.1363,
+          "longitude": -1.5464
+        },
+        "length": 0.7,
+        "totalAscent": 25,
+        "minimumAltitude": 34,
+        "maximumGradient": 6.6,
+        "difficulty": 12,
+        "averageGradient": 3.5,
+        "category": "4",
+        "sourceUrl": "https://climbfinder.com/fr/montees/le-pont-d-ohin"
+      }
+    ]
+  },
+  {
+    "name": "Patis Tatelin",
+    "country": "FR",
+    "massif": "Massif armoricain",
+    "topOfTheAscent": 69,
+    "geoCoordinate": {
+      "latitude": 48.1405,
+      "longitude": -1.63288
+    },
+    "alternatives": [
+      {
+        "name": "Route de Saint-Sulpice",
+        "geoCoordinate": {
+          "latitude": 48.1544,
+          "longitude": -1.6256
+        },
+        "length": 1.8,
+        "totalAscent": 32,
+        "minimumAltitude": 37,
+        "maximumGradient": 5.1,
+        "difficulty": 10,
+        "averageGradient": 1.8,
+        "category": "4",
+        "sourceUrl": "https://climbfinder.com/fr/montees/patis-tatelin"
+      }
+    ]
+  },
+  {
+    "name": "Rue de la Chesnais",
+    "country": "FR",
+    "massif": "Massif armoricain",
+    "topOfTheAscent": 75,
+    "geoCoordinate": {
+      "latitude": 48.2264,
+      "longitude": -1.56796
+    },
+    "alternatives": [
+      {
+        "name": "Route principale",
+        "geoCoordinate": {
+          "latitude": 48.2219,
+          "longitude": -1.5794
+        },
+        "length": 1,
+        "totalAscent": 25,
+        "minimumAltitude": 50,
+        "maximumGradient": 4.5,
+        "difficulty": 8,
+        "averageGradient": 2.4,
+        "category": "4",
+        "sourceUrl": "https://climbfinder.com/fr/montees/rue-de-la-chesnais"
+      }
+    ]
+  },
+  {
+    "name": "Côte de la Ville Guy",
+    "country": "FR",
+    "massif": "Massif armoricain",
+    "topOfTheAscent": 62,
+    "geoCoordinate": {
+      "latitude": 48.13094,
+      "longitude": -1.4953
+    },
+    "alternatives": [
+      {
+        "name": "La Ville Guy",
+        "geoCoordinate": {
+          "latitude": 48.1304,
+          "longitude": -1.4853
+        },
+        "length": 0.8,
+        "totalAscent": 21,
+        "minimumAltitude": 41,
+        "maximumGradient": 5.3,
+        "difficulty": 7,
+        "averageGradient": 2.7,
+        "category": "4",
+        "sourceUrl": "https://climbfinder.com/fr/montees/cote-de-la-ville-guy"
+      }
+    ]
+  },
+  {
+    "name": "Côte du Vionay",
+    "country": "FR",
+    "massif": "Massif armoricain",
+    "topOfTheAscent": 61,
+    "geoCoordinate": {
+      "latitude": 48.12759,
+      "longitude": -1.47757
+    },
+    "alternatives": [
+      {
+        "name": "Le Vionay",
+        "geoCoordinate": {
+          "latitude": 48.1303,
+          "longitude": -1.4853
+        },
+        "length": 0.7,
+        "totalAscent": 19,
+        "minimumAltitude": 42,
+        "maximumGradient": 4.4,
+        "difficulty": 6,
+        "averageGradient": 2.9,
+        "category": "4",
+        "sourceUrl": "https://climbfinder.com/fr/montees/cote-du-vionay"
+      }
+    ]
+  },
+  {
+    "name": "Alpe d'Huez (arrivée 1775 m)",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1775,
+    "geoCoordinate": {
+      "latitude": 45.09043,
+      "longitude": 6.0651
+    },
+    "alternatives": [
+      {
+        "name": "Bourg-d'Oisans",
+        "geoCoordinate": {
+          "latitude": 45.0644,
+          "longitude": 6.0392
+        },
+        "length": 12.3,
+        "totalAscent": 1052,
+        "minimumAltitude": 723,
+        "maximumGradient": 13.1,
+        "difficulty": 948,
+        "averageGradient": 8.5,
+        "category": "HC",
+        "sourceUrl": "https://climbfinder.com/fr/montees/alpe-d-huez-bourg-d-oisans"
+      }
+    ]
+  },
+  {
+    "name": "Barrage du Verney",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 773,
+    "geoCoordinate": {
+      "latitude": 45.13076,
+      "longitude": 6.04091
+    },
+    "alternatives": [
+      {
+        "name": "Route des Fonderies Royales",
+        "geoCoordinate": {
+          "latitude": 45.1282,
+          "longitude": 6.0392
+        },
+        "length": 0.9,
+        "totalAscent": 48,
+        "minimumAltitude": 725,
+        "maximumGradient": 8.2,
+        "difficulty": 30,
+        "averageGradient": 5.3,
+        "category": "4",
+        "sourceUrl": "https://climbfinder.com/fr/montees/barrage-du-verney"
       }
     ]
   }

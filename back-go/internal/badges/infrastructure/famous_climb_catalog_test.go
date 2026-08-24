@@ -2,22 +2,29 @@ package infrastructure
 
 import (
 	"mystravastats/domain/badges"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+var officialClimbSourceDomains = []string{
+	"mycols.app",
+	"cols-cyclisme.com",
+	"bigcycling.eu",
+	"climbfinder.com",
+}
 
 func TestNationalFamousClimbCatalogs(t *testing.T) {
 	tests := []struct {
 		name          string
 		country       string
 		expectedSides int
-		requireSource bool
 	}{
-		{name: "france", country: "FR", expectedSides: 331},
-		{name: "suisse", country: "CH", expectedSides: 48},
-		{name: "italie", country: "IT", expectedSides: 78, requireSource: true},
-		{name: "espagne", country: "ES", expectedSides: 127, requireSource: true},
+		{name: "france", country: "FR", expectedSides: 354},
+		{name: "suisse", country: "CH", expectedSides: 47},
+		{name: "italie", country: "IT", expectedSides: 78},
+		{name: "espagne", country: "ES", expectedSides: 127},
 	}
 	allLabels := make(map[string]string)
 
@@ -80,8 +87,11 @@ func TestNationalFamousClimbCatalogs(t *testing.T) {
 				if climb.SourceURL != "" && !strings.HasPrefix(climb.SourceURL, "https://") {
 					t.Fatalf("invalid source URL for %q", climb.Label)
 				}
-				if test.requireSource && climb.SourceURL == "" {
+				if climb.SourceURL == "" {
 					t.Fatalf("missing source URL for %q", climb.Label)
+				}
+				if !hasOfficialClimbSource(climb.SourceURL) {
+					t.Fatalf("non-official source URL %q for %q", climb.SourceURL, climb.Label)
 				}
 				if test.country == "ES" && (!validSpanishCoordinate(climb.Start.Latitude, climb.Start.Longitude) || !validSpanishCoordinate(climb.End.Latitude, climb.End.Longitude)) {
 					t.Fatalf("implausible Spanish coordinates for %q", climb.Label)
@@ -94,22 +104,31 @@ func TestNationalFamousClimbCatalogs(t *testing.T) {
 				if corsicaSides != 29 {
 					t.Fatalf("expected 29 Corsican climb sides, got %d", corsicaSides)
 				}
-				assertMadeleineVariantCheckpoint(t, badgeSet, "Col de la Madeleine from La Chambre, par la D213")
 				assertMadeleineVariantCheckpoint(t, badgeSet, "Col de la Madeleine from La Chambre, via Montgellafrey")
 				assertClimbClassification(t, badgeSet, "Alpe d'Huez from Le Bourg-d'Oisans", "HC", 979)
-				assertClimbClassification(t, badgeSet, "Col de la Croix-de-Fer from Allemond (Barrage du Verney)", "HC", 1092)
 				assertClimbClassification(t, badgeSet, "Col d'Anelle from Saint-Étienne-de-Tinée", "2", 480)
 				assertClimbClassification(t, badgeSet, "Col du Galibier from La Grave, via le col du Lautaret", "1", 807)
-				assertClimbClassification(t, badgeSet, "Col du Signal from Ruynes-en-Margeride", "2", 350)
-				assertClimbSummitTolerance(t, badgeSet, "Col du Glandon from Allemond (Barrage du Verney)", 100)
 				assertClimbStart(t, badgeSet, "Col des Saisies from Flumet (D1212 / D218B), via Crest-Voland", 45.82128, 6.53094)
 			}
 			if test.name == "espagne" {
 				assertClimbClassification(t, badgeSet, "Puerto Camacho from Los Tablones", "2", 597)
-				assertClimbClassification(t, badgeSet, "Collado del Cebollar from Camping de San Antón, par la piste forestière", "1", 600)
 			}
 		})
 	}
+}
+
+func hasOfficialClimbSource(sourceURL string) bool {
+	parsedURL, err := url.Parse(sourceURL)
+	if err != nil {
+		return false
+	}
+	host := strings.TrimPrefix(strings.ToLower(parsedURL.Hostname()), "www.")
+	for _, domain := range officialClimbSourceDomains {
+		if host == domain || strings.HasSuffix(host, "."+domain) {
+			return true
+		}
+	}
+	return false
 }
 
 func assertClimbStart(t *testing.T, badgeSet badges.BadgeSet, label string, latitude, longitude float64) {
@@ -119,20 +138,6 @@ func assertClimbStart(t *testing.T, badgeSet badges.BadgeSet, label string, lati
 		if ok && climb.Label == label {
 			if climb.Start.Latitude != latitude || climb.Start.Longitude != longitude {
 				t.Fatalf("expected %q to start at %.5f, %.5f, got %.5f, %.5f", label, latitude, longitude, climb.Start.Latitude, climb.Start.Longitude)
-			}
-			return
-		}
-	}
-	t.Fatalf("missing climb alternative %q", label)
-}
-
-func assertClimbSummitTolerance(t *testing.T, badgeSet badges.BadgeSet, label string, toleranceMeters int) {
-	t.Helper()
-	for _, badge := range badgeSet.Badges {
-		climb, ok := badge.(badges.FamousClimbBadge)
-		if ok && climb.Label == label {
-			if climb.SummitToleranceMeters != toleranceMeters {
-				t.Fatalf("expected %q to use a %d m summit tolerance, got %d", label, toleranceMeters, climb.SummitToleranceMeters)
 			}
 			return
 		}
