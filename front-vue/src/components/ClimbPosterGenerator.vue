@@ -18,6 +18,7 @@ import {
 const props = defineProps<{
   climbs: BadgeCheckResult[];
   yearLabel: string;
+  isLoading?: boolean;
 }>();
 
 const athleteStore = useAthleteStore();
@@ -161,13 +162,16 @@ function slugify(value: string): string {
     <button
       type="button"
       class="btn btn-primary btn-sm"
-      :disabled="availableClimbs.length === 0"
+      :disabled="props.isLoading || availableClimbs.length === 0"
       @click="openGenerator"
     >
       <i class="fa-solid fa-image" aria-hidden="true" />
-      Create climb poster
+      {{ props.isLoading ? "Updating climbs..." : "Create climb poster" }}
     </button>
-    <span v-if="availableClimbs.length === 0" class="poster-generator-hint">
+    <span v-if="props.isLoading" class="poster-generator-hint">
+      Updating climbed cols for {{ yearLabel }}.
+    </span>
+    <span v-else-if="availableClimbs.length === 0" class="poster-generator-hint">
       Unlock a famous climb to create a poster.
     </span>
   </div>
@@ -281,7 +285,7 @@ function slugify(value: string): string {
         <button
           type="button"
           class="btn btn-primary"
-          :disabled="selectedClimbLabels.length === 0"
+          :disabled="props.isLoading || selectedClimbLabels.length === 0"
           @click="generatePoster"
         >
           <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true" />

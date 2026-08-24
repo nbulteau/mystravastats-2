@@ -126,8 +126,8 @@ class BadgesServiceTest {
         val results = badgesService.getFamousBadges(activityTypes, null)
         val climbs = results.map { it.badge as FamousClimbBadge }
 
-        assertEquals(606, climbs.size)
-        assertEquals(mapOf("FR" to 354, "CH" to 47, "IT" to 78, "ES" to 127), climbs.groupingBy { it.country }.eachCount())
+        assertEquals(760, climbs.size)
+        assertEquals(mapOf("FR" to 508, "CH" to 47, "IT" to 78, "ES" to 127), climbs.groupingBy { it.country }.eachCount())
         assertTrue(climbs.all { it.massif.isNotBlank() })
         assertEquals(climbs.size, climbs.map { it.label }.distinct().size)
         climbs.forEach { climb ->
@@ -161,7 +161,7 @@ class BadgesServiceTest {
                 assertTrue(climb.end.latitude in 27.0..44.5 && climb.end.longitude in -19.0..5.0, "Implausible Spanish summit for ${climb.label}")
             }
         }
-        assertEquals(29, climbs.count { it.massif == "Corse" })
+        assertEquals(38, climbs.count { it.massif == "Corse" })
         val alpeDHuez = climbs.single { it.label == "Alpe d'Huez from Le Bourg-d'Oisans" }
         assertEquals("HC", alpeDHuez.category)
         assertEquals(979, alpeDHuez.difficulty)

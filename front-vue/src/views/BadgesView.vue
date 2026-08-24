@@ -81,6 +81,9 @@ const sectionSummary = (badges: BadgeCheckResult[]) => {
 
 const generalBadgesCheckResults = computed(() => sortByProgress(badgesStore.generalBadgesCheckResults));
 const allFamousClimbBadgesCheckResults = computed(() => sortByProgress(badgesStore.famousClimbBadgesCheckResults));
+const isBadgeDataUpdating = computed(() => (
+  badgesStore.isLoading || badgesStore.loadedFiltersKey !== contextStore.currentFiltersKey
+));
 const earnedFamousClimbs = computed(() => allFamousClimbBadgesCheckResults.value.filter((result) => (
   result.nbCheckedActivities > 0
 )));
@@ -315,11 +318,15 @@ async function openClimbInLog(variantId: string) {
         <div class="poster-facts" aria-label="Poster generator capabilities">
           <span><strong>3</strong> designs</span>
           <span><strong>50</strong> cols maximum</span>
-          <span><strong>{{ earnedFamousClimbs.length }}</strong> available now</span>
+          <span :class="{ 'poster-fact--loading': isBadgeDataUpdating }">
+            <strong>{{ isBadgeDataUpdating ? "…" : earnedFamousClimbs.length }}</strong>
+            {{ isBadgeDataUpdating ? "updating" : "available now" }}
+          </span>
         </div>
         <ClimbPosterGenerator
           :climbs="allFamousClimbBadgesCheckResults"
           :year-label="currentYear"
+          :is-loading="isBadgeDataUpdating"
         />
       </div>
     </section>
@@ -660,6 +667,10 @@ async function openClimbInLog(variantId: string) {
 
 .poster-facts strong {
   color: var(--ms-text);
+}
+
+.poster-fact--loading {
+  color: #c85d33;
 }
 
 .planned-chip {

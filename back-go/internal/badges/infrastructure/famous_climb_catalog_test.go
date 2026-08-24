@@ -21,7 +21,7 @@ func TestNationalFamousClimbCatalogs(t *testing.T) {
 		country       string
 		expectedSides int
 	}{
-		{name: "france", country: "FR", expectedSides: 354},
+		{name: "france", country: "FR", expectedSides: 508},
 		{name: "suisse", country: "CH", expectedSides: 47},
 		{name: "italie", country: "IT", expectedSides: 78},
 		{name: "espagne", country: "ES", expectedSides: 127},
@@ -101,8 +101,8 @@ func TestNationalFamousClimbCatalogs(t *testing.T) {
 				}
 			}
 			if test.name == "france" {
-				if corsicaSides != 29 {
-					t.Fatalf("expected 29 Corsican climb sides, got %d", corsicaSides)
+				if corsicaSides != 38 {
+					t.Fatalf("expected 38 Corsican climb sides, got %d", corsicaSides)
 				}
 				assertMadeleineVariantCheckpoint(t, badgeSet, "Col de la Madeleine from La Chambre, via Montgellafrey")
 				assertClimbClassification(t, badgeSet, "Alpe d'Huez from Le Bourg-d'Oisans", "HC", 979)

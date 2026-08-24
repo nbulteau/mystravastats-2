@@ -1770,21 +1770,6 @@
         "averageGradient": 7.1,
         "category": "1",
         "sourceUrl": "https://mycols.app/fr/col/col-du-telegraph"
-      },
-      {
-        "name": "Valloire",
-        "geoCoordinate": {
-          "latitude": 45.16521,
-          "longitude": 6.43193
-        },
-        "length": 4.7,
-        "totalAscent": 156,
-        "minimumAltitude": 1411,
-        "maximumGradient": 6,
-        "difficulty": 74,
-        "averageGradient": 3.32,
-        "category": "4",
-        "sourceUrl": "https://mycols.app/fr/col/col-du-telegraph-valloire"
       }
     ]
   },
@@ -6273,21 +6258,6 @@
         "sourceUrl": "https://www.cols-cyclisme.com/monts-du-vivarais/france/col-du-gerbier-de-jonc-depuis-la-chazotte-c2372.htm"
       },
       {
-        "name": "Le Bourlatier (D122 / D378)",
-        "geoCoordinate": {
-          "latitude": 44.8191,
-          "longitude": 4.2417
-        },
-        "length": 3.2,
-        "totalAscent": 46,
-        "minimumAltitude": 1371,
-        "maximumGradient": 7,
-        "difficulty": 7,
-        "averageGradient": 1.44,
-        "category": "4",
-        "sourceUrl": "https://www.cols-cyclisme.com/monts-du-vivarais/france/col-du-gerbier-de-jonc-depuis-le-bourlatier-d122-d378-c720.htm"
-      },
-      {
         "name": "Sainte-Eulalie",
         "geoCoordinate": {
           "latitude": 44.81274,
@@ -6701,60 +6671,6 @@
     ]
   },
   {
-    "name": "Col de Vestizoux",
-    "country": "FR",
-    "massif": "Massif central",
-    "topOfTheAscent": 1317,
-    "geoCoordinate": {
-      "latitude": 45.36653,
-      "longitude": 2.99606
-    },
-    "alternatives": [
-      {
-        "name": "Boutaresse",
-        "geoCoordinate": {
-          "latitude": 45.36249,
-          "longitude": 2.97044
-        },
-        "length": 2.467,
-        "totalAscent": 94,
-        "minimumAltitude": 1223,
-        "maximumGradient": 8,
-        "difficulty": 46,
-        "averageGradient": 3.8,
-        "category": "4",
-        "sourceUrl": "https://climbfinder.com/en/climbs/col-de-vestizoux-boutaresse"
-      }
-    ]
-  },
-  {
-    "name": "Col du Chamaroux",
-    "country": "FR",
-    "massif": "Massif central",
-    "topOfTheAscent": 1291,
-    "geoCoordinate": {
-      "latitude": 45.339875,
-      "longitude": 2.94157
-    },
-    "alternatives": [
-      {
-        "name": "Boutaresse",
-        "geoCoordinate": {
-          "latitude": 45.35347,
-          "longitude": 2.95597
-        },
-        "length": 2.474,
-        "totalAscent": 58,
-        "minimumAltitude": 1233,
-        "maximumGradient": 5.7,
-        "difficulty": 18,
-        "averageGradient": 2.35,
-        "category": "4",
-        "sourceUrl": "https://climbfinder.com/en/climbs/col-du-chamaroux-boutaresse"
-      }
-    ]
-  },
-  {
     "name": "Col de Fortunier",
     "country": "FR",
     "massif": "Massif central",
@@ -6807,50 +6723,6 @@
         "sourceUrl": "https://www.cols-cyclisme.com/mercantour/france/col-d-anelle-depuis-saint-etienne-de-tinee-c3058.htm"
       }
     ]
-  },
-  {
-    "name": "Col du Parchit",
-    "country": "FR",
-    "massif": "Alpes",
-    "topOfTheAscent": 1735,
-    "geoCoordinate": {
-      "latitude": 45.477659,
-      "longitude": 6.580437
-    },
-    "alternatives": []
-  },
-  {
-    "name": "Col de Cluy",
-    "country": "FR",
-    "massif": "Alpes",
-    "topOfTheAscent": 1801,
-    "geoCoordinate": {
-      "latitude": 45.06985,
-      "longitude": 6.10336
-    },
-    "alternatives": []
-  },
-  {
-    "name": "Pas des Alpins",
-    "country": "FR",
-    "massif": "Massif central",
-    "topOfTheAscent": 1750,
-    "geoCoordinate": {
-      "latitude": 45.066937,
-      "longitude": 2.76622
-    },
-    "alternatives": []
-  },
-  {
-    "name": "Col du Signal",
-    "country": "FR",
-    "massif": "Massif central",
-    "topOfTheAscent": 1350,
-    "geoCoordinate": {
-      "latitude": 45.033837,
-      "longitude": 3.26541
-    },
-    "alternatives": []
   },
   {
     "name": "Les Bauches",
@@ -7123,330 +6995,6 @@
     ]
   },
   {
-    "name": "La Côte des Sagnes",
-    "country": "FR",
-    "massif": "Alpes",
-    "topOfTheAscent": 1272,
-    "geoCoordinate": {
-      "latitude": 45.21117,
-      "longitude": 6.05049
-    },
-    "alternatives": [
-      {
-        "name": "Les Sagnes",
-        "geoCoordinate": {
-          "latitude": 45.2089,
-          "longitude": 6.0576
-        },
-        "length": 1.2,
-        "totalAscent": 98,
-        "minimumAltitude": 1174,
-        "maximumGradient": 13.4,
-        "difficulty": 96,
-        "averageGradient": 8,
-        "category": "4",
-        "sourceUrl": "https://climbfinder.com/fr/montees/la-cote-des-sagnes"
-      }
-    ]
-  },
-  {
-    "name": "Côte de Saint-Médard-sur-Ille",
-    "country": "FR",
-    "massif": "Massif armoricain",
-    "topOfTheAscent": 85,
-    "geoCoordinate": {
-      "latitude": 48.27284,
-      "longitude": -1.65755
-    },
-    "alternatives": [
-      {
-        "name": "Saint-Médard-sur-Ille",
-        "geoCoordinate": {
-          "latitude": 48.2722,
-          "longitude": -1.6636
-        },
-        "length": 0.5,
-        "totalAscent": 30,
-        "minimumAltitude": 55,
-        "maximumGradient": 12.4,
-        "difficulty": 31,
-        "averageGradient": 6.3,
-        "category": "4",
-        "sourceUrl": "https://climbfinder.com/fr/montees/cote-de-saint-medard-sur-ille"
-      }
-    ]
-  },
-  {
-    "name": "Saint-Germain-sur-Ille",
-    "country": "FR",
-    "massif": "Massif armoricain",
-    "topOfTheAscent": 89,
-    "geoCoordinate": {
-      "latitude": 48.24886,
-      "longitude": -1.66021
-    },
-    "alternatives": [
-      {
-        "name": "Le Moulin Neuf",
-        "geoCoordinate": {
-          "latitude": 48.2478,
-          "longitude": -1.6671
-        },
-        "length": 0.9,
-        "totalAscent": 43,
-        "minimumAltitude": 46,
-        "maximumGradient": 6.8,
-        "difficulty": 22,
-        "averageGradient": 4.8,
-        "category": "4",
-        "sourceUrl": "https://climbfinder.com/fr/montees/saint-germain-sur-ille"
-      }
-    ]
-  },
-  {
-    "name": "Côte de La Bouëxière",
-    "country": "FR",
-    "massif": "Massif armoricain",
-    "topOfTheAscent": 111,
-    "geoCoordinate": {
-      "latitude": 48.1783,
-      "longitude": -1.46613
-    },
-    "alternatives": [
-      {
-        "name": "Bâton Roulant",
-        "geoCoordinate": {
-          "latitude": 48.1832,
-          "longitude": -1.4985
-        },
-        "length": 2.6,
-        "totalAscent": 67,
-        "minimumAltitude": 44,
-        "maximumGradient": 4.5,
-        "difficulty": 21,
-        "averageGradient": 2.5,
-        "category": "4",
-        "sourceUrl": "https://climbfinder.com/fr/montees/cote-de-la-bouexiere-baton-roulant"
-      }
-    ]
-  },
-  {
-    "name": "Côte de la Débinerie",
-    "country": "FR",
-    "massif": "Massif armoricain",
-    "topOfTheAscent": 109,
-    "geoCoordinate": {
-      "latitude": 48.17739,
-      "longitude": -1.46378
-    },
-    "alternatives": [
-      {
-        "name": "Ruisseau",
-        "geoCoordinate": {
-          "latitude": 48.1706,
-          "longitude": -1.4737
-        },
-        "length": 1.2,
-        "totalAscent": 45,
-        "minimumAltitude": 64,
-        "maximumGradient": 5.5,
-        "difficulty": 19,
-        "averageGradient": 3.9,
-        "category": "4",
-        "sourceUrl": "https://climbfinder.com/fr/montees/cote-de-la-debinerie-ruisseau"
-      }
-    ]
-  },
-  {
-    "name": "Côte des Boulains",
-    "country": "FR",
-    "massif": "Massif armoricain",
-    "topOfTheAscent": 85,
-    "geoCoordinate": {
-      "latitude": 48.16381,
-      "longitude": -1.54672
-    },
-    "alternatives": [
-      {
-        "name": "Les Boulains",
-        "geoCoordinate": {
-          "latitude": 48.1566,
-          "longitude": -1.5485
-        },
-        "length": 0.8,
-        "totalAscent": 34,
-        "minimumAltitude": 51,
-        "maximumGradient": 7.4,
-        "difficulty": 16,
-        "averageGradient": 4.1,
-        "category": "4",
-        "sourceUrl": "https://climbfinder.com/fr/montees/cote-des-boulains"
-      }
-    ]
-  },
-  {
-    "name": "Mouazé",
-    "country": "FR",
-    "massif": "Massif armoricain",
-    "topOfTheAscent": 82,
-    "geoCoordinate": {
-      "latitude": 48.23513,
-      "longitude": -1.62386
-    },
-    "alternatives": [
-      {
-        "name": "La Houssais",
-        "geoCoordinate": {
-          "latitude": 48.2384,
-          "longitude": -1.6375
-        },
-        "length": 1.1,
-        "totalAscent": 37,
-        "minimumAltitude": 45,
-        "maximumGradient": 5.5,
-        "difficulty": 15,
-        "averageGradient": 3.4,
-        "category": "4",
-        "sourceUrl": "https://climbfinder.com/fr/montees/mouaze-la-houssais"
-      }
-    ]
-  },
-  {
-    "name": "Le Pont d'Ohin",
-    "country": "FR",
-    "massif": "Massif armoricain",
-    "topOfTheAscent": 59,
-    "geoCoordinate": {
-      "latitude": 48.1379,
-      "longitude": -1.55552
-    },
-    "alternatives": [
-      {
-        "name": "D29",
-        "geoCoordinate": {
-          "latitude": 48.1363,
-          "longitude": -1.5464
-        },
-        "length": 0.7,
-        "totalAscent": 25,
-        "minimumAltitude": 34,
-        "maximumGradient": 6.6,
-        "difficulty": 12,
-        "averageGradient": 3.5,
-        "category": "4",
-        "sourceUrl": "https://climbfinder.com/fr/montees/le-pont-d-ohin"
-      }
-    ]
-  },
-  {
-    "name": "Patis Tatelin",
-    "country": "FR",
-    "massif": "Massif armoricain",
-    "topOfTheAscent": 69,
-    "geoCoordinate": {
-      "latitude": 48.1405,
-      "longitude": -1.63288
-    },
-    "alternatives": [
-      {
-        "name": "Route de Saint-Sulpice",
-        "geoCoordinate": {
-          "latitude": 48.1544,
-          "longitude": -1.6256
-        },
-        "length": 1.8,
-        "totalAscent": 32,
-        "minimumAltitude": 37,
-        "maximumGradient": 5.1,
-        "difficulty": 10,
-        "averageGradient": 1.8,
-        "category": "4",
-        "sourceUrl": "https://climbfinder.com/fr/montees/patis-tatelin"
-      }
-    ]
-  },
-  {
-    "name": "Rue de la Chesnais",
-    "country": "FR",
-    "massif": "Massif armoricain",
-    "topOfTheAscent": 75,
-    "geoCoordinate": {
-      "latitude": 48.2264,
-      "longitude": -1.56796
-    },
-    "alternatives": [
-      {
-        "name": "Route principale",
-        "geoCoordinate": {
-          "latitude": 48.2219,
-          "longitude": -1.5794
-        },
-        "length": 1,
-        "totalAscent": 25,
-        "minimumAltitude": 50,
-        "maximumGradient": 4.5,
-        "difficulty": 8,
-        "averageGradient": 2.4,
-        "category": "4",
-        "sourceUrl": "https://climbfinder.com/fr/montees/rue-de-la-chesnais"
-      }
-    ]
-  },
-  {
-    "name": "Côte de la Ville Guy",
-    "country": "FR",
-    "massif": "Massif armoricain",
-    "topOfTheAscent": 62,
-    "geoCoordinate": {
-      "latitude": 48.13094,
-      "longitude": -1.4953
-    },
-    "alternatives": [
-      {
-        "name": "La Ville Guy",
-        "geoCoordinate": {
-          "latitude": 48.1304,
-          "longitude": -1.4853
-        },
-        "length": 0.8,
-        "totalAscent": 21,
-        "minimumAltitude": 41,
-        "maximumGradient": 5.3,
-        "difficulty": 7,
-        "averageGradient": 2.7,
-        "category": "4",
-        "sourceUrl": "https://climbfinder.com/fr/montees/cote-de-la-ville-guy"
-      }
-    ]
-  },
-  {
-    "name": "Côte du Vionay",
-    "country": "FR",
-    "massif": "Massif armoricain",
-    "topOfTheAscent": 61,
-    "geoCoordinate": {
-      "latitude": 48.12759,
-      "longitude": -1.47757
-    },
-    "alternatives": [
-      {
-        "name": "Le Vionay",
-        "geoCoordinate": {
-          "latitude": 48.1303,
-          "longitude": -1.4853
-        },
-        "length": 0.7,
-        "totalAscent": 19,
-        "minimumAltitude": 42,
-        "maximumGradient": 4.4,
-        "difficulty": 6,
-        "averageGradient": 2.9,
-        "category": "4",
-        "sourceUrl": "https://climbfinder.com/fr/montees/cote-du-vionay"
-      }
-    ]
-  },
-  {
     "name": "Alpe d'Huez (arrivée 1775 m)",
     "country": "FR",
     "massif": "Alpes",
@@ -7474,29 +7022,3443 @@
     ]
   },
   {
-    "name": "Barrage du Verney",
+    "name": "Grand Wintersberg",
     "country": "FR",
-    "massif": "Alpes",
-    "topOfTheAscent": 773,
+    "massif": "Vosges",
+    "topOfTheAscent": 580,
     "geoCoordinate": {
-      "latitude": 45.13076,
-      "longitude": 6.04091
+      "latitude": 48.97852,
+      "longitude": 7.61473
     },
     "alternatives": [
       {
-        "name": "Route des Fonderies Royales",
+        "name": "Philippsbourg (Leizelthal)",
         "geoCoordinate": {
-          "latitude": 45.1282,
-          "longitude": 6.0392
+          "latitude": 48.96892,
+          "longitude": 7.58004
         },
-        "length": 0.9,
-        "totalAscent": 48,
-        "minimumAltitude": 725,
-        "maximumGradient": 8.2,
-        "difficulty": 30,
+        "length": 5.2,
+        "totalAscent": 370,
+        "minimumAltitude": 210,
+        "maximumGradient": 17,
+        "difficulty": 353,
+        "averageGradient": 7.1,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/417/"
+      },
+      {
+        "name": "Niederbronn-les-Bains",
+        "geoCoordinate": {
+          "latitude": 48.95316,
+          "longitude": 7.63602
+        },
+        "length": 6.8,
+        "totalAscent": 384,
+        "minimumAltitude": 196,
+        "maximumGradient": 11,
+        "difficulty": 297,
+        "averageGradient": 5.6,
+        "category": "3",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/418/"
+      }
+    ]
+  },
+  {
+    "name": "Le Donon",
+    "country": "FR",
+    "massif": "Vosges",
+    "topOfTheAscent": 955,
+    "geoCoordinate": {
+      "latitude": 48.51041,
+      "longitude": 7.16147
+    },
+    "alternatives": [
+      {
+        "name": "Vexaincourt",
+        "geoCoordinate": {
+          "latitude": 48.49381,
+          "longitude": 7.04416
+        },
+        "length": 13.1,
+        "totalAscent": 587,
+        "minimumAltitude": 368,
+        "maximumGradient": 10.1,
+        "difficulty": 484,
+        "averageGradient": 4.5,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/420/"
+      },
+      {
+        "name": "Abreschviller (Ermitage)",
+        "geoCoordinate": {
+          "latitude": 48.62448,
+          "longitude": 7.13075
+        },
+        "length": 23.1,
+        "totalAscent": 633,
+        "minimumAltitude": 322,
+        "maximumGradient": 10.6,
+        "difficulty": 475,
+        "averageGradient": 2.7,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/419/"
+      },
+      {
+        "name": "Schirmeck",
+        "geoCoordinate": {
+          "latitude": 48.48052,
+          "longitude": 7.2106
+        },
+        "length": 12.6,
+        "totalAscent": 636,
+        "minimumAltitude": 319,
+        "maximumGradient": 10.1,
+        "difficulty": 460,
+        "averageGradient": 5,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/421/"
+      },
+      {
+        "name": "Turquestein-Blancrupt",
+        "geoCoordinate": {
+          "latitude": 48.57447,
+          "longitude": 7.06711
+        },
+        "length": 17.1,
+        "totalAscent": 610,
+        "minimumAltitude": 345,
+        "maximumGradient": 10.6,
+        "difficulty": 443,
+        "averageGradient": 3.6,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/28990/"
+      }
+    ]
+  },
+  {
+    "name": "Le Hohneck",
+    "country": "FR",
+    "massif": "Vosges",
+    "topOfTheAscent": 1356,
+    "geoCoordinate": {
+      "latitude": 48.03775,
+      "longitude": 7.0151
+    },
+    "alternatives": [
+      {
+        "name": "Munster",
+        "geoCoordinate": {
+          "latitude": 48.04115,
+          "longitude": 7.13699
+        },
+        "length": 23.5,
+        "totalAscent": 970,
+        "minimumAltitude": 386,
+        "maximumGradient": 10,
+        "difficulty": 606,
+        "averageGradient": 4.1,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/28078/"
+      },
+      {
+        "name": "La Bresse",
+        "geoCoordinate": {
+          "latitude": 48.00648,
+          "longitude": 6.87897
+        },
+        "length": 14.5,
+        "totalAscent": 710,
+        "minimumAltitude": 646,
+        "maximumGradient": 12,
+        "difficulty": 584,
+        "averageGradient": 4.9,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/28079/"
+      },
+      {
+        "name": "Plainfaing",
+        "geoCoordinate": {
+          "latitude": 48.17224,
+          "longitude": 7.01419
+        },
+        "length": 23.5,
+        "totalAscent": 820,
+        "minimumAltitude": 536,
+        "maximumGradient": 10,
+        "difficulty": 544,
+        "averageGradient": 3.5,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/28076/"
+      },
+      {
+        "name": "Granges-Aumontzey",
+        "geoCoordinate": {
+          "latitude": 48.14243,
+          "longitude": 6.79426
+        },
+        "length": 30,
+        "totalAscent": 850,
+        "minimumAltitude": 506,
+        "maximumGradient": 8.5,
+        "difficulty": 523,
+        "averageGradient": 2.8,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/28077/"
+      }
+    ]
+  },
+  {
+    "name": "Petit Drumont",
+    "country": "FR",
+    "massif": "Vosges",
+    "topOfTheAscent": 1144,
+    "geoCoordinate": {
+      "latitude": 47.90246,
+      "longitude": 6.91373
+    },
+    "alternatives": [
+      {
+        "name": "Urbès",
+        "geoCoordinate": {
+          "latitude": 47.88317,
+          "longitude": 6.95717
+        },
+        "length": 11.5,
+        "totalAscent": 690,
+        "minimumAltitude": 454,
+        "maximumGradient": 12,
+        "difficulty": 606,
+        "averageGradient": 6,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/432/"
+      },
+      {
+        "name": "Bussang",
+        "geoCoordinate": {
+          "latitude": 47.88601,
+          "longitude": 6.85526
+        },
+        "length": 8,
+        "totalAscent": 548,
+        "minimumAltitude": 596,
+        "maximumGradient": 17,
+        "difficulty": 564,
+        "averageGradient": 6.8,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/433/"
+      }
+    ]
+  },
+  {
+    "name": "Ballon de Servance",
+    "country": "FR",
+    "massif": "Vosges",
+    "topOfTheAscent": 1158,
+    "geoCoordinate": {
+      "latitude": 47.82266,
+      "longitude": 6.78771
+    },
+    "alternatives": [
+      {
+        "name": "Plancher-Bas",
+        "geoCoordinate": {
+          "latitude": 47.71741,
+          "longitude": 6.73621
+        },
+        "length": 18,
+        "totalAscent": 735,
+        "minimumAltitude": 423,
+        "maximumGradient": 12,
+        "difficulty": 558,
+        "averageGradient": 4.1,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/441/"
+      },
+      {
+        "name": "Le Thillot",
+        "geoCoordinate": {
+          "latitude": 47.87895,
+          "longitude": 6.76544
+        },
+        "length": 14,
+        "totalAscent": 670,
+        "minimumAltitude": 488,
+        "maximumGradient": 9,
+        "difficulty": 464,
+        "averageGradient": 4.8,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/442/"
+      }
+    ]
+  },
+  {
+    "name": "Mont Beuvray (Oppidum de Bibracte)",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 808,
+    "geoCoordinate": {
+      "latitude": 46.92283,
+      "longitude": 4.03641
+    },
+    "alternatives": [
+      {
+        "name": "Corlon",
+        "geoCoordinate": {
+          "latitude": 46.91921,
+          "longitude": 4.08239
+        },
+        "length": 6,
+        "totalAscent": 364,
+        "minimumAltitude": 444,
+        "maximumGradient": 11.9,
+        "difficulty": 324,
+        "averageGradient": 6.1,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/451/"
+      },
+      {
+        "name": "Glux-en-Glenne (L'Echenault)",
+        "geoCoordinate": {
+          "latitude": 46.93947,
+          "longitude": 4.03414
+        },
+        "length": 3.5,
+        "totalAscent": 261,
+        "minimumAltitude": 547,
+        "maximumGradient": 16,
+        "difficulty": 269,
+        "averageGradient": 7.5,
+        "category": "3",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/452/"
+      }
+    ]
+  },
+  {
+    "name": "Signal d'Uchon",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 676,
+    "geoCoordinate": {
+      "latitude": 46.80592,
+      "longitude": 4.25991
+    },
+    "alternatives": [
+      {
+        "name": "Mesvres",
+        "geoCoordinate": {
+          "latitude": 46.85882,
+          "longitude": 4.23957
+        },
+        "length": 8.4,
+        "totalAscent": 400,
+        "minimumAltitude": 276,
+        "maximumGradient": 14,
+        "difficulty": 421,
+        "averageGradient": 4.8,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/454/"
+      },
+      {
+        "name": "La Tagnière",
+        "geoCoordinate": {
+          "latitude": 46.78952,
+          "longitude": 4.21014
+        },
+        "length": 7.8,
+        "totalAscent": 370,
+        "minimumAltitude": 306,
+        "maximumGradient": 12,
+        "difficulty": 281,
+        "averageGradient": 4.7,
+        "category": "3",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/455/"
+      }
+    ]
+  },
+  {
+    "name": "Col de Favardy",
+    "country": "FR",
+    "massif": "Jura",
+    "topOfTheAscent": 856,
+    "geoCoordinate": {
+      "latitude": 46.10949,
+      "longitude": 4.4294
+    },
+    "alternatives": [
+      {
+        "name": "Lamure-sur-Azergues",
+        "geoCoordinate": {
+          "latitude": 46.06335,
+          "longitude": 4.49193
+        },
+        "length": 10.5,
+        "totalAscent": 470,
+        "minimumAltitude": 386,
+        "maximumGradient": 9,
+        "difficulty": 348,
+        "averageGradient": 4.5,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/458/"
+      },
+      {
+        "name": "Cours-la-Ville",
+        "geoCoordinate": {
+          "latitude": 46.09999,
+          "longitude": 4.32127
+        },
+        "length": 16.5,
+        "totalAscent": 350,
+        "minimumAltitude": 506,
+        "maximumGradient": 8,
+        "difficulty": 328,
+        "averageGradient": 2.1,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/459/"
+      }
+    ]
+  },
+  {
+    "name": "Mont Poupet",
+    "country": "FR",
+    "massif": "Jura",
+    "topOfTheAscent": 835,
+    "geoCoordinate": {
+      "latitude": 46.97193,
+      "longitude": 5.88759
+    },
+    "alternatives": [
+      {
+        "name": "Salins-les-Bains",
+        "geoCoordinate": {
+          "latitude": 46.94729,
+          "longitude": 5.87977
+        },
+        "length": 9.8,
+        "totalAscent": 500,
+        "minimumAltitude": 335,
+        "maximumGradient": 16,
+        "difficulty": 486,
+        "averageGradient": 5.1,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/460/"
+      }
+    ]
+  },
+  {
+    "name": "Grand Taureau (Montagne du Larmont)",
+    "country": "FR",
+    "massif": "Jura",
+    "topOfTheAscent": 1291,
+    "geoCoordinate": {
+      "latitude": 46.91353,
+      "longitude": 6.42673
+    },
+    "alternatives": [
+      {
+        "name": "Pontarlier (Forges)",
+        "geoCoordinate": {
+          "latitude": 46.89426,
+          "longitude": 6.36464
+        },
+        "length": 9.2,
+        "totalAscent": 454,
+        "minimumAltitude": 837,
+        "maximumGradient": 9,
+        "difficulty": 308,
+        "averageGradient": 4.9,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/461/"
+      }
+    ]
+  },
+  {
+    "name": "Le Morond",
+    "country": "FR",
+    "massif": "Jura",
+    "topOfTheAscent": 1419,
+    "geoCoordinate": {
+      "latitude": 46.75124,
+      "longitude": 6.35348
+    },
+    "alternatives": [
+      {
+        "name": "Métabief",
+        "geoCoordinate": {
+          "latitude": 46.77542,
+          "longitude": 6.34461
+        },
+        "length": 6.2,
+        "totalAscent": 480,
+        "minimumAltitude": 939,
+        "maximumGradient": 16,
+        "difficulty": 461,
+        "averageGradient": 7.7,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/462/"
+      }
+    ]
+  },
+  {
+    "name": "Crêt Pela (RF Forêts Monts)",
+    "country": "FR",
+    "massif": "Jura",
+    "topOfTheAscent": 1400,
+    "geoCoordinate": {
+      "latitude": 46.41162,
+      "longitude": 6.02877
+    },
+    "alternatives": [
+      {
+        "name": "Saint-Claude",
+        "geoCoordinate": {
+          "latitude": 46.37767,
+          "longitude": 5.87365
+        },
+        "length": 23.5,
+        "totalAscent": 975,
+        "minimumAltitude": 425,
+        "maximumGradient": 11,
+        "difficulty": 699,
+        "averageGradient": 4.1,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/28082/"
+      },
+      {
+        "name": "Saint-Claude (Moulins)",
+        "geoCoordinate": {
+          "latitude": 46.32956,
+          "longitude": 5.86449
+        },
+        "length": 31,
+        "totalAscent": 965,
+        "minimumAltitude": 435,
+        "maximumGradient": 7,
+        "difficulty": 633,
+        "averageGradient": 3.1,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/28081/"
+      },
+      {
+        "name": "Morez",
+        "geoCoordinate": {
+          "latitude": 46.52204,
+          "longitude": 6.02114
+        },
+        "length": 21,
+        "totalAscent": 695,
+        "minimumAltitude": 705,
+        "maximumGradient": 9,
+        "difficulty": 558,
+        "averageGradient": 3.3,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/28080/"
+      },
+      {
+        "name": "Mijoux",
+        "geoCoordinate": {
+          "latitude": 46.36795,
+          "longitude": 5.99488
+        },
+        "length": 11.5,
+        "totalAscent": 410,
+        "minimumAltitude": 990,
+        "maximumGradient": 9,
+        "difficulty": 284,
+        "averageGradient": 3.6,
+        "category": "3",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/28083/"
+      }
+    ]
+  },
+  {
+    "name": "Cirque des Avalanches",
+    "country": "FR",
+    "massif": "Jura",
+    "topOfTheAscent": 1180,
+    "geoCoordinate": {
+      "latitude": 46.22057,
+      "longitude": 5.81172
+    },
+    "alternatives": [
+      {
+        "name": "Champfromier",
+        "geoCoordinate": {
+          "latitude": 46.19488,
+          "longitude": 5.81748
+        },
+        "length": 4.9,
+        "totalAscent": 539,
+        "minimumAltitude": 641,
+        "maximumGradient": 18,
+        "difficulty": 683,
+        "averageGradient": 11,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/474/"
+      }
+    ]
+  },
+  {
+    "name": "Relais de Planachat",
+    "country": "FR",
+    "massif": "Jura",
+    "topOfTheAscent": 1213,
+    "geoCoordinate": {
+      "latitude": 45.95452,
+      "longitude": 5.62767
+    },
+    "alternatives": [
+      {
+        "name": "Champagne-en-Valromey",
+        "geoCoordinate": {
+          "latitude": 45.95034,
+          "longitude": 5.65794
+        },
+        "length": 8.8,
+        "totalAscent": 596,
+        "minimumAltitude": 617,
+        "maximumGradient": 13,
+        "difficulty": 596,
+        "averageGradient": 6.8,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/477/"
+      },
+      {
+        "name": "Plateau d'Hauteville (Cormaranche)",
+        "geoCoordinate": {
+          "latitude": 45.95428,
+          "longitude": 5.60995
+        },
+        "length": 4.5,
+        "totalAscent": 365,
+        "minimumAltitude": 848,
+        "maximumGradient": 14,
+        "difficulty": 363,
+        "averageGradient": 8.1,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/478/"
+      }
+    ]
+  },
+  {
+    "name": "Col Saint-Thomas",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 930,
+    "geoCoordinate": {
+      "latitude": 45.88611,
+      "longitude": 3.75433
+    },
+    "alternatives": [
+      {
+        "name": "Saint-Just-en-Chevalet",
+        "geoCoordinate": {
+          "latitude": 45.91029,
+          "longitude": 3.84153
+        },
+        "length": 8.6,
+        "totalAscent": 334,
+        "minimumAltitude": 596,
+        "maximumGradient": 13,
+        "difficulty": 399,
+        "averageGradient": 3.9,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/480/"
+      },
+      {
+        "name": "Chabreloche",
+        "geoCoordinate": {
+          "latitude": 45.87826,
+          "longitude": 3.68215
+        },
+        "length": 5.8,
+        "totalAscent": 328,
+        "minimumAltitude": 602,
+        "maximumGradient": 17,
+        "difficulty": 331,
+        "averageGradient": 5.7,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/479/"
+      }
+    ]
+  },
+  {
+    "name": "Col de Bancillon",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 556,
+    "geoCoordinate": {
+      "latitude": 45.81163,
+      "longitude": 3.08664
+    },
+    "alternatives": [
+      {
+        "name": "Clermont-Ferrand (Plaine)",
+        "geoCoordinate": {
+          "latitude": 45.80697,
+          "longitude": 3.10684
+        },
+        "length": 2,
+        "totalAscent": 216,
+        "minimumAltitude": 340,
+        "maximumGradient": 21,
+        "difficulty": 319,
+        "averageGradient": 10.8,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/1755/"
+      },
+      {
+        "name": "Clermont-Ferrand (Bas Champflour)",
+        "geoCoordinate": {
+          "latitude": 45.79063,
+          "longitude": 3.08402
+        },
+        "length": 2.6,
+        "totalAscent": 176,
+        "minimumAltitude": 380,
+        "maximumGradient": 12,
+        "difficulty": 156,
+        "averageGradient": 6.8,
+        "category": "3",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/481/"
+      }
+    ]
+  },
+  {
+    "name": "Col de Baracuchet",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 1270,
+    "geoCoordinate": {
+      "latitude": 45.57852,
+      "longitude": 3.92872
+    },
+    "alternatives": [
+      {
+        "name": "Montbrison",
+        "geoCoordinate": {
+          "latitude": 45.60244,
+          "longitude": 4.05889
+        },
+        "length": 17,
+        "totalAscent": 880,
+        "minimumAltitude": 390,
+        "maximumGradient": 8,
+        "difficulty": 586,
+        "averageGradient": 5.2,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/491/"
+      },
+      {
+        "name": "Saint-Anthème (Prieur)",
+        "geoCoordinate": {
+          "latitude": 45.52951,
+          "longitude": 3.91891
+        },
+        "length": 7.4,
+        "totalAscent": 340,
+        "minimumAltitude": 930,
+        "maximumGradient": 8,
+        "difficulty": 215,
+        "averageGradient": 4.6,
+        "category": "3",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/492/"
+      }
+    ]
+  },
+  {
+    "name": "Col de la Croix de l'Homme Mort",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 1162,
+    "geoCoordinate": {
+      "latitude": 45.54701,
+      "longitude": 3.96446
+    },
+    "alternatives": [
+      {
+        "name": "Montbrison (Moingt)",
+        "geoCoordinate": {
+          "latitude": 45.58992,
+          "longitude": 4.07272
+        },
+        "length": 15,
+        "totalAscent": 760,
+        "minimumAltitude": 402,
+        "maximumGradient": 7,
+        "difficulty": 489,
+        "averageGradient": 5.1,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/28679/"
+      },
+      {
+        "name": "Saint-Georges-Haute-Ville",
+        "geoCoordinate": {
+          "latitude": 45.55972,
+          "longitude": 4.09402
+        },
+        "length": 17.5,
+        "totalAscent": 745,
+        "minimumAltitude": 417,
+        "maximumGradient": 6,
+        "difficulty": 434,
+        "averageGradient": 4.3,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/493/"
+      },
+      {
+        "name": "Saint-Anthème",
+        "geoCoordinate": {
+          "latitude": 45.52674,
+          "longitude": 3.91749
+        },
+        "length": 6.2,
+        "totalAscent": 222,
+        "minimumAltitude": 940,
+        "maximumGradient": 9,
+        "difficulty": 157,
+        "averageGradient": 3.6,
+        "category": "3",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/494/"
+      }
+    ]
+  },
+  {
+    "name": "La Chaise Dieu",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 1080,
+    "geoCoordinate": {
+      "latitude": 45.32124,
+      "longitude": 3.69547
+    },
+    "alternatives": [
+      {
+        "name": "Dore-l'Eglise",
+        "geoCoordinate": {
+          "latitude": 45.38425,
+          "longitude": 3.74385
+        },
+        "length": 10.1,
+        "totalAscent": 478,
+        "minimumAltitude": 602,
+        "maximumGradient": 9.3,
+        "difficulty": 374,
+        "averageGradient": 4.7,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/495/"
+      },
+      {
+        "name": "Arlanc",
+        "geoCoordinate": {
+          "latitude": 45.40763,
+          "longitude": 3.72356
+        },
+        "length": 16.1,
+        "totalAscent": 455,
+        "minimumAltitude": 625,
+        "maximumGradient": 8.7,
+        "difficulty": 335,
+        "averageGradient": 2.8,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/30748/"
+      },
+      {
+        "name": "Laval-sur-Doulon",
+        "geoCoordinate": {
+          "latitude": 45.35113,
+          "longitude": 3.56177
+        },
+        "length": 17.5,
+        "totalAscent": 345,
+        "minimumAltitude": 735,
+        "maximumGradient": 5.3,
+        "difficulty": 271,
+        "averageGradient": 2,
+        "category": "3",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/496/"
+      }
+    ]
+  },
+  {
+    "name": "Crêt de l'Oeillon",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 1350,
+    "geoCoordinate": {
+      "latitude": 45.39228,
+      "longitude": 4.6105
+    },
+    "alternatives": [
+      {
+        "name": "Chavanay",
+        "geoCoordinate": {
+          "latitude": 45.41541,
+          "longitude": 4.73537
+        },
+        "length": 21,
+        "totalAscent": 1200,
+        "minimumAltitude": 150,
+        "maximumGradient": 10,
+        "difficulty": 878,
+        "averageGradient": 5.7,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/499/"
+      },
+      {
+        "name": "La Grand-Croix (Bachasse)",
+        "geoCoordinate": {
+          "latitude": 45.49769,
+          "longitude": 4.56357
+        },
+        "length": 23,
+        "totalAscent": 1035,
+        "minimumAltitude": 315,
+        "maximumGradient": 10,
+        "difficulty": 748,
+        "averageGradient": 4.5,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/28680/"
+      },
+      {
+        "name": "Bourg-Argental",
+        "geoCoordinate": {
+          "latitude": 45.29842,
+          "longitude": 4.55871
+        },
+        "length": 25,
+        "totalAscent": 800,
+        "minimumAltitude": 550,
+        "maximumGradient": 8,
+        "difficulty": 678,
+        "averageGradient": 3.2,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/28681/"
+      },
+      {
+        "name": "Saint-Etienne (Fauriel)",
+        "geoCoordinate": {
+          "latitude": 45.42013,
+          "longitude": 4.41142
+        },
+        "length": 30,
+        "totalAscent": 780,
+        "minimumAltitude": 570,
+        "maximumGradient": 8,
+        "difficulty": 649,
+        "averageGradient": 2.6,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/500/"
+      }
+    ]
+  },
+  {
+    "name": "Col de la Charousse",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 1241,
+    "geoCoordinate": {
+      "latitude": 45.21605,
+      "longitude": 4.48149
+    },
+    "alternatives": [
+      {
+        "name": "Villevocance",
+        "geoCoordinate": {
+          "latitude": 45.22575,
+          "longitude": 4.58864
+        },
+        "length": 13.5,
+        "totalAscent": 805,
+        "minimumAltitude": 436,
+        "maximumGradient": 10,
+        "difficulty": 612,
+        "averageGradient": 6,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/501/"
+      },
+      {
+        "name": "Vocance",
+        "geoCoordinate": {
+          "latitude": 45.19769,
+          "longitude": 4.54486
+        },
+        "length": 13,
+        "totalAscent": 715,
+        "minimumAltitude": 526,
+        "maximumGradient": 9,
+        "difficulty": 514,
+        "averageGradient": 5.5,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/28686/"
+      },
+      {
+        "name": "Riotord",
+        "geoCoordinate": {
+          "latitude": 45.23193,
+          "longitude": 4.40104
+        },
+        "length": 11.8,
+        "totalAscent": 405,
+        "minimumAltitude": 836,
+        "maximumGradient": 8,
+        "difficulty": 281,
+        "averageGradient": 3.4,
+        "category": "3",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/502/"
+      }
+    ]
+  },
+  {
+    "name": "Col de Légal",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 1231,
+    "geoCoordinate": {
+      "latitude": 45.07058,
+      "longitude": 2.57923
+    },
+    "alternatives": [
+      {
+        "name": "Fontanges (Saingoux)",
+        "geoCoordinate": {
+          "latitude": 45.11718,
+          "longitude": 2.49955
+        },
+        "length": 11.5,
+        "totalAscent": 535,
+        "minimumAltitude": 696,
+        "maximumGradient": 9,
+        "difficulty": 386,
+        "averageGradient": 4.7,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/508/"
+      },
+      {
+        "name": "Lascelle (Viers)",
+        "geoCoordinate": {
+          "latitude": 45.05027,
+          "longitude": 2.47379
+        },
+        "length": 13,
+        "totalAscent": 510,
+        "minimumAltitude": 721,
+        "maximumGradient": 10,
+        "difficulty": 366,
+        "averageGradient": 3.9,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/507/"
+      },
+      {
+        "name": "Tournemire",
+        "geoCoordinate": {
+          "latitude": 45.05027,
+          "longitude": 2.47379
+        },
+        "length": 13,
+        "totalAscent": 525,
+        "minimumAltitude": 706,
+        "maximumGradient": 7,
+        "difficulty": 342,
+        "averageGradient": 4,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/1749/"
+      }
+    ]
+  },
+  {
+    "name": "Col de Finiels",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 1545,
+    "geoCoordinate": {
+      "latitude": 44.42365,
+      "longitude": 3.76921
+    },
+    "alternatives": [
+      {
+        "name": "Pont de Montvert - Sud Mont Lozère",
+        "geoCoordinate": {
+          "latitude": 44.36323,
+          "longitude": 3.74669
+        },
+        "length": 11,
+        "totalAscent": 660,
+        "minimumAltitude": 885,
+        "maximumGradient": 8,
+        "difficulty": 473,
+        "averageGradient": 6,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/509/"
+      },
+      {
+        "name": "Mont Lozère et Goulet (Bleymard)",
+        "geoCoordinate": {
+          "latitude": 44.48632,
+          "longitude": 3.73447
+        },
+        "length": 10.5,
+        "totalAscent": 475,
+        "minimumAltitude": 1070,
+        "maximumGradient": 9,
+        "difficulty": 340,
+        "averageGradient": 4.5,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/510/"
+      }
+    ]
+  },
+  {
+    "name": "Col du Pré de la Dame",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 1476,
+    "geoCoordinate": {
+      "latitude": 44.38584,
+      "longitude": 3.90194
+    },
+    "alternatives": [
+      {
+        "name": "Génolhac",
+        "geoCoordinate": {
+          "latitude": 44.44246,
+          "longitude": 3.93235
+        },
+        "length": 16.5,
+        "totalAscent": 1020,
+        "minimumAltitude": 456,
+        "maximumGradient": 10,
+        "difficulty": 758,
+        "averageGradient": 6.2,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/512/"
+      },
+      {
+        "name": "Villefort",
+        "geoCoordinate": {
+          "latitude": 44.34011,
+          "longitude": 3.95186
+        },
+        "length": 15,
+        "totalAscent": 890,
+        "minimumAltitude": 586,
+        "maximumGradient": 9,
+        "difficulty": 660,
+        "averageGradient": 5.9,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/511/"
+      }
+    ]
+  },
+  {
+    "name": "Col du Pendu",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 1428,
+    "geoCoordinate": {
+      "latitude": 44.65111,
+      "longitude": 4.04039
+    },
+    "alternatives": [
+      {
+        "name": "Malarce-sur-la-Thines",
+        "geoCoordinate": {
+          "latitude": 44.44917,
+          "longitude": 4.05461
+        },
+        "length": 43.3,
+        "totalAscent": 1200,
+        "minimumAltitude": 228,
+        "maximumGradient": 10.5,
+        "difficulty": 1042,
+        "averageGradient": 2.8,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/28075/"
+      },
+      {
+        "name": "Lalevade-d'Ardèche (E1)",
+        "geoCoordinate": {
+          "latitude": 44.64433,
+          "longitude": 4.32094
+        },
+        "length": 34.2,
+        "totalAscent": 1160,
+        "minimumAltitude": 268,
+        "maximumGradient": 7.5,
+        "difficulty": 840,
+        "averageGradient": 3.4,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/28073/"
+      },
+      {
+        "name": "Lalevade-d'Ardèche (E2)",
+        "geoCoordinate": {
+          "latitude": 44.64749,
+          "longitude": 4.32495
+        },
+        "length": 38.2,
+        "totalAscent": 1165,
+        "minimumAltitude": 263,
+        "maximumGradient": 8,
+        "difficulty": 817,
+        "averageGradient": 3,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/28072/"
+      },
+      {
+        "name": "Rocles (Pied de Boeuf)",
+        "geoCoordinate": {
+          "latitude": 44.56628,
+          "longitude": 4.19019
+        },
+        "length": 32.2,
+        "totalAscent": 1080,
+        "minimumAltitude": 348,
+        "maximumGradient": 7,
+        "difficulty": 790,
+        "averageGradient": 3.4,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/28074/"
+      }
+    ]
+  },
+  {
+    "name": "Col de la Croix de Boutières",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 1502,
+    "geoCoordinate": {
+      "latitude": 44.89947,
+      "longitude": 4.1852
+    },
+    "alternatives": [
+      {
+        "name": "Saint-Martin-de-Valamas (NE1)",
+        "geoCoordinate": {
+          "latitude": 44.94359,
+          "longitude": 4.36594
+        },
+        "length": 22.9,
+        "totalAscent": 965,
+        "minimumAltitude": 537,
+        "maximumGradient": 10,
+        "difficulty": 720,
+        "averageGradient": 4.2,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/515/"
+      },
+      {
+        "name": "Saint-Martin-de-Valamas (NE2)",
+        "geoCoordinate": {
+          "latitude": 44.94332,
+          "longitude": 4.36588
+        },
+        "length": 26,
+        "totalAscent": 965,
+        "minimumAltitude": 537,
+        "maximumGradient": 7,
+        "difficulty": 620,
+        "averageGradient": 3.7,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/28682/"
+      },
+      {
+        "name": "Le Monastier-sur-Gazeille",
+        "geoCoordinate": {
+          "latitude": 44.92766,
+          "longitude": 4.00666
+        },
+        "length": 18.5,
+        "totalAscent": 625,
+        "minimumAltitude": 877,
+        "maximumGradient": 7,
+        "difficulty": 406,
+        "averageGradient": 3.4,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/516/"
+      },
+      {
+        "name": "Fay-sur-Lignon",
+        "geoCoordinate": {
+          "latitude": 44.97784,
+          "longitude": 4.21808
+        },
+        "length": 13,
+        "totalAscent": 380,
+        "minimumAltitude": 1122,
+        "maximumGradient": 8,
+        "difficulty": 348,
+        "averageGradient": 2.9,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/28683/"
+      }
+    ]
+  },
+  {
+    "name": "Col de la Mûre",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 746,
+    "geoCoordinate": {
+      "latitude": 44.8711,
+      "longitude": 4.70374
+    },
+    "alternatives": [
+      {
+        "name": "Saint-Laurent-du-Pape",
+        "geoCoordinate": {
+          "latitude": 44.82422,
+          "longitude": 4.75153
+        },
+        "length": 7.7,
+        "totalAscent": 632,
+        "minimumAltitude": 114,
+        "maximumGradient": 12.3,
+        "difficulty": 604,
+        "averageGradient": 8.2,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/519/"
+      },
+      {
+        "name": "Dunière-sur-Eyrieux",
+        "geoCoordinate": {
+          "latitude": 44.82401,
+          "longitude": 4.66416
+        },
+        "length": 15,
+        "totalAscent": 575,
+        "minimumAltitude": 171,
+        "maximumGradient": 9,
+        "difficulty": 428,
+        "averageGradient": 3.8,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/520/"
+      }
+    ]
+  },
+  {
+    "name": "Chartreuse de Portes (Col de Portes)",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1005,
+    "geoCoordinate": {
+      "latitude": 45.85885,
+      "longitude": 5.48374
+    },
+    "alternatives": [
+      {
+        "name": "Lagnieu",
+        "geoCoordinate": {
+          "latitude": 45.89648,
+          "longitude": 5.35539
+        },
+        "length": 15,
+        "totalAscent": 800,
+        "minimumAltitude": 205,
+        "maximumGradient": 10,
+        "difficulty": 635,
         "averageGradient": 5.3,
-        "category": "4",
-        "sourceUrl": "https://climbfinder.com/fr/montees/barrage-du-verney"
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/524/"
+      },
+      {
+        "name": "Serrières-de-Briord",
+        "geoCoordinate": {
+          "latitude": 45.81358,
+          "longitude": 5.45144
+        },
+        "length": 12,
+        "totalAscent": 775,
+        "minimumAltitude": 230,
+        "maximumGradient": 10,
+        "difficulty": 580,
+        "averageGradient": 6.5,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/521/"
+      },
+      {
+        "name": "Saint-Rambert-en-Bugey (Foulon)",
+        "geoCoordinate": {
+          "latitude": 45.93304,
+          "longitude": 5.42542
+        },
+        "length": 16,
+        "totalAscent": 720,
+        "minimumAltitude": 285,
+        "maximumGradient": 9,
+        "difficulty": 548,
+        "averageGradient": 4.5,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/522/"
+      },
+      {
+        "name": "La Burbanche (Biais)",
+        "geoCoordinate": {
+          "latitude": 45.88875,
+          "longitude": 5.53101
+        },
+        "length": 14.5,
+        "totalAscent": 625,
+        "minimumAltitude": 380,
+        "maximumGradient": 9,
+        "difficulty": 492,
+        "averageGradient": 4.3,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/523/"
+      }
+    ]
+  },
+  {
+    "name": "Mont Revard",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1538,
+    "geoCoordinate": {
+      "latitude": 45.68136,
+      "longitude": 5.97506
+    },
+    "alternatives": [
+      {
+        "name": "Aix-les-Bains",
+        "geoCoordinate": {
+          "latitude": 45.68816,
+          "longitude": 5.90971
+        },
+        "length": 21,
+        "totalAscent": 1290,
+        "minimumAltitude": 248,
+        "maximumGradient": 9,
+        "difficulty": 977,
+        "averageGradient": 6.1,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/29386/"
+      },
+      {
+        "name": "Grésy-sur-Aix",
+        "geoCoordinate": {
+          "latitude": 45.72177,
+          "longitude": 5.92311
+        },
+        "length": 19.5,
+        "totalAscent": 1245,
+        "minimumAltitude": 293,
+        "maximumGradient": 9,
+        "difficulty": 952,
+        "averageGradient": 6.4,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/534/"
+      },
+      {
+        "name": "Saint-Alban-Leysse",
+        "geoCoordinate": {
+          "latitude": 45.57532,
+          "longitude": 5.96407
+        },
+        "length": 23,
+        "totalAscent": 1235,
+        "minimumAltitude": 303,
+        "maximumGradient": 9,
+        "difficulty": 894,
+        "averageGradient": 5.4,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/535/"
+      },
+      {
+        "name": "Lescheraines (Pont)",
+        "geoCoordinate": {
+          "latitude": 45.71444,
+          "longitude": 6.10509
+        },
+        "length": 22.5,
+        "totalAscent": 945,
+        "minimumAltitude": 593,
+        "maximumGradient": 10,
+        "difficulty": 689,
+        "averageGradient": 4.2,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/29387/"
+      }
+    ]
+  },
+  {
+    "name": "Col des Arces",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1163,
+    "geoCoordinate": {
+      "latitude": 46.26843,
+      "longitude": 6.492
+    },
+    "alternatives": [
+      {
+        "name": "Sciez",
+        "geoCoordinate": {
+          "latitude": 46.33328,
+          "longitude": 6.38751
+        },
+        "length": 19.7,
+        "totalAscent": 760,
+        "minimumAltitude": 403,
+        "maximumGradient": 11.8,
+        "difficulty": 747,
+        "averageGradient": 3.9,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/30754/"
+      },
+      {
+        "name": "Thonon-les-Bains (N1)",
+        "geoCoordinate": {
+          "latitude": 46.36653,
+          "longitude": 6.47569
+        },
+        "length": 18.5,
+        "totalAscent": 730,
+        "minimumAltitude": 433,
+        "maximumGradient": 9,
+        "difficulty": 690,
+        "averageGradient": 3.9,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/540/"
+      },
+      {
+        "name": "Thonon-les-Bains (N2)",
+        "geoCoordinate": {
+          "latitude": 46.36667,
+          "longitude": 6.47774
+        },
+        "length": 20.5,
+        "totalAscent": 725,
+        "minimumAltitude": 438,
+        "maximumGradient": 11,
+        "difficulty": 606,
+        "averageGradient": 3.5,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/29389/"
+      },
+      {
+        "name": "Saint-Jeoire (Ruphy)",
+        "geoCoordinate": {
+          "latitude": 46.13459,
+          "longitude": 6.46926
+        },
+        "length": 24.5,
+        "totalAscent": 610,
+        "minimumAltitude": 553,
+        "maximumGradient": 11,
+        "difficulty": 570,
+        "averageGradient": 2.5,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/29390/"
+      },
+      {
+        "name": "Viuz-en-Sallaz (Brochets)",
+        "geoCoordinate": {
+          "latitude": 46.14268,
+          "longitude": 6.40228
+        },
+        "length": 18.5,
+        "totalAscent": 555,
+        "minimumAltitude": 608,
+        "maximumGradient": 11,
+        "difficulty": 501,
+        "averageGradient": 3,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/541/"
+      }
+    ]
+  },
+  {
+    "name": "Col de l'Encrenaz",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1433,
+    "geoCoordinate": {
+      "latitude": 46.17271,
+      "longitude": 6.63364
+    },
+    "alternatives": [
+      {
+        "name": "Essert-Romand",
+        "geoCoordinate": {
+          "latitude": 46.19415,
+          "longitude": 6.67773
+        },
+        "length": 6.4,
+        "totalAscent": 488,
+        "minimumAltitude": 945,
+        "maximumGradient": 12,
+        "difficulty": 457,
+        "averageGradient": 7.6,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/1748/"
+      },
+      {
+        "name": "Taninges (Les Côtes)",
+        "geoCoordinate": {
+          "latitude": 46.14907,
+          "longitude": 6.61319
+        },
+        "length": 6.2,
+        "totalAscent": 264,
+        "minimumAltitude": 1169,
+        "maximumGradient": 9,
+        "difficulty": 225,
+        "averageGradient": 4.3,
+        "category": "3",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/1756/"
+      }
+    ]
+  },
+  {
+    "name": "Avoriaz",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1834,
+    "geoCoordinate": {
+      "latitude": 46.19369,
+      "longitude": 6.77411
+    },
+    "alternatives": [
+      {
+        "name": "Montriond",
+        "geoCoordinate": {
+          "latitude": 46.19672,
+          "longitude": 6.69447
+        },
+        "length": 15,
+        "totalAscent": 895,
+        "minimumAltitude": 939,
+        "maximumGradient": 9,
+        "difficulty": 692,
+        "averageGradient": 6,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/22918/"
+      },
+      {
+        "name": "Morzine",
+        "geoCoordinate": {
+          "latitude": 46.17573,
+          "longitude": 6.70986
+        },
+        "length": 13.5,
+        "totalAscent": 855,
+        "minimumAltitude": 979,
+        "maximumGradient": 9,
+        "difficulty": 651,
+        "averageGradient": 6.3,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/544/"
+      }
+    ]
+  },
+  {
+    "name": "Mont Salève (col des Pitons)",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1336,
+    "geoCoordinate": {
+      "latitude": 46.09209,
+      "longitude": 6.13984
+    },
+    "alternatives": [
+      {
+        "name": "Collonges-sous-Salève",
+        "geoCoordinate": {
+          "latitude": 46.14148,
+          "longitude": 6.14221
+        },
+        "length": 12,
+        "totalAscent": 850,
+        "minimumAltitude": 486,
+        "maximumGradient": 13,
+        "difficulty": 828,
+        "averageGradient": 7.1,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/27833/"
+      },
+      {
+        "name": "Etrembières",
+        "geoCoordinate": {
+          "latitude": 46.17516,
+          "longitude": 6.22247
+        },
+        "length": 21,
+        "totalAscent": 930,
+        "minimumAltitude": 406,
+        "maximumGradient": 11,
+        "difficulty": 814,
+        "averageGradient": 4.4,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/547/"
+      },
+      {
+        "name": "La Muraz",
+        "geoCoordinate": {
+          "latitude": 46.12667,
+          "longitude": 6.20552
+        },
+        "length": 12,
+        "totalAscent": 705,
+        "minimumAltitude": 631,
+        "maximumGradient": 10,
+        "difficulty": 550,
+        "averageGradient": 5.9,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/29391/"
+      },
+      {
+        "name": "Cruseilles",
+        "geoCoordinate": {
+          "latitude": 46.03514,
+          "longitude": 6.10903
+        },
+        "length": 12,
+        "totalAscent": 560,
+        "minimumAltitude": 776,
+        "maximumGradient": 8,
+        "difficulty": 357,
+        "averageGradient": 4.7,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/548/"
+      }
+    ]
+  },
+  {
+    "name": "Col du Grand Cucheron",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1188,
+    "geoCoordinate": {
+      "latitude": 45.48989,
+      "longitude": 6.24818
+    },
+    "alternatives": [
+      {
+        "name": "Chamoux-sur-Gelon (Servaz)",
+        "geoCoordinate": {
+          "latitude": 45.54169,
+          "longitude": 6.20697
+        },
+        "length": 18,
+        "totalAscent": 900,
+        "minimumAltitude": 288,
+        "maximumGradient": 12,
+        "difficulty": 1026,
+        "averageGradient": 5,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/27090/"
+      },
+      {
+        "name": "Val-d'Arc (Aiguebelle)",
+        "geoCoordinate": {
+          "latitude": 45.54253,
+          "longitude": 6.30862
+        },
+        "length": 16.5,
+        "totalAscent": 865,
+        "minimumAltitude": 323,
+        "maximumGradient": 10,
+        "difficulty": 761,
+        "averageGradient": 5.2,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/553/"
+      },
+      {
+        "name": "Saint-Pierre-de-Belleville",
+        "geoCoordinate": {
+          "latitude": 45.46863,
+          "longitude": 6.28559
+        },
+        "length": 12,
+        "totalAscent": 830,
+        "minimumAltitude": 358,
+        "maximumGradient": 10,
+        "difficulty": 676,
+        "averageGradient": 6.9,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/29393/"
+      },
+      {
+        "name": "Valgelon-La Rochette",
+        "geoCoordinate": {
+          "latitude": 45.45242,
+          "longitude": 6.12112
+        },
+        "length": 17.5,
+        "totalAscent": 785,
+        "minimumAltitude": 403,
+        "maximumGradient": 11,
+        "difficulty": 618,
+        "averageGradient": 4.5,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/554/"
+      }
+    ]
+  },
+  {
+    "name": "Super Collet (Le Collet d'Allevard)",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1639,
+    "geoCoordinate": {
+      "latitude": 45.39357,
+      "longitude": 6.12785
+    },
+    "alternatives": [
+      {
+        "name": "Allevard",
+        "geoCoordinate": {
+          "latitude": 45.39402,
+          "longitude": 6.07746
+        },
+        "length": 15.5,
+        "totalAscent": 1165,
+        "minimumAltitude": 474,
+        "maximumGradient": 11,
+        "difficulty": 1041,
+        "averageGradient": 7.5,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/555/"
+      }
+    ]
+  },
+  {
+    "name": "Signal de Bisanne",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1940,
+    "geoCoordinate": {
+      "latitude": 45.74705,
+      "longitude": 6.50518
+    },
+    "alternatives": [
+      {
+        "name": "Ugine",
+        "geoCoordinate": {
+          "latitude": 45.75169,
+          "longitude": 6.43604
+        },
+        "length": 20.5,
+        "totalAscent": 1505,
+        "minimumAltitude": 435,
+        "maximumGradient": 13,
+        "difficulty": 1401,
+        "averageGradient": 7.3,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/558/"
+      },
+      {
+        "name": "Villard-sur-Doron",
+        "geoCoordinate": {
+          "latitude": 45.72078,
+          "longitude": 6.52138
+        },
+        "length": 15.5,
+        "totalAscent": 1275,
+        "minimumAltitude": 665,
+        "maximumGradient": 12,
+        "difficulty": 1195,
+        "averageGradient": 8.2,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/560/"
+      },
+      {
+        "name": "D1212 /D71a via Crest-Valand",
+        "geoCoordinate": {
+          "latitude": 45.79346,
+          "longitude": 6.48696
+        },
+        "length": 20.1,
+        "totalAscent": 1155,
+        "minimumAltitude": 785,
+        "maximumGradient": 12.8,
+        "difficulty": 1159,
+        "averageGradient": 5.7,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/559/"
+      },
+      {
+        "name": "Beaufort (Manant)",
+        "geoCoordinate": {
+          "latitude": 45.72562,
+          "longitude": 6.55042
+        },
+        "length": 18.5,
+        "totalAscent": 1245,
+        "minimumAltitude": 695,
+        "maximumGradient": 12,
+        "difficulty": 1057,
+        "averageGradient": 6.7,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/561/"
+      },
+      {
+        "name": "Flumet",
+        "geoCoordinate": {
+          "latitude": 45.81755,
+          "longitude": 6.51357
+        },
+        "length": 21,
+        "totalAscent": 1045,
+        "minimumAltitude": 895,
+        "maximumGradient": 12,
+        "difficulty": 964,
+        "averageGradient": 5,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/562/"
+      }
+    ]
+  },
+  {
+    "name": "Pré de Madame Carle",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1873,
+    "geoCoordinate": {
+      "latitude": 44.91702,
+      "longitude": 6.41535
+    },
+    "alternatives": [
+      {
+        "name": "L'Argentière-la-Bessée (Basse)",
+        "geoCoordinate": {
+          "latitude": 44.7952,
+          "longitude": 6.56131
+        },
+        "length": 23,
+        "totalAscent": 895,
+        "minimumAltitude": 978,
+        "maximumGradient": 10,
+        "difficulty": 694,
+        "averageGradient": 3.9,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/583/"
+      }
+    ]
+  },
+  {
+    "name": "Sommet Bucher",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 2220,
+    "geoCoordinate": {
+      "latitude": 44.73975,
+      "longitude": 6.81363
+    },
+    "alternatives": [
+      {
+        "name": "Château-Ville-Vieille (Château-Queyras)",
+        "geoCoordinate": {
+          "latitude": 44.75738,
+          "longitude": 6.79426
+        },
+        "length": 11,
+        "totalAscent": 875,
+        "minimumAltitude": 1345,
+        "maximumGradient": 11,
+        "difficulty": 806,
+        "averageGradient": 8,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/586/"
+      }
+    ]
+  },
+  {
+    "name": "Chapelle de Clausis",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 2497,
+    "geoCoordinate": {
+      "latitude": 44.66544,
+      "longitude": 6.94108
+    },
+    "alternatives": [
+      {
+        "name": "Molines-en-Queyras",
+        "geoCoordinate": {
+          "latitude": 44.72153,
+          "longitude": 6.84605
+        },
+        "length": 12,
+        "totalAscent": 765,
+        "minimumAltitude": 1732,
+        "maximumGradient": 12,
+        "difficulty": 656,
+        "averageGradient": 6.4,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/587/"
+      }
+    ]
+  },
+  {
+    "name": "Col de Tourniol",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1145,
+    "geoCoordinate": {
+      "latitude": 44.91876,
+      "longitude": 5.18451
+    },
+    "alternatives": [
+      {
+        "name": "Chabeuil",
+        "geoCoordinate": {
+          "latitude": 44.91249,
+          "longitude": 5.01968
+        },
+        "length": 28,
+        "totalAscent": 930,
+        "minimumAltitude": 215,
+        "maximumGradient": 7.5,
+        "difficulty": 750,
+        "averageGradient": 3.3,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/29399/"
+      },
+      {
+        "name": "Mirabel-et-Blacons (Blacons)",
+        "geoCoordinate": {
+          "latitude": 44.70737,
+          "longitude": 5.08968
+        },
+        "length": 34,
+        "totalAscent": 935,
+        "minimumAltitude": 210,
+        "maximumGradient": 7.5,
+        "difficulty": 657,
+        "averageGradient": 2.8,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/29400/"
+      },
+      {
+        "name": "Bourg-de-Péage",
+        "geoCoordinate": {
+          "latitude": 45.02992,
+          "longitude": 5.06524
+        },
+        "length": 23,
+        "totalAscent": 980,
+        "minimumAltitude": 165,
+        "maximumGradient": 8,
+        "difficulty": 634,
+        "averageGradient": 4.3,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/588/"
+      },
+      {
+        "name": "Saint-Jean-en-Royans (Grange)",
+        "geoCoordinate": {
+          "latitude": 45.00912,
+          "longitude": 5.28601
+        },
+        "length": 20,
+        "totalAscent": 895,
+        "minimumAltitude": 250,
+        "maximumGradient": 9,
+        "difficulty": 578,
+        "averageGradient": 4.5,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/589/"
+      }
+    ]
+  },
+  {
+    "name": "Col de Rousset",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1249,
+    "geoCoordinate": {
+      "latitude": 44.84039,
+      "longitude": 5.40556
+    },
+    "alternatives": [
+      {
+        "name": "Sainte-Eulalie-en-Royans",
+        "geoCoordinate": {
+          "latitude": 45.05243,
+          "longitude": 5.34302
+        },
+        "length": 35,
+        "totalAscent": 995,
+        "minimumAltitude": 254,
+        "maximumGradient": 6,
+        "difficulty": 692,
+        "averageGradient": 2.8,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/591/"
+      },
+      {
+        "name": "Die",
+        "geoCoordinate": {
+          "latitude": 44.75901,
+          "longitude": 5.36264
+        },
+        "length": 20.5,
+        "totalAscent": 855,
+        "minimumAltitude": 394,
+        "maximumGradient": 8,
+        "difficulty": 552,
+        "averageGradient": 4.2,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/590/"
+      },
+      {
+        "name": "La Chapelle-en-Vercors",
+        "geoCoordinate": {
+          "latitude": 44.96236,
+          "longitude": 5.40997
+        },
+        "length": 39,
+        "totalAscent": 395,
+        "minimumAltitude": 854,
+        "maximumGradient": 8.5,
+        "difficulty": 686,
+        "averageGradient": 1,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/29397/"
+      }
+    ]
+  },
+  {
+    "name": "Col de Menée",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1402,
+    "geoCoordinate": {
+      "latitude": 44.75725,
+      "longitude": 5.60254
+    },
+    "alternatives": [
+      {
+        "name": "Châtillon-en-Diois",
+        "geoCoordinate": {
+          "latitude": 44.69444,
+          "longitude": 5.48805
+        },
+        "length": 21,
+        "totalAscent": 835,
+        "minimumAltitude": 567,
+        "maximumGradient": 8,
+        "difficulty": 527,
+        "averageGradient": 4,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/592/"
+      },
+      {
+        "name": "Clelles",
+        "geoCoordinate": {
+          "latitude": 44.82709,
+          "longitude": 5.62734
+        },
+        "length": 15,
+        "totalAscent": 650,
+        "minimumAltitude": 752,
+        "maximumGradient": 8,
+        "difficulty": 424,
+        "averageGradient": 4.3,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/593/"
+      }
+    ]
+  },
+  {
+    "name": "Mont Colombis",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1734,
+    "geoCoordinate": {
+      "latitude": 44.49569,
+      "longitude": 6.21896
+    },
+    "alternatives": [
+      {
+        "name": "Remollon",
+        "geoCoordinate": {
+          "latitude": 44.46793,
+          "longitude": 6.16849
+        },
+        "length": 12,
+        "totalAscent": 1065,
+        "minimumAltitude": 669,
+        "maximumGradient": 14,
+        "difficulty": 1090,
+        "averageGradient": 8.9,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/599/"
+      }
+    ]
+  },
+  {
+    "name": "Col de Pontis",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1301,
+    "geoCoordinate": {
+      "latitude": 44.48802,
+      "longitude": 6.34856
+    },
+    "alternatives": [
+      {
+        "name": "Le Lauzet-Ubaye (Cimetière)",
+        "geoCoordinate": {
+          "latitude": 44.46473,
+          "longitude": 6.36154
+        },
+        "length": 5.4,
+        "totalAscent": 506,
+        "minimumAltitude": 795,
+        "maximumGradient": 13,
+        "difficulty": 525,
+        "averageGradient": 9.4,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/600/"
+      },
+      {
+        "name": "Savines-le-Lac (Eygoires)",
+        "geoCoordinate": {
+          "latitude": 44.51911,
+          "longitude": 6.38862
+        },
+        "length": 7.4,
+        "totalAscent": 500,
+        "minimumAltitude": 801,
+        "maximumGradient": 13,
+        "difficulty": 461,
+        "averageGradient": 6.8,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/601/"
+      }
+    ]
+  },
+  {
+    "name": "Tunnel du Parpaillon",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 2640,
+    "geoCoordinate": {
+      "latitude": 44.48862,
+      "longitude": 6.64566
+    },
+    "alternatives": [
+      {
+        "name": "Embrun",
+        "geoCoordinate": {
+          "latitude": 44.56133,
+          "longitude": 6.51348
+        },
+        "length": 27,
+        "totalAscent": 1840,
+        "minimumAltitude": 800,
+        "maximumGradient": 10,
+        "difficulty": 1522,
+        "averageGradient": 6.8,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/602/"
+      },
+      {
+        "name": "La Condamine-Châtelard",
+        "geoCoordinate": {
+          "latitude": 44.45827,
+          "longitude": 6.74637
+        },
+        "length": 18,
+        "totalAscent": 1355,
+        "minimumAltitude": 1285,
+        "maximumGradient": 12,
+        "difficulty": 1244,
+        "averageGradient": 7.5,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/603/"
+      }
+    ]
+  },
+  {
+    "name": "Route de la Malène",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 985,
+    "geoCoordinate": {
+      "latitude": 44.27106,
+      "longitude": 3.2654
+    },
+    "alternatives": [
+      {
+        "name": "Massegros Causses Gorges (Vignes)",
+        "geoCoordinate": {
+          "latitude": 44.27762,
+          "longitude": 3.22751
+        },
+        "length": 8.8,
+        "totalAscent": 568,
+        "minimumAltitude": 417,
+        "maximumGradient": 13,
+        "difficulty": 472,
+        "averageGradient": 6.5,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/619/"
+      },
+      {
+        "name": "La Malène",
+        "geoCoordinate": {
+          "latitude": 44.30124,
+          "longitude": 3.31921
+        },
+        "length": 13,
+        "totalAscent": 535,
+        "minimumAltitude": 450,
+        "maximumGradient": 12,
+        "difficulty": 464,
+        "averageGradient": 4.1,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/618/"
+      }
+    ]
+  },
+  {
+    "name": "Col des Faïsses",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 1018,
+    "geoCoordinate": {
+      "latitude": 44.24651,
+      "longitude": 3.62415
+    },
+    "alternatives": [
+      {
+        "name": "Saint-Jean-du-Gard",
+        "geoCoordinate": {
+          "latitude": 44.10655,
+          "longitude": 3.8862
+        },
+        "length": 39,
+        "totalAscent": 822,
+        "minimumAltitude": 196,
+        "maximumGradient": 8.7,
+        "difficulty": 715,
+        "averageGradient": 2.1,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/625/"
+      },
+      {
+        "name": "Florac-Trois-Rivières",
+        "geoCoordinate": {
+          "latitude": 44.31882,
+          "longitude": 3.59788
+        },
+        "length": 12.2,
+        "totalAscent": 470,
+        "minimumAltitude": 548,
+        "maximumGradient": 10.1,
+        "difficulty": 435,
+        "averageGradient": 3.9,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/624/"
+      },
+      {
+        "name": "Racoules",
+        "geoCoordinate": {
+          "latitude": 44.25402,
+          "longitude": 3.58365
+        },
+        "length": 6,
+        "totalAscent": 397,
+        "minimumAltitude": 621,
+        "maximumGradient": 11.6,
+        "difficulty": 354,
+        "averageGradient": 6.6,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/22599/"
+      },
+      {
+        "name": "Saint-Julien-d'Arpaon",
+        "geoCoordinate": {
+          "latitude": 44.29658,
+          "longitude": 3.66809
+        },
+        "length": 14,
+        "totalAscent": 379,
+        "minimumAltitude": 639,
+        "maximumGradient": 9.7,
+        "difficulty": 342,
+        "averageGradient": 2.7,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/22597/"
+      }
+    ]
+  },
+  {
+    "name": "Pic de Nore",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 1205,
+    "geoCoordinate": {
+      "latitude": 43.42449,
+      "longitude": 2.46406
+    },
+    "alternatives": [
+      {
+        "name": "Mazamet",
+        "geoCoordinate": {
+          "latitude": 43.49342,
+          "longitude": 2.37695
+        },
+        "length": 18,
+        "totalAscent": 955,
+        "minimumAltitude": 250,
+        "maximumGradient": 11,
+        "difficulty": 704,
+        "averageGradient": 5.3,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/626/"
+      },
+      {
+        "name": "Villeneuve-Minervois",
+        "geoCoordinate": {
+          "latitude": 43.31614,
+          "longitude": 2.46179
+        },
+        "length": 22.5,
+        "totalAscent": 1010,
+        "minimumAltitude": 195,
+        "maximumGradient": 8,
+        "difficulty": 674,
+        "averageGradient": 4.5,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/627/"
+      }
+    ]
+  },
+  {
+    "name": "Col de l'Espinouse",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 1120,
+    "geoCoordinate": {
+      "latitude": 43.65315,
+      "longitude": 2.94156
+    },
+    "alternatives": [
+      {
+        "name": "Le Poujol-sur-Orb",
+        "geoCoordinate": {
+          "latitude": 43.57773,
+          "longitude": 3.06271
+        },
+        "length": 21.5,
+        "totalAscent": 950,
+        "minimumAltitude": 170,
+        "maximumGradient": 8,
+        "difficulty": 668,
+        "averageGradient": 4.4,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/628/"
+      },
+      {
+        "name": "Murat-sur-Vèbre (Mouline)",
+        "geoCoordinate": {
+          "latitude": 43.68154,
+          "longitude": 2.91991
+        },
+        "length": 7.6,
+        "totalAscent": 314,
+        "minimumAltitude": 806,
+        "maximumGradient": 9,
+        "difficulty": 209,
+        "averageGradient": 4.1,
+        "category": "3",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/629/"
+      }
+    ]
+  },
+  {
+    "name": "Mont Saint-Baudille",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 840,
+    "geoCoordinate": {
+      "latitude": 43.74313,
+      "longitude": 3.48599
+    },
+    "alternatives": [
+      {
+        "name": "Arboras",
+        "geoCoordinate": {
+          "latitude": 43.70471,
+          "longitude": 3.48125
+        },
+        "length": 13.5,
+        "totalAscent": 680,
+        "minimumAltitude": 160,
+        "maximumGradient": 11,
+        "difficulty": 566,
+        "averageGradient": 5,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/632/"
+      },
+      {
+        "name": "Soubès",
+        "geoCoordinate": {
+          "latitude": 43.76588,
+          "longitude": 3.34263
+        },
+        "length": 22,
+        "totalAscent": 610,
+        "minimumAltitude": 230,
+        "maximumGradient": 11,
+        "difficulty": 532,
+        "averageGradient": 2.8,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/633/"
+      }
+    ]
+  },
+  {
+    "name": "Guidon du Bouquet",
+    "country": "FR",
+    "massif": "Massif central",
+    "topOfTheAscent": 618,
+    "geoCoordinate": {
+      "latitude": 44.13268,
+      "longitude": 4.28526
+    },
+    "alternatives": [
+      {
+        "name": "Brouzet-lès-Alès",
+        "geoCoordinate": {
+          "latitude": 44.13952,
+          "longitude": 4.24597
+        },
+        "length": 4.7,
+        "totalAscent": 421,
+        "minimumAltitude": 197,
+        "maximumGradient": 15,
+        "difficulty": 444,
+        "averageGradient": 9,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/638/"
+      },
+      {
+        "name": "Seynes",
+        "geoCoordinate": {
+          "latitude": 44.11651,
+          "longitude": 4.27986
+        },
+        "length": 6.2,
+        "totalAscent": 358,
+        "minimumAltitude": 260,
+        "maximumGradient": 13,
+        "difficulty": 331,
+        "averageGradient": 5.8,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/639/"
+      }
+    ]
+  },
+  {
+    "name": "Cirque de Vaumale",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1202,
+    "geoCoordinate": {
+      "latitude": 43.76533,
+      "longitude": 6.27133
+    },
+    "alternatives": [
+      {
+        "name": "Les Salles-sur-Verdon",
+        "geoCoordinate": {
+          "latitude": 43.77571,
+          "longitude": 6.20729
+        },
+        "length": 13,
+        "totalAscent": 715,
+        "minimumAltitude": 487,
+        "maximumGradient": 10,
+        "difficulty": 530,
+        "averageGradient": 5.5,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/642/"
+      }
+    ]
+  },
+  {
+    "name": "Col de Valferrière",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1169,
+    "geoCoordinate": {
+      "latitude": 43.75134,
+      "longitude": 6.7303
+    },
+    "alternatives": [
+      {
+        "name": "Grasse",
+        "geoCoordinate": {
+          "latitude": 43.65684,
+          "longitude": 6.92125
+        },
+        "length": 35,
+        "totalAscent": 850,
+        "minimumAltitude": 319,
+        "maximumGradient": 6,
+        "difficulty": 652,
+        "averageGradient": 2.4,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/643/"
+      },
+      {
+        "name": "Castellane",
+        "geoCoordinate": {
+          "latitude": 43.8451,
+          "longitude": 6.51548
+        },
+        "length": 28,
+        "totalAscent": 440,
+        "minimumAltitude": 729,
+        "maximumGradient": 7.5,
+        "difficulty": 392,
+        "averageGradient": 1.6,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/644/"
+      }
+    ]
+  },
+  {
+    "name": "Montagne de Doublier",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1186,
+    "geoCoordinate": {
+      "latitude": 43.69215,
+      "longitude": 6.89957
+    },
+    "alternatives": [
+      {
+        "name": "Grasse",
+        "geoCoordinate": {
+          "latitude": 43.65798,
+          "longitude": 6.92155
+        },
+        "length": 13.9,
+        "totalAscent": 846,
+        "minimumAltitude": 340,
+        "maximumGradient": 11.1,
+        "difficulty": 642,
+        "averageGradient": 6.1,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/645/"
+      }
+    ]
+  },
+  {
+    "name": "Mont Vial",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1533,
+    "geoCoordinate": {
+      "latitude": 43.89492,
+      "longitude": 7.15251
+    },
+    "alternatives": [
+      {
+        "name": "Gilette (Pont Charles-Albert) (SE1)",
+        "geoCoordinate": {
+          "latitude": 43.83916,
+          "longitude": 7.19468
+        },
+        "length": 25,
+        "totalAscent": 1420,
+        "minimumAltitude": 113,
+        "maximumGradient": 11,
+        "difficulty": 1120,
+        "averageGradient": 5.7,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/1906/"
+      },
+      {
+        "name": "Toudon (Vescous)",
+        "geoCoordinate": {
+          "latitude": 43.86634,
+          "longitude": 7.10852
+        },
+        "length": 18,
+        "totalAscent": 1185,
+        "minimumAltitude": 348,
+        "maximumGradient": 11,
+        "difficulty": 1060,
+        "averageGradient": 6.6,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/648/"
+      },
+      {
+        "name": "Gilette (Pont Charles-Albert) (SE2)",
+        "geoCoordinate": {
+          "latitude": 43.8401,
+          "longitude": 7.19504
+        },
+        "length": 27,
+        "totalAscent": 1420,
+        "minimumAltitude": 113,
+        "maximumGradient": 10.5,
+        "difficulty": 1041,
+        "averageGradient": 5.3,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/1905/"
+      }
+    ]
+  },
+  {
+    "name": "Madone d'Utelle",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1192,
+    "geoCoordinate": {
+      "latitude": 43.9088,
+      "longitude": 7.22392
+    },
+    "alternatives": [
+      {
+        "name": "La Tour (Cramassour)",
+        "geoCoordinate": {
+          "latitude": 43.94168,
+          "longitude": 7.19308
+        },
+        "length": 15.5,
+        "totalAscent": 810,
+        "minimumAltitude": 382,
+        "maximumGradient": 11,
+        "difficulty": 738,
+        "averageGradient": 5.2,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/649/"
+      },
+      {
+        "name": "Utelle (Saint-Jean-la-Rivière)",
+        "geoCoordinate": {
+          "latitude": 43.91942,
+          "longitude": 7.26547
+        },
+        "length": 16,
+        "totalAscent": 900,
+        "minimumAltitude": 292,
+        "maximumGradient": 8,
+        "difficulty": 625,
+        "averageGradient": 5.6,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/650/"
+      }
+    ]
+  },
+  {
+    "name": "L'Authion",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 2027,
+    "geoCoordinate": {
+      "latitude": 43.99806,
+      "longitude": 7.42781
+    },
+    "alternatives": [
+      {
+        "name": "Sospel",
+        "geoCoordinate": {
+          "latitude": 43.87782,
+          "longitude": 7.44687
+        },
+        "length": 35,
+        "totalAscent": 1670,
+        "minimumAltitude": 357,
+        "maximumGradient": 10,
+        "difficulty": 1348,
+        "averageGradient": 4.8,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/651/"
+      },
+      {
+        "name": "La Bollène-Vésubie",
+        "geoCoordinate": {
+          "latitude": 43.9872,
+          "longitude": 7.31987
+        },
+        "length": 26,
+        "totalAscent": 1520,
+        "minimumAltitude": 507,
+        "maximumGradient": 10,
+        "difficulty": 1319,
+        "averageGradient": 5.8,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/653/"
+      },
+      {
+        "name": "L'Escarène",
+        "geoCoordinate": {
+          "latitude": 43.83754,
+          "longitude": 7.35347
+        },
+        "length": 37,
+        "totalAscent": 1650,
+        "minimumAltitude": 377,
+        "maximumGradient": 10,
+        "difficulty": 1251,
+        "averageGradient": 4.5,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/652/"
+      }
+    ]
+  },
+  {
+    "name": "Col de Braus",
+    "country": "FR",
+    "massif": "Alpes",
+    "topOfTheAscent": 1002,
+    "geoCoordinate": {
+      "latitude": 43.87256,
+      "longitude": 7.3992
+    },
+    "alternatives": [
+      {
+        "name": "Contes (Pointe)",
+        "geoCoordinate": {
+          "latitude": 43.78178,
+          "longitude": 7.33841
+        },
+        "length": 17.5,
+        "totalAscent": 870,
+        "minimumAltitude": 132,
+        "maximumGradient": 10,
+        "difficulty": 678,
+        "averageGradient": 5,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/654/"
+      },
+      {
+        "name": "Sospel",
+        "geoCoordinate": {
+          "latitude": 43.87721,
+          "longitude": 7.4447
+        },
+        "length": 11,
+        "totalAscent": 630,
+        "minimumAltitude": 372,
+        "maximumGradient": 11,
+        "difficulty": 448,
+        "averageGradient": 5.7,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/655/"
+      }
+    ]
+  },
+  {
+    "name": "Artzamendi",
+    "country": "FR",
+    "massif": "Pyrénées",
+    "topOfTheAscent": 921,
+    "geoCoordinate": {
+      "latitude": 43.28301,
+      "longitude": -1.40763
+    },
+    "alternatives": [
+      {
+        "name": "Itxassou (Pas de Roland)",
+        "geoCoordinate": {
+          "latitude": 43.31476,
+          "longitude": -1.40119
+        },
+        "length": 11,
+        "totalAscent": 860,
+        "minimumAltitude": 61,
+        "maximumGradient": 17,
+        "difficulty": 961,
+        "averageGradient": 7.8,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/656/"
+      }
+    ]
+  },
+  {
+    "name": "Lac d'Aumar",
+    "country": "FR",
+    "massif": "Pyrénées",
+    "topOfTheAscent": 2206,
+    "geoCoordinate": {
+      "latitude": 42.83877,
+      "longitude": 0.15263
+    },
+    "alternatives": [
+      {
+        "name": "Aragnouet",
+        "geoCoordinate": {
+          "latitude": 42.7908,
+          "longitude": 0.22813
+        },
+        "length": 15.5,
+        "totalAscent": 1045,
+        "minimumAltitude": 1161,
+        "maximumGradient": 11,
+        "difficulty": 952,
+        "averageGradient": 6.7,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/676/"
+      }
+    ]
+  },
+  {
+    "name": "Col de Beyrède",
+    "country": "FR",
+    "massif": "Pyrénées",
+    "topOfTheAscent": 1422,
+    "geoCoordinate": {
+      "latitude": 42.96314,
+      "longitude": 0.31088
+    },
+    "alternatives": [
+      {
+        "name": "Sarrancolin",
+        "geoCoordinate": {
+          "latitude": 42.96291,
+          "longitude": 0.37891
+        },
+        "length": 11,
+        "totalAscent": 785,
+        "minimumAltitude": 637,
+        "maximumGradient": 14,
+        "difficulty": 748,
+        "averageGradient": 7.1,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/677/"
+      },
+      {
+        "name": "Campan (Espiadet)",
+        "geoCoordinate": {
+          "latitude": 42.94443,
+          "longitude": 0.28798
+        },
+        "length": 3.6,
+        "totalAscent": 313,
+        "minimumAltitude": 1109,
+        "maximumGradient": 22,
+        "difficulty": 371,
+        "averageGradient": 8.7,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/678/"
+      }
+    ]
+  },
+  {
+    "name": "Guzet",
+    "country": "FR",
+    "massif": "Pyrénées",
+    "topOfTheAscent": 1520,
+    "geoCoordinate": {
+      "latitude": 42.78756,
+      "longitude": 1.30032
+    },
+    "alternatives": [
+      {
+        "name": "Seix",
+        "geoCoordinate": {
+          "latitude": 42.86359,
+          "longitude": 1.20202
+        },
+        "length": 23,
+        "totalAscent": 1010,
+        "minimumAltitude": 510,
+        "maximumGradient": 10,
+        "difficulty": 797,
+        "averageGradient": 4.4,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/692/"
+      },
+      {
+        "name": "Aulus-les-Bains",
+        "geoCoordinate": {
+          "latitude": 42.79132,
+          "longitude": 1.33458
+        },
+        "length": 13,
+        "totalAscent": 780,
+        "minimumAltitude": 740,
+        "maximumGradient": 10,
+        "difficulty": 701,
+        "averageGradient": 6,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/29694/"
+      }
+    ]
+  },
+  {
+    "name": "Col de Montségur",
+    "country": "FR",
+    "massif": "Pyrénées",
+    "topOfTheAscent": 1059,
+    "geoCoordinate": {
+      "latitude": 42.87406,
+      "longitude": 1.82415
+    },
+    "alternatives": [
+      {
+        "name": "Bélesta",
+        "geoCoordinate": {
+          "latitude": 42.90511,
+          "longitude": 1.93698
+        },
+        "length": 15,
+        "totalAscent": 570,
+        "minimumAltitude": 489,
+        "maximumGradient": 11,
+        "difficulty": 421,
+        "averageGradient": 3.8,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/699/"
+      },
+      {
+        "name": "Lavelanet",
+        "geoCoordinate": {
+          "latitude": 42.93247,
+          "longitude": 1.84965
+        },
+        "length": 11,
+        "totalAscent": 535,
+        "minimumAltitude": 524,
+        "maximumGradient": 10,
+        "difficulty": 408,
+        "averageGradient": 4.9,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/700/"
+      }
+    ]
+  },
+  {
+    "name": "Col du Pradel",
+    "country": "FR",
+    "massif": "Pyrénées",
+    "topOfTheAscent": 1673,
+    "geoCoordinate": {
+      "latitude": 42.74779,
+      "longitude": 1.93925
+    },
+    "alternatives": [
+      {
+        "name": "Espezel (Moulin du Roc)",
+        "geoCoordinate": {
+          "latitude": 42.8117,
+          "longitude": 2.03494
+        },
+        "length": 16,
+        "totalAscent": 925,
+        "minimumAltitude": 748,
+        "maximumGradient": 11,
+        "difficulty": 753,
+        "averageGradient": 5.8,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/701/"
+      },
+      {
+        "name": "Ascou (Lavail)",
+        "geoCoordinate": {
+          "latitude": 42.72384,
+          "longitude": 1.89699
+        },
+        "length": 7.2,
+        "totalAscent": 558,
+        "minimumAltitude": 1115,
+        "maximumGradient": 11,
+        "difficulty": 494,
+        "averageGradient": 7.8,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/702/"
+      }
+    ]
+  },
+  {
+    "name": "Col de Puymorens",
+    "country": "FR",
+    "massif": "Pyrénées",
+    "topOfTheAscent": 1920,
+    "geoCoordinate": {
+      "latitude": 42.56008,
+      "longitude": 1.81018
+    },
+    "alternatives": [
+      {
+        "name": "Ax-les-Thermes",
+        "geoCoordinate": {
+          "latitude": 42.71908,
+          "longitude": 1.84052
+        },
+        "length": 27,
+        "totalAscent": 1190,
+        "minimumAltitude": 730,
+        "maximumGradient": 8,
+        "difficulty": 701,
+        "averageGradient": 4.4,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/706/"
+      },
+      {
+        "name": "Bourg-Madame",
+        "geoCoordinate": {
+          "latitude": 42.4333,
+          "longitude": 1.9459
+        },
+        "length": 27,
+        "totalAscent": 775,
+        "minimumAltitude": 1145,
+        "maximumGradient": 5.5,
+        "difficulty": 430,
+        "averageGradient": 2.9,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/707/"
+      }
+    ]
+  },
+  {
+    "name": "Cime de Coma Morera",
+    "country": "FR",
+    "massif": "Pyrénées",
+    "topOfTheAscent": 2207,
+    "geoCoordinate": {
+      "latitude": 42.35609,
+      "longitude": 2.02309
+    },
+    "alternatives": [
+      {
+        "name": "Bourg-Madame (NW1)",
+        "geoCoordinate": {
+          "latitude": 42.43329,
+          "longitude": 1.94545
+        },
+        "length": 19,
+        "totalAscent": 1060,
+        "minimumAltitude": 1147,
+        "maximumGradient": 10,
+        "difficulty": 831,
+        "averageGradient": 5.6,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/708/"
+      },
+      {
+        "name": "Bourg-Madame (NW2)",
+        "geoCoordinate": {
+          "latitude": 42.43202,
+          "longitude": 1.9483
+        },
+        "length": 23,
+        "totalAscent": 1060,
+        "minimumAltitude": 1147,
+        "maximumGradient": 9,
+        "difficulty": 794,
+        "averageGradient": 4.6,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/29696/"
+      }
+    ]
+  },
+  {
+    "name": "Col de Mantet",
+    "country": "FR",
+    "massif": "Pyrénées",
+    "topOfTheAscent": 1761,
+    "geoCoordinate": {
+      "latitude": 42.48125,
+      "longitude": 2.31403
+    },
+    "alternatives": [
+      {
+        "name": "Villefranche-de-Conflent (Saint-Andreu)",
+        "geoCoordinate": {
+          "latitude": 42.58372,
+          "longitude": 2.36161
+        },
+        "length": 21,
+        "totalAscent": 1305,
+        "minimumAltitude": 456,
+        "maximumGradient": 15,
+        "difficulty": 1088,
+        "averageGradient": 6.2,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/711/"
+      }
+    ]
+  },
+  {
+    "name": "Refuge des Cortalets",
+    "country": "FR",
+    "massif": "Pyrénées",
+    "topOfTheAscent": 2150,
+    "geoCoordinate": {
+      "latitude": 42.53448,
+      "longitude": 2.46462
+    },
+    "alternatives": [
+      {
+        "name": "Prades",
+        "geoCoordinate": {
+          "latitude": 42.61561,
+          "longitude": 2.41844
+        },
+        "length": 25,
+        "totalAscent": 1790,
+        "minimumAltitude": 360,
+        "maximumGradient": 13,
+        "difficulty": 1678,
+        "averageGradient": 7.2,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/713/"
+      },
+      {
+        "name": "Prades Sant Jaume",
+        "geoCoordinate": {
+          "latitude": 42.62114,
+          "longitude": 2.44239
+        },
+        "length": 26,
+        "totalAscent": 1805,
+        "minimumAltitude": 345,
+        "maximumGradient": 11.5,
+        "difficulty": 1518,
+        "averageGradient": 6.9,
+        "category": "HC",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/714/"
+      }
+    ]
+  },
+  {
+    "name": "Tour Madeloc",
+    "country": "FR",
+    "massif": "Pyrénées",
+    "topOfTheAscent": 654,
+    "geoCoordinate": {
+      "latitude": 42.49055,
+      "longitude": 3.07472
+    },
+    "alternatives": [
+      {
+        "name": "Collioure",
+        "geoCoordinate": {
+          "latitude": 42.52363,
+          "longitude": 3.0865
+        },
+        "length": 13,
+        "totalAscent": 650,
+        "minimumAltitude": 4,
+        "maximumGradient": 15,
+        "difficulty": 688,
+        "averageGradient": 5,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/29698/"
+      },
+      {
+        "name": "Port-Vendres",
+        "geoCoordinate": {
+          "latitude": 42.51749,
+          "longitude": 3.10634
+        },
+        "length": 10.5,
+        "totalAscent": 650,
+        "minimumAltitude": 4,
+        "maximumGradient": 15,
+        "difficulty": 632,
+        "averageGradient": 6.2,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/716/"
+      },
+      {
+        "name": "Banyuls-sur-Mer",
+        "geoCoordinate": {
+          "latitude": 42.47662,
+          "longitude": 3.12752
+        },
+        "length": 10,
+        "totalAscent": 650,
+        "minimumAltitude": 4,
+        "maximumGradient": 15,
+        "difficulty": 627,
+        "averageGradient": 6.5,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/715/"
+      }
+    ]
+  },
+  {
+    "name": "Serra di Pigno / Serra di Pignu",
+    "country": "FR",
+    "massif": "Corse",
+    "topOfTheAscent": 956,
+    "geoCoordinate": {
+      "latitude": 42.6953,
+      "longitude": 9.40006
+    },
+    "alternatives": [
+      {
+        "name": "Bastia (Port)",
+        "geoCoordinate": {
+          "latitude": 42.702,
+          "longitude": 9.45192
+        },
+        "length": 14,
+        "totalAscent": 950,
+        "minimumAltitude": 6,
+        "maximumGradient": 13,
+        "difficulty": 898,
+        "averageGradient": 6.8,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/720/"
+      },
+      {
+        "name": "Saint-Florent (Tettola)",
+        "geoCoordinate": {
+          "latitude": 42.69318,
+          "longitude": 9.32659
+        },
+        "length": 15,
+        "totalAscent": 945,
+        "minimumAltitude": 11,
+        "maximumGradient": 11,
+        "difficulty": 816,
+        "averageGradient": 6.3,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/719/"
+      },
+      {
+        "name": "Oletta (Lumio)",
+        "geoCoordinate": {
+          "latitude": 42.66182,
+          "longitude": 9.31594
+        },
+        "length": 19.5,
+        "totalAscent": 945,
+        "minimumAltitude": 11,
+        "maximumGradient": 12,
+        "difficulty": 775,
+        "averageGradient": 4.8,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/29790/"
+      }
+    ]
+  },
+  {
+    "name": "Col de Battaglia / Bocca di a Battaglia",
+    "country": "FR",
+    "massif": "Corse",
+    "topOfTheAscent": 1103,
+    "geoCoordinate": {
+      "latitude": 42.54955,
+      "longitude": 9.00499
+    },
+    "alternatives": [
+      {
+        "name": "Speloncato (Regino)",
+        "geoCoordinate": {
+          "latitude": 42.59775,
+          "longitude": 8.96772
+        },
+        "length": 17,
+        "totalAscent": 1040,
+        "minimumAltitude": 63,
+        "maximumGradient": 11,
+        "difficulty": 858,
+        "averageGradient": 6.1,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/721/"
+      }
+    ]
+  },
+  {
+    "name": "Haut Asco / Ascu Supranu",
+    "country": "FR",
+    "massif": "Corse",
+    "topOfTheAscent": 1422,
+    "geoCoordinate": {
+      "latitude": 42.40326,
+      "longitude": 8.92298
+    },
+    "alternatives": [
+      {
+        "name": "Morosaglia (Ponte Rossu)",
+        "geoCoordinate": {
+          "latitude": 42.48236,
+          "longitude": 9.19772
+        },
+        "length": 32,
+        "totalAscent": 1220,
+        "minimumAltitude": 202,
+        "maximumGradient": 9,
+        "difficulty": 818,
+        "averageGradient": 3.8,
+        "category": "1",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/722/"
+      }
+    ]
+  },
+  {
+    "name": "Monte San Ghiabicu (Antenne de Piana)",
+    "country": "FR",
+    "massif": "Corse",
+    "topOfTheAscent": 624,
+    "geoCoordinate": {
+      "latitude": 42.23798,
+      "longitude": 8.62096
+    },
+    "alternatives": [
+      {
+        "name": "Piana (Plage de Ficaghiola)",
+        "geoCoordinate": {
+          "latitude": 42.24999,
+          "longitude": 8.62723
+        },
+        "length": 7.6,
+        "totalAscent": 570,
+        "minimumAltitude": 54,
+        "maximumGradient": 14,
+        "difficulty": 540,
+        "averageGradient": 7.5,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/23490/"
+      },
+      {
+        "name": "Piana (Plage d'Arone)",
+        "geoCoordinate": {
+          "latitude": 42.20905,
+          "longitude": 8.58217
+        },
+        "length": 14.5,
+        "totalAscent": 610,
+        "minimumAltitude": 14,
+        "maximumGradient": 10,
+        "difficulty": 484,
+        "averageGradient": 4.2,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/29791/"
+      },
+      {
+        "name": "Cargèse (Fornellu)",
+        "geoCoordinate": {
+          "latitude": 42.17598,
+          "longitude": 8.61229
+        },
+        "length": 14,
+        "totalAscent": 620,
+        "minimumAltitude": 4,
+        "maximumGradient": 10,
+        "difficulty": 458,
+        "averageGradient": 4.4,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/725/"
+      },
+      {
+        "name": "Ota (Porto)",
+        "geoCoordinate": {
+          "latitude": 42.26305,
+          "longitude": 8.70417
+        },
+        "length": 13,
+        "totalAscent": 575,
+        "minimumAltitude": 49,
+        "maximumGradient": 10,
+        "difficulty": 448,
+        "averageGradient": 4.4,
+        "category": "2",
+        "sourceUrl": "https://www.bigcycling.eu/en/big/index/side/id/726/"
       }
     ]
   }
