@@ -1,5 +1,5 @@
 # Use the same Java major version declared in build.gradle.kts.
-FROM gradle:9.5.0-jdk25 AS build
+FROM gradle:9.7.1-jdk25 AS build
 
 # Set the working directory
 WORKDIR /app

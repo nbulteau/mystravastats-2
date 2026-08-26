@@ -6,13 +6,13 @@ import org.gradle.jvm.toolchain.JvmVendorSpec
 import org.gradle.language.jvm.tasks.ProcessResources
 
 plugins {
-    kotlin("jvm") version "2.4.0"
-    kotlin("plugin.spring") version "2.4.0"
+    kotlin("jvm") version "2.4.10"
+    kotlin("plugin.spring") version "2.4.10"
 
-    id("org.springframework.boot") version "4.0.6"
+    id("org.springframework.boot") version "4.1.1"
     id("io.spring.dependency-management") version "1.1.7"
-    id("org.graalvm.buildtools.native") version "1.0.0"
-    id("com.github.ben-manes.versions") version "0.54.0"
+    id("org.graalvm.buildtools.native") version "1.1.10"
+    id("io.github.ben-manes.versions") version "0.61.0"
 }
 
 group = "me.nicolas"
@@ -37,7 +37,7 @@ repositories {
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
@@ -47,18 +47,18 @@ dependencies {
     //developmentOnly("org.springframework.boot:spring-boot-devtools")
     //providedRuntime("org.springframework.boot:spring-boot-starter-tomcat")
 
-    implementation("tools.jackson.module:jackson-module-kotlin:3.1.4")
+    implementation("tools.jackson.module:jackson-module-kotlin:3.2.2")
 
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0")
 
-    implementation("com.squareup.okhttp3:okhttp:5.3.2")
+    implementation("com.squareup.okhttp3:okhttp:5.5.0")
 
     implementation("io.jenetics:jpx:4.0.0")
 
     // Garmin FIT Java SDK sourced from GitHub via JitPack (replaces the vendored libs/fit.jar).
     // All SessionMesg/RecordMesg accessors used by FITRepository are present and compatible.
     // Newer versions available at https://github.com/garmin/fit-java-sdk/tags.
-    implementation("com.github.garmin:fit-java-sdk:21.202.0")
+    implementation("com.github.garmin:fit-java-sdk:21.212.0")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 

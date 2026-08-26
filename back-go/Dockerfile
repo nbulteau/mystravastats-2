@@ -1,4 +1,4 @@
-FROM node:25.9.0-alpine AS frontend
+FROM node:26.5.0-alpine AS frontend
 
 WORKDIR /app/front-vue
 
@@ -9,7 +9,7 @@ COPY front-vue/ ./
 RUN VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build
 
 # Use the same Go version declared in go.mod.
-FROM golang:1.26.2-alpine AS build
+FROM golang:1.26.5-alpine AS build
 
 # Set the working directory
 WORKDIR /app/back-go

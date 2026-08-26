@@ -1,4 +1,4 @@
-FROM node:25.9.0-alpine AS build
+FROM node:26.5.0-alpine AS build
 
 # install simple http server for serving static content
 # RUN npm install -g http-server
