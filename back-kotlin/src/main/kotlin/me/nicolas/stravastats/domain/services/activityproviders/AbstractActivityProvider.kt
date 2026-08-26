@@ -4,6 +4,7 @@ import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.business.SportType
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
+import me.nicolas.stravastats.domain.services.ActivityHelper.activityYearOrNull
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
@@ -188,8 +189,16 @@ abstract class AbstractActivityProvider : IActivityProvider {
      * @see StravaActivity
      */
     private fun groupActivitiesByYear(activities: List<StravaActivity>): Map<String, List<StravaActivity>> {
-        val activitiesByYear =
-            activities.groupBy { activity -> activity.startDateLocal.subSequence(0, 4).toString() }.toMutableMap()
+        val activitiesByYear = activities
+            .mapNotNull { activity ->
+                activity.activityYearOrNull()?.let { year -> year.toString() to activity }
+                    ?: run {
+                        logger.warn("Skipping activity {} with invalid start date while grouping provider data", activity.id)
+                        null
+                    }
+            }
+            .groupBy(keySelector = { (year, _) -> year }, valueTransform = { (_, activity) -> activity })
+            .toMutableMap()
 
         // Add years without activities
         if (activitiesByYear.isNotEmpty()) {
@@ -222,7 +231,7 @@ abstract class AbstractActivityProvider : IActivityProvider {
         return if (year == null) {
             this
         } else {
-            this.filter { activity -> activity.startDateLocal.subSequence(0, 4).toString().toInt() == year }
+            this.filter { activity -> activity.activityYearOrNull() == year }
         }
     }
 

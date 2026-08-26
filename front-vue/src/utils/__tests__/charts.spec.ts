@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   calculateYtdAverageLine,
+  calculateTrendLineIgnoringMissing,
   extractPeriodEntries,
   isoWeekNumber,
   parseActivityDate,
   rollingAverage,
+  positiveValuesForYears,
   weeksInIsoYear,
   weekLabel,
 } from "@/utils/charts";
@@ -23,6 +25,16 @@ describe("charts utils", () => {
 
     // THEN
     expect(label).toBe("W07");
+  });
+
+  it("keeps missing or zero heart-rate years out of the data series", () => {
+    expect(positiveValuesForYears({ "2020": 0, "2022": 145 }, ["2020", "2021", "2022"]))
+      .toEqual([null, null, 145]);
+  });
+
+  it("calculates a trend from measured values only", () => {
+    expect(calculateTrendLineIgnoringMissing([null, 100, null, 140]))
+      .toEqual([80, 100, 120, 140]);
   });
 
   it("extracts period entries from structured API objects", () => {

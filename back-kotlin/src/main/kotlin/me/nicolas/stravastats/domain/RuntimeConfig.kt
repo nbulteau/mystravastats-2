@@ -6,7 +6,7 @@ import java.util.Locale
 object RuntimeConfig {
     private const val DEFAULT_STRAVA_CACHE_PATH = "strava-cache"
     private const val DEFAULT_STRAVA_API_BASE_URL = "https://www.strava.com/api/v3"
-    private const val DEFAULT_SERVER_ADDRESS = "0.0.0.0"
+    private const val DEFAULT_SERVER_ADDRESS = "127.0.0.1"
     private const val DEFAULT_SERVER_PORT = "8080"
     private const val DEFAULT_OSM_ROUTING_BASE_URL = "http://localhost:5000"
     private const val DEFAULT_OSM_ROUTING_TIMEOUT_MS = 3000

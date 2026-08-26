@@ -1,5 +1,10 @@
 package strava
 
+import (
+	"strconv"
+	"strings"
+)
+
 type AthleteRef struct {
 	ID int `json:"id"`
 }
@@ -31,6 +36,32 @@ type Activity struct {
 	UploadId             int64      `json:"upload_id"`
 	WeightedAverageWatts int        `json:"weighted_average_watts"`
 	Stream               *Stream    `json:"stream"`
+}
+
+// ParseYear returns the leading calendar year from an ISO-like date value.
+// Invalid or truncated values are rejected instead of being silently assigned
+// to the current year.
+func ParseYear(value string) (int, bool) {
+	value = strings.TrimSpace(value)
+	if len(value) < 4 {
+		return 0, false
+	}
+	year, err := strconv.Atoi(value[:4])
+	if err != nil || year < 1900 || year > 2200 {
+		return 0, false
+	}
+	return year, true
+}
+
+// Year resolves an activity year from the local date first, then the UTC date.
+func (activity *Activity) Year() (int, bool) {
+	if activity == nil {
+		return 0, false
+	}
+	if year, ok := ParseYear(activity.StartDateLocal); ok {
+		return year, true
+	}
+	return ParseYear(activity.StartDate)
 }
 
 func (activity *Activity) ToStravaDetailedActivity() *DetailedActivity {

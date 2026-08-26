@@ -372,7 +372,7 @@ const onChangeActivityType = (activity: ActivityTypeName) => {
               data-bs-toggle="tooltip"
               data-bs-placement="bottom"
               title="Trail run"
-              aria-label="Trail rin"
+              aria-label="Trail run"
               @click="onChangeActivityType('TrailRun')"
           >
             <img
@@ -591,8 +591,13 @@ const onChangeActivityType = (activity: ActivityTypeName) => {
   }
 
   .activity-group {
-    width: 100%;
+    width: auto;
     justify-content: center;
+  }
+
+  .icon-btn {
+    width: 36px;
+    height: 36px;
   }
 }
 </style>

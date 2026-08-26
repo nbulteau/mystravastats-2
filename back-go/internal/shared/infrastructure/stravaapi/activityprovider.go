@@ -544,8 +544,15 @@ func (provider *StravaActivityProvider) GetActivitiesByActivityTypeGroupByYear(a
 func (provider *StravaActivityProvider) groupActivitiesByYear(activities []*strava.Activity) map[string][]*strava.Activity {
 	activitiesByYear := make(map[string][]*strava.Activity)
 	for _, activity := range activities {
-		year := activity.StartDateLocal[:4]
-		activitiesByYear[year] = append(activitiesByYear[year], activity)
+		year, ok := activity.Year()
+		if !ok {
+			if activity != nil {
+				log.Printf("Skipping activity %d with invalid start date while grouping provider data", activity.Id)
+			}
+			continue
+		}
+		yearKey := strconv.Itoa(year)
+		activitiesByYear[yearKey] = append(activitiesByYear[yearKey], activity)
 	}
 
 	if len(activitiesByYear) > 0 {
@@ -649,8 +656,8 @@ func FilterActivitiesByYear(activities []*strava.Activity, year *int) []*strava.
 
 	var filtered []*strava.Activity
 	for _, activity := range activities {
-		activityYear, _ := strconv.Atoi(activity.StartDateLocal[:4])
-		if activityYear == *year {
+		activityYear, ok := activity.Year()
+		if ok && activityYear == *year {
 			filtered = append(filtered, activity)
 		}
 	}

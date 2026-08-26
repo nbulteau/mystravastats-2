@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import {reactive, watch} from "vue";
 import {Chart} from "highcharts-vue";
-import type {SeriesColumnOptions, SeriesLineOptions, SeriesOptionsType} from "highcharts";
+import type {SeriesLineOptions, SeriesOptionsType} from "highcharts";
+import { calculateTrendLineIgnoringMissing, positiveValuesForYears } from "@/utils/charts";
 
 type HeartRatePoint = {
   y: number;
@@ -106,18 +107,16 @@ function updateChartData() {
     const years = Array.from(
       new Set([...Object.keys(props.averageHeartRateByYear), ...Object.keys(props.maxHeartRateByYear)]),
     ).sort((left, right) => Number.parseInt(left, 10) - Number.parseInt(right, 10));
-    const averageHeartRateByYear = valuesForYears(props.averageHeartRateByYear, years);
-    const maxHeartRateByYear = valuesForYears(props.maxHeartRateByYear, years);
+    const averageHeartRateByYear = positiveValuesForYears(props.averageHeartRateByYear, years);
+    const maxHeartRateByYear = positiveValuesForYears(props.maxHeartRateByYear, years);
 
     chartOptions.xAxis.categories = years;
 
-    const maxAverageHeartRate = Math.max(...averageHeartRateByYear);
-    const maxAverageHeartRateIndex = averageHeartRateByYear.indexOf(maxAverageHeartRate);
+    const maxAverageHeartRateIndex = indexOfMaxValue(averageHeartRateByYear);
+    const maxMaxHeartRateIndex = indexOfMaxValue(maxHeartRateByYear);
 
-    const maxMaxHeartRate = Math.max(...maxHeartRateByYear);
-    const maxMaxHeartRateIndex = maxHeartRateByYear.indexOf(maxMaxHeartRate);
-
-    (chartOptions.series[0] as SeriesColumnOptions).data = averageHeartRateByYear.map((value, index) => {
+    (chartOptions.series[0] as SeriesLineOptions).data = averageHeartRateByYear.map((value, index) => {
+      if (value === null) return null;
       if (index === maxAverageHeartRateIndex) {
         return {
           y: value,
@@ -130,7 +129,8 @@ function updateChartData() {
       }
     });
 
-    (chartOptions.series[1] as SeriesColumnOptions).data = maxHeartRateByYear.map((value, index) => {
+    (chartOptions.series[1] as SeriesLineOptions).data = maxHeartRateByYear.map((value, index) => {
+      if (value === null) return null;
       const year = years[index] ?? "";
       const day = props.maxHeartRateDateByYear?.[year];
       const point: HeartRatePoint = day ? { y: value, custom: { day } } : { y: value };
@@ -144,37 +144,23 @@ function updateChartData() {
       }
     });
 
-    (chartOptions.series[2] as SeriesLineOptions).data = calculateTrendLine(averageHeartRateByYear);
+    (chartOptions.series[2] as SeriesLineOptions).data = calculateTrendLineIgnoringMissing(averageHeartRateByYear);
   }
 }
 
-function valuesForYears(source: Record<string, number>, years: string[]): number[] {
-  return years.map((year) => source[year] ?? 0);
+function indexOfMaxValue(values: Array<number | null>): number {
+  let bestIndex = -1;
+  values.forEach((value, index) => {
+    if (value !== null && (bestIndex < 0 || value > (values[bestIndex] ?? -Infinity))) {
+      bestIndex = index;
+    }
+  });
+  return bestIndex;
 }
 
 function formatTooltipDay(day: string | undefined): string {
   return day ? ` - Day: ${day}` : "";
 }
-
-function calculateTrendLine(data: number[]): number[] {
-  const n = data.length;
-  if (n === 0) {
-    return [];
-  }
-  if (n === 1) {
-    return [data[0]];
-  }
-  const xSum = data.reduce((sum, _, index) => sum + index, 0);
-  const ySum = data.reduce((sum, value) => sum + value, 0);
-  const xySum = data.reduce((sum, value, index) => sum + index * value, 0);
-  const xSquaredSum = data.reduce((sum, _, index) => sum + index * index, 0);
-
-  const slope = (n * xySum - xSum * ySum) / (n * xSquaredSum - xSum * xSum);
-  const intercept = (ySum - slope * xSum) / n;
-
-  return data.map((_, index) => slope * index + intercept);
-}
-
 
 watch(
     () => [

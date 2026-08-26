@@ -14,6 +14,7 @@ import me.nicolas.stravastats.domain.business.EddingtonNumber
 import me.nicolas.stravastats.domain.business.EddingtonScope
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.services.ActivityHelper.groupActivitiesByDay
+import me.nicolas.stravastats.domain.services.ActivityHelper.activityYearOrNull
 import me.nicolas.stravastats.domain.services.activityproviders.ActivityProviderCacheIdentity
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import me.nicolas.stravastats.domain.utils.SafeLocalFile
@@ -249,7 +250,7 @@ class DashboardService(
 
         val activitiesByYear = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes)
             .withoutDataQualityExcludedStats(activityProvider)
-            .groupBy { activity -> activity.startDateLocal.subSequence(0, 4).toString() }
+            .groupByValidYear("dashboard data")
 
         val yearlyAccumulators = activitiesByYear.mapValues { (_, activities) ->
             aggregateYear(activities)
@@ -516,7 +517,7 @@ class DashboardService(
     ): Map<String, Map<String, T>> {
         val activitiesByYear = activityProvider.getActivitiesByActivityTypeAndYear(activityTypes)
             .withoutDataQualityExcludedStats(activityProvider)
-            .groupBy { activity -> activity.startDateLocal.subSequence(0, 4).toString() }
+            .groupByValidYear("cumulative dashboard data")
         return (StravaActivityProvider.STRAVA_FIRST_YEAR..LocalDate.now().year).mapNotNull { year ->
             activitiesByYear[year.toString()]?.let { activities ->
                 val activitiesByDay = groupActivitiesByDay(activities, year)
@@ -565,6 +566,16 @@ class DashboardService(
     }
 
     private fun roundOneDecimal(value: Double): Double = round(value * 10.0) / 10.0
+
+    private fun List<StravaActivity>.groupByValidYear(context: String): Map<String, List<StravaActivity>> {
+        return mapNotNull { activity ->
+            activity.activityYearOrNull()?.let { year -> year.toString() to activity }
+                ?: run {
+                    logger.warn("Skipping activity {} with invalid start date while grouping {}", activity.id, context)
+                    null
+                }
+        }.groupBy(keySelector = { (year, _) -> year }, valueTransform = { (_, activity) -> activity })
+    }
 
     private fun countActiveDays(activities: List<StravaActivity>): Int {
         return activities.mapNotNull { activity ->

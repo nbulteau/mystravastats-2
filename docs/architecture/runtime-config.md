@@ -16,7 +16,7 @@ The Diagnostics `Data Source` workflow can also save a previewed source. `POST /
 | `OPEN_BROWSER` | yes | yes | `true` | Set to `false` in Docker or headless runs. |
 | `SERVER_HOST` / `HOST` | yes | no | `localhost` | Go listen host. `SERVER_HOST` wins over `HOST`. |
 | `PORT` | yes | reported fallback | `8080` | Go listen port. Kotlin reports it only as a fallback when `SERVER_PORT` is absent. |
-| `SERVER_ADDRESS` | no | yes | `0.0.0.0` | Kotlin listen address. |
+| `SERVER_ADDRESS` | no | yes | `127.0.0.1` | Kotlin listen address. Set it explicitly to `0.0.0.0` only when network exposure is intended; Docker Compose already does this inside the container. |
 | `SERVER_PORT` | no | yes | `8080` | Kotlin listen port. |
 | `OSM_ROUTING_ENABLED` | yes | yes | `true` | Enables OSRM-backed routing checks and route generation. |
 | `OSM_ROUTING_BASE_URL` | yes | yes | `http://localhost:5000` | Docker compose overrides this to the OSRM service URL. |

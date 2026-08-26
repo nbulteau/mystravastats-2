@@ -18,6 +18,16 @@ import java.util.*
 import kotlin.math.abs
 
 object ActivityHelper {
+    fun StravaActivity.activityYearOrNull(): Int? {
+        return startDateLocal.leadingYearOrNull() ?: startDate.leadingYearOrNull()
+    }
+
+    private fun String?.leadingYearOrNull(): Int? {
+        val value = this?.trim().orEmpty()
+        if (value.length < 4) return null
+        return value.substring(0, 4).toIntOrNull()?.takeIf { year -> year in 1900..2200 }
+    }
+
     /**
      * Smooth a list of doubles using a centered sliding window.
      * @param size radius of the smoothing window (number of elements on each side). If <= 0 the original list is returned.

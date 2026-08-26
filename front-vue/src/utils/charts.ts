@@ -44,6 +44,42 @@ function isChartPeriodPoint(item: PeriodPointLike): item is ChartPeriodPoint {
   );
 }
 
+export function positiveValuesForYears(
+  source: Record<string, number>,
+  years: string[],
+): Array<number | null> {
+  return years.map((year) => {
+    const value = source[year];
+    return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
+  });
+}
+
+export function calculateTrendLineIgnoringMissing(
+  data: Array<number | null>,
+): Array<number | null> {
+  const points = data
+    .map((value, index) => ({ index, value }))
+    .filter((point): point is { index: number; value: number } => point.value !== null && Number.isFinite(point.value));
+
+  if (points.length < 2) {
+    return data.map(() => null);
+  }
+
+  const n = points.length;
+  const xSum = points.reduce((sum, point) => sum + point.index, 0);
+  const ySum = points.reduce((sum, point) => sum + point.value, 0);
+  const xySum = points.reduce((sum, point) => sum + point.index * point.value, 0);
+  const xSquaredSum = points.reduce((sum, point) => sum + point.index * point.index, 0);
+  const denominator = n * xSquaredSum - xSum * xSum;
+  if (denominator === 0) {
+    return data.map(() => null);
+  }
+
+  const slope = (n * xySum - xSum * ySum) / denominator;
+  const intercept = (ySum - slope * xSum) / n;
+  return data.map((_, index) => slope * index + intercept);
+}
+
 export function normalizePeriodPoints(data: PeriodPointLike[]): ChartPeriodPoint[] {
   return data
     .map((item) => {
