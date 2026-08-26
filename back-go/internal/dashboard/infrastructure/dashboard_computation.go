@@ -111,10 +111,6 @@ func dailyMetricTotals(activities []*strava.Activity, metric business.EddingtonM
 	return result
 }
 
-func dailyDistanceTotals(activities []*strava.Activity) map[string]int {
-	return dailyMetricTotals(activities, business.EddingtonMetricDistance)
-}
-
 func eddingtonActivityValue(activity *strava.Activity, metric business.EddingtonMetric) int {
 	switch metric {
 	case business.EddingtonMetricElevation:
@@ -310,9 +306,11 @@ func computeDashboardData(activityTypes ...business.ActivityType) business.Dashb
 			elevationEfficiencyByYear[year] = (float64(totalElevationByYear[year]) / totalDistanceByYear[year]) * 10.0
 		}
 		averageSpeedByYear[year] = averageSpeed(yearActivities)
-		bestSpeedEffort := bestSpeedEffort(yearActivities)
-		maxSpeedByYear[year] = speedFromEffort(bestSpeedEffort)
-		maxSpeedDateByYear[year] = activityDateByID(yearActivities, bestSpeedEffort)
+		fastestActivity := maxSpeedActivity(yearActivities)
+		if fastestActivity != nil {
+			maxSpeedByYear[year] = fastestActivity.MaxSpeed
+			maxSpeedDateByYear[year] = activityDate(fastestActivity)
+		}
 		averageHeartRateByYear[year] = averageHeartRate(yearActivities)
 		maxHeartRateByYear[year] = maxHeartRate(yearActivities)
 		maxHeartRateDateByYear[year] = maxHeartRateDate(yearActivities)
@@ -567,27 +565,17 @@ func averageSpeed(activities []*strava.Activity) float64 {
 	return sum / float64(count)
 }
 
-func bestSpeedEffort(activities []*strava.Activity) *business.ActivityEffort {
-	return statistics.FindBestActivityEffort(activities, 200.0)
-}
-
-func speedFromEffort(activityEffort *business.ActivityEffort) float64 {
-	if activityEffort == nil {
-		return 0.0
-	}
-	return activityEffort.GetMSSpeed()
-}
-
-func activityDateByID(activities []*strava.Activity, activityEffort *business.ActivityEffort) string {
-	if activityEffort == nil {
-		return ""
-	}
+func maxSpeedActivity(activities []*strava.Activity) *strava.Activity {
+	var fastestActivity *strava.Activity
 	for _, activity := range activities {
-		if activity.Id == activityEffort.ActivityShort.Id {
-			return activityDate(activity)
+		if !statistics.IsPlausibleActivityMaxSpeed(activity) {
+			continue
+		}
+		if fastestActivity == nil || activity.MaxSpeed > fastestActivity.MaxSpeed {
+			fastestActivity = activity
 		}
 	}
-	return ""
+	return fastestActivity
 }
 
 func activityDate(activity *strava.Activity) string {

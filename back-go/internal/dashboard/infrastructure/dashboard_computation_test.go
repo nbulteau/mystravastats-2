@@ -267,6 +267,29 @@ func TestMaxHeartRateDate_ReturnsActivityDate(t *testing.T) {
 	}
 }
 
+func TestMaxSpeedActivityUsesPublishedActivityMaximumAndRejectsImplausibleValues(t *testing.T) {
+	// GIVEN
+	activities := []*strava.Activity{
+		{Id: 1, Type: "Ride", StartDateLocal: "2017-07-09T09:30:00Z", MaxSpeed: 75.24 / 3.6},
+		{Id: 2, Type: "Ride", StartDateLocal: "2017-08-01T09:30:00Z", MaxSpeed: 18.0},
+		{Id: 3, Type: "Ride", StartDateLocal: "2017-09-01T09:30:00Z", MaxSpeed: 200.0},
+	}
+
+	// WHEN
+	activity := maxSpeedActivity(activities)
+
+	// THEN
+	if activity == nil || activity.Id != 1 {
+		t.Fatalf("expected activity 1 to provide the annual maximum speed, got %+v", activity)
+	}
+	if math.Abs(activity.MaxSpeed-(75.24/3.6)) > 0.0001 {
+		t.Fatalf("expected published maximum speed 75.24 km/h, got %.2f km/h", activity.MaxSpeed*3.6)
+	}
+	if activityDate(activity) != "2017-07-09" {
+		t.Fatalf("expected maximum speed date 2017-07-09, got %q", activityDate(activity))
+	}
+}
+
 func TestComputeConsistencyByYear_UsesFullYearForPastYears(t *testing.T) {
 	// GIVEN
 	year := "2024"

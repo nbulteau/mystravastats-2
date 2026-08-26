@@ -375,6 +375,51 @@ class DashboardServiceTest {
     }
 
     @Test
+    fun `getDashboardData uses published activity maximum speed and rejects implausible values`() {
+        // GIVEN
+        val activityTypes = setOf(ActivityType.Ride)
+        val activities = listOf(
+            createActivity(
+                id = 1L,
+                startDateLocal = "2017-07-09T09:30:00Z",
+                distanceMeters = 34_500.0,
+                elevationGainMeters = 564.0,
+                movingTimeSeconds = 6_300,
+                elapsedTimeSeconds = 6_876,
+                maxSpeed = (75.24 / 3.6).toFloat(),
+            ),
+            createActivity(
+                id = 2L,
+                startDateLocal = "2017-08-01T09:30:00Z",
+                distanceMeters = 20_000.0,
+                elevationGainMeters = 200.0,
+                movingTimeSeconds = 3_600,
+                elapsedTimeSeconds = 3_700,
+                maxSpeed = 18.0f,
+            ),
+            createActivity(
+                id = 3L,
+                startDateLocal = "2017-09-01T09:30:00Z",
+                distanceMeters = 20_000.0,
+                elevationGainMeters = 200.0,
+                movingTimeSeconds = 3_600,
+                elapsedTimeSeconds = 3_700,
+                maxSpeed = 200.0f,
+            ),
+        )
+        every {
+            activityProvider.getActivitiesByActivityTypeAndYear(activityTypes)
+        } returns activities
+
+        // WHEN
+        val result = dashboardService.getDashboardData(activityTypes)
+
+        // THEN
+        assertEquals((75.24 / 3.6).toFloat(), result.maxSpeedByYear["2017"]!!, 0.001f)
+        assertEquals("2017-07-09", result.maxSpeedDateByYear["2017"])
+    }
+
+    @Test
     fun `saveAnnualGoals persists targets locally and returns projections`() {
         // GIVEN
         val activityTypes = setOf(ActivityType.Ride)
@@ -529,6 +574,7 @@ class DashboardServiceTest {
         maxHeartrate: Int = 0,
         averageWatts: Int = 0,
         deviceWatts: Boolean = false,
+        maxSpeed: Float = 0.0f,
     ): StravaActivity {
         return StravaActivity(
             athlete = AthleteRef(1),
@@ -541,7 +587,7 @@ class DashboardServiceTest {
             elapsedTime = elapsedTimeSeconds,
             id = id,
             maxHeartrate = maxHeartrate,
-            maxSpeed = 0.0f,
+            maxSpeed = maxSpeed,
             movingTime = movingTimeSeconds,
             name = "Activity $id",
             startDate = startDateLocal,

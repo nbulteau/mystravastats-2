@@ -7,7 +7,7 @@ import type {
   SeriesOptionsType,
   YAxisOptions,
 } from "highcharts";
-import { formatSpeedWithUnit } from "@/utils/formatters";
+import { formatIsoDateDayFirst, formatSpeedWithUnit } from "@/utils/formatters";
 
 const props = withDefaults(defineProps<{
   activityType: string;
@@ -178,7 +178,7 @@ function updateChartData() {
 }
 
 function formatTooltipDay(day: string | undefined): string {
-  return day ? ` - Day: ${day}` : "";
+  return day ? ` - Day: ${formatIsoDateDayFirst(day)}` : "";
 }
 
 function calculateTrendLine(data: number[]): number[] {

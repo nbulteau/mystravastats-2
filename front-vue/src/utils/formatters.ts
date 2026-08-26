@@ -24,6 +24,14 @@ export function formatDate(value: string): string {
     return new Intl.DateTimeFormat(navigator.language, options).format(date);
 }
 
+export function formatIsoDateDayFirst(value: string): string {
+    const match = /^(\d{4})-(\d{2})-(\d{2})(?:$|T)/.exec(value);
+    if (!match) {
+        return value;
+    }
+    return `${match[3]}-${match[2]}-${match[1]}`;
+}
+
 export function formatSpeedWithUnit(speed: number, activityType: string): string {
     const formatedSpeed = formatSpeed(speed, activityType);
 

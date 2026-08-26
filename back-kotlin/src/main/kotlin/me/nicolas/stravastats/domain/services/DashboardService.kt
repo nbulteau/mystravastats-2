@@ -12,14 +12,13 @@ import me.nicolas.stravastats.domain.business.EddingtonBasis
 import me.nicolas.stravastats.domain.business.EddingtonMetric
 import me.nicolas.stravastats.domain.business.EddingtonNumber
 import me.nicolas.stravastats.domain.business.EddingtonScope
-import me.nicolas.stravastats.domain.business.ActivityEffort
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.services.ActivityHelper.groupActivitiesByDay
 import me.nicolas.stravastats.domain.services.activityproviders.ActivityProviderCacheIdentity
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
 import me.nicolas.stravastats.domain.utils.SafeLocalFile
 import me.nicolas.stravastats.domain.services.activityproviders.StravaActivityProvider
-import me.nicolas.stravastats.domain.services.statistics.calculateBestTimeForDistance
+import me.nicolas.stravastats.domain.services.statistics.isPlausibleActivityMaxSpeed
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import tools.jackson.databind.DeserializationFeature
@@ -355,15 +354,15 @@ class DashboardService(
             }
             .filter { entry -> entry.value > 0 }
 
-        val bestSpeedEffortByYear = activitiesByYear
-            .mapValues { (_, activities) -> bestSpeedEffort(activities) }
+        val maxSpeedActivityByYear = activitiesByYear
+            .mapValues { (_, activities) -> maxSpeedActivity(activities) }
 
-        val maxSpeedByYear = bestSpeedEffortByYear
-            .mapValues { (_, activityEffort) -> activityEffort?.second?.getMSSpeed()?.toFloat() ?: 0F }
+        val maxSpeedByYear = maxSpeedActivityByYear
+            .mapValues { (_, activity) -> activity?.maxSpeed ?: 0F }
             .filter { entry -> entry.value > 0.0 }
 
-        val maxSpeedDateByYear = bestSpeedEffortByYear
-            .mapValues { (_, activityEffort) -> activityEffort?.first?.activityDate() ?: "" }
+        val maxSpeedDateByYear = maxSpeedActivityByYear
+            .mapValues { (_, activity) -> activity?.activityDate() ?: "" }
             .filter { it.value.isNotBlank() }
 
         val averageHeartRateByYear = yearlyAccumulators
@@ -641,12 +640,10 @@ class DashboardService(
             ?.key ?: ""
     }
 
-    private fun bestSpeedEffort(activities: List<StravaActivity>): Pair<StravaActivity, ActivityEffort>? {
+    private fun maxSpeedActivity(activities: List<StravaActivity>): StravaActivity? {
         return activities
-            .mapNotNull { activity ->
-                activity.calculateBestTimeForDistance(200.0)?.let { effort -> activity to effort }
-            }
-            .minByOrNull { (_, effort) -> effort.seconds }
+            .filter(::isPlausibleActivityMaxSpeed)
+            .maxByOrNull { activity -> activity.maxSpeed }
     }
 
     private fun StravaActivity.activityDate(): String {
