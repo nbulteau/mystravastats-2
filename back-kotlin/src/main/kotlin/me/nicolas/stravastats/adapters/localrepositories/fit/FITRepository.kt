@@ -41,10 +41,10 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
 
     fun decodeActivity(fitFile: File): StravaActivity? {
         return try {
-            val fitMessages = fitDecoder.decode(fitFile.inputStream())
+            val fitMessages = fitFile.inputStream().use { input -> fitDecoder.decode(input) }
             fitMessages.toActivity(fitFile)
         } catch (exception: Exception) {
-            logger.error("Something wrong during FIT conversion: ${exception.message}")
+            logger.error("Unable to decode FIT activity {}: {}", fitFile.absolutePath, exception.message)
             null
         }
     }
@@ -57,7 +57,10 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
         val sessionMesg = this.sessionMesgs.firstOrNull()
             ?: throw IllegalArgumentException("FIT file has no session message")
 
-        val stream: Stream? = this.recordMesgs.buildStream()
+        val startTimestamp = sessionMesg.startTime?.timestamp
+            ?: throw IllegalArgumentException("FIT file has no session start time")
+        val startInstant = fitTimestampToInstant(startTimestamp)
+        val stream: Stream? = this.recordMesgs.buildStream(startTimestamp)
 
         // StravaAthlete
         val athlete = AthleteRef(0)
@@ -91,9 +94,6 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
         // The stravaActivity's moving time, in seconds
         val movingTime: Int = resolveMovingTime(sessionMesg, stream, elapsedTime)
         // The time at which the stravaActivity was started.
-        val startTimestamp = sessionMesg.startTime?.timestamp
-            ?: throw IllegalArgumentException("FIT file has no session start time")
-        val startInstant = fitTimestampToInstant(startTimestamp)
         val startDate: String = extractDate(startInstant)
         // The time at which the stravaActivity was started in the local timezone.
         val startDateLocal: String = extractDateLocal(startInstant)
@@ -167,13 +167,19 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
     /**
      * Build Strava Stream structure using the GPS records
      */
-    private fun List<RecordMesg>.buildStream(): Stream? {
+    private fun List<RecordMesg>.buildStream(sessionStartTimestamp: Long): Stream? {
         if (this.isEmpty()) {
             return null
         }
 
-        // distance
-        val dataDistance = this.map { recordMesg -> recordMesg.distance?.toDouble() ?: 0.0 }
+        var lastDistance = 0.0
+        val dataDistance = this.map { recordMesg ->
+            val distance = recordMesg.distance?.toDouble()
+                ?.takeIf { value -> value.isFinite() && value >= lastDistance }
+                ?: lastDistance
+            lastDistance = distance
+            distance
+        }
         val streamDistance = DistanceStream(
             data = dataDistance.toMutableList(),
             originalSize = dataDistance.size,
@@ -181,10 +187,17 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
             seriesType = "distance"
         )
 
-        //  time
-        val startTime = this.first().timestamp.timestamp
-        val dataTime = this.map { recordMesg ->
-            (recordMesg.timestamp.timestamp - startTime).toInt()
+        val firstRecordTimestamp = this.firstNotNullOfOrNull { recordMesg -> recordMesg.timestamp?.timestamp }
+            ?: sessionStartTimestamp
+        var lastElapsedSeconds = 0
+        val dataTime = this.mapIndexed { index, recordMesg ->
+            val elapsed = recordMesg.timestamp?.timestamp
+                ?.minus(firstRecordTimestamp)
+                ?.coerceIn(0L, Int.MAX_VALUE.toLong())
+                ?.toInt()
+                ?: (lastElapsedSeconds + if (index == 0) 0 else 1)
+            lastElapsedSeconds = max(lastElapsedSeconds, elapsed)
+            lastElapsedSeconds
         }
         val streamTime = TimeStream(
             data = dataTime.toMutableList(),
@@ -206,19 +219,16 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
             )
         }
 
-        // altitude
-        val dataAltitude = this.mapNotNull { recordMesg ->
-            recordMesg.altitude?.toDouble()
-        }
-        val streamAltitude = if (dataAltitude.isNotEmpty()) {
+        val dataAltitude = normalizeScalarSamples(this.map { recordMesg ->
+            recordMesg.altitude?.toDouble()?.takeIf { value -> value.isFinite() && value in -1_000.0..12_000.0 }
+        })
+        val streamAltitude = dataAltitude?.let { altitude ->
             AltitudeStream(
-                data = dataAltitude.toMutableList(),
-                originalSize = dataAltitude.size,
+                data = altitude,
+                originalSize = altitude.size,
                 resolution = "high",
                 seriesType = "distance"
             )
-        } else {
-            null
         }
 
         // moving
@@ -237,12 +247,12 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
         }
 
         // power
-        val dataPower = this.mapNotNull { recordMesg ->
-            recordMesg.power
+        val dataPower = this.map { recordMesg ->
+            recordMesg.power?.takeIf { value -> value > 0 } ?: 0
         }
-        val streamPower = if (dataPower.isNotEmpty()) {
+        val streamPower = if (dataPower.any { value -> value > 0 }) {
             PowerStream(
-                data = dataPower.toMutableList(),
+                data = dataPower,
                 originalSize = dataPower.size,
                 resolution = "high",
                 seriesType = "distance"
@@ -255,7 +265,7 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
         val dataCadence = this.map { recordMesg ->
             recordMesg.cadence?.toInt() ?: 0
         }
-        val streamCadence = if (dataCadence.isNotEmpty()) {
+        val streamCadence = if (dataCadence.any { value -> value > 0 }) {
             CadenceStream(
                 data = dataCadence.toMutableList(),
                 originalSize = dataCadence.size,
@@ -270,7 +280,7 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
         val dataHeartRate = this.map { recordMesg ->
             recordMesg.heartRate?.toInt() ?: 0
         }
-        val streamHeartRate = if (dataHeartRate.isNotEmpty()) {
+        val streamHeartRate = if (dataHeartRate.any { value -> value > 0 }) {
             HeartRateStream(
                 data = dataHeartRate.toMutableList(),
                 originalSize = dataHeartRate.size,
@@ -283,9 +293,9 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
 
         // velocity smooth
         val dataVelocitySmooth = this.map { recordMesg ->
-            recordMesg.speed ?: 0.0F
+            recordMesg.speed?.takeIf { value -> value.isFinite() && value >= 0.0F } ?: 0.0F
         }
-        val streamVelocitySmooth = if (dataVelocitySmooth.isNotEmpty()) {
+        val streamVelocitySmooth = if (dataVelocitySmooth.any { value -> value > 0.0F }) {
             SmoothVelocityStream(
                 data = dataVelocitySmooth.toMutableList(),
                 originalSize = dataVelocitySmooth.size,
@@ -298,9 +308,9 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
 
         // grade smooth
         val dataGradeSmooth = this.map { recordMesg ->
-            recordMesg.grade ?: 0.0F
+            recordMesg.grade?.takeIf { value -> value.isFinite() } ?: 0.0F
         }
-        val streamGradeSmooth = if (dataGradeSmooth.isNotEmpty()) {
+        val streamGradeSmooth = if (dataGradeSmooth.any { value -> value != 0.0F }) {
             SmoothGradeStream(
                 data = dataGradeSmooth.toMutableList(),
                 originalSize = dataGradeSmooth.size,
@@ -374,6 +384,13 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
         }
     }
 
+    private fun normalizeScalarSamples(rawValues: List<Double?>): List<Double>? {
+        var previous = rawValues.firstOrNull { value -> value != null && value.isFinite() } ?: return null
+        return rawValues.map { value ->
+            value?.takeIf(Double::isFinite)?.also { previous = it } ?: previous
+        }
+    }
+
     private fun validLatLng(value: List<Double>?): Boolean {
         return value != null &&
             value.size >= 2 &&
@@ -389,8 +406,11 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
     }
 
     private fun fitActivityID(fitFile: File, startDate: Instant, sportType: String, distanceMeters: Double): Long {
-        val raw = "${fitFile.canonicalPath}|$startDate|$sportType|${distanceMeters.roundToInt()}"
-        val digest = MessageDigest.getInstance("SHA-256").digest(raw.toByteArray(StandardCharsets.UTF_8))
+        val digest = MessageDigest.getInstance("SHA-256").digest(
+            runCatching { fitFile.readBytes() }.getOrElse {
+                "$startDate|$sportType|${distanceMeters.roundToInt()}".toByteArray(StandardCharsets.UTF_8)
+            }
+        )
         var value = 0L
         for (index in 0 until 8) {
             value = (value shl 8) or (digest[index].toLong() and 0xff)

@@ -414,6 +414,18 @@ func TestToDetailedActivityDto_SanitizesNonFiniteValues(t *testing.T) {
 	}
 }
 
+func TestToDetailedActivityDto_OnlyExposesLinkForStravaActivity(t *testing.T) {
+	stravaActivity := &strava.DetailedActivity{Id: 53, UploadId: 9001}
+	localActivity := &strava.DetailedActivity{Id: 54}
+
+	if link := ToDetailedActivityDto(stravaActivity).Link; link != "https://www.strava.com/activities/53" {
+		t.Fatalf("expected Strava link, got %q", link)
+	}
+	if link := ToDetailedActivityDto(localActivity).Link; link != "" {
+		t.Fatalf("expected no link for local activity, got %q", link)
+	}
+}
+
 func TestToDetailedActivityDto_ExposesStravaSegmentEfforts(t *testing.T) {
 	// GIVEN
 	prRank := 2

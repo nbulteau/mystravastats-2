@@ -244,7 +244,9 @@ func buildCorrectionForIssue(activity *strava.Activity, issue business.DataQuali
 		if !ok {
 			return manualCorrection(issue, "GPS glitch is not isolated enough for a safe automatic fix"), nil, nil, true
 		}
-		return buildRemoveGPSPointCorrection(activity, issue, index), nil, nil, true
+		return buildInterpolateGPSPointCorrection(activity, issue, index), nil, nil, true
+	case business.DataQualityCategoryGPSGap:
+		return manualCorrection(issue, "A recording gap may be a paused recording, a tunnel, or a real stop; split or map-match it after review"), nil, nil, true
 	case business.DataQualityCategoryAltitudeSpike:
 		index, ok := findIsolatedAltitudeSpike(activity)
 		if !ok {
@@ -253,9 +255,23 @@ func buildCorrectionForIssue(activity *strava.Activity, issue business.DataQuali
 		return buildSmoothAltitudeCorrection(activity, issue, index), nil, nil, true
 	case business.DataQualityCategoryInvalidValue:
 		return buildInvalidValueCorrection(activity, issue)
+	case business.DataQualityCategoryMissingStreamField:
+		if issue.Field == "stream.distance" && canRecomputeDistance(activity) {
+			return buildRecalculateFromStreamCorrection(activity, issue, recomputeMotionModifiedFields(activity), "Recompute the missing distance and speed stream fields from validated GPS coordinates."), nil, nil, true
+		}
+		return business.DataQualityCorrection{}, nil, []string{fmt.Sprintf("%s cannot be corrected automatically", issue.ID)}, false
 	default:
 		return business.DataQualityCorrection{}, nil, []string{fmt.Sprintf("%s cannot be corrected automatically", issue.ID)}, false
 	}
+}
+
+func buildInterpolateGPSPointCorrection(activity *strava.Activity, issue business.DataQualityIssue, index int) business.DataQualityCorrection {
+	correction := baseCorrection(activity, issue, business.DataQualityCorrectionTypeInterpolateGPSPoint)
+	correction.PointIndexes = []int{index}
+	correction.ModifiedFields = []string{"stream.latlng", "stream.distance", "stream.velocitySmooth", "distance", "average_speed", "max_speed"}
+	correction.Reason = fmt.Sprintf("Interpolate isolated GPS point %d at its original timestamp and recompute distance and speed without deleting sensor samples.", index)
+	correction.Impact = impactForCorrection(activity, correction)
+	return correction
 }
 
 func correctionSuggestionForIssue(activity *strava.Activity, issue business.DataQualityIssue) *business.DataQualityCorrectionSuggestion {
@@ -428,7 +444,9 @@ func correctionID(issueID string, correctionType business.DataQualityCorrectionT
 func correctionLabel(correctionType business.DataQualityCorrectionType) string {
 	switch correctionType {
 	case business.DataQualityCorrectionTypeRemoveGPSPoint:
-		return "Remove GPS point"
+		return "Repair GPS point"
+	case business.DataQualityCorrectionTypeInterpolateGPSPoint:
+		return "Interpolate GPS point"
 	case business.DataQualityCorrectionTypeSmoothAltitudeSpike:
 		return "Smooth altitude spike"
 	case business.DataQualityCorrectionTypeMaskInvalidValue:
@@ -466,7 +484,20 @@ func fieldHasNonFiniteValue(activity *strava.Activity, field string) bool {
 
 func canRecomputeDistance(activity *strava.Activity) bool {
 	stream := activity.Stream
-	return stream != nil && stream.LatLng != nil && len(stream.LatLng.Data) >= 2
+	if stream == nil || stream.LatLng == nil || len(stream.LatLng.Data) < 2 {
+		return false
+	}
+	for _, point := range stream.LatLng.Data {
+		if !validCoordinate(point) {
+			return false
+		}
+	}
+	if len(stream.Time.Data) >= 2 {
+		if len(analyzeTimeConsistency("", "", activity)) > 0 || len(analyzeGPSGaps("", "", activity)) > 0 || len(analyzeGPSGlitch("", "", activity)) > 0 {
+			return false
+		}
+	}
+	return true
 }
 
 func canRecomputeAverageSpeedFromSummary(activity *strava.Activity) bool {
@@ -555,7 +586,7 @@ func findIsolatedAltitudeSpike(activity *strava.Activity) (int, bool) {
 }
 
 func segmentSpeed(previous []float64, current []float64, seconds int) (float64, bool) {
-	if len(previous) < 2 || len(current) < 2 || seconds <= 0 {
+	if !validCoordinate(previous) || !validCoordinate(current) || seconds <= 0 {
 		return 0, false
 	}
 	distance := haversineMeters(previous[0], previous[1], current[0], current[1])
@@ -580,7 +611,12 @@ func applyCorrectionToActivity(activity *strava.Activity, correction business.Da
 		if len(correction.PointIndexes) == 0 {
 			return
 		}
-		removeGPSPoint(activity, correction.PointIndexes[0])
+		interpolateGPSPoint(activity, correction.PointIndexes[0])
+	case business.DataQualityCorrectionTypeInterpolateGPSPoint:
+		if len(correction.PointIndexes) == 0 {
+			return
+		}
+		interpolateGPSPoint(activity, correction.PointIndexes[0])
 	case business.DataQualityCorrectionTypeSmoothAltitudeSpike:
 		if len(correction.PointIndexes) == 0 {
 			return
@@ -591,6 +627,27 @@ func applyCorrectionToActivity(activity *strava.Activity, correction business.Da
 	case business.DataQualityCorrectionTypeMaskInvalidValue:
 		maskInvalidValues(activity, correction.ModifiedFields)
 	}
+}
+
+func interpolateGPSPoint(activity *strava.Activity, index int) {
+	stream := activity.Stream
+	if stream == nil || stream.LatLng == nil || index <= 0 || index >= len(stream.LatLng.Data)-1 {
+		return
+	}
+	previous := stream.LatLng.Data[index-1]
+	next := stream.LatLng.Data[index+1]
+	if !validCoordinate(previous) || !validCoordinate(next) {
+		return
+	}
+	ratio := 0.5
+	if len(stream.Time.Data) == len(stream.LatLng.Data) {
+		span := stream.Time.Data[index+1] - stream.Time.Data[index-1]
+		if span > 0 {
+			ratio = float64(stream.Time.Data[index]-stream.Time.Data[index-1]) / float64(span)
+		}
+	}
+	stream.LatLng.Data[index] = []float64{previous[0] + (next[0]-previous[0])*ratio, previous[1] + (next[1]-previous[1])*ratio}
+	recomputeDistanceAndSpeed(activity)
 }
 
 func recalculateFromStream(activity *strava.Activity, fields []string) {
@@ -669,42 +726,6 @@ func shouldRecomputeElevation(fields []string) bool {
 		}
 	}
 	return false
-}
-
-func removeGPSPoint(activity *strava.Activity, index int) {
-	stream := activity.Stream
-	if stream == nil || stream.LatLng == nil || index <= 0 || index >= len(stream.LatLng.Data)-1 {
-		return
-	}
-	originalSize := len(stream.LatLng.Data)
-	stream.LatLng.Data = removeFloat64Row(stream.LatLng.Data, index)
-	stream.LatLng.OriginalSize = len(stream.LatLng.Data)
-	if len(stream.Time.Data) == originalSize {
-		stream.Time.Data = removeInt(stream.Time.Data, index)
-		stream.Time.OriginalSize = len(stream.Time.Data)
-	}
-	if stream.Altitude != nil && len(stream.Altitude.Data) == originalSize {
-		stream.Altitude.Data = removeFloat64(stream.Altitude.Data, index)
-		stream.Altitude.OriginalSize = len(stream.Altitude.Data)
-	}
-	if stream.Moving != nil && len(stream.Moving.Data) == originalSize {
-		stream.Moving.Data = removeBool(stream.Moving.Data, index)
-		stream.Moving.OriginalSize = len(stream.Moving.Data)
-	}
-	if stream.HeartRate != nil && len(stream.HeartRate.Data) == originalSize {
-		stream.HeartRate.Data = removeInt(stream.HeartRate.Data, index)
-		stream.HeartRate.OriginalSize = len(stream.HeartRate.Data)
-	}
-	if stream.Watts != nil && len(stream.Watts.Data) == originalSize {
-		stream.Watts.Data = removeFloat64(stream.Watts.Data, index)
-		stream.Watts.OriginalSize = len(stream.Watts.Data)
-	}
-	if stream.Cadence != nil && len(stream.Cadence.Data) == originalSize {
-		stream.Cadence.Data = removeInt(stream.Cadence.Data, index)
-		stream.Cadence.OriginalSize = len(stream.Cadence.Data)
-	}
-	recomputeDistanceAndSpeed(activity)
-	recomputeElevation(activity)
 }
 
 func smoothAltitudePoint(activity *strava.Activity, index int) {
@@ -943,46 +964,6 @@ func cloneFloat64Rows(values [][]float64) [][]float64 {
 		cloned[index] = cloneFloat64Slice(values[index])
 	}
 	return cloned
-}
-
-func removeFloat64(values []float64, index int) []float64 {
-	if index < 0 || index >= len(values) {
-		return values
-	}
-	result := make([]float64, 0, len(values)-1)
-	result = append(result, values[:index]...)
-	result = append(result, values[index+1:]...)
-	return result
-}
-
-func removeFloat64Row(values [][]float64, index int) [][]float64 {
-	if index < 0 || index >= len(values) {
-		return values
-	}
-	result := make([][]float64, 0, len(values)-1)
-	result = append(result, values[:index]...)
-	result = append(result, values[index+1:]...)
-	return result
-}
-
-func removeInt(values []int, index int) []int {
-	if index < 0 || index >= len(values) {
-		return values
-	}
-	result := make([]int, 0, len(values)-1)
-	result = append(result, values[:index]...)
-	result = append(result, values[index+1:]...)
-	return result
-}
-
-func removeBool(values []bool, index int) []bool {
-	if index < 0 || index >= len(values) {
-		return values
-	}
-	result := make([]bool, 0, len(values)-1)
-	result = append(result, values[:index]...)
-	result = append(result, values[index+1:]...)
-	return result
 }
 
 func saveCurrentProviderCorrections(corrections []business.DataQualityCorrection) error {

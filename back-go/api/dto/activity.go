@@ -38,6 +38,7 @@ type DetailedActivityDto struct {
 	ElapsedTime          int                      `json:"elapsedTime"`
 	ElevHigh             float64                  `json:"elevHigh"`
 	ID                   int64                    `json:"id"`
+	Link                 string                   `json:"link"`
 	Kilojoules           float64                  `json:"kilojoules"`
 	MaxHeartrate         int                      `json:"maxHeartrate"`
 	MaxSpeed             float32                  `json:"maxSpeed"`

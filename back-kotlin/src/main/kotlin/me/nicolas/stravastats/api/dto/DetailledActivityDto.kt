@@ -36,6 +36,8 @@ data class DetailedActivityDto(
     val elevHigh: Double,
     @param:Schema(description = "Activity id.")
     val id: Long,
+    @param:Schema(description = "Strava activity URL when this activity exists on Strava.")
+    val link: String,
     @param:Schema(description = "The total work done in kilojoules during this activity. Rides only.")
     val kilojoules: Double,
     @param:Schema(description = "Maximum heartrate")
@@ -181,6 +183,7 @@ fun StravaDetailedActivity.toDto(activityComparison: ActivityComparison? = null)
         elapsedTime = activityForDto.elapsedTime,
         elevHigh = activityForDto.elevHigh.finiteOrZero(),
         id = activityForDto.id,
+        link = if (activityForDto.uploadId != 0L) "https://www.strava.com/activities/${activityForDto.id}" else "",
         kilojoules = activityForDto.kilojoules.finiteOrZero(),
         maxHeartrate = activityForDto.maxHeartrate,
         maxSpeed = activityForDto.maxSpeed.finiteFloatOrZero(),
@@ -328,7 +331,13 @@ fun Stream.toDto(): StreamDto {
     if (this.latlng == null) {
         return StreamDto(
             distance = this.distance.data.finiteValues(),
-            time = this.time.data
+            time = this.time.data,
+            heartrate = this.heartrate?.data,
+            cadence = this.cadence?.data,
+            moving = this.moving?.data,
+            altitude = this.altitude?.data?.finiteValues(),
+            watts = this.watts?.data,
+            velocitySmooth = this.velocitySmooth?.data?.finiteFloatValues()?.map { value -> value.toDouble() },
         )
     }
 

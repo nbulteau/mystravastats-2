@@ -47,6 +47,7 @@ export interface DetailedActivity {
     elapsedTime: number;
     elevHigh: number;
     id: number;
+    link: string;
     kilojoules: number;
     maxSpeed: number;
     maxWatts: number;

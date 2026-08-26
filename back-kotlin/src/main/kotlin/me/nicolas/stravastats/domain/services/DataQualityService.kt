@@ -227,15 +227,17 @@ class DataQualityService(
             issues += issue(source, sourcePath, activity, "critical", "INVALID_VALUE", "total_elevation_gain", "Elevation gain is not serializable.", activity.totalElevationGain.formatRaw(), "Recompute elevation from altitude stream or SRTM.")
         }
 
-        issues += analyzeDerivedSpeed(source, sourcePath, activity)
+        if (activity.averageSpeed.isFinite() && activity.averageSpeed <= speedThreshold(activity.type)) {
+            issues += analyzeDerivedSpeed(source, sourcePath, activity)
+        }
 
         val stream = activity.stream
         if (stream == null) {
-            if (source == "strava" && activity.uploadId > 0) {
+            if (activity.uploadId > 0) {
                 issues += issue(source, sourcePath, activity, "info", "MISSING_STREAM", "stream", "Detailed stream is missing from the local cache.", "", "Download missing streams from Strava when API access is available.")
                 return issues.withCorrectionSuggestions(activity)
             }
-            if (source != "fit" && source != "gpx") {
+            if (source != "fit" && source != "gpx" && source != "composite") {
                 return issues.withCorrectionSuggestions(activity)
             }
             issues += issue(source, sourcePath, activity, "warning", "MISSING_STREAM", "stream", "Activity has no stream data.", "", "Open the source file and verify GPS/time streams are present.")
@@ -271,9 +273,51 @@ class DataQualityService(
             issues += issue(source, sourcePath, activity, "warning", "MISSING_STREAM_FIELD", "stream.altitude", "Altitude and time stream fields have inconsistent sizes.", "altitude=$altitudeSize time=$timeSize", "Trim or resample streams before elevation analysis.")
         }
 
+        issues += analyzeTimeConsistency(source, sourcePath, activity)
+        issues += analyzeInvalidCoordinates(source, sourcePath, activity)
+        issues += analyzeGpsGaps(source, sourcePath, activity)
         issues += analyzeGpsGlitch(source, sourcePath, activity)
         issues += analyzeAltitudeSpike(source, sourcePath, activity)
         return issues.withCorrectionSuggestions(activity)
+    }
+
+    private fun analyzeTimeConsistency(source: String, sourcePath: String, activity: StravaActivity): List<DataQualityIssue> {
+        val times = activity.stream?.time?.data ?: return emptyList()
+        for (index in 1 until times.size) {
+            if (times[index] > times[index - 1]) continue
+            return listOf(issue(source, sourcePath, activity, "critical", "INCONSISTENT_TIME", "stream.time", "Time stream is not strictly increasing.", "point $index: ${times[index]} <= ${times[index - 1]}", "Repair the source timestamps before using speed or record calculations."))
+        }
+        return emptyList()
+    }
+
+    private fun analyzeInvalidCoordinates(source: String, sourcePath: String, activity: StravaActivity): List<DataQualityIssue> {
+        val points = activity.stream?.latlng?.data ?: return emptyList()
+        points.forEachIndexed { index, point ->
+            if (!point.isValidCoordinate()) {
+                return listOf(issue(source, sourcePath, activity, "critical", "INVALID_VALUE", "stream.latlng", "GPS trace contains an invalid coordinate.", "point $index", "Remove or repair the invalid coordinate before using the trace."))
+            }
+        }
+        return emptyList()
+    }
+
+    private fun analyzeGpsGaps(source: String, sourcePath: String, activity: StravaActivity): List<DataQualityIssue> {
+        val stream = activity.stream ?: return emptyList()
+        val points = stream.latlng?.data ?: return emptyList()
+        val times = stream.time.data
+        val limit = minOf(points.size, times.size)
+        if (limit < 2) return emptyList()
+        val medianCadence = times.take(limit).medianPositiveDelta()
+        val threshold = maxOf(gpsGapMinSeconds, medianCadence * gpsGapCadenceFactor)
+        return (1 until limit).mapNotNull { index ->
+            val previous = points[index - 1]
+            val current = points[index]
+            if (!previous.isValidCoordinate() || !current.isValidCoordinate()) return@mapNotNull null
+            val deltaSeconds = times[index] - times[index - 1]
+            if (deltaSeconds < threshold) return@mapNotNull null
+            val distance = haversineMeters(previous[0], previous[1], current[0], current[1])
+            if (distance < gpsGapMinMeters) return@mapNotNull null
+            issue(source, sourcePath, activity, "warning", "GPS_GAP", "stream.latlng.gap.$index", "GPS recording resumes far from the previous point after a long gap.", "%.0f m after %d s near point %d".format(Locale.US, distance, deltaSeconds, index), "Split the trace at this gap or map-match the missing section after manual review; do not count the straight bridge as recorded distance.")
+        }
     }
 
     private fun analyzeDerivedSpeed(source: String, sourcePath: String, activity: StravaActivity): List<DataQualityIssue> {
@@ -299,7 +343,7 @@ class DataQualityService(
         for (index in 1 until limit) {
             val previous = points[index - 1]
             val current = points[index]
-            if (previous.size < 2 || current.size < 2) continue
+            if (!previous.isValidCoordinate() || !current.isValidCoordinate()) continue
             val deltaSeconds = times[index] - times[index - 1]
             if (deltaSeconds <= 0) continue
             val speed = haversineMeters(previous[0], previous[1], current[0], current[1]) / deltaSeconds
@@ -482,6 +526,9 @@ class DataQualityService(
 private const val altitudeSpikeMeters = 120.0
 private const val altitudeSpikeSeconds = 15
 private const val altitudeSpikeInterpolationMaxNeighborDeltaMeters = 60.0
+private const val gpsGapMinSeconds = 30
+private const val gpsGapMinMeters = 200.0
+private const val gpsGapCadenceFactor = 10
 
 private data class CorrectionContext(
     val report: DataQualityReport,
@@ -496,9 +543,10 @@ private fun buildCorrectionForIssue(activity: StravaActivity?, issue: DataQualit
             if (index == null) {
                 manualCorrection(issue, "GPS glitch is not isolated enough for a safe automatic fix.")
             } else {
-                buildRemoveGpsPointCorrection(activity, issue, index)
+                buildInterpolateGpsPointCorrection(activity, issue, index)
             }
         }
+        "GPS_GAP" -> manualCorrection(issue, "A recording gap may be a paused recording, a tunnel, or a real stop; split or map-match it after review.")
         "ALTITUDE_SPIKE" -> {
             val index = findIsolatedAltitudeSpike(activity)
             if (index == null) {
@@ -508,8 +556,22 @@ private fun buildCorrectionForIssue(activity: StravaActivity?, issue: DataQualit
             }
         }
         "INVALID_VALUE" -> buildInvalidValueCorrection(activity, issue)
+        "MISSING_STREAM_FIELD" -> if (issue.field == "stream.distance" && activity.canRecomputeDistance()) {
+            buildRecalculateFromStreamCorrection(activity, issue, activity.recomputeMotionModifiedFields(), "Recompute the missing distance and speed stream fields from validated GPS coordinates.")
+        } else {
+            null
+        }
         else -> null
     }
+}
+
+private fun buildInterpolateGpsPointCorrection(activity: StravaActivity, issue: DataQualityIssue, index: Int): DataQualityCorrection {
+    val correction = baseCorrection(activity, issue, "INTERPOLATE_GPS_POINT").copy(
+        pointIndexes = listOf(index),
+        modifiedFields = listOf("stream.latlng", "stream.distance", "stream.velocitySmooth", "distance", "average_speed", "max_speed"),
+        reason = "Interpolate isolated GPS point $index at its original timestamp and recompute distance and speed without deleting sensor samples.",
+    )
+    return correction.copy(impact = impactForCorrection(activity, correction))
 }
 
 private fun buildRemoveGpsPointCorrection(activity: StravaActivity, issue: DataQualityIssue, index: Int): DataQualityCorrection {
@@ -656,7 +718,8 @@ private fun correctionId(issueId: String, type: String): String =
     "${issueId.lowercase().replace(" ", "-")}-${type.lowercase()}"
 
 private fun correctionLabel(type: String): String = when (type) {
-    "REMOVE_GPS_POINT" -> "Remove GPS point"
+    "REMOVE_GPS_POINT" -> "Repair GPS point"
+    "INTERPOLATE_GPS_POINT" -> "Interpolate GPS point"
     "SMOOTH_ALTITUDE_SPIKE" -> "Smooth altitude spike"
     "MASK_INVALID_VALUE" -> "Mask invalid value"
     else -> "Recalculate from stream"
@@ -685,7 +748,10 @@ private fun StravaActivity.fieldHasNonFiniteValue(field: String): Boolean {
 
 private fun StravaActivity.canRecomputeDistance(): Boolean {
     val points = stream?.latlng?.data ?: return false
-    return points.size >= 2
+    if (points.size < 2 || points.any { point -> !point.isValidCoordinate() }) return false
+    val times = stream.time.data
+    if (times.size >= 2 && (!times.isStrictlyIncreasing() || hasGpsGap(points, times) || hasImpossibleGpsSegment(points, times, correctionSpeedThreshold(type)))) return false
+    return true
 }
 
 private fun StravaActivity.canRecomputeAverageSpeedFromSummary(): Boolean =
@@ -765,7 +831,7 @@ private fun findIsolatedAltitudeSpike(activity: StravaActivity): Int? {
 }
 
 private fun segmentSpeed(previous: List<Double>, current: List<Double>, seconds: Int): Double? {
-    if (previous.size < 2 || current.size < 2 || seconds <= 0) return null
+    if (!previous.isValidCoordinate() || !current.isValidCoordinate() || seconds <= 0) return null
     return correctionHaversineMeters(previous[0], previous[1], current[0], current[1]) / seconds
 }
 
@@ -822,12 +888,65 @@ private fun List<StravaActivity>.withDataQualityCorrections(corrections: List<Da
 private fun StravaActivity.applyDataQualityCorrections(corrections: List<DataQualityCorrection>): StravaActivity {
     return corrections.sortedBy { it.appliedAt.orEmpty() }.fold(this) { current, correction ->
         when (correction.type) {
-            "REMOVE_GPS_POINT" -> current.removeGpsPoint(correction.pointIndexes.firstOrNull())
+            "REMOVE_GPS_POINT", "INTERPOLATE_GPS_POINT" -> current.interpolateGpsPoint(correction.pointIndexes.firstOrNull())
             "SMOOTH_ALTITUDE_SPIKE" -> current.smoothAltitudePoint(correction.pointIndexes.firstOrNull())
             "RECALCULATE_FROM_STREAM" -> current.recalculateFromStream(correction.modifiedFields)
             "MASK_INVALID_VALUE" -> current.maskInvalidValues(correction.modifiedFields)
             else -> current
         }
+    }
+}
+
+private fun StravaActivity.interpolateGpsPoint(index: Int?): StravaActivity {
+    val stream = stream ?: return this
+    val latlng = stream.latlng ?: return this
+    val resolvedIndex = index ?: return this
+    if (resolvedIndex <= 0 || resolvedIndex >= latlng.data.size - 1) return this
+    val previous = latlng.data[resolvedIndex - 1]
+    val next = latlng.data[resolvedIndex + 1]
+    if (!previous.isValidCoordinate() || !next.isValidCoordinate()) return this
+    var ratio = 0.5
+    if (stream.time.data.size == latlng.data.size) {
+        val span = stream.time.data[resolvedIndex + 1] - stream.time.data[resolvedIndex - 1]
+        if (span > 0) ratio = (stream.time.data[resolvedIndex] - stream.time.data[resolvedIndex - 1]).toDouble() / span
+    }
+    val updatedPoints = latlng.data.toMutableList()
+    updatedPoints[resolvedIndex] = listOf(
+        previous[0] + (next[0] - previous[0]) * ratio,
+        previous[1] + (next[1] - previous[1]) * ratio,
+    )
+    return copy(stream = stream.copy(latlng = latlng.copy(data = updatedPoints))).recomputeDistanceAndSpeed()
+}
+
+private fun List<Double>.isValidCoordinate(): Boolean =
+    size >= 2 && this[0].isFinite() && this[1].isFinite() && this[0] in -90.0..90.0 && this[1] in -180.0..180.0
+
+private fun List<Int>.isStrictlyIncreasing(): Boolean =
+    zipWithNext().all { (previous, current) -> current > previous }
+
+private fun List<Int>.medianPositiveDelta(): Int {
+    val deltas = zipWithNext().mapNotNull { (previous, current) -> (current - previous).takeIf { it > 0 } }.sorted()
+    return deltas.getOrNull((deltas.size - 1) / 2) ?: 1
+}
+
+private fun hasGpsGap(points: List<List<Double>>, times: List<Int>): Boolean {
+    val limit = minOf(points.size, times.size)
+    if (limit < 2) return false
+    val threshold = maxOf(gpsGapMinSeconds, times.take(limit).medianPositiveDelta() * gpsGapCadenceFactor)
+    return (1 until limit).any { index ->
+        val previous = points[index - 1]
+        val current = points[index]
+        previous.isValidCoordinate() && current.isValidCoordinate() &&
+            times[index] - times[index - 1] >= threshold &&
+            correctionHaversineMeters(previous[0], previous[1], current[0], current[1]) >= gpsGapMinMeters
+    }
+}
+
+private fun hasImpossibleGpsSegment(points: List<List<Double>>, times: List<Int>, threshold: Double): Boolean {
+    val limit = minOf(points.size, times.size)
+    return (1 until limit).any { index ->
+        val speed = segmentSpeed(points[index - 1], points[index], times[index] - times[index - 1])
+        speed != null && speed > threshold
     }
 }
 
@@ -861,34 +980,6 @@ private fun StravaActivity.maskInvalidValues(fields: List<String>): StravaActivi
         }
     }
     return corrected
-}
-
-private fun StravaActivity.removeGpsPoint(index: Int?): StravaActivity {
-    val stream = stream ?: return this
-    val latlng = stream.latlng ?: return this
-    val resolvedIndex = index ?: return this
-    if (resolvedIndex <= 0 || resolvedIndex >= latlng.data.size - 1) return this
-    val originalSize = latlng.data.size
-    val updatedStream = stream.copy(
-        latlng = latlng.copy(data = latlng.data.removeAtIndex(resolvedIndex), originalSize = originalSize - 1),
-        time = if (stream.time.data.size == originalSize) stream.time.copy(data = stream.time.data.removeAtIndex(resolvedIndex), originalSize = originalSize - 1) else stream.time,
-        altitude = stream.altitude?.let { altitude ->
-            if (altitude.data.size == originalSize) altitude.copy(data = altitude.data.removeAtIndex(resolvedIndex), originalSize = originalSize - 1) else altitude
-        },
-        moving = stream.moving?.let { moving ->
-            if (moving.data.size == originalSize) moving.copy(data = moving.data.removeAtIndex(resolvedIndex), originalSize = originalSize - 1) else moving
-        },
-        heartrate = stream.heartrate?.let { heartrate ->
-            if (heartrate.data.size == originalSize) heartrate.copy(data = heartrate.data.removeAtIndex(resolvedIndex), originalSize = originalSize - 1) else heartrate
-        },
-        watts = stream.watts?.let { watts ->
-            if (watts.data.size == originalSize) watts.copy(data = watts.data.removeAtIndex(resolvedIndex), originalSize = originalSize - 1) else watts
-        },
-        cadence = stream.cadence?.let { cadence ->
-            if (cadence.data.size == originalSize) cadence.copy(data = cadence.data.removeAtIndex(resolvedIndex), originalSize = originalSize - 1) else cadence
-        },
-    )
-    return copy(stream = updatedStream).recomputeDistanceAndSpeed().recomputeElevation()
 }
 
 private fun StravaActivity.smoothAltitudePoint(index: Int?): StravaActivity {
@@ -1006,9 +1097,6 @@ private fun StravaDetailedActivity.toCorrectionActivity(): StravaActivity =
         gearId = gearId,
         stream = stream,
     )
-
-private fun <T> List<T>.removeAtIndex(index: Int): List<T> =
-    filterIndexed { currentIndex, _ -> currentIndex != index }
 
 fun List<StravaActivity>.withoutDataQualityExcludedStats(activityProvider: IActivityProvider): List<StravaActivity> {
     if (isEmpty()) return emptyList()

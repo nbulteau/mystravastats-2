@@ -163,6 +163,83 @@
             },
             "altitude": { "data": [40.0, 70.0, 100.0], "original_size": 3, "resolution": "high", "series_type": "distance" }
           }
+        },
+        {
+          "athlete": { "id": 1 },
+          "average_speed": 3.3333333,
+          "commute": false,
+          "distance": 12000.0,
+          "elapsed_time": 3604,
+          "id": 9204,
+          "max_speed": 8.0,
+          "moving_time": 1200,
+          "name": "FIT paused then resumed elsewhere",
+          "sport_type": "Ride",
+          "start_date": "2026-05-04T06:00:00Z",
+          "start_date_local": "2026-05-04T08:00:00Z",
+          "start_latlng": [48.0, -1.0],
+          "total_elevation_gain": 30.0,
+          "type": "Ride",
+          "upload_id": 0,
+          "stream": {
+            "distance": { "data": [0.0, 10.0, 20.0, 10020.0, 10030.0, 10040.0], "original_size": 6, "resolution": "high", "series_type": "distance" },
+            "time": { "data": [0, 1, 2, 3602, 3603, 3604], "original_size": 6, "resolution": "high", "series_type": "time" },
+            "latlng": {
+              "data": [[48.0, -1.0], [48.0001, -1.0], [48.0002, -1.0], [48.0902, -1.0], [48.0903, -1.0], [48.0904, -1.0]],
+              "original_size": 6,
+              "resolution": "high",
+              "series_type": "time"
+            },
+            "altitude": { "data": [50.0, 51.0, 52.0, 53.0, 54.0, 55.0], "original_size": 6, "resolution": "high", "series_type": "distance" }
+          }
+        },
+        {
+          "athlete": { "id": 1 },
+          "average_speed": 2.0,
+          "commute": false,
+          "distance": 100.0,
+          "elapsed_time": 10,
+          "id": 9205,
+          "max_speed": 3.0,
+          "moving_time": 10,
+          "name": "FIT non-monotonic timestamps",
+          "sport_type": "Ride",
+          "start_date": "2026-05-05T06:00:00Z",
+          "start_date_local": "2026-05-05T08:00:00Z",
+          "start_latlng": [48.0, -1.0],
+          "total_elevation_gain": 2.0,
+          "type": "Ride",
+          "upload_id": 0,
+          "stream": {
+            "distance": { "data": [0.0, 50.0, 100.0], "original_size": 3, "resolution": "high", "series_type": "distance" },
+            "time": { "data": [0, 10, 9], "original_size": 3, "resolution": "high", "series_type": "time" },
+            "latlng": { "data": [[48.0, -1.0], [48.0001, -1.0], [48.0002, -1.0]], "original_size": 3, "resolution": "high", "series_type": "time" },
+            "altitude": { "data": [50.0, 51.0, 52.0], "original_size": 3, "resolution": "high", "series_type": "distance" }
+          }
+        },
+        {
+          "athlete": { "id": 1 },
+          "average_speed": 2.0,
+          "commute": false,
+          "distance": 100.0,
+          "elapsed_time": 10,
+          "id": 9206,
+          "max_speed": 3.0,
+          "moving_time": 10,
+          "name": "FIT invalid coordinates",
+          "sport_type": "Ride",
+          "start_date": "2026-05-06T06:00:00Z",
+          "start_date_local": "2026-05-06T08:00:00Z",
+          "start_latlng": [48.0, -1.0],
+          "total_elevation_gain": 2.0,
+          "type": "Ride",
+          "upload_id": 0,
+          "stream": {
+            "distance": { "data": [0.0, 50.0, 100.0], "original_size": 3, "resolution": "high", "series_type": "distance" },
+            "time": { "data": [0, 5, 10], "original_size": 3, "resolution": "high", "series_type": "time" },
+            "latlng": { "data": [[91.0, -1.0], [91.0001, -1.0], [91.0002, -1.0]], "original_size": 3, "resolution": "high", "series_type": "time" },
+            "altitude": { "data": [50.0, 51.0, 52.0], "original_size": 3, "resolution": "high", "series_type": "distance" }
+          }
         }
       ]
     },

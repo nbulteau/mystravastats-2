@@ -18,6 +18,7 @@ const (
 	DataQualityCategoryInvalidValue       DataQualityCategory = "INVALID_VALUE"
 	DataQualityCategoryInconsistentTime   DataQualityCategory = "INCONSISTENT_TIME"
 	DataQualityCategoryGPSGlitch          DataQualityCategory = "GPS_GLITCH"
+	DataQualityCategoryGPSGap             DataQualityCategory = "GPS_GAP"
 	DataQualityCategoryAltitudeSpike      DataQualityCategory = "ALTITUDE_SPIKE"
 	DataQualityCategoryFallbackValue      DataQualityCategory = "FALLBACK_VALUE"
 )
@@ -41,6 +42,7 @@ type DataQualityCorrectionType string
 
 const (
 	DataQualityCorrectionTypeRemoveGPSPoint        DataQualityCorrectionType = "REMOVE_GPS_POINT"
+	DataQualityCorrectionTypeInterpolateGPSPoint   DataQualityCorrectionType = "INTERPOLATE_GPS_POINT"
 	DataQualityCorrectionTypeSmoothAltitudeSpike   DataQualityCorrectionType = "SMOOTH_ALTITUDE_SPIKE"
 	DataQualityCorrectionTypeMaskInvalidValue      DataQualityCorrectionType = "MASK_INVALID_VALUE"
 	DataQualityCorrectionTypeRecalculateFromStream DataQualityCorrectionType = "RECALCULATE_FROM_STREAM"

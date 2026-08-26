@@ -86,6 +86,21 @@ class DataQualityServiceTest {
     }
 
     @Test
+    fun `getReport classifies local and Strava missing streams in composite mode`() {
+        every { activityProvider.getCacheDiagnostics() } returns mapOf("provider" to "composite")
+        every { activityProvider.cacheIdentity() } returns null
+        every { activityProvider.getActivitiesByActivityTypeAndYear(ActivityType.values().toSet(), null) } returns listOf(
+            dataQualityActivity(stream = null).copy(id = 100, uploadId = 12345),
+            dataQualityActivity(stream = null).copy(id = 101, uploadId = 0),
+        )
+
+        val report = DataQualityService(activityProvider).getReport()
+
+        assertEquals("warning", report.summary.status)
+        assertEquals(2, report.summary.byCategory["MISSING_STREAM"])
+    }
+
+    @Test
     fun `getReport detects Strava summary anomalies without requiring streams`() {
         every { activityProvider.getCacheDiagnostics() } returns mapOf("provider" to "strava")
         every { activityProvider.cacheIdentity() } returns null
@@ -147,9 +162,36 @@ class DataQualityServiceTest {
         val altitudeIssue = report.issues.firstOrNull { issue -> issue.category == "ALTITUDE_SPIKE" }
         assertNotNull(gpsIssue)
         assertEquals("safe", gpsIssue?.correction?.safety)
+        assertEquals("INTERPOLATE_GPS_POINT", gpsIssue?.correction?.type)
         assertNotNull(altitudeIssue)
         assertEquals("safe", altitudeIssue?.correction?.safety)
         assertEquals(2, report.summary.safeCorrectionCount)
+    }
+
+    @Test
+    fun `getReport detects recording resumed after a long displaced pause`() {
+        val activity = dataQualityActivity(
+            stream = Stream(
+                distance = DistanceStream(listOf(0.0, 10.0, 20.0, 10_020.0, 10_030.0, 10_040.0), 6, "high", "distance"),
+                time = TimeStream(listOf(0, 1, 2, 3_602, 3_603, 3_604), 6, "high", "time"),
+                latlng = LatLngStream(
+                    listOf(
+                        listOf(48.0, -1.0), listOf(48.0001, -1.0), listOf(48.0002, -1.0),
+                        listOf(48.0902, -1.0), listOf(48.0903, -1.0), listOf(48.0904, -1.0),
+                    ), 6, "high", "time",
+                ),
+                altitude = AltitudeStream(listOf(50.0, 51.0, 52.0, 53.0, 54.0, 55.0), 6, "high", "altitude"),
+            )
+        ).copy(elapsedTime = 3_604, movingTime = 1_200, distance = 12_000.0)
+        every { activityProvider.getCacheDiagnostics() } returns mapOf("provider" to "fit", "fitDirectory" to "/tmp/fit")
+        every { activityProvider.cacheIdentity() } returns null
+        every { activityProvider.getActivitiesByActivityTypeAndYear(ActivityType.values().toSet(), null) } returns listOf(activity)
+
+        val report = DataQualityService(activityProvider).getReport()
+        val gap = report.issues.singleOrNull { issue -> issue.category == "GPS_GAP" }
+
+        assertNotNull(gap)
+        assertEquals("manual", gap?.correction?.safety)
     }
 
     @Test

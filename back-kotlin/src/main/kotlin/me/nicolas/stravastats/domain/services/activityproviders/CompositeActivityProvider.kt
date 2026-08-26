@@ -64,13 +64,15 @@ class CompositeActivityProvider(
                 "availableYearBins" to sourceDiagnostics["availableYearBins"],
             )
             sourceDiagnostics["refresh"]?.let { refresh -> sourceSummary["refresh"] = refresh }
+            sourceDiagnostics["rateLimit"]?.let { rateLimit -> sourceSummary["rateLimit"] = rateLimit }
             sourceSummaries.add(sourceSummary)
             nextSourceSignatures[source.name] = sourceDataSignature(sourceDiagnostics, sourceActivities)
 
             for (activity in sourceActivities) {
                 val item = SourceActivity(source, activity, activityMatchMetadataFor(activity))
                 val matchingCluster = clusters.firstOrNull { cluster ->
-                    sourceActivitiesMatch(cluster.items.first(), item)
+                    cluster.items.none { existing -> existing.source.name == source.name } &&
+                        sourceActivitiesMatch(cluster.items.first(), item)
                 }
                 if (matchingCluster == null) {
                     clusters.add(ActivityCluster(mutableListOf(item)))
@@ -107,8 +109,15 @@ class CompositeActivityProvider(
             .maxByOrNull { (source, stream) -> streamScore(source, stream) }
         val bestStream = bestStreamWithProvider?.second
 
-        val merged = orderedItems.drop(1).fold(primary.activity.copy(stream = bestStream)) { current, item ->
-            enrichMissingFields(current, item.activity)
+        val fieldSources = mutableMapOf(
+            "metadata" to primary.source.name,
+            "summary" to primary.source.name,
+            "segments" to primary.source.name,
+            "detailedStream" to (bestStreamWithProvider?.first ?: primary.source.name),
+        )
+        var merged = primary.activity.copy(stream = bestStream)
+        orderedItems.drop(1).forEach { item ->
+            merged = enrichMissingFields(merged, item.activity, item.source.name, fieldSources)
         }
         val conflicts = orderedItems.drop(1).flatMap { item ->
             detectConflicts(primary.activity, item.activity, item.source.name)
@@ -120,8 +129,9 @@ class CompositeActivityProvider(
             primaryId = primary.activity.id,
             streamProvider = bestStreamWithProvider?.first,
             sources = orderedItems.map { item -> item.toRef() },
-            confidence = if (orderedItems.size > 1) "high" else "single_source",
+            confidence = confidenceForCluster(orderedItems, conflicts),
             conflicts = conflicts,
+            fieldSources = fieldSources,
         )
     }
 
@@ -170,6 +180,7 @@ class CompositeActivityProvider(
             "activities" to activities.size,
             "availableYearBins" to availableYearBins(activities),
             "refresh" to sourceRefreshDiagnostics(),
+            "rateLimit" to sourceRateLimitDiagnostics(),
             "composite" to mapOf(
                 "active" to true,
                 "activeProviders" to activeProviders,
@@ -206,6 +217,21 @@ class CompositeActivityProvider(
         return mapOf(
             "backgroundInProgress" to backgroundInProgress,
             "warmupInProgress" to warmupInProgress,
+        )
+    }
+
+    private fun sourceRateLimitDiagnostics(): Map<String, Any?> {
+        var untilEpochMs = 0L
+        val activeProviders = mutableListOf<String>()
+        sources.forEach { source ->
+            val rateLimit = source.provider.getCacheDiagnostics()["rateLimit"] as? Map<*, *> ?: return@forEach
+            if (rateLimit["active"] == true) activeProviders.add(source.name)
+            untilEpochMs = maxOf(untilEpochMs, (rateLimit["untilEpochMs"] as? Number)?.toLong() ?: 0L)
+        }
+        return mapOf(
+            "active" to activeProviders.isNotEmpty(),
+            "untilEpochMs" to untilEpochMs,
+            "activeProviders" to activeProviders,
         )
     }
 
@@ -262,6 +288,7 @@ class CompositeActivityProvider(
         val sources: List<ActivitySourceRef>,
         val confidence: String,
         val conflicts: List<MergeConflict>,
+        val fieldSources: Map<String, String>,
     )
 
     private data class ActivitySourceRef(
@@ -498,11 +525,11 @@ class CompositeActivityProvider(
 
         private fun streamScore(source: String, stream: Stream): Int {
             var score = 1
-            score += (stream.latlng?.data?.size ?: 0) * 3
-            score += stream.altitude?.data?.size ?: 0
-            if (!stream.heartrate?.data.isNullOrEmpty()) score += 3000
-            if (!stream.cadence?.data.isNullOrEmpty()) score += 1500
-            if (!stream.watts?.data.isNullOrEmpty()) score += 3000
+            score += (stream.latlng?.data?.count { point -> validLatLng(point) } ?: 0) * 3
+            score += stream.altitude?.data?.count { value -> value.isFinite() } ?: 0
+            if (stream.heartrate?.data?.any { value -> value > 0 } == true) score += 3000
+            if (stream.cadence?.data?.any { value -> value > 0 } == true) score += 1500
+            if (stream.watts?.data?.any { value -> (value ?: 0) > 0 } == true) score += 3000
             score += when (source) {
                 SOURCE_FIT -> 500
                 SOURCE_GPX -> 250
@@ -511,19 +538,28 @@ class CompositeActivityProvider(
             return score
         }
 
-        private fun enrichMissingFields(primary: StravaActivity, other: StravaActivity): StravaActivity {
+        private fun enrichMissingFields(
+            primary: StravaActivity,
+            other: StravaActivity,
+            source: String,
+            fieldSources: MutableMap<String, String>,
+        ): StravaActivity {
+            fun <T> sourced(field: String, value: T): T {
+                fieldSources[field] = source
+                return value
+            }
             return primary.copy(
-                averageCadence = if (primary.averageCadence == 0.0) other.averageCadence else primary.averageCadence,
-                averageHeartrate = if (primary.averageHeartrate == 0.0) other.averageHeartrate else primary.averageHeartrate,
-                maxHeartrate = if (primary.maxHeartrate == 0) other.maxHeartrate else primary.maxHeartrate,
-                averageWatts = if (primary.averageWatts == 0) other.averageWatts else primary.averageWatts,
-                weightedAverageWatts = if (primary.weightedAverageWatts == 0) other.weightedAverageWatts else primary.weightedAverageWatts,
-                kilojoules = if (primary.kilojoules == 0.0) other.kilojoules else primary.kilojoules,
-                elevHigh = if (primary.elevHigh == 0.0) other.elevHigh else primary.elevHigh,
-                totalElevationGain = if (primary.totalElevationGain == 0.0) other.totalElevationGain else primary.totalElevationGain,
-                startLatlng = if (primary.startLatlng.isNullOrEmpty()) other.startLatlng else primary.startLatlng,
-                maxSpeed = if (primary.maxSpeed == 0f) other.maxSpeed else primary.maxSpeed,
-                deviceWatts = primary.deviceWatts || other.deviceWatts,
+                averageCadence = if (primary.averageCadence == 0.0 && other.averageCadence > 0.0) sourced("averageCadence", other.averageCadence) else primary.averageCadence,
+                averageHeartrate = if (primary.averageHeartrate == 0.0 && other.averageHeartrate > 0.0) sourced("averageHeartrate", other.averageHeartrate) else primary.averageHeartrate,
+                maxHeartrate = if (primary.maxHeartrate == 0 && other.maxHeartrate > 0) sourced("maxHeartrate", other.maxHeartrate) else primary.maxHeartrate,
+                averageWatts = if (primary.averageWatts == 0 && other.averageWatts > 0) sourced("averageWatts", other.averageWatts) else primary.averageWatts,
+                weightedAverageWatts = if (primary.weightedAverageWatts == 0 && other.weightedAverageWatts > 0) sourced("weightedAverageWatts", other.weightedAverageWatts) else primary.weightedAverageWatts,
+                kilojoules = if (primary.kilojoules == 0.0 && other.kilojoules > 0.0) sourced("kilojoules", other.kilojoules) else primary.kilojoules,
+                elevHigh = if (primary.elevHigh == 0.0 && other.elevHigh != 0.0) sourced("elevHigh", other.elevHigh) else primary.elevHigh,
+                totalElevationGain = if (primary.totalElevationGain == 0.0 && other.totalElevationGain > 0.0) sourced("totalElevationGain", other.totalElevationGain) else primary.totalElevationGain,
+                startLatlng = if (primary.startLatlng.isNullOrEmpty() && !other.startLatlng.isNullOrEmpty()) sourced("startLatlng", other.startLatlng) else primary.startLatlng,
+                maxSpeed = if (primary.maxSpeed == 0f && other.maxSpeed > 0f) sourced("maxSpeed", other.maxSpeed) else primary.maxSpeed,
+                deviceWatts = if (!primary.deviceWatts && other.deviceWatts) sourced("deviceWatts", true) else primary.deviceWatts,
             )
         }
 
@@ -535,6 +571,12 @@ class CompositeActivityProvider(
                 maxHeartrate = if (detailed.maxHeartrate == 0) activity.maxHeartrate else detailed.maxHeartrate,
                 averageWatts = if (detailed.averageWatts == 0.0) activity.averageWatts.toDouble() else detailed.averageWatts,
                 weightedAverageWatts = if (detailed.weightedAverageWatts == 0) activity.weightedAverageWatts else detailed.weightedAverageWatts,
+                kilojoules = if (detailed.kilojoules == 0.0) activity.kilojoules else detailed.kilojoules,
+                elevHigh = if (detailed.elevHigh == 0.0) activity.elevHigh else detailed.elevHigh,
+                totalElevationGain = if (detailed.totalElevationGain == 0) activity.totalElevationGain.toInt() else detailed.totalElevationGain,
+                startLatLng = if (detailed.startLatLng.isEmpty()) activity.startLatlng.orEmpty() else detailed.startLatLng,
+                maxSpeed = if (detailed.maxSpeed == 0.0) activity.maxSpeed.toDouble() else detailed.maxSpeed,
+                deviceWatts = detailed.deviceWatts || activity.deviceWatts,
             )
         }
 
@@ -564,12 +606,7 @@ class CompositeActivityProvider(
                             source = conflict.source,
                         )
                     },
-                    fieldSources = mapOf(
-                        "metadata" to record.primaryProvider,
-                        "summary" to record.primaryProvider,
-                        "segments" to record.primaryProvider,
-                        "detailedStream" to streamProvider,
-                    ),
+                    fieldSources = record.fieldSources + ("detailedStream" to streamProvider),
                 )
             )
         }
@@ -582,6 +619,16 @@ class CompositeActivityProvider(
                 }
                 .distinct()
                 .sorted()
+        }
+
+        private fun confidenceForCluster(items: List<SourceActivity>, conflicts: List<MergeConflict>): String {
+            if (items.size <= 1) return "single_source"
+            if (conflicts.isNotEmpty()) return "medium"
+            return if (items.drop(1).all { item -> distanceCompatible(items.first().activity.distance, item.activity.distance) }) {
+                "high"
+            } else {
+                "medium"
+            }
         }
 
         private fun activitySortTime(activity: StravaActivity): Instant? {
@@ -615,7 +662,9 @@ class CompositeActivityProvider(
         }
 
         private fun validLatLng(value: List<Double>?): Boolean {
-            return value != null && value.size >= 2 && value[0] in -90.0..90.0 && value[1] in -180.0..180.0
+            return value != null && value.size >= 2 &&
+                value[0] in -90.0..90.0 && value[1] in -180.0..180.0 &&
+                (value[0] != 0.0 || value[1] != 0.0)
         }
 
         private fun haversineMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {

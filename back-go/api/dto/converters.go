@@ -205,6 +205,7 @@ func ToDetailedActivityDto(detailedActivity *strava.DetailedActivity) DetailedAc
 		ElapsedTime:          detailedActivity.ElapsedTime,
 		ElevHigh:             finiteFloat64(detailedActivity.ElevHigh),
 		ID:                   detailedActivity.Id,
+		Link:                 stravaActivityLink(detailedActivity.Id, detailedActivity.UploadId),
 		Kilojoules:           finiteFloat64(detailedActivity.Kilojoules),
 		MaxHeartrate:         finiteInt(detailedActivity.MaxHeartrate),
 		MaxSpeed:             finiteFloat32(detailedActivity.MaxSpeed),
@@ -225,6 +226,13 @@ func ToDetailedActivityDto(detailedActivity *strava.DetailedActivity) DetailedAc
 		SportType:            firstNonEmpty(detailedActivity.SportType, detailedActivity.Type),
 		WeightedAverageWatts: detailedActivity.WeightedAverageWatts,
 	}
+}
+
+func stravaActivityLink(activityID int64, uploadID int64) string {
+	if uploadID == 0 {
+		return ""
+	}
+	return fmt.Sprintf("https://www.strava.com/activities/%d", activityID)
 }
 
 func toActivitySourceDto(source *strava.ActivitySource) *ActivitySourceDto {

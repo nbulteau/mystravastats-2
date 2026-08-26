@@ -4,20 +4,22 @@
       "source": "fit",
       "summary": {
         "status": "critical",
-        "issueCount": 11,
-        "impactedActivities": 5,
+        "issueCount": 13,
+        "impactedActivities": 8,
         "excludedActivities": 0,
         "correctionCount": 0,
         "safeCorrectionCount": 2,
         "manualReviewCount": 3,
         "bySeverity": {
-          "critical": 1,
+          "critical": 3,
           "info": 2,
           "warning": 8
         },
         "byCategory": {
           "ALTITUDE_SPIKE": 1,
+          "GPS_GAP": 1,
           "GPS_GLITCH": 1,
+          "INCONSISTENT_TIME": 1,
           "INVALID_VALUE": 3,
           "MISSING_STREAM": 1,
           "MISSING_STREAM_FIELD": 3,
@@ -75,17 +77,7 @@
           "field": "stream.latlng",
           "correctionAvailable": true,
           "correctionSafety": "safe",
-          "correctionType": "REMOVE_GPS_POINT"
-        },
-        {
-          "id": "fit-9105-INVALID_VALUE-average_speed",
-          "activityId": 9105,
-          "severity": "warning",
-          "category": "INVALID_VALUE",
-          "field": "average_speed",
-          "correctionAvailable": true,
-          "correctionSafety": "manual",
-          "correctionType": "RECALCULATE_FROM_STREAM"
+          "correctionType": "INTERPOLATE_GPS_POINT"
         },
         {
           "id": "fit-9105-INVALID_VALUE-average_speed",
@@ -122,16 +114,42 @@
           "category": "STREAM_DATA_COVERAGE",
           "field": "stream.watts",
           "correctionAvailable": false
+        },
+        {
+          "id": "fit-9204-GPS_GAP-stream-latlng-gap-3",
+          "activityId": 9204,
+          "severity": "warning",
+          "category": "GPS_GAP",
+          "field": "stream.latlng.gap.3",
+          "correctionAvailable": true,
+          "correctionSafety": "manual",
+          "correctionType": "RECALCULATE_FROM_STREAM"
+        },
+        {
+          "id": "fit-9205-INCONSISTENT_TIME-stream-time",
+          "activityId": 9205,
+          "severity": "critical",
+          "category": "INCONSISTENT_TIME",
+          "field": "stream.time",
+          "correctionAvailable": false
+        },
+        {
+          "id": "fit-9206-INVALID_VALUE-stream-latlng",
+          "activityId": 9206,
+          "severity": "critical",
+          "category": "INVALID_VALUE",
+          "field": "stream.latlng",
+          "correctionAvailable": false
         }
       ],
       "safeCorrectionPreview": {
         "summary": {
           "safeCorrectionCount": 2,
           "manualReviewCount": 3,
-          "unsupportedIssueCount": 6,
+          "unsupportedIssueCount": 8,
           "activityCount": 1,
           "distanceDeltaMeters": -988.881,
-          "elevationDeltaMeters": -498,
+          "elevationDeltaMeters": -249,
           "modifiedFields": [
             "average_speed",
             "distance",
@@ -172,10 +190,10 @@
             }
           },
           {
-            "id": "fit-9104-gps_glitch-stream-latlng-remove_gps_point",
+            "id": "fit-9104-gps_glitch-stream-latlng-interpolate_gps_point",
             "issueId": "fit-9104-GPS_GLITCH-stream-latlng",
             "activityId": 9104,
-            "type": "REMOVE_GPS_POINT",
+            "type": "INTERPOLATE_GPS_POINT",
             "safety": "safe",
             "pointIndexes": [
               1
@@ -192,11 +210,11 @@
               "distanceMetersBefore": 1000,
               "distanceMetersAfter": 11.119,
               "elevationMetersBefore": 250,
-              "elevationMetersAfter": 1,
+              "elevationMetersAfter": 250,
               "maxSpeedBefore": 8,
               "maxSpeedAfter": 1.112,
               "distanceDeltaMeters": -988.881,
-              "elevationDeltaMeters": -249
+              "elevationDeltaMeters": 0
             }
           }
         ]

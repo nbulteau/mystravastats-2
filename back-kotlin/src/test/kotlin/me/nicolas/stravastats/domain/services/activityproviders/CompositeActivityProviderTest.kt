@@ -10,6 +10,7 @@ import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.business.strava.stream.DistanceStream
+import me.nicolas.stravastats.domain.business.strava.stream.HeartRateStream
 import me.nicolas.stravastats.domain.business.strava.stream.LatLngStream
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.business.strava.stream.TimeStream
@@ -236,6 +237,58 @@ class CompositeActivityProviderTest {
     }
 
     @Test
+    fun `never clusters two activities from the same source`() {
+        val firstStrava = testActivity(7101, "first ride", "Ride", "2026-05-01T08:00:00Z", 10_000.0, 3_600, null)
+        val secondStrava = testActivity(7102, "second ride", "Ride", "2026-05-01T08:02:00Z", 10_050.0, 3_605, null)
+        val fitActivity = testActivity(7103, "fit ride", "Ride", "2026-05-01T08:01:00Z", 10_020.0, 3_602, testStream(20))
+        val provider = CompositeActivityProvider(
+            listOf(
+                CompositeActivitySource("strava", StubProvider("strava", listOf(firstStrava, secondStrava))),
+                CompositeActivitySource("fit", StubProvider("fit", listOf(fitActivity))),
+            )
+        )
+
+        assertEquals(2, provider.getActivitiesByActivityTypeAndYear(setOf(ActivityType.Ride)).size)
+        assertEquals(listOf("strava", "fit"), provider.getDetailedActivity(7101)?.source?.sources?.map { it.provider })
+    }
+
+    @Test
+    fun `tracks enriched field source and lowers confidence on conflicts`() {
+        val stravaActivity = testActivity(7201, "strava ride", "Ride", "2026-05-01T08:00:00Z", 10_000.0, 3_600, null)
+        val fitActivity = testActivity(7202, "fit ride", "Ride", "2026-05-01T08:01:00Z", 10_300.0, 3_600, testStream(20))
+            .copy(averageHeartrate = 151.0, kilojoules = 640.0)
+        val provider = CompositeActivityProvider(
+            listOf(
+                CompositeActivitySource("strava", StubProvider("strava", listOf(stravaActivity))),
+                CompositeActivitySource("fit", StubProvider("fit", listOf(fitActivity))),
+            )
+        )
+
+        val detailed = provider.getDetailedActivity(7201)
+        assertEquals(151.0, detailed?.averageHeartrate)
+        assertEquals("fit", detailed?.source?.fieldSources?.get("averageHeartrate"))
+        assertEquals(640.0, detailed?.kilojoules)
+        assertEquals("fit", detailed?.source?.fieldSources?.get("kilojoules"))
+        assertEquals("medium", detailed?.source?.confidence)
+    }
+
+    @Test
+    fun `ignores zero only sensor channels when choosing stream`() {
+        val stravaStream = testStream(1_000)
+        val fitStream = testStream(10).copy(
+            heartrate = HeartRateStream(List(10) { 0 }, 10, "high", "distance")
+        )
+        val provider = CompositeActivityProvider(
+            listOf(
+                CompositeActivitySource("strava", StubProvider("strava", listOf(testActivity(7301, "strava ride", "Ride", "2026-05-01T08:00:00Z", 10_000.0, 3_600, stravaStream)))),
+                CompositeActivitySource("fit", StubProvider("fit", listOf(testActivity(7302, "fit ride", "Ride", "2026-05-01T08:01:00Z", 10_010.0, 3_600, fitStream)))),
+            )
+        )
+
+        assertEquals("strava", provider.getDetailedActivity(7301)?.source?.streamProvider)
+    }
+
+    @Test
     fun `uses Strava storage identity for a composite provider`() {
         val provider = CompositeActivityProvider(
             listOf(
@@ -355,6 +408,23 @@ class CompositeActivityProviderTest {
     }
 
     @Test
+    fun `aggregates source rate limit diagnostics`() {
+        val provider = CompositeActivityProvider(
+            listOf(
+                CompositeActivitySource(
+                    "strava",
+                    StubProvider("strava", emptyList(), rateLimit = mapOf("active" to true, "untilEpochMs" to 123456L)),
+                ),
+                CompositeActivitySource("fit", StubProvider("fit", emptyList())),
+            )
+        )
+
+        val rateLimit = provider.getCacheDiagnostics()["rateLimit"] as Map<*, *>
+        assertEquals(true, rateLimit["active"])
+        assertEquals(123456L, rateLimit["untilEpochMs"])
+    }
+
+    @Test
     fun `shared source mode fixtures match composite parity expectations`(@TempDir tempDir: Path) = runBlocking {
         val expected = readSharedCompositeExpected()
         val fixtureRoot = copySharedSourceModeFixtures(tempDir)
@@ -413,6 +483,7 @@ class CompositeActivityProviderTest {
         private val name: String,
         seedActivities: List<StravaActivity>,
         private val refresh: Map<String, Any?>? = null,
+        private val rateLimit: Map<String, Any?>? = null,
     ) : AbstractActivityProvider() {
         init {
             stravaAthlete = StravaAthlete(id = 42, firstname = name)
@@ -445,7 +516,8 @@ class CompositeActivityProviderTest {
                     .map { activity -> activity.startDateLocal.substring(0, 4) }
                     .distinct()
                     .sorted(),
-            ) + if (refresh == null) emptyMap() else mapOf("refresh" to refresh)
+            ) + (refresh?.let { mapOf("refresh" to it) } ?: emptyMap()) +
+                (rateLimit?.let { mapOf("rateLimit" to it) } ?: emptyMap())
         }
 
         override fun cacheIdentity(): ActivityProviderCacheIdentity {

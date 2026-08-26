@@ -102,6 +102,20 @@ func TestAnalyzeActivitiesDetectsDownloadableStravaMissingStream(t *testing.T) {
 	}
 }
 
+func TestAnalyzeActivitiesClassifiesMissingStreamsInCompositeMode(t *testing.T) {
+	report := AnalyzeLocalActivities("composite", "composite", []*strava.Activity{
+		{Id: 100, Name: "Strava ride", Type: "Ride", Distance: 10000, ElapsedTime: 1800, MovingTime: 1800, StartDateLocal: "2026-04-26T08:00:00Z", UploadId: 12345},
+		{Id: 101, Name: "FIT ride", Type: "Ride", Distance: 10000, ElapsedTime: 1800, MovingTime: 1800, StartDateLocal: "2026-04-27T08:00:00Z"},
+	})
+
+	if got := report.Summary.ByCategory[string(business.DataQualityCategoryMissingStream)]; got != 2 {
+		t.Fatalf("expected both composite activities to report a missing stream, got %d", got)
+	}
+	if report.Summary.Status != "warning" {
+		t.Fatalf("expected local missing stream to keep warning status, got %s", report.Summary.Status)
+	}
+}
+
 func TestAnalyzeLocalActivitiesDetectsStravaSummaryAnomalies(t *testing.T) {
 	report := AnalyzeLocalActivities("strava", "strava-cache", []*strava.Activity{
 		{
@@ -183,6 +197,68 @@ func TestAnalyzeLocalActivitiesAddsSafeCorrectionSuggestions(t *testing.T) {
 	}
 	if report.Summary.SafeCorrectionCount != 2 {
 		t.Fatalf("expected two safe corrections, got %d", report.Summary.SafeCorrectionCount)
+	}
+}
+
+func TestAnalyzeLocalActivitiesDetectsPausedRecordingResume(t *testing.T) {
+	activity := &strava.Activity{
+		Id: 79, Name: "Paused then resumed", Type: "Ride", SportType: "Ride",
+		Distance: 12000, ElapsedTime: 3604, MovingTime: 1200, StartDateLocal: "2026-04-26T08:00:00Z",
+		Stream: &strava.Stream{
+			Distance: strava.DistanceStream{Data: []float64{0, 10, 20, 10020, 10030, 10040}},
+			Time:     strava.TimeStream{Data: []int{0, 1, 2, 3602, 3603, 3604}},
+			LatLng: &strava.LatLngStream{Data: [][]float64{
+				{48.0, -1.0}, {48.0001, -1.0}, {48.0002, -1.0},
+				{48.0902, -1.0}, {48.0903, -1.0}, {48.0904, -1.0},
+			}},
+			Altitude: &strava.AltitudeStream{Data: []float64{50, 51, 52, 53, 54, 55}},
+		},
+	}
+
+	report := AnalyzeLocalActivities("fit", "/tmp/fit", []*strava.Activity{activity})
+	gap := findDataQualityIssue(report.Issues, business.DataQualityCategoryGPSGap)
+	if gap == nil {
+		t.Fatalf("expected paused recording gap, got %+v", report.Issues)
+	}
+	if gap.Correction == nil || gap.Correction.Safety != business.DataQualityCorrectionSafetyManual {
+		t.Fatalf("expected gap to require manual review, got %+v", gap.Correction)
+	}
+}
+
+func TestAnalyzeLocalActivitiesDoesNotDuplicateHighAverageSpeed(t *testing.T) {
+	activity := &strava.Activity{Id: 80, Name: "Fast", Type: "Ride", Distance: 100000, ElapsedTime: 1200, MovingTime: 1200}
+	report := AnalyzeLocalActivities("strava", "cache", []*strava.Activity{activity})
+	count := 0
+	for _, issue := range report.Issues {
+		if issue.Field == "average_speed" {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Fatalf("expected one average speed issue, got %d: %+v", count, report.Issues)
+	}
+}
+
+func TestInterpolateGPSPointPreservesAlignedSensorSamples(t *testing.T) {
+	activity := &strava.Activity{
+		Distance: 1000, ElapsedTime: 10, MovingTime: 10, TotalElevationGain: 250,
+		Stream: &strava.Stream{
+			Distance:  strava.DistanceStream{Data: []float64{0, 500, 1000}},
+			Time:      strava.TimeStream{Data: []int{0, 5, 10}},
+			LatLng:    &strava.LatLngStream{Data: [][]float64{{48, -1}, {49, -1}, {48.0001, -1}}},
+			Altitude:  &strava.AltitudeStream{Data: []float64{100, 320, 101}},
+			HeartRate: &strava.HeartRateStream{Data: []int{120, 130, 140}},
+			Watts:     &strava.PowerStream{Data: []float64{100, 200, 300}},
+			Cadence:   &strava.CadenceStream{Data: []int{80, 90, 100}},
+		},
+	}
+	beforeElevation := activity.TotalElevationGain
+	interpolateGPSPoint(activity, 1)
+	if len(activity.Stream.Time.Data) != 3 || len(activity.Stream.HeartRate.Data) != 3 || len(activity.Stream.Watts.Data) != 3 || len(activity.Stream.Cadence.Data) != 3 {
+		t.Fatalf("expected aligned sensor samples to be preserved")
+	}
+	if activity.TotalElevationGain != beforeElevation || activity.Stream.Altitude.Data[1] != 320 {
+		t.Fatalf("expected GPS repair not to modify elevation")
 	}
 }
 

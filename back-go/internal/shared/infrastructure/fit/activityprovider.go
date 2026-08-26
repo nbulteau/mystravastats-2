@@ -1,6 +1,8 @@
 package fit
 
 import (
+	"crypto/sha256"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"hash/fnv"
@@ -26,6 +28,7 @@ const (
 	firstSupportedYear = 2010
 	fitInvalidUint8    = uint8(0xFF)
 	fitInvalidUint16   = uint16(0xFFFF)
+	maxSafeJSInteger   = uint64(9_007_199_254_740_991)
 )
 
 type FITActivityProvider struct {
@@ -909,8 +912,16 @@ func deriveFirstNameFromFITDirectory(fitDirectory string) string {
 }
 
 func fitActivityID(filePath string, startDate time.Time, sportType string, distanceMeters float64) int64 {
-	identity := fmt.Sprintf("%s|%s|%s|%.3f", filePath, startDate.UTC().Format(time.RFC3339), sportType, distanceMeters)
-	return int64(hashStringToInt(identity))
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		data = []byte(fmt.Sprintf("%s|%s|%.0f", startDate.UTC().Format(time.RFC3339), sportType, distanceMeters))
+	}
+	digest := sha256.Sum256(data)
+	value := (binary.BigEndian.Uint64(digest[:8]) & math.MaxInt64) % maxSafeJSInteger
+	if value == 0 {
+		return 1
+	}
+	return int64(value)
 }
 
 func hashStringToInt(value string) int {

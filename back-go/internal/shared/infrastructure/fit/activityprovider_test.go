@@ -2,6 +2,7 @@ package fit
 
 import (
 	"math"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -48,6 +49,30 @@ func TestDecodeFITActivity_DoesNotMarkLocalFileAsStravaUpload(t *testing.T) {
 	}
 	if activity.UploadId != 0 {
 		t.Fatalf("expected local FIT activity to have no Strava upload id, got %d", activity.UploadId)
+	}
+}
+
+func TestDecodeFITActivity_IDDoesNotDependOnFilePath(t *testing.T) {
+	fixture := filepath.Join("..", "..", "..", "..", "..", "test-fixtures", "source-modes", "fit", "2026", "smoke-ride.fit")
+	copyPath := filepath.Join(t.TempDir(), "renamed.fit")
+	data, err := os.ReadFile(fixture)
+	if err != nil {
+		t.Fatalf("read FIT fixture: %v", err)
+	}
+	if err := os.WriteFile(copyPath, data, 0o600); err != nil {
+		t.Fatalf("copy FIT fixture: %v", err)
+	}
+
+	original, err := DecodeFITActivity(fixture, 42)
+	if err != nil {
+		t.Fatalf("decode original FIT: %v", err)
+	}
+	copied, err := DecodeFITActivity(copyPath, 42)
+	if err != nil {
+		t.Fatalf("decode copied FIT: %v", err)
+	}
+	if original.Id != copied.Id {
+		t.Fatalf("expected content-stable FIT id, got original=%d copied=%d", original.Id, copied.Id)
 	}
 }
 

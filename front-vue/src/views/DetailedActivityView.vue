@@ -57,6 +57,7 @@
             </button>
           </div>
           <a
+            v-if="stravaActivityUrl"
             :href="stravaActivityUrl"
             target="_blank"
             rel="noopener noreferrer"
@@ -916,7 +917,7 @@ const selectedEffortSummary = computed<SelectedEffortSummary | null>(() => {
   };
 });
 
-const stravaActivityUrl = computed(() => `https://www.strava.com/activities/${activity.value?.id ?? activityId ?? ""}`);
+const stravaActivityUrl = computed(() => activity.value?.link?.trim() ?? "");
 const effectiveActivityType = computed(() => resolveEffectiveActivityType(activity.value));
 const activityTypeLabel = computed(() => formatActivityTypeLabel(effectiveActivityType.value));
 const activityVersionLabel = computed(() => {
@@ -2254,14 +2255,10 @@ const initMap = () => {
 
 const updateMap = () => {
   if (map.value) {
-    const latlngs = activity.value?.stream?.latlng?.map((latlng: number[]) =>
-      (typeof latlng[0] === "number" && typeof latlng[1] === "number")
-        ? L.latLng(latlng[0], latlng[1])
-        : null
-    );
-
-    if (latlngs) {
-      const filteredLatlngs = latlngs.filter((latlng): latlng is L.LatLng => latlng !== null);
+    const rawLatlngs = activity.value?.stream?.latlng;
+    if (rawLatlngs) {
+      const segments = splitMapTraceAtRecordingGaps(rawLatlngs, activity.value?.stream?.time ?? []);
+      const filteredLatlngs = segments.flat();
       if (filteredLatlngs.length === 0) {
         if (basePolyline.value) {
           basePolyline.value.remove();
@@ -2271,9 +2268,9 @@ const updateMap = () => {
       }
 
       if (basePolyline.value) {
-        basePolyline.value.setLatLngs(filteredLatlngs);
+        basePolyline.value.setLatLngs(segments);
       } else {
-        basePolyline.value = L.polyline(filteredLatlngs, {
+        basePolyline.value = L.polyline(segments, {
           color: "#ef5a2a",
           weight: 4,
           opacity: 0.85,
@@ -2287,6 +2284,40 @@ const updateMap = () => {
     }
   }
 };
+
+function splitMapTraceAtRecordingGaps(rawLatlngs: number[][], times: number[]): L.LatLng[][] {
+  const validDeltas = times
+    .slice(1)
+    .map((time, index) => time - times[index])
+    .filter((delta) => Number.isFinite(delta) && delta > 0)
+    .sort((left, right) => left - right);
+  const medianCadence = validDeltas.length > 0 ? validDeltas[Math.floor((validDeltas.length - 1) / 2)] : 1;
+  const gapThresholdSeconds = Math.max(30, medianCadence * 10);
+  const segments: L.LatLng[][] = [];
+  let currentSegment: L.LatLng[] = [];
+
+  rawLatlngs.forEach((rawPoint, index) => {
+    const latitude = rawPoint[0];
+    const longitude = rawPoint[1];
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+      if (currentSegment.length > 0) segments.push(currentSegment);
+      currentSegment = [];
+      return;
+    }
+    const point = L.latLng(latitude, longitude);
+    if (index > 0 && currentSegment.length > 0 && index < times.length) {
+      const deltaSeconds = times[index] - times[index - 1];
+      const previousPoint = currentSegment[currentSegment.length - 1];
+      if (deltaSeconds >= gapThresholdSeconds && previousPoint.distanceTo(point) >= 200) {
+        segments.push(currentSegment);
+        currentSegment = [];
+      }
+    }
+    currentSegment.push(point);
+  });
+  if (currentSegment.length > 0) segments.push(currentSegment);
+  return segments;
+}
 
 const updateBasePolylineStyle = (isSelectionActive: boolean) => {
   if (!basePolyline.value) {

@@ -705,6 +705,7 @@ const dataQualityProviderMode = computed<SourceMode | null>(() => {
 const selectedLocalSourceIsActive = computed(() => selectedSourceMode.value !== "STRAVA" && selectedSourceIsActive.value);
 const dataQualityMatchesSelectedSource = computed(() => {
   if (!selectedLocalSourceIsActive.value) return false;
+  if (dataQualitySummary.value?.provider?.trim().toLowerCase() === "composite") return true;
   return dataQualityProviderMode.value === null || dataQualityProviderMode.value === selectedSourceMode.value;
 });
 const localSourceQualityStatusLabel = computed(() => {
@@ -1518,6 +1519,7 @@ function formatDataQualityCategory(value: string): string {
     INVALID_VALUE: "Invalid value",
     INCONSISTENT_TIME: "Time",
     GPS_GLITCH: "GPS glitch",
+    GPS_GAP: "GPS recording gap",
     ALTITUDE_SPIKE: "Altitude spike",
     FALLBACK_VALUE: "Fallback",
   };
@@ -1526,7 +1528,8 @@ function formatDataQualityCategory(value: string): string {
 
 function correctionLabel(value: string): string {
   const labels: Record<string, string> = {
-    REMOVE_GPS_POINT: "Remove GPS point",
+    REMOVE_GPS_POINT: "Repair GPS point",
+    INTERPOLATE_GPS_POINT: "Interpolate GPS point",
     SMOOTH_ALTITUDE_SPIKE: "Smooth altitude spike",
     MASK_INVALID_VALUE: "Mask invalid value",
     RECALCULATE_FROM_STREAM: "Recalculate from stream",
@@ -1543,6 +1546,7 @@ function dataQualityCategoryTooltip(value: string): string {
     INVALID_VALUE: "A summary value is missing, not serializable, or outside a plausible range for the activity type.",
     INCONSISTENT_TIME: "Timing fields disagree, for example moving time is greater than elapsed time.",
     GPS_GLITCH: "The GPS trace contains a jump that implies an impossible speed for this activity type.",
+    GPS_GAP: "Recording resumes far from the previous point after a long time gap. This often means a paused recording, a tunnel, or a restart elsewhere; the straight bridge is not trusted automatically.",
     ALTITUDE_SPIKE: "The altitude stream contains a sharp elevation jump that can distort elevation gain.",
     FALLBACK_VALUE: "The displayed value comes from a fallback calculation instead of the original source data.",
   };
@@ -1555,11 +1559,12 @@ function dataQualityCategoryPriority(value: string): number {
     INVALID_VALUE: 1,
     INCONSISTENT_TIME: 2,
     GPS_GLITCH: 3,
-    ALTITUDE_SPIKE: 4,
-    MISSING_STREAM_FIELD: 5,
-    MISSING_STREAM: 6,
-    FALLBACK_VALUE: 7,
-    STREAM_DATA_COVERAGE: 8,
+    GPS_GAP: 4,
+    ALTITUDE_SPIKE: 5,
+    MISSING_STREAM_FIELD: 6,
+    MISSING_STREAM: 7,
+    FALLBACK_VALUE: 8,
+    STREAM_DATA_COVERAGE: 9,
   };
   return priority[value] ?? 99;
 }

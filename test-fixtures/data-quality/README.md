@@ -13,6 +13,8 @@ Covered categories:
 - missing local streams
 - incomplete stream fields
 - GPS outlier jumps
+- recording gaps caused by pause/resume or tunnel-like GPS loss
+- non-monotonic timestamps and invalid coordinates
 - altitude spikes
 - missing sensor samples
 

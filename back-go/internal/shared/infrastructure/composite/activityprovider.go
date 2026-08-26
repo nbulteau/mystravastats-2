@@ -121,6 +121,7 @@ type compositeRecord struct {
 	StreamProvider  string
 	Confidence      string
 	Conflicts       []MergeConflict
+	FieldSources    map[string]string
 }
 
 type compositeDiagnostics struct {
@@ -182,6 +183,9 @@ func (provider *CompositeActivityProvider) rebuild() {
 		if refreshDiagnostics, ok := sourceDiagnostics["refresh"]; ok {
 			sourceSummary["refresh"] = refreshDiagnostics
 		}
+		if rateLimitDiagnostics, ok := sourceDiagnostics["rateLimit"]; ok {
+			sourceSummary["rateLimit"] = rateLimitDiagnostics
+		}
 		sourceSummaries = append(sourceSummaries, sourceSummary)
 		sourceSignatures[source.Name] = sourceDataSignature(sourceDiagnostics, activities)
 
@@ -196,7 +200,7 @@ func (provider *CompositeActivityProvider) rebuild() {
 			}
 			bestIndex := -1
 			for index := range clusters {
-				if sourceActivitiesMatch(clusters[index].items[0], item) {
+				if !clusterHasSource(clusters[index], source.Name) && sourceActivitiesMatch(clusters[index].items[0], item) {
 					bestIndex = index
 					break
 				}
@@ -275,9 +279,15 @@ func (provider *CompositeActivityProvider) mergeCluster(cluster activityCluster)
 	activity := cloneActivity(primary.activity)
 	stream, streamProvider := bestStreamWithProvider(cluster.items)
 	activity.Stream = stream
+	fieldSources := map[string]string{
+		"metadata":       primary.source.Name,
+		"summary":        primary.source.Name,
+		"segments":       primary.source.Name,
+		"detailedStream": streamProvider,
+	}
 
 	for _, item := range cluster.items[1:] {
-		activity = enrichMissingFields(activity, item.activity)
+		activity = enrichMissingFields(activity, item.activity, item.source.Name, fieldSources)
 	}
 
 	conflicts := make([]MergeConflict, 0)
@@ -291,8 +301,9 @@ func (provider *CompositeActivityProvider) mergeCluster(cluster activityCluster)
 		PrimaryID:       primary.activity.Id,
 		Sources:         sourceRefs(cluster.items),
 		StreamProvider:  streamProvider,
-		Confidence:      confidenceForCluster(cluster),
+		Confidence:      confidenceForCluster(cluster, conflicts),
 		Conflicts:       conflicts,
+		FieldSources:    fieldSources,
 	}
 }
 
@@ -415,6 +426,7 @@ func (provider *CompositeActivityProvider) CacheDiagnostics() map[string]any {
 		activeProviders = append(activeProviders, source.Name)
 	}
 	refresh := provider.sourceRefreshDiagnostics()
+	rateLimit := provider.sourceRateLimitDiagnostics()
 
 	return map[string]any{
 		"timestamp":         time.Now().UTC().Format(time.RFC3339),
@@ -424,6 +436,7 @@ func (provider *CompositeActivityProvider) CacheDiagnostics() map[string]any {
 		"activities":        activities,
 		"availableYearBins": years,
 		"refresh":           refresh,
+		"rateLimit":         rateLimit,
 		"composite": map[string]any{
 			"active":              true,
 			"activeProviders":     activeProviders,
@@ -509,6 +522,30 @@ func (provider *CompositeActivityProvider) sourceRefreshDiagnostics() map[string
 	}
 }
 
+func (provider *CompositeActivityProvider) sourceRateLimitDiagnostics() map[string]any {
+	active := false
+	untilEpochMs := int64(0)
+	activeProviders := make([]string, 0)
+	for _, source := range provider.sources {
+		rateLimit, ok := source.Provider.CacheDiagnostics()["rateLimit"].(map[string]any)
+		if !ok {
+			continue
+		}
+		if diagnosticBool(rateLimit["active"]) {
+			active = true
+			activeProviders = append(activeProviders, source.Name)
+		}
+		if until := diagnosticInt64(rateLimit["untilEpochMs"]); until > untilEpochMs {
+			untilEpochMs = until
+		}
+	}
+	return map[string]any{
+		"active":          active,
+		"untilEpochMs":    untilEpochMs,
+		"activeProviders": activeProviders,
+	}
+}
+
 func diagnosticBool(value any) bool {
 	switch typed := value.(type) {
 	case bool:
@@ -517,6 +554,22 @@ func diagnosticBool(value any) bool {
 		return strings.EqualFold(typed, "true")
 	default:
 		return false
+	}
+}
+
+func diagnosticInt64(value any) int64 {
+	switch typed := value.(type) {
+	case int:
+		return int64(typed)
+	case int64:
+		return typed
+	case float64:
+		return int64(typed)
+	case string:
+		parsed, _ := strconv.ParseInt(typed, 10, 64)
+		return parsed
+	default:
+		return 0
 	}
 }
 
@@ -896,18 +949,26 @@ func streamScore(source string, stream *strava.Stream) int {
 	}
 	score := 1
 	if stream.LatLng != nil {
-		score += len(stream.LatLng.Data) * 3
+		for _, point := range stream.LatLng.Data {
+			if validLatLng(point) {
+				score += 3
+			}
+		}
 	}
 	if stream.Altitude != nil {
-		score += len(stream.Altitude.Data)
+		for _, value := range stream.Altitude.Data {
+			if !math.IsNaN(value) && !math.IsInf(value, 0) {
+				score++
+			}
+		}
 	}
-	if stream.HeartRate != nil && len(stream.HeartRate.Data) > 0 {
+	if stream.HeartRate != nil && anyPositiveInt(stream.HeartRate.Data) {
 		score += 3000
 	}
-	if stream.Cadence != nil && len(stream.Cadence.Data) > 0 {
+	if stream.Cadence != nil && anyPositiveInt(stream.Cadence.Data) {
 		score += 1500
 	}
-	if stream.Watts != nil && len(stream.Watts.Data) > 0 {
+	if stream.Watts != nil && anyPositiveFloat(stream.Watts.Data) {
 		score += 3000
 	}
 	switch source {
@@ -919,42 +980,71 @@ func streamScore(source string, stream *strava.Stream) int {
 	return score
 }
 
-func enrichMissingFields(primary *strava.Activity, other *strava.Activity) *strava.Activity {
+func anyPositiveInt(values []int) bool {
+	for _, value := range values {
+		if value > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func anyPositiveFloat(values []float64) bool {
+	for _, value := range values {
+		if value > 0 && !math.IsNaN(value) && !math.IsInf(value, 0) {
+			return true
+		}
+	}
+	return false
+}
+
+func enrichMissingFields(primary *strava.Activity, other *strava.Activity, source string, fieldSources map[string]string) *strava.Activity {
 	if primary == nil || other == nil {
 		return primary
 	}
-	if primary.AverageCadence == 0 {
+	if primary.AverageCadence == 0 && other.AverageCadence > 0 {
 		primary.AverageCadence = other.AverageCadence
+		fieldSources["averageCadence"] = source
 	}
-	if primary.AverageHeartrate == 0 {
+	if primary.AverageHeartrate == 0 && other.AverageHeartrate > 0 {
 		primary.AverageHeartrate = other.AverageHeartrate
+		fieldSources["averageHeartrate"] = source
 	}
-	if primary.MaxHeartrate == 0 {
+	if primary.MaxHeartrate == 0 && other.MaxHeartrate > 0 {
 		primary.MaxHeartrate = other.MaxHeartrate
+		fieldSources["maxHeartrate"] = source
 	}
-	if primary.AverageWatts == 0 {
+	if primary.AverageWatts == 0 && other.AverageWatts > 0 {
 		primary.AverageWatts = other.AverageWatts
+		fieldSources["averageWatts"] = source
 	}
-	if primary.WeightedAverageWatts == 0 {
+	if primary.WeightedAverageWatts == 0 && other.WeightedAverageWatts > 0 {
 		primary.WeightedAverageWatts = other.WeightedAverageWatts
+		fieldSources["weightedAverageWatts"] = source
 	}
-	if primary.Kilojoules == 0 {
+	if primary.Kilojoules == 0 && other.Kilojoules > 0 {
 		primary.Kilojoules = other.Kilojoules
+		fieldSources["kilojoules"] = source
 	}
-	if primary.ElevHigh == 0 {
+	if primary.ElevHigh == 0 && other.ElevHigh != 0 {
 		primary.ElevHigh = other.ElevHigh
+		fieldSources["elevHigh"] = source
 	}
-	if primary.TotalElevationGain == 0 {
+	if primary.TotalElevationGain == 0 && other.TotalElevationGain > 0 {
 		primary.TotalElevationGain = other.TotalElevationGain
+		fieldSources["totalElevationGain"] = source
 	}
 	if len(primary.StartLatlng) == 0 && len(other.StartLatlng) > 0 {
 		primary.StartLatlng = other.StartLatlng
+		fieldSources["startLatlng"] = source
 	}
-	if primary.MaxSpeed == 0 {
+	if primary.MaxSpeed == 0 && other.MaxSpeed > 0 {
 		primary.MaxSpeed = other.MaxSpeed
+		fieldSources["maxSpeed"] = source
 	}
-	if !primary.DeviceWatts {
-		primary.DeviceWatts = other.DeviceWatts
+	if !primary.DeviceWatts && other.DeviceWatts {
+		primary.DeviceWatts = true
+		fieldSources["deviceWatts"] = source
 	}
 	return primary
 }
@@ -982,6 +1072,24 @@ func enrichDetailedActivity(detailed *strava.DetailedActivity, activity *strava.
 	if enriched.WeightedAverageWatts == 0 {
 		enriched.WeightedAverageWatts = activity.WeightedAverageWatts
 	}
+	if enriched.Kilojoules == 0 {
+		enriched.Kilojoules = activity.Kilojoules
+	}
+	if enriched.ElevHigh == 0 {
+		enriched.ElevHigh = activity.ElevHigh
+	}
+	if enriched.TotalElevationGain == 0 {
+		enriched.TotalElevationGain = activity.TotalElevationGain
+	}
+	if len(enriched.StartLatLng) == 0 {
+		enriched.StartLatLng = activity.StartLatlng
+	}
+	if enriched.MaxSpeed == 0 {
+		enriched.MaxSpeed = activity.MaxSpeed
+	}
+	if !enriched.DeviceWatts {
+		enriched.DeviceWatts = activity.DeviceWatts
+	}
 	return &enriched
 }
 
@@ -994,6 +1102,8 @@ func attachSourceProvenance(detailed *strava.DetailedActivity, record compositeR
 	if streamProvider == "" {
 		streamProvider = record.PrimaryProvider
 	}
+	fieldSources := cloneStringMap(record.FieldSources)
+	fieldSources["detailedStream"] = streamProvider
 	enriched.Source = &strava.ActivitySource{
 		PrimaryProvider: record.PrimaryProvider,
 		PrimaryID:       record.PrimaryID,
@@ -1001,12 +1111,7 @@ func attachSourceProvenance(detailed *strava.DetailedActivity, record compositeR
 		MergeConfidence: record.Confidence,
 		Sources:         toDomainSourceRefs(record.Sources),
 		Conflicts:       toDomainSourceConflicts(record.Conflicts),
-		FieldSources: map[string]string{
-			"metadata":       record.PrimaryProvider,
-			"summary":        record.PrimaryProvider,
-			"segments":       record.PrimaryProvider,
-			"detailedStream": streamProvider,
-		},
+		FieldSources:    fieldSources,
 	}
 	return &enriched
 }
@@ -1062,9 +1167,12 @@ func sourceRefs(items []sourceActivity) []ActivitySourceRef {
 	return refs
 }
 
-func confidenceForCluster(cluster activityCluster) string {
+func confidenceForCluster(cluster activityCluster, conflicts []MergeConflict) string {
 	if len(cluster.items) <= 1 {
 		return "single_source"
+	}
+	if len(conflicts) > 0 {
+		return "medium"
 	}
 	for _, item := range cluster.items[1:] {
 		if !distanceCompatible(cluster.items[0].activity.Distance, item.activity.Distance) {
@@ -1072,6 +1180,15 @@ func confidenceForCluster(cluster activityCluster) string {
 		}
 	}
 	return "high"
+}
+
+func clusterHasSource(cluster activityCluster, sourceName string) bool {
+	for _, item := range cluster.items {
+		if item.source.Name == sourceName {
+			return true
+		}
+	}
+	return false
 }
 
 func recordHasSource(record compositeRecord, sourceName string) bool {
@@ -1225,7 +1342,10 @@ func normalizeSourceName(value string) string {
 }
 
 func validLatLng(value []float64) bool {
-	return len(value) >= 2 && value[0] >= -90 && value[0] <= 90 && value[1] >= -180 && value[1] <= 180
+	return len(value) >= 2 &&
+		value[0] >= -90 && value[0] <= 90 &&
+		value[1] >= -180 && value[1] <= 180 &&
+		(value[0] != 0 || value[1] != 0)
 }
 
 func haversineMeters(lat1, lon1, lat2, lon2 float64) float64 {

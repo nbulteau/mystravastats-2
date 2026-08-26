@@ -15,6 +15,7 @@ import me.nicolas.stravastats.domain.business.strava.stream.AltitudeStream
 import me.nicolas.stravastats.domain.business.strava.stream.CadenceStream
 import me.nicolas.stravastats.domain.business.strava.stream.DistanceStream
 import me.nicolas.stravastats.domain.business.strava.stream.LatLngStream
+import me.nicolas.stravastats.domain.business.strava.stream.HeartRateStream
 import me.nicolas.stravastats.domain.business.strava.stream.PowerStream
 import me.nicolas.stravastats.domain.business.strava.stream.SmoothVelocityStream
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
@@ -27,6 +28,17 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 
 class DetailedActivityDtoTest {
+
+    @Test
+    fun `activity dto only exposes a Strava link for uploaded activities`() {
+        val baseActivity = TestHelper.stravaActivity.toStravaDetailedActivity()
+
+        assertEquals(
+            "https://www.strava.com/activities/53",
+            baseActivity.copy(id = 53, uploadId = 9001).toDto().link,
+        )
+        assertEquals("", baseActivity.copy(id = 54, uploadId = 0).toDto().link)
+    }
 
     @Test
     fun `ActivityEffort dto id stays unique for same label with different indexes`() {
@@ -166,6 +178,28 @@ class DetailedActivityDtoTest {
         assertEquals(listOf("strava", "fit"), dto.source?.sources?.map { source -> source.provider })
         assertEquals(1, dto.source?.conflicts?.size)
         assertEquals("fit", dto.source?.fieldSources?.get("detailedStream"))
+    }
+
+    @Test
+    fun `stream dto keeps sensor data when GPS is absent`() {
+        val stream = Stream(
+            distance = DistanceStream(listOf(0.0, 10.0), 2, "high", "distance"),
+            time = TimeStream(listOf(0, 1), 2, "high", "time"),
+            heartrate = HeartRateStream(listOf(120, 125), 2, "high", "distance"),
+            cadence = CadenceStream(listOf(80, 82), 2, "high", "distance"),
+            altitude = AltitudeStream(listOf(100.0, 101.0), 2, "high", "distance"),
+            watts = PowerStream(listOf(200, 220), 2, "high", "distance"),
+            velocitySmooth = SmoothVelocityStream(listOf(10.0f, 10.5f), 2, "high", "distance"),
+        )
+
+        val dto = stream.toDto()
+
+        assertNull(dto.latlng)
+        assertEquals(listOf(120, 125), dto.heartrate)
+        assertEquals(listOf(80, 82), dto.cadence)
+        assertEquals(listOf(100.0, 101.0), dto.altitude)
+        assertEquals(listOf(200, 220), dto.watts)
+        assertEquals(listOf(10.0, 10.5), dto.velocitySmooth)
     }
 
     @Test

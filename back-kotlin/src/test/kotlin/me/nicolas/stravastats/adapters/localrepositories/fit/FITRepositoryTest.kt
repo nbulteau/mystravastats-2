@@ -5,7 +5,9 @@ import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
 import java.io.File
+import java.nio.file.Path
 import java.time.Instant
 import java.time.OffsetDateTime
 
@@ -23,8 +25,32 @@ class FITRepositoryTest {
         assertTrue(activity.id in 1L..MAX_SAFE_JS_INTEGER, "expected FIT activity id to be safe for JavaScript clients, got ${activity.id}")
         assertEquals(activity.id, repository.decodeActivity(fixture)?.id)
         assertNotEquals(listOf(0.0, 0.0), activity.startLatlng)
+        val stream = activity.stream
+        assertNotNull(stream)
+        val expectedSize = stream!!.time.data.size
+        assertEquals(expectedSize, stream.distance.data.size)
+        stream.latlng?.let { assertEquals(expectedSize, it.data.size) }
+        stream.altitude?.let { assertEquals(expectedSize, it.data.size) }
+        stream.heartrate?.let { assertTrue(it.data.any { value -> value > 0 }) }
+        stream.cadence?.let { assertTrue(it.data.any { value -> value > 0 }) }
+        stream.watts?.let {
+            assertEquals(expectedSize, it.data.size)
+            assertTrue(it.data.none { value -> value == null })
+        }
         Instant.parse(activity.startDate)
         OffsetDateTime.parse(activity.startDateLocal)
+    }
+
+    @Test
+    fun `decodeActivity id does not depend on file path`(@TempDir tempDir: Path) {
+        val fixture = File(sharedSourceModeFixtureRoot(), "fit/2026/smoke-ride.fit")
+        val copiedFixture = fixture.copyTo(tempDir.resolve("renamed.fit").toFile())
+        val repository = FITRepository(tempDir.toString())
+
+        assertEquals(
+            repository.decodeActivity(fixture)?.id,
+            repository.decodeActivity(copiedFixture)?.id,
+        )
     }
 
     private fun sharedSourceModeFixtureRoot(): File {

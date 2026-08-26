@@ -12,11 +12,14 @@ import (
 )
 
 const (
-	maxTopIssues      = 5
-	altitudeSpikeM    = 120.0
-	altitudeSpikeSecs = 15
-	defaultMaxSpeedMS = 35.0
-	earthRadiusMeters = 6371e3
+	maxTopIssues        = 5
+	altitudeSpikeM      = 120.0
+	altitudeSpikeSecs   = 15
+	defaultMaxSpeedMS   = 35.0
+	earthRadiusMeters   = 6371e3
+	gpsGapMinSeconds    = 30
+	gpsGapMinMeters     = 200.0
+	gpsGapCadenceFactor = 10
 )
 
 type DataQualityServiceAdapter struct{}
@@ -134,24 +137,106 @@ func analyzeActivity(source string, sourcePath string, activity *strava.Activity
 		issues = append(issues, newIssue(source, sourcePath, activity, business.DataQualitySeverityCritical, business.DataQualityCategoryInvalidValue, "total_elevation_gain", "Elevation gain is not serializable.", formatFloat(activity.TotalElevationGain), "Recompute elevation from altitude stream or SRTM."))
 	}
 
-	issues = append(issues, analyzeDerivedSpeed(source, sourcePath, activity)...)
+	if !invalidFloat(activity.AverageSpeed) && activity.AverageSpeed <= speedThreshold(activity.Type) {
+		issues = append(issues, analyzeDerivedSpeed(source, sourcePath, activity)...)
+	}
 
 	if activity.Stream == nil {
-		if source == "strava" && activity.UploadId > 0 {
+		if activity.UploadId > 0 {
 			issues = append(issues, newIssue(source, sourcePath, activity, business.DataQualitySeverityInfo, business.DataQualityCategoryMissingStream, "stream", "Detailed stream is missing from the local cache.", "", "Download missing streams from Strava when API access is available."))
-			return issues
+			return annotateCorrectionSuggestions(activity, issues)
 		}
-		if source != "fit" && source != "gpx" {
-			return issues
+		if source != "fit" && source != "gpx" && source != "composite" {
+			return annotateCorrectionSuggestions(activity, issues)
 		}
 		issues = append(issues, newIssue(source, sourcePath, activity, business.DataQualitySeverityWarning, business.DataQualityCategoryMissingStream, "stream", "Activity has no stream data.", "", "Open the source file and verify GPS/time streams are present."))
-		return issues
+		return annotateCorrectionSuggestions(activity, issues)
 	}
 
 	issues = append(issues, analyzeStreamPresence(source, sourcePath, activity)...)
+	issues = append(issues, analyzeTimeConsistency(source, sourcePath, activity)...)
+	issues = append(issues, analyzeInvalidCoordinates(source, sourcePath, activity)...)
+	issues = append(issues, analyzeGPSGaps(source, sourcePath, activity)...)
 	issues = append(issues, analyzeGPSGlitch(source, sourcePath, activity)...)
 	issues = append(issues, analyzeAltitudeSpike(source, sourcePath, activity)...)
 	return annotateCorrectionSuggestions(activity, issues)
+}
+
+func analyzeTimeConsistency(source string, sourcePath string, activity *strava.Activity) []business.DataQualityIssue {
+	times := activity.Stream.Time.Data
+	for index := 1; index < len(times); index++ {
+		if times[index] > times[index-1] {
+			continue
+		}
+		return []business.DataQualityIssue{newIssue(source, sourcePath, activity, business.DataQualitySeverityCritical, business.DataQualityCategoryInconsistentTime, "stream.time", "Time stream is not strictly increasing.", fmt.Sprintf("point %d: %d <= %d", index, times[index], times[index-1]), "Repair the source timestamps before using speed or record calculations.")}
+	}
+	return nil
+}
+
+func analyzeInvalidCoordinates(source string, sourcePath string, activity *strava.Activity) []business.DataQualityIssue {
+	if activity.Stream.LatLng == nil {
+		return nil
+	}
+	for index, point := range activity.Stream.LatLng.Data {
+		if validCoordinate(point) {
+			continue
+		}
+		return []business.DataQualityIssue{newIssue(source, sourcePath, activity, business.DataQualitySeverityCritical, business.DataQualityCategoryInvalidValue, "stream.latlng", "GPS trace contains an invalid coordinate.", fmt.Sprintf("point %d", index), "Remove or repair the invalid coordinate before using the trace.")}
+	}
+	return nil
+}
+
+func analyzeGPSGaps(source string, sourcePath string, activity *strava.Activity) []business.DataQualityIssue {
+	stream := activity.Stream
+	if stream.LatLng == nil {
+		return nil
+	}
+	limit := minInt(len(stream.LatLng.Data), len(stream.Time.Data))
+	if limit < 2 {
+		return nil
+	}
+	medianCadence := medianPositiveDelta(stream.Time.Data[:limit])
+	gapThreshold := gpsGapMinSeconds
+	if medianCadence*gpsGapCadenceFactor > gapThreshold {
+		gapThreshold = medianCadence * gpsGapCadenceFactor
+	}
+	issues := make([]business.DataQualityIssue, 0)
+	for index := 1; index < limit; index++ {
+		previous := stream.LatLng.Data[index-1]
+		current := stream.LatLng.Data[index]
+		if !validCoordinate(previous) || !validCoordinate(current) {
+			continue
+		}
+		deltaSeconds := stream.Time.Data[index] - stream.Time.Data[index-1]
+		if deltaSeconds < gapThreshold {
+			continue
+		}
+		distance := haversineMeters(previous[0], previous[1], current[0], current[1])
+		if distance < gpsGapMinMeters {
+			continue
+		}
+		field := fmt.Sprintf("stream.latlng.gap.%d", index)
+		issues = append(issues, newIssue(source, sourcePath, activity, business.DataQualitySeverityWarning, business.DataQualityCategoryGPSGap, field, "GPS recording resumes far from the previous point after a long gap.", fmt.Sprintf("%.0f m after %d s near point %d", distance, deltaSeconds, index), "Split the trace at this gap or map-match the missing section after manual review; do not count the straight bridge as recorded distance."))
+	}
+	return issues
+}
+
+func medianPositiveDelta(times []int) int {
+	deltas := make([]int, 0, len(times)-1)
+	for index := 1; index < len(times); index++ {
+		if delta := times[index] - times[index-1]; delta > 0 {
+			deltas = append(deltas, delta)
+		}
+	}
+	if len(deltas) == 0 {
+		return 1
+	}
+	sort.Ints(deltas)
+	return deltas[(len(deltas)-1)/2]
+}
+
+func validCoordinate(point []float64) bool {
+	return len(point) >= 2 && !invalidFloat(point[0]) && !invalidFloat(point[1]) && point[0] >= -90 && point[0] <= 90 && point[1] >= -180 && point[1] <= 180
 }
 
 func analyzeStreamPresence(source string, sourcePath string, activity *strava.Activity) []business.DataQualityIssue {
@@ -216,7 +301,7 @@ func analyzeGPSGlitch(source string, sourcePath string, activity *strava.Activit
 	for i := 1; i < limit; i++ {
 		previous := stream.LatLng.Data[i-1]
 		current := stream.LatLng.Data[i]
-		if len(previous) < 2 || len(current) < 2 {
+		if !validCoordinate(previous) || !validCoordinate(current) {
 			continue
 		}
 		deltaSeconds := stream.Time.Data[i] - stream.Time.Data[i-1]

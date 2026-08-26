@@ -161,6 +161,62 @@ func TestCompositeKeepsUnmatchedLocalActivitiesInUnion(t *testing.T) {
 	}
 }
 
+func TestCompositeNeverClustersTwoActivitiesFromTheSameSource(t *testing.T) {
+	firstStrava := testActivity(7101, "first ride", "Ride", "2026-05-01T08:00:00Z", 10000, 3600, nil)
+	secondStrava := testActivity(7102, "second ride", "Ride", "2026-05-01T08:02:00Z", 10050, 3605, nil)
+	fitActivity := testActivity(7103, "fit ride", "Ride", "2026-05-01T08:01:00Z", 10020, 3602, testStream(20))
+	provider := NewCompositeActivityProvider([]Source{
+		{Name: "strava", Provider: testProvider{name: "strava", activities: []*strava.Activity{firstStrava, secondStrava}}},
+		{Name: "fit", Provider: testProvider{name: "fit", activities: []*strava.Activity{fitActivity}}},
+	})
+
+	activities := provider.GetActivitiesByYearAndActivityTypes(nil, business.Ride)
+	if len(activities) != 2 {
+		t.Fatalf("expected two activities after one-to-one matching, got %d", len(activities))
+	}
+	if sources := provider.GetDetailedActivity(7101).Source.Sources; len(sources) != 2 || sources[0].Provider == sources[1].Provider {
+		t.Fatalf("expected distinct providers in merged activity, got %#v", sources)
+	}
+}
+
+func TestCompositeTracksEnrichedFieldSourceAndConflictConfidence(t *testing.T) {
+	stravaActivity := testActivity(7201, "strava ride", "Ride", "2026-05-01T08:00:00Z", 10000, 3600, nil)
+	fitActivity := testActivity(7202, "fit ride", "Ride", "2026-05-01T08:01:00Z", 10300, 3600, testStream(20))
+	fitActivity.AverageHeartrate = 151
+	fitActivity.Kilojoules = 640
+	provider := NewCompositeActivityProvider([]Source{
+		{Name: "strava", Provider: testProvider{name: "strava", activities: []*strava.Activity{stravaActivity}}},
+		{Name: "fit", Provider: testProvider{name: "fit", activities: []*strava.Activity{fitActivity}}},
+	})
+
+	detailed := provider.GetDetailedActivity(7201)
+	if detailed.AverageHeartrate != 151 || detailed.Source.FieldSources["averageHeartrate"] != "fit" {
+		t.Fatalf("expected FIT heart-rate provenance, got activity=%#v source=%#v", detailed.AverageHeartrate, detailed.Source.FieldSources)
+	}
+	if detailed.Kilojoules != 640 || detailed.Source.FieldSources["kilojoules"] != "fit" {
+		t.Fatalf("expected FIT work provenance, got activity=%#v source=%#v", detailed.Kilojoules, detailed.Source.FieldSources)
+	}
+	if detailed.Source.MergeConfidence != "medium" {
+		t.Fatalf("expected conflict to lower confidence, got %q", detailed.Source.MergeConfidence)
+	}
+}
+
+func TestCompositeIgnoresZeroOnlySensorChannelsWhenChoosingStream(t *testing.T) {
+	stravaStream := testStream(1000)
+	fitStream := testStream(10)
+	fitStream.HeartRate = &strava.HeartRateStream{Data: make([]int, 10), OriginalSize: 10}
+	stravaActivity := testActivity(7301, "strava ride", "Ride", "2026-05-01T08:00:00Z", 10000, 3600, stravaStream)
+	fitActivity := testActivity(7302, "fit ride", "Ride", "2026-05-01T08:01:00Z", 10010, 3600, fitStream)
+	provider := NewCompositeActivityProvider([]Source{
+		{Name: "strava", Provider: testProvider{name: "strava", activities: []*strava.Activity{stravaActivity}}},
+		{Name: "fit", Provider: testProvider{name: "fit", activities: []*strava.Activity{fitActivity}}},
+	})
+
+	if got := provider.GetDetailedActivity(7301).Source.StreamProvider; got != "strava" {
+		t.Fatalf("expected richer Strava stream to win over zero-only FIT sensors, got %q", got)
+	}
+}
+
 func TestCompositeUsesStravaStorageIdentity(t *testing.T) {
 	provider := NewCompositeActivityProvider([]Source{
 		{Name: "fit", Provider: testProvider{name: "fit"}},
@@ -250,10 +306,23 @@ func TestCompositeDiagnosticsAggregatesSourceRefresh(t *testing.T) {
 	}
 }
 
+func TestCompositeDiagnosticsAggregatesSourceRateLimit(t *testing.T) {
+	provider := NewCompositeActivityProvider([]Source{
+		{Name: "strava", Provider: testProvider{name: "strava", rateLimit: map[string]any{"active": true, "untilEpochMs": int64(123456)}}},
+		{Name: "fit", Provider: testProvider{name: "fit"}},
+	})
+
+	rateLimit := provider.CacheDiagnostics()["rateLimit"].(map[string]any)
+	if rateLimit["active"] != true || rateLimit["untilEpochMs"] != int64(123456) {
+		t.Fatalf("expected aggregated rate limit, got %#v", rateLimit)
+	}
+}
+
 type testProvider struct {
 	name       string
 	activities []*strava.Activity
 	refresh    map[string]any
+	rateLimit  map[string]any
 }
 
 func (provider testProvider) GetDetailedActivity(activityId int64) *strava.DetailedActivity {
@@ -309,6 +378,9 @@ func (provider testProvider) CacheDiagnostics() map[string]any {
 	}
 	if provider.refresh != nil {
 		diagnostics["refresh"] = provider.refresh
+	}
+	if provider.rateLimit != nil {
+		diagnostics["rateLimit"] = provider.rateLimit
 	}
 	return diagnostics
 }
