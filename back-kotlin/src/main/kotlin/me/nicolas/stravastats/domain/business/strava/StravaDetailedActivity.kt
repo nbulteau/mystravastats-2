@@ -123,6 +123,7 @@ data class ActivitySource(
     val confidence: String,
     val sources: List<ActivitySourceRef> = emptyList(),
     val conflicts: List<ActivitySourceConflict> = emptyList(),
+    val fieldSources: Map<String, String> = emptyMap(),
 )
 
 data class ActivitySourceRef(

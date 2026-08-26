@@ -7,14 +7,14 @@ import me.nicolas.stravastats.domain.business.strava.stream.PowerStream
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.stream.*
 import me.nicolas.stravastats.domain.interfaces.IYearActivityStorageProvider
-import me.nicolas.stravastats.domain.utils.inDateTimeFormatter
 import org.slf4j.LoggerFactory
 import java.io.File
-import java.time.LocalDateTime
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
+import java.time.Instant
 import java.time.ZoneId
-import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.*
-import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -42,7 +42,7 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
     fun decodeActivity(fitFile: File): StravaActivity? {
         return try {
             val fitMessages = fitDecoder.decode(fitFile.inputStream())
-            fitMessages.toActivity()
+            fitMessages.toActivity(fitFile)
         } catch (exception: Exception) {
             logger.error("Something wrong during FIT conversion: ${exception.message}")
             null
@@ -52,58 +52,60 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
     /**
      * Convert a FIT stravaActivity to a Strava stravaActivity
      */
-    private fun FitMessages.toActivity(): StravaActivity {
+    private fun FitMessages.toActivity(fitFile: File): StravaActivity {
 
-        val sessionMesg = this.sessionMesgs.first()
+        val sessionMesg = this.sessionMesgs.firstOrNull()
+            ?: throw IllegalArgumentException("FIT file has no session message")
 
-        val stream: Stream = this.recordMesgs.buildStream()
+        val stream: Stream? = this.recordMesgs.buildStream()
 
         // StravaAthlete
         val athlete = AthleteRef(0)
         // The stravaActivity's average speed, in meters per second
-        val averageSpeed: Double = sessionMesg?.avgSpeed?.toDouble() ?: 0.0
+        val averageSpeed: Double = sessionMesg.avgSpeed?.toDouble() ?: 0.0
         // The effort's average cadence
-        val averageCadence: Double = sessionMesg?.avgCadence?.toDouble() ?: 0.0
+        val averageCadence: Double = sessionMesg.avgCadence?.toDouble() ?: 0.0
         // The heart rate of the stravaAthlete during this effort
-        val averageHeartRate: Double = sessionMesg?.avgHeartRate?.toDouble() ?: 0.0
+        val averageHeartRate: Double = sessionMesg.avgHeartRate?.toDouble() ?: 0.0
         // The maximum heart rate of the stravaAthlete during this effort
-        val maxHeartRate: Int = sessionMesg?.maxHeartRate?.toInt() ?: 0
+        val maxHeartRate: Int = sessionMesg.maxHeartRate?.toInt() ?: 0
         // Whether this stravaActivity is a commute
         val classification = extractFITActivityClassification(sessionMesg.sport, sessionMesg.subSport)
         val commute = classification.commute
         // The stravaActivity's distance, in meters
-        val distance: Double = sessionMesg?.totalDistance?.toDouble() ?: 0.0
+        val distance: Double = sessionMesg.totalDistance?.toDouble() ?: 0.0
         // The stravaActivity's elapsed time, in seconds
-        val elapsedTime: Int = sessionMesg?.totalElapsedTime?.toInt() ?: 0
-        val powerMetrics = computeFitPowerMetrics(sessionMesg?.avgPower, stream, elapsedTime)
+        val elapsedTime: Int = sessionMesg.totalElapsedTime?.toInt() ?: 0
+        val powerMetrics = computeFitPowerMetrics(sessionMesg.avgPower, stream ?: emptyStream(), elapsedTime)
         // The stravaActivity's highest elevation, in meters
         val extractedElevHigh: Double = extractElevHigh(sessionMesg)
         val elevHigh: Double = if (extractedElevHigh != 0.0) {
             extractedElevHigh
-        } else if (stream.altitude != null) {
+        } else if (stream?.altitude != null) {
             stream.altitude.data.maxOf { it }
         } else {
             0.0
         }
         // The stravaActivity's max speed, in meters per second
-        val maxSpeed: Float = sessionMesg?.maxSpeed ?: 0.0F
+        val maxSpeed: Float = sessionMesg.maxSpeed ?: 0.0F
         // The stravaActivity's moving time, in seconds
         val movingTime: Int = resolveMovingTime(sessionMesg, stream, elapsedTime)
         // The time at which the stravaActivity was started.
-        val startDate: String = extractDate(sessionMesg.startTime?.timestamp!!)
+        val startTimestamp = sessionMesg.startTime?.timestamp
+            ?: throw IllegalArgumentException("FIT file has no session start time")
+        val startInstant = fitTimestampToInstant(startTimestamp)
+        val startDate: String = extractDate(startInstant)
         // The time at which the stravaActivity was started in the local timezone.
-        val startDateLocal: String = extractDateLocal(sessionMesg.startTime?.timestamp!!)
+        val startDateLocal: String = extractDateLocal(startInstant)
         // StravaActivity name
         val name = "${classification.type} - $startDateLocal"
         // The unique identifier of the stravaActivity
-        val id: Long = name.hashCode().toLong().absoluteValue
+        val id: Long = fitActivityID(fitFile, startInstant, classification.type, distance)
         // Latitude /longitude of the start point
-        val extractedStartLatLng = extractLatLng(sessionMesg.startPositionLat, sessionMesg.startPositionLong)
-        val startLatlng: List<Double>? = extractedStartLatLng.ifEmpty {
-            stream.latlng?.data?.first()
-        }
+        val startLatlng: List<Double>? = extractLatLng(sessionMesg.startPositionLat, sessionMesg.startPositionLong)
+            ?: stream?.latlng?.data?.firstOrNull()
         // Total elevation gain
-        val deltas = stream.altitude?.data?.zipWithNext { a, b -> b - a }
+        val deltas = stream?.altitude?.data?.zipWithNext { a, b -> b - a }
         val sum = deltas?.filter { it > 0 }?.sumOf { it } ?: 0.0
         val totalElevationGain: Double = sessionMesg.totalAscent?.toDouble() ?: sum
 
@@ -139,10 +141,10 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
         )
     }
 
-    private fun resolveMovingTime(sessionMesg: SessionMesg, stream: Stream, elapsedTime: Int): Int {
+    private fun resolveMovingTime(sessionMesg: SessionMesg, stream: Stream?, elapsedTime: Int): Int {
         val totalMovingTime = sessionMesg.totalMovingTime?.roundToInt() ?: 0
         val totalTimerTime = sessionMesg.totalTimerTime?.roundToInt() ?: 0
-        val streamMovingTime = stream.movingTimeSeconds()
+        val streamMovingTime = stream?.movingTimeSeconds() ?: 0
         return resolveFitMovingTime(totalMovingTime, totalTimerTime, elapsedTime, streamMovingTime)
     }
 
@@ -165,7 +167,11 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
     /**
      * Build Strava Stream structure using the GPS records
      */
-    private fun List<RecordMesg>.buildStream(): Stream {
+    private fun List<RecordMesg>.buildStream(): Stream? {
+        if (this.isEmpty()) {
+            return null
+        }
+
         // distance
         val dataDistance = this.map { recordMesg -> recordMesg.distance?.toDouble() ?: 0.0 }
         val streamDistance = DistanceStream(
@@ -188,23 +194,17 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
         )
 
         // latitude/longitude
-        val dataLatitude = this.map { recordMesg ->
-            recordMesg.positionLat ?: 0
-        }.toMutableList()
-        dataLatitude.fixCoordinate()
-
-        val dataLongitude = this.map { recordMesg ->
-            recordMesg.positionLong ?: 0
-        }.toMutableList()
-        dataLongitude.fixCoordinate()
-
-        val dataLatitudeLongitude = dataLatitude.zip(dataLongitude) { lat, long -> extractLatLng(lat, long) }
-        val streamLatitudeLongitude = LatLngStream(
-            data = dataLatitudeLongitude,
-            originalSize = dataLatitudeLongitude.size,
-            resolution = "high",
-            seriesType = "distance"
-        )
+        val dataLatitudeLongitude = normalizeCoordinates(this.map { recordMesg ->
+            extractLatLng(recordMesg.positionLat, recordMesg.positionLong)
+        })
+        val streamLatitudeLongitude = dataLatitudeLongitude?.let { coordinates ->
+            LatLngStream(
+                data = coordinates,
+                originalSize = coordinates.size,
+                resolution = "high",
+                seriesType = "distance"
+            )
+        }
 
         // altitude
         val dataAltitude = this.mapNotNull { recordMesg ->
@@ -325,33 +325,22 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
         )
     }
 
-    private fun extractLatLng(lat: Int?, lng: Int?): List<Double> {
+    private fun extractLatLng(lat: Int?, lng: Int?): List<Double>? {
         return if (lat != null && lng != null) {
             // 11930465 = (2^32 / 360)
             listOf(lat.toDouble() / 11930465, lng.toDouble() / 11930465)
+                .takeIf { coordinates -> validLatLng(coordinates) }
         } else {
-            emptyList()
+            null
         }
     }
 
-    private fun extractDateLocal(value: Long): String {
-        var localDateTime = LocalDateTime.of(1989, 12, 31, 0, 0, 0, 0)
-        if (value >= 0L) {
-            localDateTime = localDateTime.plusSeconds(value)
-        }
-        return localDateTime
-            .atZone(ZoneOffset.UTC).withZoneSameInstant(ZoneId.systemDefault())
-            .toLocalDateTime()
-            .format(inDateTimeFormatter)
+    private fun extractDateLocal(value: Instant): String {
+        return value.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
     }
 
-    private fun extractDate(value: Long): String {
-        var localDateTime = LocalDateTime.of(1989, 12, 31, 0, 0, 0, 0)
-        if (value >= 0L) {
-            localDateTime = localDateTime.plusSeconds(value)
-        }
-
-        return localDateTime.format(inDateTimeFormatter)
+    private fun extractDate(value: Instant): String {
+        return DateTimeFormatter.ISO_INSTANT.format(value)
     }
 
     private fun extractElevHigh(sessionMesg: SessionMesg): Double {
@@ -364,41 +353,62 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
         }
     }
 
-    /**
-     * Fix missing coordinates
-     */
-    private fun MutableList<Int>.fixCoordinate() {
-        var index = 0
-
-        // if start with 0 : get the first valid value
-        if (this.first() == 0) {
-            val firstValidValue: Int = try {
-                this.first { it != 0 }
-            } catch (_: NoSuchElementException) {
-                0
-            }
-            while (index < this.size && this[index] == 0) {
-                this[index] = firstValidValue
-                index++
-            }
+    private fun normalizeCoordinates(rawCoordinates: List<List<Double>?>): List<List<Double>>? {
+        if (rawCoordinates.none { coordinates -> validLatLng(coordinates) }) {
+            return null
         }
 
-        // if a value is missing set average value
-        while (index < this.size) {
-            if (this[index] == 0) {
-                val lastValidValue: Int = this[index - 1]
-                val firstValidValue: Int = try {
-                    this.drop(index).first { it != 0 }
-                } catch (_: NoSuchElementException) {
-                    lastValidValue
-                }
-                while (this[index] == 0) {
-                    this[index] = (lastValidValue + firstValidValue) / 2
-                    index++
+        return rawCoordinates.mapIndexed { index, coordinates ->
+            if (validLatLng(coordinates)) {
+                coordinates!!
+            } else {
+                val previous = rawCoordinates.take(index).lastOrNull { candidate -> validLatLng(candidate) }
+                val next = rawCoordinates.drop(index + 1).firstOrNull { candidate -> validLatLng(candidate) }
+                when {
+                    previous != null && next != null -> listOf((previous[0] + next[0]) / 2, (previous[1] + next[1]) / 2)
+                    previous != null -> previous
+                    next != null -> next
+                    else -> listOf(0.0, 0.0)
                 }
             }
-            index++
         }
+    }
+
+    private fun validLatLng(value: List<Double>?): Boolean {
+        return value != null &&
+            value.size >= 2 &&
+            value[0].isFinite() &&
+            value[1].isFinite() &&
+            value[0] in -90.0..90.0 &&
+            value[1] in -180.0..180.0 &&
+            !(value[0] == 0.0 && value[1] == 0.0)
+    }
+
+    private fun fitTimestampToInstant(value: Long): Instant {
+        return FIT_EPOCH.plusSeconds(max(value, 0L))
+    }
+
+    private fun fitActivityID(fitFile: File, startDate: Instant, sportType: String, distanceMeters: Double): Long {
+        val raw = "${fitFile.canonicalPath}|$startDate|$sportType|${distanceMeters.roundToInt()}"
+        val digest = MessageDigest.getInstance("SHA-256").digest(raw.toByteArray(StandardCharsets.UTF_8))
+        var value = 0L
+        for (index in 0 until 8) {
+            value = (value shl 8) or (digest[index].toLong() and 0xff)
+        }
+        val safeValue = (value and Long.MAX_VALUE) % MAX_SAFE_JS_INTEGER
+        return if (safeValue == 0L) 1L else safeValue
+    }
+
+    private fun emptyStream(): Stream {
+        return Stream(
+            distance = DistanceStream(emptyList(), 0, "high", "distance"),
+            time = TimeStream(emptyList(), 0, "high", "time"),
+        )
+    }
+
+    companion object {
+        private val FIT_EPOCH: Instant = Instant.parse("1989-12-31T00:00:00Z")
+        private const val MAX_SAFE_JS_INTEGER: Long = 9_007_199_254_740_991L
     }
 }
 

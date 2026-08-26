@@ -361,7 +361,7 @@ func DecodeFITActivity(filePath string, athleteID int64) (*strava.Activity, erro
 		StartLatlng:          startLatlng,
 		TotalElevationGain:   totalElevationGain,
 		Type:                 classification.Type,
-		UploadId:             activityID,
+		UploadId:             0,
 		WeightedAverageWatts: powerMetrics.weightedAverageWatts,
 		Stream:               stream,
 	}, nil

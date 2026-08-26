@@ -8,6 +8,9 @@ import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
 import me.nicolas.stravastats.domain.services.ActivityHelper.buildActivityEfforts
 import me.nicolas.stravastats.domain.services.ActivityHelper.smooth
+import me.nicolas.stravastats.domain.business.strava.ActivitySource as DomainActivitySource
+import me.nicolas.stravastats.domain.business.strava.ActivitySourceConflict as DomainActivitySourceConflict
+import me.nicolas.stravastats.domain.business.strava.ActivitySourceRef as DomainActivitySourceRef
 import kotlin.math.*
 
 @Schema(description = "Detailed activity object", name = "DetailedActivity")
@@ -55,6 +58,8 @@ data class DetailedActivityDto(
     val startDateLocal: String,
     @param:Schema(description = "The start latitude and longitude of the activity.")
     val startLatlng: List<Double>?,
+    @param:Schema(description = "Source provenance for composite activity providers.")
+    val source: ActivitySourceDto? = null,
     @param:Schema(description = "Stream object")
     val stream: StreamDto? = null,
     @param:Schema(description = "The suffer score for the activity.")
@@ -72,6 +77,32 @@ data class DetailedActivityDto(
     @param:Schema(description = "Similar effort comparison for this activity.")
     @field:JsonInclude(JsonInclude.Include.NON_NULL)
     val activityComparison: ActivityComparisonDto? = null,
+)
+
+data class ActivitySourceDto(
+    val primaryProvider: String,
+    val primaryId: Long,
+    val streamProvider: String? = null,
+    val mergeConfidence: String? = null,
+    val sources: List<ActivitySourceRefDto> = emptyList(),
+    val conflicts: List<ActivitySourceConflictDto> = emptyList(),
+    val fieldSources: Map<String, String> = emptyMap(),
+)
+
+data class ActivitySourceRefDto(
+    val provider: String,
+    val activityId: Long,
+    val startDateLocal: String,
+    val distance: Double,
+    val movingTime: Int,
+    val hasStream: Boolean,
+)
+
+data class ActivitySourceConflictDto(
+    val field: String,
+    val primary: String,
+    val other: String,
+    val source: String,
 )
 
 data class ActivityComparisonDto(
@@ -161,8 +192,9 @@ fun StravaDetailedActivity.toDto(activityComparison: ActivityComparison? = null)
         startDate = activityForDto.startDate,
         startDateLocal = activityForDto.startDateLocal,
         startLatlng = activityForDto.startLatLng.finiteValues(),
+        source = activityForDto.source?.toDto(),
         sufferScore = activityForDto.sufferScore.finiteOrNull(),
-        totalDescent = activityForDto.elevLow.finiteOrZero(),
+        totalDescent = calculateTotalDescent(this.stream),
         totalElevationGain = activityForDto.totalElevationGain,
         type = activityForDto.type,
         sportType = activityForDto.sportType.ifBlank { activityForDto.type },
@@ -170,6 +202,50 @@ fun StravaDetailedActivity.toDto(activityComparison: ActivityComparison? = null)
         stream = activityForDto.stream?.toDto(),
         activityComparison = activityComparison?.toDto(),
     )
+}
+
+private fun DomainActivitySource.toDto(): ActivitySourceDto =
+    ActivitySourceDto(
+        primaryProvider = primaryProvider,
+        primaryId = primaryId,
+        streamProvider = streamProvider,
+        mergeConfidence = confidence,
+        sources = sources.map { source -> source.toDto() },
+        conflicts = conflicts.map { conflict -> conflict.toDto() },
+        fieldSources = fieldSources,
+    )
+
+private fun DomainActivitySourceRef.toDto(): ActivitySourceRefDto =
+    ActivitySourceRefDto(
+        provider = provider,
+        activityId = activityId,
+        startDateLocal = startDateLocal,
+        distance = distance.finiteOrZero(),
+        movingTime = movingTime,
+        hasStream = hasStream,
+    )
+
+private fun DomainActivitySourceConflict.toDto(): ActivitySourceConflictDto =
+    ActivitySourceConflictDto(
+        field = field,
+        primary = primary,
+        other = other,
+        source = source,
+    )
+
+private fun calculateTotalDescent(stream: Stream?): Double {
+    val altitudeData = stream?.altitude?.data as? List<*> ?: return 0.0
+    var previous: Double? = null
+    var totalDescent = 0.0
+    for (rawValue in altitudeData) {
+        val current = (rawValue as? Number)?.toDouble()?.takeIf { value -> value.isFinite() } ?: continue
+        val previousValue = previous
+        if (previousValue != null && current < previousValue) {
+            totalDescent += previousValue - current
+        }
+        previous = current
+    }
+    return totalDescent.finiteOrZero()
 }
 
 private fun ActivityComparison.toDto(): ActivityComparisonDto =

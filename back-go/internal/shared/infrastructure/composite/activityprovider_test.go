@@ -210,6 +210,27 @@ func TestCompositeRebuildsWhenSourceActivityCountChanges(t *testing.T) {
 	}
 }
 
+func TestCompositeRebuildsWhenSourceActivityDataChanges(t *testing.T) {
+	initialActivity := testActivity(9501, "morning ride", "Ride", "2026-06-08T07:30:00Z", 20000, 3600, testStream(20))
+	updatedActivity := testActivity(9501, "morning ride", "Ride", "2026-06-08T07:30:00Z", 20000, 3600, testStream(60))
+	source := &testProvider{name: "fit", activities: []*strava.Activity{initialActivity}}
+	provider := NewCompositeActivityProvider([]Source{
+		{Name: "fit", Provider: source},
+	})
+
+	activities := provider.GetActivitiesByYearAndActivityTypes(nil, business.Ride)
+	if len(activities) != 1 || activities[0].Stream == nil || len(activities[0].Stream.LatLng.Data) != 20 {
+		t.Fatalf("expected initial 20-point stream, got %#v", activities)
+	}
+
+	source.activities = []*strava.Activity{updatedActivity}
+
+	activities = provider.GetActivitiesByYearAndActivityTypes(nil, business.Ride)
+	if len(activities) != 1 || activities[0].Stream == nil || len(activities[0].Stream.LatLng.Data) != 60 {
+		t.Fatalf("expected composite provider to rebuild after source stream changed, got %#v", activities)
+	}
+}
+
 func TestCompositeDiagnosticsAggregatesSourceRefresh(t *testing.T) {
 	source := testProvider{
 		name:       "strava",

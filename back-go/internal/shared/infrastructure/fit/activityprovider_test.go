@@ -2,6 +2,7 @@ package fit
 
 import (
 	"math"
+	"path/filepath"
 	"testing"
 
 	"mystravastats/internal/shared/domain/business"
@@ -31,6 +32,22 @@ func TestNewFITActivityProvider_EmptyDirectory(t *testing.T) {
 	diagnostics := provider.CacheDiagnostics()
 	if diagnostics["provider"] != "fit" {
 		t.Fatalf("expected diagnostics provider=fit, got %#v", diagnostics["provider"])
+	}
+}
+
+func TestDecodeFITActivity_DoesNotMarkLocalFileAsStravaUpload(t *testing.T) {
+	// GIVEN
+	fitFile := filepath.Join("..", "..", "..", "..", "..", "test-fixtures", "source-modes", "fit", "2026", "smoke-ride.fit")
+
+	// WHEN
+	activity, err := DecodeFITActivity(fitFile, 42)
+
+	// THEN
+	if err != nil {
+		t.Fatalf("expected FIT activity to decode, got error: %v", err)
+	}
+	if activity.UploadId != 0 {
+		t.Fatalf("expected local FIT activity to have no Strava upload id, got %d", activity.UploadId)
 	}
 }
 

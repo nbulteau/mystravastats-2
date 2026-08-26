@@ -256,7 +256,6 @@ function backendEnvironment(mode, fixturePaths, port, tempRoot) {
     OPEN_BROWSER: "false",
     OSM_ROUTING_ENABLED: "false",
     OSRM_CONTROL_ENABLED: "false",
-    STRAVA_CACHE_PATH: fixturePaths.STRAVA,
     SERVER_HOST: "127.0.0.1",
     HOST: "127.0.0.1",
     SERVER_ADDRESS: "127.0.0.1",
@@ -265,9 +264,13 @@ function backendEnvironment(mode, fixturePaths, port, tempRoot) {
     GOCACHE: process.env.GOCACHE || join(tempRoot, "go-build-cache"),
   };
 
+  delete env.STRAVA_CACHE_PATH;
   delete env.FIT_FILES_PATH;
   delete env.GPX_FILES_PATH;
 
+  if (mode === "STRAVA") {
+    env.STRAVA_CACHE_PATH = fixturePaths.STRAVA;
+  }
   if (mode === "FIT") {
     env.FIT_FILES_PATH = fixturePaths.FIT;
   }

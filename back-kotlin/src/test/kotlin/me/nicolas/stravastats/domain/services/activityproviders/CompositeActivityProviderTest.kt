@@ -294,6 +294,38 @@ class CompositeActivityProviderTest {
     }
 
     @Test
+    fun `rebuilds when a source activity data changes`() {
+        val initialActivity = testActivity(
+            id = 9501,
+            name = "morning ride",
+            sport = "Ride",
+            start = "2026-06-08T07:30:00Z",
+            distance = 20_000.0,
+            movingTime = 3_600,
+            stream = testStream(20),
+        )
+        val updatedActivity = testActivity(
+            id = 9501,
+            name = "morning ride",
+            sport = "Ride",
+            start = "2026-06-08T07:30:00Z",
+            distance = 20_000.0,
+            movingTime = 3_600,
+            stream = testStream(60),
+        )
+        val source = StubProvider("fit", listOf(initialActivity))
+        val provider = CompositeActivityProvider(
+            listOf(CompositeActivitySource("fit", source))
+        )
+
+        assertEquals(20, provider.getActivitiesByActivityTypeAndYear(setOf(ActivityType.Ride)).first().stream?.latlng?.data?.size)
+
+        source.replaceActivities(listOf(updatedActivity))
+
+        assertEquals(60, provider.getActivitiesByActivityTypeAndYear(setOf(ActivityType.Ride)).first().stream?.latlng?.data?.size)
+    }
+
+    @Test
     fun `aggregates source refresh diagnostics`() {
         val source = StubProvider(
             name = "strava",
@@ -397,6 +429,10 @@ class CompositeActivityProviderTest {
 
         fun appendActivity(activity: StravaActivity) {
             activities = activities + activity
+        }
+
+        fun replaceActivities(nextActivities: List<StravaActivity>) {
+            activities = nextActivities
         }
 
         override fun getCacheDiagnostics(): Map<String, Any?> {

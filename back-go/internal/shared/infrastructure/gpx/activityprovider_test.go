@@ -52,6 +52,9 @@ func TestDecodeGPXActivity_MapsTrackToActivityWithStreams(t *testing.T) {
 	if activity.Stream == nil || activity.Stream.HeartRate == nil || activity.Stream.Cadence == nil || activity.Stream.Watts == nil {
 		t.Fatalf("expected heart-rate, cadence and power streams, got %#v", activity.Stream)
 	}
+	if activity.UploadId != 0 {
+		t.Fatalf("expected local GPX activity to have no Strava upload id, got %d", activity.UploadId)
+	}
 }
 
 func TestGPXActivityProvider_FiltersActivitiesByYearAndType(t *testing.T) {

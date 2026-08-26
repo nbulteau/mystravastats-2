@@ -4,6 +4,9 @@ import me.nicolas.stravastats.TestHelper
 import me.nicolas.stravastats.domain.business.ActivityEffort
 import me.nicolas.stravastats.domain.business.ActivityShort
 import me.nicolas.stravastats.domain.business.strava.Achievement
+import me.nicolas.stravastats.domain.business.strava.ActivitySource
+import me.nicolas.stravastats.domain.business.strava.ActivitySourceConflict
+import me.nicolas.stravastats.domain.business.strava.ActivitySourceRef
 import me.nicolas.stravastats.domain.business.strava.MetaActivity
 import me.nicolas.stravastats.domain.business.strava.MetaAthlete
 import me.nicolas.stravastats.domain.business.strava.Segment
@@ -19,6 +22,7 @@ import me.nicolas.stravastats.domain.business.strava.stream.TimeStream
 import me.nicolas.stravastats.domain.services.toStravaDetailedActivity
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 
@@ -85,6 +89,83 @@ class DetailedActivityDtoTest {
         assertEquals(85, effort.endIndex)
         assertEquals(315.7, effort.averageWatts)
         assertEquals(2, effort.prRank)
+    }
+
+    @Test
+    fun `detailed activity dto exposes source provenance and computes total descent from stream`() {
+        // GIVEN
+        val stream = Stream(
+            distance = DistanceStream(
+                data = listOf(0.0, 100.0, 200.0, 300.0),
+                originalSize = 4,
+                resolution = "high",
+                seriesType = "distance",
+            ),
+            time = TimeStream(
+                data = listOf(0, 10, 20, 30),
+                originalSize = 4,
+                resolution = "high",
+                seriesType = "time",
+            ),
+            altitude = AltitudeStream(
+                data = listOf(120.0, 110.0, 115.0, 90.0),
+                originalSize = 4,
+                resolution = "high",
+                seriesType = "distance",
+            ),
+        )
+        val activity = TestHelper.stravaActivity
+            .toStravaDetailedActivity()
+            .copy(
+                stream = stream,
+                source = ActivitySource(
+                    primaryProvider = "strava",
+                    primaryId = 42,
+                    streamProvider = "fit",
+                    confidence = "high",
+                    sources = listOf(
+                        ActivitySourceRef(
+                            provider = "strava",
+                            activityId = 42,
+                            startDateLocal = "2026-05-31T09:14:44+02:00",
+                            distance = 300.0,
+                            movingTime = 30,
+                            hasStream = false,
+                        ),
+                        ActivitySourceRef(
+                            provider = "fit",
+                            activityId = 99,
+                            startDateLocal = "2026-05-31T09:14:44+02:00",
+                            distance = 301.0,
+                            movingTime = 30,
+                            hasStream = true,
+                        ),
+                    ),
+                    conflicts = listOf(
+                        ActivitySourceConflict(
+                            field = "distance",
+                            primary = "300",
+                            other = "301",
+                            source = "fit",
+                        )
+                    ),
+                    fieldSources = mapOf("metadata" to "strava", "detailedStream" to "fit"),
+                ),
+            )
+
+        // WHEN
+        val dto = activity.toDto()
+
+        // THEN
+        assertEquals(35.0, dto.totalDescent)
+        assertNotNull(dto.source)
+        assertEquals("strava", dto.source?.primaryProvider)
+        assertEquals(42L, dto.source?.primaryId)
+        assertEquals("fit", dto.source?.streamProvider)
+        assertEquals("high", dto.source?.mergeConfidence)
+        assertEquals(listOf("strava", "fit"), dto.source?.sources?.map { source -> source.provider })
+        assertEquals(1, dto.source?.conflicts?.size)
+        assertEquals("fit", dto.source?.fieldSources?.get("detailedStream"))
     }
 
     @Test

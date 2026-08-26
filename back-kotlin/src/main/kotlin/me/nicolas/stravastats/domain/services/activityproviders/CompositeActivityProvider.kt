@@ -13,6 +13,7 @@ import me.nicolas.stravastats.domain.services.toStravaDetailedActivity
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
+import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -64,7 +65,7 @@ class CompositeActivityProvider(
             )
             sourceDiagnostics["refresh"]?.let { refresh -> sourceSummary["refresh"] = refresh }
             sourceSummaries.add(sourceSummary)
-            nextSourceSignatures[source.name] = sourceDataSignature(sourceSummary)
+            nextSourceSignatures[source.name] = sourceDataSignature(sourceDiagnostics, sourceActivities)
 
             for (activity in sourceActivities) {
                 val item = SourceActivity(source, activity, activityMatchMetadataFor(activity))
@@ -185,7 +186,8 @@ class CompositeActivityProvider(
     @Synchronized
     private fun refreshIfSourceDataChanged() {
         val currentSignatures = sources.associate { source ->
-            source.name to sourceDataSignature(source.provider.getCacheDiagnostics())
+            val sourceActivities = source.provider.getActivitiesByActivityTypeAndYear(ActivityType.values().toSet(), null)
+            source.name to sourceDataSignature(source.provider.getCacheDiagnostics(), sourceActivities)
         }
         if (currentSignatures == sourceSignatures) {
             return
@@ -300,8 +302,93 @@ class CompositeActivityProvider(
             return activityValuesMatch(left, right, activityMatchMetadataFor(left), activityMatchMetadataFor(right))
         }
 
-        private fun sourceDataSignature(diagnostics: Map<String, Any?>): String {
-            return "activities=${diagnostics["activities"]}|years=${diagnosticListSignature(diagnostics["availableYearBins"])}"
+        private fun sourceDataSignature(diagnostics: Map<String, Any?>, activities: List<StravaActivity>): String {
+            return listOf(
+                "provider=${diagnostics["provider"]}",
+                "root=${sourceRootDiagnostic(diagnostics)}",
+                "activities=${diagnostics["activities"]}",
+                "years=${diagnosticListSignature(diagnostics["availableYearBins"])}",
+                "data=${activityDataSignature(activities)}",
+            ).joinToString("|")
+        }
+
+        private fun sourceRootDiagnostic(diagnostics: Map<String, Any?>): Any {
+            for (key in listOf("cacheRoot", "fitDirectory", "gpxDirectory")) {
+                diagnostics[key]?.let { value -> return value }
+            }
+            return ""
+        }
+
+        private fun activityDataSignature(activities: List<StravaActivity>): String {
+            return activities
+                .map { activity ->
+                    listOf(
+                        "id=${activity.id}",
+                        "type=${activity.type}/${activity.sportType}",
+                        "start=${activity.startDate}/${activity.startDateLocal}",
+                        "distance=${activity.distance.signatureValue()}",
+                        "elapsed=${activity.elapsedTime}",
+                        "moving=${activity.movingTime}",
+                        "hr=${activity.averageHeartrate.signatureValue()}",
+                        "cad=${activity.averageCadence.signatureValue()}",
+                        "watts=${activity.averageWatts}/${activity.weightedAverageWatts}",
+                        "elev=${activity.totalElevationGain.signatureValue()}",
+                        "latlng=${activity.startLatlng.doubleListSignature()}",
+                        "stream=${activity.stream.streamSignature()}",
+                    ).joinToString("|")
+                }
+                .sorted()
+                .joinToString(";")
+        }
+
+        private fun Stream?.streamSignature(): String {
+            val stream = this ?: return "none"
+            return listOfNotNull(
+                "distance=${stream.distance.data.doubleListSignature(stream.distance.originalSize)}",
+                "time=${stream.time.data.intListSignature(stream.time.originalSize)}",
+                stream.latlng?.let { latlng -> "latlng=${latlng.data.latLngListSignature(latlng.originalSize)}" },
+                stream.cadence?.let { cadence -> "cadence=${cadence.data.intListSignature(cadence.originalSize)}" },
+                stream.heartrate?.let { heartrate -> "heartrate=${heartrate.data.intListSignature(heartrate.originalSize)}" },
+                stream.moving?.let { moving -> "moving=${moving.data.boolListSignature(moving.originalSize)}" },
+                stream.altitude?.let { altitude -> "altitude=${altitude.data.doubleListSignature(altitude.originalSize)}" },
+                stream.watts?.let { watts -> "watts=${watts.data.intListSignature(watts.originalSize)}" },
+                stream.velocitySmooth?.let { velocity -> "velocity=${velocity.data.floatListSignature(velocity.originalSize)}" },
+                stream.gradeSmooth?.let { grade -> "grade=${grade.data.floatListSignature(grade.originalSize)}" },
+            ).joinToString("|")
+        }
+
+        private fun List<Double>?.doubleListSignature(originalSize: Int = 0): String {
+            val values = this ?: return "0/$originalSize"
+            if (values.isEmpty()) return "0/$originalSize"
+            return "${values.size}/$originalSize/${values.first().signatureValue()}/${values[values.size / 2].signatureValue()}/${values.last().signatureValue()}"
+        }
+
+        private fun List<Int?>?.intListSignature(originalSize: Int = 0): String {
+            val values = this ?: return "0/$originalSize"
+            if (values.isEmpty()) return "0/$originalSize"
+            return "${values.size}/$originalSize/${values.first()}/${values[values.size / 2]}/${values.last()}"
+        }
+
+        private fun List<Float>?.floatListSignature(originalSize: Int = 0): String {
+            val values = this ?: return "0/$originalSize"
+            if (values.isEmpty()) return "0/$originalSize"
+            return "${values.size}/$originalSize/${values.first().toDouble().signatureValue()}/${values[values.size / 2].toDouble().signatureValue()}/${values.last().toDouble().signatureValue()}"
+        }
+
+        private fun List<Boolean>?.boolListSignature(originalSize: Int = 0): String {
+            val values = this ?: return "0/$originalSize"
+            if (values.isEmpty()) return "0/$originalSize"
+            return "${values.size}/$originalSize/${values.first()}/${values[values.size / 2]}/${values.last()}"
+        }
+
+        private fun List<List<Double>>?.latLngListSignature(originalSize: Int = 0): String {
+            val values = this ?: return "0/$originalSize"
+            if (values.isEmpty()) return "0/$originalSize"
+            return "${values.size}/$originalSize/${values.first().doubleListSignature()}/${values[values.size / 2].doubleListSignature()}/${values.last().doubleListSignature()}"
+        }
+
+        private fun Double.signatureValue(): String {
+            return String.format(Locale.US, "%.5f", this)
         }
 
         private fun diagnosticListSignature(value: Any?): String {
@@ -452,11 +539,12 @@ class CompositeActivityProvider(
         }
 
         private fun attachSourceProvenance(detailed: StravaDetailedActivity, record: CompositeRecord): StravaDetailedActivity {
+            val streamProvider = record.streamProvider ?: record.primaryProvider
             return detailed.copy(
                 source = StravaActivitySource(
                     primaryProvider = record.primaryProvider,
                     primaryId = record.primaryId,
-                    streamProvider = record.streamProvider,
+                    streamProvider = streamProvider,
                     confidence = record.confidence,
                     sources = record.sources.map { source ->
                         StravaActivitySourceRef(
@@ -476,6 +564,12 @@ class CompositeActivityProvider(
                             source = conflict.source,
                         )
                     },
+                    fieldSources = mapOf(
+                        "metadata" to record.primaryProvider,
+                        "summary" to record.primaryProvider,
+                        "segments" to record.primaryProvider,
+                        "detailedStream" to streamProvider,
+                    ),
                 )
             )
         }

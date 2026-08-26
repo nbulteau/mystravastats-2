@@ -183,7 +183,7 @@ func (provider *CompositeActivityProvider) rebuild() {
 			sourceSummary["refresh"] = refreshDiagnostics
 		}
 		sourceSummaries = append(sourceSummaries, sourceSummary)
-		sourceSignatures[source.Name] = sourceDataSignature(sourceSummary)
+		sourceSignatures[source.Name] = sourceDataSignature(sourceDiagnostics, activities)
 
 		for _, activity := range activities {
 			if activity == nil {
@@ -479,7 +479,8 @@ func (provider *CompositeActivityProvider) Reload() {
 func (provider *CompositeActivityProvider) refreshIfSourceDataChanged() {
 	currentSignatures := make(map[string]string, len(provider.sources))
 	for _, source := range provider.sources {
-		currentSignatures[source.Name] = sourceDataSignature(source.Provider.CacheDiagnostics())
+		activities := source.Provider.GetActivitiesByYearAndActivityTypes(nil, allActivityTypes...)
+		currentSignatures[source.Name] = sourceDataSignature(source.Provider.CacheDiagnostics(), activities)
 	}
 
 	provider.dataMutex.RLock()
@@ -519,12 +520,117 @@ func diagnosticBool(value any) bool {
 	}
 }
 
-func sourceDataSignature(diagnostics map[string]any) string {
+func sourceDataSignature(diagnostics map[string]any, activities []*strava.Activity) string {
 	return fmt.Sprintf(
-		"activities=%v|years=%s",
+		"provider=%v|root=%v|activities=%v|years=%s|data=%s",
+		diagnostics["provider"],
+		sourceRootDiagnostic(diagnostics),
 		diagnostics["activities"],
 		diagnosticListSignature(diagnostics["availableYearBins"]),
+		activityDataSignature(activities),
 	)
+}
+
+func sourceRootDiagnostic(diagnostics map[string]any) any {
+	for _, key := range []string{"cacheRoot", "fitDirectory", "gpxDirectory"} {
+		if value, ok := diagnostics[key]; ok {
+			return value
+		}
+	}
+	return ""
+}
+
+func activityDataSignature(activities []*strava.Activity) string {
+	parts := make([]string, 0, len(activities))
+	for _, activity := range activities {
+		if activity == nil {
+			continue
+		}
+		parts = append(parts, fmt.Sprintf(
+			"id=%d|type=%s/%s|start=%s/%s|distance=%.3f|elapsed=%d|moving=%d|hr=%.3f|cad=%.3f|watts=%.3f/%d|elev=%.3f|latlng=%s|stream=%s",
+			activity.Id,
+			activity.Type,
+			activity.SportType,
+			activity.StartDate,
+			activity.StartDateLocal,
+			activity.Distance,
+			activity.ElapsedTime,
+			activity.MovingTime,
+			activity.AverageHeartrate,
+			activity.AverageCadence,
+			activity.AverageWatts,
+			activity.WeightedAverageWatts,
+			activity.TotalElevationGain,
+			float64SliceSignature(activity.StartLatlng, 0),
+			streamDataSignature(activity.Stream),
+		))
+	}
+	sort.Strings(parts)
+	return strings.Join(parts, ";")
+}
+
+func streamDataSignature(stream *strava.Stream) string {
+	if stream == nil {
+		return "none"
+	}
+
+	parts := []string{
+		"distance=" + float64SliceSignature(stream.Distance.Data, stream.Distance.OriginalSize),
+		"time=" + intSliceSignature(stream.Time.Data, stream.Time.OriginalSize),
+	}
+	if stream.LatLng != nil {
+		parts = append(parts, "latlng="+latLngSliceSignature(stream.LatLng.Data, stream.LatLng.OriginalSize))
+	}
+	if stream.Cadence != nil {
+		parts = append(parts, "cadence="+intSliceSignature(stream.Cadence.Data, stream.Cadence.OriginalSize))
+	}
+	if stream.HeartRate != nil {
+		parts = append(parts, "heartrate="+intSliceSignature(stream.HeartRate.Data, stream.HeartRate.OriginalSize))
+	}
+	if stream.Moving != nil {
+		parts = append(parts, "moving="+boolSliceSignature(stream.Moving.Data, stream.Moving.OriginalSize))
+	}
+	if stream.Altitude != nil {
+		parts = append(parts, "altitude="+float64SliceSignature(stream.Altitude.Data, stream.Altitude.OriginalSize))
+	}
+	if stream.Watts != nil {
+		parts = append(parts, "watts="+float64SliceSignature(stream.Watts.Data, stream.Watts.OriginalSize))
+	}
+	if stream.VelocitySmooth != nil {
+		parts = append(parts, "velocity="+float64SliceSignature(stream.VelocitySmooth.Data, stream.VelocitySmooth.OriginalSize))
+	}
+	if stream.GradeSmooth != nil {
+		parts = append(parts, "grade="+float64SliceSignature(stream.GradeSmooth.Data, stream.GradeSmooth.OriginalSize))
+	}
+	return strings.Join(parts, "|")
+}
+
+func float64SliceSignature(data []float64, originalSize int) string {
+	if len(data) == 0 {
+		return fmt.Sprintf("0/%d", originalSize)
+	}
+	return fmt.Sprintf("%d/%d/%.5f/%.5f/%.5f", len(data), originalSize, data[0], data[len(data)/2], data[len(data)-1])
+}
+
+func intSliceSignature(data []int, originalSize int) string {
+	if len(data) == 0 {
+		return fmt.Sprintf("0/%d", originalSize)
+	}
+	return fmt.Sprintf("%d/%d/%d/%d/%d", len(data), originalSize, data[0], data[len(data)/2], data[len(data)-1])
+}
+
+func boolSliceSignature(data []bool, originalSize int) string {
+	if len(data) == 0 {
+		return fmt.Sprintf("0/%d", originalSize)
+	}
+	return fmt.Sprintf("%d/%d/%t/%t/%t", len(data), originalSize, data[0], data[len(data)/2], data[len(data)-1])
+}
+
+func latLngSliceSignature(data [][]float64, originalSize int) string {
+	if len(data) == 0 {
+		return fmt.Sprintf("0/%d", originalSize)
+	}
+	return fmt.Sprintf("%d/%d/%s/%s/%s", len(data), originalSize, float64SliceSignature(data[0], 0), float64SliceSignature(data[len(data)/2], 0), float64SliceSignature(data[len(data)-1], 0))
 }
 
 func diagnosticListSignature(value any) string {

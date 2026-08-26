@@ -366,7 +366,7 @@ func DecodeGPXActivity(filePath string, athleteID int64, fallbackYear int) (*str
 		StartLatlng:          []float64{points[0].latitude, points[0].longitude},
 		TotalElevationGain:   stats.elevationGainMeters,
 		Type:                 sportType,
-		UploadId:             activityID,
+		UploadId:             0,
 		WeightedAverageWatts: int(math.Round(averageFloat(stats.powerData))),
 		Stream:               stream,
 	}, nil
