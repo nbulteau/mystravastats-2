@@ -23,6 +23,7 @@ export type AppView =
   | "diagnostics"
   | "charts"
   | "dashboard"
+  | "annual-recap"
   | "heatmap"
   | "settings";
 
@@ -81,6 +82,9 @@ export const useContextStore = defineStore("context", {
           await useRoutesStore().ensureLoaded();
           break;
         case "dashboard":
+          await useDashboardStore().ensureDashboardLoaded(force);
+          break;
+        case "annual-recap":
           await useDashboardStore().ensureDashboardLoaded(force);
           break;
         case "heatmap":

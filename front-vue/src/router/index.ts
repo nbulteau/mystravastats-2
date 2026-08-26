@@ -38,6 +38,11 @@ const router: Router = createRouter({
       component: () => import('@/views/DashboardView.vue'),
     },
     {
+      path: '/annual-recap',
+      name: 'annual-recap',
+      component: () => import('@/views/AnnualRecapView.vue'),
+    },
+    {
       path: '/heatmap',
       name: 'heatmap',
       component: () => import('@/views/HeatmapView.vue'),

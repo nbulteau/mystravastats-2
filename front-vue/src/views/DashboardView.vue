@@ -7,6 +7,7 @@ import {
   useDashboardStore,
 } from "@/stores/dashboard";
 import { computed, onMounted } from "vue";
+import { RouterLink } from "vue-router";
 import type { AnnualGoalTargets } from "@/models/annual-goals.model";
 import TooltipHint from "@/components/TooltipHint.vue";
 import { getMetricTooltip } from "@/utils/metric-tooltips";
@@ -193,6 +194,17 @@ async function setEddingtonBasis(basis: EddingtonBasis) {
     v-else
     class="chart-stack"
   >
+    <section class="annual-recap-entry">
+      <div>
+        <span>Year in sport</span>
+        <strong>Create your annual recap</strong>
+        <p>Turn this year’s distance, elevation, active days and GPS traces into a privacy-first shareable image.</p>
+      </div>
+      <RouterLink class="btn btn-primary btn-sm" to="/annual-recap">
+        <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true" />
+        Create recap
+      </RouterLink>
+    </section>
     <AnnualGoalsPanel
       :annual-goals="annualGoals"
       :selected-year="currentYear"
@@ -394,6 +406,46 @@ async function setEddingtonBasis(basis: EddingtonBasis) {
 </template>
 
 <style scoped>
+.annual-recap-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 18px;
+  border: 1px solid #f3c3ae;
+  border-radius: 14px;
+  background: linear-gradient(120deg, #fff8f4 0%, #ffffff 62%);
+}
+
+.annual-recap-entry div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.annual-recap-entry span {
+  color: var(--ms-primary);
+  font-size: 0.64rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.annual-recap-entry strong {
+  font-size: 0.92rem;
+}
+
+.annual-recap-entry p {
+  margin: 0;
+  color: var(--ms-text-muted);
+  font-size: 0.72rem;
+}
+
+.annual-recap-entry .btn {
+  flex: none;
+}
+
 .chart-empty--error {
   border-style: solid;
   border-color: #f1b6bf;
@@ -454,6 +506,11 @@ async function setEddingtonBasis(basis: EddingtonBasis) {
 }
 
 @media (max-width: 640px) {
+  .annual-recap-entry {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .chart-panel__header {
     flex-wrap: wrap;
   }

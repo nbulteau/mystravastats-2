@@ -69,7 +69,8 @@ const openMenu = ref<string | null>(null);
 const navigationElement = ref<HTMLElement | null>(null);
 
 const isCurrent = (name: string) => currentRouteName.value === name;
-const isGroupCurrent = (group: NavGroup) => group.items.some((item) => isCurrent(item.name));
+const isGroupCurrent = (group: NavGroup) => group.items.some((item) => isCurrent(item.name))
+  || (group.id === "activity" && isCurrent("annual-recap"));
 const isSecondaryCurrent = computed(() => secondaryItems.some((item) => isCurrent(item.name)));
 
 function toggleMenu(menuId: string) {
