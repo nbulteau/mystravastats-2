@@ -7,18 +7,14 @@ export interface ClimbSectorInsight extends ClimbGradientSegment {
 
 export function climbVariantTitle(result: BadgeCheckResult): string {
   const label = result.badge.label.trim();
-  const separator = /\s+from\s+/i;
-  if (separator.test(label)) {
-    return label.replace(separator, " depuis ");
-  }
-  return label || result.climbDetails?.name || "Col indisponible";
+  return label || result.climbDetails?.name || "Climb unavailable";
 }
 
 export function climbVariantStart(result: BadgeCheckResult): string {
   const title = climbVariantTitle(result);
-  const separator = " depuis ";
-  const index = title.toLocaleLowerCase("fr-FR").indexOf(separator);
-  return index >= 0 ? title.slice(index + separator.length) : "Départ indisponible";
+  const separator = " from ";
+  const index = title.toLocaleLowerCase("en-US").indexOf(separator);
+  return index >= 0 ? title.slice(index + separator.length) : "Start unavailable";
 }
 
 export function climbAscentHistory(result: BadgeCheckResult): ClimbAscent[] {

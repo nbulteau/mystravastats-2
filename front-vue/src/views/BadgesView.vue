@@ -35,7 +35,7 @@ const sections: ReadonlyArray<{
   {
     id: "climbs",
     label: "Climb badges",
-    description: "Cols and ascents",
+    description: "Climbs and ascents",
     icon: "fa-solid fa-mountain-sun",
   },
   {
@@ -108,7 +108,7 @@ watch(
       }
     } catch (error) {
       if (requestSequence === lifetimeRequestSequence) {
-        lifetimeError.value = error instanceof Error ? error.message : "Chargement impossible.";
+        lifetimeError.value = error instanceof Error ? error.message : "Unable to load data.";
       }
     } finally {
       if (requestSequence === lifetimeRequestSequence) lifetimeLoading.value = false;
@@ -177,7 +177,7 @@ async function showDashboardClimbs(variantIds: string[], label: string) {
         <div>
           <p class="badges-kicker">Achievements &amp; summits</p>
           <h1 id="badges-hub-title">Badges and famous climbs</h1>
-          <p>Follow your progress, revisit every climbed col and turn your best ascents into a poster.</p>
+          <p>Follow your progress, revisit every climb you have completed and turn your best ascents into a poster.</p>
         </div>
         <div class="badges-overview" aria-label="Badge and climb overview">
           <div class="overview-stat">
@@ -186,7 +186,7 @@ async function showDashboardClimbs(variantIds: string[], label: string) {
           </div>
           <div class="overview-stat">
             <strong>{{ earnedFamousClimbs.length }}</strong>
-            <span>cols climbed</span>
+            <span>climbs completed</span>
           </div>
           <div class="overview-stat">
             <strong>{{ climbAscentCount }}</strong>
@@ -194,7 +194,7 @@ async function showDashboardClimbs(variantIds: string[], label: string) {
           </div>
           <div class="overview-stat">
             <strong>{{ climbedMassifCount }}</strong>
-            <span>massifs</span>
+            <span>mountain ranges</span>
           </div>
         </div>
       </div>
@@ -339,14 +339,14 @@ async function showDashboardClimbs(variantIds: string[], label: string) {
       <div class="poster-workspace-copy">
         <span class="workspace-icon" aria-hidden="true"><i class="fa-solid fa-image" /></span>
         <p class="badges-section-kicker">Print studio</p>
-        <h2 class="badges-title">Create a poster from your climbed cols</h2>
+        <h2 class="badges-title">Create a poster from your completed climbs</h2>
         <p>
           Choose Alpine Index, Massif Atlas or Profile Wall, then compose an SVG poster with up to 50 climbs.
           Ranking presets are available as shortcuts.
         </p>
         <div class="poster-facts" aria-label="Poster generator capabilities">
           <span><strong>3</strong> designs</span>
-          <span><strong>50</strong> cols maximum</span>
+          <span><strong>50</strong> climbs maximum</span>
           <span :class="{ 'poster-fact--loading': isBadgeDataUpdating }">
             <strong>{{ isBadgeDataUpdating ? "…" : earnedFamousClimbs.length }}</strong>
             {{ isBadgeDataUpdating ? "updating" : "available now" }}

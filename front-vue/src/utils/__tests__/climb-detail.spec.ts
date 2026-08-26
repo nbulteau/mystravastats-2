@@ -46,8 +46,8 @@ const result: BadgeCheckResult = {
 };
 
 describe("climb detail data", () => {
-  it("keeps the complete variant title and translates the departure separator", () => {
-    expect(climbVariantTitle(result)).toBe("Col du Galibier depuis Saint-Jean-de-Maurienne");
+  it("keeps the complete English variant title and extracts the start", () => {
+    expect(climbVariantTitle(result)).toBe("Col du Galibier from Saint-Jean-de-Maurienne");
     expect(climbVariantStart(result)).toBe("Saint-Jean-de-Maurienne");
   });
 

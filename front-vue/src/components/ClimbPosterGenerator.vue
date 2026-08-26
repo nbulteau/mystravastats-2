@@ -168,7 +168,7 @@ function slugify(value: string): string {
       {{ props.isLoading ? "Updating climbs..." : "Create climb poster" }}
     </button>
     <span v-if="props.isLoading" class="poster-generator-hint">
-      Updating climbed cols for {{ yearLabel }}.
+      Updating completed climbs for {{ yearLabel }}.
     </span>
     <span v-else-if="availableClimbs.length === 0" class="poster-generator-hint">
       Unlock a famous climb to create a poster.
@@ -186,7 +186,7 @@ function slugify(value: string): string {
         <div>
           <p class="poster-dialog-kicker">Print studio</p>
           <h2 id="poster-dialog-title">Create a climb poster</h2>
-          <p>Choose a design, select your cols, then generate a print-ready SVG.</p>
+          <p>Choose a design, select your climbs, then generate a print-ready SVG.</p>
         </div>
         <button type="button" class="btn btn-light poster-dialog-close" aria-label="Close poster generator" @click="closeGenerator">
           <i class="fa-solid fa-xmark" aria-hidden="true" />
@@ -214,7 +214,7 @@ function slugify(value: string): string {
             </span>
             <strong>{{ design.name }}</strong>
             <small>{{ design.description }}</small>
-            <span class="poster-design-capacity">Up to {{ design.maxClimbs }} cols</span>
+            <span class="poster-design-capacity">Up to {{ design.maxClimbs }} climbs</span>
           </label>
         </div>
       </section>
@@ -224,8 +224,8 @@ function slugify(value: string): string {
           <div class="poster-step-heading-main">
             <span>2</span>
             <div>
-              <h3 id="poster-climbs-heading">Select climbed cols</h3>
-              <p>{{ selectedClimbLabels.length }} of {{ selectionLimit }} selected from {{ availableClimbs.length }} climbed cols for {{ selectedDesignDefinition.name }}.</p>
+              <h3 id="poster-climbs-heading">Select completed climbs</h3>
+              <p>{{ selectedClimbLabels.length }} of {{ selectionLimit }} selected from {{ availableClimbs.length }} completed climbs for {{ selectedDesignDefinition.name }}.</p>
             </div>
           </div>
           <div class="poster-selection-actions">
@@ -271,7 +271,7 @@ function slugify(value: string): string {
 
       <div class="poster-generate-bar">
         <div>
-          <strong>{{ selectedClimbLabels.length }} cols · {{ selectedDesignDefinition.name }}</strong>
+          <strong>{{ selectedClimbLabels.length }} climbs · {{ selectedDesignDefinition.name }}</strong>
           <small>Up to 2000 × 3000 SVG, designed for a 60 × 90 cm poster</small>
         </div>
         <button
@@ -291,7 +291,7 @@ function slugify(value: string): string {
         <div class="poster-result-header">
           <div>
             <h3 id="poster-preview-heading">Poster preview</h3>
-            <p>The 50-col layout is optimised for 60 × 90 cm and stays sharp at any print size.</p>
+            <p>The 50-climb layout is optimised for 60 × 90 cm and stays sharp at any print size.</p>
           </div>
           <button type="button" class="btn btn-primary" @click="downloadPoster">
             <i class="fa-solid fa-download" aria-hidden="true" />

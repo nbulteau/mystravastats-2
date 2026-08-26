@@ -31,20 +31,20 @@ const metricOrder: AnnualGoalMetric[] = [
 
 const metricLabels: Record<AnnualGoalMetric, string> = {
   DISTANCE_KM: "Distance",
-  ELEVATION_METERS: "Dénivelé",
-  ACTIVITIES: "Sorties",
-  ACTIVE_DAYS: "Jours actifs",
+  ELEVATION_METERS: "Elevation",
+  ACTIVITIES: "Activities",
+  ACTIVE_DAYS: "Active days",
   EDDINGTON: "Eddington",
 };
 
 const statusLabels: Record<AnnualGoalStatus, string> = {
-  NOT_SET: "À définir",
-  AHEAD: "En avance",
-  ON_TRACK: "Juste",
-  BEHIND: "En retard",
+  NOT_SET: "Not set",
+  AHEAD: "Ahead",
+  ON_TRACK: "On track",
+  BEHIND: "Behind",
 };
 
-const monthLabels = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"];
+const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const targetInputs = reactive<Record<AnnualGoalMetric, string>>({
   DISTANCE_KM: "",
@@ -175,7 +175,7 @@ function formatPace(row: AnnualGoalProgress): string {
     return "-";
   }
   const value = row.metric === "DISTANCE_KM" ? row.requiredPace.toFixed(1) : Math.ceil(row.requiredPace).toString();
-  return `${value} ${inputUnit(row.metric) || row.unit}/j`;
+  return `${value} ${inputUnit(row.metric) || row.unit}/day`;
 }
 
 function formatWeeklyPace(row: AnnualGoalProgress, value: number): string {
@@ -183,7 +183,7 @@ function formatWeeklyPace(row: AnnualGoalProgress, value: number): string {
     return "-";
   }
   const formatted = row.metric === "DISTANCE_KM" ? value.toFixed(1) : Math.ceil(value).toString();
-  return `${formatted} ${inputUnit(row.metric) || row.unit}/sem`;
+  return `${formatted} ${inputUnit(row.metric) || row.unit}/week`;
 }
 
 function formatCompactValue(metric: AnnualGoalMetric, value: number): string {
@@ -242,7 +242,7 @@ function progressWidth(row: AnnualGoalProgress): string {
     <div class="annual-goals__header">
       <div>
         <h3 class="chart-panel__title">
-          Objectifs annuels
+          Annual goals
         </h3>
         <p class="annual-goals__context">
           {{ selectedYear }} · {{ activityType.split("_").join(" + ") }}
@@ -260,7 +260,7 @@ function progressWidth(row: AnnualGoalProgress): string {
             :class="isExpanded ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'"
             aria-hidden="true"
           />
-          {{ isExpanded ? "Masquer" : "Afficher" }}
+          {{ isExpanded ? "Hide" : "Show" }}
         </button>
         <button
           type="button"
@@ -268,7 +268,7 @@ function progressWidth(row: AnnualGoalProgress): string {
           :disabled="!isYearSelected || saving"
           @click="saveGoals"
         >
-          {{ saving ? "Enregistrement..." : "Enregistrer" }}
+          {{ saving ? "Saving..." : "Save" }}
         </button>
       </div>
     </div>
@@ -282,7 +282,7 @@ function progressWidth(row: AnnualGoalProgress): string {
         v-if="!isYearSelected"
         class="chart-empty annual-goals__empty"
       >
-        Choisis une année pour suivre des objectifs annuels.
+        Select a year to track annual goals.
       </div>
 
       <div v-else>
@@ -295,12 +295,12 @@ function progressWidth(row: AnnualGoalProgress): string {
 
         <div class="annual-goals__table">
           <div class="annual-goals__row annual-goals__row--head">
-            <span>Objectif</span>
-            <span>Réalisé</span>
-            <span>Cible</span>
+            <span>Goal</span>
+            <span>Completed</span>
+            <span>Target</span>
             <span>Projection</span>
-            <span>Rythme</span>
-            <span>Statut</span>
+            <span>Pace</span>
+            <span>Status</span>
           </div>
 
         <div
@@ -317,7 +317,7 @@ function progressWidth(row: AnnualGoalProgress): string {
               type="number"
               min="0"
               :step="inputStep(row.metric)"
-              :aria-label="`Cible ${metricLabels[row.metric]}`"
+              :aria-label="`Target ${metricLabels[row.metric]}`"
             >
             <span>{{ inputUnit(row.metric) }}</span>
           </label>
@@ -338,15 +338,15 @@ function progressWidth(row: AnnualGoalProgress): string {
             class="annual-goals__review"
           >
             <span>
-              <strong>30 jours</strong>
+              <strong>30 days</strong>
               {{ formatWeeklyPace(row, row.last30DaysWeeklyPace) }}
             </span>
             <span>
-              <strong>À tenir</strong>
+              <strong>Required</strong>
               {{ formatWeeklyPace(row, row.requiredWeeklyPace) }}
             </span>
             <span :class="{ 'annual-goals__review-gap--ok': row.weeklyPaceGap <= 0 }">
-              <strong>Manque</strong>
+              <strong>Gap</strong>
               {{ formatGap(row) }}
             </span>
             <button
@@ -356,7 +356,7 @@ function progressWidth(row: AnnualGoalProgress): string {
               @click="applySuggestedTarget(row)"
             >
               <i class="fa-solid fa-sliders" aria-hidden="true" />
-              Ajuster à {{ formatValue(row.metric, row.suggestedTarget) }}
+              Adjust to {{ formatValue(row.metric, row.suggestedTarget) }}
             </button>
           </div>
           <div

@@ -37,7 +37,7 @@ func TestNationalCatalogMirrorsAndCoverageReport(t *testing.T) {
 	if err := json.Unmarshal(reportData, &report); err != nil {
 		t.Fatalf("decode coverage report: %v", err)
 	}
-	if report.SummitIdentityCount != 394 || report.VariantCount != 766 {
+	if report.SummitIdentityCount != 409 || report.VariantCount != 784 {
 		t.Fatalf("unexpected coverage report: %#v", report)
 	}
 }
@@ -60,7 +60,7 @@ func TestNationalFamousClimbCatalogs(t *testing.T) {
 		{name: "suisse", country: "CH", expectedSides: 47},
 		{name: "italie", country: "IT", expectedSides: 78},
 		{name: "espagne", country: "ES", expectedSides: 127},
-		{name: "andorre", country: "AD", expectedSides: 6},
+		{name: "andorre", country: "AD", expectedSides: 24},
 	}
 	allLabels := make(map[string]string)
 	allVariantIDs := make(map[string]string)
@@ -151,7 +151,7 @@ func TestNationalFamousClimbCatalogs(t *testing.T) {
 				if corsicaSides != 38 {
 					t.Fatalf("expected 38 Corsican climb sides, got %d", corsicaSides)
 				}
-				assertMadeleineVariantCheckpoint(t, badgeSet, "Col de la Madeleine from La Chambre, via Montgellafrey")
+				assertVariantCheckpoint(t, badgeSet, "Col de la Madeleine from La Chambre, via Montgellafrey")
 				assertClimbClassification(t, badgeSet, "Alpe d'Huez from Le Bourg-d'Oisans", "HC", 979)
 				assertClimbClassification(t, badgeSet, "Col d'Anelle from Saint-Étienne-de-Tinée", "2", 480)
 				assertClimbClassification(t, badgeSet, "Col du Galibier from La Grave, via le col du Lautaret", "1", 807)
@@ -159,6 +159,19 @@ func TestNationalFamousClimbCatalogs(t *testing.T) {
 			}
 			if test.name == "espagne" {
 				assertClimbClassification(t, badgeSet, "Puerto Camacho from Los Tablones", "2", 597)
+			}
+			if test.name == "andorre" {
+				assertClimbClassification(t, badgeSet, "Col de la Gallina from Aixovall", "HC", 921)
+				assertClimbStart(t, badgeSet, "Col de la Gallina from Aixovall", 42.47642, 1.48978)
+				assertClimbStart(t, badgeSet, "Port de Cabús from Andorra la Vella", 42.51934, 1.52394)
+				for _, label := range []string{
+					"La Peguera from Sant Julià de Lòria via Aixirivall",
+					"La Peguera from Sant Julià de Lòria via Juberri",
+					"La Rabassa from Sant Julià de Lòria via Aixirivall",
+					"La Rabassa from Sant Julià de Lòria via Juberri",
+				} {
+					assertVariantCheckpoint(t, badgeSet, label)
+				}
 			}
 		})
 	}
@@ -223,7 +236,7 @@ func assertClimbClassification(t *testing.T, badgeSet badges.BadgeSet, label, ca
 	t.Fatalf("missing climb alternative %q", label)
 }
 
-func assertMadeleineVariantCheckpoint(t *testing.T, badgeSet badges.BadgeSet, label string) {
+func assertVariantCheckpoint(t *testing.T, badgeSet badges.BadgeSet, label string) {
 	t.Helper()
 	for _, badge := range badgeSet.Badges {
 		climb, ok := badge.(badges.FamousClimbBadge)
@@ -234,5 +247,5 @@ func assertMadeleineVariantCheckpoint(t *testing.T, badgeSet badges.BadgeSet, la
 			return
 		}
 	}
-	t.Fatalf("missing Madeleine variant %q", label)
+	t.Fatalf("missing climb variant %q", label)
 }

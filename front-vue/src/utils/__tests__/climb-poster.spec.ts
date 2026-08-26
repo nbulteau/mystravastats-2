@@ -48,13 +48,13 @@ describe("climb poster", () => {
       expect(svg).toContain("COL &lt;TEST&gt;");
       expect(svg).toContain("VALLEY &amp; LAKE");
       expect(svg).toContain("NICOLAS &amp; CO");
-      expect(svg).toContain("12,6");
-      expect(svg).toMatch(/ALT[ .]MAX/);
-      expect(svg).toContain("DIFFICULTÉ");
+      expect(svg).toContain("12.6");
+      expect(svg).toContain("MAX ALT");
+      expect(svg).toContain("DIFFICULTY");
       expect(svg).toContain("PTS");
       expect(svg).toContain("12.06.25");
       expect(svg).toContain("59:48");
-      expect(svg).toContain("1 COL · 2 ASCENSIONS");
+      expect(svg).toContain("1 CLIMB · 2 ASCENTS");
       expect(svg).not.toContain("M D+");
       expect(svg).toContain("data-profile-segment=");
       expect(svg).toContain("data-gradient=");
@@ -80,10 +80,10 @@ describe("climb poster", () => {
     const svg = buildDetailedClimbProfileSvg(climb.details);
     const segments = [...svg.matchAll(/data-profile-segment=/g)];
 
-    expect(svg).toContain('aria-label="Profil kilométrique de l\'ascension"');
+    expect(svg).toContain('aria-label="Kilometre profile of the climb"');
     expect(segments).toHaveLength(14);
     expect(svg).toContain('data-profile-altitude-label="740"');
-    expect(svg).toContain('data-profile-altitude-label="1 850"');
+    expect(svg).toContain('data-profile-altitude-label="1,850"');
   });
 
   it("keeps altitude annotations far enough apart to remain readable", () => {
@@ -217,8 +217,8 @@ describe("climb poster", () => {
 
     expect(firstTile).not.toBeNull();
     expect(Number(firstTile?.[1])).toBeGreaterThanOrEqual(90);
-    expect(svg).toContain("13,8 KM · +1 110 M · 8,1 % AVG · 12,6 % MAX");
-    expect(svg).toContain("ALT MAX 1 850 M · DIFFICULTÉ 800 PTS");
+    expect(svg).toContain("13.8 KM · +1,110 M · 8.1 % AVG · 12.6 % MAX");
+    expect(svg).toContain("MAX ALT 1,850 M · DIFFICULTY 800 PTS");
     expect(svg).toContain("2 ASCENTS");
     expect(svg).not.toContain("2×");
     expect(svg).not.toContain("data-profile-altitude-label");

@@ -127,9 +127,9 @@ class BadgesServiceTest {
         val results = badgesService.getFamousBadges(activityTypes, null)
         val climbs = results.map { it.badge as FamousClimbBadge }
 
-        assertEquals(766, climbs.size)
+        assertEquals(784, climbs.size)
         assertEquals(
-            mapOf("FR" to 508, "CH" to 47, "IT" to 78, "ES" to 127, "AD" to 6),
+            mapOf("FR" to 508, "CH" to 47, "IT" to 78, "ES" to 127, "AD" to 24),
             climbs.groupingBy { it.country }.eachCount(),
         )
         assertTrue(climbs.all { it.massif.isNotBlank() })
@@ -175,6 +175,16 @@ class BadgesServiceTest {
             1,
             climbs.single { it.label == "Col de la Madeleine from La Chambre, via Montgellafrey" }.routeCheckpoints.size,
         )
+        assertEquals("HC", climbs.single { it.label == "Col de la Gallina from Aixovall" }.category)
+        assertEquals(921, climbs.single { it.label == "Col de la Gallina from Aixovall" }.difficulty)
+        listOf(
+            "La Peguera from Sant Julià de Lòria via Aixirivall",
+            "La Peguera from Sant Julià de Lòria via Juberri",
+            "La Rabassa from Sant Julià de Lòria via Aixirivall",
+            "La Rabassa from Sant Julià de Lòria via Juberri",
+        ).forEach { label ->
+            assertEquals(1, climbs.single { it.label == label }.routeCheckpoints.size)
+        }
     }
 
     private fun hasOfficialClimbSource(sourceUrl: String): Boolean {

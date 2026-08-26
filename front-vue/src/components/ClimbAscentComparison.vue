@@ -18,10 +18,10 @@ const metric = ref<ClimbComparisonMetric>("elapsedSeconds");
 const selectedIds = ref<number[]>([]);
 const colors = ["#e85d2a", "#176d50", "#3768a6"];
 const metricOptions: { value: ClimbComparisonMetric; label: string; suffix: string }[] = [
-  { value: "elapsedSeconds", label: "Temps", suffix: "" },
-  { value: "speedKph", label: "Vitesse", suffix: " km/h" },
+  { value: "elapsedSeconds", label: "Time", suffix: "" },
+  { value: "speedKph", label: "Speed", suffix: " km/h" },
   { value: "vamMetersPerHour", label: "VAM", suffix: " m/h" },
-  { value: "powerWatts", label: "Puissance", suffix: " W" },
+  { value: "powerWatts", label: "Power", suffix: " W" },
   { value: "heartRateBpm", label: "Cardio", suffix: " bpm" },
 ];
 
@@ -90,13 +90,13 @@ function toggleAscent(activityId: number): void {
 
 function formatDate(value: string): string {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString("fr-FR");
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString("en-GB");
 }
 
 function formatMetric(value: number): string {
   if (metric.value === "elapsedSeconds") return formatTime(Math.round(value));
   const option = metricOptions.find((candidate) => candidate.value === metric.value);
-  return `${Math.round(value).toLocaleString("fr-FR")}${option?.suffix ?? ""}`;
+  return `${Math.round(value).toLocaleString("en-US")}${option?.suffix ?? ""}`;
 }
 
 function formatDelta(value: number | null): string {
@@ -107,13 +107,13 @@ function formatDelta(value: number | null): string {
 
 function warningLabel(code: string): string {
   const labels: Record<string, string> = {
-    MISSING_STREAM: "Flux GPS indisponible",
-    INCOMPLETE_DISTANCE_STREAM: "Distance incomplète",
-    INCOMPLETE_TIME_STREAM: "Chronologie incomplète",
-    DISTANCE_DIFFERENCE_OVER_10_PERCENT: "Distance détectée différente du catalogue",
-    START_OFFSET_OVER_100_METERS: "Point de départ décalé de plus de 100 m",
-    FINISH_OFFSET_OVER_100_METERS: "Point d’arrivée décalé de plus de 100 m",
-    LOW_RESOLUTION_STREAM: "Flux GPS de résolution réduite",
+    MISSING_STREAM: "GPS stream unavailable",
+    INCOMPLETE_DISTANCE_STREAM: "Incomplete distance stream",
+    INCOMPLETE_TIME_STREAM: "Incomplete time stream",
+    DISTANCE_DIFFERENCE_OVER_10_PERCENT: "Detected distance differs from the catalogue",
+    START_OFFSET_OVER_100_METERS: "Start point offset by more than 100 m",
+    FINISH_OFFSET_OVER_100_METERS: "Finish point offset by more than 100 m",
+    LOW_RESOLUTION_STREAM: "Low-resolution GPS stream",
   };
   return labels[code] ?? code;
 }
@@ -123,17 +123,17 @@ function warningLabel(code: string): string {
   <section class="comparison-card" aria-labelledby="comparison-title">
     <div class="comparison-heading">
       <div>
-        <p>Analyse personnelle</p>
-        <h2 id="comparison-title">Comparer mes ascensions</h2>
+        <p>Personal analysis</p>
+        <h2 id="comparison-title">Compare my ascents</h2>
       </div>
-      <span>2 à 3 passages · même versant</span>
+      <span>2 to 3 ascents · same side</span>
     </div>
 
     <p v-if="eligibleAscents.length < 2" class="comparison-empty">
-      Deux ascensions avec des flux distance/temps complets sont nécessaires pour lancer la comparaison.
+      Two ascents with complete distance and time streams are required for comparison.
     </p>
     <template v-else>
-      <div class="ascent-picker" aria-label="Ascensions à comparer">
+      <div class="ascent-picker" aria-label="Ascents to compare">
         <label v-for="ascent in eligibleAscents" :key="ascent.activityId">
           <input
             type="checkbox"
@@ -143,13 +143,13 @@ function warningLabel(code: string): string {
           >
           <span>
             <strong>{{ formatDate(ascent.date) }}</strong>
-            <small>{{ ascent.activityId === bestAscentId ? "Meilleur temps" : ascent.activityName }}</small>
+            <small>{{ ascent.activityId === bestAscentId ? "Best time" : ascent.activityName }}</small>
           </span>
         </label>
       </div>
 
       <div v-if="selectedAscents.length >= 2" class="comparison-content">
-        <div class="metric-tabs" role="group" aria-label="Métrique comparée">
+        <div class="metric-tabs" role="group" aria-label="Comparison metric">
           <button
             v-for="option in metricOptions"
             :key="option.value"
@@ -160,7 +160,7 @@ function warningLabel(code: string): string {
         </div>
 
         <div class="chart-wrap">
-          <svg viewBox="0 0 800 260" role="img" :aria-label="`Progression comparée par ${metricOptions.find((option) => option.value === metric)?.label.toLowerCase()}`">
+          <svg viewBox="0 0 800 260" role="img" :aria-label="`Comparison progress by ${metricOptions.find((option) => option.value === metric)?.label.toLowerCase()}`">
             <line v-for="index in 5" :key="index" x1="54" x2="756" :y1="46 + (index - 1) * 44.5" :y2="46 + (index - 1) * 44.5" />
             <polyline
               v-for="series in chartPolylines"
@@ -169,7 +169,7 @@ function warningLabel(code: string): string {
               :stroke="series.color"
             />
             <text x="54" y="246">0 km</text>
-            <text x="756" y="246" text-anchor="end">{{ chartDistance.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) }} km</text>
+            <text x="756" y="246" text-anchor="end">{{ chartDistance.toLocaleString("en-US", { maximumFractionDigits: 1 }) }} km</text>
             <text x="54" y="35">{{ formatMetric(chartMax) }}</text>
             <text x="54" y="238">{{ formatMetric(chartMin) }}</text>
           </svg>
@@ -178,15 +178,15 @@ function warningLabel(code: string): string {
               <i :style="{ background: colors[index] }" /> {{ formatDate(series.ascent.date) }}
             </span>
           </div>
-          <p v-if="chartValues.length < 2" class="metric-missing">Cette métrique n’est pas disponible sur les passages sélectionnés.</p>
+          <p v-if="chartValues.length < 2" class="metric-missing">This metric is unavailable for the selected ascents.</p>
         </div>
 
         <div class="quality-grid">
           <article v-for="ascent in selectedAscents" :key="ascent.activityId">
-            <strong>{{ formatDate(ascent.date) }} · précision {{ ascent.comparisonQuality?.precision === "high" ? "élevée" : "estimée" }}</strong>
+            <strong>{{ formatDate(ascent.date) }} · {{ ascent.comparisonQuality?.precision === "high" ? "high" : "estimated" }} accuracy</strong>
             <span>
-              Alignement par points catalogue et distance · départ ±{{ ascent.comparisonQuality?.startOffsetMeters ?? 0 }} m ·
-              arrivée ±{{ ascent.comparisonQuality?.finishOffsetMeters ?? 0 }} m
+              Aligned using catalogue points and distance · start ±{{ ascent.comparisonQuality?.startOffsetMeters ?? 0 }} m ·
+              finish ±{{ ascent.comparisonQuality?.finishOffsetMeters ?? 0 }} m
             </span>
             <ul v-if="ascent.comparisonQuality?.warnings.length">
               <li v-for="warning in ascent.comparisonQuality.warnings" :key="warning">{{ warningLabel(warning) }}</li>
@@ -198,14 +198,14 @@ function warningLabel(code: string): string {
           <table>
             <thead>
               <tr>
-                <th>Secteur</th>
-                <th>{{ formatDate(selectedAscents[0].date) }} (référence)</th>
+                <th>Sector</th>
+                <th>{{ formatDate(selectedAscents[0].date) }} (reference)</th>
                 <th v-for="ascent in selectedAscents.slice(1)" :key="ascent.activityId">{{ formatDate(ascent.date) }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="sector in sectorRows" :key="sector.startKm">
-                <th>Km {{ sector.startKm.toLocaleString("fr-FR") }}–{{ sector.endKm.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) }}</th>
+                <th>Km {{ sector.startKm.toLocaleString("en-US") }}–{{ sector.endKm.toLocaleString("en-US", { maximumFractionDigits: 1 }) }}</th>
                 <td>{{ sector.sectorSeconds == null ? "—" : formatTime(Math.round(sector.sectorSeconds)) }}</td>
                 <td
                   v-for="comparison in sector.comparisons"
@@ -216,9 +216,9 @@ function warningLabel(code: string): string {
             </tbody>
           </table>
         </div>
-        <p class="method-note">Les écarts sont interpolés par distance entre les points GPS retenus. Ils indiquent une tendance par secteur, pas un chronométrage officiel.</p>
+        <p class="method-note">Gaps are interpolated by distance between selected GPS points. They show a sector trend, not an official time measurement.</p>
       </div>
-      <p v-else class="comparison-empty">Sélectionnez au moins deux passages.</p>
+      <p v-else class="comparison-empty">Select at least two ascents.</p>
     </template>
   </section>
 </template>

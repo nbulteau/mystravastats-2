@@ -21,17 +21,17 @@ const emit = defineEmits<{
 const period = computed(() => buildClimberDashboardStats(props.periodClimbs));
 const lifetime = computed(() => buildClimberDashboardStats(props.lifetimeClimbs));
 const recordCards = computed(() => [
-  { title: "VAM record", record: lifetime.value.records.vam, formatter: (value: number) => `${Math.round(value).toLocaleString("fr-FR")} m/h` },
-  { title: "Plus long versant", record: lifetime.value.records.longest, formatter: (value: number) => `${value.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} km` },
-  { title: "Col le plus difficile", record: lifetime.value.records.hardest, formatter: (value: number) => `${Math.round(value).toLocaleString("fr-FR")} pts` },
-  { title: "Col le plus gravi", record: lifetime.value.records.mostClimbed, formatter: (value: number) => `${Math.round(value)} ascension${value > 1 ? "s" : ""}` },
+  { title: "VAM record", record: lifetime.value.records.vam, formatter: (value: number) => `${Math.round(value).toLocaleString("en-US")} m/h` },
+  { title: "Longest climb side", record: lifetime.value.records.longest, formatter: (value: number) => `${value.toLocaleString("en-US", { maximumFractionDigits: 1 })} km` },
+  { title: "Hardest climb", record: lifetime.value.records.hardest, formatter: (value: number) => `${Math.round(value).toLocaleString("en-US")} pts` },
+  { title: "Most climbed", record: lifetime.value.records.mostClimbed, formatter: (value: number) => `${Math.round(value)} ascent${value > 1 ? "s" : ""}` },
 ]);
 const breakdowns = computed(() => [
-  { title: "Par année", items: lifetime.value.years },
-  { title: "Par pays", items: lifetime.value.countries },
-  { title: "Par massif", items: lifetime.value.massifs },
-  { title: "Par catégorie", items: lifetime.value.categories },
-  { title: "Par altitude", items: lifetime.value.altitudeBands },
+  { title: "By year", items: lifetime.value.years },
+  { title: "By country", items: lifetime.value.countries },
+  { title: "By mountain range", items: lifetime.value.massifs },
+  { title: "By category", items: lifetime.value.categories },
+  { title: "By altitude", items: lifetime.value.altitudeBands },
 ]);
 
 function showRecord(record: ClimberRecord | null, title: string): void {
@@ -47,40 +47,40 @@ function showBreakdown(item: ClimberBreakdownItem, title: string): void {
   <div class="climber-dashboard">
     <header class="dashboard-heading">
       <div>
-        <p>Vue grimpeur</p>
-        <h2>Mes sommets, mes volumes et mes records</h2>
+        <p>Climber view</p>
+        <h2>My summits, totals and records</h2>
       </div>
-      <span>Données calculées uniquement sur le même catalogue que Climb badges</span>
+      <span>Calculated using the same catalogue as Climb badges</span>
     </header>
 
     <div class="scope-grid">
       <article>
-        <span>Période sélectionnée</span>
+        <span>Selected period</span>
         <h3>{{ periodLabel }}</h3>
         <dl>
-          <div><dt>Cols</dt><dd>{{ period.climbedSummits }}</dd></div>
-          <div><dt>Versants</dt><dd>{{ period.climbedVariants }}</dd></div>
-          <div><dt>Ascensions</dt><dd>{{ period.ascentCount }}</dd></div>
-          <div><dt>D+ sur cols</dt><dd>{{ Math.round(period.climbElevationGain).toLocaleString("fr-FR") }} m</dd></div>
+          <div><dt>Climbs</dt><dd>{{ period.climbedSummits }}</dd></div>
+          <div><dt>Sides</dt><dd>{{ period.climbedVariants }}</dd></div>
+          <div><dt>Ascents</dt><dd>{{ period.ascentCount }}</dd></div>
+          <div><dt>Climb elevation</dt><dd>{{ Math.round(period.climbElevationGain).toLocaleString("en-US") }} m</dd></div>
         </dl>
       </article>
       <article class="scope-lifetime">
-        <span>Tous les ans</span>
-        <h3>Carrière complète</h3>
+        <span>All years</span>
+        <h3>Lifetime</h3>
         <dl>
-          <div><dt>Cols</dt><dd>{{ lifetimeLoading ? "…" : lifetime.climbedSummits }}</dd></div>
-          <div><dt>Ascensions</dt><dd>{{ lifetimeLoading ? "…" : lifetime.ascentCount }}</dd></div>
-          <div><dt>Altitude de sommets cumulée</dt><dd>{{ lifetimeLoading ? "…" : `${Math.round(lifetime.cumulativeSummitAltitude).toLocaleString("fr-FR")} m` }}</dd></div>
-          <div><dt>D+ sur cols</dt><dd>{{ lifetimeLoading ? "…" : `${Math.round(lifetime.climbElevationGain).toLocaleString("fr-FR")} m` }}</dd></div>
+          <div><dt>Climbs</dt><dd>{{ lifetimeLoading ? "…" : lifetime.climbedSummits }}</dd></div>
+          <div><dt>Ascents</dt><dd>{{ lifetimeLoading ? "…" : lifetime.ascentCount }}</dd></div>
+          <div><dt>Cumulative summit altitude</dt><dd>{{ lifetimeLoading ? "…" : `${Math.round(lifetime.cumulativeSummitAltitude).toLocaleString("en-US")} m` }}</dd></div>
+          <div><dt>Climb elevation</dt><dd>{{ lifetimeLoading ? "…" : `${Math.round(lifetime.climbElevationGain).toLocaleString("en-US")} m` }}</dd></div>
         </dl>
       </article>
     </div>
-    <p v-if="lifetimeError" class="dashboard-warning">Les statistiques de carrière n’ont pas pu être chargées : {{ lifetimeError }}</p>
+    <p v-if="lifetimeError" class="dashboard-warning">Lifetime statistics could not be loaded: {{ lifetimeError }}</p>
 
     <section aria-labelledby="climber-records-title">
       <div class="section-heading">
-        <div><p>Records de carrière</p><h3 id="climber-records-title">Mes repères</h3></div>
-        <span v-if="lifetime.excludedRecordCount">{{ lifetime.excludedRecordCount }} passage{{ lifetime.excludedRecordCount > 1 ? "s" : "" }} ignoré{{ lifetime.excludedRecordCount > 1 ? "s" : "" }} par les garde-fous qualité</span>
+        <div><p>Lifetime records</p><h3 id="climber-records-title">My benchmarks</h3></div>
+        <span v-if="lifetime.excludedRecordCount">{{ lifetime.excludedRecordCount }} ascent{{ lifetime.excludedRecordCount > 1 ? "s" : "" }} excluded by quality safeguards</span>
       </div>
       <div class="record-grid">
         <button
@@ -91,17 +91,17 @@ function showBreakdown(item: ClimberBreakdownItem, title: string): void {
           @click="showRecord(card.record, card.title)"
         >
           <span>{{ card.title }}</span>
-          <strong>{{ card.record ? card.formatter(card.record.value) : "Indisponible" }}</strong>
-          <small>{{ card.record?.label ?? "Aucune donnée fiable" }}</small>
-          <em v-if="card.record?.estimated">Alignement GPS estimé</em>
+          <strong>{{ card.record ? card.formatter(card.record.value) : "Unavailable" }}</strong>
+          <small>{{ card.record?.label ?? "No reliable data" }}</small>
+          <em v-if="card.record?.estimated">Estimated GPS alignment</em>
         </button>
       </div>
     </section>
 
     <section aria-labelledby="climber-progression-title">
       <div class="section-heading">
-        <div><p>Progression de carrière</p><h3 id="climber-progression-title">Explorer mes ascensions</h3></div>
-        <span>Chaque indicateur ouvre les cols qui composent son total</span>
+        <div><p>Lifetime progression</p><h3 id="climber-progression-title">Explore my ascents</h3></div>
+        <span>Each metric opens the climbs included in its total</span>
       </div>
       <div class="breakdown-grid">
         <article v-for="breakdown in breakdowns" :key="breakdown.title">
@@ -113,15 +113,15 @@ function showBreakdown(item: ClimberBreakdownItem, title: string): void {
             @click="showBreakdown(item, breakdown.title)"
           >
             <span>{{ item.label }}</span>
-            <strong>{{ item.ascentCount }} asc. · {{ item.climbCount }} versant{{ item.climbCount > 1 ? "s" : "" }}</strong>
+            <strong>{{ item.ascentCount }} asc. · {{ item.climbCount }} side{{ item.climbCount > 1 ? "s" : "" }}</strong>
           </button>
-          <p v-if="!breakdown.items.length">Aucune ascension</p>
+          <p v-if="!breakdown.items.length">No ascents</p>
         </article>
       </div>
     </section>
 
     <p class="method-note">
-      Le D+ utilise les caractéristiques cataloguées de chaque versant multipliées par le nombre de passages. La VAM utilise le temps détecté entre les points de départ et d’arrivée ; les flux incomplets ou dont la distance diffère de plus de 10 % sont exclus des records.
+      Elevation gain uses each climb side's catalogue characteristics multiplied by the number of ascents. VAM uses the time detected between the start and finish points; incomplete streams or distances differing by more than 10% are excluded from records.
     </p>
   </div>
 </template>

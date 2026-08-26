@@ -31,46 +31,46 @@ const summitVariants = computed(() => {
   const summitId = climbSummitId(climbResult.value);
   return badgesStore.famousClimbBadgesCheckResults
     .filter((result) => result.climbDetails && climbSummitId(result) === summitId)
-    .sort((left, right) => climbVariantTitle(left).localeCompare(climbVariantTitle(right), "fr"));
+    .sort((left, right) => climbVariantTitle(left).localeCompare(climbVariantTitle(right), "en"));
 });
-const title = computed(() => climbResult.value ? climbVariantTitle(climbResult.value) : "Col indisponible");
-const startName = computed(() => climbResult.value ? climbVariantStart(climbResult.value) : "Départ indisponible");
-const category = computed(() => climbResult.value?.badge.category?.trim().toUpperCase() || "Indisponible");
+const title = computed(() => climbResult.value ? climbVariantTitle(climbResult.value) : "Climb unavailable");
+const startName = computed(() => climbResult.value ? climbVariantStart(climbResult.value) : "Start unavailable");
+const category = computed(() => climbResult.value?.badge.category?.trim().toUpperCase() || "Unavailable");
 const profileSvg = computed(() => details.value ? buildDetailedClimbProfileSvg(details.value) : "");
 const hardestSectors = computed(() => details.value ? hardestClimbSectors(details.value) : []);
 const ascents = computed(() => climbResult.value ? climbAscentHistory(climbResult.value) : []);
 const bestAscentId = computed(() => details.value?.bestAscent?.activityId ?? null);
-const yearLabel = computed(() => contextStore.currentYear === "All years" ? "toutes les années" : contextStore.currentYear);
+const yearLabel = computed(() => contextStore.currentYear === "All years" ? "all years" : contextStore.currentYear);
 
 onMounted(async () => {
   contextStore.$patch({ currentView: "badges" });
   try {
     await badgesStore.ensureLoaded();
   } catch (error) {
-    loadError.value = error instanceof Error ? error.message : "Impossible de charger la fiche du col.";
+    loadError.value = error instanceof Error ? error.message : "Unable to load climb details.";
   } finally {
     loading.value = false;
   }
 });
 
 function formatInteger(value: number | null | undefined, suffix = ""): string {
-  if (value == null || !Number.isFinite(value) || value <= 0) return "Indisponible";
-  return `${Math.round(value).toLocaleString("fr-FR")}${suffix}`;
+  if (value == null || !Number.isFinite(value) || value <= 0) return "Unavailable";
+  return `${Math.round(value).toLocaleString("en-US")}${suffix}`;
 }
 
 function formatDecimal(value: number | null | undefined, suffix = ""): string {
-  if (value == null || !Number.isFinite(value) || value <= 0) return "Indisponible";
-  return `${value.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}${suffix}`;
+  if (value == null || !Number.isFinite(value) || value <= 0) return "Unavailable";
+  return `${value.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}${suffix}`;
 }
 
 function formatDate(value: string): string {
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value || "Indisponible";
-  return parsed.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+  if (Number.isNaN(parsed.getTime())) return value || "Unavailable";
+  return parsed.toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
 }
 
 function formatCoordinate(value: number): string {
-  return Number.isFinite(value) ? value.toLocaleString("fr-FR", { minimumFractionDigits: 5, maximumFractionDigits: 5 }) : "Indisponible";
+  return Number.isFinite(value) ? value.toLocaleString("en-US", { minimumFractionDigits: 5, maximumFractionDigits: 5 }) : "Unavailable";
 }
 
 function sectorTone(gradient: number): string {
@@ -82,7 +82,7 @@ function sectorTone(gradient: number): string {
 }
 
 function sourceLabel(sourceUrl?: string | null): string {
-  if (!sourceUrl) return "Indisponible";
+  if (!sourceUrl) return "Unavailable";
   try {
     return new URL(sourceUrl).hostname.replace(/^www\./, "");
   } catch {
@@ -95,47 +95,47 @@ function sourceLabel(sourceUrl?: string | null): string {
   <main class="climb-detail-page">
     <div class="detail-navigation">
       <button type="button" class="back-button" @click="router.back()">
-        <i class="fa-solid fa-arrow-left" aria-hidden="true" /> Retour
+        <i class="fa-solid fa-arrow-left" aria-hidden="true" /> Back
       </button>
-      <RouterLink to="/badges" class="climb-log-link">Carnet des cols</RouterLink>
+      <RouterLink to="/badges" class="climb-log-link">Climb badges</RouterLink>
     </div>
 
     <div v-if="loading" class="detail-state">
-      <span class="spinner-border spinner-border-sm" aria-hidden="true" /> Chargement de la fiche…
+      <span class="spinner-border spinner-border-sm" aria-hidden="true" /> Loading climb details…
     </div>
     <div v-else-if="loadError" class="detail-state detail-state--error">
-      <strong>La fiche n’a pas pu être chargée.</strong>
+      <strong>Climb details could not be loaded.</strong>
       <span>{{ loadError }}</span>
     </div>
     <div v-else-if="!climbResult || !details" class="detail-state detail-state--error">
-      <strong>Versant introuvable.</strong>
-      <span>Le filtre courant ne contient pas ce col, ou son identifiant a changé.</span>
-      <RouterLink to="/badges" class="btn btn-sm btn-outline-primary">Revenir aux cols</RouterLink>
+      <strong>Climb side not found.</strong>
+      <span>The current filter does not include this climb, or its identifier has changed.</span>
+      <RouterLink to="/badges" class="btn btn-sm btn-outline-primary">Back to climbs</RouterLink>
     </div>
 
     <template v-else>
       <header class="detail-hero">
         <div>
-          <p class="detail-kicker">{{ details.country }} · {{ details.massif }} · départ {{ startName }}</p>
+          <p class="detail-kicker">{{ details.country }} · {{ details.massif }} · start {{ startName }}</p>
           <h1>{{ title }}</h1>
           <p class="detail-subtitle">
-            Sommet {{ formatInteger(details.summitAltitude, " m") }} · catégorie {{ category }} ·
-            difficulté {{ formatInteger(details.difficulty, " pts") }}
+            Summit {{ formatInteger(details.summitAltitude, " m") }} · category {{ category }} ·
+            difficulty {{ formatInteger(details.difficulty, " pts") }}
           </p>
         </div>
         <div class="hero-status" :class="{ 'hero-status--climbed': details.ascentCount > 0 }">
           <strong>{{ details.ascentCount }}</strong>
-          <span>ascension{{ details.ascentCount > 1 ? "s" : "" }} · {{ yearLabel }}</span>
+          <span>ascent{{ details.ascentCount > 1 ? "s" : "" }} · {{ yearLabel }}</span>
         </div>
       </header>
 
       <section class="detail-card profile-card" aria-labelledby="profile-title">
         <div class="card-heading">
           <div>
-            <p class="section-kicker">Données catalogue</p>
-            <h2 id="profile-title">Profil kilomètre par kilomètre</h2>
+            <p class="section-kicker">Catalogue data</p>
+            <h2 id="profile-title">Kilometre-by-kilometre profile</h2>
           </div>
-          <div class="gradient-legend" aria-label="Légende des couleurs de pente">
+          <div class="gradient-legend" aria-label="Gradient colour legend">
             <span class="legend-easy">&lt; 3 %</span>
             <span class="legend-moderate">3–6 %</span>
             <span class="legend-steady">6–9 %</span>
@@ -145,7 +145,7 @@ function sourceLabel(sourceUrl?: string | null): string {
         </div>
         <div class="profile-graphic" v-html="profileSvg" />
         <p v-if="details.profile.length < 2" class="missing-note">
-          Profil indisponible : aucune forme artificielle n’est générée à partir de données insuffisantes.
+          Profile unavailable: no artificial shape is generated from insufficient data.
         </p>
       </section>
 
@@ -153,19 +153,19 @@ function sourceLabel(sourceUrl?: string | null): string {
         <section class="detail-card" aria-labelledby="catalogue-title">
           <div class="card-heading">
             <div>
-              <p class="section-kicker">Référence du versant</p>
-              <h2 id="catalogue-title">Caractéristiques cataloguées</h2>
+              <p class="section-kicker">Climb side reference</p>
+              <h2 id="catalogue-title">Catalogue characteristics</h2>
             </div>
           </div>
           <dl class="metrics-grid">
-            <div><dt>Longueur</dt><dd>{{ formatDecimal(details.lengthKm, " km") }}</dd></div>
-            <div><dt>Dénivelé positif</dt><dd>{{ formatInteger(details.totalAscent, " m") }}</dd></div>
-            <div><dt>Pente moyenne</dt><dd>{{ formatDecimal(details.averageGradient, " %") }}</dd></div>
-            <div><dt>Pente maximale</dt><dd>{{ formatDecimal(details.maximumGradient, " %") }}</dd></div>
-            <div><dt>Altitude de départ</dt><dd>{{ formatInteger(details.minimumAltitude, " m") }}</dd></div>
-            <div><dt>Altitude maximale</dt><dd>{{ formatInteger(details.summitAltitude, " m") }}</dd></div>
-            <div><dt>Difficulté</dt><dd>{{ formatInteger(details.difficulty, " pts") }}</dd></div>
-            <div><dt>Catégorie</dt><dd>{{ category }}</dd></div>
+            <div><dt>Length</dt><dd>{{ formatDecimal(details.lengthKm, " km") }}</dd></div>
+            <div><dt>Elevation gain</dt><dd>{{ formatInteger(details.totalAscent, " m") }}</dd></div>
+            <div><dt>Average gradient</dt><dd>{{ formatDecimal(details.averageGradient, " %") }}</dd></div>
+            <div><dt>Maximum gradient</dt><dd>{{ formatDecimal(details.maximumGradient, " %") }}</dd></div>
+            <div><dt>Start altitude</dt><dd>{{ formatInteger(details.minimumAltitude, " m") }}</dd></div>
+            <div><dt>Maximum altitude</dt><dd>{{ formatInteger(details.summitAltitude, " m") }}</dd></div>
+            <div><dt>Difficulty</dt><dd>{{ formatInteger(details.difficulty, " pts") }}</dd></div>
+            <div><dt>Category</dt><dd>{{ category }}</dd></div>
           </dl>
           <div class="source-panel">
             <div>
@@ -173,73 +173,73 @@ function sourceLabel(sourceUrl?: string | null): string {
               <a v-if="details.sourceUrl" :href="details.sourceUrl" target="_blank" rel="noreferrer">
                 {{ sourceLabel(details.sourceUrl) }} <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true" />
               </a>
-              <strong v-else>Indisponible</strong>
+              <strong v-else>Unavailable</strong>
             </div>
-            <div><small>Dernière vérification</small><strong>Indisponible</strong></div>
+            <div><small>Last verified</small><strong>Unavailable</strong></div>
           </div>
           <dl class="coordinate-list">
-            <div><dt>Départ</dt><dd>{{ formatCoordinate(details.startCoordinate.latitude) }}, {{ formatCoordinate(details.startCoordinate.longitude) }}</dd></div>
-            <div><dt>Sommet</dt><dd>{{ formatCoordinate(details.summitCoordinate.latitude) }}, {{ formatCoordinate(details.summitCoordinate.longitude) }}</dd></div>
+            <div><dt>Start</dt><dd>{{ formatCoordinate(details.startCoordinate.latitude) }}, {{ formatCoordinate(details.startCoordinate.longitude) }}</dd></div>
+            <div><dt>Summit</dt><dd>{{ formatCoordinate(details.summitCoordinate.latitude) }}, {{ formatCoordinate(details.summitCoordinate.longitude) }}</dd></div>
           </dl>
         </section>
 
         <section class="detail-card" aria-labelledby="sectors-title">
           <div class="card-heading">
             <div>
-              <p class="section-kicker">Lecture du profil</p>
-              <h2 id="sectors-title">Secteurs les plus difficiles</h2>
+              <p class="section-kicker">Profile analysis</p>
+              <h2 id="sectors-title">Hardest sectors</h2>
             </div>
           </div>
           <ol v-if="hardestSectors.length" class="sector-list">
             <li v-for="sector in hardestSectors" :key="`${sector.startKm}-${sector.endKm}`">
               <span class="sector-rank" :class="sectorTone(sector.averageGradient)">
-                {{ sector.averageGradient.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) }} %
+                {{ sector.averageGradient.toLocaleString("en-US", { maximumFractionDigits: 1 }) }} %
               </span>
               <div>
-                <strong>Km {{ sector.startKm.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) }}–{{ sector.endKm.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) }}</strong>
-                <small>+{{ sector.elevationGain.toLocaleString("fr-FR") }} m sur {{ (sector.endKm - sector.startKm).toLocaleString("fr-FR", { maximumFractionDigits: 1 }) }} km</small>
+                <strong>Km {{ sector.startKm.toLocaleString("en-US", { maximumFractionDigits: 1 }) }}–{{ sector.endKm.toLocaleString("en-US", { maximumFractionDigits: 1 }) }}</strong>
+                <small>+{{ sector.elevationGain.toLocaleString("en-US") }} m over {{ (sector.endKm - sector.startKm).toLocaleString("en-US", { maximumFractionDigits: 1 }) }} km</small>
               </div>
             </li>
           </ol>
-          <p v-else class="missing-note">Secteurs indisponibles faute de profil exploitable.</p>
+          <p v-else class="missing-note">Sectors unavailable because no usable profile was found.</p>
         </section>
       </div>
 
       <section class="detail-card personal-card" aria-labelledby="ascents-title">
         <div class="card-heading">
           <div>
-            <p class="section-kicker section-kicker--personal">Données personnelles · {{ yearLabel }}</p>
-            <h2 id="ascents-title">Mes ascensions de ce versant</h2>
+            <p class="section-kicker section-kicker--personal">Personal data · {{ yearLabel }}</p>
+            <h2 id="ascents-title">My ascents on this side</h2>
           </div>
-          <span class="ascent-count">{{ ascents.length }} enregistrée{{ ascents.length > 1 ? "s" : "" }}</span>
+          <span class="ascent-count">{{ ascents.length }} recorded</span>
         </div>
         <div v-if="ascents.length" class="ascent-table-wrap">
           <table class="ascent-table">
             <thead>
               <tr>
-                <th>Date et activité</th>
-                <th>Temps</th>
+                <th>Date and activity</th>
+                <th>Time</th>
                 <th>VAM</th>
-                <th>Vitesse</th>
-                <th>Puissance</th>
-                <th>Fréquence cardiaque</th>
-                <th><span class="visually-hidden">Ouvrir</span></th>
+                <th>Speed</th>
+                <th>Power</th>
+                <th>Heart rate</th>
+                <th><span class="visually-hidden">Open</span></th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="ascent in ascents" :key="ascent.activityId">
                 <td>
                   <strong>{{ formatDate(ascent.date) }}</strong>
-                  <span>{{ ascent.activityName || `Activité ${ascent.activityId}` }}</span>
-                  <em v-if="ascent.activityId === bestAscentId">Meilleur temps</em>
+                  <span>{{ ascent.activityName || `Activity ${ascent.activityId}` }}</span>
+                  <em v-if="ascent.activityId === bestAscentId">Best time</em>
                 </td>
-                <td>{{ ascent.durationSeconds > 0 ? formatTime(ascent.durationSeconds) : "Indisponible" }}</td>
+                <td>{{ ascent.durationSeconds > 0 ? formatTime(ascent.durationSeconds) : "Unavailable" }}</td>
                 <td>{{ formatInteger(ascent.vamMetersPerHour, " m/h") }}</td>
                 <td>{{ formatDecimal(ascent.averageSpeedKph, " km/h") }}</td>
                 <td>{{ formatInteger(ascent.averagePowerWatts, " W") }}</td>
                 <td>{{ formatInteger(ascent.averageHeartRateBpm, " bpm") }}</td>
                 <td>
-                  <RouterLink :to="`/activities/${ascent.activityId}`" class="activity-link" :aria-label="`Ouvrir l’activité du ${formatDate(ascent.date)}`">
+                  <RouterLink :to="`/activities/${ascent.activityId}`" class="activity-link" :aria-label="`Open activity from ${formatDate(ascent.date)}`">
                     <i class="fa-solid fa-arrow-right" aria-hidden="true" />
                   </RouterLink>
                 </td>
@@ -247,7 +247,7 @@ function sourceLabel(sourceUrl?: string | null): string {
             </tbody>
           </table>
         </div>
-        <p v-else class="missing-note">Aucune ascension personnelle pour {{ yearLabel }}. Les données catalogue restent disponibles ci-dessus.</p>
+        <p v-else class="missing-note">No personal ascents for {{ yearLabel }}. Catalogue data remains available above.</p>
       </section>
 
       <ClimbAscentComparison
@@ -259,10 +259,10 @@ function sourceLabel(sourceUrl?: string | null): string {
       <section class="detail-card variants-card" aria-labelledby="variants-title">
         <div class="card-heading">
           <div>
-            <p class="section-kicker">Même sommet</p>
-            <h2 id="variants-title">Autres versants de {{ details.name }}</h2>
+            <p class="section-kicker">Same summit</p>
+            <h2 id="variants-title">Other sides of {{ details.name }}</h2>
           </div>
-          <span>{{ summitVariants.length }} variante{{ summitVariants.length > 1 ? "s" : "" }}</span>
+          <span>{{ summitVariants.length }} variant{{ summitVariants.length > 1 ? "s" : "" }}</span>
         </div>
         <div class="variant-grid">
           <RouterLink
@@ -274,7 +274,7 @@ function sourceLabel(sourceUrl?: string | null): string {
           >
             <span>{{ climbVariantStart(variant) }}</span>
             <strong>{{ formatDecimal(variant.climbDetails?.lengthKm, " km") }} · +{{ formatInteger(variant.climbDetails?.totalAscent, " m") }}</strong>
-            <small>{{ variant.climbDetails?.ascentCount ?? 0 }} ascension{{ (variant.climbDetails?.ascentCount ?? 0) > 1 ? "s" : "" }}</small>
+            <small>{{ variant.climbDetails?.ascentCount ?? 0 }} ascent{{ (variant.climbDetails?.ascentCount ?? 0) > 1 ? "s" : "" }}</small>
           </RouterLink>
         </div>
       </section>

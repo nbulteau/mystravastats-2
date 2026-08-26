@@ -63,7 +63,7 @@ export function buildClimbPosterSvg(options: ClimbPosterOptions): string {
   const maxClimbs = posterDesignMaxClimbs(options.design);
   const climbs = options.climbs.slice(0, maxClimbs);
   if (climbs.length === 0) {
-    throw new Error("Select at least one climbed col before generating a poster.");
+    throw new Error("Select at least one completed climb before generating a poster.");
   }
   const largePoster = climbs.length > 25;
   const posterWidth = largePoster ? LARGE_POSTER_WIDTH : STANDARD_POSTER_WIDTH;
@@ -77,7 +77,7 @@ export function buildClimbPosterSvg(options: ClimbPosterOptions): string {
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${posterWidth}" height="${posterHeight}" viewBox="0 0 ${posterWidth} ${posterHeight}" role="img" aria-labelledby="poster-title poster-description">
   <title id="poster-title">${escapeXml(posterTitle(options.design))}</title>
-  <desc id="poster-description">Cycling col poster with altitude profiles, gradients, best ascent dates and times, and ascent counts.</desc>
+  <desc id="poster-description">Cycling climb poster with altitude profiles, gradients, best ascent dates and times, and ascent counts.</desc>
   ${content}
 </svg>`;
 }
@@ -91,7 +91,7 @@ function posterClimbName(climb: ClimbPosterEntry): string {
   if (label.length === 0) {
     return climb.details.name;
   }
-  return label.replace(/\s+from\s+/i, " depuis ");
+  return label;
 }
 
 function buildAlpineIndexDesign(climbs: ClimbPosterEntry[], options: ClimbPosterOptions): string {
@@ -114,7 +114,7 @@ function buildAlpineIndexDesign(climbs: ClimbPosterEntry[], options: ClimbPoster
     const profileBottom = statsY - 17;
     const profileHeight = Math.max(74, profileBottom - profileTop);
     const name = posterClimbName(climb).toUpperCase();
-    const summitLine = `ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTÉ ${formatInteger(climb.details.difficulty)} PTS`;
+    const summitLine = `MAX ALT ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTY ${formatInteger(climb.details.difficulty)} PTS`;
     const statsLine = `${formatDecimal(climb.details.lengthKm)} KM · +${formatInteger(climb.details.totalAscent)} M · ${formatDecimal(climb.details.averageGradient)} % AVG · ${formatMaximumGradient(climb.details.maximumGradient)} % MAX`;
     return `<g data-grid-column="${column}" data-grid-row="${row}" data-profile-height="${round(profileHeight)}">
       ${column > 0 ? `<line x1="${round(x - columnGap / 2)}" y1="${round(y)}" x2="${round(x - columnGap / 2)}" y2="${round(tileBottom)}" class="alpine-grid-rule"/>` : ""}
@@ -133,7 +133,7 @@ function buildAlpineIndexDesign(climbs: ClimbPosterEntry[], options: ClimbPoster
   </style>
   <rect width="${width}" height="${height}" class="alpine-paper"/>
   <text x="${margin}" y="${largePoster ? 108 : 78}" class="alpine-muted" style="font:600 ${largePoster ? 18 : 14}px ui-sans-serif,system-ui;letter-spacing:0">ALPINE INDEX · ${escapeXml(options.yearLabel.toUpperCase())}</text>
-  <text x="${margin}" y="${largePoster ? 224 : 164}" class="alpine-ink" style="font:600 ${largePoster ? 92 : 64}px ui-sans-serif,system-ui;letter-spacing:0">COLS ${String(climbs.length).padStart(2, "0")}</text>
+  <text x="${margin}" y="${largePoster ? 224 : 164}" class="alpine-ink" style="font:600 ${largePoster ? 92 : 64}px ui-sans-serif,system-ui;letter-spacing:0">CLIMBS ${String(climbs.length).padStart(2, "0")}</text>
   <text x="${right}" y="${largePoster ? 210 : 154}" text-anchor="end" class="alpine-ink" style="font:500 ${largePoster ? 34 : 24}px ui-sans-serif,system-ui;letter-spacing:0">${escapeXml(options.yearLabel)}</text>
   <line x1="${margin}" y1="${top - 34}" x2="${right}" y2="${top - 34}" class="alpine-hairline"/>
   ${rows}
@@ -172,7 +172,7 @@ function buildMassifAtlasDesign(climbs: ClimbPosterEntry[], options: ClimbPoster
     const profileBottom = metricsY - 16;
     const profileHeight = Math.max(70, profileBottom - profileTop);
     const metrics = `${formatDecimal(climb.details.lengthKm)} KM · +${formatInteger(climb.details.totalAscent)} M · ${formatDecimal(climb.details.averageGradient)} % AVG · ${formatMaximumGradient(climb.details.maximumGradient)} % MAX`;
-    const summit = `ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTÉ ${formatInteger(climb.details.difficulty)} PTS`;
+    const summit = `MAX ALT ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTY ${formatInteger(climb.details.difficulty)} PTS`;
     return `<g data-grid-column="${column}" data-grid-row="${row}" data-massif="${escapeXml(massif)}" data-profile-height="${round(profileHeight)}">
       <rect x="${round(x)}" y="${round(y - 5)}" width="${round(columnWidth)}" height="${round(rowHeight - 13)}" rx="6" class="atlas-entry"/>
       <rect x="${round(x)}" y="${round(y - 5)}" width="${round(columnWidth)}" height="5" rx="2" fill="${color}"/>
@@ -220,7 +220,7 @@ function buildProfileWallDesign(climbs: ClimbPosterEntry[], options: ClimbPoster
     const profileHeight = Math.max(78, profileBottom - profileTop);
     const title = posterClimbName(climb).toUpperCase();
     const metrics = `${formatDecimal(climb.details.lengthKm)} KM · +${formatInteger(climb.details.totalAscent)} M · ${formatDecimal(climb.details.averageGradient)} % AVG · ${formatMaximumGradient(climb.details.maximumGradient)} % MAX`;
-    const summit = `ALT MAX ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTÉ ${formatInteger(climb.details.difficulty)} PTS`;
+    const summit = `MAX ALT ${formatInteger(climb.details.summitAltitude)} M · DIFFICULTY ${formatInteger(climb.details.difficulty)} PTS`;
     return `<g data-grid-column="${column}" data-grid-row="${row}" data-profile-height="${round(profileHeight)}">
       <rect x="${round(x - 4)}" y="${round(y - 6)}" width="${round(columnWidth + 8)}" height="${round(rowHeight - 10)}" rx="4" class="wall-tile"/>
       <text x="${round(x)}" y="${round(y + 19)}" class="wall-index">${String(index + 1).padStart(2, "0")}</text>
@@ -265,7 +265,7 @@ function massifSummary(climbs: ClimbPosterEntry[]): string {
 }
 
 function posterCountLabel(count: number): string {
-  return `${String(count).padStart(2, "0")} COL${count === 1 ? "" : "S"}`;
+  return `${String(count).padStart(2, "0")} CLIMB${count === 1 ? "" : "S"}`;
 }
 
 function massifColor(massif: string): string {
@@ -426,7 +426,7 @@ export function buildDetailedClimbProfileSvg(details: ClimbDetails): string {
   const horizontalPadding = 28;
   const profileHeight = 318;
   const kilometerSegments = Math.max(1, Math.ceil(details.lengthKm));
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Profil kilométrique de l'ascension" preserveAspectRatio="xMidYMid meet">
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Kilometre profile of the climb" preserveAspectRatio="xMidYMid meet">
     <rect width="${width}" height="${height}" rx="18" fill="#fbf8f1"/>
     <style>.detail-profile{fill:none;stroke:#172129;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.profile-base{stroke:#9f9588;stroke-width:1.5}.profile-missing{font:500 18px ui-sans-serif,system-ui;fill:#756c62;letter-spacing:0}</style>
     ${profileMarkup(
@@ -546,9 +546,9 @@ function ascentSummaryMarkup(
 
 function footerMarkup(options: ClimbPosterOptions, climbs: ClimbPosterEntry[], color: string): string {
   const athlete = options.athleteName?.trim() || "MY ACTIVITY STATS";
-  const climbLabel = `${climbs.length} COL${climbs.length === 1 ? "" : "S"}`;
+  const climbLabel = `${climbs.length} CLIMB${climbs.length === 1 ? "" : "S"}`;
   const ascentCount = totalAscents(climbs);
-  const ascentLabel = `${ascentCount} ASCENSION${ascentCount === 1 ? "" : "S"}`;
+  const ascentLabel = `${ascentCount} ASCENT${ascentCount === 1 ? "" : "S"}`;
   const largePoster = climbs.length > 25;
   const width = largePoster ? LARGE_POSTER_WIDTH : STANDARD_POSTER_WIDTH;
   const height = largePoster ? LARGE_POSTER_HEIGHT : STANDARD_POSTER_HEIGHT;
@@ -578,7 +578,7 @@ function gradientLegendMarkup(color: string, centerX: number, y: number, largePo
   const swatchHeight = largePoster ? 15 : 12;
   const labelFontSize = largePoster ? 10 : 8;
   return `<g aria-label="Gradient colour legend">
-    <text x="${round(startX - (largePoster ? 68 : 52))}" y="${y}" style="font:600 ${largePoster ? 11 : 9}px ui-monospace,monospace;fill:${color};letter-spacing:0">PENTE</text>
+    <text x="${round(startX - (largePoster ? 68 : 52))}" y="${y}" style="font:600 ${largePoster ? 11 : 9}px ui-monospace,monospace;fill:${color};letter-spacing:0">GRADE</text>
     ${entries.map((entry, index) => {
       const x = startX + index * itemWidth;
       return `<rect x="${round(x)}" y="${round(y - swatchHeight + 2)}" width="${swatchWidth}" height="${swatchHeight}" rx="1" fill="${gradientColor(entry.gradient)}" stroke="#283238" stroke-opacity=".2"/><text x="${round(x + swatchWidth + 6)}" y="${y}" style="font:600 ${labelFontSize}px ui-monospace,monospace;fill:${color}">${escapeXml(entry.label)}</text>`;
@@ -616,7 +616,7 @@ function formatDuration(totalSeconds: number): string {
 }
 
 function formatDecimal(value: number): string {
-  return Number.isFinite(value) ? value.toFixed(1).replace(".", ",") : "—";
+  return Number.isFinite(value) ? value.toFixed(1) : "—";
 }
 
 function formatCompactDecimal(value: number): string {
@@ -624,15 +624,15 @@ function formatCompactDecimal(value: number): string {
     return "—";
   }
   const rounded = Math.round(value * 10) / 10;
-  return (Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(1)).replace(".", ",");
+  return Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(1);
 }
 
 function formatMaximumGradient(value?: number | null): string {
-  return value != null && Number.isFinite(value) ? value.toFixed(1).replace(".", ",") : "—";
+  return value != null && Number.isFinite(value) ? value.toFixed(1) : "—";
 }
 
 function formatInteger(value: number): string {
-  return Number.isFinite(value) ? Math.round(value).toLocaleString("fr-FR") : "—";
+  return Number.isFinite(value) ? Math.round(value).toLocaleString("en-US") : "—";
 }
 
 function fitTextAttributes(

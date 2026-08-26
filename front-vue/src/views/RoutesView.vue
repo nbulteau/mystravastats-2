@@ -881,15 +881,15 @@ async function onGpxFileSelected(event: Event) {
     }
 
     if (totalImportedPoints < 2) {
-      showToast("GPX invalide: aucun tracé exploitable trouvé.", ToastTypeEnum.WARN);
+      showToast("Invalid GPX: no usable route was found.", ToastTypeEnum.WARN);
       return;
     }
     redrawMapLayers({ fitBounds: true });
-    const modeLabel = gpxImportMode.value === "append" ? "ajoutés" : "importés";
-    const fileLabel = importedFileCount > 1 ? "fichiers" : "fichier";
+    const modeLabel = gpxImportMode.value === "append" ? "appended" : "imported";
+    const fileLabel = importedFileCount > 1 ? "files" : "file";
     showToast(`GPX ${modeLabel} (${importedFileCount} ${fileLabel}, ${totalImportedPoints} points).`);
     if (invalidFileCount > 0) {
-      showToast(`${invalidFileCount} fichier(s) ignoré(s): format GPX invalide.`, ToastTypeEnum.WARN, 4200);
+      showToast(`${invalidFileCount} file(s) ignored: invalid GPX format.`, ToastTypeEnum.WARN, 4200);
     }
   } finally {
     input.value = "";

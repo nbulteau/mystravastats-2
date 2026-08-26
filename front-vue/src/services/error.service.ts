@@ -28,7 +28,7 @@ export class ErrorService {
             id: `toast-${Date.now()}`,
             message: apiError.code
                 ? `${apiError.description}`
-                : 'Une erreur s\'est produite, veuillez réessayer ultérieurement',
+                : 'An error occurred. Please try again later.',
             apiErrorCode: apiError.code,
             type: ToastTypeEnum.ERROR,
             timeout: 5000,

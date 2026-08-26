@@ -81,8 +81,8 @@ export function buildClimberDashboardStats(results: BadgeCheckResult[]): Climber
       mostClimbed: resultRecord(mostClimbed, ascentCountFor),
     },
     years: groupByAscents(climbed, ({ ascent }) => yearOf(ascent.date)),
-    countries: groupByClimbs(climbed, (result) => result.climbDetails?.country || "Non renseigné", ascentCountFor),
-    massifs: groupByClimbs(climbed, (result) => result.climbDetails?.massif || "Non renseigné", ascentCountFor),
+    countries: groupByClimbs(climbed, (result) => result.climbDetails?.country || "Not provided", ascentCountFor),
+    massifs: groupByClimbs(climbed, (result) => result.climbDetails?.massif || "Not provided", ascentCountFor),
     categories: groupByClimbs(climbed, (result) => `Cat. ${result.badge.category?.trim().toUpperCase() || "?"}`, ascentCountFor),
     altitudeBands: groupByClimbs(climbed, (result) => altitudeBand(result.climbDetails?.summitAltitude ?? 0), ascentCountFor),
   };
@@ -137,7 +137,7 @@ function groupByAscents(
     climbCount: value.variants.size,
     ascentCount: value.ascents,
     variantIds: Array.from(value.variants),
-  })).sort((left, right) => right.key.localeCompare(left.key, "fr", { numeric: true }));
+  })).sort((left, right) => right.key.localeCompare(left.key, "en", { numeric: true }));
 }
 
 function groupByClimbs(
@@ -159,18 +159,18 @@ function groupByClimbs(
     climbCount: value.variants.size,
     ascentCount: value.ascents,
     variantIds: Array.from(value.variants),
-  })).sort((left, right) => right.ascentCount - left.ascentCount || left.label.localeCompare(right.label, "fr"));
+  })).sort((left, right) => right.ascentCount - left.ascentCount || left.label.localeCompare(right.label, "en"));
 }
 
 function yearOf(date: string): string {
   const match = /^(\d{4})/.exec(date);
-  return match?.[1] ?? "Date inconnue";
+  return match?.[1] ?? "Unknown date";
 }
 
 function altitudeBand(altitude: number): string {
-  if (altitude >= 2500) return "≥ 2 500 m";
-  if (altitude >= 2000) return "2 000–2 499 m";
-  if (altitude >= 1500) return "1 500–1 999 m";
-  if (altitude >= 1000) return "1 000–1 499 m";
-  return "< 1 000 m";
+  if (altitude >= 2500) return "≥ 2,500 m";
+  if (altitude >= 2000) return "2,000–2,499 m";
+  if (altitude >= 1500) return "1,500–1,999 m";
+  if (altitude >= 1000) return "1,000–1,499 m";
+  return "< 1,000 m";
 }
