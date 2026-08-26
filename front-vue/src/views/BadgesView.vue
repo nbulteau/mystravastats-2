@@ -4,25 +4,22 @@ import { useBadgesStore } from "@/stores/badges";
 import { computed, nextTick, ref, watch, onMounted } from "vue";
 import BadgeItem from "@/components/BadgeItem.vue";
 import ClimbPosterGenerator from "@/components/ClimbPosterGenerator.vue";
-import ClimbMap from "@/components/ClimbMap.vue";
+import ClimberDashboard from "@/components/ClimberDashboard.vue";
 import type { BadgeCheckResult } from "@/models/badge-check-result.model";
-import { climbSummitId, climbVariantId } from "@/utils/climb-map";
+import { climbVariantId } from "@/utils/climb-id";
 
-type BadgesSectionId = "badges" | "climbs" | "posters" | "map";
+type BadgesSectionId = "badges" | "climbs" | "climber" | "posters";
 
 const contextStore = useContextStore();
 const badgesStore = useBadgesStore();
 onMounted(() => contextStore.updateCurrentView("badges"));
 
 const currentYear = computed(() => contextStore.currentYear);
-const climbMapYearOptions = computed(() => {
-  const options = contextStore.availableYears.length > 0
-    ? contextStore.availableYears
-    : [currentYear.value, "All years"];
-  return [...new Set([currentYear.value, ...options])];
-});
 const activeSection = ref<BadgesSectionId>("badges");
-const focusedMapSummitId = ref<string | null>(null);
+const lifetimeFamousClimbs = ref<BadgeCheckResult[]>([]);
+const lifetimeLoading = ref(false);
+const lifetimeError = ref("");
+let lifetimeRequestSequence = 0;
 const sections: ReadonlyArray<{
   id: BadgesSectionId;
   label: string;
@@ -37,21 +34,21 @@ const sections: ReadonlyArray<{
   },
   {
     id: "climbs",
-    label: "Climb log",
+    label: "Climb badges",
     description: "Cols and ascents",
     icon: "fa-solid fa-mountain-sun",
+  },
+  {
+    id: "climber",
+    label: "Climber",
+    description: "Progress & records",
+    icon: "fa-solid fa-chart-line",
   },
   {
     id: "posters",
     label: "Posters",
     description: "Print studio",
     icon: "fa-solid fa-image",
-  },
-  {
-    id: "map",
-    label: "Climb map",
-    description: "Explore your summits",
-    icon: "fa-solid fa-map-location-dot",
   },
 ];
 
@@ -96,6 +93,29 @@ const climbedMassifCount = computed(() => new Set(
     .filter((massif): massif is string => Boolean(massif)),
 ).size);
 const selectedFamousClimbCategory = ref("ALL");
+const dashboardClimbFilter = ref<{ variantIds: string[]; label: string } | null>(null);
+
+watch(
+  () => contextStore.currentActivityType,
+  async (activityType) => {
+    const requestSequence = ++lifetimeRequestSequence;
+    lifetimeLoading.value = true;
+    lifetimeError.value = "";
+    try {
+      const entry = await badgesStore.ensureFiltersLoaded(activityType, "All years");
+      if (requestSequence === lifetimeRequestSequence) {
+        lifetimeFamousClimbs.value = entry.famousClimbBadgesCheckResults;
+      }
+    } catch (error) {
+      if (requestSequence === lifetimeRequestSequence) {
+        lifetimeError.value = error instanceof Error ? error.message : "Chargement impossible.";
+      }
+    } finally {
+      if (requestSequence === lifetimeRequestSequence) lifetimeLoading.value = false;
+    }
+  },
+  { immediate: true },
+);
 
 const famousClimbCategoryOptions = computed(() => {
   const categoryOrder = ["HC", "1", "2", "3", "4"];
@@ -120,13 +140,13 @@ watch(famousClimbCategoryOptions, (options) => {
 });
 
 const famousClimbBadgesCheckResults = computed(() => {
-  if (selectedFamousClimbCategory.value === "ALL") {
-    return allFamousClimbBadgesCheckResults.value;
-  }
-
-  return allFamousClimbBadgesCheckResults.value.filter(
-    (badgeCheckResult) => badgeCheckResult.badge.category?.toUpperCase().trim() === selectedFamousClimbCategory.value,
-  );
+  const dashboardVariantIds = dashboardClimbFilter.value
+    ? new Set(dashboardClimbFilter.value.variantIds)
+    : null;
+  return allFamousClimbBadgesCheckResults.value.filter((badgeCheckResult) => (
+    (selectedFamousClimbCategory.value === "ALL" || badgeCheckResult.badge.category?.toUpperCase().trim() === selectedFamousClimbCategory.value) &&
+    (!dashboardVariantIds || dashboardVariantIds.has(climbVariantId(badgeCheckResult)))
+  ));
 });
 
 const generalSummary = computed(() => sectionSummary(generalBadgesCheckResults.value));
@@ -140,17 +160,14 @@ async function selectAdjacentSection(offset: number) {
   document.getElementById(`badges-section-${activeSection.value}`)?.focus();
 }
 
-async function showClimbOnMap(result: BadgeCheckResult) {
-  focusedMapSummitId.value = climbSummitId(result);
-  activeSection.value = "map";
-  await nextTick();
-}
-
-async function openClimbInLog(variantId: string) {
+async function showDashboardClimbs(variantIds: string[], label: string) {
+  selectedFamousClimbCategory.value = "ALL";
+  dashboardClimbFilter.value = { variantIds, label };
   activeSection.value = "climbs";
   await nextTick();
-  document.getElementById(`climb-log-${variantId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  document.getElementById("badges-panel-climbs")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
+
 </script>
 
 <template>
@@ -159,7 +176,7 @@ async function openClimbInLog(variantId: string) {
       <div class="badges-hub-heading">
         <div>
           <p class="badges-kicker">Achievements &amp; summits</p>
-          <h1 id="badges-hub-title">Badges and climb log</h1>
+          <h1 id="badges-hub-title">Badges and famous climbs</h1>
           <p>Follow your progress, revisit every climbed col and turn your best ascents into a poster.</p>
         </div>
         <div class="badges-overview" aria-label="Badge and climb overview">
@@ -247,7 +264,7 @@ async function openClimbInLog(variantId: string) {
       <div class="badges-header badges-header--split">
         <div>
           <p class="badges-section-kicker">Your summit collection</p>
-          <h2 class="badges-title">Famous climb log for {{ currentYear }}</h2>
+          <h2 class="badges-title">Climb badges for {{ currentYear }}</h2>
         </div>
         <div class="badges-header-controls">
           <label for="famous-category-filter" class="category-filter-label">Category</label>
@@ -255,6 +272,7 @@ async function openClimbInLog(variantId: string) {
             id="famous-category-filter"
             v-model="selectedFamousClimbCategory"
             class="form-select form-select-sm category-filter-select"
+            @change="dashboardClimbFilter = null"
           >
             <option
               v-for="categoryOption in famousClimbCategoryOptions"
@@ -269,35 +287,46 @@ async function openClimbInLog(variantId: string) {
           <span class="summary-chip summary-chip--earned">Climbed {{ famousSummary.acquired }}</span>
           <span class="summary-chip summary-chip--locked">To discover {{ famousSummary.locked }}</span>
           <span class="summary-chip summary-chip--completion">{{ famousSummary.completion }}% completed</span>
+          <button v-if="dashboardClimbFilter" type="button" class="active-dashboard-filter" @click="dashboardClimbFilter = null">
+            {{ dashboardClimbFilter.label }} <i class="fa-solid fa-xmark" aria-hidden="true" />
+          </button>
         </div>
       </div>
       <div v-if="famousClimbBadgesCheckResults.length" class="row g-3 justify-content-center">
         <div
           v-for="badge in famousClimbBadgesCheckResults"
-          :id="`climb-log-${climbVariantId(badge)}`"
+          :id="`climb-badge-${climbVariantId(badge)}`"
           :key="climbVariantId(badge)"
-          class="climb-log-entry col-lg-2 col-md-3 col-sm-4 col-6 d-flex flex-column align-items-center justify-content-start"
+          class="climb-badge-entry col-lg-2 col-md-3 col-sm-4 col-6 d-flex flex-column align-items-center justify-content-start"
         >
           <BadgeItem :badge-check-result="badge" />
           <RouterLink
-            class="show-on-map-button climb-detail-link"
+            class="climb-detail-link"
             :to="{ name: 'climb-detail', params: { variantId: climbVariantId(badge) } }"
           >
             <i class="fa-solid fa-file-lines" aria-hidden="true" />
             Detailed sheet
           </RouterLink>
-          <button
-            v-if="badge.climbDetails?.summitCoordinate"
-            type="button"
-            class="show-on-map-button"
-            @click="showClimbOnMap(badge)"
-          >
-            <i class="fa-solid fa-location-dot" aria-hidden="true" />
-            Show on map
-          </button>
         </div>
       </div>
       <div v-else class="chart-empty">No famous climbs found for this category.</div>
+    </section>
+
+    <section
+      v-else-if="activeSection === 'climber'"
+      id="badges-panel-climber"
+      class="badges-section"
+      role="tabpanel"
+      aria-labelledby="badges-section-climber"
+    >
+      <ClimberDashboard
+        :period-climbs="allFamousClimbBadgesCheckResults"
+        :lifetime-climbs="lifetimeFamousClimbs"
+        :period-label="currentYear"
+        :lifetime-loading="lifetimeLoading"
+        :lifetime-error="lifetimeError"
+        @show-climbs="showDashboardClimbs"
+      />
     </section>
 
     <section
@@ -331,24 +360,6 @@ async function openClimbInLog(variantId: string) {
       </div>
     </section>
 
-    <section
-      v-else
-      id="badges-panel-map"
-      class="badges-section map-workspace"
-      role="tabpanel"
-      aria-labelledby="badges-section-map"
-    >
-      <ClimbMap
-        :climbs="allFamousClimbBadgesCheckResults"
-        :year-label="currentYear"
-        :year-options="climbMapYearOptions"
-        :category="selectedFamousClimbCategory"
-        :focus-summit-id="focusedMapSummitId"
-        @update:category="selectedFamousClimbCategory = $event"
-        @update:year="contextStore.updateCurrentYear($event)"
-        @open-climb-log="openClimbInLog"
-      />
-    </section>
   </div>
 </template>
 
@@ -591,8 +602,17 @@ async function openClimbInLog(variantId: string) {
   border-color: #ffc9b0;
 }
 
-.poster-workspace,
-.map-workspace {
+.active-dashboard-filter {
+  padding: 4px 10px;
+  border: 1px solid #a9cfbd;
+  border-radius: 999px;
+  color: #176d50;
+  background: #eefaf5;
+  font-size: .72rem;
+  font-weight: 750;
+}
+
+.poster-workspace {
   display: grid;
   min-height: 350px;
   place-items: center;
@@ -601,15 +621,7 @@ async function openClimbInLog(variantId: string) {
     var(--ms-surface-strong);
 }
 
-.map-workspace {
-  display: block;
-  min-width: 0;
-  min-height: 0;
-  padding: 16px;
-}
-
-.poster-workspace-copy,
-.map-workspace-copy {
+.poster-workspace-copy {
   display: flex;
   max-width: 710px;
   flex-direction: column;
@@ -618,8 +630,7 @@ async function openClimbInLog(variantId: string) {
   text-align: center;
 }
 
-.poster-workspace-copy > p:not(.badges-section-kicker),
-.map-workspace-copy > p:not(.badges-section-kicker) {
+.poster-workspace-copy > p:not(.badges-section-kicker) {
   margin: 8px 0 18px;
   color: var(--ms-text-muted);
 }
@@ -640,12 +651,6 @@ async function openClimbInLog(variantId: string) {
 
 .workspace-icon i {
   transform: rotate(3deg);
-}
-
-.workspace-icon--map {
-  color: #237a58;
-  border-color: #bde4d3;
-  background: #eefaf5;
 }
 
 .poster-facts {
@@ -686,32 +691,28 @@ async function openClimbInLog(variantId: string) {
   text-transform: uppercase;
 }
 
-.climb-log-entry {
+.climb-badge-entry {
   gap: 8px;
   scroll-margin-top: 90px;
 }
 
-.show-on-map-button {
+.climb-detail-link {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   padding: 4px 9px;
   border: 1px solid #c8ddd5;
   border-radius: 999px;
-  color: #176d50;
-  background: #f1faf6;
+  color: #9f3709;
+  background: #fff7f2;
   font-size: 0.68rem;
   font-weight: 750;
-}
-
-.show-on-map-button:hover {
-  border-color: #91c9b3;
-  background: #e4f6ee;
-}
-
-.climb-detail-link {
-  color: #9f3709;
   text-decoration: none;
+}
+
+.climb-detail-link:hover {
+  border-color: #f0ad8f;
+  background: #ffede3;
 }
 
 @media (max-width: 992px) {
@@ -754,8 +755,7 @@ async function openClimbInLog(variantId: string) {
     grid-column: auto;
   }
 
-  .poster-workspace-copy,
-  .map-workspace-copy {
+  .poster-workspace-copy {
     padding: 8px 0;
   }
 }

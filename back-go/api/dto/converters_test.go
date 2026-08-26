@@ -670,6 +670,12 @@ func TestToBadgeCheckResultDto_ExposesClimbPosterDetails(t *testing.T) {
 	if best.AveragePowerWatts == nil || *best.AveragePowerWatts != 220 || best.AverageHeartRateBpm == nil || *best.AverageHeartRateBpm != 150 {
 		t.Fatalf("unexpected climb sensor averages: %#v", best)
 	}
+	if len(best.ComparisonPoints) != 3 || best.ComparisonPoints[0].ElapsedSeconds != 0 || best.ComparisonPoints[2].ElapsedSeconds != 1100 {
+		t.Fatalf("unexpected climb comparison samples: %#v", best.ComparisonPoints)
+	}
+	if best.ComparisonPoints[1].PowerWatts == nil || *best.ComparisonPoints[1].PowerWatts != 220 || best.ComparisonQuality.Precision != "high" {
+		t.Fatalf("unexpected climb comparison metrics or quality: points=%#v quality=%#v", best.ComparisonPoints, best.ComparisonQuality)
+	}
 	if len(details.Profile) != 3 || details.Profile[0].DistanceKm != 0 || details.Profile[2].DistanceKm != 12.4 {
 		t.Fatalf("unexpected climb profile: %#v", details.Profile)
 	}

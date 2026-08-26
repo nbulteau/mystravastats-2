@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import { useBadgesStore } from "@/stores/badges";
 import { useContextStore } from "@/stores/context";
-import { climbSummitId, climbVariantId } from "@/utils/climb-map";
+import { climbSummitId, climbVariantId } from "@/utils/climb-id";
 import {
   climbAscentHistory,
   climbVariantStart,
@@ -12,6 +12,7 @@ import {
 } from "@/utils/climb-detail";
 import { buildDetailedClimbProfileSvg } from "@/utils/climb-poster";
 import { formatTime } from "@/utils/formatters";
+import ClimbAscentComparison from "@/components/ClimbAscentComparison.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -248,6 +249,12 @@ function sourceLabel(sourceUrl?: string | null): string {
         </div>
         <p v-else class="missing-note">Aucune ascension personnelle pour {{ yearLabel }}. Les données catalogue restent disponibles ci-dessus.</p>
       </section>
+
+      <ClimbAscentComparison
+        :ascents="ascents"
+        :best-ascent-id="bestAscentId"
+        :length-km="details.lengthKm"
+      />
 
       <section class="detail-card variants-card" aria-labelledby="variants-title">
         <div class="card-heading">

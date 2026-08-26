@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"mystravastats/internal/platform/activityprovider"
+	"mystravastats/internal/platform/safefile"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
 	"os"
@@ -110,21 +111,24 @@ func RevertCurrentProviderCorrection(correctionID string) (business.DataQualityR
 	}
 
 	provider := activityprovider.Get()
-	corrections := loadCorrections(provider.CacheRootPath(), provider.ClientID())
-	found := false
-	now := time.Now().UTC().Format(time.RFC3339)
-	for index := range corrections {
-		if corrections[index].ID != correctionID {
-			continue
+	path := correctionsFilePath(provider.CacheRootPath(), provider.ClientID())
+	if err := safefile.WithLock(path, func() error {
+		corrections := loadCorrections(provider.CacheRootPath(), provider.ClientID())
+		found := false
+		now := time.Now().UTC().Format(time.RFC3339)
+		for index := range corrections {
+			if corrections[index].ID != correctionID {
+				continue
+			}
+			corrections[index].Status = business.DataQualityCorrectionStatusReverted
+			corrections[index].RevertedAt = now
+			found = true
 		}
-		corrections[index].Status = business.DataQualityCorrectionStatusReverted
-		corrections[index].RevertedAt = now
-		found = true
-	}
-	if !found {
-		return business.DataQualityReport{}, fmt.Errorf("correction %s not found", correctionID)
-	}
-	if err := saveCorrections(provider.CacheRootPath(), provider.ClientID(), sortedCorrections(corrections)); err != nil {
+		if !found {
+			return fmt.Errorf("correction %s not found", correctionID)
+		}
+		return saveCorrections(provider.CacheRootPath(), provider.ClientID(), sortedCorrections(corrections))
+	}); err != nil {
 		return business.DataQualityReport{}, err
 	}
 	return CurrentProviderReport(), nil
@@ -968,26 +972,29 @@ func cloneFloat64Rows(values [][]float64) [][]float64 {
 
 func saveCurrentProviderCorrections(corrections []business.DataQualityCorrection) error {
 	provider := activityprovider.Get()
-	existing := loadCorrections(provider.CacheRootPath(), provider.ClientID())
-	byID := make(map[string]business.DataQualityCorrection, len(existing)+len(corrections))
-	for _, correction := range existing {
-		byID[correction.ID] = correction
-	}
-	now := time.Now().UTC().Format(time.RFC3339)
-	for _, correction := range corrections {
-		if correction.ID == "" {
-			continue
+	path := correctionsFilePath(provider.CacheRootPath(), provider.ClientID())
+	return safefile.WithLock(path, func() error {
+		existing := loadCorrections(provider.CacheRootPath(), provider.ClientID())
+		byID := make(map[string]business.DataQualityCorrection, len(existing)+len(corrections))
+		for _, correction := range existing {
+			byID[correction.ID] = correction
 		}
-		correction.Status = business.DataQualityCorrectionStatusActive
-		correction.AppliedAt = now
-		correction.RevertedAt = ""
-		byID[correction.ID] = correction
-	}
-	merged := make([]business.DataQualityCorrection, 0, len(byID))
-	for _, correction := range byID {
-		merged = append(merged, correction)
-	}
-	return saveCorrections(provider.CacheRootPath(), provider.ClientID(), sortedCorrections(merged))
+		now := time.Now().UTC().Format(time.RFC3339)
+		for _, correction := range corrections {
+			if correction.ID == "" {
+				continue
+			}
+			correction.Status = business.DataQualityCorrectionStatusActive
+			correction.AppliedAt = now
+			correction.RevertedAt = ""
+			byID[correction.ID] = correction
+		}
+		merged := make([]business.DataQualityCorrection, 0, len(byID))
+		for _, correction := range byID {
+			merged = append(merged, correction)
+		}
+		return saveCorrections(provider.CacheRootPath(), provider.ClientID(), sortedCorrections(merged))
+	})
 }
 
 func loadCorrections(cacheRoot string, clientID string) []business.DataQualityCorrection {
@@ -1016,7 +1023,7 @@ func saveCorrections(cacheRoot string, clientID string, corrections []business.D
 	if err != nil {
 		return fmt.Errorf("unable to encode data quality corrections: %w", err)
 	}
-	if err := os.WriteFile(correctionsFilePath(cacheRoot, clientID), data, dataQualitySecureFileMode); err != nil {
+	if err := safefile.WriteFile(correctionsFilePath(cacheRoot, clientID), data, dataQualitySecureFileMode); err != nil {
 		return fmt.Errorf("unable to write data quality corrections: %w", err)
 	}
 	return nil

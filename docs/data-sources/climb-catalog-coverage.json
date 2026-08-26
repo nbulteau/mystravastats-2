@@ -1,0 +1,256 @@
+{
+  "schemaVersion": 2,
+  "summitIdentityCount": 394,
+  "variantCount": 766,
+  "countries": [
+    {
+      "country": "AD",
+      "expectedSummits": 4,
+      "foundSummits": 4,
+      "expectedVariants": 6,
+      "foundVariants": 6,
+      "verifiedAt": "2026-08-26",
+      "sourceUrl": "https://www.cols-cyclisme.com/andorre/liste-p7.htm",
+      "massifs": [
+        {
+          "name": "Pyrénées centrales",
+          "foundVariants": 6
+        }
+      ]
+    },
+    {
+      "country": "CH",
+      "expectedSummits": 23,
+      "foundSummits": 23,
+      "expectedVariants": 47,
+      "foundVariants": 47,
+      "verifiedAt": "2026-08-26",
+      "sourceUrl": "https://www.cols-cyclisme.com/suisse/liste-p3.htm",
+      "massifs": [
+        {
+          "name": "Alpes suisses",
+          "foundVariants": 44
+        },
+        {
+          "name": "Jura suisse",
+          "foundVariants": 3
+        }
+      ]
+    },
+    {
+      "country": "ES",
+      "expectedSummits": 91,
+      "foundSummits": 91,
+      "expectedVariants": 127,
+      "foundVariants": 127,
+      "verifiedAt": "2026-08-26",
+      "sourceUrl": "https://www.cols-cyclisme.com/espagne/liste-p2.htm",
+      "massifs": [
+        {
+          "name": "Canaries",
+          "foundVariants": 4
+        },
+        {
+          "name": "Cordillère bétique",
+          "foundVariants": 15
+        },
+        {
+          "name": "Monts cantabriques",
+          "foundVariants": 9
+        },
+        {
+          "name": "Pyrénées centrales",
+          "foundVariants": 32
+        },
+        {
+          "name": "Pyrénées est",
+          "foundVariants": 12
+        },
+        {
+          "name": "Pyrénées ouest",
+          "foundVariants": 37
+        },
+        {
+          "name": "Sierra de Tramontana",
+          "foundVariants": 7
+        },
+        {
+          "name": "Sistema Central",
+          "foundVariants": 11
+        }
+      ]
+    },
+    {
+      "country": "FR",
+      "expectedSummits": 245,
+      "foundSummits": 245,
+      "expectedVariants": 508,
+      "foundVariants": 508,
+      "verifiedAt": "2026-08-26",
+      "sourceUrl": "https://www.cols-cyclisme.com/france/liste-p1.htm",
+      "massifs": [
+        {
+          "name": "Alpes",
+          "foundVariants": 211
+        },
+        {
+          "name": "Corse",
+          "foundVariants": 38
+        },
+        {
+          "name": "Jura",
+          "foundVariants": 34
+        },
+        {
+          "name": "Massif central",
+          "foundVariants": 93
+        },
+        {
+          "name": "Pyrénées",
+          "foundVariants": 93
+        },
+        {
+          "name": "Vosges",
+          "foundVariants": 39
+        }
+      ]
+    },
+    {
+      "country": "IT",
+      "expectedSummits": 31,
+      "foundSummits": 31,
+      "expectedVariants": 78,
+      "foundVariants": 78,
+      "verifiedAt": "2026-08-26",
+      "sourceUrl": "https://www.cols-cyclisme.com/italie/liste-p4.htm",
+      "massifs": [
+        {
+          "name": "Alpes italiennes",
+          "foundVariants": 49
+        },
+        {
+          "name": "Apennins",
+          "foundVariants": 5
+        },
+        {
+          "name": "Dolomites",
+          "foundVariants": 20
+        },
+        {
+          "name": "Sicile",
+          "foundVariants": 4
+        }
+      ]
+    }
+  ],
+  "manualReviewVariants": [
+    {
+      "country": "AD",
+      "summit": "Aixàs",
+      "start": "Aixovall",
+      "reason": "profile-and-gpx"
+    },
+    {
+      "country": "AD",
+      "summit": "Certers",
+      "start": "Sant Julià de Lòria",
+      "reason": "profile-and-gpx"
+    },
+    {
+      "country": "AD",
+      "summit": "Col de la Gallina",
+      "start": "Aixovall",
+      "reason": "profile-and-gpx"
+    },
+    {
+      "country": "AD",
+      "summit": "Col des Pardines",
+      "start": "Sant Julià de Lòria",
+      "reason": "profile-and-gpx"
+    },
+    {
+      "country": "AD",
+      "summit": "Coma de Ransol",
+      "start": "Ransol",
+      "reason": "profile-and-gpx"
+    },
+    {
+      "country": "AD",
+      "summit": "El Forn",
+      "start": "Canillo",
+      "reason": "profile-and-gpx"
+    },
+    {
+      "country": "AD",
+      "summit": "Els Cortals",
+      "start": "Encamp",
+      "reason": "profile-and-gpx"
+    },
+    {
+      "country": "AD",
+      "summit": "La Comella",
+      "start": "Andorra la Vella",
+      "reason": "profile-and-gpx"
+    },
+    {
+      "country": "AD",
+      "summit": "La Comella",
+      "start": "Escaldes-Engordany",
+      "reason": "profile-and-gpx"
+    },
+    {
+      "country": "AD",
+      "summit": "La Peguera",
+      "start": "Sant Julià de Lòria via Aixirivall",
+      "reason": "route-disambiguation"
+    },
+    {
+      "country": "AD",
+      "summit": "La Peguera",
+      "start": "Sant Julià de Lòria via Juberri",
+      "reason": "route-disambiguation"
+    },
+    {
+      "country": "AD",
+      "summit": "La Rabassa",
+      "start": "Sant Julià de Lòria via Aixirivall",
+      "reason": "route-disambiguation"
+    },
+    {
+      "country": "AD",
+      "summit": "La Rabassa",
+      "start": "Sant Julià de Lòria via Juberri",
+      "reason": "route-disambiguation"
+    },
+    {
+      "country": "AD",
+      "summit": "Lac d'Engolasters",
+      "start": "Escaldes-Engordany",
+      "reason": "profile-and-gpx"
+    },
+    {
+      "country": "AD",
+      "summit": "Os de Civís",
+      "start": "Aixovall",
+      "reason": "cross-border-identity"
+    },
+    {
+      "country": "AD",
+      "summit": "Port de Cabús",
+      "start": "Andorra la Vella",
+      "reason": "cross-border-identity"
+    },
+    {
+      "country": "AD",
+      "summit": "Station d'Arinsal",
+      "start": "Erts",
+      "reason": "profile-and-gpx"
+    },
+    {
+      "country": "AD",
+      "summit": "Station de Pal - La Caubella",
+      "start": "Erts",
+      "reason": "profile-and-gpx"
+    }
+  ]
+}

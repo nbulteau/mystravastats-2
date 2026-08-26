@@ -13,6 +13,8 @@ type Routes []Route
 
 var routes = Routes{
 	{Name: "GetHealthDetails", Method: "GET", Pattern: "/api/health/details", HandlerFunc: getHealthDetails},
+	{Name: "GetLocalDataBackup", Method: "GET", Pattern: "/api/local-data/backup", HandlerFunc: getLocalDataBackup},
+	{Name: "PostLocalDataRestore", Method: "POST", Pattern: "/api/local-data/restore", HandlerFunc: postLocalDataRestore},
 	{Name: "GetDataQualityIssues", Method: "GET", Pattern: "/api/data-quality/issues", HandlerFunc: getDataQualityIssues},
 	{Name: "PutDataQualityStatsExclusion", Method: "PUT", Pattern: "/api/data-quality/exclusions/{activityId}", HandlerFunc: putDataQualityStatsExclusion},
 	{Name: "DeleteDataQualityStatsExclusion", Method: "DELETE", Pattern: "/api/data-quality/exclusions/{activityId}", HandlerFunc: deleteDataQualityStatsExclusion},

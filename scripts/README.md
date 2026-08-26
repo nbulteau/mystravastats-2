@@ -28,7 +28,7 @@ release rules and backend-specific destinations.
 
 ## refresh-climb-classifications.py
 
-Refresh the difficulty points and categories of the four national famous-climb
+Refresh the difficulty points and categories of the national famous-climb
 catalogs from the public Climbfinder API:
 
 ```shell
@@ -48,6 +48,19 @@ The full provenance and all rejected or ambiguous matches are written to
 profile scrapers only build geometry and base metrics; always run this
 classification refresh after regenerating either catalog so their provisional
 average-gradient estimate is not committed as a published difficulty.
+
+## audit-climb-catalog.py
+
+Validate every Go/Kotlin catalog mirror, stable identity, profile, coordinate and
+HTTPS source, then regenerate the deterministic coverage and manual-review report:
+
+```shell
+python3 scripts/audit-climb-catalog.py
+python3 scripts/audit-climb-catalog.py --check
+```
+
+Country-level origin and verification dates live in
+`docs/data-sources/climb-catalog-sources.json`.
 
 ## setup-strava-oauth.mjs
 

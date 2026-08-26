@@ -6,11 +6,15 @@ import { useContextStore } from "@/stores/context";
 const DEFAULT_POLL_INTERVAL_MS = 2000;
 const DEFAULT_IDLE_POLL_INTERVAL_MS = 10000;
 const DEFAULT_MAX_POLLS = Number.POSITIVE_INFINITY;
+const DEFAULT_IDLE_POLL_LIMIT = 3;
+
+let activeWatchController: AbortController | null = null;
 
 type ActivityDatasetWatchOptions = {
   pollIntervalMs?: number;
   idlePollIntervalMs?: number;
   maxPolls?: number;
+  idlePollLimit?: number;
 };
 
 function wait(ms: number): Promise<void> {
@@ -18,6 +22,24 @@ function wait(ms: number): Promise<void> {
     return Promise.resolve();
   }
   return new Promise((resolve) => globalThis.setTimeout(resolve, ms));
+}
+
+function waitUntilVisible(signal: AbortSignal): Promise<void> {
+  if (typeof document === "undefined" || !document.hidden || signal.aborted) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    const finish = () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      signal.removeEventListener("abort", finish);
+      resolve();
+    };
+    const onVisibilityChange = () => {
+      if (!document.hidden) finish();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    signal.addEventListener("abort", finish, { once: true });
+  });
 }
 
 function isBackgroundRefreshInProgress(health: HealthDetailsPayload): boolean {
@@ -76,6 +98,9 @@ export const useBackendRefreshStore = defineStore("backendRefresh", {
       const idlePollIntervalMs =
         options.idlePollIntervalMs ?? options.pollIntervalMs ?? DEFAULT_IDLE_POLL_INTERVAL_MS;
       const maxPolls = options.maxPolls ?? DEFAULT_MAX_POLLS;
+      const idlePollLimit = options.idlePollLimit ?? DEFAULT_IDLE_POLL_LIMIT;
+      const controller = new AbortController();
+      activeWatchController = controller;
 
       this.isWatchingStartupRefresh = true;
       this.observedStartupRefresh = false;
@@ -83,7 +108,10 @@ export const useBackendRefreshStore = defineStore("backendRefresh", {
 
       try {
         let waitingForRefreshCompletion = false;
+        let consecutiveIdlePolls = 0;
         for (let pollIndex = 0; pollIndex < maxPolls; pollIndex += 1) {
+          await waitUntilVisible(controller.signal);
+          if (controller.signal.aborted) break;
           let health: HealthDetailsPayload;
           try {
             health = await requestJson<HealthDetailsPayload>("/api/health/details", {
@@ -91,9 +119,11 @@ export const useBackendRefreshStore = defineStore("backendRefresh", {
               headers: {
                 Accept: "application/json",
               },
+              signal: controller.signal,
             });
             this.error = null;
           } catch (error) {
+            if (controller.signal.aborted) break;
             this.error = error instanceof Error ? error.message : "Unable to watch backend activity refresh.";
             if (pollIndex + 1 < maxPolls) {
               await wait(idlePollIntervalMs);
@@ -115,11 +145,13 @@ export const useBackendRefreshStore = defineStore("backendRefresh", {
           if (datasetChanged) {
             await useContextStore().refreshAfterActivityDataChanged();
             refreshedThisPoll = true;
+            consecutiveIdlePolls = 0;
           }
 
           if (isBackgroundRefreshInProgress(health)) {
             this.observedStartupRefresh = true;
             waitingForRefreshCompletion = true;
+            consecutiveIdlePolls = 0;
             await wait(pollIntervalMs);
             continue;
           }
@@ -127,14 +159,29 @@ export const useBackendRefreshStore = defineStore("backendRefresh", {
           if (waitingForRefreshCompletion && !refreshedThisPoll) {
             await useContextStore().refreshAfterActivityDataChanged();
           }
+          if (waitingForRefreshCompletion) {
+            break;
+          }
           waitingForRefreshCompletion = false;
+          consecutiveIdlePolls += 1;
+          if (consecutiveIdlePolls >= idlePollLimit) {
+            break;
+          }
           if (pollIndex + 1 < maxPolls) {
             await wait(idlePollIntervalMs);
           }
         }
       } finally {
-        this.isWatchingStartupRefresh = false;
+        if (activeWatchController === controller) {
+          activeWatchController = null;
+          this.isWatchingStartupRefresh = false;
+        }
       }
+    },
+    stopWatchingStartupRefresh() {
+      activeWatchController?.abort();
+      activeWatchController = null;
+      this.isWatchingStartupRefresh = false;
     },
   },
 });

@@ -22,7 +22,8 @@
         "difficulty": 260,
         "averageGradient": 5.53,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/agina-mendatea-depuis-lesaka-c2404.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/agina-mendatea-depuis-lesaka-c2404.htm",
+        "id": "climb-es-agina-mendatea--lesaka"
       },
       {
         "name": "San Anton",
@@ -37,9 +38,11 @@
         "difficulty": 194,
         "averageGradient": 6.35,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/agina-mendatea-depuis-san-anton-c2403.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/agina-mendatea-depuis-san-anton-c2403.htm",
+        "id": "climb-es-agina-mendatea--san-anton"
       }
-    ]
+    ],
+    "id": "climb-es-agina-mendatea"
   },
   {
     "name": "Alto Campoo/Fuente Del Chivo",
@@ -64,9 +67,11 @@
         "difficulty": 638,
         "averageGradient": 4.96,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-campoofuente-del-chivo-depuis-espinilla-c2630.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-campoofuente-del-chivo-depuis-espinilla-c2630.htm",
+        "id": "climb-es-alto-campoo-fuente-del-chivo--espinilla"
       }
-    ]
+    ],
+    "id": "climb-es-alto-campoo-fuente-del-chivo"
   },
   {
     "name": "Alto de Abantos",
@@ -91,9 +96,11 @@
         "difficulty": 664,
         "averageGradient": 5.59,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/alto-de-abantos-depuis-el-escorial-c480.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/alto-de-abantos-depuis-el-escorial-c480.htm",
+        "id": "climb-es-alto-de-abantos--el-escorial"
       }
-    ]
+    ],
+    "id": "climb-es-alto-de-abantos"
   },
   {
     "name": "Alto de Gamoniteiro",
@@ -118,7 +125,8 @@
         "difficulty": 1540,
         "averageGradient": 9.12,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-de-gamoniteiro-depuis-pola-de-lena-c482.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-de-gamoniteiro-depuis-pola-de-lena-c482.htm",
+        "id": "climb-es-alto-de-gamoniteiro--pola-de-lena"
       },
       {
         "name": "San Martin",
@@ -133,9 +141,11 @@
         "difficulty": 1303,
         "averageGradient": 7.59,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-de-gamoniteiro-depuis-san-martin-c481.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-de-gamoniteiro-depuis-san-martin-c481.htm",
+        "id": "climb-es-alto-de-gamoniteiro--san-martin"
       }
-    ]
+    ],
+    "id": "climb-es-alto-de-gamoniteiro"
   },
   {
     "name": "Alto de l'Angliru",
@@ -160,7 +170,8 @@
         "difficulty": 1549,
         "averageGradient": 9.98,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-de-l-angliru-depuis-la-vega-c189.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-de-l-angliru-depuis-la-vega-c189.htm",
+        "id": "climb-es-alto-de-l-angliru--la-vega"
       },
       {
         "name": "Santa Eulalia",
@@ -175,9 +186,11 @@
         "difficulty": 1708,
         "averageGradient": 7.93,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-de-l-angliru-depuis-santa-eulalia-c3630.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-de-l-angliru-depuis-santa-eulalia-c3630.htm",
+        "id": "climb-es-alto-de-l-angliru--santa-eulalia"
       }
-    ]
+    ],
+    "id": "climb-es-alto-de-l-angliru"
   },
   {
     "name": "Alto de la Farrapona",
@@ -202,9 +215,11 @@
         "difficulty": 834,
         "averageGradient": 5.76,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-de-la-farrapona-depuis-as-227-c2631.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/alto-de-la-farrapona-depuis-as-227-c2631.htm",
+        "id": "climb-es-alto-de-la-farrapona--as-227"
       }
-    ]
+    ],
+    "id": "climb-es-alto-de-la-farrapona"
   },
   {
     "name": "Alto de Zuriza",
@@ -229,7 +244,8 @@
         "difficulty": 131,
         "averageGradient": 3.06,
         "category": "4",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/alto-de-zuriza-depuis-anso-c1818.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/alto-de-zuriza-depuis-anso-c1818.htm",
+        "id": "climb-es-alto-de-zuriza--anso"
       },
       {
         "name": "Isaba",
@@ -244,9 +260,11 @@
         "difficulty": 200,
         "averageGradient": 4,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/alto-de-zuriza-depuis-isaba-c1819.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/alto-de-zuriza-depuis-isaba-c1819.htm",
+        "id": "climb-es-alto-de-zuriza--isaba"
       }
-    ]
+    ],
+    "id": "climb-es-alto-de-zuriza"
   },
   {
     "name": "Alto Lazar",
@@ -271,7 +289,8 @@
         "difficulty": 82,
         "averageGradient": 2.62,
         "category": "4",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/alto-lazar-depuis-isaba-c248.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/alto-lazar-depuis-isaba-c248.htm",
+        "id": "climb-es-alto-lazar--isaba"
       },
       {
         "name": "Ochagavia",
@@ -286,9 +305,11 @@
         "difficulty": 97,
         "averageGradient": 2.7,
         "category": "4",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/alto-lazar-depuis-ochagavia-c249.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/alto-lazar-depuis-ochagavia-c249.htm",
+        "id": "climb-es-alto-lazar--ochagavia"
       }
-    ]
+    ],
+    "id": "climb-es-alto-lazar"
   },
   {
     "name": "Aritxulegi Mendatea",
@@ -313,7 +334,8 @@
         "difficulty": 254,
         "averageGradient": 6.5,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/aritxulegi-mendatea-depuis-ergoien-c2401.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/aritxulegi-mendatea-depuis-ergoien-c2401.htm",
+        "id": "climb-es-aritxulegi-mendatea--ergoien"
       },
       {
         "name": "San Anton",
@@ -328,9 +350,11 @@
         "difficulty": 133,
         "averageGradient": 6.36,
         "category": "4",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/aritxulegi-mendatea-depuis-san-anton-c2402.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/aritxulegi-mendatea-depuis-san-anton-c2402.htm",
+        "id": "climb-es-aritxulegi-mendatea--san-anton"
       }
-    ]
+    ],
+    "id": "climb-es-aritxulegi-mendatea"
   },
   {
     "name": "Arres de Sus",
@@ -355,9 +379,11 @@
         "difficulty": 334,
         "averageGradient": 5.63,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/arres-de-sus-depuis-pont-d-arros-c2251.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/arres-de-sus-depuis-pont-d-arros-c2251.htm",
+        "id": "climb-es-arres-de-sus--pont-d-arros"
       }
-    ]
+    ],
+    "id": "climb-es-arres-de-sus"
   },
   {
     "name": "Banos de Panticosa",
@@ -382,9 +408,11 @@
         "difficulty": 241,
         "averageGradient": 3.27,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/banos-de-panticosa-depuis-biescas-c1986.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/banos-de-panticosa-depuis-biescas-c1986.htm",
+        "id": "climb-es-banos-de-panticosa--biescas"
       }
-    ]
+    ],
+    "id": "climb-es-banos-de-panticosa"
   },
   {
     "name": "Barrage de Cavallers",
@@ -409,9 +437,11 @@
         "difficulty": 470,
         "averageGradient": 3.59,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/barrage-de-cavallers-depuis-n230-c1980.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/barrage-de-cavallers-depuis-n230-c1980.htm",
+        "id": "climb-es-barrage-de-cavallers--n230"
       }
-    ]
+    ],
+    "id": "climb-es-barrage-de-cavallers"
   },
   {
     "name": "Bausen",
@@ -436,9 +466,11 @@
         "difficulty": 234,
         "averageGradient": 8.19,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/bausen-depuis-pontaut-c2389.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/bausen-depuis-pontaut-c2389.htm",
+        "id": "climb-es-bausen--pontaut"
       }
-    ]
+    ],
+    "id": "climb-es-bausen"
   },
   {
     "name": "Bianditzko Mandatea",
@@ -463,7 +495,8 @@
         "difficulty": 395,
         "averageGradient": 5.64,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/bianditzko-mandatea-depuis-altzibar-karrika-c2412.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/bianditzko-mandatea-depuis-altzibar-karrika-c2412.htm",
+        "id": "climb-es-bianditzko-mandatea--altzibar-karrika"
       },
       {
         "name": "Artikutza",
@@ -478,9 +511,11 @@
         "difficulty": 339,
         "averageGradient": 5,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/bianditzko-mandatea-depuis-artikutza-c3183.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/bianditzko-mandatea-depuis-artikutza-c3183.htm",
+        "id": "climb-es-bianditzko-mandatea--artikutza"
       }
-    ]
+    ],
+    "id": "climb-es-bianditzko-mandatea"
   },
   {
     "name": "Calar Alto",
@@ -505,7 +540,8 @@
         "difficulty": 866,
         "averageGradient": 4.64,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/calar-alto-depuis-aulago-c1415.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/calar-alto-depuis-aulago-c1415.htm",
+        "id": "climb-es-calar-alto--aulago"
       },
       {
         "name": "Gérgal",
@@ -520,9 +556,11 @@
         "difficulty": 1079,
         "averageGradient": 6.1,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/calar-alto-depuis-gergal-c1416.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/calar-alto-depuis-gergal-c1416.htm",
+        "id": "climb-es-calar-alto--gergal"
       }
-    ]
+    ],
+    "id": "climb-es-calar-alto"
   },
   {
     "name": "Canejan",
@@ -547,9 +585,11 @@
         "difficulty": 218,
         "averageGradient": 5.25,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/canejan-depuis-pontaut-c2388.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/canejan-depuis-pontaut-c2388.htm",
+        "id": "climb-es-canejan--pontaut"
       }
-    ]
+    ],
+    "id": "climb-es-canejan"
   },
   {
     "name": "Cerler",
@@ -574,9 +614,11 @@
         "difficulty": 371,
         "averageGradient": 4.44,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/cerler-depuis-eriste-c1985.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/cerler-depuis-eriste-c1985.htm",
+        "id": "climb-es-cerler--eriste"
       }
-    ]
+    ],
+    "id": "climb-es-cerler"
   },
   {
     "name": "Col d'Artesiaga",
@@ -601,9 +643,11 @@
         "difficulty": 494,
         "averageGradient": 5.01,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-d-artesiaga-depuis-irurita-c1659.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-d-artesiaga-depuis-irurita-c1659.htm",
+        "id": "climb-es-col-d-artesiaga--irurita"
       }
-    ]
+    ],
+    "id": "climb-es-col-d-artesiaga"
   },
   {
     "name": "Col d'Ibardin",
@@ -628,9 +672,11 @@
         "difficulty": 144,
         "averageGradient": 4.48,
         "category": "4",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-d-ibardin-depuis-vera-de-bidasoa-c1072.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-d-ibardin-depuis-vera-de-bidasoa-c1072.htm",
+        "id": "climb-es-col-d-ibardin--vera-de-bidasoa"
       }
-    ]
+    ],
+    "id": "climb-es-col-d-ibardin"
   },
   {
     "name": "Col d'Ispéguy",
@@ -655,9 +701,11 @@
         "difficulty": 195,
         "averageGradient": 3.59,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-d-ispeguy-depuis-arizkun-c3786.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-d-ispeguy-depuis-arizkun-c3786.htm",
+        "id": "climb-es-col-d-ispeguy--arizkun"
       }
-    ]
+    ],
+    "id": "climb-es-col-d-ispeguy"
   },
   {
     "name": "Col d'Orden",
@@ -682,9 +730,11 @@
         "difficulty": 462,
         "averageGradient": 9.39,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/col-d-orden-depuis-bellver-de-cerdanya-c2627.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/col-d-orden-depuis-bellver-de-cerdanya-c2627.htm",
+        "id": "climb-es-col-d-orden--bellver-de-cerdanya"
       }
-    ]
+    ],
+    "id": "climb-es-col-d-orden"
   },
   {
     "name": "Col de Coustouges",
@@ -709,9 +759,11 @@
         "difficulty": 368,
         "averageGradient": 2.48,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/col-de-coustouges-depuis-darnius-c898.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/col-de-coustouges-depuis-darnius-c898.htm",
+        "id": "climb-es-col-de-coustouges--darnius"
       }
-    ]
+    ],
+    "id": "climb-es-col-de-coustouges"
   },
   {
     "name": "Col de Fanlo",
@@ -736,7 +788,8 @@
         "difficulty": 389,
         "averageGradient": 3.39,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/col-de-fanlo-depuis-escalona-c1507.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/col-de-fanlo-depuis-escalona-c1507.htm",
+        "id": "climb-es-col-de-fanlo--escalona"
       },
       {
         "name": "Sarvise",
@@ -751,9 +804,11 @@
         "difficulty": 392,
         "averageGradient": 4.73,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/col-de-fanlo-depuis-sarvise-c1461.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/col-de-fanlo-depuis-sarvise-c1461.htm",
+        "id": "climb-es-col-de-fanlo--sarvise"
       }
-    ]
+    ],
+    "id": "climb-es-col-de-fanlo"
   },
   {
     "name": "Col de l'Espina",
@@ -778,9 +833,11 @@
         "difficulty": 211,
         "averageGradient": 4.16,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/col-de-l-espina-depuis-n260-n230-c3114.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/col-de-l-espina-depuis-n260-n230-c3114.htm",
+        "id": "climb-es-col-de-l-espina--n260-n230"
       }
-    ]
+    ],
+    "id": "climb-es-col-de-l-espina"
   },
   {
     "name": "Col de Lizarrieta",
@@ -805,9 +862,11 @@
         "difficulty": 176,
         "averageGradient": 4.26,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-de-lizarrieta-depuis-etxalar-c1649.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-de-lizarrieta-depuis-etxalar-c1649.htm",
+        "id": "climb-es-col-de-lizarrieta--etxalar"
       }
-    ]
+    ],
+    "id": "climb-es-col-de-lizarrieta"
   },
   {
     "name": "Col de sa Batalla",
@@ -832,9 +891,11 @@
         "difficulty": 238,
         "averageGradient": 4.92,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/col-de-sa-batalla-depuis-caimari-c2138.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/col-de-sa-batalla-depuis-caimari-c2138.htm",
+        "id": "climb-es-col-de-sa-batalla--caimari"
       }
-    ]
+    ],
+    "id": "climb-es-col-de-sa-batalla"
   },
   {
     "name": "Col du Somport",
@@ -859,9 +920,11 @@
         "difficulty": 434,
         "averageGradient": 4.24,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-du-somport-depuis-villanuja-c251.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-du-somport-depuis-villanuja-c251.htm",
+        "id": "climb-es-col-du-somport--villanuja"
       }
-    ]
+    ],
+    "id": "climb-es-col-du-somport"
   },
   {
     "name": "Col Ibaneta",
@@ -886,7 +949,8 @@
         "difficulty": 503,
         "averageGradient": 4.51,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-ibaneta-depuis-arneguy-c245.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-ibaneta-depuis-arneguy-c245.htm",
+        "id": "climb-es-col-ibaneta--arneguy"
       },
       {
         "name": "Burguete",
@@ -901,9 +965,11 @@
         "difficulty": 116,
         "averageGradient": 3.29,
         "category": "4",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-ibaneta-depuis-burguete-c244.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/col-ibaneta-depuis-burguete-c244.htm",
+        "id": "climb-es-col-ibaneta--burguete"
       }
-    ]
+    ],
+    "id": "climb-es-col-ibaneta"
   },
   {
     "name": "Coll de Boixols",
@@ -928,9 +994,11 @@
         "difficulty": 463,
         "averageGradient": 4.94,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/coll-de-boixols-depuis-coll-de-nargo-c3092.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/coll-de-boixols-depuis-coll-de-nargo-c3092.htm",
+        "id": "climb-es-coll-de-boixols--coll-de-nargo"
       }
-    ]
+    ],
+    "id": "climb-es-coll-de-boixols"
   },
   {
     "name": "Coll de Manrella",
@@ -955,9 +1023,11 @@
         "difficulty": 382,
         "averageGradient": 5.7,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/coll-de-manrella-depuis-agullana-c900.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/coll-de-manrella-depuis-agullana-c900.htm",
+        "id": "climb-es-coll-de-manrella--agullana"
       }
-    ]
+    ],
+    "id": "climb-es-coll-de-manrella"
   },
   {
     "name": "Coll de Pal",
@@ -982,9 +1052,11 @@
         "difficulty": 963,
         "averageGradient": 6.5,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/coll-de-pal-depuis-baga-c1676.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/coll-de-pal-depuis-baga-c1676.htm",
+        "id": "climb-es-coll-de-pal--baga"
       }
-    ]
+    ],
+    "id": "climb-es-coll-de-pal"
   },
   {
     "name": "Coll de Soller",
@@ -1009,7 +1081,8 @@
         "difficulty": 162,
         "averageGradient": 4.33,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/coll-de-soller-depuis-bunyola-c1842.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/coll-de-soller-depuis-bunyola-c1842.htm",
+        "id": "climb-es-coll-de-soller--bunyola"
       },
       {
         "name": "Soller",
@@ -1024,9 +1097,11 @@
         "difficulty": 267,
         "averageGradient": 5.29,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/coll-de-soller-depuis-soller-c1841.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/coll-de-soller-depuis-soller-c1841.htm",
+        "id": "climb-es-coll-de-soller--soller"
       }
-    ]
+    ],
+    "id": "climb-es-coll-de-soller"
   },
   {
     "name": "Coll dels Reis",
@@ -1051,9 +1126,11 @@
         "difficulty": 513,
         "averageGradient": 7.12,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/coll-dels-reis-depuis-sa-calobra-c2137.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/coll-dels-reis-depuis-sa-calobra-c2137.htm",
+        "id": "climb-es-coll-dels-reis--sa-calobra"
       }
-    ]
+    ],
+    "id": "climb-es-coll-dels-reis"
   },
   {
     "name": "Collada de Toses",
@@ -1078,7 +1155,8 @@
         "difficulty": 279,
         "averageGradient": 3.94,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/collada-de-toses-depuis-alp-via-la-molina-c2001.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/collada-de-toses-depuis-alp-via-la-molina-c2001.htm",
+        "id": "climb-es-collada-de-toses--alp-via-la-molina"
       },
       {
         "name": "Alp (via Masella et Super Molina)",
@@ -1093,7 +1171,8 @@
         "difficulty": 295,
         "averageGradient": 3.62,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/collada-de-toses-depuis-alp-via-masella-et-super-molina-c2000.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/collada-de-toses-depuis-alp-via-masella-et-super-molina-c2000.htm",
+        "id": "climb-es-collada-de-toses--alp-via-masella-et-super-molina"
       },
       {
         "name": "Urtx",
@@ -1108,9 +1187,11 @@
         "difficulty": 269,
         "averageGradient": 3.26,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/collada-de-toses-depuis-urtx-c1984.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/collada-de-toses-depuis-urtx-c1984.htm",
+        "id": "climb-es-collada-de-toses--urtx"
       }
-    ]
+    ],
+    "id": "climb-es-collada-de-toses"
   },
   {
     "name": "Collado de Foradada",
@@ -1135,9 +1216,11 @@
         "difficulty": 171,
         "averageGradient": 3.92,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/collado-de-foradada-depuis-arro-c2605.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/collado-de-foradada-depuis-arro-c2605.htm",
+        "id": "climb-es-collado-de-foradada--arro"
       }
-    ]
+    ],
+    "id": "climb-es-collado-de-foradada"
   },
   {
     "name": "Collado de Urquiaga",
@@ -1162,7 +1245,8 @@
         "difficulty": 208,
         "averageGradient": 4,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/collado-de-urquiaga-depuis-aldudes-c1657.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/collado-de-urquiaga-depuis-aldudes-c1657.htm",
+        "id": "climb-es-collado-de-urquiaga--aldudes"
       },
       {
         "name": "Zubiri",
@@ -1177,9 +1261,11 @@
         "difficulty": 70,
         "averageGradient": 1.93,
         "category": "4",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/collado-de-urquiaga-depuis-zubiri-c1658.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/collado-de-urquiaga-depuis-zubiri-c1658.htm",
+        "id": "climb-es-collado-de-urquiaga--zubiri"
       }
-    ]
+    ],
+    "id": "climb-es-collado-de-urquiaga"
   },
   {
     "name": "El Teide",
@@ -1204,9 +1290,11 @@
         "difficulty": 1236,
         "averageGradient": 5.24,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/canaries/espagne/el-teide-depuis-los-cristianos-c3572.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/canaries/espagne/el-teide-depuis-los-cristianos-c3572.htm",
+        "id": "climb-es-el-teide--los-cristianos"
       }
-    ]
+    ],
+    "id": "climb-es-el-teide"
   },
   {
     "name": "Ermita de Betlem",
@@ -1231,9 +1319,11 @@
         "difficulty": 113,
         "averageGradient": 4.71,
         "category": "4",
-        "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/ermita-de-betlem-depuis-arta-c2139.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/ermita-de-betlem-depuis-arta-c2139.htm",
+        "id": "climb-es-ermita-de-betlem--arta"
       }
-    ]
+    ],
+    "id": "climb-es-ermita-de-betlem"
   },
   {
     "name": "Formigal",
@@ -1258,9 +1348,11 @@
         "difficulty": 147,
         "averageGradient": 5.22,
         "category": "4",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/formigal-depuis-sallent-de-gallego-c2952.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/formigal-depuis-sallent-de-gallego-c2952.htm",
+        "id": "climb-es-formigal--sallent-de-gallego"
       }
-    ]
+    ],
+    "id": "climb-es-formigal"
   },
   {
     "name": "Hospital de Benasque",
@@ -1285,9 +1377,11 @@
         "difficulty": 390,
         "averageGradient": 5.03,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/hospital-de-benasque-depuis-benasque-c1979.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/hospital-de-benasque-depuis-benasque-c1979.htm",
+        "id": "climb-es-hospital-de-benasque--benasque"
       }
-    ]
+    ],
+    "id": "climb-es-hospital-de-benasque"
   },
   {
     "name": "Iondogorta",
@@ -1312,9 +1406,11 @@
         "difficulty": 704,
         "averageGradient": 16.15,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/iondogorta-depuis-lanbreabe-c483.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/iondogorta-depuis-lanbreabe-c483.htm",
+        "id": "climb-es-iondogorta--lanbreabe"
       }
-    ]
+    ],
+    "id": "climb-es-iondogorta"
   },
   {
     "name": "Jaizkibel",
@@ -1339,7 +1435,8 @@
         "difficulty": 385,
         "averageGradient": 4.84,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/jaizkibel-depuis-hondarribia-c1055.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/jaizkibel-depuis-hondarribia-c1055.htm",
+        "id": "climb-es-jaizkibel--hondarribia"
       },
       {
         "name": "Pasaia",
@@ -1354,7 +1451,8 @@
         "difficulty": 378,
         "averageGradient": 6.03,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/jaizkibel-depuis-pasaia-c1059.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/jaizkibel-depuis-pasaia-c1059.htm",
+        "id": "climb-es-jaizkibel--pasaia"
       },
       {
         "name": "Pasaia (via Larrabide Errepidea)",
@@ -1369,9 +1467,11 @@
         "difficulty": 469,
         "averageGradient": 6.11,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/jaizkibel-depuis-pasaia-via-larrabide-errepidea-c3191.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/jaizkibel-depuis-pasaia-via-larrabide-errepidea-c3191.htm",
+        "id": "climb-es-jaizkibel--pasaia-via-larrabide-errepidea"
       }
-    ]
+    ],
+    "id": "climb-es-jaizkibel"
   },
   {
     "name": "La Covatilla",
@@ -1396,9 +1496,11 @@
         "difficulty": 822,
         "averageGradient": 5.76,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/la-covatilla-depuis-bejar-c478.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/la-covatilla-depuis-bejar-c478.htm",
+        "id": "climb-es-la-covatilla--bejar"
       }
-    ]
+    ],
+    "id": "climb-es-la-covatilla"
   },
   {
     "name": "La Guardia d'Ares",
@@ -1423,9 +1525,11 @@
         "difficulty": 548,
         "averageGradient": 4.76,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/la-guardia-d-ares-depuis-noves-de-segre-c3115.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/la-guardia-d-ares-depuis-noves-de-segre-c3115.htm",
+        "id": "climb-es-la-guardia-d-ares--noves-de-segre"
       }
-    ]
+    ],
+    "id": "climb-es-la-guardia-d-ares"
   },
   {
     "name": "Lagos de Covadonga",
@@ -1450,9 +1554,11 @@
         "difficulty": 996,
         "averageGradient": 7.44,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/lagos-de-covadonga-depuis-soto-de-cangas-c479.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/lagos-de-covadonga-depuis-soto-de-cangas-c479.htm",
+        "id": "climb-es-lagos-de-covadonga--soto-de-cangas"
       }
-    ]
+    ],
+    "id": "climb-es-lagos-de-covadonga"
   },
   {
     "name": "Monastère de San Victorian",
@@ -1477,9 +1583,11 @@
         "difficulty": 564,
         "averageGradient": 4.69,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/monastere-de-san-victorian-depuis-arro-c2604.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/monastere-de-san-victorian-depuis-arro-c2604.htm",
+        "id": "climb-es-monastere-de-san-victorian--arro"
       }
-    ]
+    ],
+    "id": "climb-es-monastere-de-san-victorian"
   },
   {
     "name": "Montant de Tost",
@@ -1504,9 +1612,11 @@
         "difficulty": 393,
         "averageGradient": 5.27,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/montant-de-tost-depuis-c14-lv4001-c3093.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/montant-de-tost-depuis-c14-lv4001-c3093.htm",
+        "id": "climb-es-montant-de-tost--c14-lv4001"
       }
-    ]
+    ],
+    "id": "climb-es-montant-de-tost"
   },
   {
     "name": "Orzanzurieta",
@@ -1531,7 +1641,8 @@
         "difficulty": 650,
         "averageGradient": 5,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/orzanzurieta-depuis-arneguy-c1982.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/orzanzurieta-depuis-arneguy-c1982.htm",
+        "id": "climb-es-orzanzurieta--arneguy"
       },
       {
         "name": "Burguete",
@@ -1546,9 +1657,11 @@
         "difficulty": 411,
         "averageGradient": 6.11,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/orzanzurieta-depuis-burguete-c1983.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/orzanzurieta-depuis-burguete-c1983.htm",
+        "id": "climb-es-orzanzurieta--burguete"
       }
-    ]
+    ],
+    "id": "climb-es-orzanzurieta"
   },
   {
     "name": "Parc national d'Ordesa",
@@ -1573,9 +1686,11 @@
         "difficulty": 143,
         "averageGradient": 3.41,
         "category": "4",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/parc-national-d-ordesa-depuis-broto-c2608.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/parc-national-d-ordesa-depuis-broto-c2608.htm",
+        "id": "climb-es-parc-national-d-ordesa--broto"
       }
-    ]
+    ],
+    "id": "climb-es-parc-national-d-ordesa"
   },
   {
     "name": "Paso Tapia",
@@ -1600,7 +1715,8 @@
         "difficulty": 308,
         "averageGradient": 5.42,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/paso-tapia-depuis-irati-c1827.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/paso-tapia-depuis-irati-c1827.htm",
+        "id": "climb-es-paso-tapia--irati"
       },
       {
         "name": "Ochagavia",
@@ -1615,9 +1731,11 @@
         "difficulty": 379,
         "averageGradient": 3.88,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/paso-tapia-depuis-ochagavia-c1826.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/paso-tapia-depuis-ochagavia-c1826.htm",
+        "id": "climb-es-paso-tapia--ochagavia"
       }
-    ]
+    ],
+    "id": "climb-es-paso-tapia"
   },
   {
     "name": "Pico de Veleta",
@@ -1642,9 +1760,11 @@
         "difficulty": 2161,
         "averageGradient": 6.28,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/pico-de-veleta-depuis-granada-c477.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/pico-de-veleta-depuis-granada-c477.htm",
+        "id": "climb-es-pico-de-veleta--granada"
       }
-    ]
+    ],
+    "id": "climb-es-pico-de-veleta"
   },
   {
     "name": "Pico Gorramakil",
@@ -1669,9 +1789,11 @@
         "difficulty": 485,
         "averageGradient": 4.74,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/pico-gorramakil-depuis-dancharia-c1558.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/pico-gorramakil-depuis-dancharia-c1558.htm",
+        "id": "climb-es-pico-gorramakil--dancharia"
       }
-    ]
+    ],
+    "id": "climb-es-pico-gorramakil"
   },
   {
     "name": "Pla de Beret",
@@ -1696,9 +1818,11 @@
         "difficulty": 359,
         "averageGradient": 4.07,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/pla-de-beret-depuis-vielha-c415.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/pla-de-beret-depuis-vielha-c415.htm",
+        "id": "climb-es-pla-de-beret--vielha"
       }
-    ]
+    ],
+    "id": "climb-es-pla-de-beret"
   },
   {
     "name": "Port de Bielsa",
@@ -1723,9 +1847,11 @@
         "difficulty": 504,
         "averageGradient": 4.9,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/port-de-bielsa-depuis-salinas-de-sin-c1857.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/port-de-bielsa-depuis-salinas-de-sin-c1857.htm",
+        "id": "climb-es-port-de-bielsa--salinas-de-sin"
       }
-    ]
+    ],
+    "id": "climb-es-port-de-bielsa"
   },
   {
     "name": "Port del Canto",
@@ -1750,7 +1876,8 @@
         "difficulty": 735,
         "averageGradient": 4.18,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/port-del-canto-depuis-adrall-c3089.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/port-del-canto-depuis-adrall-c3089.htm",
+        "id": "climb-es-port-del-canto--adrall"
       },
       {
         "name": "Sort",
@@ -1765,9 +1892,11 @@
         "difficulty": 671,
         "averageGradient": 5.41,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/port-del-canto-depuis-sort-c3090.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/port-del-canto-depuis-sort-c3090.htm",
+        "id": "climb-es-port-del-canto--sort"
       }
-    ]
+    ],
+    "id": "climb-es-port-del-canto"
   },
   {
     "name": "Puerto de Ancares",
@@ -1792,9 +1921,11 @@
         "difficulty": 1094,
         "averageGradient": 6.78,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/puerto-de-ancares-depuis-murias-c2632.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/monts-cantabriques/espagne/puerto-de-ancares-depuis-murias-c2632.htm",
+        "id": "climb-es-puerto-de-ancares--murias"
       }
-    ]
+    ],
+    "id": "climb-es-puerto-de-ancares"
   },
   {
     "name": "Puerto de Cotefablo",
@@ -1819,7 +1950,8 @@
         "difficulty": 375,
         "averageGradient": 4.2,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/puerto-de-cotefablo-depuis-biescas-c2415.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/puerto-de-cotefablo-depuis-biescas-c2415.htm",
+        "id": "climb-es-puerto-de-cotefablo--biescas"
       },
       {
         "name": "Broto",
@@ -1834,9 +1966,11 @@
         "difficulty": 218,
         "averageGradient": 4.13,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/puerto-de-cotefablo-depuis-broto-c2416.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/puerto-de-cotefablo-depuis-broto-c2416.htm",
+        "id": "climb-es-puerto-de-cotefablo--broto"
       }
-    ]
+    ],
+    "id": "climb-es-puerto-de-cotefablo"
   },
   {
     "name": "Puerto de la Bonaigua",
@@ -1861,7 +1995,8 @@
         "difficulty": 730,
         "averageGradient": 5.69,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/puerto-de-la-bonaigua-depuis-esterri-d-aneu-c543.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/puerto-de-la-bonaigua-depuis-esterri-d-aneu-c543.htm",
+        "id": "climb-es-puerto-de-la-bonaigua--esterri-d-aneu"
       },
       {
         "name": "Vielha",
@@ -1876,9 +2011,11 @@
         "difficulty": 621,
         "averageGradient": 4.79,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/puerto-de-la-bonaigua-depuis-vielha-c542.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/puerto-de-la-bonaigua-depuis-vielha-c542.htm",
+        "id": "climb-es-puerto-de-la-bonaigua--vielha"
       }
-    ]
+    ],
+    "id": "climb-es-puerto-de-la-bonaigua"
   },
   {
     "name": "Puerto de la Morcuera",
@@ -1903,7 +2040,8 @@
         "difficulty": 602,
         "averageGradient": 5.45,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-la-morcuera-depuis-guadalix-de-la-sierra-c1428.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-la-morcuera-depuis-guadalix-de-la-sierra-c1428.htm",
+        "id": "climb-es-puerto-de-la-morcuera--guadalix-de-la-sierra"
       },
       {
         "name": "Miraflores de la Sierra",
@@ -1918,7 +2056,8 @@
         "difficulty": 395,
         "averageGradient": 6.55,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-la-morcuera-depuis-miraflores-de-la-sierra-c1429.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-la-morcuera-depuis-miraflores-de-la-sierra-c1429.htm",
+        "id": "climb-es-puerto-de-la-morcuera--miraflores-de-la-sierra"
       },
       {
         "name": "Rascafria",
@@ -1933,9 +2072,11 @@
         "difficulty": 402,
         "averageGradient": 4.7,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-la-morcuera-depuis-rascafria-c1427.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-la-morcuera-depuis-rascafria-c1427.htm",
+        "id": "climb-es-puerto-de-la-morcuera--rascafria"
       }
-    ]
+    ],
+    "id": "climb-es-puerto-de-la-morcuera"
   },
   {
     "name": "Puerto de la Ragua",
@@ -1960,7 +2101,8 @@
         "difficulty": 1002,
         "averageGradient": 5.91,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/puerto-de-la-ragua-depuis-cherin-c1417.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/puerto-de-la-ragua-depuis-cherin-c1417.htm",
+        "id": "climb-es-puerto-de-la-ragua--cherin"
       },
       {
         "name": "La Calahorra",
@@ -1975,9 +2117,11 @@
         "difficulty": 560,
         "averageGradient": 5.42,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/puerto-de-la-ragua-depuis-la-calahorra-c1418.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/puerto-de-la-ragua-depuis-la-calahorra-c1418.htm",
+        "id": "climb-es-puerto-de-la-ragua--la-calahorra"
       }
-    ]
+    ],
+    "id": "climb-es-puerto-de-la-ragua"
   },
   {
     "name": "Puerto de Matamachos",
@@ -2002,7 +2146,8 @@
         "difficulty": 222,
         "averageGradient": 6.12,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-de-matamachos-depuis-anso-c1823.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-de-matamachos-depuis-anso-c1823.htm",
+        "id": "climb-es-puerto-de-matamachos--anso"
       },
       {
         "name": "Roncal",
@@ -2017,9 +2162,11 @@
         "difficulty": 327,
         "averageGradient": 3.95,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-de-matamachos-depuis-roncal-c1822.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-de-matamachos-depuis-roncal-c1822.htm",
+        "id": "climb-es-puerto-de-matamachos--roncal"
       }
-    ]
+    ],
+    "id": "climb-es-puerto-de-matamachos"
   },
   {
     "name": "Puerto de Mijares",
@@ -2044,7 +2191,8 @@
         "difficulty": 397,
         "averageGradient": 4.74,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-mijares-depuis-burgohondo-c1422.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-mijares-depuis-burgohondo-c1422.htm",
+        "id": "climb-es-puerto-de-mijares--burgohondo"
       },
       {
         "name": "Gavilanes",
@@ -2059,7 +2207,8 @@
         "difficulty": 628,
         "averageGradient": 5.04,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-mijares-depuis-gavilanes-c1423.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-mijares-depuis-gavilanes-c1423.htm",
+        "id": "climb-es-puerto-de-mijares--gavilanes"
       },
       {
         "name": "Mijares",
@@ -2074,9 +2223,11 @@
         "difficulty": 597,
         "averageGradient": 5.33,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-mijares-depuis-mijares-c1421.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-mijares-depuis-mijares-c1421.htm",
+        "id": "climb-es-puerto-de-mijares--mijares"
       }
-    ]
+    ],
+    "id": "climb-es-puerto-de-mijares"
   },
   {
     "name": "Puerto de Monrepos",
@@ -2101,9 +2252,11 @@
         "difficulty": 309,
         "averageGradient": 5.37,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-de-monrepos-depuis-lanave-c2414.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-de-monrepos-depuis-lanave-c2414.htm",
+        "id": "climb-es-puerto-de-monrepos--lanave"
       }
-    ]
+    ],
+    "id": "climb-es-puerto-de-monrepos"
   },
   {
     "name": "Puerto de Navacerrada",
@@ -2128,7 +2281,8 @@
         "difficulty": 649,
         "averageGradient": 5.18,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-navacerrada-depuis-collado-villalba-c1426.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-navacerrada-depuis-collado-villalba-c1426.htm",
+        "id": "climb-es-puerto-de-navacerrada--collado-villalba"
       },
       {
         "name": "La Granja",
@@ -2143,7 +2297,8 @@
         "difficulty": 465,
         "averageGradient": 5.43,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-navacerrada-depuis-la-granja-c1424.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-navacerrada-depuis-la-granja-c1424.htm",
+        "id": "climb-es-puerto-de-navacerrada--la-granja"
       },
       {
         "name": "Los Molinos",
@@ -2158,9 +2313,11 @@
         "difficulty": 597,
         "averageGradient": 5.82,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-navacerrada-depuis-los-molinos-c1425.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/sistema-central/espagne/puerto-de-navacerrada-depuis-los-molinos-c1425.htm",
+        "id": "climb-es-puerto-de-navacerrada--los-molinos"
       }
-    ]
+    ],
+    "id": "climb-es-puerto-de-navacerrada"
   },
   {
     "name": "Puerto de Otxondo",
@@ -2185,7 +2342,8 @@
         "difficulty": 369,
         "averageGradient": 5.03,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-de-otxondo-depuis-dancharia-c1987.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-de-otxondo-depuis-dancharia-c1987.htm",
+        "id": "climb-es-puerto-de-otxondo--dancharia"
       },
       {
         "name": "Elizondo",
@@ -2200,9 +2358,11 @@
         "difficulty": 56,
         "averageGradient": 2.08,
         "category": "4",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-de-otxondo-depuis-elizondo-c1988.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-de-otxondo-depuis-elizondo-c1988.htm",
+        "id": "climb-es-puerto-de-otxondo--elizondo"
       }
-    ]
+    ],
+    "id": "climb-es-puerto-de-otxondo"
   },
   {
     "name": "Puerto de Serrablo",
@@ -2227,9 +2387,11 @@
         "difficulty": 417,
         "averageGradient": 5.16,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/puerto-de-serrablo-depuis-boltana-c2603.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/puerto-de-serrablo-depuis-boltana-c2603.htm",
+        "id": "climb-es-puerto-de-serrablo--boltana"
       }
-    ]
+    ],
+    "id": "climb-es-puerto-de-serrablo"
   },
   {
     "name": "Puerto de Velefique",
@@ -2254,9 +2416,11 @@
         "difficulty": 566,
         "averageGradient": 6.36,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/puerto-de-velefique-depuis-velefique-c1413.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/puerto-de-velefique-depuis-velefique-c1413.htm",
+        "id": "climb-es-puerto-de-velefique--velefique"
       }
-    ]
+    ],
+    "id": "climb-es-puerto-de-velefique"
   },
   {
     "name": "Puerto Las Coronas",
@@ -2281,7 +2445,8 @@
         "difficulty": 170,
         "averageGradient": 4.14,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-las-coronas-depuis-burgui-c2667.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-las-coronas-depuis-burgui-c2667.htm",
+        "id": "climb-es-puerto-las-coronas--burgui"
       },
       {
         "name": "Navascues",
@@ -2296,9 +2461,11 @@
         "difficulty": 184,
         "averageGradient": 4.74,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-las-coronas-depuis-navascues-c2666.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/puerto-las-coronas-depuis-navascues-c2666.htm",
+        "id": "climb-es-puerto-las-coronas--navascues"
       }
-    ]
+    ],
+    "id": "climb-es-puerto-las-coronas"
   },
   {
     "name": "Puig Major",
@@ -2323,7 +2490,8 @@
         "difficulty": 208,
         "averageGradient": 2.84,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/puig-major-depuis-caimari-c492.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/puig-major-depuis-caimari-c492.htm",
+        "id": "climb-es-puig-major--caimari"
       },
       {
         "name": "Soller",
@@ -2338,9 +2506,11 @@
         "difficulty": 543,
         "averageGradient": 5.95,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/puig-major-depuis-soller-c493.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/sierra-de-tramontana/espagne/puig-major-depuis-soller-c493.htm",
+        "id": "climb-es-puig-major--soller"
       }
-    ]
+    ],
+    "id": "climb-es-puig-major"
   },
   {
     "name": "Refuge de Cap de Rec",
@@ -2365,9 +2535,11 @@
         "difficulty": 682,
         "averageGradient": 6.07,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/refuge-de-cap-de-rec-depuis-martinet-c2628.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/refuge-de-cap-de-rec-depuis-martinet-c2628.htm",
+        "id": "climb-es-refuge-de-cap-de-rec--martinet"
       }
-    ]
+    ],
+    "id": "climb-es-refuge-de-cap-de-rec"
   },
   {
     "name": "Refuge de Lizara",
@@ -2392,9 +2564,11 @@
         "difficulty": 422,
         "averageGradient": 5.04,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/refuge-de-lizara-depuis-jasa-c2955.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/refuge-de-lizara-depuis-jasa-c2955.htm",
+        "id": "climb-es-refuge-de-lizara--jasa"
       }
-    ]
+    ],
+    "id": "climb-es-refuge-de-lizara"
   },
   {
     "name": "Roque de los Muchachos",
@@ -2419,7 +2593,8 @@
         "difficulty": 1835,
         "averageGradient": 5.63,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/canaries/espagne/roque-de-los-muchachos-depuis-costa-de-miranda-c486.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/canaries/espagne/roque-de-los-muchachos-depuis-costa-de-miranda-c486.htm",
+        "id": "climb-es-roque-de-los-muchachos--costa-de-miranda"
       },
       {
         "name": "El Tablado",
@@ -2434,7 +2609,8 @@
         "difficulty": 2201,
         "averageGradient": 6.26,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/canaries/espagne/roque-de-los-muchachos-depuis-el-tablado-c485.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/canaries/espagne/roque-de-los-muchachos-depuis-el-tablado-c485.htm",
+        "id": "climb-es-roque-de-los-muchachos--el-tablado"
       },
       {
         "name": "Santo Domingo de Garafia",
@@ -2449,9 +2625,11 @@
         "difficulty": 1775,
         "averageGradient": 7.78,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/canaries/espagne/roque-de-los-muchachos-depuis-santo-domingo-de-garafia-c484.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/canaries/espagne/roque-de-los-muchachos-depuis-santo-domingo-de-garafia-c484.htm",
+        "id": "climb-es-roque-de-los-muchachos--santo-domingo-de-garafia"
       }
-    ]
+    ],
+    "id": "climb-es-roque-de-los-muchachos"
   },
   {
     "name": "Sanctuaire de San Migel d'Aralar",
@@ -2476,9 +2654,11 @@
         "difficulty": 713,
         "averageGradient": 8.05,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/sanctuaire-de-san-migel-d-aralar-depuis-uharte-arakil-c2385.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/sanctuaire-de-san-migel-d-aralar-depuis-uharte-arakil-c2385.htm",
+        "id": "climb-es-sanctuaire-de-san-migel-d-aralar--uharte-arakil"
       }
-    ]
+    ],
+    "id": "climb-es-sanctuaire-de-san-migel-d-aralar"
   },
   {
     "name": "Sant Joan de Toran",
@@ -2503,9 +2683,11 @@
         "difficulty": 333,
         "averageGradient": 5.45,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/sant-joan-de-toran-depuis-pontaut-c2387.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/sant-joan-de-toran-depuis-pontaut-c2387.htm",
+        "id": "climb-es-sant-joan-de-toran--pontaut"
       }
-    ]
+    ],
+    "id": "climb-es-sant-joan-de-toran"
   },
   {
     "name": "Sant Pere de Rodes",
@@ -2530,7 +2712,8 @@
         "difficulty": 474,
         "averageGradient": 6.1,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/sant-pere-de-rodes-depuis-selva-de-mar-c2897.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/sant-pere-de-rodes-depuis-selva-de-mar-c2897.htm",
+        "id": "climb-es-sant-pere-de-rodes--selva-de-mar"
       },
       {
         "name": "Vilajuiga",
@@ -2545,9 +2728,11 @@
         "difficulty": 334,
         "averageGradient": 5.5,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/sant-pere-de-rodes-depuis-vilajuiga-c2896.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/sant-pere-de-rodes-depuis-vilajuiga-c2896.htm",
+        "id": "climb-es-sant-pere-de-rodes--vilajuiga"
       }
-    ]
+    ],
+    "id": "climb-es-sant-pere-de-rodes"
   },
   {
     "name": "Saut deth Pish",
@@ -2572,9 +2757,11 @@
         "difficulty": 613,
         "averageGradient": 6.17,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/saut-deth-pish-depuis-pont-d-arros-c2637.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/saut-deth-pish-depuis-pont-d-arros-c2637.htm",
+        "id": "climb-es-saut-deth-pish--pont-d-arros"
       }
-    ]
+    ],
+    "id": "climb-es-saut-deth-pish"
   },
   {
     "name": "Sierra de la Pandera",
@@ -2599,7 +2786,8 @@
         "difficulty": 1051,
         "averageGradient": 5.15,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/sierra-de-la-pandera-depuis-los-villares-c1419.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/sierra-de-la-pandera-depuis-los-villares-c1419.htm",
+        "id": "climb-es-sierra-de-la-pandera--los-villares"
       },
       {
         "name": "Valdepeñas de Jaen",
@@ -2614,9 +2802,11 @@
         "difficulty": 912,
         "averageGradient": 6.21,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/sierra-de-la-pandera-depuis-valdepenas-de-jaen-c1420.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/sierra-de-la-pandera-depuis-valdepenas-de-jaen-c1420.htm",
+        "id": "climb-es-sierra-de-la-pandera--valdepenas-de-jaen"
       }
-    ]
+    ],
+    "id": "climb-es-sierra-de-la-pandera"
   },
   {
     "name": "Sierra Nevada",
@@ -2641,9 +2831,11 @@
         "difficulty": 1013,
         "averageGradient": 5.81,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/sierra-nevada-depuis-granada-c1538.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/sierra-nevada-depuis-granada-c1538.htm",
+        "id": "climb-es-sierra-nevada--granada"
       }
-    ]
+    ],
+    "id": "climb-es-sierra-nevada"
   },
   {
     "name": "Station d'Espot",
@@ -2668,9 +2860,11 @@
         "difficulty": 308,
         "averageGradient": 5.44,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/station-d-espot-depuis-c13-lv5004-c3113.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/station-d-espot-depuis-c13-lv5004-c3113.htm",
+        "id": "climb-es-station-d-espot--c13-lv5004"
       }
-    ]
+    ],
+    "id": "climb-es-station-d-espot"
   },
   {
     "name": "Station de Boi-Taull",
@@ -2695,9 +2889,11 @@
         "difficulty": 574,
         "averageGradient": 5.19,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/station-de-boi-taull-depuis-baruera-c3091.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/station-de-boi-taull-depuis-baruera-c3091.htm",
+        "id": "climb-es-station-de-boi-taull--baruera"
       }
-    ]
+    ],
+    "id": "climb-es-station-de-boi-taull"
   },
   {
     "name": "Station de Formigal-Sarrios",
@@ -2722,9 +2918,11 @@
         "difficulty": 151,
         "averageGradient": 5.24,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/station-de-formigal-sarrios-depuis-formigal-c2951.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-ouest/espagne/station-de-formigal-sarrios-depuis-formigal-c2951.htm",
+        "id": "climb-es-station-de-formigal-sarrios--formigal"
       }
-    ]
+    ],
+    "id": "climb-es-station-de-formigal-sarrios"
   },
   {
     "name": "Station de Guils Fontanera",
@@ -2749,9 +2947,11 @@
         "difficulty": 545,
         "averageGradient": 6.22,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/station-de-guils-fontanera-depuis-puigcerda-c2626.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/station-de-guils-fontanera-depuis-puigcerda-c2626.htm",
+        "id": "climb-es-station-de-guils-fontanera--puigcerda"
       }
-    ]
+    ],
+    "id": "climb-es-station-de-guils-fontanera"
   },
   {
     "name": "Station de San Joan de l'Erm",
@@ -2776,9 +2976,11 @@
         "difficulty": 534,
         "averageGradient": 4.44,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/station-de-san-joan-de-l-erm-depuis-castelbo-c3116.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/station-de-san-joan-de-l-erm-depuis-castelbo-c3116.htm",
+        "id": "climb-es-station-de-san-joan-de-l-erm--castelbo"
       }
-    ]
+    ],
+    "id": "climb-es-station-de-san-joan-de-l-erm"
   },
   {
     "name": "Tetica de Bacares",
@@ -2803,9 +3005,11 @@
         "difficulty": 701,
         "averageGradient": 6.33,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/tetica-de-bacares-depuis-velefique-c1414.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/tetica-de-bacares-depuis-velefique-c1414.htm",
+        "id": "climb-es-tetica-de-bacares--velefique"
       }
-    ]
+    ],
+    "id": "climb-es-tetica-de-bacares"
   },
   {
     "name": "Val de la Artiga",
@@ -2830,9 +3034,11 @@
         "difficulty": 459,
         "averageGradient": 6.95,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/val-de-la-artiga-depuis-es-bordes-c2249.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/espagne/val-de-la-artiga-depuis-es-bordes-c2249.htm",
+        "id": "climb-es-val-de-la-artiga--es-bordes"
       }
-    ]
+    ],
+    "id": "climb-es-val-de-la-artiga"
   },
   {
     "name": "Vallter 2000",
@@ -2857,9 +3063,11 @@
         "difficulty": 819,
         "averageGradient": 5.17,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/vallter-2000-depuis-camprodon-c1981.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-est/espagne/vallter-2000-depuis-camprodon-c1981.htm",
+        "id": "climb-es-vallter-2000--camprodon"
       }
-    ]
+    ],
+    "id": "climb-es-vallter-2000"
   },
   {
     "name": "Xorret de cati",
@@ -2884,7 +3092,8 @@
         "difficulty": 573,
         "averageGradient": 10.93,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/xorret-de-cati-depuis-castalla-c1411.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/xorret-de-cati-depuis-castalla-c1411.htm",
+        "id": "climb-es-xorret-de-cati--castalla"
       },
       {
         "name": "Petrer",
@@ -2899,9 +3108,11 @@
         "difficulty": 583,
         "averageGradient": 4.68,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/xorret-de-cati-depuis-petrer-c1412.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/cordillere-betique/espagne/xorret-de-cati-depuis-petrer-c1412.htm",
+        "id": "climb-es-xorret-de-cati--petrer"
       }
-    ]
+    ],
+    "id": "climb-es-xorret-de-cati"
   },
   {
     "name": "Puerto Camacho",
@@ -2926,9 +3137,11 @@
         "difficulty": 597,
         "averageGradient": 6.8,
         "category": "2",
-        "sourceUrl": "https://climbfinder.com/en/climbs/puerto-camacho-los-tablones"
+        "sourceUrl": "https://climbfinder.com/en/climbs/puerto-camacho-los-tablones",
+        "id": "climb-es-puerto-camacho--los-tablones"
       }
-    ]
+    ],
+    "id": "climb-es-puerto-camacho"
   },
   {
     "name": "Puerto del Boyar",
@@ -2939,7 +3152,8 @@
       "latitude": 36.755663,
       "longitude": -5.394829
     },
-    "alternatives": []
+    "alternatives": [],
+    "id": "climb-es-puerto-del-boyar"
   },
   {
     "name": "Collado del Cebollar",
@@ -2950,7 +3164,8 @@
       "latitude": 42.656178,
       "longitude": -0.125932
     },
-    "alternatives": []
+    "alternatives": [],
+    "id": "climb-es-collado-del-cebollar"
   },
   {
     "name": "Puerto de las Palomas",
@@ -2975,7 +3190,8 @@
         "difficulty": 582,
         "averageGradient": 6.6,
         "category": "2",
-        "sourceUrl": "https://climbfinder.com/fr/montees/puerto-de-las-palomas-zahara-de-la-sierra"
+        "sourceUrl": "https://climbfinder.com/fr/montees/puerto-de-las-palomas-zahara-de-la-sierra",
+        "id": "climb-es-puerto-de-las-palomas--zahara-de-la-sierra"
       },
       {
         "name": "Grazalema",
@@ -2990,8 +3206,10 @@
         "difficulty": 142,
         "averageGradient": 6.5,
         "category": "4",
-        "sourceUrl": "https://climbfinder.com/fr/montees/puerto-de-las-palomas-grazalema"
+        "sourceUrl": "https://climbfinder.com/fr/montees/puerto-de-las-palomas-grazalema",
+        "id": "climb-es-puerto-de-las-palomas--grazalema"
       }
-    ]
+    ],
+    "id": "climb-es-puerto-de-las-palomas"
   }
 ]

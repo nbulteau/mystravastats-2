@@ -93,6 +93,7 @@ Useful check:
 
 ```sh
 npm run type-check
+npm run build:check
 ```
 
 ## Screenshots
@@ -107,7 +108,7 @@ The default output directory is `docs/assets/screenshots`.
 
 ## Validation Shortcuts
 
-- Frontend: `cd front-vue && npm run type-check && npm run test:unit`
+- Frontend: `cd front-vue && npm run type-check && npm run test:unit && npm run build:check`
 - Go backend: `cd back-go && go test ./...`
 - Kotlin backend: `cd back-kotlin && ./gradlew test`
 - Route generation: run targeted Go/Kotlin tests plus the relevant [manual route checks](../routing/manual-checks.md)

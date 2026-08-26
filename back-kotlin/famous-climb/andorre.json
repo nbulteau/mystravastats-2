@@ -1,0 +1,150 @@
+[
+  {
+    "name": "Col d'Ordino",
+    "country": "AD",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1981,
+    "geoCoordinate": {
+      "latitude": 42.55607,
+      "longitude": 1.5723
+    },
+    "alternatives": [
+      {
+        "name": "Ordino",
+        "geoCoordinate": {
+          "latitude": 42.55556,
+          "longitude": 1.5331
+        },
+        "length": 9.6,
+        "totalAscent": 690,
+        "minimumAltitude": 1290,
+        "maximumGradient": 8.4,
+        "difficulty": 483,
+        "averageGradient": 7,
+        "category": "1",
+        "sourceUrl": "https://www.cyclinglocations.com/coll-dordino-climb-pyrenees/",
+        "id": "climb-ad-col-d-ordino--ordino"
+      },
+      {
+        "name": "Canillo",
+        "geoCoordinate": {
+          "latitude": 42.56597,
+          "longitude": 1.59666
+        },
+        "length": 8.6,
+        "totalAscent": 460,
+        "minimumAltitude": 1520,
+        "maximumGradient": 10,
+        "difficulty": 230,
+        "averageGradient": 5,
+        "category": "2",
+        "sourceUrl": "https://www.cyclinglocations.com/coll-dordino-canillo-climb-pyrenees/",
+        "id": "climb-ad-col-d-ordino--canillo"
+      }
+    ],
+    "id": "climb-ad-col-d-ordino"
+  },
+  {
+    "name": "Collada de Beixalis",
+    "country": "AD",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1795,
+    "geoCoordinate": {
+      "latitude": 42.5276,
+      "longitude": 1.54809
+    },
+    "alternatives": [
+      {
+        "name": "Anyós",
+        "geoCoordinate": {
+          "latitude": 42.53593,
+          "longitude": 1.52778
+        },
+        "length": 6.3,
+        "totalAscent": 476,
+        "minimumAltitude": 1319,
+        "maximumGradient": 13,
+        "difficulty": 333,
+        "averageGradient": 7,
+        "category": "2",
+        "sourceUrl": "https://www.cyclinglocations.com/collada-de-beixalis-anyos-climb-pyrenees/",
+        "id": "climb-ad-collada-de-beixalis--anyos"
+      },
+      {
+        "name": "Encamp",
+        "geoCoordinate": {
+          "latitude": 42.53364,
+          "longitude": 1.57344
+        },
+        "length": 6.8,
+        "totalAscent": 565,
+        "minimumAltitude": 1230,
+        "maximumGradient": 20,
+        "difficulty": 452,
+        "averageGradient": 8,
+        "category": "2",
+        "sourceUrl": "https://www.cyclinglocations.com/collada-de-beixalis-encamp-climb-pyrenees/",
+        "id": "climb-ad-collada-de-beixalis--encamp"
+      }
+    ],
+    "id": "climb-ad-collada-de-beixalis"
+  },
+  {
+    "name": "Port d'Envalira",
+    "country": "AD",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 2407,
+    "geoCoordinate": {
+      "latitude": 42.54006,
+      "longitude": 1.719621
+    },
+    "alternatives": [
+      {
+        "name": "Andorra la Vella",
+        "geoCoordinate": {
+          "latitude": 42.5063,
+          "longitude": 1.5218
+        },
+        "length": 27.5,
+        "totalAscent": 1378,
+        "minimumAltitude": 1029,
+        "maximumGradient": 9,
+        "difficulty": 690,
+        "averageGradient": 5.01,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/andorre/port-d-envalira-depuis-andorra-c546.htm",
+        "id": "climb-ad-port-d-envalira--andorra-la-vella"
+      }
+    ],
+    "id": "climb-ad-port-d-envalira"
+  },
+  {
+    "name": "Station d'Arcalís",
+    "country": "AD",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 2225,
+    "geoCoordinate": {
+      "latitude": 42.631022,
+      "longitude": 1.484527
+    },
+    "alternatives": [
+      {
+        "name": "Ordino",
+        "geoCoordinate": {
+          "latitude": 42.55556,
+          "longitude": 1.5331
+        },
+        "length": 18,
+        "totalAscent": 943,
+        "minimumAltitude": 1282,
+        "maximumGradient": 8.7,
+        "difficulty": 494,
+        "averageGradient": 5.24,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/andorre/station-d-arcalis-depuis-ordino-c1155.htm",
+        "id": "climb-ad-station-d-arcalis--ordino"
+      }
+    ],
+    "id": "climb-ad-station-d-arcalis"
+  }
+]

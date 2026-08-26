@@ -4,7 +4,7 @@ import type { BadgeCheckResult } from "@/models/badge-check-result.model";
 import { formatTime } from '@/utils/formatters';
 import { Tooltip } from 'bootstrap';
 import { useRouter } from "vue-router";
-import { climbVariantId } from "@/utils/climb-map";
+import { climbVariantId } from "@/utils/climb-id";
 
 const props = defineProps<{
   badgeCheckResult: BadgeCheckResult;

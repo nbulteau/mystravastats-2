@@ -118,4 +118,32 @@ describe("backend refresh store", () => {
     expect(store.lastActivityCount).toBe(12);
     expect(store.error).toBeNull();
   });
+
+  it("stops polling after a bounded number of unchanged idle responses", async () => {
+    vi.mocked(requestJson).mockResolvedValue({ activities: 10, refresh: { backgroundInProgress: false } });
+    const store = useBackendRefreshStore();
+
+    await store.watchStartupActivityRefresh({ pollIntervalMs: 0, idlePollLimit: 2 });
+
+    expect(requestJson).toHaveBeenCalledTimes(2);
+    expect(store.isWatchingStartupRefresh).toBe(false);
+  });
+
+  it("does not poll while the document is hidden", async () => {
+    const documentTarget = new EventTarget() as EventTarget & { hidden: boolean };
+    documentTarget.hidden = true;
+    vi.stubGlobal("document", documentTarget);
+    vi.mocked(requestJson).mockResolvedValue({ activities: 10, refresh: { backgroundInProgress: false } });
+    const store = useBackendRefreshStore();
+
+    const watching = store.watchStartupActivityRefresh({ pollIntervalMs: 0, maxPolls: 1 });
+    await Promise.resolve();
+    expect(requestJson).not.toHaveBeenCalled();
+    documentTarget.hidden = false;
+    documentTarget.dispatchEvent(new Event("visibilitychange"));
+    await watching;
+
+    expect(requestJson).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
+  });
 });

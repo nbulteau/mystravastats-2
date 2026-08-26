@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { requestJson } from "@/stores/api";
+import { requestJson, requestResponse } from "@/stores/api";
 import {
   type EditGeneratedRouteResponse,
   type GenerateRoutesResponse,
@@ -668,18 +668,12 @@ export const useRoutesStore = defineStore("routes", {
     },
     async refreshRoutingHealth() {
       try {
-        const response = await fetch("/api/health/details", {
+        const payload = await requestJson<RoutingHealthPayload>("/api/health/details", {
           method: "GET",
           headers: {
             Accept: "application/json",
           },
         });
-        if (!response.ok) {
-          this.routingHealthStatus = "down";
-          this.routingReachable = false;
-          return;
-        }
-        const payload = await response.json() as RoutingHealthPayload;
         const routing = payload.routing;
         const status = String(routing?.status ?? "unknown").toLowerCase();
         const reachable = typeof routing?.reachable === "boolean" ? routing.reachable : null;
@@ -1455,16 +1449,12 @@ export const useRoutesStore = defineStore("routes", {
       this.stopRouteEdit();
     },
     async exportRouteGpx(routeId: string) {
-      const response = await fetch(`/api/routes/${encodeURIComponent(routeId)}/gpx`, {
+      const response = await requestResponse(`/api/routes/${encodeURIComponent(routeId)}/gpx`, {
         method: "GET",
         headers: {
           Accept: "application/gpx+xml",
         },
       });
-      if (!response.ok) {
-        throw new Error(`Unable to export GPX (HTTP ${response.status})`);
-      }
-
       const blob = await response.blob();
       const contentDisposition = response.headers.get("content-disposition") ?? "";
       const match = contentDisposition.match(/filename="([^"]+)"/i);

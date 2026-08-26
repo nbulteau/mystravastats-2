@@ -16,6 +16,14 @@ import {
 } from "@/models/athlete-performance-settings.model";
 import { resolveHeartRateZoneSettings } from "@/utils/heart-rate-zones";
 import { getMetricTooltip } from "@/utils/metric-tooltips";
+import { requestJson } from "@/stores/api";
+
+interface LocalDataBackup {
+  version: number;
+  exportedAt: string;
+  athleteId: string;
+  files: Record<string, unknown>;
+}
 
 const contextStore = useContextStore();
 const athleteStore = useAthleteStore();
@@ -26,6 +34,9 @@ const isLoading = ref(false);
 const isSaving = ref(false);
 const loadError = ref("");
 const saveError = ref("");
+const backupError = ref("");
+const isBackupBusy = ref(false);
+const restoreInput = ref<HTMLInputElement | null>(null);
 const draftSettings = reactive<AthletePerformanceSettings>(emptyAthletePerformanceSettings());
 const draftHeartRateZoneSettings = reactive<HeartRateZoneSettings>({
   maxHr: null,
@@ -280,6 +291,63 @@ function resetDraft() {
   saveError.value = "";
 }
 
+async function exportLocalData() {
+  isBackupBusy.value = true;
+  backupError.value = "";
+  try {
+    const backup = await requestJson<LocalDataBackup>("/api/local-data/backup");
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `mystravastats-local-data-${backup.athleteId}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    backupError.value = error instanceof Error ? error.message : "Unable to export local data.";
+  } finally {
+    isBackupBusy.value = false;
+  }
+}
+
+function selectRestoreFile() {
+  restoreInput.value?.click();
+}
+
+async function restoreLocalData(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    backupError.value = "The backup exceeds the 5 MB limit.";
+    return;
+  }
+  if (!window.confirm("Restore this backup? Current local values will be preserved in .bak files.")) return;
+
+  isBackupBusy.value = true;
+  backupError.value = "";
+  try {
+    const backup = JSON.parse(await file.text()) as LocalDataBackup;
+    const result = await requestJson<{ restored: string[] }>("/api/local-data/restore", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(backup),
+    });
+    uiStore.showToast({
+      id: `local-data-${Date.now()}`,
+      type: ToastTypeEnum.NORMAL,
+      message: `${result.restored.length} local data sets restored. Reloading…`,
+      timeout: 1800,
+    });
+    window.setTimeout(() => window.location.reload(), 500);
+  } catch (error) {
+    backupError.value = error instanceof Error ? error.message : "Unable to restore local data.";
+  } finally {
+    isBackupBusy.value = false;
+  }
+}
+
 function normalizePositiveInt(value: number | string | null | undefined): number | null {
   if (value === "" || value === null || value === undefined) {
     return null;
@@ -341,6 +409,9 @@ function todayKey(): string {
       role="alert"
     >
       {{ saveError }}
+    </div>
+    <div v-if="backupError" class="settings-alert settings-alert--error" role="alert">
+      {{ backupError }}
     </div>
 
     <div
@@ -605,6 +676,36 @@ function todayKey(): string {
               <dd>{{ resolvedHeartRateSettings?.maxHr ? `${resolvedHeartRateSettings.maxHr} bpm` : "Unavailable" }}</dd>
             </div>
           </dl>
+        </article>
+
+        <article class="settings-panel settings-panel--wide local-data-panel">
+          <header>
+            <div>
+              <h2>Local data backup</h2>
+              <p>Export or restore goals, data-quality decisions, gear maintenance and athlete settings.</p>
+            </div>
+          </header>
+          <p class="settings-empty">
+            Activity caches and source files are intentionally excluded. A restore only accepts a backup for the current athlete,
+            and keeps each previous file as <code>.bak</code>.
+          </p>
+          <div class="local-data-actions">
+            <button type="button" class="btn btn-outline-primary" :disabled="isBackupBusy" @click="exportLocalData">
+              <i class="fa-solid fa-download" aria-hidden="true" />
+              Export backup
+            </button>
+            <button type="button" class="btn btn-outline-secondary" :disabled="isBackupBusy" @click="selectRestoreFile">
+              <i class="fa-solid fa-upload" aria-hidden="true" />
+              Restore backup
+            </button>
+            <input
+              ref="restoreInput"
+              class="visually-hidden"
+              type="file"
+              accept="application/json,.json"
+              @change="restoreLocalData"
+            >
+          </div>
         </article>
       </section>
     </template>
@@ -920,6 +1021,23 @@ function todayKey(): string {
 .settings-priority--grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.local-data-panel header p {
+  margin: 5px 0 0;
+  color: var(--ms-text-muted);
+}
+
+.local-data-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.local-data-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 @media (max-width: 992px) {

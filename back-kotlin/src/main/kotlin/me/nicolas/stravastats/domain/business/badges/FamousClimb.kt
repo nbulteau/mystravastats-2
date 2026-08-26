@@ -4,6 +4,7 @@ import me.nicolas.stravastats.domain.business.strava.GeoCoordinate
 
 
 data class FamousClimb(
+	val id: String = "",
     val name: String,
     val country: String,
     val massif: String,
@@ -13,6 +14,7 @@ data class FamousClimb(
 )
 
 data class Alternative(
+	val id: String = "",
     val name: String,
     val geoCoordinate: GeoCoordinate,
     val routeCheckpoints: List<GeoCoordinate> = emptyList(),

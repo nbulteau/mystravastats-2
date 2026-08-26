@@ -11,7 +11,6 @@ import DistanceElevationPerYearChart from "@/components/charts/DistanceElevation
 import SpeedPerYearChart from "@/components/charts/SpeedPerYearChart.vue";
 import WeeklyTrainingLoadChart from "@/components/charts/WeeklyTrainingLoadChart.vue";
 import DistanceDistributionHistogramChart from "@/components/charts/DistanceDistributionHistogramChart.vue";
-import LongRideProgressionChart from "@/components/charts/LongRideProgressionChart.vue";
 import EasyHardRatioByMonthChart from "@/components/charts/EasyHardRatioByMonthChart.vue";
 import WeeklyConsistencyChart from "@/components/charts/WeeklyConsistencyChart.vue";
 import { getMetricTooltip } from "@/utils/metric-tooltips";
@@ -113,9 +112,6 @@ const trainingLoadTooltip = computed(
 );
 const distanceDistributionTooltip = computed(
   () => getMetricTooltip("Distance distribution") ?? "Histogram of ride distances to show short vs medium vs long tendencies.",
-);
-const longRideProgressionTooltip = computed(
-  () => getMetricTooltip("Long ride progression") ?? "Weekly max long ride distance with a 4-week moving average.",
 );
 const easyHardByMonthTooltip = computed(
   () => getMetricTooltip("Easy / Hard ratio by month") ?? "Monthly easy vs hard HR-zone split, including easy/hard ratio trend.",
@@ -285,7 +281,6 @@ watch(
     speedOverviewTooltip,
     trainingLoadTooltip,
     distanceDistributionTooltip,
-    longRideProgressionTooltip,
     easyHardByMonthTooltip,
     weeklyConsistencyTooltip,
   ],
@@ -612,26 +607,6 @@ watch(
             >?</span>
           </div>
           <DistanceDistributionHistogramChart :activities="activitiesForCharts" />
-        </section>
-
-        <section class="chart-panel">
-          <div class="chart-panel__header">
-            <h3 class="chart-panel__title">
-              Long Ride Progression
-            </h3>
-            <span
-              class="chart-panel__hint"
-              tabindex="0"
-              role="button"
-              data-bs-toggle="tooltip"
-              data-bs-placement="top"
-              :data-bs-title="longRideProgressionTooltip"
-            >?</span>
-          </div>
-          <LongRideProgressionChart
-            :activities="activitiesForCharts"
-            :selected-year="currentYear"
-          />
         </section>
 
         <section class="chart-panel">

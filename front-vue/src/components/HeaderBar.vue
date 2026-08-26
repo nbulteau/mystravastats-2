@@ -13,6 +13,7 @@ import {
   RUNNING_ACTIVITY_TYPES,
   type ActivityTypeName,
 } from "@/utils/activityTypes";
+import { requestJson } from "@/stores/api";
 
 const contextStore = useContextStore();
 const athleteStore = useAthleteStore();
@@ -83,12 +84,7 @@ async function loadAvailableYears() {
   const url = `/api/dashboard?activityType=${encodeURIComponent(ALL_ACTIVITY_TYPE_FILTER)}`;
 
   try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      return;
-    }
-
-    const payload = await response.json() as DashboardYearsPayload;
+    const payload = await requestJson<DashboardYearsPayload>(url);
     const availableYears = buildAvailableYears(payload);
     if (availableYears.length === 0) {
       years.value = ["All years"];

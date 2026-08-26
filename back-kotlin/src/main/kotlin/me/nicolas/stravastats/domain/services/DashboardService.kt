@@ -17,6 +17,7 @@ import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.services.ActivityHelper.groupActivitiesByDay
 import me.nicolas.stravastats.domain.services.activityproviders.ActivityProviderCacheIdentity
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
+import me.nicolas.stravastats.domain.utils.SafeLocalFile
 import me.nicolas.stravastats.domain.services.activityproviders.StravaActivityProvider
 import me.nicolas.stravastats.domain.services.statistics.calculateBestTimeForDistance
 import org.slf4j.LoggerFactory
@@ -1008,18 +1009,19 @@ class DashboardService(
 
     private fun saveAnnualGoalTargets(year: Int, activityTypes: Set<ActivityType>, targets: AnnualGoalTargets) {
         val file = annualGoalsFile()
-        val current = if (file.exists()) {
-            runCatching {
-                objectMapper.readValue(file, AnnualGoalsCacheFile::class.java)
-            }.getOrElse { AnnualGoalsCacheFile() }
-        } else {
-            AnnualGoalsCacheFile()
+        SafeLocalFile.withLock(file) {
+            val current = if (file.exists()) {
+                runCatching {
+                    objectMapper.readValue(file, AnnualGoalsCacheFile::class.java)
+                }.getOrElse { AnnualGoalsCacheFile() }
+            } else {
+                AnnualGoalsCacheFile()
+            }
+            val updated = AnnualGoalsCacheFile(
+                goals = current.goals + (annualGoalTargetsKey(year, activityTypes) to targets),
+            )
+            SafeLocalFile.write(file, objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(updated))
         }
-        val updated = AnnualGoalsCacheFile(
-            goals = current.goals + (annualGoalTargetsKey(year, activityTypes) to targets),
-        )
-        file.parentFile.mkdirs()
-        objectMapper.writerWithDefaultPrettyPrinter().writeValue(file, updated)
     }
 
     private fun annualGoalsFile(): File {

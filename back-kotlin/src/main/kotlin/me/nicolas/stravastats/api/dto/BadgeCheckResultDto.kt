@@ -37,6 +37,8 @@ fun BadgeCheckResult.toDto(activityTypes: Set<ActivityType>): BadgeCheckResultDt
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class ClimbDetailsDto(
+	val summitId: String,
+	val variantId: String,
     val name: String,
     val country: String,
     val massif: String,
@@ -75,9 +77,32 @@ data class ClimbAscentDto(
     val averageSpeedKph: Double? = null,
     val averagePowerWatts: Int? = null,
     val averageHeartRateBpm: Int? = null,
+    val comparisonPoints: List<ClimbAscentComparisonPointDto> = emptyList(),
+    val comparisonQuality: ClimbAscentComparisonQualityDto,
+)
+
+data class ClimbAscentComparisonPointDto(
+    val distanceKm: Double,
+    val elapsedSeconds: Int,
+    val elevationMeters: Double? = null,
+    val speedKph: Double? = null,
+    val vamMetersPerHour: Int? = null,
+    val powerWatts: Int? = null,
+    val heartRateBpm: Int? = null,
+)
+
+data class ClimbAscentComparisonQualityDto(
+    val alignmentMethod: String,
+    val precision: String,
+    val catalogDistanceKm: Double,
+    val detectedDistanceKm: Double,
+    val startOffsetMeters: Int,
+    val finishOffsetMeters: Int,
+    val warnings: List<String> = emptyList(),
 )
 
 private const val CLIMB_PROFILE_POINT_LIMIT = 64
+private const val CLIMB_COMPARISON_POINT_LIMIT = 64
 private const val CLIMB_MAXIMUM_GRADIENT_WINDOW_METERS = 500.0
 private const val CLIMB_COMPUTED_MAXIMUM_GRADIENT_CEILING = 20.0
 private const val CLIMB_REFERENCE_MAXIMUM_GRADIENT_CEILING = 30.0
@@ -136,6 +161,8 @@ private fun buildClimbDetailsDto(
         ?: (badge.topOfTheAscent - badge.totalAscent)).coerceAtLeast(0)
 
     return ClimbDetailsDto(
+		summitId = badge.summitId,
+		variantId = badge.variantId,
         name = badge.name,
         country = badge.country,
         massif = badge.massif,
@@ -182,6 +209,7 @@ private fun buildClimbAscentDto(
     } else {
         null
     }
+	val (comparisonPoints, comparisonQuality) = buildClimbAscentComparison(activity, bounds, badge)
 
     return ClimbAscentDto(
         activityId = activity.id,
@@ -192,7 +220,154 @@ private fun buildClimbAscentDto(
         averageSpeedKph = speed,
         averagePowerWatts = averagePositiveValues(stream?.watts?.data, bounds),
         averageHeartRateBpm = averagePositiveValues(stream?.heartrate?.data, bounds),
+        comparisonPoints = comparisonPoints,
+        comparisonQuality = comparisonQuality,
     )
+}
+
+private fun buildClimbAscentComparison(
+    activity: StravaActivity,
+    bounds: FamousClimbBounds,
+    badge: FamousClimbBadge,
+): Pair<List<ClimbAscentComparisonPointDto>, ClimbAscentComparisonQualityDto> {
+    val stream = activity.stream
+    if (stream == null) {
+        return emptyList<ClimbAscentComparisonPointDto>() to ClimbAscentComparisonQualityDto(
+            alignmentMethod = "catalog-waypoints-by-distance",
+            precision = "estimated",
+            catalogDistanceKm = round(badge.length * 1000.0) / 1000.0,
+            detectedDistanceKm = 0.0,
+            startOffsetMeters = 0,
+            finishOffsetMeters = 0,
+            warnings = listOf("MISSING_STREAM"),
+        )
+    }
+
+    val distances = stream.distance.data
+    val times = stream.time.data
+    val warnings = mutableListOf<String>()
+    if (
+        bounds.startIndex < 0 ||
+        bounds.endIndex <= bounds.startIndex ||
+        bounds.endIndex >= distances.size
+    ) {
+        return emptyList<ClimbAscentComparisonPointDto>() to ClimbAscentComparisonQualityDto(
+            alignmentMethod = "catalog-waypoints-by-distance",
+            precision = "estimated",
+            catalogDistanceKm = round(badge.length * 1000.0) / 1000.0,
+            detectedDistanceKm = 0.0,
+            startOffsetMeters = 0,
+            finishOffsetMeters = 0,
+            warnings = listOf("INCOMPLETE_DISTANCE_STREAM"),
+        )
+    }
+
+    val startDistance = distances[bounds.startIndex]
+    val detectedDistanceMeters = distances[bounds.endIndex] - startDistance
+    if (!detectedDistanceMeters.isUsable() || detectedDistanceMeters <= 0.0) {
+        return emptyList<ClimbAscentComparisonPointDto>() to ClimbAscentComparisonQualityDto(
+            alignmentMethod = "catalog-waypoints-by-distance",
+            precision = "estimated",
+            catalogDistanceKm = round(badge.length * 1000.0) / 1000.0,
+            detectedDistanceKm = 0.0,
+            startOffsetMeters = 0,
+            finishOffsetMeters = 0,
+            warnings = listOf("INCOMPLETE_DISTANCE_STREAM"),
+        )
+    }
+    val detectedDistanceKm = round((detectedDistanceMeters / 1000.0) * 1000.0) / 1000.0
+    if (badge.length > 0.0 && kotlin.math.abs(detectedDistanceKm - badge.length) / badge.length > 0.1) {
+        warnings += "DISTANCE_DIFFERENCE_OVER_10_PERCENT"
+    }
+
+    val coordinates = stream.latlng?.data
+    val startOffsetMeters = coordinates
+        ?.getOrNull(bounds.startIndex)
+        ?.takeIf { it.size >= 2 }
+        ?.let { badge.start.haversineInM(it[0], it[1]) }
+        ?: 0
+    val finishOffsetMeters = coordinates
+        ?.getOrNull(bounds.endIndex)
+        ?.takeIf { it.size >= 2 }
+        ?.let { badge.end.haversineInM(it[0], it[1]) }
+        ?: 0
+    if (startOffsetMeters > 100) warnings += "START_OFFSET_OVER_100_METERS"
+    if (finishOffsetMeters > 100) warnings += "FINISH_OFFSET_OVER_100_METERS"
+    if (stream.distance.resolution.isNotBlank() && stream.distance.resolution != "high") {
+        warnings += "LOW_RESOLUTION_STREAM"
+    }
+    if (bounds.endIndex >= times.size) {
+        warnings += "INCOMPLETE_TIME_STREAM"
+        return emptyList<ClimbAscentComparisonPointDto>() to ClimbAscentComparisonQualityDto(
+            alignmentMethod = "catalog-waypoints-by-distance",
+            precision = "estimated",
+            catalogDistanceKm = round(badge.length * 1000.0) / 1000.0,
+            detectedDistanceKm = detectedDistanceKm,
+            startOffsetMeters = startOffsetMeters,
+            finishOffsetMeters = finishOffsetMeters,
+            warnings = warnings,
+        )
+    }
+
+    val pointCount = bounds.endIndex - bounds.startIndex + 1
+    val sampleCount = minOf(pointCount, CLIMB_COMPARISON_POINT_LIMIT)
+    val startTime = times[bounds.startIndex]
+    val startAltitude = stream.altitude?.data?.getOrNull(bounds.startIndex)?.takeIf { it.isUsable() }
+    val points = (0 until sampleCount).mapNotNull { sampleIndex ->
+        val offset = if (sampleCount > 1) {
+            round(sampleIndex.toDouble() * (pointCount - 1) / (sampleCount - 1)).toInt()
+        } else {
+            0
+        }
+        val index = bounds.startIndex + offset
+        val distance = distances.getOrNull(index) ?: return@mapNotNull null
+        val time = times.getOrNull(index) ?: return@mapNotNull null
+        if (!distance.isUsable() || time < startTime) return@mapNotNull null
+        val elapsedSeconds = time - startTime
+        val elevation = stream.altitude?.data?.getOrNull(index)
+            ?.takeIf { it.isUsable() }
+            ?.let { round(it * 10.0) / 10.0 }
+        val speedKph = stream.velocitySmooth?.data?.getOrNull(index)
+            ?.toDouble()
+            ?.takeIf { it.isUsable() && it > 0.0 }
+            ?.let { round(it * 3.6 * 10.0) / 10.0 }
+            ?: if (index > bounds.startIndex) {
+                val deltaTime = times[index] - times[index - 1]
+                val deltaDistance = distances[index] - distances[index - 1]
+                if (deltaTime > 0 && deltaDistance.isUsable() && deltaDistance >= 0.0) {
+                    round((deltaDistance / deltaTime * 3.6) * 10.0) / 10.0
+                } else {
+                    null
+                }
+            } else {
+                null
+            }
+        val vam = if (elevation != null && startAltitude != null && elapsedSeconds > 0) {
+            round(maxOf(0.0, elevation - startAltitude) * 3600.0 / elapsedSeconds).toInt()
+        } else {
+            null
+        }
+
+        ClimbAscentComparisonPointDto(
+            distanceKm = round(((distance - startDistance) / 1000.0) * 1000.0) / 1000.0,
+            elapsedSeconds = elapsedSeconds,
+            elevationMeters = elevation,
+            speedKph = speedKph,
+            vamMetersPerHour = vam,
+            powerWatts = stream.watts?.data?.getOrNull(index)?.takeIf { it > 0 },
+            heartRateBpm = stream.heartrate?.data?.getOrNull(index)?.takeIf { it > 0 },
+        )
+    }
+    val quality = ClimbAscentComparisonQualityDto(
+        alignmentMethod = "catalog-waypoints-by-distance",
+        precision = if (warnings.isEmpty()) "high" else "estimated",
+        catalogDistanceKm = round(badge.length * 1000.0) / 1000.0,
+        detectedDistanceKm = detectedDistanceKm,
+        startOffsetMeters = startOffsetMeters,
+        finishOffsetMeters = finishOffsetMeters,
+        warnings = warnings,
+    )
+    return points to quality
 }
 
 private fun averagePositiveValues(values: List<Int?>?, bounds: FamousClimbBounds): Int? {

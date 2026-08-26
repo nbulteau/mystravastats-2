@@ -38,7 +38,7 @@ CLIMBFINDER_HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; MyStravaStats catalog audit)",
     "Accept": "application/json",
 }
-CATALOG_NAMES = ("france", "suisse", "italie", "espagne")
+CATALOG_NAMES = ("france", "suisse", "italie", "espagne", "andorre")
 VALID_CATEGORIES = {"HC", "1", "2", "3", "4"}
 PRINT_LOCK = threading.Lock()
 GENERIC_CLIMB_TOKENS = {

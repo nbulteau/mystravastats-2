@@ -22,9 +22,11 @@
         "difficulty": 1474,
         "averageGradient": 5.16,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-del-nivolet-depuis-locana-c1246.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-del-nivolet-depuis-locana-c1246.htm",
+        "id": "climb-it-colle-del-nivolet--locana"
       }
-    ]
+    ],
+    "id": "climb-it-colle-del-nivolet"
   },
   {
     "name": "Colle delle Finestre",
@@ -49,7 +51,8 @@
         "difficulty": 1021,
         "averageGradient": 7.03,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-delle-finestre-depuis-depot-c424.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-delle-finestre-depuis-depot-c424.htm",
+        "id": "climb-it-colle-delle-finestre--depot"
       },
       {
         "name": "Pourrières",
@@ -64,7 +67,8 @@
         "difficulty": 636,
         "averageGradient": 6.97,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-delle-finestre-depuis-pourrieres-c3620.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-delle-finestre-depuis-pourrieres-c3620.htm",
+        "id": "climb-it-colle-delle-finestre--pourrieres"
       },
       {
         "name": "Susa",
@@ -79,9 +83,11 @@
         "difficulty": 1961,
         "averageGradient": 9.11,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-delle-finestre-depuis-susa-c425.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-delle-finestre-depuis-susa-c425.htm",
+        "id": "climb-it-colle-delle-finestre--susa"
       }
-    ]
+    ],
+    "id": "climb-it-colle-delle-finestre"
   },
   {
     "name": "Colle di Sampeyre",
@@ -106,7 +112,8 @@
         "difficulty": 1226,
         "averageGradient": 8.52,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-di-sampeyre-depuis-sampeyre-c723.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-di-sampeyre-depuis-sampeyre-c723.htm",
+        "id": "climb-it-colle-di-sampeyre--sampeyre"
       },
       {
         "name": "Stroppo",
@@ -121,9 +128,11 @@
         "difficulty": 1287,
         "averageGradient": 7.57,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-di-sampeyre-depuis-stroppo-c722.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-di-sampeyre-depuis-stroppo-c722.htm",
+        "id": "climb-it-colle-di-sampeyre--stroppo"
       }
-    ]
+    ],
+    "id": "climb-it-colle-di-sampeyre"
   },
   {
     "name": "Colle Fauniera",
@@ -148,7 +157,8 @@
         "difficulty": 1428,
         "averageGradient": 6.97,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-fauniera-depuis-demonte-c726.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-fauniera-depuis-demonte-c726.htm",
+        "id": "climb-it-colle-fauniera--demonte"
       },
       {
         "name": "Ponte Marmora",
@@ -163,7 +173,8 @@
         "difficulty": 1215,
         "averageGradient": 7.12,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-fauniera-depuis-ponte-marmora-c725.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-fauniera-depuis-ponte-marmora-c725.htm",
+        "id": "climb-it-colle-fauniera--ponte-marmora"
       },
       {
         "name": "Pradlèves",
@@ -178,9 +189,11 @@
         "difficulty": 1465,
         "averageGradient": 7.54,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-fauniera-depuis-pradleves-c724.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/colle-fauniera-depuis-pradleves-c724.htm",
+        "id": "climb-it-colle-fauniera--pradleves"
       }
-    ]
+    ],
+    "id": "climb-it-colle-fauniera"
   },
   {
     "name": "Monte Bondone",
@@ -205,7 +218,8 @@
         "difficulty": 1142,
         "averageGradient": 6.42,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/montagnes-du-lac-de-garde/italie/monte-bondone-depuis-aldeno-c517.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/montagnes-du-lac-de-garde/italie/monte-bondone-depuis-aldeno-c517.htm",
+        "id": "climb-it-monte-bondone--aldeno"
       },
       {
         "name": "Lasino",
@@ -220,7 +234,8 @@
         "difficulty": 999,
         "averageGradient": 5.08,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/montagnes-du-lac-de-garde/italie/monte-bondone-depuis-lasino-c516.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/montagnes-du-lac-de-garde/italie/monte-bondone-depuis-lasino-c516.htm",
+        "id": "climb-it-monte-bondone--lasino"
       },
       {
         "name": "Trento",
@@ -235,9 +250,11 @@
         "difficulty": 1240,
         "averageGradient": 6.8,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/montagnes-du-lac-de-garde/italie/monte-bondone-depuis-trento-c518.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/montagnes-du-lac-de-garde/italie/monte-bondone-depuis-trento-c518.htm",
+        "id": "climb-it-monte-bondone--trento"
       }
-    ]
+    ],
+    "id": "climb-it-monte-bondone"
   },
   {
     "name": "Monte Grappa",
@@ -262,7 +279,8 @@
         "difficulty": 1161,
         "averageGradient": 5.66,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/monte-grappa-depuis-caupo-c3829.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/monte-grappa-depuis-caupo-c3829.htm",
+        "id": "climb-it-monte-grappa--caupo"
       },
       {
         "name": "Possagno",
@@ -277,7 +295,8 @@
         "difficulty": 1771,
         "averageGradient": 7.26,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/monte-grappa-depuis-possagno-c3632.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/monte-grappa-depuis-possagno-c3632.htm",
+        "id": "climb-it-monte-grappa--possagno"
       },
       {
         "name": "Romano Ezzelino",
@@ -292,7 +311,8 @@
         "difficulty": 1131,
         "averageGradient": 6.2,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/monte-grappa-depuis-romano-ezzelino-c2540.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/monte-grappa-depuis-romano-ezzelino-c2540.htm",
+        "id": "climb-it-monte-grappa--romano-ezzelino"
       },
       {
         "name": "Semonzo del Grappa",
@@ -307,7 +327,8 @@
         "difficulty": 1510,
         "averageGradient": 8.01,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/monte-grappa-depuis-semonzo-del-grappa-c3860.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/monte-grappa-depuis-semonzo-del-grappa-c3860.htm",
+        "id": "climb-it-monte-grappa--semonzo-del-grappa"
       },
       {
         "name": "Seren del Grappa",
@@ -322,9 +343,11 @@
         "difficulty": 1334,
         "averageGradient": 6.33,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/monte-grappa-depuis-seren-del-grappa-c3631.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/monte-grappa-depuis-seren-del-grappa-c3631.htm",
+        "id": "climb-it-monte-grappa--seren-del-grappa"
       }
-    ]
+    ],
+    "id": "climb-it-monte-grappa"
   },
   {
     "name": "Monte Zoncolan",
@@ -349,7 +372,8 @@
         "difficulty": 1764,
         "averageGradient": 11.52,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/alpes-carniques/italie/monte-zoncolan-depuis-ovaro-c422.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-carniques/italie/monte-zoncolan-depuis-ovaro-c422.htm",
+        "id": "climb-it-monte-zoncolan--ovaro"
       },
       {
         "name": "Priola",
@@ -364,7 +388,8 @@
         "difficulty": 1649,
         "averageGradient": 12.81,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/alpes-carniques/italie/monte-zoncolan-depuis-priola-c1603.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-carniques/italie/monte-zoncolan-depuis-priola-c1603.htm",
+        "id": "climb-it-monte-zoncolan--priola"
       },
       {
         "name": "Sutrio, bivio SS 465",
@@ -379,9 +404,11 @@
         "difficulty": 1263,
         "averageGradient": 8.91,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/alpes-carniques/italie/monte-zoncolan-depuis-sutrio-bivio-ss-465-c423.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-carniques/italie/monte-zoncolan-depuis-sutrio-bivio-ss-465-c423.htm",
+        "id": "climb-it-monte-zoncolan--sutrio-bivio-ss-465"
       }
-    ]
+    ],
+    "id": "climb-it-monte-zoncolan"
   },
   {
     "name": "Mottarone",
@@ -406,7 +433,8 @@
         "difficulty": 788,
         "averageGradient": 7.6,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/alpes-pennines/italie/mottarone-depuis-armeno-c1613.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-pennines/italie/mottarone-depuis-armeno-c1613.htm",
+        "id": "climb-it-mottarone--armeno"
       },
       {
         "name": "Baveno",
@@ -421,7 +449,8 @@
         "difficulty": 966,
         "averageGradient": 5.95,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/alpes-pennines/italie/mottarone-depuis-baveno-c1612.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-pennines/italie/mottarone-depuis-baveno-c1612.htm",
+        "id": "climb-it-mottarone--baveno"
       },
       {
         "name": "Gignese",
@@ -436,7 +465,8 @@
         "difficulty": 525,
         "averageGradient": 6.73,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/alpes-pennines/italie/mottarone-depuis-gignese-c1614.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-pennines/italie/mottarone-depuis-gignese-c1614.htm",
+        "id": "climb-it-mottarone--gignese"
       },
       {
         "name": "Orta",
@@ -451,7 +481,8 @@
         "difficulty": 765,
         "averageGradient": 6.79,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/alpes-pennines/italie/mottarone-depuis-orta-c1615.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-pennines/italie/mottarone-depuis-orta-c1615.htm",
+        "id": "climb-it-mottarone--orta"
       },
       {
         "name": "Stresa",
@@ -466,9 +497,11 @@
         "difficulty": 958,
         "averageGradient": 6.23,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/alpes-pennines/italie/mottarone-depuis-stresa-c1616.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-pennines/italie/mottarone-depuis-stresa-c1616.htm",
+        "id": "climb-it-mottarone--stresa"
       }
-    ]
+    ],
+    "id": "climb-it-mottarone"
   },
   {
     "name": "Passo del Mortirolo",
@@ -493,7 +526,8 @@
         "difficulty": 772,
         "averageGradient": 6.7,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-del-mortirolo-depuis-edolo-c421.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-del-mortirolo-depuis-edolo-c421.htm",
+        "id": "climb-it-passo-del-mortirolo--edolo"
       },
       {
         "name": "Grosio",
@@ -508,7 +542,8 @@
         "difficulty": 1163,
         "averageGradient": 8.26,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-del-mortirolo-depuis-grosio-c419.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-del-mortirolo-depuis-grosio-c419.htm",
+        "id": "climb-it-passo-del-mortirolo--grosio"
       },
       {
         "name": "Mazzo",
@@ -523,7 +558,8 @@
         "difficulty": 1525,
         "averageGradient": 10.48,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-del-mortirolo-depuis-mazzo-c420.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-del-mortirolo-depuis-mazzo-c420.htm",
+        "id": "climb-it-passo-del-mortirolo--mazzo"
       },
       {
         "name": "Tovo di Sant'Agata",
@@ -538,9 +574,11 @@
         "difficulty": 1695,
         "averageGradient": 10.66,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-del-mortirolo-depuis-tovo-di-sant-agata-c3088.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-del-mortirolo-depuis-tovo-di-sant-agata-c3088.htm",
+        "id": "climb-it-passo-del-mortirolo--tovo-di-sant-agata"
       }
-    ]
+    ],
+    "id": "climb-it-passo-del-mortirolo"
   },
   {
     "name": "Passo del Rombo",
@@ -565,9 +603,11 @@
         "difficulty": 1422,
         "averageGradient": 6.17,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/alpes-de-stubai/italie/passo-del-rombo-depuis-san-leonardo-in-passiria-c1532.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/alpes-de-stubai/italie/passo-del-rombo-depuis-san-leonardo-in-passiria-c1532.htm",
+        "id": "climb-it-passo-del-rombo--san-leonardo-in-passiria"
       }
-    ]
+    ],
+    "id": "climb-it-passo-del-rombo"
   },
   {
     "name": "Passo del Tonale",
@@ -592,7 +632,8 @@
         "difficulty": 613,
         "averageGradient": 6.05,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-del-tonale-depuis-fucine-c534.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-del-tonale-depuis-fucine-c534.htm",
+        "id": "climb-it-passo-del-tonale--fucine"
       },
       {
         "name": "Ponte di Legno",
@@ -607,9 +648,11 @@
         "difficulty": 386,
         "averageGradient": 5.95,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-del-tonale-depuis-ponte-di-legno-c533.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-del-tonale-depuis-ponte-di-legno-c533.htm",
+        "id": "climb-it-passo-del-tonale--ponte-di-legno"
       }
-    ]
+    ],
+    "id": "climb-it-passo-del-tonale"
   },
   {
     "name": "Passo della Mendola",
@@ -634,7 +677,8 @@
         "difficulty": 729,
         "averageGradient": 6.47,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-della-mendola-depuis-appiano-c2757.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-della-mendola-depuis-appiano-c2757.htm",
+        "id": "climb-it-passo-della-mendola--appiano"
       },
       {
         "name": "Brez",
@@ -649,9 +693,11 @@
         "difficulty": 208,
         "averageGradient": 3.85,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-della-mendola-depuis-brez-c2758.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-della-mendola-depuis-brez-c2758.htm",
+        "id": "climb-it-passo-della-mendola--brez"
       }
-    ]
+    ],
+    "id": "climb-it-passo-della-mendola"
   },
   {
     "name": "Passo dello Stelvio",
@@ -676,7 +722,8 @@
         "difficulty": 1223,
         "averageGradient": 7.01,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-dello-stelvio-depuis-bormio-c361.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-dello-stelvio-depuis-bormio-c361.htm",
+        "id": "climb-it-passo-dello-stelvio--bormio"
       },
       {
         "name": "Prato",
@@ -691,9 +738,11 @@
         "difficulty": 1474,
         "averageGradient": 7.28,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-dello-stelvio-depuis-prato-c360.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-dello-stelvio-depuis-prato-c360.htm",
+        "id": "climb-it-passo-dello-stelvio--prato"
       }
-    ]
+    ],
+    "id": "climb-it-passo-dello-stelvio"
   },
   {
     "name": "Passo di Croce Domini",
@@ -718,7 +767,8 @@
         "difficulty": 1313,
         "averageGradient": 8.49,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/montagnes-du-lac-de-garde/italie/passo-di-croce-domini-depuis-bienno-c3731.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/montagnes-du-lac-de-garde/italie/passo-di-croce-domini-depuis-bienno-c3731.htm",
+        "id": "climb-it-passo-di-croce-domini--bienno"
       },
       {
         "name": "Lodrone",
@@ -733,9 +783,11 @@
         "difficulty": 732,
         "averageGradient": 4.89,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/montagnes-du-lac-de-garde/italie/passo-di-croce-domini-depuis-lodrone-c3732.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/montagnes-du-lac-de-garde/italie/passo-di-croce-domini-depuis-lodrone-c3732.htm",
+        "id": "climb-it-passo-di-croce-domini--lodrone"
       }
-    ]
+    ],
+    "id": "climb-it-passo-di-croce-domini"
   },
   {
     "name": "Passo di Gavia",
@@ -760,7 +812,8 @@
         "difficulty": 982,
         "averageGradient": 5.48,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-di-gavia-depuis-bormio-c357.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-di-gavia-depuis-bormio-c357.htm",
+        "id": "climb-it-passo-di-gavia--bormio"
       },
       {
         "name": "Ponte di Legno",
@@ -775,7 +828,8 @@
         "difficulty": 1166,
         "averageGradient": 7.88,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-di-gavia-depuis-ponte-di-legno-c358.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-di-gavia-depuis-ponte-di-legno-c358.htm",
+        "id": "climb-it-passo-di-gavia--ponte-di-legno"
       },
       {
         "name": "Valfurva",
@@ -790,9 +844,11 @@
         "difficulty": 579,
         "averageGradient": 6.55,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-di-gavia-depuis-valfurva-c359.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/massif-de-l-ortles/italie/passo-di-gavia-depuis-valfurva-c359.htm",
+        "id": "climb-it-passo-di-gavia--valfurva"
       }
-    ]
+    ],
+    "id": "climb-it-passo-di-gavia"
   },
   {
     "name": "Passo Manghen",
@@ -817,7 +873,8 @@
         "difficulty": 1350,
         "averageGradient": 6.96,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-manghen-depuis-borgo-valsugana-c1952.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-manghen-depuis-borgo-valsugana-c1952.htm",
+        "id": "climb-it-passo-manghen--borgo-valsugana"
       },
       {
         "name": "Molina di Fiemme",
@@ -832,9 +889,11 @@
         "difficulty": 1144,
         "averageGradient": 7.49,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-manghen-depuis-molina-di-fiemme-c1953.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-manghen-depuis-molina-di-fiemme-c1953.htm",
+        "id": "climb-it-passo-manghen--molina-di-fiemme"
       }
-    ]
+    ],
+    "id": "climb-it-passo-manghen"
   },
   {
     "name": "Piancavallo",
@@ -859,7 +918,8 @@
         "difficulty": 645,
         "averageGradient": 5.61,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/piancavallo-depuis-barcis-c1606.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/piancavallo-depuis-barcis-c1606.htm",
+        "id": "climb-it-piancavallo--barcis"
       },
       {
         "name": "Costa di Aviano",
@@ -874,7 +934,8 @@
         "difficulty": 564,
         "averageGradient": 5.31,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/piancavallo-depuis-costa-di-aviano-c1607.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/piancavallo-depuis-costa-di-aviano-c1607.htm",
+        "id": "climb-it-piancavallo--costa-di-aviano"
       },
       {
         "name": "Pedemonte di Aviano",
@@ -889,9 +950,11 @@
         "difficulty": 995,
         "averageGradient": 8.03,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/piancavallo-depuis-pedemonte-di-aviano-c1608.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/piancavallo-depuis-pedemonte-di-aviano-c1608.htm",
+        "id": "climb-it-piancavallo--pedemonte-di-aviano"
       }
-    ]
+    ],
+    "id": "climb-it-piancavallo"
   },
   {
     "name": "Station de Sestrières",
@@ -916,7 +979,8 @@
         "difficulty": 505,
         "averageGradient": 5.9,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/station-de-sestrieres-depuis-cesana-c226.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/station-de-sestrieres-depuis-cesana-c226.htm",
+        "id": "climb-it-station-de-sestrieres--cesana"
       },
       {
         "name": "Oulx",
@@ -931,7 +995,8 @@
         "difficulty": 429,
         "averageGradient": 4.5,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/station-de-sestrieres-depuis-oulx-c225.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/station-de-sestrieres-depuis-oulx-c225.htm",
+        "id": "climb-it-station-de-sestrieres--oulx"
       },
       {
         "name": "Perosa Argentina",
@@ -946,9 +1011,11 @@
         "difficulty": 713,
         "averageGradient": 3.77,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/station-de-sestrieres-depuis-perosa-argentina-c224.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/piemont/italie/station-de-sestrieres-depuis-perosa-argentina-c224.htm",
+        "id": "climb-it-station-de-sestrieres--perosa-argentina"
       }
-    ]
+    ],
+    "id": "climb-it-station-de-sestrieres"
   },
   {
     "name": "Blockhaus",
@@ -973,7 +1040,8 @@
         "difficulty": 1226,
         "averageGradient": 6.53,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/apennins/italie/blockhaus-depuis-fara-filiorum-petri-c498.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/apennins/italie/blockhaus-depuis-fara-filiorum-petri-c498.htm",
+        "id": "climb-it-blockhaus--fara-filiorum-petri"
       },
       {
         "name": "Lettomanoppello",
@@ -988,7 +1056,8 @@
         "difficulty": 1484,
         "averageGradient": 7.28,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/apennins/italie/blockhaus-depuis-lettomanoppello-c497.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/apennins/italie/blockhaus-depuis-lettomanoppello-c497.htm",
+        "id": "climb-it-blockhaus--lettomanoppello"
       },
       {
         "name": "Roccamorice",
@@ -1003,9 +1072,11 @@
         "difficulty": 1582,
         "averageGradient": 6.21,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/apennins/italie/blockhaus-depuis-roccamorice-c499.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/apennins/italie/blockhaus-depuis-roccamorice-c499.htm",
+        "id": "climb-it-blockhaus--roccamorice"
       }
-    ]
+    ],
+    "id": "climb-it-blockhaus"
   },
   {
     "name": "Monte Terminillo / Sella di Leonessa",
@@ -1030,7 +1101,8 @@
         "difficulty": 756,
         "averageGradient": 5.59,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/apennins/italie/monte-terminillo-sella-di-leonessa-depuis-leonessa-c2752.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/apennins/italie/monte-terminillo-sella-di-leonessa-depuis-leonessa-c2752.htm",
+        "id": "climb-it-monte-terminillo-sella-di-leonessa--leonessa"
       },
       {
         "name": "Rieti",
@@ -1045,9 +1117,11 @@
         "difficulty": 1070,
         "averageGradient": 6.06,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/apennins/italie/monte-terminillo-sella-di-leonessa-depuis-rieti-c2751.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/apennins/italie/monte-terminillo-sella-di-leonessa-depuis-rieti-c2751.htm",
+        "id": "climb-it-monte-terminillo-sella-di-leonessa--rieti"
       }
-    ]
+    ],
+    "id": "climb-it-monte-terminillo-sella-di-leonessa"
   },
   {
     "name": "Passo delle Erbe",
@@ -1072,7 +1146,8 @@
         "difficulty": 1087,
         "averageGradient": 5.34,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-delle-erbe-depuis-brixen-bressanonne-c3830.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-delle-erbe-depuis-brixen-bressanonne-c3830.htm",
+        "id": "climb-it-passo-delle-erbe--brixen-bressanonne"
       },
       {
         "name": "Piccolino",
@@ -1087,7 +1162,8 @@
         "difficulty": 873,
         "averageGradient": 6.07,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-delle-erbe-depuis-piccolino-c2325.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-delle-erbe-depuis-piccolino-c2325.htm",
+        "id": "climb-it-passo-delle-erbe--piccolino"
       },
       {
         "name": "Val di Funes",
@@ -1102,9 +1178,11 @@
         "difficulty": 1126,
         "averageGradient": 5.71,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-delle-erbe-depuis-val-di-funes-c2326.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-delle-erbe-depuis-val-di-funes-c2326.htm",
+        "id": "climb-it-passo-delle-erbe--val-di-funes"
       }
-    ]
+    ],
+    "id": "climb-it-passo-delle-erbe"
   },
   {
     "name": "Passo di Campolongo",
@@ -1129,9 +1207,11 @@
         "difficulty": 229,
         "averageGradient": 4.99,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-di-campolongo-depuis-corvara-in-badia-c3436.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-di-campolongo-depuis-corvara-in-badia-c3436.htm",
+        "id": "climb-it-passo-di-campolongo--corvara-in-badia"
       }
-    ]
+    ],
+    "id": "climb-it-passo-di-campolongo"
   },
   {
     "name": "Passo Falzarego",
@@ -1156,7 +1236,8 @@
         "difficulty": 708,
         "averageGradient": 5.46,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-falzarego-depuis-caprile-c1950.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-falzarego-depuis-caprile-c1950.htm",
+        "id": "climb-it-passo-falzarego--caprile"
       },
       {
         "name": "Cortina d'Ampezzo",
@@ -1171,9 +1252,11 @@
         "difficulty": 585,
         "averageGradient": 5.59,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-falzarego-depuis-cortina-d-ampezzo-c1951.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-falzarego-depuis-cortina-d-ampezzo-c1951.htm",
+        "id": "climb-it-passo-falzarego--cortina-d-ampezzo"
       }
-    ]
+    ],
+    "id": "climb-it-passo-falzarego"
   },
   {
     "name": "Passo Fedaia",
@@ -1198,7 +1281,8 @@
         "difficulty": 427,
         "averageGradient": 4.44,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-fedaia-depuis-canazei-c529.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-fedaia-depuis-canazei-c529.htm",
+        "id": "climb-it-passo-fedaia--canazei"
       },
       {
         "name": "Caprile",
@@ -1213,9 +1297,11 @@
         "difficulty": 996,
         "averageGradient": 7.51,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-fedaia-depuis-caprile-c528.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-fedaia-depuis-caprile-c528.htm",
+        "id": "climb-it-passo-fedaia--caprile"
       }
-    ]
+    ],
+    "id": "climb-it-passo-fedaia"
   },
   {
     "name": "Passo Gardena",
@@ -1240,7 +1326,8 @@
         "difficulty": 429,
         "averageGradient": 6.24,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-gardena-depuis-corvara-in-badia-c2512.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-gardena-depuis-corvara-in-badia-c2512.htm",
+        "id": "climb-it-passo-gardena--corvara-in-badia"
       },
       {
         "name": "Ponte Gardena",
@@ -1255,9 +1342,11 @@
         "difficulty": 856,
         "averageGradient": 5.18,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-gardena-depuis-ponte-gardena-c2511.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-gardena-depuis-ponte-gardena-c2511.htm",
+        "id": "climb-it-passo-gardena--ponte-gardena"
       }
-    ]
+    ],
+    "id": "climb-it-passo-gardena"
   },
   {
     "name": "Passo Giau",
@@ -1282,7 +1371,8 @@
         "difficulty": 597,
         "averageGradient": 8.33,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-giau-depuis-pocol-c1610.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-giau-depuis-pocol-c1610.htm",
+        "id": "climb-it-passo-giau--pocol"
       },
       {
         "name": "Selva di Cadore",
@@ -1297,9 +1387,11 @@
         "difficulty": 914,
         "averageGradient": 9.13,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-giau-depuis-selva-di-cadore-c1609.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-giau-depuis-selva-di-cadore-c1609.htm",
+        "id": "climb-it-passo-giau--selva-di-cadore"
       }
-    ]
+    ],
+    "id": "climb-it-passo-giau"
   },
   {
     "name": "Passo Pordoi",
@@ -1324,7 +1416,8 @@
         "difficulty": 471,
         "averageGradient": 6.78,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-pordoi-depuis-arabba-c1744.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-pordoi-depuis-arabba-c1744.htm",
+        "id": "climb-it-passo-pordoi--arabba"
       },
       {
         "name": "Canazei",
@@ -1339,9 +1432,11 @@
         "difficulty": 535,
         "averageGradient": 6.05,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-pordoi-depuis-canazei-c1743.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-pordoi-depuis-canazei-c1743.htm",
+        "id": "climb-it-passo-pordoi--canazei"
       }
-    ]
+    ],
+    "id": "climb-it-passo-pordoi"
   },
   {
     "name": "Passo Rolle",
@@ -1366,7 +1461,8 @@
         "difficulty": 769,
         "averageGradient": 5.42,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-rolle-depuis-fiera-di-primiero-c1954.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-rolle-depuis-fiera-di-primiero-c1954.htm",
+        "id": "climb-it-passo-rolle--fiera-di-primiero"
       },
       {
         "name": "Predazzo",
@@ -1381,9 +1477,11 @@
         "difficulty": 607,
         "averageGradient": 4.67,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-rolle-depuis-predazzo-c1955.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-rolle-depuis-predazzo-c1955.htm",
+        "id": "climb-it-passo-rolle--predazzo"
       }
-    ]
+    ],
+    "id": "climb-it-passo-rolle"
   },
   {
     "name": "Passo San Pellegrino",
@@ -1408,7 +1506,8 @@
         "difficulty": 975,
         "averageGradient": 6.29,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-san-pellegrino-depuis-cencenighe-c522.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-san-pellegrino-depuis-cencenighe-c522.htm",
+        "id": "climb-it-passo-san-pellegrino--cencenighe"
       },
       {
         "name": "Moena",
@@ -1423,9 +1522,11 @@
         "difficulty": 508,
         "averageGradient": 6.82,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-san-pellegrino-depuis-moena-c521.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-san-pellegrino-depuis-moena-c521.htm",
+        "id": "climb-it-passo-san-pellegrino--moena"
       }
-    ]
+    ],
+    "id": "climb-it-passo-san-pellegrino"
   },
   {
     "name": "Passo Sella",
@@ -1450,7 +1551,8 @@
         "difficulty": 591,
         "averageGradient": 6.88,
         "category": "2",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-sella-depuis-canazei-c1796.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-sella-depuis-canazei-c1796.htm",
+        "id": "climb-it-passo-sella--canazei"
       },
       {
         "name": "Plan de gralba",
@@ -1465,9 +1567,11 @@
         "difficulty": 287,
         "averageGradient": 6.91,
         "category": "3",
-        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-sella-depuis-plan-de-gralba-c1797.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/dolomites/italie/passo-sella-depuis-plan-de-gralba-c1797.htm",
+        "id": "climb-it-passo-sella--plan-de-gralba"
       }
-    ]
+    ],
+    "id": "climb-it-passo-sella"
   },
   {
     "name": "Etna - Rifugio Sapienza",
@@ -1492,7 +1596,8 @@
         "difficulty": 815,
         "averageGradient": 6.44,
         "category": "1",
-        "sourceUrl": "https://www.cols-cyclisme.com/sicile/italie/etna-rifugio-sapienza-depuis-nicolosi-c1597.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/sicile/italie/etna-rifugio-sapienza-depuis-nicolosi-c1597.htm",
+        "id": "climb-it-etna-rifugio-sapienza--nicolosi"
       },
       {
         "name": "Pedara",
@@ -1507,7 +1612,8 @@
         "difficulty": 1047,
         "averageGradient": 7.14,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/sicile/italie/etna-rifugio-sapienza-depuis-pedara-c1598.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/sicile/italie/etna-rifugio-sapienza-depuis-pedara-c1598.htm",
+        "id": "climb-it-etna-rifugio-sapienza--pedara"
       },
       {
         "name": "Piano San Leo",
@@ -1522,7 +1628,8 @@
         "difficulty": 959,
         "averageGradient": 6.79,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/sicile/italie/etna-rifugio-sapienza-depuis-piano-san-leo-c1599.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/sicile/italie/etna-rifugio-sapienza-depuis-piano-san-leo-c1599.htm",
+        "id": "climb-it-etna-rifugio-sapienza--piano-san-leo"
       },
       {
         "name": "Zafferana",
@@ -1537,8 +1644,10 @@
         "difficulty": 1066,
         "averageGradient": 7.25,
         "category": "HC",
-        "sourceUrl": "https://www.cols-cyclisme.com/sicile/italie/etna-rifugio-sapienza-depuis-zafferana-c1596.htm"
+        "sourceUrl": "https://www.cols-cyclisme.com/sicile/italie/etna-rifugio-sapienza-depuis-zafferana-c1596.htm",
+        "id": "climb-it-etna-rifugio-sapienza--zafferana"
       }
-    ]
+    ],
+    "id": "climb-it-etna-rifugio-sapienza"
   }
 ]

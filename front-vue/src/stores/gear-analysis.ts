@@ -5,8 +5,7 @@ import {
   type GearMaintenanceRecord,
   type GearMaintenanceRecordRequest,
 } from "@/models/gear-analysis.model";
-import { buildFilteredApiUrl, requestJson } from "@/stores/api";
-import { ErrorService } from "@/services/error.service";
+import { buildFilteredApiUrl, requestJson, requestVoid } from "@/stores/api";
 import { useContextStore } from "@/stores/context";
 
 export const useGearAnalysisStore = defineStore("gearAnalysis", {
@@ -69,15 +68,12 @@ export const useGearAnalysisStore = defineStore("gearAnalysis", {
       return record;
     },
     async deleteMaintenanceRecord(recordId: string): Promise<void> {
-      const response = await fetch(`/api/gear-analysis/maintenance/${encodeURIComponent(recordId)}`, {
+      await requestVoid(`/api/gear-analysis/maintenance/${encodeURIComponent(recordId)}`, {
         method: "DELETE",
         headers: {
           Accept: "application/json",
         },
       });
-      if (!response.ok) {
-        await ErrorService.catchError(response);
-      }
       await this.fetchGearAnalysis();
     },
   },

@@ -9,6 +9,8 @@ export interface BadgeCheckResult {
 }
 
 export interface ClimbDetails {
+	summitId?: string;
+	variantId?: string;
     name: string;
     country: string;
     massif: string;
@@ -47,4 +49,26 @@ export interface ClimbAscent {
     averageSpeedKph?: number | null;
     averagePowerWatts?: number | null;
     averageHeartRateBpm?: number | null;
+    comparisonPoints?: ClimbAscentComparisonPoint[];
+    comparisonQuality?: ClimbAscentComparisonQuality;
+}
+
+export interface ClimbAscentComparisonPoint {
+    distanceKm: number;
+    elapsedSeconds: number;
+    elevationMeters?: number | null;
+    speedKph?: number | null;
+    vamMetersPerHour?: number | null;
+    powerWatts?: number | null;
+    heartRateBpm?: number | null;
+}
+
+export interface ClimbAscentComparisonQuality {
+    alignmentMethod: string;
+    precision: "high" | "estimated" | string;
+    catalogDistanceKm: number;
+    detectedDistanceKm: number;
+    startOffsetMeters: number;
+    finishOffsetMeters: number;
+    warnings: string[];
 }

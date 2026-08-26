@@ -8,6 +8,17 @@ type BadgesCacheEntry = {
   famousClimbBadgesCheckResults: BadgeCheckResult[];
 };
 
+function splitBadgeResults(badgeResults: BadgeCheckResult[]): BadgesCacheEntry {
+  return {
+    generalBadgesCheckResults: badgeResults.filter(
+      (badgeCheckResult) => !badgeCheckResult.badge.type.endsWith("FamousClimbBadge"),
+    ),
+    famousClimbBadgesCheckResults: badgeResults.filter((badgeCheckResult) =>
+      badgeCheckResult.badge.type.endsWith("FamousClimbBadge"),
+    ),
+  };
+}
+
 export const useBadgesStore = defineStore("badges", {
   state: () => ({
     generalBadgesCheckResults: [] as BadgeCheckResult[],
@@ -45,14 +56,7 @@ export const useBadgesStore = defineStore("badges", {
       this.error = null;
       try {
         const badgeResults = await requestJson<BadgeCheckResult[]>(url);
-        const cacheEntry = {
-          generalBadgesCheckResults: badgeResults.filter(
-            (badgeCheckResult) => !badgeCheckResult.badge.type.endsWith("FamousClimbBadge"),
-          ),
-          famousClimbBadgesCheckResults: badgeResults.filter((badgeCheckResult) =>
-            badgeCheckResult.badge.type.endsWith("FamousClimbBadge"),
-          ),
-        };
+        const cacheEntry = splitBadgeResults(badgeResults);
         this.badgesByKey[key] = cacheEntry;
         if (this.currentFiltersKey() === key) {
           this.setFromCacheEntry(cacheEntry, key);
@@ -78,6 +82,15 @@ export const useBadgesStore = defineStore("badges", {
         return;
       }
       await this.fetchBadges();
+    },
+    async ensureFiltersLoaded(activityType: string, year: string): Promise<BadgesCacheEntry> {
+      const key = `${activityType}__${year}`;
+      const cached = this.badgesByKey[key];
+      if (cached) return cached;
+      const badgeResults = await requestJson<BadgeCheckResult[]>(buildFilteredApiUrl("badges", activityType, year));
+      const entry = splitBadgeResults(badgeResults);
+      this.badgesByKey[key] = entry;
+      return entry;
     },
   },
 });

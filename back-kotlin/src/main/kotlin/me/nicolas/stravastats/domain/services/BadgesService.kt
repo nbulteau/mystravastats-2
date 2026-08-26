@@ -37,6 +37,7 @@ internal class BadgesService(
         "suisse" to "famous-climb/suisse.json",
         "italie" to "famous-climb/italie.json",
         "espagne" to "famous-climb/espagne.json",
+        "andorre" to "famous-climb/andorre.json",
     ).map { (name, path) -> loadBadgeSet(name, path) }
 
     override fun getGeneralBadges(activityTypes: Set<ActivityType>, year: Int?): List<BadgeCheckResult> {
@@ -91,6 +92,8 @@ internal class BadgesService(
         val famousClimbBadgeList = famousClimbs.flatMap { famousClimb ->
             famousClimb.alternatives.map { alternative ->
                 FamousClimbBadge(
+					summitId = famousClimb.id,
+					variantId = alternative.id,
                     name = famousClimb.name,
                     label = "${famousClimb.name} from ${alternative.name}",
                     country = famousClimb.country,

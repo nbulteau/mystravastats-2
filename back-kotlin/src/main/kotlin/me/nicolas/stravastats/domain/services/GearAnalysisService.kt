@@ -15,6 +15,7 @@ import me.nicolas.stravastats.domain.business.GearMaintenanceTask
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
+import me.nicolas.stravastats.domain.utils.SafeLocalFile
 import org.springframework.stereotype.Service
 import tools.jackson.databind.DeserializationFeature
 import tools.jackson.databind.json.JsonMapper
@@ -72,17 +73,18 @@ internal class GearAnalysisService(
             createdAt = now,
             updatedAt = now,
         )
-        GearMaintenanceStorage.save(activityProvider, GearMaintenanceStorage.load(activityProvider) + record)
+        GearMaintenanceStorage.update(activityProvider) { records -> records + record }
         return record
     }
 
     override fun deleteMaintenanceRecord(recordId: String) {
         val trimmedId = recordId.trim()
         require(trimmedId.isNotBlank()) { "recordId is required" }
-        val records = GearMaintenanceStorage.load(activityProvider)
-        val updated = records.filterNot { it.id == trimmedId }
-        require(updated.size != records.size) { "maintenance record $trimmedId not found" }
-        GearMaintenanceStorage.save(activityProvider, updated)
+        GearMaintenanceStorage.update(activityProvider) { records ->
+            val updated = records.filterNot { it.id == trimmedId }
+            require(updated.size != records.size) { "maintenance record $trimmedId not found" }
+            updated
+        }
     }
 
     private fun buildGearAnalysis(
@@ -639,10 +641,14 @@ private object GearMaintenanceStorage {
         }
     }
 
-    fun save(activityProvider: IActivityProvider, records: List<GearMaintenanceRecord>) {
+    fun update(activityProvider: IActivityProvider, operation: (List<GearMaintenanceRecord>) -> List<GearMaintenanceRecord>) {
         val file = file(activityProvider) ?: return
-        file.parentFile?.mkdirs()
-        objectMapper.writerWithDefaultPrettyPrinter().writeValue(file, GearMaintenanceFile(normalize(records)))
+        SafeLocalFile.withLock(file) {
+            val records = if (file.exists()) load(activityProvider) else emptyList()
+            val content = objectMapper.writerWithDefaultPrettyPrinter()
+                .writeValueAsBytes(GearMaintenanceFile(normalize(operation(records))))
+            SafeLocalFile.write(file, content)
+        }
     }
 
     private fun file(activityProvider: IActivityProvider): File? {

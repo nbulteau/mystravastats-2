@@ -26,6 +26,7 @@ class BadgesServiceTest {
         "cols-cyclisme.com",
         "bigcycling.eu",
         "climbfinder.com",
+        "cyclinglocations.com",
     )
 
     @BeforeEach
@@ -117,7 +118,7 @@ class BadgesServiceTest {
     }
 
     @Test
-    fun `getFamousBadges loads the four national catalogs with geography`() {
+    fun `getFamousBadges loads the five national catalogs with geography`() {
         val activityTypes = setOf(ActivityType.Ride)
         every {
             activityProvider.getActivitiesByActivityTypeAndYear(activityTypes, null)
@@ -126,9 +127,14 @@ class BadgesServiceTest {
         val results = badgesService.getFamousBadges(activityTypes, null)
         val climbs = results.map { it.badge as FamousClimbBadge }
 
-        assertEquals(760, climbs.size)
-        assertEquals(mapOf("FR" to 508, "CH" to 47, "IT" to 78, "ES" to 127), climbs.groupingBy { it.country }.eachCount())
+        assertEquals(766, climbs.size)
+        assertEquals(
+            mapOf("FR" to 508, "CH" to 47, "IT" to 78, "ES" to 127, "AD" to 6),
+            climbs.groupingBy { it.country }.eachCount(),
+        )
         assertTrue(climbs.all { it.massif.isNotBlank() })
+		assertTrue(climbs.all { it.summitId.isNotBlank() && it.variantId.startsWith("${it.summitId}--") })
+		assertEquals(climbs.size, climbs.map { it.variantId }.distinct().size)
         assertEquals(climbs.size, climbs.map { it.label }.distinct().size)
         climbs.forEach { climb ->
             assertTrue(climb.length > 0, "Invalid length for ${climb.label}")

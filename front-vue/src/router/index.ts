@@ -80,4 +80,12 @@ const router: Router = createRouter({
   ],
 })
 
+const highchartsRoutes = new Set(['dashboard', 'heatmap', 'charts', 'segments', 'activity'])
+router.beforeResolve(async (to) => {
+  const routeName = typeof to.name === 'string' ? to.name : ''
+  if (!highchartsRoutes.has(routeName)) return
+  const { setupHighcharts } = await import('@/utils/highcharts-setup')
+  await setupHighcharts(routeName === 'heatmap')
+})
+
 export default router

@@ -14,6 +14,7 @@ import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.business.strava.stream.SmoothVelocityStream
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
+import me.nicolas.stravastats.domain.utils.SafeLocalFile
 import org.springframework.stereotype.Service
 import tools.jackson.databind.DeserializationFeature
 import tools.jackson.databind.json.JsonMapper
@@ -55,25 +56,29 @@ class DataQualityService(
         val activities = activityProvider.getActivitiesByActivityTypeAndYear(ActivityType.values().toSet(), null)
         val activity = activities.firstOrNull { candidate -> candidate.id == activityId }
             ?: throw IllegalArgumentException("activity $activityId not found")
-        val exclusionsById = DataQualityExclusionStorage.load(activityProvider).associateBy { exclusion -> exclusion.activityId }.toMutableMap()
-        exclusionsById[activityId] = DataQualityExclusion(
-            activityId = activityId,
-            source = provider.uppercase(),
-            activityName = activity.name.trim(),
-            activityType = activity.type,
-            year = activity.startDateLocal.take(4).ifBlank { activity.startDate.take(4) },
-            reason = reason?.trim()?.takeIf { it.isNotEmpty() } ?: "Excluded from statistics after data quality audit.",
-            excludedAt = Instant.now().toString(),
-        )
-        DataQualityExclusionStorage.save(activityProvider, exclusionsById.values.sortedWith(exclusionComparator()))
+        DataQualityExclusionStorage.update(activityProvider) { exclusions ->
+            val exclusionsById = exclusions.associateBy { exclusion -> exclusion.activityId }.toMutableMap()
+            exclusionsById[activityId] = DataQualityExclusion(
+                activityId = activityId,
+                source = provider.uppercase(),
+                activityName = activity.name.trim(),
+                activityType = activity.type,
+                year = activity.startDateLocal.take(4).ifBlank { activity.startDate.take(4) },
+                reason = reason?.trim()?.takeIf { it.isNotEmpty() } ?: "Excluded from statistics after data quality audit.",
+                excludedAt = Instant.now().toString(),
+            )
+            exclusionsById.values.sortedWith(exclusionComparator())
+        }
         return buildReport()
     }
 
     override fun includeActivityInStats(activityId: Long): DataQualityReport {
         require(activityId > 0) { "activityId must be > 0" }
-        val exclusionsById = DataQualityExclusionStorage.load(activityProvider).associateBy { exclusion -> exclusion.activityId }.toMutableMap()
-        exclusionsById.remove(activityId)
-        DataQualityExclusionStorage.save(activityProvider, exclusionsById.values.sortedWith(exclusionComparator()))
+        DataQualityExclusionStorage.update(activityProvider) { exclusions ->
+            val exclusionsById = exclusions.associateBy { exclusion -> exclusion.activityId }.toMutableMap()
+            exclusionsById.remove(activityId)
+            exclusionsById.values.sortedWith(exclusionComparator())
+        }
         return buildReport()
     }
 
@@ -142,19 +147,20 @@ class DataQualityService(
     override fun revertCorrection(correctionId: String): DataQualityReport {
         val normalizedCorrectionId = correctionId.trim()
         require(normalizedCorrectionId.isNotEmpty()) { "correctionId must not be empty" }
-        val corrections = DataQualityCorrectionStorage.load(activityProvider)
-        var found = false
-        val now = Instant.now().toString()
-        val updated = corrections.map { correction ->
-            if (correction.id == normalizedCorrectionId) {
-                found = true
-                correction.copy(status = "reverted", revertedAt = now)
-            } else {
-                correction
+        DataQualityCorrectionStorage.update(activityProvider) { corrections ->
+            var found = false
+            val now = Instant.now().toString()
+            val updated = corrections.map { correction ->
+                if (correction.id == normalizedCorrectionId) {
+                    found = true
+                    correction.copy(status = "reverted", revertedAt = now)
+                } else {
+                    correction
+                }
             }
+            require(found) { "correction $normalizedCorrectionId not found" }
+            updated.sortedWith(correctionComparator())
         }
-        require(found) { "correction $normalizedCorrectionId not found" }
-        DataQualityCorrectionStorage.save(activityProvider, updated.sortedWith(correctionComparator()))
         return buildReport()
     }
 
@@ -1146,10 +1152,12 @@ private object DataQualityExclusionStorage {
         }
     }
 
-    fun save(activityProvider: IActivityProvider, exclusions: List<DataQualityExclusion>) {
+    fun update(activityProvider: IActivityProvider, operation: (List<DataQualityExclusion>) -> List<DataQualityExclusion>) {
         val file = file(activityProvider) ?: return
-        file.parentFile?.mkdirs()
-        objectMapper.writeValue(file, DataQualityExclusionFile(exclusions))
+        SafeLocalFile.withLock(file) {
+            val exclusions = if (file.exists()) load(activityProvider) else emptyList()
+            SafeLocalFile.write(file, objectMapper.writeValueAsBytes(DataQualityExclusionFile(operation(exclusions))))
+        }
     }
 
     fun file(activityProvider: IActivityProvider): File? {
@@ -1176,18 +1184,22 @@ private object DataQualityCorrectionStorage {
     }
 
     fun saveMerged(activityProvider: IActivityProvider, corrections: List<DataQualityCorrection>) {
-        val existing = load(activityProvider).associateBy { correction -> correction.id }.toMutableMap()
-        val now = Instant.now().toString()
-        corrections.forEach { correction ->
-            existing[correction.id] = correction.copy(status = "active", appliedAt = now, revertedAt = null)
+        update(activityProvider) { existingCorrections ->
+            val existing = existingCorrections.associateBy { correction -> correction.id }.toMutableMap()
+            val now = Instant.now().toString()
+            corrections.forEach { correction ->
+                existing[correction.id] = correction.copy(status = "active", appliedAt = now, revertedAt = null)
+            }
+            existing.values.sortedWith(compareBy<DataQualityCorrection> { it.status }.thenByDescending { it.year.orEmpty() }.thenBy { it.activityId }.thenBy { it.id })
         }
-        save(activityProvider, existing.values.sortedWith(compareBy<DataQualityCorrection> { it.status }.thenByDescending { it.year.orEmpty() }.thenBy { it.activityId }.thenBy { it.id }))
     }
 
-    fun save(activityProvider: IActivityProvider, corrections: List<DataQualityCorrection>) {
+    fun update(activityProvider: IActivityProvider, operation: (List<DataQualityCorrection>) -> List<DataQualityCorrection>) {
         val file = file(activityProvider) ?: return
-        file.parentFile?.mkdirs()
-        objectMapper.writeValue(file, DataQualityCorrectionFile(corrections))
+        SafeLocalFile.withLock(file) {
+            val corrections = if (file.exists()) load(activityProvider) else emptyList()
+            SafeLocalFile.write(file, objectMapper.writeValueAsBytes(DataQualityCorrectionFile(operation(corrections))))
+        }
     }
 
     fun file(activityProvider: IActivityProvider): File? {

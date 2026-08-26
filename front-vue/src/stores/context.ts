@@ -113,6 +113,14 @@ export const useContextStore = defineStore("context", {
       this.currentActivityType = activityType;
       await this.refreshCurrentViewData();
     },
+    async updateCurrentFilters(currentYear: string, activityType: string) {
+      if (this.currentYear === currentYear && this.currentActivityType === activityType) {
+        return;
+      }
+      this.currentYear = currentYear;
+      this.currentActivityType = activityType;
+      await this.refreshCurrentViewData();
+    },
     updateCurrentView(view: AppView) {
       this.currentView = view;
       void this.refreshCurrentViewData();

@@ -12,6 +12,7 @@ import (
 	"unicode"
 
 	"mystravastats/internal/platform/activityprovider"
+	"mystravastats/internal/platform/safefile"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
 )
@@ -43,7 +44,6 @@ func saveCurrentProviderGearMaintenanceRecord(request business.GearMaintenanceRe
 		gearName = gearDisplayName(normalized.GearID, gearMetadata{kind: inferGearKind(normalized.GearID)})
 	}
 
-	records := loadGearMaintenanceRecords(provider.CacheRootPath(), provider.ClientID())
 	now := time.Now().UTC().Format(time.RFC3339)
 	record := business.GearMaintenanceRecord{
 		ID:             fmt.Sprintf("gm-%d", time.Now().UTC().UnixNano()),
@@ -59,8 +59,12 @@ func saveCurrentProviderGearMaintenanceRecord(request business.GearMaintenanceRe
 		CreatedAt:      now,
 		UpdatedAt:      now,
 	}
-	records = append(records, record)
-	if err := saveGearMaintenanceRecords(provider.CacheRootPath(), provider.ClientID(), records); err != nil {
+	path := gearMaintenanceFilePath(provider.CacheRootPath(), provider.ClientID())
+	if err := safefile.WithLock(path, func() error {
+		records := loadGearMaintenanceRecords(provider.CacheRootPath(), provider.ClientID())
+		records = append(records, record)
+		return saveGearMaintenanceRecords(provider.CacheRootPath(), provider.ClientID(), records)
+	}); err != nil {
 		return business.GearMaintenanceRecord{}, err
 	}
 	return record, nil
@@ -73,20 +77,23 @@ func deleteCurrentProviderGearMaintenanceRecord(recordID string) error {
 		return fmt.Errorf("recordId is required")
 	}
 
-	records := loadGearMaintenanceRecords(provider.CacheRootPath(), provider.ClientID())
-	updated := make([]business.GearMaintenanceRecord, 0, len(records))
-	found := false
-	for _, record := range records {
-		if record.ID == trimmedID {
-			found = true
-			continue
+	path := gearMaintenanceFilePath(provider.CacheRootPath(), provider.ClientID())
+	return safefile.WithLock(path, func() error {
+		records := loadGearMaintenanceRecords(provider.CacheRootPath(), provider.ClientID())
+		updated := make([]business.GearMaintenanceRecord, 0, len(records))
+		found := false
+		for _, record := range records {
+			if record.ID == trimmedID {
+				found = true
+				continue
+			}
+			updated = append(updated, record)
 		}
-		updated = append(updated, record)
-	}
-	if !found {
-		return fmt.Errorf("maintenance record %s not found", trimmedID)
-	}
-	return saveGearMaintenanceRecords(provider.CacheRootPath(), provider.ClientID(), updated)
+		if !found {
+			return fmt.Errorf("maintenance record %s not found", trimmedID)
+		}
+		return saveGearMaintenanceRecords(provider.CacheRootPath(), provider.ClientID(), updated)
+	})
 }
 
 func loadGearMaintenanceRecords(cacheRoot string, clientID string) []business.GearMaintenanceRecord {
@@ -119,7 +126,7 @@ func saveGearMaintenanceRecords(cacheRoot string, clientID string, records []bus
 	if err != nil {
 		return fmt.Errorf("unable to encode gear maintenance records: %w", err)
 	}
-	if err := os.WriteFile(gearMaintenanceFilePath(cacheRoot, clientID), data, gearMaintenanceSecureFileMode); err != nil {
+	if err := safefile.WriteFile(gearMaintenanceFilePath(cacheRoot, clientID), data, gearMaintenanceSecureFileMode); err != nil {
 		return fmt.Errorf("unable to write gear maintenance records: %w", err)
 	}
 	return nil

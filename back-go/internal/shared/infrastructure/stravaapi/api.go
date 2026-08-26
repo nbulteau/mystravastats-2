@@ -29,12 +29,13 @@ type StravaProperties struct {
 }
 
 type StravaApi struct {
-	clientId     string
-	clientSecret string
-	accessToken  string
-	tokenStore   string
-	properties   StravaProperties
-	httpClient   *http.Client
+	clientId       string
+	clientSecret   string
+	accessToken    string
+	tokenStore     string
+	properties     StravaProperties
+	httpClient     *http.Client
+	requestTimeout time.Duration
 }
 
 type Token struct {
@@ -50,7 +51,10 @@ type Token struct {
 
 var ErrStravaRateLimitReached = errors.New("strava rate limit reached (429)")
 
-const tokenRefreshBuffer = time.Hour
+const (
+	tokenRefreshBuffer          = time.Hour
+	defaultStravaRequestTimeout = 15 * time.Second
+)
 
 func IsRateLimitError(err error) bool {
 	if err == nil {
@@ -82,7 +86,7 @@ func newStravaApi(clientId, clientSecret, tokenStore string) *StravaApi {
 		clientSecret: clientSecret,
 		tokenStore:   strings.TrimSpace(tokenStore),
 		properties:   properties,
-		httpClient:   &http.Client{},
+		httpClient:   &http.Client{Timeout: defaultStravaRequestTimeout},
 	}
 
 	err := api.setAccessToken(clientId, clientSecret)
@@ -229,10 +233,6 @@ func (api *StravaApi) refreshToken(clientId, clientSecret, refreshToken string) 
 func (api *StravaApi) postTokenForm(payload url.Values) (Token, error) {
 	tokenURL := fmt.Sprintf("%s/oauth/token", api.properties.URL)
 
-	// Use form-encoded payload and add timeout
-	client := *api.httpClient
-	client.Timeout = 15 * time.Second
-
 	var resp *http.Response
 	var err error
 	var lastErr error
@@ -242,10 +242,20 @@ func (api *StravaApi) postTokenForm(payload url.Values) (Token, error) {
 	backoff := time.Second
 
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		resp, err = client.PostForm(tokenURL, payload)
+		ctx, cancel := context.WithTimeout(context.Background(), api.effectiveRequestTimeout(defaultStravaRequestTimeout))
+		req, requestErr := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL, strings.NewReader(payload.Encode()))
+		if requestErr != nil {
+			cancel()
+			return Token{}, fmt.Errorf("token request build error: %w", requestErr)
+		}
+		req.Header.Set("Accept", "application/json")
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		resp, err = api.clientForTimeout(defaultStravaRequestTimeout).Do(req)
 		if err == nil {
+			resp.Body = &cancelOnCloseReadCloser{ReadCloser: resp.Body, cancel: cancel}
 			break
 		}
+		cancel()
 		lastErr = err
 		if attempt < maxAttempts {
 			log.Printf("Token request failed (attempt %d/%d): %v, retrying in %v", attempt, maxAttempts, err, backoff)
@@ -258,12 +268,7 @@ func (api *StravaApi) postTokenForm(payload url.Values) (Token, error) {
 		return Token{}, fmt.Errorf("failed to get token after %d attempts: %w", maxAttempts, lastErr)
 	}
 
-	defer func(Body io.ReadCloser) {
-		closeErr := Body.Close()
-		if closeErr != nil {
-			log.Printf("warning: failed to close response body: %v", closeErr)
-		}
-	}(resp.Body)
+	defer closeResponseBody(resp.Body)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		limited := io.LimitReader(resp.Body, 4096)
@@ -373,21 +378,28 @@ func (api *StravaApi) RetrieveLoggedInAthlete() (*strava.Athlete, error) {
 }
 
 func (api *StravaApi) retrieveAthlete(url string) (*strava.Athlete, error) {
-	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Set("Authorization", "Bearer "+api.accessToken)
-	resp, err := api.httpClient.Do(req)
+	ctx, cancel := context.WithTimeout(context.Background(), api.effectiveRequestTimeout(defaultStravaRequestTimeout))
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("unable to connect to Strava API: %v", err)
+		return nil, fmt.Errorf("athlete request build error: %w", err)
 	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			log.Fatalf("Failed to close response body: %v", err)
-		}
-	}(resp.Body)
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", "Bearer "+api.accessToken)
+	resp, err := api.clientForTimeout(defaultStravaRequestTimeout).Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("unable to connect to Strava API: %w", err)
+	}
+	defer closeResponseBody(resp.Body)
 
 	if resp.StatusCode == http.StatusTooManyRequests {
 		return nil, ErrStravaRateLimitReached
+	}
+	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, fmt.Errorf("invalid token (401 Unauthorized)")
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, stravaHTTPStatusError("athlete", resp)
 	}
 
 	var athlete strava.Athlete
@@ -439,21 +451,22 @@ func (api *StravaApi) getActivities(year int, failFastOnRateLimit bool) ([]strav
 		activitiesURL.RawQuery = q.Encode()
 
 		// Build request
-		req, err := http.NewRequest(http.MethodGet, activitiesURL.String(), nil)
+		ctx, cancel := context.WithTimeout(context.Background(), api.effectiveRequestTimeout(defaultStravaRequestTimeout))
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, activitiesURL.String(), nil)
 		if err != nil {
+			cancel()
 			return nil, fmt.Errorf("request build error: %w", err)
 		}
 		req.Header.Set("Accept", "application/json")
 		req.Header.Set("Authorization", "Bearer "+api.accessToken)
 
 		// Per-call timeout without changing the shared client
-		client := *api.httpClient
-		client.Timeout = 15 * time.Second
-
-		resp, err := client.Do(req)
+		resp, err := api.clientForTimeout(defaultStravaRequestTimeout).Do(req)
 		if err != nil {
+			cancel()
 			return nil, fmt.Errorf("http call error: %w", err)
 		}
+		resp.Body = &cancelOnCloseReadCloser{ReadCloser: resp.Body, cancel: cancel}
 
 		// Handle HTTP status codes first
 		if resp.StatusCode == http.StatusUnauthorized {
@@ -533,11 +546,7 @@ func (api *StravaApi) GetDetailedActivity(activityId int64) (*strava.DetailedAct
 	if err != nil {
 		return nil, err
 	}
-	defer func(Body io.ReadCloser) {
-		if closeErr := Body.Close(); closeErr != nil {
-			log.Printf("warning: failed to close response body: %v", closeErr)
-		}
-	}(resp.Body)
+	defer closeResponseBody(resp.Body)
 
 	if resp.StatusCode == http.StatusUnauthorized {
 		return nil, fmt.Errorf("invalid token (401 Unauthorized)")
@@ -575,11 +584,7 @@ func (api *StravaApi) GetActivityStream(stravaActivity strava.Activity) (*strava
 	if err != nil {
 		return nil, err
 	}
-	defer func(Body io.ReadCloser) {
-		if closeErr := Body.Close(); closeErr != nil {
-			log.Printf("warning: failed to close response body: %v", closeErr)
-		}
-	}(resp.Body)
+	defer closeResponseBody(resp.Body)
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, nil
@@ -610,20 +615,21 @@ func (api *StravaApi) doGetWithRateLimitRetry(url string, timeout time.Duration,
 	maxBackoff := 30 * time.Second
 
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		req, err := http.NewRequest(http.MethodGet, url, nil)
+		ctx, cancel := context.WithTimeout(context.Background(), api.effectiveRequestTimeout(timeout))
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
+			cancel()
 			return nil, fmt.Errorf("request build error: %w", err)
 		}
 		req.Header.Set("Authorization", "Bearer "+api.accessToken)
 		req.Header.Set("Accept", "application/json")
 
-		client := *api.httpClient
-		client.Timeout = timeout
-
-		resp, err := client.Do(req)
+		resp, err := api.clientForTimeout(timeout).Do(req)
 		if err != nil {
+			cancel()
 			return nil, fmt.Errorf("unable to connect to Strava API: %w", err)
 		}
+		resp.Body = &cancelOnCloseReadCloser{ReadCloser: resp.Body, cancel: cancel}
 
 		if resp.StatusCode != http.StatusTooManyRequests {
 			return resp, nil
@@ -651,6 +657,55 @@ func (api *StravaApi) doGetWithRateLimitRetry(url string, timeout time.Duration,
 	}
 
 	return nil, fmt.Errorf("strava request failed after %d attempts", maxAttempts)
+}
+
+func (api *StravaApi) effectiveRequestTimeout(fallback time.Duration) time.Duration {
+	if api.requestTimeout > 0 {
+		return api.requestTimeout
+	}
+	if fallback > 0 {
+		return fallback
+	}
+	return defaultStravaRequestTimeout
+}
+
+func (api *StravaApi) clientForTimeout(fallback time.Duration) *http.Client {
+	timeout := api.effectiveRequestTimeout(fallback)
+	if api.httpClient == nil {
+		return &http.Client{Timeout: timeout}
+	}
+	client := *api.httpClient
+	client.Timeout = timeout
+	return &client
+}
+
+type cancelOnCloseReadCloser struct {
+	io.ReadCloser
+	cancel context.CancelFunc
+}
+
+func (body *cancelOnCloseReadCloser) Close() error {
+	err := body.ReadCloser.Close()
+	body.cancel()
+	return err
+}
+
+func closeResponseBody(body io.ReadCloser) {
+	if body == nil {
+		return
+	}
+	if err := body.Close(); err != nil {
+		log.Printf("warning: failed to close Strava response body: %v", err)
+	}
+}
+
+func stravaHTTPStatusError(operation string, response *http.Response) error {
+	body, _ := io.ReadAll(io.LimitReader(response.Body, 4096))
+	detail := strings.TrimSpace(string(body))
+	if detail == "" {
+		return fmt.Errorf("strava %s request failed: HTTP %d", operation, response.StatusCode)
+	}
+	return fmt.Errorf("strava %s request failed: HTTP %d - %s", operation, response.StatusCode, detail)
 }
 
 func (api *StravaApi) apiURL(path string) string {

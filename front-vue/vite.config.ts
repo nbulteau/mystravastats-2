@@ -33,5 +33,8 @@ export default defineConfig({
         changeOrigin: true
       }
     }
-  }
+  },
+  build: {
+    manifest: true,
+  },
 })

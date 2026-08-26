@@ -29,6 +29,7 @@ var famousClimbCatalogs = []struct {
 	{name: "suisse", path: "famous-climb/suisse.json"},
 	{name: "italie", path: "famous-climb/italie.json"},
 	{name: "espagne", path: "famous-climb/espagne.json"},
+	{name: "andorre", path: "famous-climb/andorre.json"},
 }
 
 // BadgesServiceAdapter computes badges directly from provider activities.
@@ -132,6 +133,8 @@ func loadBadgeSet(name string, climbsJSONFilePath string) badges.BadgeSet {
 	for _, famousClimb := range famousClimbs {
 		for _, alternative := range famousClimb.Alternatives {
 			famousClimbBadgeList = append(famousClimbBadgeList, badges.FamousClimbBadge{
+				SummitID:              famousClimb.ID,
+				VariantID:             alternative.ID,
 				Name:                  famousClimb.Name,
 				Label:                 fmt.Sprintf("%s from %s", famousClimb.Name, alternative.Name),
 				Country:               famousClimb.Country,

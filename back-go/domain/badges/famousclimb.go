@@ -15,6 +15,7 @@ const (
 )
 
 type FamousClimb struct {
+	ID             string
 	Name           string
 	Country        string
 	Massif         string
@@ -24,6 +25,7 @@ type FamousClimb struct {
 }
 
 type Alternative struct {
+	ID                    string
 	Name                  string
 	GeoCoordinate         business.GeoCoordinate
 	RouteCheckpoints      []business.GeoCoordinate
@@ -48,6 +50,8 @@ func NewFamousClimb(name string, topOfTheAscent int, geoCoordinate business.GeoC
 }
 
 type FamousClimbBadge struct {
+	SummitID              string
+	VariantID             string
 	Label                 string
 	Name                  string
 	Country               string

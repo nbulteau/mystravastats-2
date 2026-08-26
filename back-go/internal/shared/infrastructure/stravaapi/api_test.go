@@ -1,7 +1,9 @@
 package stravaapi
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"mystravastats/internal/shared/domain/strava"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +14,22 @@ import (
 	"testing"
 	"time"
 )
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (fn roundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
+	return fn(request)
+}
+
+type closeErrorBody struct {
+	io.Reader
+	closed *atomic.Bool
+}
+
+func (body *closeErrorBody) Close() error {
+	body.closed.Store(true)
+	return errors.New("simulated close failure")
+}
 
 func TestRetrieveLoggedInAthlete_FailFastOnTooManyRequests(t *testing.T) {
 	// GIVEN
@@ -83,6 +101,105 @@ func TestRetrieveLoggedInAthlete_UsesConfiguredAPIBaseURLAsV3Root(t *testing.T) 
 	}
 	if requestedPath != "/athlete" {
 		t.Fatalf("expected configured API base URL to be treated as V3 root, got path %q", requestedPath)
+	}
+}
+
+func TestRetrieveLoggedInAthlete_RejectsNonSuccessStatusWithBoundedBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = fmt.Fprint(w, "upstream unavailable")
+	}))
+	defer server.Close()
+
+	api := &StravaApi{
+		accessToken: "test-token",
+		properties:  StravaProperties{APIBaseURL: server.URL},
+		httpClient:  server.Client(),
+	}
+
+	athlete, err := api.RetrieveLoggedInAthlete()
+
+	if athlete != nil {
+		t.Fatalf("expected no athlete for HTTP 502, got %#v", athlete)
+	}
+	if err == nil || !strings.Contains(err.Error(), "HTTP 502") || !strings.Contains(err.Error(), "upstream unavailable") {
+		t.Fatalf("expected explicit HTTP status error, got %v", err)
+	}
+}
+
+func TestRetrieveLoggedInAthlete_TimesOut(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		time.Sleep(100 * time.Millisecond)
+		_, _ = fmt.Fprint(w, `{"id":42}`)
+	}))
+	defer server.Close()
+
+	api := &StravaApi{
+		accessToken:    "test-token",
+		properties:     StravaProperties{APIBaseURL: server.URL},
+		httpClient:     server.Client(),
+		requestTimeout: 10 * time.Millisecond,
+	}
+
+	startedAt := time.Now()
+	athlete, err := api.RetrieveLoggedInAthlete()
+
+	if athlete != nil {
+		t.Fatalf("expected no athlete after timeout, got %#v", athlete)
+	}
+	if err == nil || !strings.Contains(strings.ToLower(err.Error()), "timeout") && !strings.Contains(strings.ToLower(err.Error()), "deadline") {
+		t.Fatalf("expected timeout error, got %v", err)
+	}
+	if elapsed := time.Since(startedAt); elapsed > 80*time.Millisecond {
+		t.Fatalf("expected request timeout before server response, took %s", elapsed)
+	}
+}
+
+func TestRetrieveLoggedInAthlete_CloseFailureDoesNotFailRequest(t *testing.T) {
+	var closed atomic.Bool
+	client := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body: &closeErrorBody{
+				Reader: strings.NewReader(`{"id":42,"username":"test-athlete"}`),
+				closed: &closed,
+			},
+		}, nil
+	})}
+	api := &StravaApi{
+		accessToken: "test-token",
+		properties:  StravaProperties{APIBaseURL: "https://strava.test/api/v3"},
+		httpClient:  client,
+	}
+
+	athlete, err := api.RetrieveLoggedInAthlete()
+
+	if err != nil {
+		t.Fatalf("expected close failure to remain non-fatal, got %v", err)
+	}
+	if athlete == nil || athlete.Id != 42 {
+		t.Fatalf("expected decoded athlete, got %#v", athlete)
+	}
+	if !closed.Load() {
+		t.Fatalf("expected response body to be closed")
+	}
+}
+
+func TestRetrieveLoggedInAthlete_ReportsRequestBuildError(t *testing.T) {
+	api := &StravaApi{
+		accessToken: "test-token",
+		properties:  StravaProperties{APIBaseURL: "://invalid"},
+		httpClient:  http.DefaultClient,
+	}
+
+	athlete, err := api.RetrieveLoggedInAthlete()
+
+	if athlete != nil {
+		t.Fatalf("expected no athlete for malformed URL, got %#v", athlete)
+	}
+	if err == nil || !strings.Contains(err.Error(), "request build error") {
+		t.Fatalf("expected request build error, got %v", err)
 	}
 }
 

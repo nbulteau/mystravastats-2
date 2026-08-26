@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"mystravastats/internal/platform/activityprovider"
+	"mystravastats/internal/platform/safefile"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
 )
@@ -78,25 +79,26 @@ func excludeCurrentProviderActivityFromStats(activityID int64, reason string) (b
 		return business.DataQualityReport{}, fmt.Errorf("activity %d not found", activityID)
 	}
 
-	exclusions := loadExclusions(provider.CacheRootPath(), provider.ClientID())
-	exclusionsByID := exclusionsByActivityID(exclusions)
 	source := currentProviderName(provider)
 	normalizedReason := strings.TrimSpace(reason)
 	if normalizedReason == "" {
 		normalizedReason = "Excluded from statistics after data quality audit."
 	}
 
-	exclusionsByID[activityID] = business.DataQualityExclusion{
-		ActivityID:   activityID,
-		Source:       strings.ToUpper(source),
-		ActivityName: strings.TrimSpace(activity.Name),
-		ActivityType: activity.Type,
-		Year:         extractIssueYear(activity),
-		Reason:       normalizedReason,
-		ExcludedAt:   time.Now().UTC().Format(time.RFC3339),
-	}
-
-	if err := saveExclusions(provider.CacheRootPath(), provider.ClientID(), sortedExclusions(exclusionsByID)); err != nil {
+	path := exclusionsFilePath(provider.CacheRootPath(), provider.ClientID())
+	if err := safefile.WithLock(path, func() error {
+		exclusionsByID := exclusionsByActivityID(loadExclusions(provider.CacheRootPath(), provider.ClientID()))
+		exclusionsByID[activityID] = business.DataQualityExclusion{
+			ActivityID:   activityID,
+			Source:       strings.ToUpper(source),
+			ActivityName: strings.TrimSpace(activity.Name),
+			ActivityType: activity.Type,
+			Year:         extractIssueYear(activity),
+			Reason:       normalizedReason,
+			ExcludedAt:   time.Now().UTC().Format(time.RFC3339),
+		}
+		return saveExclusions(provider.CacheRootPath(), provider.ClientID(), sortedExclusions(exclusionsByID))
+	}); err != nil {
 		return business.DataQualityReport{}, err
 	}
 	return CurrentProviderReport(), nil
@@ -108,9 +110,12 @@ func includeCurrentProviderActivityInStats(activityID int64) (business.DataQuali
 	}
 
 	provider := activityprovider.Get()
-	exclusionsByID := exclusionsByActivityID(loadExclusions(provider.CacheRootPath(), provider.ClientID()))
-	delete(exclusionsByID, activityID)
-	if err := saveExclusions(provider.CacheRootPath(), provider.ClientID(), sortedExclusions(exclusionsByID)); err != nil {
+	path := exclusionsFilePath(provider.CacheRootPath(), provider.ClientID())
+	if err := safefile.WithLock(path, func() error {
+		exclusionsByID := exclusionsByActivityID(loadExclusions(provider.CacheRootPath(), provider.ClientID()))
+		delete(exclusionsByID, activityID)
+		return saveExclusions(provider.CacheRootPath(), provider.ClientID(), sortedExclusions(exclusionsByID))
+	}); err != nil {
 		return business.DataQualityReport{}, err
 	}
 	return CurrentProviderReport(), nil
@@ -151,7 +156,7 @@ func saveExclusions(cacheRoot string, clientID string, exclusions []business.Dat
 	if err != nil {
 		return fmt.Errorf("unable to encode data quality exclusions: %w", err)
 	}
-	if err := os.WriteFile(exclusionsFilePath(cacheRoot, clientID), data, dataQualitySecureFileMode); err != nil {
+	if err := safefile.WriteFile(exclusionsFilePath(cacheRoot, clientID), data, dataQualitySecureFileMode); err != nil {
 		return fmt.Errorf("unable to write data quality exclusions: %w", err)
 	}
 	return nil

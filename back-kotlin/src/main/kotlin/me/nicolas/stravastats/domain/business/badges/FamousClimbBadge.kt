@@ -11,6 +11,8 @@ private const val FAMOUS_CLIMB_LENGTH_TOLERANCE_MINIMUM_METERS = 750.0
 
 data class FamousClimbBadge(
     override val label: String,
+	val summitId: String = "",
+	val variantId: String = "",
     val name: String,
     val topOfTheAscent: Int,
     val start: GeoCoordinate,

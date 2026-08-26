@@ -4,161 +4,18 @@ import {createApp} from 'vue'
 import {createPinia} from 'pinia'
 import { useAthleteStore } from "@/stores/athlete";
 import { useBackendRefreshStore } from "@/stores/backend-refresh";
+import { useContextStore } from "@/stores/context";
+import { filtersFromQuery, filtersToQuery } from "@/router/filter-query";
 import mitt from 'mitt';
-import Highcharts from 'highcharts';
 
 import App from './App.vue'
 import router from './router'
 import '@fortawesome/fontawesome-free/css/all.css';
 
-const registerHeatmapModule = (moduleRef: unknown): void => {
-    if (typeof moduleRef === 'function') {
-        (moduleRef as (hc: typeof Highcharts) => void)(Highcharts);
-        return;
-    }
-    if (moduleRef && typeof (moduleRef as {default?: unknown}).default === 'function') {
-        ((moduleRef as {default: (hc: typeof Highcharts) => void}).default)(Highcharts);
-    }
-};
-
 export const eventBus = mitt();
 
-const registerHighchartsModules = async (): Promise<void> => {
-    // With Highcharts v12, side-effect import can crash app bootstrap in some bundles.
-    // Dynamic import + guarded registration keeps the app alive even if module load fails.
-    try {
-        const heatmapModule = await import('highcharts/modules/heatmap');
-        registerHeatmapModule(heatmapModule);
-    } catch (error) {
-        console.warn('Failed to register Highcharts heatmap module.', error);
-    }
-};
-
-const configureHighchartsTheme = (): void => {
-    Highcharts.setOptions({
-        colors: [
-            '#fc4c02',
-            '#4e79a7',
-            '#59a14f',
-            '#e15759',
-            '#af7aa1',
-            '#17becf',
-            '#f28e2b',
-            '#edc948',
-            '#76b7b2',
-            '#9c755f',
-            '#6c7a89',
-            '#b6992d',
-        ],
-        chart: {
-            backgroundColor: 'transparent',
-            style: {
-                fontFamily: '"Avenir Next", "SF Pro Text", "Segoe UI", "Helvetica Neue", sans-serif',
-            },
-        },
-        title: {
-            style: {
-                color: '#242428',
-                fontWeight: '700',
-            },
-        },
-        subtitle: {
-            style: {
-                color: '#6a6c75',
-            },
-        },
-        xAxis: {
-            lineColor: '#e5e7ee',
-            tickColor: '#e5e7ee',
-            labels: {
-                style: {
-                    color: '#6a6c75',
-                },
-            },
-            title: {
-                style: {
-                    color: '#4e5058',
-                },
-            },
-        },
-        yAxis: {
-            gridLineColor: '#eceff4',
-            labels: {
-                style: {
-                    color: '#6a6c75',
-                },
-            },
-            title: {
-                style: {
-                    color: '#4e5058',
-                },
-            },
-        },
-        legend: {
-            itemStyle: {
-                color: '#4f525a',
-                fontWeight: '600',
-            },
-            itemHoverStyle: {
-                color: '#242428',
-            },
-        },
-        tooltip: {
-            backgroundColor: '#ffffff',
-            borderColor: '#ffd3c1',
-            style: {
-                color: '#2d3037',
-            },
-        },
-        plotOptions: {
-            series: {
-                states: {
-                    inactive: {
-                        opacity: 1,
-                    },
-                },
-            },
-            line: {
-                lineWidth: 2,
-                marker: {
-                    enabled: false,
-                },
-            },
-            spline: {
-                lineWidth: 2,
-                marker: {
-                    enabled: false,
-                },
-            },
-            areaspline: {
-                lineWidth: 2,
-                marker: {
-                    enabled: false,
-                },
-            },
-            column: {
-                borderWidth: 0,
-                borderRadius: 2,
-            },
-        },
-    });
-};
-
 const bootstrap = async (): Promise<void> => {
-    await registerHighchartsModules();
-    configureHighchartsTheme();
-
     const pinia = createPinia();
-
-    // Init athlete store
-    const athleteStore = useAthleteStore(pinia);
-    athleteStore.fetchAthlete().catch((err: unknown) => {
-        console.error('Failed to load athlete profile:', err);
-    });
-    const backendRefreshStore = useBackendRefreshStore(pinia);
-    backendRefreshStore.watchStartupActivityRefresh().catch((err: unknown) => {
-        console.error('Failed to watch backend activity refresh:', err);
-    });
 
     const app = createApp(App);
     app.provide('eventBus', eventBus);
@@ -172,7 +29,41 @@ const bootstrap = async (): Promise<void> => {
     app.use(pinia);
     app.use(router);
 
+    await router.isReady();
+    const contextStore = useContextStore(pinia);
+    const initialFilters = filtersFromQuery(router.currentRoute.value.query, {
+        year: contextStore.currentYear,
+        activityType: contextStore.currentActivityType,
+    });
+    contextStore.$patch({
+        currentYear: initialFilters.year,
+        currentActivityType: initialFilters.activityType,
+    });
+    contextStore.$subscribe((_mutation, state) => {
+        const currentQuery = router.currentRoute.value.query;
+        const expected = filtersToQuery({ year: state.currentYear, activityType: state.currentActivityType }, currentQuery);
+        if (currentQuery.year !== expected.year || currentQuery.activityType !== expected.activityType) {
+            void router.replace({ query: expected });
+        }
+    });
+    router.afterEach((to) => {
+        const filters = filtersFromQuery(to.query, {
+            year: contextStore.currentYear,
+            activityType: contextStore.currentActivityType,
+        });
+        void contextStore.updateCurrentFilters(filters.year, filters.activityType);
+    });
+
     app.mount('#app');
+
+    const athleteStore = useAthleteStore(pinia);
+    athleteStore.fetchAthlete().catch((err: unknown) => {
+        console.error('Failed to load athlete profile:', err);
+    });
+    const backendRefreshStore = useBackendRefreshStore(pinia);
+    backendRefreshStore.watchStartupActivityRefresh().catch((err: unknown) => {
+        console.error('Failed to watch backend activity refresh:', err);
+    });
 };
 
 void bootstrap();

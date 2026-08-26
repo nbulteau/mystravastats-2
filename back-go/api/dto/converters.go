@@ -1404,6 +1404,7 @@ func ToBadgeCheckResultDto(result business.BadgeCheckResult, activityTypes ...bu
 }
 
 const climbProfilePointLimit = 64
+const climbComparisonPointLimit = 64
 const climbMaximumGradientWindowMeters = 500.0
 const climbComputedMaximumGradientCeiling = 20.0
 const climbReferenceMaximumGradientCeiling = 30.0
@@ -1475,6 +1476,8 @@ func buildClimbDetailsDto(badge badges.FamousClimbBadge, activities []*strava.Ac
 	}
 
 	return &ClimbDetailsDto{
+		SummitID:         badge.SummitID,
+		VariantID:        badge.VariantID,
 		Name:             badge.Name,
 		Country:          badge.Country,
 		Massif:           badge.Massif,
@@ -1496,11 +1499,14 @@ func buildClimbDetailsDto(badge badges.FamousClimbBadge, activities []*strava.Ac
 }
 
 func buildClimbAscentDto(activity *strava.Activity, bounds famousClimbBounds, badge badges.FamousClimbBadge, duration int) ClimbAscentDto {
+	comparisonPoints, comparisonQuality := buildClimbAscentComparison(activity, bounds, badge)
 	ascent := ClimbAscentDto{
-		ActivityID:      activity.Id,
-		ActivityName:    activity.Name,
-		Date:            activity.StartDateLocal,
-		DurationSeconds: duration,
+		ActivityID:        activity.Id,
+		ActivityName:      activity.Name,
+		Date:              activity.StartDateLocal,
+		DurationSeconds:   duration,
+		ComparisonPoints:  comparisonPoints,
+		ComparisonQuality: comparisonQuality,
 	}
 	if duration > 0 {
 		if badge.TotalAscent > 0 {
@@ -1524,6 +1530,120 @@ func buildClimbAscentDto(activity *strava.Activity, bounds famousClimbBounds, ba
 		ascent.AverageHeartRateBpm = averagePositiveIntRange(activity.Stream.HeartRate, bounds)
 	}
 	return ascent
+}
+
+func buildClimbAscentComparison(activity *strava.Activity, bounds famousClimbBounds, badge badges.FamousClimbBadge) ([]ClimbAscentComparisonPointDto, ClimbAscentComparisonQualityDto) {
+	quality := ClimbAscentComparisonQualityDto{
+		AlignmentMethod:   "catalog-waypoints-by-distance",
+		Precision:         "estimated",
+		CatalogDistanceKm: math.Round(badge.Length*1000) / 1000,
+		Warnings:          []string{},
+	}
+	if activity == nil || activity.Stream == nil {
+		quality.Warnings = append(quality.Warnings, "MISSING_STREAM")
+		return []ClimbAscentComparisonPointDto{}, quality
+	}
+
+	stream := activity.Stream
+	distances := stream.Distance.Data
+	times := stream.Time.Data
+	if bounds.startIndex < 0 || bounds.endIndex <= bounds.startIndex || bounds.endIndex >= len(distances) {
+		quality.Warnings = append(quality.Warnings, "INCOMPLETE_DISTANCE_STREAM")
+		return []ClimbAscentComparisonPointDto{}, quality
+	}
+	startDistance := distances[bounds.startIndex]
+	detectedDistanceMeters := distances[bounds.endIndex] - startDistance
+	if !isFiniteNumber(detectedDistanceMeters) || detectedDistanceMeters <= 0 {
+		quality.Warnings = append(quality.Warnings, "INCOMPLETE_DISTANCE_STREAM")
+		return []ClimbAscentComparisonPointDto{}, quality
+	}
+	quality.DetectedDistanceKm = math.Round((detectedDistanceMeters/1000)*1000) / 1000
+	if badge.Length > 0 && math.Abs(quality.DetectedDistanceKm-badge.Length)/badge.Length > 0.1 {
+		quality.Warnings = append(quality.Warnings, "DISTANCE_DIFFERENCE_OVER_10_PERCENT")
+	}
+	if stream.LatLng != nil && bounds.endIndex < len(stream.LatLng.Data) {
+		start := stream.LatLng.Data[bounds.startIndex]
+		finish := stream.LatLng.Data[bounds.endIndex]
+		if len(start) >= 2 {
+			quality.StartOffsetMeters = badge.Start.HaversineInM(start[0], start[1])
+		}
+		if len(finish) >= 2 {
+			quality.FinishOffsetMeters = badge.End.HaversineInM(finish[0], finish[1])
+		}
+	}
+	if quality.StartOffsetMeters > 100 {
+		quality.Warnings = append(quality.Warnings, "START_OFFSET_OVER_100_METERS")
+	}
+	if quality.FinishOffsetMeters > 100 {
+		quality.Warnings = append(quality.Warnings, "FINISH_OFFSET_OVER_100_METERS")
+	}
+	if stream.Distance.Resolution != "" && stream.Distance.Resolution != "high" {
+		quality.Warnings = append(quality.Warnings, "LOW_RESOLUTION_STREAM")
+	}
+	if bounds.endIndex >= len(times) {
+		quality.Warnings = append(quality.Warnings, "INCOMPLETE_TIME_STREAM")
+		return []ClimbAscentComparisonPointDto{}, quality
+	}
+	if len(quality.Warnings) == 0 {
+		quality.Precision = "high"
+	}
+
+	pointCount := bounds.endIndex - bounds.startIndex + 1
+	sampleCount := min(pointCount, climbComparisonPointLimit)
+	points := make([]ClimbAscentComparisonPointDto, 0, sampleCount)
+	startTime := times[bounds.startIndex]
+	var startAltitude *float64
+	if stream.Altitude != nil && bounds.startIndex < len(stream.Altitude.Data) && isFiniteNumber(stream.Altitude.Data[bounds.startIndex]) {
+		value := stream.Altitude.Data[bounds.startIndex]
+		startAltitude = &value
+	}
+	for sampleIndex := 0; sampleIndex < sampleCount; sampleIndex++ {
+		offset := 0
+		if sampleCount > 1 {
+			offset = int(math.Round(float64(sampleIndex*(pointCount-1)) / float64(sampleCount-1)))
+		}
+		index := bounds.startIndex + offset
+		if index >= len(distances) || index >= len(times) || !isFiniteNumber(distances[index]) {
+			continue
+		}
+		elapsed := times[index] - startTime
+		if elapsed < 0 {
+			continue
+		}
+		point := ClimbAscentComparisonPointDto{
+			DistanceKm:     math.Round(((distances[index]-startDistance)/1000)*1000) / 1000,
+			ElapsedSeconds: elapsed,
+		}
+		if stream.Altitude != nil && index < len(stream.Altitude.Data) && isFiniteNumber(stream.Altitude.Data[index]) {
+			elevation := math.Round(stream.Altitude.Data[index]*10) / 10
+			point.ElevationMeters = &elevation
+			if startAltitude != nil && elapsed > 0 {
+				vam := int(math.Round(math.Max(0, elevation-*startAltitude) * 3600 / float64(elapsed)))
+				point.VAMMetersPerHour = &vam
+			}
+		}
+		if stream.VelocitySmooth != nil && index < len(stream.VelocitySmooth.Data) && isFiniteNumber(stream.VelocitySmooth.Data[index]) && stream.VelocitySmooth.Data[index] > 0 {
+			speed := math.Round(stream.VelocitySmooth.Data[index]*3.6*10) / 10
+			point.SpeedKph = &speed
+		} else if index > bounds.startIndex {
+			deltaTime := times[index] - times[index-1]
+			deltaDistance := distances[index] - distances[index-1]
+			if deltaTime > 0 && isFiniteNumber(deltaDistance) && deltaDistance >= 0 {
+				speed := math.Round((deltaDistance/float64(deltaTime)*3.6)*10) / 10
+				point.SpeedKph = &speed
+			}
+		}
+		if stream.Watts != nil && index < len(stream.Watts.Data) && isFiniteNumber(stream.Watts.Data[index]) && stream.Watts.Data[index] > 0 {
+			power := int(math.Round(stream.Watts.Data[index]))
+			point.PowerWatts = &power
+		}
+		if stream.HeartRate != nil && index < len(stream.HeartRate.Data) && stream.HeartRate.Data[index] > 0 {
+			heartRate := stream.HeartRate.Data[index]
+			point.HeartRateBpm = &heartRate
+		}
+		points = append(points, point)
+	}
+	return points, quality
 }
 
 func averagePositiveFloatRange(stream *strava.PowerStream, bounds famousClimbBounds) *int {

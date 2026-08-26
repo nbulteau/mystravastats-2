@@ -1,0 +1,237 @@
+openapi: 3.0.3
+info:
+  title: MyStravaStats badges contract
+  version: 1.0.0
+  description: Shared Go/Kotlin contract for general badges and famous-climb variants.
+paths:
+  /api/badges:
+    get:
+      operationId: getBadges
+      parameters:
+        - in: query
+          name: activityType
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+        - in: query
+          name: year
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Badge results for the selected activity types and period.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BadgeCheckResult"
+components:
+  schemas:
+    BadgeCheckResult:
+      type: object
+      required: [badge, activities, nbCheckedActivities]
+      properties:
+        badge:
+          $ref: "#/components/schemas/Badge"
+        activities:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        nbCheckedActivities:
+          type: integer
+          minimum: 0
+        climbDetails:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/ClimbDetails"
+    Badge:
+      type: object
+      required: [label, description, type]
+      properties:
+        label:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+        category:
+          type: string
+    ClimbDetails:
+      type: object
+      required:
+        - summitId
+        - variantId
+        - name
+        - country
+        - massif
+        - summitCoordinate
+        - startCoordinate
+        - summitAltitude
+        - minimumAltitude
+        - lengthKm
+        - totalAscent
+        - difficulty
+        - averageGradient
+        - profile
+        - ascentCount
+        - ascents
+      properties:
+        summitId:
+          type: string
+          description: Durable summit identity, independent from the displayed badge label.
+          pattern: ^climb-[a-z0-9-]+$
+        variantId:
+          type: string
+          description: Durable ascent-side identity, independent from the displayed badge label.
+          pattern: ^climb-[a-z0-9-]+--[a-z0-9-]+$
+        name:
+          type: string
+        country:
+          type: string
+        massif:
+          type: string
+        sourceUrl:
+          type: string
+          format: uri
+          nullable: true
+        summitCoordinate:
+          $ref: "#/components/schemas/Coordinate"
+        startCoordinate:
+          $ref: "#/components/schemas/Coordinate"
+        summitAltitude:
+          type: integer
+        minimumAltitude:
+          type: integer
+        lengthKm:
+          type: number
+        totalAscent:
+          type: integer
+        difficulty:
+          type: integer
+        averageGradient:
+          type: number
+        maximumGradient:
+          type: number
+          nullable: true
+        profile:
+          type: array
+          items:
+            type: object
+            required: [distanceKm, elevation]
+            properties:
+              distanceKm:
+                type: number
+              elevation:
+                type: number
+        ascentCount:
+          type: integer
+          minimum: 0
+        bestAscent:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/ClimbAscent"
+        ascents:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClimbAscent"
+    Coordinate:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude:
+          type: number
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          minimum: -180
+          maximum: 180
+    ClimbAscent:
+      type: object
+      required: [activityId, activityName, date, durationSeconds, comparisonPoints, comparisonQuality]
+      properties:
+        activityId:
+          type: integer
+          format: int64
+        activityName:
+          type: string
+        date:
+          type: string
+        durationSeconds:
+          type: integer
+        vamMetersPerHour:
+          type: integer
+          nullable: true
+        averageSpeedKph:
+          type: number
+          nullable: true
+        averagePowerWatts:
+          type: integer
+          nullable: true
+        averageHeartRateBpm:
+          type: integer
+          nullable: true
+        comparisonPoints:
+          type: array
+          description: Distance-aligned samples, capped at 64 points per ascent.
+          items:
+            $ref: "#/components/schemas/ClimbAscentComparisonPoint"
+        comparisonQuality:
+          $ref: "#/components/schemas/ClimbAscentComparisonQuality"
+    ClimbAscentComparisonPoint:
+      type: object
+      required: [distanceKm, elapsedSeconds]
+      properties:
+        distanceKm:
+          type: number
+        elapsedSeconds:
+          type: integer
+        elevationMeters:
+          type: number
+          nullable: true
+        speedKph:
+          type: number
+          nullable: true
+        vamMetersPerHour:
+          type: integer
+          nullable: true
+        powerWatts:
+          type: integer
+          nullable: true
+        heartRateBpm:
+          type: integer
+          nullable: true
+    ClimbAscentComparisonQuality:
+      type: object
+      required:
+        - alignmentMethod
+        - precision
+        - catalogDistanceKm
+        - detectedDistanceKm
+        - startOffsetMeters
+        - finishOffsetMeters
+        - warnings
+      properties:
+        alignmentMethod:
+          type: string
+          enum: [catalog-waypoints-by-distance]
+        precision:
+          type: string
+          enum: [high, estimated]
+        catalogDistanceKm:
+          type: number
+        detectedDistanceKm:
+          type: number
+        startOffsetMeters:
+          type: integer
+        finishOffsetMeters:
+          type: integer
+        warnings:
+          type: array
+          items:
+            type: string

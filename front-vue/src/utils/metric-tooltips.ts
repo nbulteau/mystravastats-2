@@ -148,8 +148,6 @@ const exactMetricTooltips: Record<string, string> = {
     "Simplified training load: weekly sum of heart-rate zone time weighted by zone intensity (Z1..Z5). Useful to monitor fatigue trends.",
   "Distance distribution":
     "Histogram of activity distances. Helps identify whether your training is mostly short, medium, or long rides/runs.",
-  "Long ride progression":
-    "Weekly longest outing distance, with a 4-week moving average to visualize endurance progression.",
   "Easy / Hard ratio by month":
     "Monthly balance between easy time (Z1+Z2) and hard time (Z4+Z5), plus ratio trend.",
   "Weekly consistency":

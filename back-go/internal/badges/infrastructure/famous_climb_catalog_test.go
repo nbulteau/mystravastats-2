@@ -1,18 +1,53 @@
 package infrastructure
 
 import (
+	"bytes"
+	"encoding/json"
 	"mystravastats/domain/badges"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestNationalCatalogMirrorsAndCoverageReport(t *testing.T) {
+	for _, name := range []string{"france", "suisse", "italie", "espagne", "andorre"} {
+		goCatalog, err := os.ReadFile(filepath.Join("..", "..", "..", "famous-climb", name+".json"))
+		if err != nil {
+			t.Fatalf("read Go %s catalog: %v", name, err)
+		}
+		kotlinCatalog, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "back-kotlin", "famous-climb", name+".json"))
+		if err != nil {
+			t.Fatalf("read Kotlin %s catalog: %v", name, err)
+		}
+		if !bytes.Equal(goCatalog, kotlinCatalog) {
+			t.Fatalf("Go and Kotlin %s catalogs differ", name)
+		}
+	}
+
+	reportData, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "docs", "data-sources", "climb-catalog-coverage.json"))
+	if err != nil {
+		t.Fatalf("read coverage report: %v", err)
+	}
+	var report struct {
+		SummitIdentityCount int `json:"summitIdentityCount"`
+		VariantCount        int `json:"variantCount"`
+	}
+	if err := json.Unmarshal(reportData, &report); err != nil {
+		t.Fatalf("decode coverage report: %v", err)
+	}
+	if report.SummitIdentityCount != 394 || report.VariantCount != 766 {
+		t.Fatalf("unexpected coverage report: %#v", report)
+	}
+}
 
 var officialClimbSourceDomains = []string{
 	"mycols.app",
 	"cols-cyclisme.com",
 	"bigcycling.eu",
 	"climbfinder.com",
+	"cyclinglocations.com",
 }
 
 func TestNationalFamousClimbCatalogs(t *testing.T) {
@@ -25,8 +60,10 @@ func TestNationalFamousClimbCatalogs(t *testing.T) {
 		{name: "suisse", country: "CH", expectedSides: 47},
 		{name: "italie", country: "IT", expectedSides: 78},
 		{name: "espagne", country: "ES", expectedSides: 127},
+		{name: "andorre", country: "AD", expectedSides: 6},
 	}
 	allLabels := make(map[string]string)
+	allVariantIDs := make(map[string]string)
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -45,6 +82,16 @@ func TestNationalFamousClimbCatalogs(t *testing.T) {
 				if climb.Country != test.country || climb.Massif == "" {
 					t.Fatalf("missing geography for %q", climb.Label)
 				}
+				if climb.SummitID == "" || climb.VariantID == "" {
+					t.Fatalf("missing stable identity for %q", climb.Label)
+				}
+				if !strings.HasPrefix(climb.VariantID, climb.SummitID+"--") {
+					t.Fatalf("variant id %q is not attached to summit %q", climb.VariantID, climb.SummitID)
+				}
+				if existingCatalog, duplicate := allVariantIDs[climb.VariantID]; duplicate {
+					t.Fatalf("variant id %q is duplicated in %s and %s", climb.VariantID, existingCatalog, test.name)
+				}
+				allVariantIDs[climb.VariantID] = test.name
 				if _, duplicate := labels[climb.Label]; duplicate {
 					t.Fatalf("duplicate climb alternative %q", climb.Label)
 				}

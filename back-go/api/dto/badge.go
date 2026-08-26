@@ -17,6 +17,8 @@ type BadgeDto struct {
 // ClimbDetailsDto contains the print-ready data attached to a famous-climb badge.
 // BestAscent stays nil when no matching activity has usable timing data.
 type ClimbDetailsDto struct {
+	SummitID         string                 `json:"summitId"`
+	VariantID        string                 `json:"variantId"`
 	Name             string                 `json:"name"`
 	Country          string                 `json:"country"`
 	Massif           string                 `json:"massif"`
@@ -47,12 +49,34 @@ type ClimbProfilePointDto struct {
 }
 
 type ClimbAscentDto struct {
-	ActivityID          int64    `json:"activityId"`
-	ActivityName        string   `json:"activityName"`
-	Date                string   `json:"date"`
-	DurationSeconds     int      `json:"durationSeconds"`
-	VAMMetersPerHour    *int     `json:"vamMetersPerHour,omitempty"`
-	AverageSpeedKph     *float64 `json:"averageSpeedKph,omitempty"`
-	AveragePowerWatts   *int     `json:"averagePowerWatts,omitempty"`
-	AverageHeartRateBpm *int     `json:"averageHeartRateBpm,omitempty"`
+	ActivityID          int64                           `json:"activityId"`
+	ActivityName        string                          `json:"activityName"`
+	Date                string                          `json:"date"`
+	DurationSeconds     int                             `json:"durationSeconds"`
+	VAMMetersPerHour    *int                            `json:"vamMetersPerHour,omitempty"`
+	AverageSpeedKph     *float64                        `json:"averageSpeedKph,omitempty"`
+	AveragePowerWatts   *int                            `json:"averagePowerWatts,omitempty"`
+	AverageHeartRateBpm *int                            `json:"averageHeartRateBpm,omitempty"`
+	ComparisonPoints    []ClimbAscentComparisonPointDto `json:"comparisonPoints"`
+	ComparisonQuality   ClimbAscentComparisonQualityDto `json:"comparisonQuality"`
+}
+
+type ClimbAscentComparisonPointDto struct {
+	DistanceKm       float64  `json:"distanceKm"`
+	ElapsedSeconds   int      `json:"elapsedSeconds"`
+	ElevationMeters  *float64 `json:"elevationMeters,omitempty"`
+	SpeedKph         *float64 `json:"speedKph,omitempty"`
+	VAMMetersPerHour *int     `json:"vamMetersPerHour,omitempty"`
+	PowerWatts       *int     `json:"powerWatts,omitempty"`
+	HeartRateBpm     *int     `json:"heartRateBpm,omitempty"`
+}
+
+type ClimbAscentComparisonQualityDto struct {
+	AlignmentMethod    string   `json:"alignmentMethod"`
+	Precision          string   `json:"precision"`
+	CatalogDistanceKm  float64  `json:"catalogDistanceKm"`
+	DetectedDistanceKm float64  `json:"detectedDistanceKm"`
+	StartOffsetMeters  int      `json:"startOffsetMeters"`
+	FinishOffsetMeters int      `json:"finishOffsetMeters"`
+	Warnings           []string `json:"warnings"`
 }
