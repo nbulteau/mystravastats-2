@@ -284,7 +284,7 @@ npm run preview
 - Upgrade patch versions regularly (`npm update`)
 - Test after each minor/major version upgrade
 - Read changelog before upgrading major versions
-- Keep Node.js up to date (`node >= 25.9.0`)
+- Keep Node.js up to date (`node >= 26.5.0`)
 - Use `npm ci` for production builds (instead of `npm install`)
 
 ❌ **DON'T:**
@@ -295,7 +295,7 @@ npm run preview
 
 ### Node.js Version
 
-This project requires **Node.js 25.9.0 or higher**. Check your current version:
+This project requires **Node.js 26.5.0 or higher**. Check your current version:
 
 ```sh
 node -v
@@ -303,4 +303,3 @@ npm -v
 ```
 
 To upgrade Node.js, visit [nodejs.org](https://nodejs.org/)
-

@@ -67,9 +67,9 @@ if ($SkipFrontBuild -ne "1") {
     $ErrorActionPreference = "Continue"
     try {
         if ($Verbose) {
-            & docker run --rm -v "${RootDir}:/app" -w /app/front-vue node:25.9.0 sh -c "$frontFixCommand && npm ci && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build"
+            & docker run --rm -v "${RootDir}:/app" -w /app/front-vue node:26.5.0 sh -c "$frontFixCommand && npm ci && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build"
         } else {
-            & docker run --rm -v "${RootDir}:/app" -w /app/front-vue node:25.9.0 sh -c "$frontFixCommand && npm ci >/dev/null 2>&1 && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build >/dev/null 2>&1" *> $null
+            & docker run --rm -v "${RootDir}:/app" -w /app/front-vue node:26.5.0 sh -c "$frontFixCommand && npm ci >/dev/null 2>&1 && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build >/dev/null 2>&1" *> $null
         }
     } finally {
         $ErrorActionPreference = $previousErrorActionPreference
@@ -113,9 +113,9 @@ $previousErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = "Continue"
 try {
     if ($Verbose) {
-        & docker run --rm -v "${RootDir}:/app" -w /app golang:1.26.2 sh -c "cd back-go && GOOS=windows GOARCH=amd64 go build -o ../mystravastats.exe"
+        & docker run --rm -v "${RootDir}:/app" -w /app golang:1.26.5 sh -c "cd back-go && GOOS=windows GOARCH=amd64 go build -o ../mystravastats.exe"
     } else {
-        & docker run --rm -v "${RootDir}:/app" -w /app golang:1.26.2 sh -c "cd back-go && GOOS=windows GOARCH=amd64 go build -o ../mystravastats.exe" *> $null
+        & docker run --rm -v "${RootDir}:/app" -w /app golang:1.26.5 sh -c "cd back-go && GOOS=windows GOARCH=amd64 go build -o ../mystravastats.exe" *> $null
     }
 } finally {
     $ErrorActionPreference = $previousErrorActionPreference

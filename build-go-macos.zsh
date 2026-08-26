@@ -13,8 +13,8 @@ done
 
 # Start time
 start_time=$(date +%s)
-FRONT_NODE_IMAGE="${FRONT_NODE_IMAGE:-node:25.9.0}"
-GO_IMAGE="${GO_IMAGE:-golang:1.26.2}"
+FRONT_NODE_IMAGE="${FRONT_NODE_IMAGE:-node:26.5.0}"
+GO_IMAGE="${GO_IMAGE:-golang:1.26.5}"
 
 echo "🚀 Starting build process..."
 

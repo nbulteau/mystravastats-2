@@ -8,10 +8,10 @@ Use the same toolchain versions in local development, CI, Docker, and release sc
 
 | Area | Version source | Supported version |
 | --- | --- | --- |
-| Go backend | `back-go/go.mod` | Go `1.26.2` |
+| Go backend | `back-go/go.mod` | Go `1.26.5` |
 | Kotlin backend | `back-kotlin/build.gradle.kts` | Java `25` |
-| Kotlin build | `back-kotlin/gradle/wrapper/gradle-wrapper.properties` | Gradle `9.5.0` |
-| Frontend | `front-vue/package.json` | Node.js `>=25.9.0` |
+| Kotlin build | `back-kotlin/gradle/wrapper/gradle-wrapper.properties` | Gradle `9.7.1` |
+| Frontend | `front-vue/package.json` | Node.js `>=26.5.0` |
 
 The CI and local scripts can check drift with:
 
