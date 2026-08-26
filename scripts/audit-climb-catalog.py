@@ -18,7 +18,7 @@ EXPECTED = {
     "CH": {"summits": 23, "variants": 47},
     "IT": {"summits": 31, "variants": 78},
     "ES": {"summits": 91, "variants": 127},
-    "AD": {"summits": 4, "variants": 6},
+    "AD": {"summits": 19, "variants": 24},
 }
 
 

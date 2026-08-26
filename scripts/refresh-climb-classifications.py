@@ -563,8 +563,11 @@ def candidate_details_for_climb(climb_ref: dict, details: dict[int, dict]) -> li
         start = detail.get("_searchStart")
         nearest_start = (
             min(
-                haversine_km(start, alternative["geoCoordinate"])
-                for alternative in climb_ref["climb"]["alternatives"]
+                (
+                    haversine_km(start, alternative["geoCoordinate"])
+                    for alternative in climb_ref["climb"]["alternatives"]
+                ),
+                default=math.inf,
             )
             if start
             else math.inf

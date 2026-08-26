@@ -19,9 +19,9 @@
         "totalAscent": 690,
         "minimumAltitude": 1290,
         "maximumGradient": 8.4,
-        "difficulty": 483,
+        "difficulty": 515,
         "averageGradient": 7,
-        "category": "1",
+        "category": "2",
         "sourceUrl": "https://www.cyclinglocations.com/coll-dordino-climb-pyrenees/",
         "id": "climb-ad-col-d-ordino--ordino"
       },
@@ -35,7 +35,7 @@
         "totalAscent": 460,
         "minimumAltitude": 1520,
         "maximumGradient": 10,
-        "difficulty": 230,
+        "difficulty": 343,
         "averageGradient": 5,
         "category": "2",
         "sourceUrl": "https://www.cyclinglocations.com/coll-dordino-canillo-climb-pyrenees/",
@@ -64,7 +64,7 @@
         "totalAscent": 476,
         "minimumAltitude": 1319,
         "maximumGradient": 13,
-        "difficulty": 333,
+        "difficulty": 482,
         "averageGradient": 7,
         "category": "2",
         "sourceUrl": "https://www.cyclinglocations.com/collada-de-beixalis-anyos-climb-pyrenees/",
@@ -80,7 +80,7 @@
         "totalAscent": 565,
         "minimumAltitude": 1230,
         "maximumGradient": 20,
-        "difficulty": 452,
+        "difficulty": 548,
         "averageGradient": 8,
         "category": "2",
         "sourceUrl": "https://www.cyclinglocations.com/collada-de-beixalis-encamp-climb-pyrenees/",
@@ -109,7 +109,7 @@
         "totalAscent": 1378,
         "minimumAltitude": 1029,
         "maximumGradient": 9,
-        "difficulty": 690,
+        "difficulty": 788,
         "averageGradient": 5.01,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/andorre/port-d-envalira-depuis-andorra-c546.htm",
@@ -138,7 +138,7 @@
         "totalAscent": 943,
         "minimumAltitude": 1282,
         "maximumGradient": 8.7,
-        "difficulty": 494,
+        "difficulty": 639,
         "averageGradient": 5.24,
         "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/andorre/station-d-arcalis-depuis-ordino-c1155.htm",
@@ -146,5 +146,512 @@
       }
     ],
     "id": "climb-ad-station-d-arcalis"
+  },
+  {
+    "name": "Aixàs",
+    "country": "AD",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1535,
+    "geoCoordinate": {
+      "latitude": 42.486365,
+      "longitude": 1.467213
+    },
+    "alternatives": [
+      {
+        "name": "Aixovall",
+        "geoCoordinate": {
+          "latitude": 42.47651,
+          "longitude": 1.4902
+        },
+        "length": 7.4,
+        "totalAscent": 607,
+        "minimumAltitude": 928,
+        "maximumGradient": 18,
+        "difficulty": 595,
+        "averageGradient": 8.2,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/andorre/aixas-depuis-aixovall-c2253.htm",
+        "id": "climb-ad-aixas--aixovall"
+      }
+    ],
+    "id": "climb-ad-aixas"
+  },
+  {
+    "name": "Certers",
+    "country": "AD",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1385,
+    "geoCoordinate": {
+      "latitude": 42.476268,
+      "longitude": 1.506781
+    },
+    "alternatives": [
+      {
+        "name": "Sant Julià de Lòria",
+        "geoCoordinate": {
+          "latitude": 42.46665,
+          "longitude": 1.4919
+        },
+        "length": 5.95,
+        "totalAscent": 475,
+        "minimumAltitude": 910,
+        "maximumGradient": 14,
+        "difficulty": 344,
+        "averageGradient": 7.98,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/andorre/certers-depuis-sant-julia-de-loria-c2262.htm",
+        "id": "climb-ad-certers--sant-julia-de-loria"
+      }
+    ],
+    "id": "climb-ad-certers"
+  },
+  {
+    "name": "Col de la Gallina",
+    "country": "AD",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1910,
+    "geoCoordinate": {
+      "latitude": 42.459355,
+      "longitude": 1.449904
+    },
+    "alternatives": [
+      {
+        "name": "Aixovall",
+        "geoCoordinate": {
+          "latitude": 42.47642,
+          "longitude": 1.48978
+        },
+        "length": 11.8,
+        "totalAscent": 982,
+        "minimumAltitude": 928,
+        "maximumGradient": 16,
+        "difficulty": 921,
+        "averageGradient": 8.32,
+        "category": "HC",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/andorre/col-de-la-gallina-depuis-aixovall-c2252.htm",
+        "id": "climb-ad-col-de-la-gallina--aixovall"
+      }
+    ],
+    "id": "climb-ad-col-de-la-gallina"
+  },
+  {
+    "name": "Col des Pardines",
+    "country": "AD",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1508,
+    "geoCoordinate": {
+      "latitude": 42.442249,
+      "longitude": 1.463628
+    },
+    "alternatives": [
+      {
+        "name": "Sant Julià de Lòria",
+        "geoCoordinate": {
+          "latitude": 42.46106,
+          "longitude": 1.48993
+        },
+        "length": 8.3,
+        "totalAscent": 617,
+        "minimumAltitude": 891,
+        "maximumGradient": 14,
+        "difficulty": 571,
+        "averageGradient": 7.43,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/andorre/col-des-pardines-depuis-sant-julia-de-loria-c2261.htm",
+        "id": "climb-ad-col-des-pardines--sant-julia-de-loria"
+      }
+    ],
+    "id": "climb-ad-col-des-pardines"
+  },
+  {
+    "name": "Coma de Ransol",
+    "country": "AD",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1944,
+    "geoCoordinate": {
+      "latitude": 42.612203,
+      "longitude": 1.637877
+    },
+    "alternatives": [
+      {
+        "name": "Ransol",
+        "geoCoordinate": {
+          "latitude": 42.58002,
+          "longitude": 1.64557
+        },
+        "length": 4.52,
+        "totalAscent": 280,
+        "minimumAltitude": 1664,
+        "maximumGradient": 11,
+        "difficulty": 205,
+        "averageGradient": 6.19,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/andorre/coma-de-ransol-depuis-ransol-c2317.htm",
+        "id": "climb-ad-coma-de-ransol--ransol"
+      }
+    ],
+    "id": "climb-ad-coma-de-ransol"
+  },
+  {
+    "name": "El Forn",
+    "country": "AD",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1915,
+    "geoCoordinate": {
+      "latitude": 42.557814,
+      "longitude": 1.609939
+    },
+    "alternatives": [
+      {
+        "name": "Canillo",
+        "geoCoordinate": {
+          "latitude": 42.56662,
+          "longitude": 1.60008
+        },
+        "length": 5.32,
+        "totalAscent": 388,
+        "minimumAltitude": 1527,
+        "maximumGradient": 13,
+        "difficulty": 302,
+        "averageGradient": 7.29,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/andorre/el-forn-depuis-canillo-c2316.htm",
+        "id": "climb-ad-el-forn--canillo"
+      }
+    ],
+    "id": "climb-ad-el-forn"
+  },
+  {
+    "name": "Els Cortals",
+    "country": "AD",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 2087,
+    "geoCoordinate": {
+      "latitude": 42.539345,
+      "longitude": 1.632724
+    },
+    "alternatives": [
+      {
+        "name": "Encamp",
+        "geoCoordinate": {
+          "latitude": 42.53518,
+          "longitude": 1.58823
+        },
+        "length": 8.8,
+        "totalAscent": 758,
+        "minimumAltitude": 1329,
+        "maximumGradient": 15,
+        "difficulty": 704,
+        "averageGradient": 8.61,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/andorre/els-cortals-depuis-encamp-c2263.htm",
+        "id": "climb-ad-els-cortals--encamp"
+      }
+    ],
+    "id": "climb-ad-els-cortals"
+  },
+  {
+    "name": "La Comella",
+    "country": "AD",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1347,
+    "geoCoordinate": {
+      "latitude": 42.50069,
+      "longitude": 1.531406
+    },
+    "alternatives": [
+      {
+        "name": "Andorra la Vella",
+        "geoCoordinate": {
+          "latitude": 42.5035,
+          "longitude": 1.51941
+        },
+        "length": 4.3,
+        "totalAscent": 348,
+        "minimumAltitude": 999,
+        "maximumGradient": 12,
+        "difficulty": 301,
+        "averageGradient": 8.09,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/andorre/la-comella-depuis-andorre-la-vieille-c2314.htm",
+        "id": "climb-ad-la-comella--andorra-la-vella"
+      },
+      {
+        "name": "Escaldes-Engordany",
+        "geoCoordinate": {
+          "latitude": 42.51214,
+          "longitude": 1.55052
+        },
+        "length": 4.13,
+        "totalAscent": 238,
+        "minimumAltitude": 1109,
+        "maximumGradient": 13,
+        "difficulty": 202,
+        "averageGradient": 5.76,
+        "category": "3",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/andorre/la-comella-depuis-escaldes-engordany-c2304.htm",
+        "id": "climb-ad-la-comella--escaldes-engordany"
+      }
+    ],
+    "id": "climb-ad-la-comella"
+  },
+  {
+    "name": "La Peguera",
+    "country": "AD",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1821,
+    "geoCoordinate": {
+      "latitude": 42.444736,
+      "longitude": 1.530035
+    },
+    "alternatives": [
+      {
+        "name": "Sant Julià de Lòria via Aixirivall",
+        "geoCoordinate": {
+          "latitude": 42.46666,
+          "longitude": 1.49189
+        },
+        "routeCheckpoints": [
+          {
+            "latitude": 42.46131,
+            "longitude": 1.52169
+          }
+        ],
+        "length": 13.94,
+        "totalAscent": 911,
+        "minimumAltitude": 910,
+        "maximumGradient": 14,
+        "difficulty": 736,
+        "averageGradient": 6.54,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/andorre/la-peguera-depuis-sant-julia-de-loria-via-aixirivall-c2318.htm",
+        "id": "climb-ad-la-peguera--sant-julia-de-loria-via-aixirivall"
+      },
+      {
+        "name": "Sant Julià de Lòria via Juberri",
+        "geoCoordinate": {
+          "latitude": 42.46666,
+          "longitude": 1.49189
+        },
+        "routeCheckpoints": [
+          {
+            "latitude": 42.43803,
+            "longitude": 1.49011
+          }
+        ],
+        "length": 13.4,
+        "totalAscent": 911,
+        "minimumAltitude": 910,
+        "maximumGradient": 13,
+        "difficulty": 708,
+        "averageGradient": 6.8,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/andorre/la-peguera-depuis-sant-julia-de-loria-via-juberri-c2280.htm",
+        "id": "climb-ad-la-peguera--sant-julia-de-loria-via-juberri"
+      }
+    ],
+    "id": "climb-ad-la-peguera"
+  },
+  {
+    "name": "La Rabassa",
+    "country": "AD",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 2037,
+    "geoCoordinate": {
+      "latitude": 42.435605,
+      "longitude": 1.521264
+    },
+    "alternatives": [
+      {
+        "name": "Sant Julià de Lòria via Aixirivall",
+        "geoCoordinate": {
+          "latitude": 42.46665,
+          "longitude": 1.49191
+        },
+        "routeCheckpoints": [
+          {
+            "latitude": 42.46131,
+            "longitude": 1.52169
+          }
+        ],
+        "length": 17.85,
+        "totalAscent": 1127,
+        "minimumAltitude": 910,
+        "maximumGradient": 14,
+        "difficulty": 861,
+        "averageGradient": 6.31,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/andorre/la-rabassa-depuis-sant-julia-de-loria-via-aixirivall-c2319.htm",
+        "id": "climb-ad-la-rabassa--sant-julia-de-loria-via-aixirivall"
+      },
+      {
+        "name": "Sant Julià de Lòria via Juberri",
+        "geoCoordinate": {
+          "latitude": 42.46666,
+          "longitude": 1.49189
+        },
+        "routeCheckpoints": [
+          {
+            "latitude": 42.43803,
+            "longitude": 1.49011
+          }
+        ],
+        "length": 17.35,
+        "totalAscent": 1127,
+        "minimumAltitude": 910,
+        "maximumGradient": 13,
+        "difficulty": 831,
+        "averageGradient": 6.5,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/andorre/la-rabassa-depuis-sant-julia-de-loria-via-juberri-c2279.htm",
+        "id": "climb-ad-la-rabassa--sant-julia-de-loria-via-juberri"
+      }
+    ],
+    "id": "climb-ad-la-rabassa"
+  },
+  {
+    "name": "Lac d'Engolasters",
+    "country": "AD",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1649,
+    "geoCoordinate": {
+      "latitude": 42.517446,
+      "longitude": 1.568179
+    },
+    "alternatives": [
+      {
+        "name": "Escaldes-Engordany",
+        "geoCoordinate": {
+          "latitude": 42.51214,
+          "longitude": 1.55052
+        },
+        "length": 6.46,
+        "totalAscent": 540,
+        "minimumAltitude": 1109,
+        "maximumGradient": 12,
+        "difficulty": 471,
+        "averageGradient": 8.36,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/andorre/lac-d-engolasters-depuis-escaldes-engordany-c2303.htm",
+        "id": "climb-ad-lac-d-engolasters--escaldes-engordany"
+      }
+    ],
+    "id": "climb-ad-lac-d-engolasters"
+  },
+  {
+    "name": "Os de Civís",
+    "country": "AD",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1635,
+    "geoCoordinate": {
+      "latitude": 42.510383,
+      "longitude": 1.429992
+    },
+    "alternatives": [
+      {
+        "name": "Aixovall",
+        "geoCoordinate": {
+          "latitude": 42.47652,
+          "longitude": 1.49023
+        },
+        "length": 9.4,
+        "totalAscent": 707,
+        "minimumAltitude": 928,
+        "maximumGradient": 15,
+        "difficulty": 655,
+        "averageGradient": 7.52,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/andorre/os-de-civis-depuis-aixovall-c2254.htm",
+        "id": "climb-ad-os-de-civis--aixovall"
+      }
+    ],
+    "id": "climb-ad-os-de-civis"
+  },
+  {
+    "name": "Port de Cabús",
+    "country": "AD",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 2302,
+    "geoCoordinate": {
+      "latitude": 42.546381,
+      "longitude": 1.419732
+    },
+    "alternatives": [
+      {
+        "name": "Andorra la Vella",
+        "geoCoordinate": {
+          "latitude": 42.51934,
+          "longitude": 1.52394
+        },
+        "length": 21.6,
+        "totalAscent": 1298,
+        "minimumAltitude": 1004,
+        "maximumGradient": 10.1,
+        "difficulty": 755,
+        "averageGradient": 6.01,
+        "category": "1",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/andorre/port-de-cabus-depuis-andorra-c2040.htm",
+        "id": "climb-ad-port-de-cabus--andorra-la-vella"
+      }
+    ],
+    "id": "climb-ad-port-de-cabus"
+  },
+  {
+    "name": "Station d'Arinsal",
+    "country": "AD",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1914,
+    "geoCoordinate": {
+      "latitude": 42.572468,
+      "longitude": 1.471293
+    },
+    "alternatives": [
+      {
+        "name": "Erts",
+        "geoCoordinate": {
+          "latitude": 42.56159,
+          "longitude": 1.49648
+        },
+        "length": 6.94,
+        "totalAscent": 574,
+        "minimumAltitude": 1340,
+        "maximumGradient": 13,
+        "difficulty": 539,
+        "averageGradient": 8.27,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/andorre/station-d-arinsal-depuis-erts-c2315.htm",
+        "id": "climb-ad-station-d-arinsal--erts"
+      }
+    ],
+    "id": "climb-ad-station-d-arinsal"
+  },
+  {
+    "name": "Station de Pal - La Caubella",
+    "country": "AD",
+    "massif": "Pyrénées centrales",
+    "topOfTheAscent": 1900,
+    "geoCoordinate": {
+      "latitude": 42.537889,
+      "longitude": 1.491777
+    },
+    "alternatives": [
+      {
+        "name": "Erts",
+        "geoCoordinate": {
+          "latitude": 42.56142,
+          "longitude": 1.4965
+        },
+        "length": 8.35,
+        "totalAscent": 560,
+        "minimumAltitude": 1340,
+        "maximumGradient": 11,
+        "difficulty": 474,
+        "averageGradient": 6.71,
+        "category": "2",
+        "sourceUrl": "https://www.cols-cyclisme.com/pyrenees-centrales/andorre/station-de-pal-la-caubella-depuis-erts-c2281.htm",
+        "id": "climb-ad-station-de-pal-la-caubella--erts"
+      }
+    ],
+    "id": "climb-ad-station-de-pal-la-caubella"
   }
 ]

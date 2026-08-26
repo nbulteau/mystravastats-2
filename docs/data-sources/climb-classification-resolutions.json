@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "auditGeneratedAt": "2026-08-26T14:24:38.946666+00:00",
+  "reviewedAt": "2026-08-26",
+  "defaultDecision": "keep-current",
+  "defaultReason": "No exact Climbfinder route identity was available; preserve the existing classification rather than applying an approximate match.",
+  "acceptedExactMatches": [
+    {"variantId": "climb-fr-col-de-l-ornon--la-paute-d526", "candidateId": 407},
+    {"variantId": "climb-fr-valberg--guillaumes", "candidateId": 5627},
+    {"variantId": "climb-fr-col-de-scalella--bastelica", "candidateId": 20370},
+    {"variantId": "climb-fr-signal-de-lure--saint-etienne-les-orgues", "candidateId": 1001},
+    {"variantId": "climb-fr-mont-faron--toulon", "candidateId": 1327},
+    {"variantId": "climb-fr-cirque-des-avalanches--champfromier", "candidateId": 16071},
+    {"variantId": "climb-fr-relais-de-planachat--champagne-en-valromey", "candidateId": 11893},
+    {"variantId": "climb-fr-relais-de-planachat--plateau-d-hauteville-cormaranche", "candidateId": 11892},
+    {"variantId": "climb-fr-col-de-la-croix-de-boutieres--le-monastier-sur-gazeille", "candidateId": 1063},
+    {"variantId": "climb-fr-chartreuse-de-portes-col-de-portes--serrieres-de-briord", "candidateId": 2214},
+    {"variantId": "climb-fr-tunnel-du-parpaillon--la-condamine-chatelard", "candidateId": 21832},
+    {"variantId": "climb-fr-guidon-du-bouquet--brouzet-les-ales", "candidateId": 7678},
+    {"variantId": "climb-fr-monte-san-ghiabicu-antenne-de-piana--piana-plage-de-ficaghiola", "candidateId": 9591},
+    {"variantId": "climb-ch-glaubenberg-passhohe--entlebuch", "candidateId": 36743},
+    {"variantId": "climb-ch-glaubenberg-passhohe--sarnen", "candidateId": 36742},
+    {"variantId": "climb-it-blockhaus--lettomanoppello", "candidateId": 1286},
+    {"variantId": "climb-es-aritxulegi-mendatea--ergoien", "candidateId": 6663},
+    {"variantId": "climb-es-val-de-la-artiga--es-bordes", "candidateId": 17793},
+    {"variantId": "climb-ad-station-d-arcalis--ordino", "candidateId": 1279}
+  ]
+}

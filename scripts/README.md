@@ -62,6 +62,20 @@ python3 scripts/audit-climb-catalog.py --check
 Country-level origin and verification dates live in
 `docs/data-sources/climb-catalog-sources.json`.
 
+## resolve-climb-classification-audit.py
+
+Apply the exact matches approved in
+`docs/data-sources/climb-classification-resolutions.json`, retain existing values
+for every reviewed ambiguous or unmatched variant, and close the generated audit:
+
+```shell
+python3 scripts/resolve-climb-classification-audit.py
+python3 scripts/resolve-climb-classification-audit.py --check
+```
+
+The resolutions are bound to the audit generation timestamp, so a refreshed
+Climbfinder audit must be reviewed before it can be resolved.
+
 ## setup-strava-oauth.mjs
 
 Guide the local Strava enrollment after the Strava developer application has

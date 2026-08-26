@@ -363,9 +363,9 @@
         "totalAscent": 820,
         "minimumAltitude": 731,
         "maximumGradient": 10.8,
-        "difficulty": 414,
+        "difficulty": 724,
         "averageGradient": 5.05,
-        "category": "2",
+        "category": "1",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-uranaises/suisse/glaubenberg-passhohe-depuis-entlebuch-c2020.htm",
         "id": "climb-ch-glaubenberg-passhohe--entlebuch"
       },
@@ -379,9 +379,9 @@
         "totalAscent": 1065,
         "minimumAltitude": 472,
         "maximumGradient": 11,
-        "difficulty": 808,
+        "difficulty": 955,
         "averageGradient": 7.59,
-        "category": "1",
+        "category": "HC",
         "sourceUrl": "https://www.cols-cyclisme.com/alpes-uranaises/suisse/glaubenberg-passhohe-depuis-sarnen-c2014.htm",
         "id": "climb-ch-glaubenberg-passhohe--sarnen"
       }
