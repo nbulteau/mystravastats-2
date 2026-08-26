@@ -5,8 +5,10 @@ strava-*/
 .strava
 .strava-token.json
 
-# Ignore public directory
+# Generated frontend bundles copied into backend packages
 public/
+/back-go/public/
+/back-kotlin/src/main/resources/static/
 
 # Ignore mac files
 .DS_Store

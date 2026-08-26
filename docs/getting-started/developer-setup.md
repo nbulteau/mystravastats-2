@@ -10,7 +10,7 @@ Use the same toolchain versions in local development, CI, Docker, and release sc
 | --- | --- | --- |
 | Go backend | `back-go/go.mod` | Go `1.26.2` |
 | Kotlin backend | `back-kotlin/build.gradle.kts` | Java `25` |
-| Kotlin build | `back-kotlin/gradle/wrapper/gradle-wrapper.properties` | Gradle `9.4.1` |
+| Kotlin build | `back-kotlin/gradle/wrapper/gradle-wrapper.properties` | Gradle `9.5.0` |
 | Frontend | `front-vue/package.json` | Node.js `>=25.9.0` |
 
 The CI and local scripts can check drift with:
@@ -59,12 +59,26 @@ cd back-kotlin
 ./gradlew bootRun
 ```
 
+For a standalone Kotlin jar that also serves the Vue UI, use:
+
+```sh
+cd back-kotlin
+./gradlew bootJarWithFrontend
+```
+
 Go:
 
 ```sh
 cd back-go
 go test ./...
 go run .
+```
+
+Before building a standalone Go binary directly with `go build`, inject a fresh
+frontend bundle:
+
+```sh
+scripts/sync-frontend-assets.sh go
 ```
 
 ## Frontend Development

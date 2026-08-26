@@ -13,7 +13,7 @@ done
 
 # Start time
 start_time=$(date +%s)
-FRONT_NODE_IMAGE="${FRONT_NODE_IMAGE:-node:26.4.0}"
+FRONT_NODE_IMAGE="${FRONT_NODE_IMAGE:-node:25.9.0}"
 GO_IMAGE="${GO_IMAGE:-golang:1.26.2}"
 
 echo "🚀 Starting build process..."
@@ -28,11 +28,9 @@ else
     sh -c "npm ci --loglevel=error --no-audit --no-fund --update-notifier=false >/dev/null && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run --silent type-check && VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run --silent build-only -- --logLevel error"
 fi
 
-# Copy the UI build to the back-go/public directory
+# Copy the freshly built UI into the Go embed directory.
 echo "📦 Copying UI build to back-go/public..."
-rm -rf back-go/public
-mkdir -p back-go/public
-cp -r front-vue/dist/* back-go/public/
+./scripts/sync-frontend-assets.sh go --skip-build
 
 # Remove old binary before building
 if [ -f mystravastats ]; then

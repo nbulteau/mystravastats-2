@@ -102,10 +102,7 @@ jobs:
 
       - name: Inject front build into back-go/public
         if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == env.MATRIX_TARGET }}
-        run: |
-          rm -rf back-go/public
-          mkdir -p back-go/public
-          cp -r front-vue/dist/* back-go/public/
+        run: scripts/sync-frontend-assets.sh go --skip-build
 
       - name: Setup Go
         if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == env.MATRIX_TARGET }}

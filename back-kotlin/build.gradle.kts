@@ -1,5 +1,9 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
+import org.gradle.api.GradleException
+import org.gradle.api.tasks.Exec
+import org.gradle.api.tasks.Sync
 import org.gradle.jvm.toolchain.JvmVendorSpec
+import org.gradle.language.jvm.tasks.ProcessResources
 
 plugins {
     kotlin("jvm") version "2.4.0"
@@ -71,6 +75,68 @@ kotlin {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+val npmExecutable = if (System.getProperty("os.name").lowercase().contains("windows")) "npm.cmd" else "npm"
+val frontendProjectDir = layout.projectDirectory.dir("../front-vue")
+val frontendDistDir = frontendProjectDir.dir("dist")
+val generatedFrontendStaticDir = layout.buildDirectory.dir("generated/frontend-static")
+val includeFrontendAssetsRequested = providers.gradleProperty("includeFrontendAssets")
+    .map { it.equals("true", ignoreCase = true) || it == "1" }
+    .getOrElse(
+        gradle.startParameter.taskNames.any { taskName ->
+            taskName == "bootJarWithFrontend" || taskName.endsWith(":bootJarWithFrontend")
+        }
+    )
+
+val installFrontendDependencies = tasks.register<Exec>("installFrontendDependencies") {
+    group = "build"
+    description = "Installs frontend dependencies from the lockfile before a standalone backend package."
+    workingDir = frontendProjectDir.asFile
+    commandLine(npmExecutable, "ci", "--loglevel=error", "--no-audit", "--no-fund", "--update-notifier=false")
+    doFirst {
+        if (!frontendProjectDir.file("package.json").asFile.isFile) {
+            throw GradleException("Cannot build frontend assets: ../front-vue/package.json is missing.")
+        }
+    }
+}
+
+val buildFrontendAssets = tasks.register<Exec>("buildFrontendAssets") {
+    group = "build"
+    description = "Builds the Vue frontend production bundle."
+    dependsOn(installFrontendDependencies)
+    workingDir = frontendProjectDir.asFile
+    environment("VITE_CJS_TRACE", "false")
+    environment("NODE_OPTIONS", "--no-deprecation")
+    commandLine(npmExecutable, "run", "build")
+}
+
+val syncFrontendAssets = tasks.register<Sync>("syncFrontendAssets") {
+    group = "build"
+    description = "Copies the fresh Vue bundle into the generated Spring static resources directory."
+    dependsOn(buildFrontendAssets)
+    from(frontendDistDir)
+    into(generatedFrontendStaticDir)
+    doFirst {
+        if (!frontendDistDir.file("index.html").asFile.isFile) {
+            throw GradleException("Cannot sync frontend assets: ../front-vue/dist/index.html is missing.")
+        }
+    }
+}
+
+if (includeFrontendAssetsRequested) {
+    tasks.named<ProcessResources>("processResources") {
+        dependsOn(syncFrontendAssets)
+        from(generatedFrontendStaticDir) {
+            into("static")
+        }
+    }
+}
+
+tasks.register("bootJarWithFrontend") {
+    group = "build"
+    description = "Builds the Spring Boot jar with freshly generated Vue static assets."
+    dependsOn(tasks.named("bootJar"))
 }
 
 // Keep plain jar enabled: Spring AOT/native compile relies on the application artifact/classpath.

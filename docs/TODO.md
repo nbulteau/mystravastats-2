@@ -61,7 +61,7 @@
 
 ### Priorite basse
 
-- [ ] `TECH-P2-01` (`P2`, `M`) - Nettoyer la strategie d'assets frontend embarques.
+- [x] `TECH-P2-01` (`P2`, `M`) - Nettoyer la strategie d'assets frontend embarques.
   Owners: `Front`, `Back-Kotlin`, `Back-Go`, `Infra`.
   Constat:
   - Kotlin contient des assets compiles dans `src/main/resources/static`,
@@ -73,79 +73,16 @@
   - rendre les scripts de capture docs compatibles avec le mode retenu.
   Acceptance:
   - un build release ne peut pas embarquer une ancienne UI par accident.
-
-- [ ] `TECH-P2-05` (`P2`, `M`) - Clarifier la strategie long terme des backends.
-  Owners: `Back-Go`, `Back-Kotlin`, `Product`, `QA`.
-  Proposition:
-  - decider explicitement quelles responsabilites restent doubles, quelles surfaces deviennent reference Go, et quelles surfaces restent reference Kotlin,
-  - eviter les reecritures exploratoires tant que les contrats et fixtures de parite ne sont pas solides,
-  - documenter les criteres de choix: distribution locale, performance parsing FIT/GPX, maturite providers, cout de maintenance et ergonomie dev.
-  Acceptance:
-  - une note de decision remplace les idees de portage premature par une strategie testable.
+  Fait:
+  - `front-vue` est documente comme unique source de verite des bundles UI,
+  - les assets Kotlin compiles ne sont plus versionnes dans `src/main/resources/static`,
+  - les builds Go et CI passent par une sync commune qui nettoie la destination avant copie,
+  - Kotlin expose `bootJarWithFrontend` pour produire une jar standalone avec assets frais.
 
 ## Chantiers fonctionnels proposes
 
 ### Priorite haute
 
-- [x] `FUNC-P1-16` (`P1`, `S`) - Organiser Badges comme le point d'entree de l'experience cols.
-  Owners: `Product`, `Front`, `UX`.
-  Proposition:
-  - separer les recompenses generales, le carnet des cols, les posters et la future carte dans quatre sous-espaces lisibles,
-  - conserver les filtres globaux d'activite et d'annee et rendre visibles les chiffres essentiels avant d'entrer dans le detail,
-  - ne plus enfouir la generation de poster dans l'en-tete de la liste des cols,
-  - preparer des points d'entree stables pour les evolutions suivantes sans multiplier les onglets principaux de l'application.
-  Acceptance:
-  - les badges generaux et les cols ne partagent plus une liste verticale unique,
-  - l'utilisateur accede au generateur de posters depuis un espace dedie sans perdre les fonctions existantes,
-  - la navigation reste utilisable au clavier et s'adapte aux petits ecrans,
-  - l'espace carte reste clairement separe du carnet et des posters.
-  Fait:
-  - navigation locale `Badges` / `Climb log` / `Posters` / `Climb map`,
-  - resume des badges, cols, ascensions et massifs,
-  - filtre de categorie conserve dans le carnet et generateur de posters deplace dans son atelier.
-
-- [x] `FUNC-P1-17` (`P1`, `L`) - Ajouter une carte interactive des cols.
-  Owners: `Product`, `Front`, `Geo`, `Back-Go`, `Back-Kotlin`, `QA`.
-  Proposition:
-  - representer chaque sommet par un marqueur dont l'etat distingue `gravi`, `non gravi` et `favori`,
-  - regrouper les marqueurs proches et proposer les filtres pays, massif, categorie, annee et statut,
-  - afficher dans l'aperçu le nom complet du versant, altitude, difficulte, distance, denivele, nombre d'ascensions et meilleur temps,
-  - ouvrir la fiche du col depuis la carte et permettre de retrouver le marqueur depuis le carnet,
-  - definir un comportement explicite pour un sommet possedant plusieurs versants: un marqueur sommet, puis le detail des variantes.
-  Acceptance:
-  - une legende rend les etats immediatement compréhensibles,
-  - les filtres de la carte et du carnet reposent sur les memes identifiants de sommets et de versants,
-  - la carte reste fluide avec plusieurs centaines de variantes et ne duplique pas visuellement un meme sommet,
-  - les API et DTO necessaires restent alignes entre Go et Kotlin.
-  Fait:
-  - un marqueur stable par sommet regroupe les 567 variantes cataloguees en 295 sommets et le clustering s'adapte au niveau de zoom,
-  - les marqueurs et la legende distinguent les sommets gravis, a decouvrir et favoris; les favoris sont conserves localement,
-  - les filtres couvrent pays, massif, categorie, annee et statut; l'annee suit le contexte global et la categorie reste synchronisee avec le carnet,
-  - le panneau de detail presente chaque versant avec altitude, difficulte, distance, denivele, pentes, source et statistiques personnelles,
-  - la navigation est bidirectionnelle entre le marqueur et le versant exact du carnet,
-  - les DTO Go/Kotlin exposent desormais les coordonnees de depart et de sommet, avec tests de parite; les tests frontend couvrent regroupement, identifiants, filtres et clustering.
-
-- [x] `FUNC-P1-18` (`P1`, `L`) - Creer une fiche detaillee pour chaque col et chaque versant.
-  Owners: `Product`, `Front`, `Stats`, `Back-Go`, `Back-Kotlin`, `QA`.
-  Proposition:
-  - afficher le profil kilometre par kilometre avec couleurs de pente, altitudes intermediaires et secteurs les plus difficiles,
-  - presenter clairement le sommet puis toutes ses variantes de depart sans confondre deux traces proches,
-  - regrouper longueur, denivele, pentes moyenne/maximale, altitude min/max, difficulte, source et date de derniere verification,
-  - lister les ascensions personnelles avec meilleur temps, date, VAM, vitesse, puissance et frequence cardiaque quand ces donnees existent,
-  - permettre de passer d'une ascension a l'activite detaillee d'origine.
-  Acceptance:
-  - le titre contient toujours la variante complete, par exemple `Col du Galibier depuis Saint-Jean-de-Maurienne`,
-  - les metriques cataloguees et personnelles sont visuellement distinguees,
-  - une donnee absente est signalee comme indisponible et n'est jamais remplacee par une valeur incoherente,
-  - les profils reutilisent le meme moteur de rendu et les memes regles de plausibilite que les posters.
-  Fait:
-  - une route stable ouvre la fiche du versant exact depuis le carnet ou la carte, y compris pour un col encore a decouvrir,
-  - la fiche conserve le titre complet du versant, regroupe les autres departs du meme sommet et distingue visuellement les donnees catalogue des donnees personnelles,
-  - le profil kilometrique reutilise le moteur SVG des posters avec couleurs de pente, altitudes intermediaires et classement des cinq secteurs les plus difficiles,
-  - les caracteristiques cataloguees affichent longueur, denivele, pentes, altitudes, difficulte, categorie, coordonnees et source; les valeurs ou dates absentes sont explicitement indiquees `Indisponible`,
-  - les DTO Go et Kotlin exposent toutes les ascensions detectees avec temps, date, VAM, vitesse et moyennes de puissance/frequence cardiaque sur le seul intervalle du versant,
-  - chaque ascension renvoie vers l'activite detaillee d'origine et le meilleur temps est identifie sans confondre deux versants proches,
-  - les tests Go/Kotlin couvrent l'historique et les metriques personnelles; les tests frontend couvrent titres, tri, secteurs et reutilisation du profil poster.
 
 - [ ] `FUNC-P1-19` (`P1`, `M`) - Stabiliser l'identite sommet/versant et la qualite du catalogue.
   Owners: `Data`, `Back-Go`, `Back-Kotlin`, `QA`.

@@ -1,7 +1,8 @@
 services:
   back:
     build:
-      context: ./back-go
+      context: .
+      dockerfile: back-go/Dockerfile
       target: runtime
     image: nbulteau/mystravastats-back-go:latest
     container_name: mystravastats-backend-go

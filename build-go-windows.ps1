@@ -83,17 +83,9 @@ if ($SkipFrontBuild -ne "1") {
         throw "front-vue build failed: dist directory not found at '$FrontDistDir'."
     }
 
-    # Copy the build artifacts to the back-go/public directory
+    # Copy the freshly built UI into the Go embed directory.
     Write-VerboseOutput "[FRONT] Copying UI build to back-go/public..."
-    # Remove the existing back-go/public directory if it exists
-    if (Test-Path -Path $BackPublicDir) {
-        Remove-Item -Recurse -Force $BackPublicDir
-        Write-VerboseOutput "[CLEAN] Removed existing back-go/public directory."
-    }
-    # Recreate the back-go/public directory
-    New-Item -ItemType Directory -Path $BackPublicDir | Out-Null
-    # Copy the build artifacts
-    Copy-Item -Recurse -Force -Path (Join-Path $FrontDistDir "*") -Destination $BackPublicDir
+    & (Join-Path $RootDir "scripts/sync-frontend-assets.ps1") -Target go -SkipBuild
 } else {
     Write-Output "[SKIP] Skipping front-vue build and copy because SKIP_FRONT_BUILD=1."
 

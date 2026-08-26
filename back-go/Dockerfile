@@ -1,17 +1,29 @@
+FROM node:25.9.0-alpine AS frontend
+
+WORKDIR /app/front-vue
+
+COPY front-vue/package*.json ./
+RUN npm ci
+
+COPY front-vue/ ./
+RUN VITE_CJS_TRACE=false NODE_OPTIONS='--no-deprecation' npm run build
+
 # Use the same Go version declared in go.mod.
 FROM golang:1.26.2-alpine AS build
 
 # Set the working directory
-WORKDIR /app
+WORKDIR /app/back-go
 
 # Copy the Go modules files
-COPY go.mod go.sum ./
+COPY back-go/go.mod back-go/go.sum ./
 
 # Download the Go modules
 RUN go mod download
 
 # Copy the source code
-COPY . .
+COPY back-go/ ./
+RUN rm -rf public
+COPY --from=frontend /app/front-vue/dist/ ./public/
 
 # Build the application
 RUN go build -o mystravastats .
@@ -30,8 +42,8 @@ ENV OPEN_BROWSER=false
 WORKDIR /app
 
 # Copy the built application from the build stage
-COPY --from=build /app/mystravastats /app/mystravastats
-COPY famous-climb/ /app/famous-climb/
+COPY --from=build /app/back-go/mystravastats /app/mystravastats
+COPY back-go/famous-climb/ /app/famous-climb/
 
 # Expose the port the application runs on
 EXPOSE 8080

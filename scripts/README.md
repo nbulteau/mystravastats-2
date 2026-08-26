@@ -1,5 +1,31 @@
 # Scripts
 
+## sync-frontend-assets
+
+Copy a fresh Vite production bundle into the generated backend asset location:
+
+```shell
+scripts/sync-frontend-assets.sh go
+scripts/sync-frontend-assets.sh kotlin
+```
+
+Use `--skip-build` only when `front-vue/dist` was produced earlier in the same
+build run:
+
+```shell
+scripts/sync-frontend-assets.sh go --skip-build
+```
+
+The PowerShell variant exposes the same targets:
+
+```powershell
+.\scripts\sync-frontend-assets.ps1 -Target go
+.\scripts\sync-frontend-assets.ps1 -Target kotlin
+```
+
+See [Frontend Assets Strategy](../docs/architecture/frontend-assets.md) for the
+release rules and backend-specific destinations.
+
 ## refresh-climb-classifications.py
 
 Refresh the difficulty points and categories of the four national famous-climb
