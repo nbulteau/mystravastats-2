@@ -44,47 +44,13 @@
 
 ### Priorite haute
 
-
 ### Priorite moyenne
 
-- [ ] `TECH-P2-06` (`P2`, `M`) - Automatiser la synchronisation MTP native Garmin sans OpenMTP.
-  Owners: `Back-Go`, `Back-Kotlin`, `Infra`, `QA`.
-  Constat:
-  - la synchronisation FIT actuelle sait copier depuis un montage filesystem ou OpenMTP,
-  - certains environnements macOS/Windows/Linux pourraient beneficier d'une detection MTP native sans outil externe.
-  Scope:
-  - evaluer une integration MTP native par OS ou un helper dedie,
-  - conserver le flux actuel `GARMIN_FIT_SOURCE_PATH` / `FIT_INBOX_PATH` / `FIT_FILES_PATH/<annee>/`,
-  - garder les diagnostics explicites quand l'appareil n'est pas monte, non detecte ou inaccessible.
-  Acceptance:
-  - la synchronisation Garmin fonctionne sans OpenMTP sur au moins un OS cible documente,
-  - le mode filesystem/OpenMTP existant reste disponible,
-  - les erreurs de detection ou copie sont visibles dans Status.
-
 ### Priorite basse
-
-- [x] `TECH-P2-01` (`P2`, `M`) - Nettoyer la strategie d'assets frontend embarques.
-  Owners: `Front`, `Back-Kotlin`, `Back-Go`, `Infra`.
-  Constat:
-  - Kotlin contient des assets compiles dans `src/main/resources/static`,
-  - Go embarque `public`,
-  - le frontend a son propre build Vite.
-  Scope:
-  - definir si les assets compiles sont generes au build ou versionnes,
-  - eviter les assets obsoletes dans les backends,
-  - rendre les scripts de capture docs compatibles avec le mode retenu.
-  Acceptance:
-  - un build release ne peut pas embarquer une ancienne UI par accident.
-  Fait:
-  - `front-vue` est documente comme unique source de verite des bundles UI,
-  - les assets Kotlin compiles ne sont plus versionnes dans `src/main/resources/static`,
-  - les builds Go et CI passent par une sync commune qui nettoie la destination avant copie,
-  - Kotlin expose `bootJarWithFrontend` pour produire une jar standalone avec assets frais.
 
 ## Chantiers fonctionnels proposes
 
 ### Priorite haute
-
 
 - [ ] `FUNC-P1-19` (`P1`, `M`) - Stabiliser l'identite sommet/versant et la qualite du catalogue.
   Owners: `Data`, `Back-Go`, `Back-Kotlin`, `QA`.
@@ -146,43 +112,6 @@
   Acceptance:
   - la data quality devient un workflow de decision, pas seulement un rapport technique.
 
-- [ ] `FUNC-P2-20` (`P2`, `M`) - Proposer des collections et des defis de cols.
-  Owners: `Product`, `Front`, `Stats`.
-  Proposition:
-  - proposer des collections par massif, pays et theme: tous les HC, sommets de plus de 2 000 m, classiques du Tour, routes des Grandes Alpes ou cols corses,
-  - afficher la progression en sommets et en versants, avec une definition claire de la condition de validation,
-  - permettre a l'utilisateur de suivre quelques defis et de masquer ceux qui ne l'interessent pas,
-  - distinguer les collections permanentes des defis limites a une saison.
-  Acceptance:
-  - chaque collection expose son perimetre, sa source et sa progression exacte,
-  - l'ajout d'un nouveau col au catalogue ne rend pas silencieusement un ancien succes incoherent,
-  - les recompenses obtenues apparaissent dans l'espace Badges sans dupliquer les badges de versant.
-
-- [ ] `FUNC-P2-21` (`P2`, `L`) - Suggérer les prochains cols pertinents.
-  Owners: `Product`, `Front`, `Geo`, `Stats`.
-  Proposition:
-  - classer les cols non gravis selon la proximite, la difficulte habituelle du cycliste, la saison, l'altitude et les massifs deja visites,
-  - expliquer chaque suggestion avec des raisons lisibles plutot qu'un score opaque,
-  - permettre de filtrer par rayon, difficulte maximale, longueur, denivele et pays,
-  - ajouter aux favoris un sommet ou un versant depuis une suggestion, la carte ou la fiche detaillee.
-  Acceptance:
-  - aucune suggestion ne depend d'une localisation implicite non consentie,
-  - les donnees manquantes ou une fermeture saisonniere inconnue sont signalees,
-  - une suggestion explique au moins sa distance, son niveau et son lien avec l'historique du cycliste.
-
-- [ ] `FUNC-P2-22` (`P2`, `L`) - Composer un parcours reliant plusieurs cols.
-  Owners: `Product`, `Front`, `Routes`, `Back-Go`, `Back-Kotlin`, `QA`.
-  Proposition:
-  - selectionner de deux a quatre sommets ou versants depuis la carte, les favoris ou les suggestions,
-  - proposer une boucle ou un point-a-point et afficher distance, denivele, profil global et ordre de passage,
-  - permettre de verrouiller un versant precis afin de ne pas atteindre le sommet par le mauvais cote,
-  - reutiliser le routage existant avec diagnostics explicites et export GPX.
-  Acceptance:
-  - l'itineraire traverse les points de passage discriminants des variantes selectionnees,
-  - les estimations sont recalculees apres chaque changement d'ordre,
-  - l'export GPX reprend exactement l'itineraire valide,
-  - les comportements et diagnostics de generation restent couverts et alignes en Go/Kotlin.
-
 - [ ] `FUNC-P2-23` (`P2`, `M`) - Comparer plusieurs ascensions d'un meme versant.
   Owners: `Product`, `Front`, `Stats`.
   Proposition:
@@ -207,18 +136,6 @@
   - les records ignores par les garde-fous de qualite sont explicites,
   - les totaux restent coherents entre Dashboard, carnet et posters.
 
-- [ ] `FUNC-P2-25` (`P2`, `M`) - Enrichir les posters thematiques et partageables.
-  Owners: `Product`, `Front`, `Design`.
-  Proposition:
-  - generer un poster par massif, pays, saison, annee, collection ou selection libre,
-  - proposer une variante avec carte miniature et une autre centree sur les profils,
-  - ajouter en option un QR code pointant vers une page locale/exportable de la collection,
-  - conserver SVG comme format maitre et preparer un export PDF haute definition verifie pour l'impression.
-  Acceptance:
-  - les trois designs existants conservent le meme nombre maximal de cols,
-  - le theme et les filtres actifs sont rappeles dans le titre du poster,
-  - le QR code reste optionnel et n'expose aucune donnee privee sans action explicite.
-
 - [ ] `FUNC-P2-26` (`P2`, `L`) - Etendre progressivement le catalogue europeen.
   Owners: `Product`, `Data`, `Back-Go`, `Back-Kotlin`, `QA`.
   Statut:
@@ -236,8 +153,6 @@
   - l'origine et la date de verification des donnees sont conservees.
 
 ### Priorite basse
-
-
 
 ## Verification conseillee selon le type de changement
 
