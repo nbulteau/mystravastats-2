@@ -1,6 +1,15 @@
 import type { BadgeCheckResult, ClimbAscent } from "@/models/badge-check-result.model";
 import { climbSummitId, climbVariantId } from "@/utils/climb-id";
 
+const CATEGORY_ORDER = ["Cat. HC", "Cat. 1", "Cat. 2", "Cat. 3", "Cat. 4"];
+const ALTITUDE_BAND_ORDER = [
+  "≥ 2,500 m",
+  "2,000–2,499 m",
+  "1,500–1,999 m",
+  "1,000–1,499 m",
+  "< 1,000 m",
+];
+
 export interface ClimberBreakdownItem {
   key: string;
   label: string;
@@ -83,8 +92,14 @@ export function buildClimberDashboardStats(results: BadgeCheckResult[]): Climber
     years: groupByAscents(climbed, ({ ascent }) => yearOf(ascent.date)),
     countries: groupByClimbs(climbed, (result) => result.climbDetails?.country || "Not provided", ascentCountFor),
     massifs: groupByClimbs(climbed, (result) => result.climbDetails?.massif || "Not provided", ascentCountFor),
-    categories: groupByClimbs(climbed, (result) => `Cat. ${result.badge.category?.trim().toUpperCase() || "?"}`, ascentCountFor),
-    altitudeBands: groupByClimbs(climbed, (result) => altitudeBand(result.climbDetails?.summitAltitude ?? 0), ascentCountFor),
+    categories: sortByBusinessOrder(
+      groupByClimbs(climbed, (result) => `Cat. ${result.badge.category?.trim().toUpperCase() || "?"}`, ascentCountFor),
+      CATEGORY_ORDER,
+    ),
+    altitudeBands: sortByBusinessOrder(
+      groupByClimbs(climbed, (result) => altitudeBand(result.climbDetails?.summitAltitude ?? 0), ascentCountFor),
+      ALTITUDE_BAND_ORDER,
+    ),
   };
 }
 
@@ -165,6 +180,18 @@ function groupByClimbs(
 function yearOf(date: string): string {
   const match = /^(\d{4})/.exec(date);
   return match?.[1] ?? "Unknown date";
+}
+
+function sortByBusinessOrder(
+  items: ClimberBreakdownItem[],
+  orderedLabels: readonly string[],
+): ClimberBreakdownItem[] {
+  const rank = new Map(orderedLabels.map((label, index) => [label, index]));
+  return [...items].sort((left, right) => {
+    const leftRank = rank.get(left.label) ?? Number.MAX_SAFE_INTEGER;
+    const rightRank = rank.get(right.label) ?? Number.MAX_SAFE_INTEGER;
+    return leftRank - rightRank || left.label.localeCompare(right.label, "en");
+  });
 }
 
 function altitudeBand(altitude: number): string {
