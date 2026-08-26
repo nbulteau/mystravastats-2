@@ -51,7 +51,7 @@ jobs:
         run: |
           npm ci
           npm run build-only
-          cp -r dist ../back-go/public
+          ../scripts/sync-frontend-assets.sh go --skip-build
 
       - name: Setup Go
         uses: actions/setup-go@v5

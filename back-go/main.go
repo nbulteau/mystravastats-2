@@ -17,9 +17,12 @@ import (
 	"embed"
 	"errors"
 	"flag"
+	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"mystravastats/api"
+	"mystravastats/internal/helpers"
 	"mystravastats/internal/platform/activityprovider"
 	"mystravastats/internal/platform/runtimeconfig"
 	"mystravastats/internal/sourcesync"
@@ -126,7 +129,13 @@ func main() {
 	handler := newCORSHandler(router)
 
 	addr := net.JoinHostPort(*host, *port)
-	log.Printf("Starting server on http://%s", displayAddress(*host, *port))
+	displayAddr := displayAddress(*host, *port)
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Fatalf("could not listen on %s: %v\n", addr, err)
+	}
+
+	log.Printf("Starting server on http://%s", displayAddr)
 	srv := &http.Server{
 		Addr:         addr,
 		Handler:      handler,
@@ -137,10 +146,11 @@ func main() {
 
 	// Graceful shutdown
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		if err := srv.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("could not listen on %s: %v\n", addr, err)
 		}
 	}()
+	go openBrowserWhenServerIsReady(displayAddr)
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
@@ -164,4 +174,56 @@ func displayAddress(host, port string) string {
 		displayHost = "localhost"
 	}
 	return net.JoinHostPort(displayHost, port)
+}
+
+func openBrowserWhenServerIsReady(displayAddr string) {
+	appURL := fmt.Sprintf("http://%s", displayAddr)
+	if !runtimeconfig.BoolValue("OPEN_BROWSER", true) {
+		log.Printf("Browser auto-open disabled; open this URL manually: %s", appURL)
+		return
+	}
+
+	readinessURL := appURL
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	if !waitForServerReady(ctx, readinessURL, 200*time.Millisecond) {
+		log.Printf("Server readiness check timed out; open this URL manually once ready: %s", appURL)
+		return
+	}
+
+	log.Printf("Server ready; opening browser: %s", appURL)
+	helpers.OpenBrowser(appURL)
+	log.Printf("To view your Strava activities, open the following URL in your browser: %s", appURL)
+}
+
+func waitForServerReady(ctx context.Context, readinessURL string, interval time.Duration) bool {
+	if interval <= 0 {
+		interval = 200 * time.Millisecond
+	}
+	client := http.Client{Timeout: 500 * time.Millisecond}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		if isServerReady(client, readinessURL) {
+			return true
+		}
+
+		select {
+		case <-ctx.Done():
+			return false
+		case <-ticker.C:
+		}
+	}
+}
+
+func isServerReady(client http.Client, readinessURL string) bool {
+	response, err := client.Get(readinessURL)
+	if err != nil {
+		return false
+	}
+	defer response.Body.Close()
+	_, _ = io.Copy(io.Discard, response.Body)
+	return response.StatusCode >= http.StatusOK && response.StatusCode < http.StatusInternalServerError
 }

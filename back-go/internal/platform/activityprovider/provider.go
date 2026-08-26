@@ -16,7 +16,6 @@ import (
 var (
 	provider     ActivityProvider
 	providerOnce sync.Once
-	serverPort   string
 )
 
 type ActivityProvider interface {
@@ -40,8 +39,7 @@ type ReloadableActivityProvider interface {
 }
 
 // Init eagerly initializes the activity provider singleton.
-func Init(port string) {
-	serverPort = port
+func Init(_ string) {
 	_ = Get()
 }
 
@@ -68,7 +66,7 @@ func Get() ActivityProvider {
 			if stravaConfigured {
 				sources = append(sources, compositeprovider.Source{
 					Name:     "strava",
-					Provider: stravaapi.NewStravaActivityProvider(stravaCachePath, serverPort),
+					Provider: stravaapi.NewStravaActivityProvider(stravaCachePath),
 				})
 			}
 			if fitConfigured {
@@ -95,7 +93,7 @@ func Get() ActivityProvider {
 			provider = gpxprovider.NewGPXActivityProvider(gpxFilesPath)
 			return
 		}
-		provider = stravaapi.NewStravaActivityProvider(helpers.StravaCachePath, serverPort)
+		provider = stravaapi.NewStravaActivityProvider(helpers.StravaCachePath)
 	})
 	return provider
 }

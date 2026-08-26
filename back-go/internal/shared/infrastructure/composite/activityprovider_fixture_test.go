@@ -18,7 +18,7 @@ func TestCompositeSharedSourceModeFixtures(t *testing.T) {
 	expected := readSharedCompositeExpected(t)
 	fixtureRoot := copySharedSourceModeFixtures(t)
 	provider := NewCompositeActivityProvider([]Source{
-		{Name: "strava", Provider: stravaapi.NewStravaActivityProvider(filepath.Join(fixtureRoot, "strava"), "0")},
+		{Name: "strava", Provider: stravaapi.NewStravaActivityProvider(filepath.Join(fixtureRoot, "strava"))},
 		{Name: "fit", Provider: fitprovider.NewFITActivityProvider(filepath.Join(fixtureRoot, "fit"))},
 		{Name: "gpx", Provider: gpxprovider.NewGPXActivityProvider(filepath.Join(fixtureRoot, "gpx"))},
 	})

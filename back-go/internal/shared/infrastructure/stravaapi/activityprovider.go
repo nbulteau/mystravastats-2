@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"mystravastats/domain/statistics"
-	"mystravastats/internal/helpers"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
 	"mystravastats/internal/shared/infrastructure/localrepository"
@@ -35,7 +34,6 @@ type StravaActivityProvider struct {
 	backgroundRefresh     atomic.Bool
 	warmupInProgress      atomic.Bool
 	stravaAthlete         strava.Athlete
-	serverPort            string
 	cacheRoot             string
 	manifestMutex         sync.Mutex
 	cacheManifest         cacheManifest
@@ -45,12 +43,11 @@ type StravaActivityProvider struct {
 const detailedBackfillRequestDelay = 1500 * time.Millisecond
 const stravaRateLimitCooldown = 15 * time.Minute
 
-func NewStravaActivityProvider(stravaCache string, serverPort string) *StravaActivityProvider {
+func NewStravaActivityProvider(stravaCache string) *StravaActivityProvider {
 	log.Printf("Initialize StravaActivityProvider using %s ...", stravaCache)
 
 	provider := &StravaActivityProvider{
 		localStorageProvider: localrepository.NewStravaRepository(stravaCache),
-		serverPort:           serverPort,
 		cacheRoot:            stravaCache,
 	}
 
@@ -105,10 +102,6 @@ useCache=false
 	if len(provider.activities) > 0 {
 		provider.launchBackgroundWarmup("startup")
 	}
-
-	url := fmt.Sprintf("http://localhost:%s", provider.serverPort)
-	helpers.OpenBrowser(url)
-	fmt.Println("To view your Strava activities, open the following URL in your browser:", url)
 
 	log.Printf("✅ MyStravastats ready with clientId=%s and %d activities (cache-first startup)", provider.clientId, len(provider.activities))
 
