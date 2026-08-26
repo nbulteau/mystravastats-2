@@ -45,13 +45,20 @@ export const useMapStore = defineStore("map", {
       this.error = null;
       try {
         const tracks = await requestJson<MapTrack[]>(tracksUrl);
-        this.mapTracks = tracks;
-        this.mapTracksByKey[currentKey] = this.mapTracks;
+        this.mapTracksByKey[currentKey] = tracks;
+        if (this.currentFiltersKey() === currentKey) {
+          this.mapTracks = tracks;
+        }
       } catch {
+        if (this.currentFiltersKey() !== currentKey) {
+          return;
+        }
         this.error = "Unable to load map tracks for the selected filters.";
         this.mapTracks = this.mapTracksByKey[currentKey] ?? this.mapTracks;
       } finally {
-        this.isLoading = false;
+        if (this.currentFiltersKey() === currentKey) {
+          this.isLoading = false;
+        }
       }
     },
     async fetchMapPassages() {
@@ -61,13 +68,21 @@ export const useMapStore = defineStore("map", {
       this.isPassagesLoading = true;
       this.passagesError = null;
       try {
-        this.mapPassages = normalizeMapPassages(await requestJson<MapPassages>(passagesUrl));
-        this.mapPassagesByKey[currentKey] = this.mapPassages;
+        const mapPassages = normalizeMapPassages(await requestJson<MapPassages>(passagesUrl));
+        this.mapPassagesByKey[currentKey] = mapPassages;
+        if (this.currentFiltersKey() === currentKey) {
+          this.mapPassages = mapPassages;
+        }
       } catch {
+        if (this.currentFiltersKey() !== currentKey) {
+          return;
+        }
         this.passagesError = "Unable to load route frequency for the selected filters.";
         this.mapPassages = this.mapPassagesByKey[currentKey] ?? this.mapPassages;
       } finally {
-        this.isPassagesLoading = false;
+        if (this.currentFiltersKey() === currentKey) {
+          this.isPassagesLoading = false;
+        }
       }
     },
     async ensureLoaded(force = false) {

@@ -65,6 +65,9 @@ export const useDashboardStore = defineStore("dashboard", {
       const contextStore = useContextStore();
       return `${contextStore.currentFiltersKey}:eddington=${this.eddingtonScope}:${this.eddingtonMetric}:${this.eddingtonBasis}`;
     },
+    isCurrentDashboardKey(key: string): boolean {
+      return this.currentDashboardKey() === key;
+    },
     currentHeatmapActivityType(): string {
       const contextStore = useContextStore();
       if (this.heatmapScope === "all-sports") {
@@ -134,19 +137,23 @@ export const useDashboardStore = defineStore("dashboard", {
     },
     async fetchCumulativeDataPerYear() {
       const contextStore = useContextStore();
+      const key = this.currentDashboardKey();
       const url = buildFilteredApiUrl(
         "dashboard/cumulative-data-per-year",
         contextStore.currentActivityType,
         contextStore.currentYear,
       );
       const data = await requestJson<CumulativeApiPayload>(url);
-      this.cumulativeDistancePerYear = convertToNestedMap(data.distance ?? {});
-      this.cumulativeElevationPerYear = convertToNestedMap(data.elevation ?? {});
-      this.updateDashboardCacheForCurrentKey();
+      if (this.isCurrentDashboardKey(key)) {
+        this.cumulativeDistancePerYear = convertToNestedMap(data.distance ?? {});
+        this.cumulativeElevationPerYear = convertToNestedMap(data.elevation ?? {});
+        this.updateDashboardCacheForCurrentKey();
+      }
     },
     async fetchEddingtonNumber() {
       const contextStore = useContextStore();
       this.normalizeEddingtonScopeForCurrentContext();
+      const key = this.currentDashboardKey();
       const baseUrl = buildFilteredApiUrl("dashboard/eddington-number", contextStore.currentActivityType, contextStore.currentYear);
       const separator = baseUrl.includes("?") ? "&" : "?";
       const params = new URLSearchParams({
@@ -155,32 +162,46 @@ export const useDashboardStore = defineStore("dashboard", {
         basis: this.eddingtonBasis,
       });
       const url = `${baseUrl}${separator}${params.toString()}`;
-      this.eddingtonNumber = await requestJson<EddingtonNumber>(url);
-      this.updateDashboardCacheForCurrentKey();
+      const eddingtonNumber = await requestJson<EddingtonNumber>(url);
+      if (this.isCurrentDashboardKey(key)) {
+        this.eddingtonNumber = eddingtonNumber;
+        this.updateDashboardCacheForCurrentKey();
+      }
     },
     async fetchDashboardData() {
       const contextStore = useContextStore();
+      const key = this.currentDashboardKey();
       const url = buildFilteredApiUrl("dashboard", contextStore.currentActivityType, contextStore.currentYear);
-      this.dashboardData = await requestJson<DashboardData>(url);
-      this.updateDashboardCacheForCurrentKey();
+      const dashboardData = await requestJson<DashboardData>(url);
+      if (this.isCurrentDashboardKey(key)) {
+        this.dashboardData = dashboardData;
+        this.updateDashboardCacheForCurrentKey();
+      }
     },
     async fetchAnnualGoals() {
       const contextStore = useContextStore();
+      const key = this.currentDashboardKey();
       const year = this.currentAnnualGoalYear();
       if (year === null) {
-        this.annualGoals = emptyAnnualGoals();
-        this.annualGoalsError = null;
-        this.updateDashboardCacheForCurrentKey();
+        if (this.isCurrentDashboardKey(key)) {
+          this.annualGoals = emptyAnnualGoals();
+          this.annualGoalsError = null;
+          this.updateDashboardCacheForCurrentKey();
+        }
         return;
       }
 
       const url = buildFilteredApiUrl("dashboard/annual-goals", contextStore.currentActivityType, contextStore.currentYear);
-      this.annualGoals = await requestJson<AnnualGoals>(url);
-      this.annualGoalsError = null;
-      this.updateDashboardCacheForCurrentKey();
+      const annualGoals = await requestJson<AnnualGoals>(url);
+      if (this.isCurrentDashboardKey(key)) {
+        this.annualGoals = annualGoals;
+        this.annualGoalsError = null;
+        this.updateDashboardCacheForCurrentKey();
+      }
     },
     async saveAnnualGoals(targets: AnnualGoalTargets) {
       const contextStore = useContextStore();
+      const key = this.currentDashboardKey();
       const year = this.currentAnnualGoalYear();
       if (year === null) {
         this.annualGoalsError = "Select a specific year before saving annual goals.";
@@ -191,30 +212,39 @@ export const useDashboardStore = defineStore("dashboard", {
       this.annualGoalsError = null;
       try {
         const url = buildFilteredApiUrl("dashboard/annual-goals", contextStore.currentActivityType, contextStore.currentYear);
-        this.annualGoals = await requestJson<AnnualGoals>(url, {
+        const annualGoals = await requestJson<AnnualGoals>(url, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(targets),
         });
-        this.updateDashboardCacheForCurrentKey();
-        return this.annualGoals;
+        if (this.isCurrentDashboardKey(key)) {
+          this.annualGoals = annualGoals;
+          this.updateDashboardCacheForCurrentKey();
+        }
+        return annualGoals;
       } catch (error: unknown) {
-        this.annualGoalsError = error instanceof Error ? error.message : "Failed to save annual goals.";
+        if (this.isCurrentDashboardKey(key)) {
+          this.annualGoalsError = error instanceof Error ? error.message : "Failed to save annual goals.";
+        }
         throw error;
       } finally {
         this.isSavingAnnualGoals = false;
       }
     },
     async fetchActivityHeatmap() {
+      const key = this.currentHeatmapKey();
       const params = new URLSearchParams({
         activityType: this.currentHeatmapActivityType(),
       });
       const url = `/api/dashboard/activity-heatmap?${params.toString()}`;
       try {
-        this.activityHeatmap = await requestJson<ActivityHeatmap>(url);
-        this.heatmapByKey[this.currentHeatmapKey()] = this.activityHeatmap;
+        const activityHeatmap = await requestJson<ActivityHeatmap>(url);
+        this.heatmapByKey[key] = activityHeatmap;
+        if (this.currentHeatmapKey() === key) {
+          this.activityHeatmap = activityHeatmap;
+        }
       } catch (error) {
         console.warn("Activity heatmap data not available:", error);
       }
@@ -239,9 +269,13 @@ export const useDashboardStore = defineStore("dashboard", {
           this.fetchAnnualGoals(),
         ]);
       } catch (error: unknown) {
-        this.error = error instanceof Error ? error.message : "Failed to load dashboard data.";
+        if (this.isCurrentDashboardKey(key)) {
+          this.error = error instanceof Error ? error.message : "Failed to load dashboard data.";
+        }
       } finally {
-        this.isLoading = false;
+        if (this.isCurrentDashboardKey(key)) {
+          this.isLoading = false;
+        }
       }
     },
     async ensureHeatmapLoaded(force = false) {

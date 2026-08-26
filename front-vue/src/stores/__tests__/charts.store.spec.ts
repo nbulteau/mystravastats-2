@@ -15,10 +15,40 @@ vi.mock("@/stores/api", () => ({
   requestJson: vi.fn(),
 }));
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((promiseResolve) => {
+    resolve = promiseResolve;
+  });
+  return { promise, resolve };
+}
+
 describe("charts store", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+  });
+
+  it("does not display a stale chart response after filters change", async () => {
+    const contextStore = useContextStore();
+    contextStore.currentYear = "2026";
+    contextStore.currentActivityType = "Hike";
+    const chartsStore = useChartsStore();
+    const stale = deferred<Array<{ periodKey: string; value: number; activityCount: number }>>();
+    const current = deferred<Array<{ periodKey: string; value: number; activityCount: number }>>();
+    vi.mocked(requestJson).mockReturnValueOnce(stale.promise).mockReturnValueOnce(current.promise);
+
+    const staleFetch = chartsStore.fetchDistanceByMonths();
+    contextStore.currentActivityType = "Ride";
+    const currentFetch = chartsStore.fetchDistanceByMonths();
+
+    stale.resolve([{ periodKey: "01", value: 10, activityCount: 1 }]);
+    await staleFetch;
+    expect(chartsStore.distanceByMonths).toEqual([]);
+
+    current.resolve([{ periodKey: "01", value: 50, activityCount: 2 }]);
+    await currentFetch;
+    expect(chartsStore.distanceByMonths).toEqual([{ periodKey: "01", value: 50, activityCount: 2 }]);
   });
 
   it("loads all-years overview data when year filter is All years", async () => {

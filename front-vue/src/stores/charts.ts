@@ -53,6 +53,9 @@ export const useChartsStore = defineStore("charts", {
       const contextStore = useContextStore();
       return contextStore.currentFiltersKey;
     },
+    isCurrentFiltersKey(key: string): boolean {
+      return this.currentFiltersKey() === key;
+    },
     updateCacheForCurrentKey() {
       this.chartsByKey[this.currentFiltersKey()] = {
         distanceByMonths: this.distanceByMonths,
@@ -91,85 +94,120 @@ export const useChartsStore = defineStore("charts", {
     },
     async fetchDistanceByMonths() {
       const contextStore = useContextStore();
+      const key = contextStore.currentFiltersKey;
       const url =
         buildFilteredApiUrl("charts/distance-by-period", contextStore.currentActivityType, contextStore.currentYear) +
         "&period=MONTHS";
-      this.distanceByMonths = normalizePeriodPoints(await requestJson<ChartPeriodPointResponse[]>(url));
-      this.updateCacheForCurrentKey();
+      const data = normalizePeriodPoints(await requestJson<ChartPeriodPointResponse[]>(url));
+      if (this.isCurrentFiltersKey(key)) {
+        this.distanceByMonths = data;
+        this.updateCacheForCurrentKey();
+      }
     },
     async fetchElevationByMonths() {
       const contextStore = useContextStore();
+      const key = contextStore.currentFiltersKey;
       const url =
         buildFilteredApiUrl("charts/elevation-by-period", contextStore.currentActivityType, contextStore.currentYear) +
         "&period=MONTHS";
-      this.elevationByMonths = normalizePeriodPoints(await requestJson<ChartPeriodPointResponse[]>(url));
-      this.updateCacheForCurrentKey();
+      const data = normalizePeriodPoints(await requestJson<ChartPeriodPointResponse[]>(url));
+      if (this.isCurrentFiltersKey(key)) {
+        this.elevationByMonths = data;
+        this.updateCacheForCurrentKey();
+      }
     },
     async fetchAverageSpeedByMonths() {
       const contextStore = useContextStore();
+      const key = contextStore.currentFiltersKey;
       const url =
         buildFilteredApiUrl(
           "charts/average-speed-by-period",
           contextStore.currentActivityType,
           contextStore.currentYear,
         ) + "&period=MONTHS";
-      this.averageSpeedByMonths = normalizePeriodPoints(await requestJson<ChartPeriodPointResponse[]>(url));
-      this.updateCacheForCurrentKey();
+      const data = normalizePeriodPoints(await requestJson<ChartPeriodPointResponse[]>(url));
+      if (this.isCurrentFiltersKey(key)) {
+        this.averageSpeedByMonths = data;
+        this.updateCacheForCurrentKey();
+      }
     },
     async fetchDistanceByWeeks() {
       const contextStore = useContextStore();
+      const key = contextStore.currentFiltersKey;
       const url =
         buildFilteredApiUrl("charts/distance-by-period", contextStore.currentActivityType, contextStore.currentYear) +
         "&period=WEEKS";
-      this.distanceByWeeks = normalizePeriodPoints(await requestJson<ChartPeriodPointResponse[]>(url));
-      this.updateCacheForCurrentKey();
+      const data = normalizePeriodPoints(await requestJson<ChartPeriodPointResponse[]>(url));
+      if (this.isCurrentFiltersKey(key)) {
+        this.distanceByWeeks = data;
+        this.updateCacheForCurrentKey();
+      }
     },
     async fetchElevationByWeeks() {
       const contextStore = useContextStore();
+      const key = contextStore.currentFiltersKey;
       const url =
         buildFilteredApiUrl("charts/elevation-by-period", contextStore.currentActivityType, contextStore.currentYear) +
         "&period=WEEKS";
-      this.elevationByWeeks = normalizePeriodPoints(await requestJson<ChartPeriodPointResponse[]>(url));
-      this.updateCacheForCurrentKey();
+      const data = normalizePeriodPoints(await requestJson<ChartPeriodPointResponse[]>(url));
+      if (this.isCurrentFiltersKey(key)) {
+        this.elevationByWeeks = data;
+        this.updateCacheForCurrentKey();
+      }
     },
     async fetchCadenceByWeeks() {
       const contextStore = useContextStore();
+      const key = contextStore.currentFiltersKey;
       const url =
         buildFilteredApiUrl(
           "charts/average-cadence-by-period",
           contextStore.currentActivityType,
           contextStore.currentYear,
         ) + "&period=WEEKS";
-      this.cadenceByWeeks = normalizePeriodPoints(await requestJson<ChartPeriodPointResponse[]>(url));
-      this.updateCacheForCurrentKey();
+      const data = normalizePeriodPoints(await requestJson<ChartPeriodPointResponse[]>(url));
+      if (this.isCurrentFiltersKey(key)) {
+        this.cadenceByWeeks = data;
+        this.updateCacheForCurrentKey();
+      }
     },
     async fetchAllYearsOverview() {
       const contextStore = useContextStore();
+      const key = contextStore.currentFiltersKey;
       const url = buildFilteredApiUrl("dashboard", contextStore.currentActivityType, contextStore.currentYear);
       const data = await requestJson<DashboardData>(url);
 
-      this.activitiesCountByYear = data.nbActivitiesByYear ?? {};
-      this.totalDistanceByYear = data.totalDistanceByYear ?? {};
-      this.totalElevationByYear = data.totalElevationByYear ?? {};
-      this.averageSpeedByYear = data.averageSpeedByYear ?? {};
-      this.maxSpeedByYear = data.maxSpeedByYear ?? {};
-      this.updateCacheForCurrentKey();
+      if (this.isCurrentFiltersKey(key)) {
+        this.activitiesCountByYear = data.nbActivitiesByYear ?? {};
+        this.totalDistanceByYear = data.totalDistanceByYear ?? {};
+        this.totalElevationByYear = data.totalElevationByYear ?? {};
+        this.averageSpeedByYear = data.averageSpeedByYear ?? {};
+        this.maxSpeedByYear = data.maxSpeedByYear ?? {};
+        this.updateCacheForCurrentKey();
+      }
     },
     async fetchActivitiesForCharts() {
       const contextStore = useContextStore();
+      const key = contextStore.currentFiltersKey;
       const url = buildFilteredApiUrl("activities", contextStore.currentActivityType, contextStore.currentYear);
-      this.activitiesForCharts = await requestJson<Activity[]>(url);
-      this.updateCacheForCurrentKey();
+      const activities = await requestJson<Activity[]>(url);
+      if (this.isCurrentFiltersKey(key)) {
+        this.activitiesForCharts = activities;
+        this.updateCacheForCurrentKey();
+      }
     },
     async fetchHeartRateZoneAnalysis() {
       const contextStore = useContextStore();
+      const key = contextStore.currentFiltersKey;
       const url = buildFilteredApiUrl(
         "statistics/heart-rate-zones",
         contextStore.currentActivityType,
         contextStore.currentYear,
       );
-      this.heartRateZoneAnalysis = await requestJson<HeartRateZoneAnalysis>(url);
-      this.updateCacheForCurrentKey();
+      const analysis = await requestJson<HeartRateZoneAnalysis>(url);
+      if (this.isCurrentFiltersKey(key)) {
+        this.heartRateZoneAnalysis = analysis;
+        this.updateCacheForCurrentKey();
+      }
     },
     resetYearlyCharts() {
       this.activitiesCountByYear = {};
@@ -193,6 +231,7 @@ export const useChartsStore = defineStore("charts", {
     async ensureLoaded(force = false) {
       const contextStore = useContextStore();
       const key = this.currentFiltersKey();
+      const isAllYears = contextStore.currentYear === "All years";
       const cached = this.chartsByKey[key];
       if (!force && cached) {
         this.applyCacheEntry(cached);
@@ -202,7 +241,7 @@ export const useChartsStore = defineStore("charts", {
       this.isLoading = true;
       this.error = null;
       try {
-        if (contextStore.currentYear === "All years") {
+        if (isAllYears) {
           this.distanceByMonths = [];
           this.elevationByMonths = [];
           this.averageSpeedByMonths = [];
@@ -230,9 +269,13 @@ export const useChartsStore = defineStore("charts", {
         this.fetchHeartRateZoneAnalysis(),
       ]);
       } catch {
-        this.error = "Unable to load chart data for the selected filters.";
+        if (this.isCurrentFiltersKey(key)) {
+          this.error = "Unable to load chart data for the selected filters.";
+        }
       } finally {
-        this.isLoading = false;
+        if (this.isCurrentFiltersKey(key)) {
+          this.isLoading = false;
+        }
       }
     },
     async refreshCharts() {

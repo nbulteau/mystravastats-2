@@ -19,17 +19,26 @@ export const useActivitiesStore = defineStore("activities", {
     },
     async fetchActivities() {
       const contextStore = useContextStore();
+      const key = contextStore.currentFiltersKey;
       const url = buildFilteredApiUrl("activities", contextStore.currentActivityType, contextStore.currentYear);
       this.isLoading = true;
       this.error = null;
       try {
-        this.activities = await requestJson<Activity[]>(url);
-        this.activitiesByKey[this.currentFiltersKey()] = this.activities;
+        const activities = await requestJson<Activity[]>(url);
+        this.activitiesByKey[key] = activities;
+        if (this.currentFiltersKey() === key) {
+          this.activities = activities;
+        }
       } catch (error) {
+        if (this.currentFiltersKey() !== key) {
+          return;
+        }
         this.error = error instanceof Error ? error.message : "Unable to load activities.";
-        this.activities = this.activitiesByKey[this.currentFiltersKey()] ?? this.activities;
+        this.activities = this.activitiesByKey[key] ?? this.activities;
       } finally {
-        this.isLoading = false;
+        if (this.currentFiltersKey() === key) {
+          this.isLoading = false;
+        }
       }
     },
     async ensureLoaded(force = false) {

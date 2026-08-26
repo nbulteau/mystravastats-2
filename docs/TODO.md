@@ -44,7 +44,30 @@
 
 ### Priorite haute
 
+- [x] `TECH-P1-01` (`P1`, `M`) - Empecher les reponses frontend obsoletes d'ecraser le filtre courant.
+  Owners: `Front`, `QA`.
+  Fait:
+  - les stores Activities, Dashboard, Charts, Map, Equipment et Segments capturent la cle de filtre au depart de chaque requete,
+  - une reponse alimente uniquement le cache correspondant et ne modifie l'ecran que si son filtre est encore actif,
+  - la selection de detail Segments resiste aussi aux reponses terminees dans le desordre,
+  - des tests de regression couvrent les changements rapides de sport et d'annee.
+  Acceptance:
+  - changer rapidement de filtre ne montre jamais les donnees de la selection precedente,
+  - les indicateurs de chargement et erreurs restent rattaches a la requete active.
+
 ### Priorite moyenne
+
+- [ ] `UX-P2-04` (`P2`, `S`) - Simplifier l'espace `Climb badges`.
+  Owners: `Product`, `Front`, `QA`.
+  Proposition:
+  - supprimer completement `Climb map`, ses favoris locaux, ses filtres et les actions `Show on map`,
+  - renommer tous les libelles visibles `Climb log` en `Climb badges`,
+  - conserver les fiches de versant, les posters et la selection des cols depuis `Climb badges`,
+  - retirer le code, les styles, les modeles et les tests devenus inutiles.
+  Acceptance:
+  - aucune carte des cols ni dependance Leaflet associee n'est chargee depuis Badges,
+  - aucun libelle `Climb log` ne subsiste dans l'interface ou la documentation,
+  - les fiches detaillees et les posters continuent de fonctionner.
 
 ### Priorite basse
 

@@ -30,13 +30,21 @@ export const useGearAnalysisStore = defineStore("gearAnalysis", {
       this.isLoading = true;
       this.error = null;
       try {
-        this.analysis = normalizeGearAnalysis(await requestJson<GearAnalysis>(url));
-        this.analysisByKey[key] = this.analysis;
+        const analysis = normalizeGearAnalysis(await requestJson<GearAnalysis>(url));
+        this.analysisByKey[key] = analysis;
+        if (this.currentFiltersKey() === key) {
+          this.analysis = analysis;
+        }
       } catch (error) {
+        if (this.currentFiltersKey() !== key) {
+          return;
+        }
         this.error = error instanceof Error ? error.message : "Unable to load gear analysis.";
         this.analysis = this.analysisByKey[key] ?? this.analysis;
       } finally {
-        this.isLoading = false;
+        if (this.currentFiltersKey() === key) {
+          this.isLoading = false;
+        }
       }
     },
     async ensureLoaded(force = false) {

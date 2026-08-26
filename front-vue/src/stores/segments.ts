@@ -183,18 +183,23 @@ export const useSegmentsStore = defineStore("segments", {
       this.listCacheByKey = trimByRecency(this.listCacheByKey, SEGMENTS_LIST_CACHE_MAX_ENTRIES);
       this.detailsCacheByKey = trimByRecency(this.detailsCacheByKey, SEGMENTS_DETAILS_CACHE_MAX_ENTRIES);
     },
-    async fetchSegments() {
+    async fetchSegments(): Promise<SegmentTargetSummary[]> {
       this.ensurePersistentCacheHydrated();
+      const key = this.listCacheKey();
       const url = this.buildSegmentsUrl("segments", {});
-      this.segments = await requestJson<SegmentTargetSummary[]>(url);
+      const segments = await requestJson<SegmentTargetSummary[]>(url);
       const now = Date.now();
-      this.listCacheByKey[this.listCacheKey()] = {
-        segments: this.segments,
+      this.listCacheByKey[key] = {
+        segments,
         updatedAt: now,
         expiresAt: now + SEGMENTS_LIST_CACHE_TTL_MS,
       };
+      if (this.listCacheKey() === key) {
+        this.segments = segments;
+      }
       this.trimCacheEntries();
       this.persistCache();
+      return segments;
     },
     async fetchSegmentEfforts(segmentId: number): Promise<SegmentEffort[]> {
       const url = this.buildSegmentsUrl(`segments/${segmentId}/efforts`, {});
@@ -212,8 +217,10 @@ export const useSegmentsStore = defineStore("segments", {
       const key = this.detailCacheKey(segmentId);
       const cached = this.detailsCacheByKey[key];
       if (!force && cached && cached.expiresAt > Date.now()) {
-        this.efforts = cached.efforts;
-        this.summary = cached.summary;
+        if (this.detailCacheKey(segmentId) === key && this.selectedSegmentId === segmentId) {
+          this.efforts = cached.efforts;
+          this.summary = cached.summary;
+        }
         return;
       }
 
@@ -221,8 +228,6 @@ export const useSegmentsStore = defineStore("segments", {
         this.fetchSegmentEfforts(segmentId),
         this.fetchSegmentSummary(segmentId),
       ]);
-      this.efforts = efforts;
-      this.summary = summary;
       const now = Date.now();
       this.detailsCacheByKey[key] = {
         efforts,
@@ -230,6 +235,10 @@ export const useSegmentsStore = defineStore("segments", {
         updatedAt: now,
         expiresAt: now + SEGMENTS_DETAILS_CACHE_TTL_MS,
       };
+      if (this.detailCacheKey(segmentId) === key && this.selectedSegmentId === segmentId) {
+        this.efforts = efforts;
+        this.summary = summary;
+      }
       this.trimCacheEntries();
       this.persistCache();
     },
@@ -243,13 +252,21 @@ export const useSegmentsStore = defineStore("segments", {
 
       const key = this.listCacheKey();
       const cached = this.listCacheByKey[key];
+      let segments: SegmentTargetSummary[];
       if (!force && cached) {
-        this.segments = cached.segments;
+        segments = cached.segments;
+        if (this.listCacheKey() === key) {
+          this.segments = segments;
+        }
       } else {
-        await this.fetchSegments();
+        segments = await this.fetchSegments();
       }
 
-      if (this.segments.length === 0) {
+      if (this.listCacheKey() !== key) {
+        return;
+      }
+
+      if (segments.length === 0) {
         this.selectedSegmentId = null;
         this.efforts = [];
         this.summary = null;
@@ -257,9 +274,9 @@ export const useSegmentsStore = defineStore("segments", {
       }
 
       const preferredSegmentId =
-        this.selectedSegmentId && this.segments.some((segment) => segment.targetId === this.selectedSegmentId)
+        this.selectedSegmentId && segments.some((segment) => segment.targetId === this.selectedSegmentId)
           ? this.selectedSegmentId
-          : this.segments[0].targetId;
+          : segments[0].targetId;
 
       await this.selectSegment(preferredSegmentId, force);
     },
