@@ -28,7 +28,7 @@ type NavGroup = {
 const navGroups: readonly NavGroup[] = [
   {
     id: "activity",
-    label: "Activité",
+    label: "Activity",
     icon: "fa-solid fa-person-running",
     items: [
       { name: "dashboard", to: "/dashboard", label: "Dashboard", icon: "fa-solid fa-chart-line" },
@@ -38,7 +38,7 @@ const navGroups: readonly NavGroup[] = [
   },
   {
     id: "progress",
-    label: "Progression",
+    label: "Progress",
     icon: "fa-solid fa-arrow-trend-up",
     items: [
       { name: "statistics", to: "/statistics", label: "Statistics", icon: "fa-solid fa-ranking-star" },
@@ -50,7 +50,7 @@ const navGroups: readonly NavGroup[] = [
   },
   {
     id: "tools",
-    label: "Outils",
+    label: "Tools",
     icon: "fa-solid fa-screwdriver-wrench",
     items: [
       { name: "gear", to: "/gear", label: "Equipment", icon: "fa-solid fa-bicycle" },
