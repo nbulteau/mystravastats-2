@@ -18,6 +18,37 @@ const ACTIVITY_TYPE_COLORS: Record<string, string> = {
 export const MAP_TRACK_HALO_COLOR = "#ffffff";
 export const MAP_TRACK_HALO_WEIGHT_DELTA = 2.4;
 
+export type MapTrackEmphasis = "normal" | "dimmed" | "focused";
+
+export type MapTrackStrokeStyle = {
+  weight: number;
+  opacity: number;
+};
+
+export function getMapTrackStrokeStyle(
+  baseWeight: number,
+  baseOpacity: number,
+  emphasis: MapTrackEmphasis,
+  halo = false,
+): MapTrackStrokeStyle {
+  if (emphasis === "dimmed") {
+    return {
+      weight: halo ? baseWeight + MAP_TRACK_HALO_WEIGHT_DELTA : baseWeight,
+      opacity: halo ? 0.04 : Math.max(0.1, baseOpacity * 0.2),
+    };
+  }
+  if (emphasis === "focused") {
+    return {
+      weight: halo ? baseWeight + MAP_TRACK_HALO_WEIGHT_DELTA + 2 : baseWeight + 1.8,
+      opacity: halo ? 0.96 : 1,
+    };
+  }
+  return {
+    weight: halo ? baseWeight + MAP_TRACK_HALO_WEIGHT_DELTA : baseWeight,
+    opacity: halo ? Math.min(0.82, baseOpacity + 0.16) : baseOpacity,
+  };
+}
+
 export function getActivityTypeColor(activityType: string): string {
   return ACTIVITY_TYPE_COLORS[activityType] ?? "#546e7a";
 }

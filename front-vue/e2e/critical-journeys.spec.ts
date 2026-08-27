@@ -185,6 +185,26 @@ test("map controls remain usable on a mobile viewport", async ({ page }) => {
   const actionsBox = await page.locator(".map-toolbar__actions").boundingBox();
   expect(actionsBox).not.toBeNull();
   expect((actionsBox?.x ?? 0) + (actionsBox?.width ?? 0)).toBeLessThanOrEqual(390);
+
+  await page.getByRole("button", { name: "Recenter" }).click();
+  const mapCanvas = page.locator(".map-canvas");
+  const mapBox = await mapCanvas.boundingBox();
+  expect(mapBox).not.toBeNull();
+  await page.mouse.move(
+    (mapBox?.x ?? 0) + (mapBox?.width ?? 0) / 2,
+    (mapBox?.y ?? 0) + (mapBox?.height ?? 0) / 2,
+  );
+  await expect(page.locator(".map-shell")).toHaveAttribute("data-focused-activity-id", /4[12]/);
+  await mapCanvas.click({
+    position: {
+      x: (mapBox?.width ?? 0) / 2,
+      y: (mapBox?.height ?? 0) / 2,
+    },
+  });
+  await expect(page.locator(".map-shell")).toHaveAttribute("data-selected-activity-id", /4[12]/);
+  await expect(page.getByRole("button", { name: "Clear focused activity" })).toBeVisible();
+  await page.getByRole("button", { name: "Clear focused activity" }).click();
+  await expect(page.getByRole("button", { name: "Clear focused activity" })).toHaveCount(0);
 });
 
 test("source onboarding previews, saves and synchronizes a FIT directory", async ({ page }) => {
@@ -268,8 +288,8 @@ async function fulfillApiRoute(route: Route) {
   if (pathname === "/api/dashboard/eddington-number") return json({ number: 1, nextTarget: 2, qualifyingCount: 1, progress: 0.5, distribution: [] });
   if (pathname === "/api/dashboard/activity-heatmap") return json({});
   if (pathname === "/api/maps/gpx") return json([
-    { activityId: 41, activityName: "Gravel loop", activityDate: "2026-08-20", activityType: "GravelRide", distanceKm: 42, elevationGainM: 420, coordinates: [[48.10, -1.70], [48.11, -1.68], [48.12, -1.66]] },
-    { activityId: 42, activityName: "Virtual ride", activityDate: "2026-08-21", activityType: "VirtualRide", distanceKm: 30, elevationGainM: 120, coordinates: [[48.09, -1.69], [48.10, -1.67], [48.11, -1.65]] },
+    { activityId: 41, activityName: "Gravel loop", activityDate: "2026-08-20", activityType: "GravelRide", distanceKm: 42, elevationGainM: 420, coordinates: [[48.10, -1.70], [48.105, -1.675], [48.11, -1.65]] },
+    { activityId: 42, activityName: "Virtual ride", activityDate: "2026-08-21", activityType: "VirtualRide", distanceKm: 30, elevationGainM: 120, coordinates: [[48.09, -1.69], [48.105, -1.675], [48.12, -1.66]] },
   ]);
   if (pathname === "/api/statistics/heart-rate-zones") return json({ distributions: [], activities: [], periods: [] });
   if (pathname === "/api/activities/42") return json(detailedActivity);

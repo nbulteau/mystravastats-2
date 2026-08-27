@@ -31,6 +31,7 @@ All notable changes to My Activity Stats are documented in this file.
 - OSRM HTTP transport now lives in dedicated Go and Kotlin clients.
 - Docker services bind to loopback by default, and both backends reject browser mutations from origins outside the configured allow-list.
 - Main navigation labels are consistently English, and gravel/virtual ride tracks use higher-contrast map colors.
+- Map tracks can be emphasized on hover or pinned on click while surrounding activities are dimmed.
 - Developer checks and documentation now describe the same commands run by CI.
 - Frontend API calls now resolve typed operation identifiers through a single URL and HTTP boundary.
 - Kotlin source synchronization now depends on an injected FIT decoder port instead of a concrete adapter.

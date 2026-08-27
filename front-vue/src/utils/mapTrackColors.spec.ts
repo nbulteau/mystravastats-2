@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   getActivityTypeColor,
+  getMapTrackStrokeStyle,
   MAP_TRACK_HALO_COLOR,
   MAP_TRACK_HALO_WEIGHT_DELTA,
 } from "./mapTrackColors";
@@ -29,6 +30,17 @@ describe("map track colors", () => {
   it("defines a visible casing around tracks", () => {
     expect(MAP_TRACK_HALO_COLOR).toBe("#ffffff");
     expect(MAP_TRACK_HALO_WEIGHT_DELTA).toBeGreaterThanOrEqual(2);
+  });
+
+  it("emphasizes one track while strongly dimming the others", () => {
+    const focused = getMapTrackStrokeStyle(2, 0.72, "focused");
+    const dimmed = getMapTrackStrokeStyle(2, 0.72, "dimmed");
+    const focusedHalo = getMapTrackStrokeStyle(2, 0.72, "focused", true);
+
+    expect(focused).toEqual({ weight: 3.8, opacity: 1 });
+    expect(dimmed.opacity).toBeCloseTo(0.144);
+    expect(focusedHalo.weight).toBeGreaterThan(focused.weight);
+    expect(focusedHalo.opacity).toBe(0.96);
   });
 
   it("keeps every GPS track color distinguishable from its white casing", () => {

@@ -4,8 +4,10 @@ import "leaflet/dist/leaflet.css";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { MapPassageSegment, MapPassages, MapRenderMode, MapTrack } from "@/models/map.model";
 import type { MapViewport } from "@/stores/map";
+import MapTrackFocusCard from "@/components/map/MapTrackFocusCard.vue";
 import {
   getActivityTypeColor,
+  getMapTrackStrokeStyle,
   MAP_TRACK_HALO_COLOR,
   MAP_TRACK_HALO_WEIGHT_DELTA,
 } from "@/utils/mapTrackColors";
@@ -40,13 +42,26 @@ const tracksLayerGroup = ref<L.LayerGroup>();
 const heatmapCanvas = ref<HTMLCanvasElement>();
 const latestBounds = ref<L.LatLngBounds | null>(null);
 const lastDatasetKey = ref<string | null>(null);
-const canvasRenderer = L.canvas({ padding: 0.25 });
+const canvasRenderer = L.canvas({ padding: 0.25, tolerance: 5 });
 const router = useRouter();
 const heatmapCellCount = ref(0);
 const heatmapPointCount = ref(0);
 const passageCorridorCount = ref(0);
 const passageMaxCount = ref(0);
 const passageResolutionMeters = ref(0);
+const hoveredActivityId = ref<number | null>(null);
+const selectedActivityId = ref<number | null>(null);
+
+type RenderedTrackLayer = {
+  track: MapTrack;
+  line: L.Polyline;
+  halo: L.Polyline;
+  baseWeight: number;
+  baseOpacity: number;
+};
+
+const renderedTrackLayers = new Map<number, RenderedTrackLayer>();
+let focusAnimationFrame: number | null = null;
 
 const isValidCoordinate = (coord: number[]) =>
   Number.isFinite(coord[0]) && Number.isFinite(coord[1]);
@@ -56,6 +71,8 @@ const isHeatmapMode = computed(() => props.renderMode === "HEATMAP");
 const isPassagesMode = computed(() => props.renderMode === "PASSAGES");
 const isHeatmapOverlayVisible = computed(() => isHeatmapMode.value && heatmapCellCount.value > 0);
 const isPassagesOverlayVisible = computed(() => isPassagesMode.value && passageCorridorCount.value > 0);
+const focusedActivityId = computed(() => selectedActivityId.value ?? hoveredActivityId.value);
+const selectedTrack = computed(() => props.mapTracks.find((track) => track.activityId === selectedActivityId.value) ?? null);
 const emptyMapMessage = computed(() => {
   if (isPassagesMode.value) {
     return "No passage corridors for the selected filters.";
@@ -234,6 +251,43 @@ function handlePopupOpen(event: L.PopupEvent) {
       }
     };
   });
+}
+
+function applyTrackFocus() {
+  const focusId = focusedActivityId.value;
+
+  renderedTrackLayers.forEach((layer, activityId) => {
+    const emphasis = focusId === null
+      ? "normal"
+      : activityId === focusId ? "focused" : "dimmed";
+    layer.halo.setStyle(getMapTrackStrokeStyle(layer.baseWeight, layer.baseOpacity, emphasis, true));
+    layer.line.setStyle(getMapTrackStrokeStyle(layer.baseWeight, layer.baseOpacity, emphasis));
+  });
+
+  const focusedLayer = focusId === null ? null : renderedTrackLayers.get(focusId);
+  if (focusedLayer) {
+    focusedLayer.halo.bringToFront();
+    focusedLayer.line.bringToFront();
+  }
+}
+
+function scheduleTrackFocusUpdate() {
+  if (focusAnimationFrame !== null) cancelAnimationFrame(focusAnimationFrame);
+  focusAnimationFrame = requestAnimationFrame(() => {
+    focusAnimationFrame = null;
+    applyTrackFocus();
+  });
+}
+
+function clearSelectedTrack() {
+  selectedActivityId.value = null;
+  hoveredActivityId.value = null;
+  map.value?.closePopup();
+  scheduleTrackFocusUpdate();
+}
+
+function handleMapClick() {
+  if (selectedActivityId.value !== null) clearSelectedTrack();
 }
 
 function ensureHeatmapCanvas(): HTMLCanvasElement | null {
@@ -537,6 +591,7 @@ const initMap = () => {
     map.value.on("moveend", handleMoveEnd);
     map.value.on("zoomend", handleZoomEnd);
     map.value.on("popupopen", handlePopupOpen);
+    map.value.on("click", handleMapClick);
 
     applyViewport(props.initialViewport);
   }
@@ -549,6 +604,11 @@ function renderTraceLayers() {
   }
   tracksLayerGroup.value.clearLayers();
   clearHeatmapCanvas();
+  renderedTrackLayers.clear();
+  hoveredActivityId.value = null;
+  if (selectedActivityId.value !== null && !props.mapTracks.some((track) => track.activityId === selectedActivityId.value)) {
+    selectedActivityId.value = null;
+  }
 
   const currentZoom = map.value.getZoom();
   const traceStyle = traceRenderStyleForZoom(currentZoom);
@@ -563,10 +623,9 @@ function renderTraceLayers() {
       return;
     }
 
-    L.polyline(latLngs, {
+    const halo = L.polyline(latLngs, {
       color: MAP_TRACK_HALO_COLOR,
-      weight: traceStyle.weight + MAP_TRACK_HALO_WEIGHT_DELTA,
-      opacity: Math.min(0.82, traceStyle.opacity + 0.16),
+      ...getMapTrackStrokeStyle(traceStyle.weight, traceStyle.opacity, "normal", true),
       interactive: false,
       renderer: canvasRenderer,
       smoothFactor: traceStyle.smoothFactor,
@@ -579,6 +638,27 @@ function renderTraceLayers() {
       renderer: canvasRenderer,
       smoothFactor: traceStyle.smoothFactor,
     }).addTo(tracksLayerGroup.value!);
+    renderedTrackLayers.set(track.activityId, {
+      track,
+      line: polyline,
+      halo,
+      baseWeight: traceStyle.weight,
+      baseOpacity: traceStyle.opacity,
+    });
+    polyline.on("mouseover", () => {
+      hoveredActivityId.value = track.activityId;
+      scheduleTrackFocusUpdate();
+    });
+    polyline.on("mouseout", () => {
+      if (hoveredActivityId.value === track.activityId) hoveredActivityId.value = null;
+      scheduleTrackFocusUpdate();
+    });
+    polyline.on("click", (event) => {
+      L.DomEvent.stopPropagation(event.originalEvent);
+      selectedActivityId.value = selectedActivityId.value === track.activityId ? null : track.activityId;
+      hoveredActivityId.value = null;
+      scheduleTrackFocusUpdate();
+    });
     polyline.bindPopup(popupContent(track), {
       maxWidth: 320,
       className: "ms-map-popup",
@@ -593,6 +673,7 @@ function renderTraceLayers() {
   if (bounds.isValid()) {
     latestBounds.value = bounds;
   }
+  applyTrackFocus();
 }
 
 function renderHeatmapMode() {
@@ -722,6 +803,7 @@ onBeforeUnmount(() => {
     map.value.off("moveend", handleMoveEnd);
     map.value.off("zoomend", handleZoomEnd);
     map.value.off("popupopen", handlePopupOpen);
+    map.value.off("click", handleMapClick);
     map.value.remove();
     map.value = undefined;
   }
@@ -730,11 +812,17 @@ onBeforeUnmount(() => {
   latestBounds.value = null;
   resetHeatmapState();
   resetPassagesState();
+  renderedTrackLayers.clear();
+  if (focusAnimationFrame !== null) cancelAnimationFrame(focusAnimationFrame);
 });
 </script>
 
 <template>
-  <main class="map-shell">
+  <main
+    class="map-shell"
+    :data-focused-activity-id="focusedActivityId ?? undefined"
+    :data-selected-activity-id="selectedActivityId ?? undefined"
+  >
     <div
       ref="mapContainer"
       class="map-canvas"
@@ -771,6 +859,11 @@ onBeforeUnmount(() => {
       <span v-if="passageResolutionMeters > 0">· {{ passageResolutionMeters }} m</span>
       <span v-if="(mapPassages?.omittedSegments ?? 0) > 0">· {{ mapPassages?.omittedSegments.toLocaleString() }} hidden</span>
     </div>
+    <MapTrackFocusCard
+      v-if="selectedTrack && !isHeatmapMode && !isPassagesMode"
+      :track="selectedTrack"
+      @clear="clearSelectedTrack"
+    />
   </main>
 </template>
 
@@ -874,5 +967,6 @@ onBeforeUnmount(() => {
   .map-canvas {
     height: calc(100vh - 250px);
   }
+
 }
 </style>
