@@ -3721,27 +3721,6 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         return haversineDistanceMeters(first[0], first[1], start.lat, start.lng) <= toleranceMeters
     }
 
-    private fun respectsHalfPlaneDirection(
-        points: List<List<Double>>,
-        start: Coordinates,
-        direction: String?,
-        toleranceMeters: Double,
-    ): Boolean {
-        val normalized = direction.orEmpty().trim().uppercase(Locale.getDefault())
-        if (normalized.isBlank() || points.isEmpty()) return true
-
-        val latTolerance = toleranceMeters / 111320.0
-        val lngTolerance = toleranceMeters / max(1000.0, 111320.0 * cos(Math.toRadians(start.lat)))
-
-        return when (normalized) {
-            "N" -> points.all { point -> point.size < 2 || point[0] >= start.lat - latTolerance }
-            "S" -> points.all { point -> point.size < 2 || point[0] <= start.lat + latTolerance }
-            "E" -> points.all { point -> point.size < 2 || point[1] >= start.lng - lngTolerance }
-            "W" -> points.all { point -> point.size < 2 || point[1] <= start.lng + lngTolerance }
-            else -> true
-        }
-    }
-
     private fun combinedDirectionPenalty(
         points: List<List<Double>>,
         start: Coordinates,
@@ -4065,10 +4044,6 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         }
     }
 
-    private fun hasOppositeEdgeTraversal(points: List<List<Double>>): Boolean {
-        return evaluateAxisUsage(points).conflictingAxisCount > 0
-    }
-
     private fun evaluateAxisUsage(points: List<List<Double>>): AxisUsageSummary {
         val traversals = extractAxisTraversals(points)
         if (traversals.isEmpty()) {
@@ -4208,10 +4183,6 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         // Ignore tiny opposite-direction artifacts caused by local snap/geometry noise.
         val minimum = max(MIN_OPPOSITE_REUSE_METERS, minOppositeMeters)
         return Triple(oppositeMeters >= minimum, maxReuseOutsideStart, oppositeRatio)
-    }
-
-    private fun oppositeEdgeTraversalRatio(points: List<List<Double>>): Double {
-        return evaluateAxisUsage(points).oppositeTraversalRatio()
     }
 
     private fun edgeReuseRatio(points: List<List<Double>>): Double {
@@ -4498,14 +4469,6 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             }
             else -> 0.0
         }
-    }
-
-    private fun hasMinimumSegmentDiversity(points: List<List<Double>>, routeType: String?): Boolean {
-        val axisStats = evaluateAxisUsage(points)
-        if (axisStats.totalTraversals == 0) return false
-        // Allow local loops, but reject routes that hammer the exact same axis too often.
-        if (axisStats.maxAxisReuseCount > 3) return false
-        return axisStats.segmentDiversityRatio() >= minSegmentDiversityRatio(routeType)
     }
 
     private fun minSegmentDiversityRatio(routeType: String?): Double {

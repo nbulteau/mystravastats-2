@@ -31,7 +31,7 @@ func TestComputeMapPassages_CountsActivitiesInsteadOfGpsPoints(t *testing.T) {
 	}
 
 	// WHEN
-	result := computeMapPassages(activities, nil)
+	result := computeMapPassagesWithOptions(activities, nil, defaultMapPassageOptions())
 
 	// THEN
 	if result.IncludedActivities != 2 {
@@ -61,7 +61,7 @@ func TestComputeMapPassages_CountsOnePassagePerActivityPerCorridor(t *testing.T)
 	}
 
 	// WHEN
-	result := computeMapPassages(activities, nil)
+	result := computeMapPassagesWithOptions(activities, nil, defaultMapPassageOptions())
 
 	// THEN
 	if result.IncludedActivities != 1 {
@@ -93,7 +93,7 @@ func TestComputeMapPassages_IgnoresExcludedActivities(t *testing.T) {
 	}
 
 	// WHEN
-	result := computeMapPassages(activities, exclusions)
+	result := computeMapPassagesWithOptions(activities, exclusions, defaultMapPassageOptions())
 
 	// THEN
 	if result.ExcludedActivities != 1 {

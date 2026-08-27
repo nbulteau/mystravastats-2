@@ -87,11 +87,6 @@ func (f FamousClimbBadge) Check(activities []*strava.Activity) ([]*strava.Activi
 	return filteredActivities, len(filteredActivities) > 0
 }
 
-func (f FamousClimbBadge) checkAscentDirection(activity *strava.Activity) bool {
-	_, matched := f.matchQuality(activity)
-	return matched
-}
-
 func (f FamousClimbBadge) matchQuality(activity *strava.Activity) (float64, bool) {
 	if activity.Stream == nil || activity.Stream.LatLng == nil {
 		return 0, false

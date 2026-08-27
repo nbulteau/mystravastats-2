@@ -21,7 +21,6 @@ import (
 
 const (
 	defaultOSMRoutingBaseURL    = "http://localhost:5000"
-	defaultOSMRoutingTimeoutMs  = 3000
 	defaultOSMRoutingV3Enabled  = true
 	maxOSRMRoutingCalls         = 24
 	startSnapToleranceMeters    = 900.0
@@ -4404,65 +4403,6 @@ func startsNearRequestedStart(points [][]float64, start routesDomain.Coordinates
 	return haversineDistanceMeters(first[0], first[1], start.Lat, start.Lng) <= toleranceMeters
 }
 
-func respectsHalfPlaneDirection(
-	points [][]float64,
-	start routesDomain.Coordinates,
-	direction string,
-	toleranceMeters float64,
-) bool {
-	normalized := strings.ToUpper(strings.TrimSpace(direction))
-	if normalized == "" || len(points) == 0 {
-		return true
-	}
-
-	latTolerance := toleranceMeters / 111320.0
-	lngTolerance := toleranceMeters / math.Max(1000.0, 111320.0*math.Cos(degreesToRadians(start.Lat)))
-
-	switch normalized {
-	case "N":
-		limit := start.Lat - latTolerance
-		for _, point := range points {
-			if len(point) < 2 {
-				continue
-			}
-			if point[0] < limit {
-				return false
-			}
-		}
-	case "S":
-		limit := start.Lat + latTolerance
-		for _, point := range points {
-			if len(point) < 2 {
-				continue
-			}
-			if point[0] > limit {
-				return false
-			}
-		}
-	case "E":
-		limit := start.Lng - lngTolerance
-		for _, point := range points {
-			if len(point) < 2 {
-				continue
-			}
-			if point[1] < limit {
-				return false
-			}
-		}
-	case "W":
-		limit := start.Lng + lngTolerance
-		for _, point := range points {
-			if len(point) < 2 {
-				continue
-			}
-			if point[1] > limit {
-				return false
-			}
-		}
-	}
-	return true
-}
-
 func combinedDirectionPenalty(
 	points [][]float64,
 	start routesDomain.Coordinates,
@@ -5024,28 +4964,8 @@ func (summary axisUsageSummary) maxAxisReuseRatio() float64 {
 	return float64(summary.maxAxisReuseCount) / float64(summary.totalTraversals)
 }
 
-func hasOppositeEdgeTraversal(points [][]float64) bool {
-	return evaluateAxisUsage(points).conflictingAxisCount > 0
-}
-
-func oppositeEdgeTraversalRatio(points [][]float64) float64 {
-	return evaluateAxisUsage(points).oppositeTraversalRatio()
-}
-
 func edgeReuseRatio(points [][]float64) float64 {
 	return evaluateAxisUsage(points).reuseRatio()
-}
-
-func hasMinimumSegmentDiversity(points [][]float64, routeType string) bool {
-	axisStats := evaluateAxisUsage(points)
-	if axisStats.totalTraversals == 0 {
-		return false
-	}
-	// Allow local loops, but reject routes that hammer the exact same axis too often.
-	if axisStats.maxAxisReuseCount > 3 {
-		return false
-	}
-	return axisStats.segmentDiversityRatio() >= minSegmentDiversityRatio(routeType)
 }
 
 func minSegmentDiversityRatio(routeType string) float64 {

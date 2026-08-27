@@ -27,15 +27,6 @@ class SRTMFile(file: File) : AbstractFileBasedTerrain(file) {
     private val southWestCorner: Point
         get() = Point(tile.south, tile.west)
 
-    private val northWestCorner: Point
-        get() = Point(tile.north, tile.west)
-
-    private val northEastCorner: Point
-        get() = Point(tile.north, tile.east)
-
-    private val southEastCorner: Point
-        get() = Point(tile.south, tile.east)
-
     init {
         try {
             level = SRTMLevelEnum.fromFile(file)

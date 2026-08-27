@@ -613,19 +613,6 @@ func inferShapeFromCoordinates(points [][]float64) string {
 	return "POINT_TO_POINT"
 }
 
-func haversineDistanceMeters(left routesDomain.Coordinates, right routesDomain.Coordinates) float64 {
-	const earthRadiusM = 6371000.0
-	lat1 := left.Lat * (math.Pi / 180.0)
-	lat2 := right.Lat * (math.Pi / 180.0)
-	dLat := (right.Lat - left.Lat) * (math.Pi / 180.0)
-	dLng := (right.Lng - left.Lng) * (math.Pi / 180.0)
-
-	a := math.Sin(dLat/2.0)*math.Sin(dLat/2.0) +
-		math.Cos(lat1)*math.Cos(lat2)*math.Sin(dLng/2.0)*math.Sin(dLng/2.0)
-	c := 2.0 * math.Atan2(math.Sqrt(a), math.Sqrt(1.0-a))
-	return earthRadiusM * c
-}
-
 func isValidLatLng(lat float64, lng float64) bool {
 	return lat >= -90.0 && lat <= 90.0 && lng >= -180.0 && lng <= 180.0
 }

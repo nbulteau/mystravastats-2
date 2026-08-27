@@ -43,10 +43,6 @@ func eddingtonActivitiesForScope(scope business.EddingtonScope, year *int, activ
 	}
 }
 
-func computeEddingtonFromDailyTotals(scope business.EddingtonScope, activitiesByActiveDays map[string]int) business.EddingtonNumber {
-	return computeEddingtonFromValues(scope, business.EddingtonMetricDistance, business.EddingtonBasisDays, mapValues(activitiesByActiveDays))
-}
-
 func computeEddingtonFromValues(scope business.EddingtonScope, metric business.EddingtonMetric, basis business.EddingtonBasis, values []int) business.EddingtonNumber {
 	var eddingtonList []int
 	if len(values) == 0 {

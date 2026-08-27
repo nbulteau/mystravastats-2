@@ -580,15 +580,6 @@ private fun buildInterpolateGpsPointCorrection(activity: StravaActivity, issue: 
     return correction.copy(impact = impactForCorrection(activity, correction))
 }
 
-private fun buildRemoveGpsPointCorrection(activity: StravaActivity, issue: DataQualityIssue, index: Int): DataQualityCorrection {
-    val correction = baseCorrection(activity, issue, "REMOVE_GPS_POINT").copy(
-        pointIndexes = listOf(index),
-        modifiedFields = listOf("stream.latlng", "stream.distance", "stream.velocitySmooth", "distance", "average_speed", "max_speed"),
-        reason = "Remove isolated GPS point $index and recompute distance and speed from remaining coordinates.",
-    )
-    return correction.copy(impact = impactForCorrection(activity, correction))
-}
-
 private fun buildSmoothAltitudeCorrection(activity: StravaActivity, issue: DataQualityIssue, index: Int): DataQualityCorrection {
     val correction = baseCorrection(activity, issue, "SMOOTH_ALTITUDE_SPIKE").copy(
         pointIndexes = listOf(index),

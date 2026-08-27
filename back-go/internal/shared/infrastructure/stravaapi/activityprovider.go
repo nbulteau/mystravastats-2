@@ -108,21 +108,6 @@ useCache=false
 	return provider
 }
 
-func (provider *StravaActivityProvider) shouldBootstrapFromStravaAPI(clientId string) bool {
-	currentYear := time.Now().Year()
-
-	if !provider.localStorageProvider.IsLocalCacheExistForYear(clientId, currentYear) {
-		return true
-	}
-
-	if provider.shouldReloadFromStravaAPI(clientId, currentYear) {
-		return true
-	}
-
-	athlete := provider.localStorageProvider.LoadAthleteFromCache(clientId)
-	return athlete.Id == 0
-}
-
 func (provider *StravaActivityProvider) GetDetailedActivity(activityId int64) *strava.DetailedActivity {
 	log.Printf("Get detailed activity for activity id %d", activityId)
 
@@ -696,11 +681,6 @@ func (provider *StravaActivityProvider) replaceActivities(activities []*strava.A
 	provider.cacheMutex.Lock()
 	provider.filteredActivities = make(map[string][]*strava.Activity)
 	provider.cacheMutex.Unlock()
-}
-
-// indexActivities keeps backward compatibility for existing tests/helpers.
-func (provider *StravaActivityProvider) indexActivities() {
-	provider.replaceActivities(provider.activities)
 }
 
 func (provider *StravaActivityProvider) getActivitiesSnapshot() []*strava.Activity {

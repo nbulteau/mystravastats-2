@@ -275,27 +275,6 @@ function placeNormalizedShapePoints(
   ]);
 }
 
-function normalizeShapePoints(points: number[][]): number[][] {
-  if (points.length === 0) {
-    return [];
-  }
-  const xs = points.map((point) => point[0]);
-  const ys = points.map((point) => point[1]);
-  const minX = Math.min(...xs);
-  const maxX = Math.max(...xs);
-  const minY = Math.min(...ys);
-  const maxY = Math.max(...ys);
-  const width = Math.max(1, maxX - minX);
-  const height = Math.max(1, maxY - minY);
-  const scale = Math.max(width, height) / 2;
-  const centerX = (minX + maxX) / 2;
-  const centerY = (minY + maxY) / 2;
-  return points.map((point) => [
-    (point[0] - centerX) / scale,
-    (centerY - point[1]) / scale,
-  ]);
-}
-
 function buildHeartTemplate(): number[][] {
   const points: number[][] = [];
   for (let index = 0; index <= 80; index += 1) {

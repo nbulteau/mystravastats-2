@@ -27,7 +27,6 @@ import (
 
 const (
 	fitDestinationEnv  = "FIT_FILES_PATH"
-	fitInboxEnv        = "FIT_INBOX_PATH"
 	garminSourceEnv    = "GARMIN_FIT_SOURCE_PATH"
 	defaultVolumesRoot = "/Volumes"
 )

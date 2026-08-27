@@ -15,7 +15,7 @@ func TestComputeEddingtonFromDailyTotals_ReturnsZeroForEmptyInput(t *testing.T) 
 	dailyTotals := map[string]int{}
 
 	// WHEN
-	result := computeEddingtonFromDailyTotals(business.EddingtonScopeLifetime, dailyTotals)
+	result := computeEddingtonFromValues(business.EddingtonScopeLifetime, business.EddingtonMetricDistance, business.EddingtonBasisDays, mapValues(dailyTotals))
 
 	// THEN
 	if result.Number != 0 {
@@ -37,7 +37,7 @@ func TestComputeEddingtonFromDailyTotals_DoesNotRoundUpOnExactBoundary(t *testin
 	}
 
 	// WHEN
-	result := computeEddingtonFromDailyTotals(business.EddingtonScopeLifetime, dailyTotals)
+	result := computeEddingtonFromValues(business.EddingtonScopeLifetime, business.EddingtonMetricDistance, business.EddingtonBasisDays, mapValues(dailyTotals))
 
 	// THEN
 	if result.Number != 49 {
@@ -69,7 +69,7 @@ func TestComputeEddingtonFromDailyTotals_IgnoresNonPositiveDailyTotals(t *testin
 	}
 
 	// WHEN
-	result := computeEddingtonFromDailyTotals(business.EddingtonScopeLifetime, dailyTotals)
+	result := computeEddingtonFromValues(business.EddingtonScopeLifetime, business.EddingtonMetricDistance, business.EddingtonBasisDays, mapValues(dailyTotals))
 
 	// THEN
 	if result.Number != 4 {

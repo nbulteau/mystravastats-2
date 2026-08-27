@@ -58,10 +58,6 @@ func defaultMapPassageOptions() mapPassageOptions {
 	}
 }
 
-func computeMapPassages(activities []*strava.Activity, exclusions map[int64]business.DataQualityExclusion) application.MapPassagesResponse {
-	return computeMapPassagesWithOptions(activities, exclusions, defaultMapPassageOptions())
-}
-
 func computeMapPassagesWithOptions(activities []*strava.Activity, exclusions map[int64]business.DataQualityExclusion, options mapPassageOptions) application.MapPassagesResponse {
 	if options.resolutionMeters <= 0 {
 		options.resolutionMeters = mapPassageDefaultResolutionMeters

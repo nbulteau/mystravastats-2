@@ -53,7 +53,6 @@ export function buildClimberDashboardStats(results: BadgeCheckResult[]): Climber
     result.climbDetails?.ascents?.length ?? 0,
     result.nbCheckedActivities,
   );
-  const variantIds = climbed.map(climbVariantId);
   const allAscents = climbed.flatMap((result) => (result.climbDetails?.ascents ?? []).map((ascent) => ({ result, ascent })));
   const rejectedAscents = allAscents.filter(({ ascent }) => !recordQualityAccepted(ascent));
   const vamCandidates = allAscents.filter(({ ascent }) => (

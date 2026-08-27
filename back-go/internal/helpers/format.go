@@ -3,23 +3,12 @@ package helpers
 import (
 	"fmt"
 	"math"
-	"time"
 )
 
 const roundingThreshold = 0.995
 const roundingEpsilon = 1e-9
 
-var inDateTimeFormatter = "2006-01-02T15:04:05Z"
-var outDateTimeFormatter = "Mon 02 January 2006 - 15:04"
 var DateFormatter = "Mon 02 January 2006"
-
-func formatDate(dateStr string) string {
-	t, err := time.Parse(inDateTimeFormatter, dateStr)
-	if err != nil {
-		return ""
-	}
-	return t.Format(outDateTimeFormatter)
-}
 
 func FormatSeconds(seconds int) string {
 	hours := seconds / 3600

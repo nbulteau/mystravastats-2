@@ -325,10 +325,6 @@ class CompositeActivityProvider(
         private val SAME_ACTIVITY_TIMEZONE = ZoneId.of(SAME_ACTIVITY_TIMEZONE_NAME)
         private val SAME_ACTIVITY_FALLBACK_TIMEZONE_OFFSETS_SECONDS = listOf(60 * 60L, 2 * 60 * 60L)
 
-        private fun activitiesMatch(left: StravaActivity, right: StravaActivity): Boolean {
-            return activityValuesMatch(left, right, activityMatchMetadataFor(left), activityMatchMetadataFor(right))
-        }
-
         private fun sourceDataSignature(diagnostics: Map<String, Any?>, activities: List<StravaActivity>): String {
             return listOf(
                 "provider=${diagnostics["provider"]}",

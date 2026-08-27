@@ -326,15 +326,6 @@ func manualCorrection(issue business.DataQualityIssue, reason string) business.D
 	}
 }
 
-func buildRemoveGPSPointCorrection(activity *strava.Activity, issue business.DataQualityIssue, index int) business.DataQualityCorrection {
-	correction := baseCorrection(activity, issue, business.DataQualityCorrectionTypeRemoveGPSPoint)
-	correction.PointIndexes = []int{index}
-	correction.ModifiedFields = []string{"stream.latlng", "stream.distance", "stream.velocitySmooth", "distance", "average_speed", "max_speed"}
-	correction.Reason = fmt.Sprintf("Remove isolated GPS point %d and recompute distance and speed from remaining coordinates.", index)
-	correction.Impact = impactForCorrection(activity, correction)
-	return correction
-}
-
 func buildSmoothAltitudeCorrection(activity *strava.Activity, issue business.DataQualityIssue, index int) business.DataQualityCorrection {
 	correction := baseCorrection(activity, issue, business.DataQualityCorrectionTypeSmoothAltitudeSpike)
 	correction.PointIndexes = []int{index}

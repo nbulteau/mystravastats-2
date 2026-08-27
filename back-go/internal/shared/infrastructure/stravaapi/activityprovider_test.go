@@ -8,8 +8,6 @@ import (
 	"mystravastats/internal/shared/infrastructure/localrepository"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"sort"
 	"sync/atomic"
 	"testing"
@@ -35,79 +33,6 @@ func TestFilterActivitiesByType(t *testing.T) {
 
 	if len(commutes) != 1 {
 		t.Errorf("Expected 1 commute, got %d", len(commutes))
-	}
-}
-
-func TestShouldBootstrapFromStravaAPIWhenCurrentYearCacheIsFresh(t *testing.T) {
-	// GIVEN
-	cacheDir := t.TempDir()
-	repo := localrepository.NewStravaRepository(cacheDir)
-	clientID := "123"
-	currentYear := time.Now().Year()
-	repo.InitLocalStorageForClientId(clientID)
-	repo.SaveAthleteToCache(clientID, strava.Athlete{Id: 123})
-	repo.SaveActivitiesToCache(clientID, currentYear, []strava.Activity{{Id: 1, StartDate: fmt.Sprintf("%d-01-01T10:00:00Z", currentYear)}})
-
-	provider := &StravaActivityProvider{
-		localStorageProvider: repo,
-	}
-
-	// WHEN
-	shouldBootstrap := provider.shouldBootstrapFromStravaAPI(clientID)
-
-	// THEN
-	if shouldBootstrap {
-		t.Fatal("expected fresh local cache to skip Strava bootstrap")
-	}
-}
-
-func TestShouldBootstrapFromStravaAPIWhenCurrentYearCacheIsMissing(t *testing.T) {
-	// GIVEN
-	cacheDir := t.TempDir()
-	repo := localrepository.NewStravaRepository(cacheDir)
-	clientID := "123"
-	repo.InitLocalStorageForClientId(clientID)
-	repo.SaveAthleteToCache(clientID, strava.Athlete{Id: 123})
-
-	provider := &StravaActivityProvider{
-		localStorageProvider: repo,
-	}
-
-	// WHEN
-	shouldBootstrap := provider.shouldBootstrapFromStravaAPI(clientID)
-
-	// THEN
-	if !shouldBootstrap {
-		t.Fatal("expected missing current-year cache to require Strava bootstrap")
-	}
-}
-
-func TestShouldBootstrapFromStravaAPIWhenCacheIsTooOld(t *testing.T) {
-	// GIVEN
-	cacheDir := t.TempDir()
-	repo := localrepository.NewStravaRepository(cacheDir)
-	clientID := "123"
-	currentYear := time.Now().Year()
-	repo.InitLocalStorageForClientId(clientID)
-	repo.SaveAthleteToCache(clientID, strava.Athlete{Id: 123})
-	repo.SaveActivitiesToCache(clientID, currentYear, []strava.Activity{{Id: 1, StartDate: fmt.Sprintf("%d-01-01T10:00:00Z", currentYear)}})
-
-	activitiesFile := filepath.Join(cacheDir, fmt.Sprintf("strava-%s", clientID), fmt.Sprintf("strava-%s-%d", clientID, currentYear), fmt.Sprintf("activities-%s-%d.json", clientID, currentYear))
-	oldTime := time.Date(2025, time.August, 1, 0, 0, 0, 0, time.UTC)
-	if err := os.Chtimes(activitiesFile, oldTime, oldTime); err != nil {
-		t.Fatalf("failed to age cache file: %v", err)
-	}
-
-	provider := &StravaActivityProvider{
-		localStorageProvider: repo,
-	}
-
-	// WHEN
-	shouldBootstrap := provider.shouldBootstrapFromStravaAPI(clientID)
-
-	// THEN
-	if !shouldBootstrap {
-		t.Fatal("expected stale current-year cache to require Strava bootstrap")
 	}
 }
 
@@ -281,7 +206,7 @@ func TestGetDetailedActivity_SkipsStravaCallWhenRateLimitAlreadyActive(t *testin
 			},
 		},
 	}
-	provider.indexActivities()
+	provider.replaceActivities(provider.activities)
 	provider.rateLimitUntilUnix.Store(time.Now().Add(5 * time.Minute).Unix())
 
 	// WHEN
@@ -356,7 +281,7 @@ func TestGetDetailedActivity_PersistsFallbackDetailedToDiskCache(t *testing.T) {
 			},
 		},
 	}
-	provider.indexActivities()
+	provider.replaceActivities(provider.activities)
 
 	// WHEN
 	detailed := provider.GetDetailedActivity(activityID)
@@ -401,7 +326,7 @@ func TestGetDetailedActivity_EnrichesCachedDetailedWithSummarySportType(t *testi
 			},
 		},
 	}
-	provider.indexActivities()
+	provider.replaceActivities(provider.activities)
 
 	// WHEN
 	detailed := provider.GetDetailedActivity(activityID)
@@ -475,6 +400,6 @@ func benchmarkProvider(size int) *StravaActivityProvider {
 	provider := &StravaActivityProvider{
 		activities: activities,
 	}
-	provider.indexActivities()
+	provider.replaceActivities(provider.activities)
 	return provider
 }

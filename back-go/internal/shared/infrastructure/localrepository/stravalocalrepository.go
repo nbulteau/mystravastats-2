@@ -385,25 +385,6 @@ func lastModified(filename string) int64 {
 	return info.ModTime().UnixMilli()
 }
 
-func (repo *StravaRepository) loadActivitiesStreams(activities []strava.Activity, activitiesDirectory string) {
-	for i, activity := range activities {
-		streamFile := filepath.Join(activitiesDirectory, fmt.Sprintf("stream-%d", activity.Id))
-		if _, err := os.Stat(streamFile); err == nil {
-			data, err := os.ReadFile(streamFile)
-			if err != nil {
-				log.Printf("Failed to read stream file '%s': %v", streamFile, err)
-				continue
-			}
-			var stream strava.Stream
-			if err := json.Unmarshal(data, &stream); err != nil {
-				log.Printf("Failed to unmarshal stream file '%s': %v", streamFile, err)
-				continue
-			}
-			activities[i].Stream = &stream
-		}
-	}
-}
-
 func fallbackAthlete(clientId string) strava.Athlete {
 	clientIdInt, err := strconv.ParseInt(clientId, 10, 64)
 	if err != nil {

@@ -1058,106 +1058,6 @@ class RouteExplorerService(
         )
     }
 
-    private fun buildFallbackRoadGraphRecommendation(
-        candidates: List<RouteCandidate>,
-        distanceTarget: Double,
-        elevationTarget: Double,
-        durationTargetSec: Int,
-        scoringProfile: RouteScoringProfile,
-        startDirection: String?,
-        preferredStart: Coordinates?,
-        elevationPerKm: Double,
-        durationPerKm: Double,
-    ): Pair<RouteRecommendation, Double>? {
-        if (candidates.isEmpty()) {
-            return null
-        }
-
-        val rankedCandidates = candidates
-            .filter { candidate -> candidate.previewLatLng.size >= 2 }
-            .filter { candidate -> preferredStart == null || startDistanceKm(candidate, preferredStart) <= 5.0 }
-            .map { candidate ->
-                val score = closenessScore(
-                    candidate = candidate,
-                    distanceTarget = distanceTarget,
-                    elevationTarget = elevationTarget,
-                    durationTargetSec = durationTargetSec,
-                    scoringProfile = scoringProfile,
-                    startDirection = startDirection,
-                    preferredStart = preferredStart,
-                )
-                candidate to score
-            }
-            .sortedWith(compareByDescending<Pair<RouteCandidate, Double>> { (_, score) -> score }.thenByDescending { (candidate, _) -> candidate.date ?: Instant.EPOCH })
-            .take(12)
-
-        for ((candidate, _) in rankedCandidates) {
-            var preview = buildOutAndBackPreview(candidate.previewLatLng, distanceTarget)
-            if (preview.size < 4) {
-                continue
-            }
-            if (preferredStart != null) {
-                preview = anchorLoopToPreferredStart(preview, preferredStart) ?: continue
-            }
-            if (preview.size < 4) {
-                continue
-            }
-
-            val distanceKm = pathDistanceMeters(preview) / 1000.0
-            if (distanceKm < 2.0) {
-                continue
-            }
-
-            val estimatedElevation = max(0.0, distanceKm * elevationPerKm)
-            if (!isTargetMatchAcceptable(distanceKm, estimatedElevation, distanceTarget, elevationTarget)) {
-                continue
-            }
-            val estimatedDuration = (distanceKm * durationPerKm).roundToInt()
-            val start = toCoordinates(preview.first())
-            val scoreCandidate = RouteCandidate(
-                activity = candidate.activity.copy(id = 0L, name = "Generated out-and-back near ${firstNonEmpty(candidate.startArea, "your start point")}"),
-                date = candidate.date,
-                activityDate = candidate.activityDate,
-                distanceKm = distanceKm,
-                elevationGainM = estimatedElevation,
-                durationSec = estimatedDuration,
-                isLoop = true,
-                start = start,
-                end = start,
-                startArea = candidate.startArea,
-                season = candidate.season,
-                previewLatLng = preview,
-                shape = "LOOP",
-                shapeScore = 0.78,
-            )
-
-            val score = closenessScore(
-                candidate = scoreCandidate,
-                distanceTarget = distanceTarget,
-                elevationTarget = elevationTarget,
-                durationTargetSec = durationTargetSec,
-                scoringProfile = scoringProfile,
-                startDirection = startDirection,
-                preferredStart = preferredStart,
-            )
-            val recommendation = toRouteRecommendation(
-                candidate = scoreCandidate,
-                variantType = RouteVariantType.ROAD_GRAPH,
-                score = score,
-                reasons = listOf(
-                    "Generated fallback route (out-and-back loop)",
-                    "Built from local cached roads",
-                    "Estimated profile: ${formatDistanceDelta(distanceKm)} / ${formatElevationDelta(estimatedElevation)}",
-                ),
-                experimental = true,
-            ).copy(routeId = "road-graph-fallback-${candidate.activity.id}-${(distanceTarget * 10.0).roundToInt()}")
-
-            return recommendation to score
-        }
-
-        return null
-    }
-
     private fun routeRecommendationId(candidate: RouteCandidate, variantType: RouteVariantType): String {
         val type = variantType.name.lowercase()
         return when {
@@ -1682,32 +1582,6 @@ class RouteExplorerService(
             loop += outbound[index]
         }
         return sampleLatLng(loop, PREVIEW_POINT_MAX_SIZE)
-    }
-
-    private fun inflateLoopToTargetDistance(points: List<List<Double>>, targetDistanceKm: Double): List<List<Double>> {
-        if (points.size < 2 || targetDistanceKm <= 0.0) {
-            return points
-        }
-        val baseDistanceKm = pathDistanceMeters(points) / 1000.0
-        if (baseDistanceKm <= 0.0 || baseDistanceKm >= targetDistanceKm * 0.9) {
-            return points
-        }
-        var laps = (targetDistanceKm / baseDistanceKm).roundToInt()
-        if (laps < 1) {
-            laps = 1
-        }
-        if (laps > 8) {
-            laps = 8
-        }
-        if (laps == 1) {
-            return points
-        }
-        val expanded = mutableListOf<List<Double>>()
-        expanded += points
-        repeat(laps - 1) {
-            expanded += points.drop(1)
-        }
-        return expanded
     }
 
     private fun anchorLoopToPreferredStart(points: List<List<Double>>, preferredStart: Coordinates): List<List<Double>>? {

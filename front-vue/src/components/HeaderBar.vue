@@ -9,7 +9,6 @@ import {
   CYCLING_ACTIVITY_TYPES,
   DEFAULT_ACTIVITY_TYPE_FILTER,
   HIKING_ACTIVITY_TYPES,
-  OTHER_ACTIVITY_TYPES,
   RUNNING_ACTIVITY_TYPES,
   type ActivityTypeName,
 } from "@/utils/activityTypes";
@@ -27,7 +26,6 @@ const selectedActivity = computed(() => contextStore.currentActivityType);
 const cyclingActivities: readonly string[] = CYCLING_ACTIVITY_TYPES;
 const runningActivities: readonly string[] = RUNNING_ACTIVITY_TYPES;
 const hikingActivities: readonly string[] = HIKING_ACTIVITY_TYPES;
-const otherActivities: readonly string[] = OTHER_ACTIVITY_TYPES;
 
 const splitActivities = (v?: string) =>
     v && v.length > 0 ? v.split('_') as string[] : DEFAULT_ACTIVITY_TYPE_FILTER.split('_');

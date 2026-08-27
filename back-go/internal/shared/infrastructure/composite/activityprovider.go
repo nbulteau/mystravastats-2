@@ -749,16 +749,6 @@ func (provider *CompositeActivityProvider) sourceByName(name string) *Source {
 	return nil
 }
 
-func activitiesMatch(left *strava.Activity, right *strava.Activity) bool {
-	if left == nil || right == nil {
-		return false
-	}
-	return sourceActivitiesMatch(
-		sourceActivity{activity: left, match: activityMatchMetadataFor(left)},
-		sourceActivity{activity: right, match: activityMatchMetadataFor(right)},
-	)
-}
-
 func sourceActivitiesMatch(left, right sourceActivity) bool {
 	if left.activity == nil || right.activity == nil {
 		return false

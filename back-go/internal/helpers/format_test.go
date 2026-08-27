@@ -4,42 +4,6 @@ import (
 	"testing"
 )
 
-func TestFormatDate(t *testing.T) {
-	// GIVEN: Test cases for date formatting
-	tests := []struct {
-		name     string
-		dateStr  string
-		expected string
-	}{
-		{
-			name:     "Valid date",
-			dateStr:  "2024-07-22T10:30:00Z",
-			expected: "Mon 22 July 2024 - 10:30",
-		},
-		{
-			name:     "Invalid date",
-			dateStr:  "invalid-date",
-			expected: "",
-		},
-		{
-			name:     "Empty date string",
-			dateStr:  "",
-			expected: "",
-		},
-	}
-
-	// WHEN
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := formatDate(tt.dateStr)
-			// THEN
-			if result != tt.expected {
-				t.Errorf("formatDate(%s) = %s, expected %s", tt.dateStr, result, tt.expected)
-			}
-		})
-	}
-}
-
 func TestFormatSeconds(t *testing.T) {
 	// GIVEN: Test cases for second formatting
 	tests := []struct {

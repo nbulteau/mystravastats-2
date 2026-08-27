@@ -250,17 +250,6 @@ func readIntEnv(key string, fallback int) int {
 	return value
 }
 
-func isExecutableFile(path string) bool {
-	info, err := os.Stat(path)
-	if err != nil || info.IsDir() {
-		return false
-	}
-	if filepath.Separator == '\\' {
-		return true
-	}
-	return info.Mode()&0o111 != 0
-}
-
 func normalizedTimeoutMs() int {
 	timeoutMs := readIntEnv("OSM_ROUTING_TIMEOUT_MS", defaultOSMRoutingTimeoutMs)
 	if timeoutMs < 200 {

@@ -796,18 +796,6 @@ class RoutesController(
         return "POINT_TO_POINT"
     }
 
-    private fun haversineDistanceMeters(left: Coordinates, right: Coordinates): Double {
-        val lat1 = Math.toRadians(left.lat)
-        val lat2 = Math.toRadians(right.lat)
-        val dLat = Math.toRadians(right.lat - left.lat)
-        val dLng = Math.toRadians(right.lng - left.lng)
-
-        val a = sin(dLat / 2.0) * sin(dLat / 2.0) +
-            cos(lat1) * cos(lat2) * sin(dLng / 2.0) * sin(dLng / 2.0)
-        val c = 2.0 * atan2(sqrt(a), sqrt(1.0 - a))
-        return 6371000.0 * c
-    }
-
     private fun isValidLatLng(lat: Double, lng: Double): Boolean {
         return lat in -90.0..90.0 && lng in -180.0..180.0
     }

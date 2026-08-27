@@ -1329,63 +1329,6 @@ func cloneLatLngPoints(points [][]float64) [][]float64 {
 	return cloned
 }
 
-func TestRespectsHalfPlaneDirection_NorthRejectsPointsSouthOfStart(t *testing.T) {
-	// GIVEN
-	start := routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000}
-	points := [][]float64{
-		{48.13010, -1.63000},
-		{48.13050, -1.62000},
-		{48.12840, -1.61000}, // south of start by more than tolerance
-	}
-
-	// WHEN
-	ok := respectsHalfPlaneDirection(points, start, "N", 120.0)
-
-	// THEN
-	if ok {
-		t.Fatal("expected north direction filter to reject points south of start")
-	}
-}
-
-func TestHasOppositeEdgeTraversal_DetectsBacktracking(t *testing.T) {
-	// GIVEN
-	points := [][]float64{
-		{48.13000, -1.63000},
-		{48.13100, -1.62900},
-		{48.13200, -1.62800},
-		{48.13100, -1.62900}, // traverses previous edge in reverse
-	}
-
-	// WHEN
-	hasBacktracking := hasOppositeEdgeTraversal(points)
-
-	// THEN
-	if !hasBacktracking {
-		t.Fatal("expected opposite-direction edge traversal to be detected")
-	}
-}
-
-func TestHasMinimumSegmentDiversity_RejectsOverusedSegments(t *testing.T) {
-	// GIVEN
-	points := [][]float64{
-		{48.13000, -1.63000},
-		{48.13100, -1.62900},
-		{48.13200, -1.62800},
-		{48.13300, -1.62700},
-		{48.13200, -1.62800},
-		{48.13300, -1.62700},
-		{48.13200, -1.62800},
-	}
-
-	// WHEN
-	ok := hasMinimumSegmentDiversity(points, "RIDE")
-
-	// THEN
-	if ok {
-		t.Fatal("expected diversity filter to reject a route reusing the same segment too often")
-	}
-}
-
 func TestBuildOSRMScoringProfile_CalibratesWeightsByRouteType(t *testing.T) {
 	// GIVEN
 	rideProfile := buildOSRMScoringProfile("RIDE", true, false)
