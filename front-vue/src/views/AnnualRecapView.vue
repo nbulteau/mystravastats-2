@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
-import { RouterLink } from "vue-router";
+import { RouterLink, useRoute } from "vue-router";
 import { useAthleteStore } from "@/stores/athlete";
 import { useContextStore } from "@/stores/context";
 import { useDashboardStore } from "@/stores/dashboard";
 import { useMapStore } from "@/stores/map";
 import type { DashboardData } from "@/models/dashboard-data.model";
+import type { Activity } from "@/models/activity.model";
 import { buildFilteredApiUrl, requestJson } from "@/stores/api";
 import {
   ALL_ACTIVITY_TYPE_FILTER,
@@ -25,7 +26,15 @@ import {
   type AnnualRecapPage,
   type AnnualRecapTheme,
 } from "@/utils/annual-recap";
+import {
+  COMMUTE_RECAP_PAGES,
+  buildCommuteRecapStats,
+  buildCommuteRecapSvg,
+  type CommuteImpactConfig,
+  type CommuteRecapPage,
+} from "@/utils/commute-recap";
 
+const route = useRoute();
 const contextStore = useContextStore();
 const dashboardStore = useDashboardStore();
 const athleteStore = useAthleteStore();
@@ -34,7 +43,7 @@ const theme = ref<AnnualRecapTheme>("light");
 const format = ref<AnnualRecapFormat>("portrait");
 const includeMap = ref(false);
 const includeName = ref(true);
-const selectedPage = ref<AnnualRecapPage>("overview");
+const selectedPage = ref<AnnualRecapPage | CommuteRecapPage>("overview");
 const isExporting = ref(false);
 const exportError = ref("");
 const exportNotice = ref("");
@@ -42,7 +51,18 @@ const allYearsData = ref<DashboardData | null>(null);
 const allYearsLoading = ref(false);
 const allYearsError = ref("");
 const supportsNativeShare = ref(false);
+const commuteActivities = ref<Activity[]>([]);
+const commuteLoading = ref(false);
+const commuteError = ref("");
+const impactEnabled = ref(false);
+const impactConfig = ref<CommuteImpactConfig>({
+  motorizedSharePercent: 100,
+  fuelConsumptionLitresPer100Km: 6.5,
+  fuelPricePerLitre: 1.85,
+  co2KgPerKm: 0.192,
+});
 let allYearsRequestId = 0;
+let commuteRequestId = 0;
 
 const sportOptions = [
   { label: "All sports", value: ALL_ACTIVITY_TYPE_FILTER },
@@ -55,6 +75,8 @@ const selectedYear = computed({
   get: () => contextStore.currentYear,
   set: (year: string) => void contextStore.updateCurrentYear(year),
 });
+const isCommuteMode = computed(() => route.name === "commute-recap");
+const pageDefinitions = computed(() => isCommuteMode.value ? COMMUTE_RECAP_PAGES : ANNUAL_RECAP_PAGES);
 const selectedSport = computed({
   get: () => contextStore.currentActivityType,
   set: (activityType: string) => void contextStore.updateCurrentActivityType(activityType),
@@ -92,20 +114,37 @@ const highlights = computed(() => buildAnnualRecapHighlights(
   consistencyPercent.value,
   yearToDate.value,
 ));
-const hasData = computed(() => selectedYear.value !== "All years" && metrics.value.activities > 0);
-const pageSvgs = computed(() => new Map(ANNUAL_RECAP_PAGES.map((page) => [
+const commuteStats = computed(() => buildCommuteRecapStats(commuteActivities.value, selectedYear.value));
+const previousCommuteStats = computed(() => buildCommuteRecapStats(commuteActivities.value, previousYear.value));
+const hasPreviousCommuteData = computed(() => previousCommuteStats.value.trips > 0);
+const hasData = computed(() => selectedYear.value !== "All years" && (
+  isCommuteMode.value ? commuteStats.value.trips > 0 : metrics.value.activities > 0
+));
+const pageSvgs = computed(() => new Map(pageDefinitions.value.map((page) => [
   page.id,
-  buildAnnualRecapSvg(recapInput(page.id)),
+  isCommuteMode.value
+    ? buildCommuteRecapSvg(commuteRecapInput(page.id as CommuteRecapPage))
+    : buildAnnualRecapSvg(recapInput(page.id as AnnualRecapPage)),
 ])));
 const previewSvg = computed(() => pageSvgs.value.get(selectedPage.value) ?? "");
-const selectedPageIndex = computed(() => ANNUAL_RECAP_PAGES.findIndex((page) => page.id === selectedPage.value));
-const selectedPageLabel = computed(() => ANNUAL_RECAP_PAGES[selectedPageIndex.value]?.label ?? "Overview");
-const isLoading = computed(() => dashboardStore.isLoading || allYearsLoading.value);
+const selectedPageIndex = computed(() => pageDefinitions.value.findIndex((page) => page.id === selectedPage.value));
+const selectedPageLabel = computed(() => pageDefinitions.value[selectedPageIndex.value]?.label ?? "Overview");
+const isLoading = computed(() => dashboardStore.isLoading || allYearsLoading.value || (isCommuteMode.value && commuteLoading.value));
 
 onMounted(() => {
   contextStore.updateCurrentView("annual-recap");
   supportsNativeShare.value = typeof navigator.share === "function";
 });
+
+watch(isCommuteMode, (commuteMode) => {
+  selectedPage.value = "overview";
+  exportError.value = "";
+  exportNotice.value = "";
+  if (commuteMode) {
+    void contextStore.updateCurrentActivityType("Commute");
+    void fetchCommuteActivities();
+  }
+}, { immediate: true });
 
 watch(
   () => contextStore.currentActivityType,
@@ -141,11 +180,11 @@ async function downloadAllPngs() {
   exportError.value = "";
   exportNotice.value = "";
   try {
-    for (const page of ANNUAL_RECAP_PAGES) {
+    for (const page of pageDefinitions.value) {
       downloadBlob(await renderPageBlob(page.id), fileName(page.id));
       await new Promise((resolve) => window.setTimeout(resolve, 120));
     }
-    exportNotice.value = `${ANNUAL_RECAP_PAGES.length} recap cards downloaded.`;
+    exportNotice.value = `${pageDefinitions.value.length} recap cards downloaded.`;
   } catch (error) {
     exportError.value = error instanceof Error ? error.message : "Unable to export all recap cards.";
   } finally {
@@ -165,7 +204,7 @@ async function shareCurrentCard() {
       throw new Error("This browser cannot share generated image files.");
     }
     await navigator.share({
-      title: `${selectedYear.value} activity recap`,
+      title: `${selectedYear.value} ${isCommuteMode.value ? "commute" : "activity"} recap`,
       text: `${selectedPageLabel.value} · ${selectedYear.value} · MyStravaStats`,
       files: [file],
     });
@@ -196,6 +235,39 @@ function recapInput(page: AnnualRecapPage) {
     tracks: includeMap.value ? mapStore.mapTracks : [],
     page,
   } as const;
+}
+
+function commuteRecapInput(page: CommuteRecapPage) {
+  return {
+    page,
+    year: selectedYear.value === "All years" ? "YEAR" : selectedYear.value,
+    athleteName: includeName.value ? athleteStore.athleteName : "",
+    stats: commuteStats.value,
+    previousStats: hasPreviousCommuteData.value ? previousCommuteStats.value : undefined,
+    theme: theme.value,
+    format: format.value,
+    impactEnabled: impactEnabled.value,
+    impactConfig: impactConfig.value,
+    includeMap: includeMap.value,
+    tracks: includeMap.value ? mapStore.mapTracks : [],
+    yearToDate: yearToDate.value,
+  } as const;
+}
+
+async function fetchCommuteActivities() {
+  const requestId = ++commuteRequestId;
+  commuteLoading.value = true;
+  commuteError.value = "";
+  try {
+    const activities = await requestJson<Activity[]>(buildFilteredApiUrl("activities", "Commute", "All years"));
+    if (requestId === commuteRequestId) commuteActivities.value = activities;
+  } catch (error) {
+    if (requestId === commuteRequestId) {
+      commuteError.value = error instanceof Error ? error.message : "Unable to load commute activities.";
+    }
+  } finally {
+    if (requestId === commuteRequestId) commuteLoading.value = false;
+  }
 }
 
 async function fetchAllYearsData() {
@@ -231,14 +303,17 @@ function metricsForYear(data: DashboardData, year: string): AnnualRecapMetrics {
 }
 
 function selectAdjacentPage(offset: number) {
-  const count = ANNUAL_RECAP_PAGES.length;
+  const count = pageDefinitions.value.length;
   const nextIndex = (selectedPageIndex.value + offset + count) % count;
-  selectedPage.value = ANNUAL_RECAP_PAGES[nextIndex]?.id ?? "overview";
+  selectedPage.value = pageDefinitions.value[nextIndex]?.id ?? "overview";
 }
 
-function renderPageBlob(page: AnnualRecapPage): Promise<Blob> {
+function renderPageBlob(page: AnnualRecapPage | CommuteRecapPage): Promise<Blob> {
+  const svg = pageSvgs.value.get(page) ?? (isCommuteMode.value
+    ? buildCommuteRecapSvg(commuteRecapInput(page as CommuteRecapPage))
+    : buildAnnualRecapSvg(recapInput(page as AnnualRecapPage)));
   return annualRecapSvgToPng(
-    pageSvgs.value.get(page) ?? buildAnnualRecapSvg(recapInput(page)),
+    svg,
     currentFormat.value.width,
     currentFormat.value.height,
   );
@@ -255,9 +330,10 @@ function downloadBlob(blob: Blob, name: string) {
   URL.revokeObjectURL(url);
 }
 
-function fileName(page: AnnualRecapPage): string {
-  const index = ANNUAL_RECAP_PAGES.findIndex((candidate) => candidate.id === page) + 1;
-  return `mystravastats-${selectedYear.value}-${String(index).padStart(2, "0")}-${page}-${format.value}.png`;
+function fileName(page: AnnualRecapPage | CommuteRecapPage): string {
+  const index = pageDefinitions.value.findIndex((candidate) => candidate.id === page) + 1;
+  const kind = isCommuteMode.value ? "commute-recap" : "recap";
+  return `mystravastats-${selectedYear.value}-${kind}-${String(index).padStart(2, "0")}-${page}-${format.value}.png`;
 }
 
 function elapsedDaysThisYear(): number {
@@ -276,17 +352,27 @@ function positiveValue(value: number | undefined): number {
     <header class="recap-heading">
       <div>
         <p class="recap-kicker">Share studio</p>
-        <h1>Annual recap · Version 2</h1>
-        <p>Create a five-card story with year-over-year progress, consistency, exploration and automatic highlights.</p>
+        <h1>{{ isCommuteMode ? "Commute recap" : "Annual recap · Version 2" }}</h1>
+        <p v-if="isCommuteMode">Turn explicitly tagged commutes into a five-card story about distance, regularity, progress and optional impact estimates.</p>
+        <p v-else>Create a five-card story with year-over-year progress, consistency, exploration and automatic highlights.</p>
       </div>
-      <RouterLink class="btn btn-outline-secondary btn-sm" to="/dashboard">
-        <i class="fa-solid fa-arrow-left" aria-hidden="true" />
-        Dashboard
-      </RouterLink>
+      <div class="recap-heading__actions">
+        <RouterLink
+          class="btn btn-outline-primary btn-sm"
+          :to="isCommuteMode ? '/annual-recap' : '/commute-recap'"
+          @click="isCommuteMode ? selectedSport = ALL_ACTIVITY_TYPE_FILTER : undefined"
+        >
+          <i :class="isCommuteMode ? 'fa-solid fa-person-running' : 'fa-solid fa-briefcase'" aria-hidden="true" />
+          {{ isCommuteMode ? "Sport recap" : "Commute recap" }}
+        </RouterLink>
+        <RouterLink class="btn btn-outline-secondary btn-sm" to="/dashboard">
+          <i class="fa-solid fa-arrow-left" aria-hidden="true" /> Dashboard
+        </RouterLink>
+      </div>
     </header>
 
     <div class="recap-layout">
-      <aside class="recap-controls" aria-label="Annual recap settings">
+      <aside class="recap-controls" :aria-label="isCommuteMode ? 'Commute recap settings' : 'Annual recap settings'">
         <section>
           <span class="step-number">1</span>
           <div>
@@ -296,8 +382,9 @@ function positiveValue(value: number | undefined): number {
               <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
               <option v-if="selectedYear === 'All years'" value="All years">Select a year</option>
             </select>
-            <label>Sports</label>
-            <div class="choice-grid">
+            <template v-if="!isCommuteMode">
+              <label>Sports</label>
+              <div class="choice-grid">
               <button
                 v-for="option in sportOptions"
                 :key="option.value"
@@ -308,10 +395,15 @@ function positiveValue(value: number | undefined): number {
               >
                 {{ option.label }}
               </button>
+              </div>
+              <p v-if="!sportOptions.some((option) => option.value === selectedSport)" class="selection-note">
+                Custom selection from the activity filter is active.
+              </p>
+            </template>
+            <div v-else class="commute-source">
+              <i class="fa-solid fa-circle-check" aria-hidden="true" />
+              <span><strong>Explicit commutes only</strong><small>Uses Strava activities marked “Commute”; no inferred home or workplace.</small></span>
             </div>
-            <p v-if="!sportOptions.some((option) => option.value === selectedSport)" class="selection-note">
-              Custom selection from the activity filter is active.
-            </p>
           </div>
         </section>
 
@@ -321,7 +413,7 @@ function positiveValue(value: number | undefined): number {
             <h2>Choose a card</h2>
             <div class="card-choice-grid">
               <button
-                v-for="(page, index) in ANNUAL_RECAP_PAGES"
+                v-for="(page, index) in pageDefinitions"
                 :key="page.id"
                 type="button"
                 :class="{ active: selectedPage === page.id }"
@@ -372,6 +464,18 @@ function positiveValue(value: number | undefined): number {
               <input v-model="includeMap" type="checkbox">
               <span><strong>Add activity fingerprint</strong><small>Off by default. The export contains abstract paths, no coordinate labels or basemap.</small></span>
             </label>
+            <template v-if="isCommuteMode">
+              <label class="check-row">
+                <input v-model="impactEnabled" type="checkbox">
+                <span><strong>Enable impact estimates</strong><small>Off by default. Use only for trips that replaced a motorized journey.</small></span>
+              </label>
+              <div v-if="impactEnabled" class="impact-settings">
+                <label>Motorized trips replaced (%)<input v-model.number="impactConfig.motorizedSharePercent" type="number" min="0" max="100" step="5"></label>
+                <label>Fuel use (L/100 km)<input v-model.number="impactConfig.fuelConsumptionLitresPer100Km" type="number" min="0" step="0.1"></label>
+                <label>Fuel price (€/L)<input v-model.number="impactConfig.fuelPricePerLitre" type="number" min="0" step="0.01"></label>
+                <label>CO₂ (kg/km)<input v-model.number="impactConfig.co2KgPerKm" type="number" min="0" step="0.001"></label>
+              </div>
+            </template>
             <p v-if="includeMap && mapStore.isLoading" class="selection-note">Loading GPS traces…</p>
             <p v-else-if="includeMap && mapStore.error" class="selection-note selection-note--error">{{ mapStore.error }}</p>
           </div>
@@ -379,8 +483,9 @@ function positiveValue(value: number | undefined): number {
 
         <p v-if="dashboardStore.error" class="recap-error">{{ dashboardStore.error }}</p>
         <p v-else-if="allYearsError" class="recap-error">{{ allYearsError }}</p>
+        <p v-else-if="isCommuteMode && commuteError" class="recap-error">{{ commuteError }}</p>
         <p v-else-if="selectedYear === 'All years'" class="recap-error">Choose a specific year to create a recap.</p>
-        <p v-else-if="!dashboardStore.isLoading && !hasData" class="recap-error">No activities are available for this selection.</p>
+        <p v-else-if="!isLoading && !hasData" class="recap-error">No {{ isCommuteMode ? "commutes" : "activities" }} are available for this selection.</p>
         <p v-if="exportError" class="recap-error">{{ exportError }}</p>
         <p v-if="exportNotice" class="recap-notice" role="status">{{ exportNotice }}</p>
 
@@ -401,7 +506,7 @@ function positiveValue(value: number | undefined): number {
             @click="downloadAllPngs"
           >
             <i class="fa-solid fa-images" aria-hidden="true" />
-            Download all · 5 PNGs
+            Download all · {{ pageDefinitions.length }} PNGs
           </button>
           <button
             v-if="supportsNativeShare"
@@ -418,7 +523,7 @@ function positiveValue(value: number | undefined): number {
 
       <main class="recap-preview-column">
         <div class="preview-heading">
-          <div><span>Card {{ selectedPageIndex + 1 }} of {{ ANNUAL_RECAP_PAGES.length }}</span><strong>{{ selectedPageLabel }}</strong></div>
+          <div><span>Card {{ selectedPageIndex + 1 }} of {{ pageDefinitions.length }}</span><strong>{{ selectedPageLabel }}</strong></div>
           <span>{{ currentFormat.label }}</span>
         </div>
         <div class="carousel-stage">
@@ -437,7 +542,7 @@ function positiveValue(value: number | undefined): number {
         </div>
         <div class="carousel-dots" role="group" aria-label="Recap cards">
           <button
-            v-for="page in ANNUAL_RECAP_PAGES"
+            v-for="page in pageDefinitions"
             :key="page.id"
             type="button"
             :class="{ active: selectedPage === page.id }"
@@ -456,6 +561,7 @@ function positiveValue(value: number | undefined): number {
 .recap-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding: 20px 22px; border: 1px solid var(--ms-border); border-radius: 16px; background: linear-gradient(135deg, #fff 0%, #fff7f1 100%); }
 .recap-heading h1 { margin: 2px 0 5px; font-size: 1.55rem; font-weight: 850; }
 .recap-heading p { max-width: 720px; margin: 0; color: var(--ms-text-muted); }
+.recap-heading__actions { display: flex; flex: none; gap: 7px; }
 .recap-kicker { color: var(--ms-primary) !important; font-size: .68rem; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
 .recap-layout { display: grid; grid-template-columns: minmax(300px, 390px) minmax(0, 1fr); align-items: start; gap: 18px; }
 .recap-controls { display: flex; flex-direction: column; gap: 12px; }
@@ -476,6 +582,14 @@ function positiveValue(value: number | undefined): number {
 .check-row span { display: flex; flex-direction: column; gap: 2px; }
 .check-row strong { font-size: .75rem; }
 .check-row small,.selection-note { color: var(--ms-text-muted); font-size: .64rem; }
+.commute-source { display: flex; gap: 9px; margin-top: 13px; padding: 10px; border: 1px solid #b9ddce; border-radius: 9px; color: #176d50; background: #f1fbf6; }
+.commute-source i { margin-top: 2px; }
+.commute-source span { display: flex; flex-direction: column; gap: 2px; }
+.commute-source strong { font-size: .72rem; }
+.commute-source small { color: var(--ms-text-muted); font-size: .63rem; }
+.impact-settings { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 5px; padding: 10px; border-radius: 9px; background: #f5f7f8; }
+.recap-controls .impact-settings label { margin: 0; font-size: .59rem; }
+.impact-settings input { width: 100%; margin-top: 4px; padding: 6px 7px; border: 1px solid #d7dce3; border-radius: 7px; background: #fff; font-size: .7rem; }
 .selection-note { margin: 8px 0 0; }
 .selection-note--error,.recap-error { color: #9f2f23; }
 .recap-error { margin: 0; padding: 9px 11px; border: 1px solid #efc1b9; border-radius: 9px; background: #fff5f3; font-size: .7rem; }
@@ -499,5 +613,5 @@ function positiveValue(value: number | undefined): number {
 .carousel-dots button { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 999px; background: #aeb5bf; transition: width .15s ease, background .15s ease; }
 .carousel-dots button.active { width: 24px; background: var(--ms-primary); }
 @media (max-width: 900px) { .recap-layout { grid-template-columns: 1fr; }.recap-preview-column { position: static; }.recap-controls { order: 2; }.recap-preview-column { order: 1; } }
-@media (max-width: 560px) { .recap-heading { flex-direction: column; }.recap-layout { gap: 12px; }.choice-grid { grid-template-columns: 1fr; }.recap-preview-column { padding: 8px; }.preview-heading > span { display: none; }.carousel-arrow { width: 34px; height: 34px; }.carousel-arrow--previous { left: 0; }.carousel-arrow--next { right: 0; } }
+@media (max-width: 560px) { .recap-heading { flex-direction: column; }.recap-heading__actions { width: 100%; flex-wrap: wrap; }.recap-layout { gap: 12px; }.choice-grid { grid-template-columns: 1fr; }.recap-preview-column { padding: 8px; }.preview-heading > span { display: none; }.carousel-arrow { width: 34px; height: 34px; }.carousel-arrow--previous { left: 0; }.carousel-arrow--next { right: 0; } }
 </style>

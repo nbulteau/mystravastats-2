@@ -2,8 +2,6 @@ package me.nicolas.stravastats.api.controllers
 
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
-import me.nicolas.stravastats.domain.business.AnnualGoalTargets
-import me.nicolas.stravastats.domain.business.AnnualGoals
 import me.nicolas.stravastats.domain.business.ActivityType
 import me.nicolas.stravastats.domain.services.IDashboardService
 import org.junit.jupiter.api.Test
@@ -96,56 +94,4 @@ class DashboardControllerTest{
             .andExpect(jsonPath("$.message").value("Illegal argument"))
     }
 
-    @Test
-    fun `get annual goals returns goals when valid activity type and year`() {
-        // GIVEN
-        val activityTypes = setOf(ActivityType.Ride)
-        every { dashboardService.getAnnualGoals(2026, activityTypes) } returns AnnualGoals(
-            year = 2026,
-            activityTypeKey = "Ride",
-            targets = AnnualGoalTargets(distanceKm = 5000.0),
-            progress = emptyList(),
-        )
-
-        // WHEN
-        mockMvc.perform(
-            get("/api/dashboard/annual-goals")
-                .param("activityType", "Ride")
-                .param("year", "2026")
-                .accept(MediaType.APPLICATION_JSON)
-        )
-            // THEN
-            .andExpect(status().isOk)
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.year").value(2026))
-            .andExpect(jsonPath("$.targets.distanceKm").value(5000.0))
-    }
-
-    @Test
-    fun `put annual goals saves goals when request is valid`() {
-        // GIVEN
-        val activityTypes = setOf(ActivityType.Ride)
-        val targets = AnnualGoalTargets(distanceKm = 5000.0, activities = 120)
-        every { dashboardService.saveAnnualGoals(2026, activityTypes, targets) } returns AnnualGoals(
-            year = 2026,
-            activityTypeKey = "Ride",
-            targets = targets,
-            progress = emptyList(),
-        )
-
-        // WHEN
-        mockMvc.perform(
-            put("/api/dashboard/annual-goals")
-                .param("activityType", "Ride")
-                .param("year", "2026")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"distanceKm":5000.0,"activities":120}""")
-                .accept(MediaType.APPLICATION_JSON)
-        )
-            // THEN
-            .andExpect(status().isOk)
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.targets.distanceKm").value(5000.0))
-            .andExpect(jsonPath("$.targets.activities").value(120))
-    }
 }

@@ -14,8 +14,8 @@ func TestExportAndRestoreWhitelistedLocalData(t *testing.T) {
 	if err := os.MkdirAll(directory, 0700); err != nil {
 		t.Fatal(err)
 	}
-	goalsPath := filepath.Join(directory, "annual-goals-athlete-1.json")
-	if err := os.WriteFile(goalsPath, []byte(`{"goals":{"2026:Ride":{"distance":1000}}}`), 0600); err != nil {
+	settingsPath := filepath.Join(directory, "performance-settings-athlete-1.json")
+	if err := os.WriteFile(settingsPath, []byte(`{"ftpOverride":250}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(directory, "activities-athlete-1-2026.json"), []byte(`[{"id":1}]`), 0600); err != nil {
@@ -26,29 +26,29 @@ func TestExportAndRestoreWhitelistedLocalData(t *testing.T) {
 	if err != nil {
 		t.Fatalf("export: %v", err)
 	}
-	if len(bundle.Files) != 1 || bundle.Files["annualGoals"] == nil {
+	if len(bundle.Files) != 1 || bundle.Files["performanceSettings"] == nil {
 		t.Fatalf("unexpected exported files: %v", bundle.Files)
 	}
 
-	if err := os.WriteFile(goalsPath, []byte(`{"goals":{}}`), 0600); err != nil {
+	if err := os.WriteFile(settingsPath, []byte(`{}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 	result, err := Restore(cacheRoot, athleteID, bundle)
 	if err != nil {
 		t.Fatalf("restore: %v", err)
 	}
-	if len(result.Restored) != 1 || result.Restored[0] != "annualGoals" {
+	if len(result.Restored) != 1 || result.Restored[0] != "performanceSettings" {
 		t.Fatalf("unexpected restore result: %#v", result)
 	}
-	data, err := os.ReadFile(goalsPath)
+	data, err := os.ReadFile(settingsPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(data) != string(bundle.Files["annualGoals"]) {
+	if string(data) != string(bundle.Files["performanceSettings"]) {
 		t.Fatalf("restored content = %s", data)
 	}
-	backup, err := os.ReadFile(goalsPath + ".bak")
-	if err != nil || string(backup) != `{"goals":{}}` {
+	backup, err := os.ReadFile(settingsPath + ".bak")
+	if err != nil || string(backup) != `{}` {
 		t.Fatalf("backup = %s, err=%v", backup, err)
 	}
 }
@@ -57,7 +57,7 @@ func TestRestoreRejectsWrongAthleteUnknownKeysAndInvalidJSON(t *testing.T) {
 	tests := []Bundle{
 		{Version: Version, AthleteID: "other", Files: map[string]json.RawMessage{}},
 		{Version: Version, AthleteID: "athlete-1", Files: map[string]json.RawMessage{"activities": json.RawMessage(`[]`)}},
-		{Version: Version, AthleteID: "athlete-1", Files: map[string]json.RawMessage{"annualGoals": json.RawMessage(`{`)}},
+		{Version: Version, AthleteID: "athlete-1", Files: map[string]json.RawMessage{"performanceSettings": json.RawMessage(`{`)}},
 	}
 	for _, bundle := range tests {
 		if _, err := Restore(t.TempDir(), "athlete-1", bundle); err == nil {

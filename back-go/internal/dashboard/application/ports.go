@@ -13,6 +13,4 @@ type DashboardReader interface {
 	FindCumulativeElevationPerYear(activityTypes ...business.ActivityType) map[string]map[string]float64
 	FindActivityHeatmap(activityTypes ...business.ActivityType) map[string]map[string]dashboardDomain.ActivityHeatmapDay
 	FindEddingtonNumber(scope business.EddingtonScope, metric business.EddingtonMetric, basis business.EddingtonBasis, year *int, activityTypes ...business.ActivityType) business.EddingtonNumber
-	FindAnnualGoals(year int, activityTypes ...business.ActivityType) business.AnnualGoals
-	SaveAnnualGoals(year int, targets business.AnnualGoalTargets, activityTypes ...business.ActivityType) business.AnnualGoals
 }

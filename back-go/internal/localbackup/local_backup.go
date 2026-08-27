@@ -27,7 +27,6 @@ type RestoreResult struct {
 }
 
 var fileNames = map[string]func(string) string{
-	"annualGoals":            func(id string) string { return fmt.Sprintf("annual-goals-%s.json", id) },
 	"dataQualityCorrections": func(id string) string { return fmt.Sprintf("data-quality-corrections-%s.json", id) },
 	"dataQualityExclusions":  func(id string) string { return fmt.Sprintf("data-quality-exclusions-%s.json", id) },
 	"gearMaintenance":        func(id string) string { return fmt.Sprintf("gear-maintenance-%s.json", id) },

@@ -7,10 +7,6 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import me.nicolas.stravastats.api.dto.PersonalRecordTimelineDto
-import me.nicolas.stravastats.api.dto.AnnualGoalMonthDto
-import me.nicolas.stravastats.api.dto.AnnualGoalProgressDto
-import me.nicolas.stravastats.api.dto.AnnualGoalTargetsDto
-import me.nicolas.stravastats.api.dto.AnnualGoalsDto
 import me.nicolas.stravastats.api.dto.GearAnalysisCoverageDto
 import me.nicolas.stravastats.api.dto.GearAnalysisDto
 import me.nicolas.stravastats.api.dto.GearAnalysisItemDto
@@ -26,10 +22,6 @@ import me.nicolas.stravastats.api.dto.HeartRateZonePeriodSummaryDto
 import me.nicolas.stravastats.api.dto.HeartRateZoneSettingsDto
 import me.nicolas.stravastats.api.dto.ResolvedHeartRateZoneSettingsDto
 import me.nicolas.stravastats.domain.business.PersonalRecordTimelineEntry
-import me.nicolas.stravastats.domain.business.AnnualGoalMonth
-import me.nicolas.stravastats.domain.business.AnnualGoalProgress
-import me.nicolas.stravastats.domain.business.AnnualGoalTargets
-import me.nicolas.stravastats.domain.business.AnnualGoals
 import me.nicolas.stravastats.domain.business.DataQualityExclusion
 import me.nicolas.stravastats.domain.business.DataQualityExclusionRequest
 import me.nicolas.stravastats.domain.business.DataQualityCorrection
@@ -144,14 +136,6 @@ import org.springframework.boot.runApplication
         Tag::class,
         PersonalRecordTimelineEntry::class,
         PersonalRecordTimelineDto::class,
-        AnnualGoalTargets::class,
-        AnnualGoalMonth::class,
-        AnnualGoalProgress::class,
-        AnnualGoals::class,
-        AnnualGoalTargetsDto::class,
-        AnnualGoalMonthDto::class,
-        AnnualGoalProgressDto::class,
-        AnnualGoalsDto::class,
         DataQualityIssue::class,
         DataQualityExclusion::class,
         DataQualityExclusionRequest::class,

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"mystravastats/internal/platform/safefile"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
 	"os"
@@ -367,70 +366,6 @@ func (repo *StravaRepository) SavePerformanceSettings(clientId string, settings 
 	if err := os.WriteFile(settingsFile, data, secureFileMode); err != nil {
 		log.Printf("Failed to write performance settings file '%s': %v", settingsFile, err)
 	}
-}
-
-type annualGoalsCacheFile struct {
-	Goals map[string]business.AnnualGoalTargets `json:"goals"`
-}
-
-func (repo *StravaRepository) LoadAnnualGoalTargets(clientId string, key string) business.AnnualGoalTargets {
-	payload := repo.loadAnnualGoalsCacheFile(clientId)
-	if payload.Goals == nil {
-		return business.AnnualGoalTargets{}
-	}
-	targets, ok := payload.Goals[key]
-	if !ok {
-		return business.AnnualGoalTargets{}
-	}
-	return targets
-}
-
-func (repo *StravaRepository) SaveAnnualGoalTargets(clientId string, key string, targets business.AnnualGoalTargets) {
-	activitiesDirectory := filepath.Join(repo.cacheDirectory, fmt.Sprintf("strava-%s", clientId))
-	if err := os.MkdirAll(activitiesDirectory, secureDir); err != nil {
-		log.Printf("Failed to create secure annual goals directory '%s': %v", activitiesDirectory, err)
-		return
-	}
-
-	goalsFile := filepath.Join(activitiesDirectory, fmt.Sprintf("annual-goals-%s.json", clientId))
-	if err := safefile.WithLock(goalsFile, func() error {
-		payload := repo.loadAnnualGoalsCacheFile(clientId)
-		if payload.Goals == nil {
-			payload.Goals = make(map[string]business.AnnualGoalTargets)
-		}
-		payload.Goals[key] = targets
-		data, err := json.MarshalIndent(payload, "", "  ")
-		if err != nil {
-			return fmt.Errorf("marshal annual goals: %w", err)
-		}
-		return safefile.WriteFile(goalsFile, data, secureFileMode)
-	}); err != nil {
-		log.Printf("Failed to write annual goals file '%s': %v", goalsFile, err)
-	}
-}
-
-func (repo *StravaRepository) loadAnnualGoalsCacheFile(clientId string) annualGoalsCacheFile {
-	activitiesDirectory := filepath.Join(repo.cacheDirectory, fmt.Sprintf("strava-%s", clientId))
-	goalsFile := filepath.Join(activitiesDirectory, fmt.Sprintf("annual-goals-%s.json", clientId))
-	if _, err := os.Stat(goalsFile); os.IsNotExist(err) {
-		return annualGoalsCacheFile{Goals: map[string]business.AnnualGoalTargets{}}
-	}
-
-	data, err := os.ReadFile(goalsFile)
-	if err != nil {
-		log.Printf("Failed to read annual goals file '%s': %v", goalsFile, err)
-		return annualGoalsCacheFile{Goals: map[string]business.AnnualGoalTargets{}}
-	}
-
-	var payload annualGoalsCacheFile
-	if err := json.Unmarshal(data, &payload); err != nil {
-		log.Printf("Failed to unmarshal annual goals from '%s': %v", goalsFile, err)
-		return annualGoalsCacheFile{Goals: map[string]business.AnnualGoalTargets{}}
-	}
-	if payload.Goals == nil {
-		payload.Goals = map[string]business.AnnualGoalTargets{}
-	}
-	return payload
 }
 
 func fileExists(filename string) bool {

@@ -4,11 +4,6 @@ import { useContextStore } from "@/stores/context";
 import { EddingtonNumber } from "@/models/eddington-number.model";
 import { DashboardData } from "@/models/dashboard-data.model";
 import type { ActivityHeatmap } from "@/models/activity-heatmap.model";
-import {
-  emptyAnnualGoals,
-  type AnnualGoals,
-  type AnnualGoalTargets,
-} from "@/models/annual-goals.model";
 import { ALL_ACTIVITY_TYPE_FILTER } from "@/utils/activityTypes";
 
 export type HeatmapScope = "selection" | "all-sports";
@@ -21,7 +16,6 @@ type DashboardCacheEntry = {
   cumulativeElevationPerYear: Map<string, Map<string, number>>;
   eddingtonNumber: EddingtonNumber;
   dashboardData: DashboardData;
-  annualGoals: AnnualGoals;
 };
 
 type CumulativeApiPayload = {
@@ -47,7 +41,6 @@ export const useDashboardStore = defineStore("dashboard", {
     cumulativeElevationPerYear: new Map<string, Map<string, number>>(),
     eddingtonNumber: new EddingtonNumber(),
     dashboardData: new DashboardData({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, []),
-    annualGoals: emptyAnnualGoals(),
     activityHeatmap: {} as ActivityHeatmap,
     dashboardByKey: {} as Record<string, DashboardCacheEntry>,
     heatmapByKey: {} as Record<string, ActivityHeatmap>,
@@ -56,9 +49,7 @@ export const useDashboardStore = defineStore("dashboard", {
     eddingtonMetric: "distance" as EddingtonMetric,
     eddingtonBasis: "days" as EddingtonBasis,
     isLoading: false,
-    isSavingAnnualGoals: false,
     error: null as string | null,
-    annualGoalsError: null as string | null,
   }),
   actions: {
     currentDashboardKey(): string {
@@ -78,7 +69,7 @@ export const useDashboardStore = defineStore("dashboard", {
     currentHeatmapKey(): string {
       return `${this.heatmapScope}:${this.currentHeatmapActivityType()}`;
     },
-    currentAnnualGoalYear(): number | null {
+    currentYearNumber(): number | null {
       const contextStore = useContextStore();
       const parsed = Number.parseInt(contextStore.currentYear, 10);
       return Number.isFinite(parsed) ? parsed : null;
@@ -87,12 +78,12 @@ export const useDashboardStore = defineStore("dashboard", {
       this.heatmapScope = scope;
     },
     normalizeEddingtonScopeForCurrentContext() {
-      if (this.eddingtonScope === "year" && this.currentAnnualGoalYear() === null) {
+      if (this.eddingtonScope === "year" && this.currentYearNumber() === null) {
         this.eddingtonScope = "lifetime";
       }
     },
     async setEddingtonScope(scope: EddingtonScope) {
-      const nextScope = scope === "year" && this.currentAnnualGoalYear() === null
+      const nextScope = scope === "year" && this.currentYearNumber() === null
         ? "lifetime"
         : scope;
       if (this.eddingtonScope === nextScope) {
@@ -121,7 +112,6 @@ export const useDashboardStore = defineStore("dashboard", {
         cumulativeElevationPerYear: this.cumulativeElevationPerYear,
         eddingtonNumber: this.eddingtonNumber,
         dashboardData: this.dashboardData,
-        annualGoals: this.annualGoals,
       };
     },
     applyDashboardCacheEntry(entry: DashboardCacheEntry) {
@@ -129,7 +119,6 @@ export const useDashboardStore = defineStore("dashboard", {
       this.cumulativeElevationPerYear = entry.cumulativeElevationPerYear;
       this.eddingtonNumber = entry.eddingtonNumber;
       this.dashboardData = entry.dashboardData;
-      this.annualGoals = entry.annualGoals;
     },
     invalidateCache() {
       this.dashboardByKey = {};
@@ -178,61 +167,6 @@ export const useDashboardStore = defineStore("dashboard", {
         this.updateDashboardCacheForCurrentKey();
       }
     },
-    async fetchAnnualGoals() {
-      const contextStore = useContextStore();
-      const key = this.currentDashboardKey();
-      const year = this.currentAnnualGoalYear();
-      if (year === null) {
-        if (this.isCurrentDashboardKey(key)) {
-          this.annualGoals = emptyAnnualGoals();
-          this.annualGoalsError = null;
-          this.updateDashboardCacheForCurrentKey();
-        }
-        return;
-      }
-
-      const url = buildFilteredApiUrl("dashboard/annual-goals", contextStore.currentActivityType, contextStore.currentYear);
-      const annualGoals = await requestJson<AnnualGoals>(url);
-      if (this.isCurrentDashboardKey(key)) {
-        this.annualGoals = annualGoals;
-        this.annualGoalsError = null;
-        this.updateDashboardCacheForCurrentKey();
-      }
-    },
-    async saveAnnualGoals(targets: AnnualGoalTargets) {
-      const contextStore = useContextStore();
-      const key = this.currentDashboardKey();
-      const year = this.currentAnnualGoalYear();
-      if (year === null) {
-        this.annualGoalsError = "Select a specific year before saving annual goals.";
-        return this.annualGoals;
-      }
-
-      this.isSavingAnnualGoals = true;
-      this.annualGoalsError = null;
-      try {
-        const url = buildFilteredApiUrl("dashboard/annual-goals", contextStore.currentActivityType, contextStore.currentYear);
-        const annualGoals = await requestJson<AnnualGoals>(url, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(targets),
-        });
-        if (this.isCurrentDashboardKey(key)) {
-          this.annualGoals = annualGoals;
-          this.updateDashboardCacheForCurrentKey();
-        }
-        return annualGoals;
-      } catch (error: unknown) {
-        if (this.isCurrentDashboardKey(key)) {
-          this.annualGoalsError = error instanceof Error ? error.message : "Failed to save annual goals.";
-        }
-        throw error;
-      } finally {
-        this.isSavingAnnualGoals = false;
-      }
-    },
     async fetchActivityHeatmap() {
       const key = this.currentHeatmapKey();
       const params = new URLSearchParams({
@@ -266,7 +200,6 @@ export const useDashboardStore = defineStore("dashboard", {
           this.fetchEddingtonNumber(),
           this.fetchCumulativeDataPerYear(),
           this.fetchDashboardData(),
-          this.fetchAnnualGoals(),
         ]);
       } catch (error: unknown) {
         if (this.isCurrentDashboardKey(key)) {

@@ -19,21 +19,19 @@ class LocalDataBackupServiceTest {
     fun `export and restore only whitelisted local data with backup`() {
         val service = service("athlete-1")
         val directory = Files.createDirectories(tempDir.resolve("strava-athlete-1"))
-        val goals = directory.resolve("annual-goals-athlete-1.json")
-        Files.writeString(goals, """{"goals":{"2026:Ride":{"distance":1000}}}""")
+        val settings = directory.resolve("performance-settings-athlete-1.json")
+        Files.writeString(settings, """{"ftpOverride":250}""")
         Files.writeString(directory.resolve("activities-athlete-1-2026.json"), "[]")
 
         val backup = service.export()
-        assertEquals(setOf("annualGoals"), backup.files.keys)
+        assertEquals(setOf("performanceSettings"), backup.files.keys)
 
-        Files.writeString(goals, """{"goals":{}}""")
+        Files.writeString(settings, "{}")
         val result = service.restore(backup)
 
-        assertEquals(listOf("annualGoals"), result.restored)
-        assertEquals("""{"goals":{}}""", Files.readString(directory.resolve("annual-goals-athlete-1.json.bak")))
-        assertEquals(1000, ((backup.files.getValue("annualGoals") as Map<*, *>)["goals"] as Map<*, *>).values
-            .map { (it as Map<*, *>)["distance"] }
-            .single())
+        assertEquals(listOf("performanceSettings"), result.restored)
+        assertEquals("{}", Files.readString(directory.resolve("performance-settings-athlete-1.json.bak")))
+        assertEquals(250, (backup.files.getValue("performanceSettings") as Map<*, *>)["ftpOverride"])
     }
 
     @Test

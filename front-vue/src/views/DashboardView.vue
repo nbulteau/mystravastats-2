@@ -8,10 +8,8 @@ import {
 } from "@/stores/dashboard";
 import { computed, onMounted } from "vue";
 import { RouterLink } from "vue-router";
-import type { AnnualGoalTargets } from "@/models/annual-goals.model";
 import TooltipHint from "@/components/TooltipHint.vue";
 import { getMetricTooltip } from "@/utils/metric-tooltips";
-import AnnualGoalsPanel from "@/components/AnnualGoalsPanel.vue";
 import CumulativeDistancePerYearChart from "@/components/charts/CumulativeDataPerYearChart.vue";
 import EddingtonNumberChart from "@/components/charts/EddingtonNumberChart.vue";
 import SpeedPerYearChart from "@/components/charts/SpeedPerYearChart.vue";
@@ -41,9 +39,6 @@ const currentActivityTypeLabel = computed(() =>
 );
 const isLoading = computed(() => dashboardStore.isLoading);
 const error = computed(() => dashboardStore.error);
-const annualGoals = computed(() => dashboardStore.annualGoals);
-const annualGoalsError = computed(() => dashboardStore.annualGoalsError);
-const isSavingAnnualGoals = computed(() => dashboardStore.isSavingAnnualGoals);
 const cumulativeDistancePerYear = computed(() => dashboardStore.cumulativeDistancePerYear);
 const cumulativeElevationPerYear = computed(
   () => dashboardStore.cumulativeElevationPerYear
@@ -157,10 +152,6 @@ function tooltip(label: string): string {
   return getMetricTooltip(label) ?? "";
 }
 
-async function saveAnnualGoals(targets: AnnualGoalTargets) {
-  await dashboardStore.saveAnnualGoals(targets);
-}
-
 async function setEddingtonScope(scope: EddingtonScope) {
   if (scope === "year" && isYearScopeDisabled.value) {
     return;
@@ -200,19 +191,15 @@ async function setEddingtonBasis(basis: EddingtonBasis) {
         <strong>Create your annual recap</strong>
         <p>Turn this year’s distance, elevation, active days and GPS traces into a privacy-first shareable image.</p>
       </div>
-      <RouterLink class="btn btn-primary btn-sm" to="/annual-recap">
-        <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true" />
-        Create recap
-      </RouterLink>
+      <div class="annual-recap-entry__actions">
+        <RouterLink class="btn btn-primary btn-sm" to="/annual-recap">
+          <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true" /> Create recap
+        </RouterLink>
+        <RouterLink class="btn btn-outline-primary btn-sm" to="/commute-recap">
+          <i class="fa-solid fa-briefcase" aria-hidden="true" /> Commute recap
+        </RouterLink>
+      </div>
     </section>
-    <AnnualGoalsPanel
-      :annual-goals="annualGoals"
-      :selected-year="currentYear"
-      :activity-type="currentActivityType"
-      :saving="isSavingAnnualGoals"
-      :error="annualGoalsError"
-      @save="saveAnnualGoals"
-    />
     <section class="chart-panel">
       <div class="chart-panel__header">
         <h3 class="chart-panel__title">
@@ -444,6 +431,13 @@ async function setEddingtonBasis(basis: EddingtonBasis) {
 
 .annual-recap-entry .btn {
   flex: none;
+}
+
+.annual-recap-entry .annual-recap-entry__actions {
+  display: flex;
+  flex: none;
+  flex-direction: row;
+  gap: 7px;
 }
 
 .chart-empty--error {

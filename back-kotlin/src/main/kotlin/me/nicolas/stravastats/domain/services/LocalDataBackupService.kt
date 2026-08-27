@@ -76,7 +76,6 @@ class LocalDataBackupService(
 private const val LOCAL_DATA_BACKUP_VERSION = 1
 
 private val localFileNames = mapOf<String, (String) -> String>(
-    "annualGoals" to { id -> "annual-goals-$id.json" },
     "dataQualityCorrections" to { id -> "data-quality-corrections-$id.json" },
     "dataQualityExclusions" to { id -> "data-quality-exclusions-$id.json" },
     "gearMaintenance" to { id -> "gear-maintenance-$id.json" },
