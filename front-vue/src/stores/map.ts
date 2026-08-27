@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import type { MapPassages, MapTrack } from "@/models/map.model";
-import { buildFilteredApiUrl, requestJson } from "@/stores/api";
+import { buildFilteredApiUrl, requestJson } from "@/services/http-client";
 import { useContextStore } from "@/stores/context";
 
 export type MapViewport = {
@@ -39,7 +39,7 @@ export const useMapStore = defineStore("map", {
     },
     async fetchGPXCoordinates() {
       const contextStore = useContextStore();
-      const tracksUrl = buildFilteredApiUrl("maps/gpx", contextStore.currentActivityType, contextStore.currentYear);
+      const tracksUrl = buildFilteredApiUrl("getMapTracks", contextStore.currentActivityType, contextStore.currentYear);
       const currentKey = this.currentFiltersKey();
       this.isLoading = true;
       this.error = null;
@@ -63,7 +63,7 @@ export const useMapStore = defineStore("map", {
     },
     async fetchMapPassages() {
       const contextStore = useContextStore();
-      const passagesUrl = buildFilteredApiUrl("maps/passages", contextStore.currentActivityType, contextStore.currentYear);
+      const passagesUrl = buildFilteredApiUrl("getMapPassages", contextStore.currentActivityType, contextStore.currentYear);
       const currentKey = this.currentFiltersKey();
       this.isPassagesLoading = true;
       this.passagesError = null;

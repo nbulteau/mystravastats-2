@@ -1,10 +1,11 @@
 import { defineStore } from "pinia";
-import { buildFilteredApiUrl, requestJson } from "@/stores/api";
+import { buildFilteredApiUrl, requestJson } from "@/services/http-client";
 import { useContextStore } from "@/stores/context";
 import { EddingtonNumber } from "@/models/eddington-number.model";
 import { DashboardData } from "@/models/dashboard-data.model";
 import type { ActivityHeatmap } from "@/models/activity-heatmap.model";
 import { ALL_ACTIVITY_TYPE_FILTER } from "@/utils/activityTypes";
+import { apiUrl } from "@/services/api-url";
 
 export type HeatmapScope = "selection" | "all-sports";
 export type EddingtonScope = "lifetime" | "year" | "rolling-12-months";
@@ -128,7 +129,7 @@ export const useDashboardStore = defineStore("dashboard", {
       const contextStore = useContextStore();
       const key = this.currentDashboardKey();
       const url = buildFilteredApiUrl(
-        "dashboard/cumulative-data-per-year",
+        "getCumulativeData",
         contextStore.currentActivityType,
         contextStore.currentYear,
       );
@@ -143,7 +144,7 @@ export const useDashboardStore = defineStore("dashboard", {
       const contextStore = useContextStore();
       this.normalizeEddingtonScopeForCurrentContext();
       const key = this.currentDashboardKey();
-      const baseUrl = buildFilteredApiUrl("dashboard/eddington-number", contextStore.currentActivityType, contextStore.currentYear);
+      const baseUrl = buildFilteredApiUrl("getEddingtonNumber", contextStore.currentActivityType, contextStore.currentYear);
       const separator = baseUrl.includes("?") ? "&" : "?";
       const params = new URLSearchParams({
         scope: this.eddingtonScope,
@@ -160,7 +161,7 @@ export const useDashboardStore = defineStore("dashboard", {
     async fetchDashboardData() {
       const contextStore = useContextStore();
       const key = this.currentDashboardKey();
-      const url = buildFilteredApiUrl("dashboard", contextStore.currentActivityType, contextStore.currentYear);
+      const url = buildFilteredApiUrl("getDashboard", contextStore.currentActivityType, contextStore.currentYear);
       const dashboardData = await requestJson<DashboardData>(url);
       if (this.isCurrentDashboardKey(key)) {
         this.dashboardData = dashboardData;
@@ -169,10 +170,9 @@ export const useDashboardStore = defineStore("dashboard", {
     },
     async fetchActivityHeatmap() {
       const key = this.currentHeatmapKey();
-      const params = new URLSearchParams({
-        activityType: this.currentHeatmapActivityType(),
+      const url = apiUrl("getActivityHeatmap", {
+        query: { activityType: this.currentHeatmapActivityType() },
       });
-      const url = `/api/dashboard/activity-heatmap?${params.toString()}`;
       try {
         const activityHeatmap = await requestJson<ActivityHeatmap>(url);
         this.heatmapByKey[key] = activityHeatmap;

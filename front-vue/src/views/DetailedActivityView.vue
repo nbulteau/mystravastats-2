@@ -646,6 +646,8 @@ import {
   type ResolvedManualFtp,
 } from "@/models/athlete-performance-settings.model";
 import { ErrorService } from "@/services/error.service";
+import { fetchResponse } from "@/services/http-client";
+import { apiUrl } from "@/services/api-url";
 import TooltipHint from "@/components/TooltipHint.vue";
 import { getMetricTooltip } from "@/utils/metric-tooltips";
 import { buildHikingInsights, type HikingDifficultyLabel } from "@/utils/hiking-insights";
@@ -2151,8 +2153,11 @@ async function fetchDetailedActivityPayload(
   version: "corrected" | "raw",
   emitToast = true,
 ): Promise<DetailedActivity> {
-  const url = version === "raw" ? `/api/activities/${id}?version=raw` : `/api/activities/${id}`;
-  const response = await fetch(url);
+  const url = apiUrl("getActivity", {
+    path: { activityId: id },
+    query: { version: version === "raw" ? "raw" : undefined },
+  });
+  const response = await fetchResponse(url);
   if (!response.ok) {
     const apiMessage = await extractApiErrorMessage(response.clone());
     if (emitToast) {

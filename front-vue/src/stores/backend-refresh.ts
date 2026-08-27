@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import type { HealthDetailsPayload } from "@/models/health.model";
-import { requestJson } from "@/stores/api";
+import { requestJson } from "@/services/http-client";
+import { apiUrl } from "@/services/api-url";
 import { useContextStore } from "@/stores/context";
 
 const DEFAULT_POLL_INTERVAL_MS = 2000;
@@ -114,7 +115,7 @@ export const useBackendRefreshStore = defineStore("backendRefresh", {
           if (controller.signal.aborted) break;
           let health: HealthDetailsPayload;
           try {
-            health = await requestJson<HealthDetailsPayload>("/api/health/details", {
+            health = await requestJson<HealthDetailsPayload>(apiUrl("getHealthDetails"), {
               method: "GET",
               headers: {
                 Accept: "application/json",

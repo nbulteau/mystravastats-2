@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import type { Activity } from "@/models/activity.model";
-import { buildFilteredApiUrl, requestJson } from "@/stores/api";
+import { buildFilteredApiUrl, requestJson } from "@/services/http-client";
 import { useContextStore } from "@/stores/context";
 
 export const useActivitiesStore = defineStore("activities", {
@@ -20,7 +20,7 @@ export const useActivitiesStore = defineStore("activities", {
     async fetchActivities() {
       const contextStore = useContextStore();
       const key = contextStore.currentFiltersKey;
-      const url = buildFilteredApiUrl("activities", contextStore.currentActivityType, contextStore.currentYear);
+      const url = buildFilteredApiUrl("listActivities", contextStore.currentActivityType, contextStore.currentYear);
       this.isLoading = true;
       this.error = null;
       try {

@@ -5,6 +5,8 @@ import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaAthlete
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
+import me.nicolas.stravastats.adapters.localrepositories.fit.FITRepository
+import me.nicolas.stravastats.domain.interfaces.IFITActivityDecoderFactory
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -41,7 +43,7 @@ class SourceSyncServiceTest {
         System.setProperty("GARMIN_FIT_SOURCE_PATH", sourceRoot.toString())
 
         val provider = ReloadOnlyActivityProvider()
-        val result = SourceSyncService(provider).synchronize("test")
+        val result = SourceSyncService(provider, IFITActivityDecoderFactory(::FITRepository)).synchronize("test")
 
         assertEquals("completed", result.status)
         assertEquals("imported", result.fit.status)

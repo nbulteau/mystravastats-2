@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import type { BadgeCheckResult } from "@/models/badge-check-result.model";
-import { buildFilteredApiUrl, requestJson } from "@/stores/api";
+import { buildFilteredApiUrl, requestJson } from "@/services/http-client";
 import { useContextStore } from "@/stores/context";
 
 type BadgesCacheEntry = {
@@ -50,7 +50,7 @@ export const useBadgesStore = defineStore("badges", {
     async fetchBadges() {
       const contextStore = useContextStore();
       const key = contextStore.currentFiltersKey;
-      const url = buildFilteredApiUrl("badges", contextStore.currentActivityType, contextStore.currentYear);
+      const url = buildFilteredApiUrl("getBadges", contextStore.currentActivityType, contextStore.currentYear);
       this.isLoading = true;
       this.loadingFiltersKey = key;
       this.error = null;
@@ -87,7 +87,7 @@ export const useBadgesStore = defineStore("badges", {
       const key = `${activityType}__${year}`;
       const cached = this.badgesByKey[key];
       if (cached) return cached;
-      const badgeResults = await requestJson<BadgeCheckResult[]>(buildFilteredApiUrl("badges", activityType, year));
+      const badgeResults = await requestJson<BadgeCheckResult[]>(buildFilteredApiUrl("getBadges", activityType, year));
       const entry = splitBadgeResults(badgeResults);
       this.badgesByKey[key] = entry;
       return entry;

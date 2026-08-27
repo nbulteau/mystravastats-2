@@ -1,6 +1,5 @@
 package me.nicolas.stravastats.domain.services
 
-import me.nicolas.stravastats.adapters.localrepositories.fit.FITRepository
 import me.nicolas.stravastats.domain.RuntimeConfig
 import me.nicolas.stravastats.domain.business.FITDeviceSyncFile
 import me.nicolas.stravastats.domain.business.FITDeviceSyncResult
@@ -9,6 +8,8 @@ import me.nicolas.stravastats.domain.business.ImportedFITFile
 import me.nicolas.stravastats.domain.business.SourceSyncResult
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.services.activityproviders.IActivityProvider
+import me.nicolas.stravastats.domain.interfaces.IFITActivityDecoder
+import me.nicolas.stravastats.domain.interfaces.IFITActivityDecoderFactory
 import org.slf4j.LoggerFactory
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
@@ -35,6 +36,7 @@ interface ISourceSyncService {
 @Service
 class SourceSyncService(
     private val activityProvider: IActivityProvider,
+    private val fitActivityDecoderFactory: IFITActivityDecoderFactory,
 ) : ISourceSyncService {
     private val logger = LoggerFactory.getLogger(SourceSyncService::class.java)
     private val running = AtomicBoolean(false)
@@ -150,7 +152,7 @@ class SourceSyncService(
             )
         }
 
-        val decoder = FITRepository(destinationPath)
+        val decoder = fitActivityDecoderFactory.create(destinationPath)
         val existingFingerprints = existingFITFingerprints(destinationDirectory, File(sourcePath), decoder).toMutableSet()
         val imported = mutableListOf<ImportedFITFile>()
         val createdYears = mutableSetOf<String>()
@@ -337,7 +339,7 @@ class SourceSyncService(
         return device to distinctCandidates.map { it.absolutePath }
     }
 
-    private fun existingFITFingerprints(destinationDirectory: File, sourceDirectory: File, decoder: FITRepository): Set<String> {
+    private fun existingFITFingerprints(destinationDirectory: File, sourceDirectory: File, decoder: IFITActivityDecoder): Set<String> {
         return fitFiles(destinationDirectory)
             .filterNot { file -> file.absolutePath == sourceDirectory.absolutePath || file.isInside(sourceDirectory) }
             .mapNotNull { file -> decoder.decodeActivity(file)?.let(::activityFingerprint)?.takeIf { it.isNotEmpty() } }

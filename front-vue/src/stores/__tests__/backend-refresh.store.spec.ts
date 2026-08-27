@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { useBackendRefreshStore } from "@/stores/backend-refresh";
 import { useContextStore } from "@/stores/context";
-import { requestJson } from "@/stores/api";
+import { requestJson } from "@/services/http-client";
 
-vi.mock("@/stores/api", () => ({
+vi.mock("@/services/http-client", () => ({
   requestJson: vi.fn(),
 }));
 

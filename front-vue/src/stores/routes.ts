@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
-import { requestJson, requestResponse } from "@/stores/api";
+import { requestJson, requestResponse } from "@/services/http-client";
+import { apiUrl } from "@/services/api-url";
 import {
   type EditGeneratedRouteResponse,
   type GenerateRoutesResponse,
@@ -647,7 +648,7 @@ export const useRoutesStore = defineStore("routes", {
     },
     async refreshRoutingHealth() {
       try {
-        const payload = await requestJson<RoutingHealthPayload>("/api/health/details", {
+        const payload = await requestJson<RoutingHealthPayload>(apiUrl("getHealthDetails"), {
           method: "GET",
           headers: {
             Accept: "application/json",
@@ -1264,7 +1265,7 @@ export const useRoutesStore = defineStore("routes", {
           controlPoints: pointsToRouteCoordinates(this.routeEditControlPoints),
         };
         const data = await requestJson<EditGeneratedRouteResponse>(
-          `/api/routes/${encodeURIComponent(sourceRouteId)}/edit`,
+          apiUrl("editGeneratedRoute", { path: { routeId: sourceRouteId } }),
           {
             method: "POST",
             headers: {
@@ -1412,7 +1413,7 @@ export const useRoutesStore = defineStore("routes", {
         variantCount: this.variantCount,
       };
       const data = await requestJson<GenerateRoutesResponse>(
-        this.buildGenerationUrl("/api/routes/generate/shape"),
+        this.buildGenerationUrl(apiUrl("generateShapeRoutes")),
         {
           method: "POST",
           headers: {
@@ -1428,7 +1429,7 @@ export const useRoutesStore = defineStore("routes", {
       this.stopRouteEdit();
     },
     async exportRouteGpx(routeId: string) {
-      const response = await requestResponse(`/api/routes/${encodeURIComponent(routeId)}/gpx`, {
+      const response = await requestResponse(apiUrl("exportGeneratedRouteGpx", { path: { routeId } }), {
         method: "GET",
         headers: {
           Accept: "application/gpx+xml",

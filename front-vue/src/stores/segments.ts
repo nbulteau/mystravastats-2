@@ -4,7 +4,9 @@ import type {
   SegmentSummary,
   SegmentTargetSummary,
 } from "@/models/segment-analysis.model";
-import { requestJson } from "@/stores/api";
+import { requestJson } from "@/services/http-client";
+import { apiUrl } from "@/services/api-url";
+import type { ApiOperationId } from "@/generated/api-contract";
 import { useContextStore } from "@/stores/context";
 
 type SegmentMetric = "TIME" | "SPEED";
@@ -71,7 +73,11 @@ export const useSegmentsStore = defineStore("segments", {
     detailCacheKey(segmentId: number): string {
       return `${this.baseFiltersKey()}__segment_${segmentId}`;
     },
-    buildSegmentsUrl(path: string, extra: Record<string, string | undefined>): string {
+    buildSegmentsUrl(
+      operationId: ApiOperationId,
+      extra: Record<string, string | undefined>,
+      path: Record<string, string | number> = {},
+    ): string {
       const contextStore = useContextStore();
       const params = new URLSearchParams({
         activityType: contextStore.currentActivityType,
@@ -97,7 +103,7 @@ export const useSegmentsStore = defineStore("segments", {
         }
       }
 
-      return `/api/${path}?${params.toString()}`;
+      return apiUrl(operationId, { path, query: Object.fromEntries(params.entries()) });
     },
     updateFilters(payload: {
       metric?: SegmentMetric;
@@ -186,7 +192,7 @@ export const useSegmentsStore = defineStore("segments", {
     async fetchSegments(): Promise<SegmentTargetSummary[]> {
       this.ensurePersistentCacheHydrated();
       const key = this.listCacheKey();
-      const url = this.buildSegmentsUrl("segments", {});
+      const url = this.buildSegmentsUrl("listSegments", {});
       const segments = await requestJson<SegmentTargetSummary[]>(url);
       const now = Date.now();
       this.listCacheByKey[key] = {
@@ -202,11 +208,11 @@ export const useSegmentsStore = defineStore("segments", {
       return segments;
     },
     async fetchSegmentEfforts(segmentId: number): Promise<SegmentEffort[]> {
-      const url = this.buildSegmentsUrl(`segments/${segmentId}/efforts`, {});
+      const url = this.buildSegmentsUrl("listSegmentEfforts", {}, { segmentId });
       return requestJson<SegmentEffort[]>(url);
     },
     async fetchSegmentSummary(segmentId: number): Promise<SegmentSummary | null> {
-      const url = this.buildSegmentsUrl(`segments/${segmentId}/summary`, {});
+      const url = this.buildSegmentsUrl("getSegmentSummary", {}, { segmentId });
       try {
         return await requestJson<SegmentSummary>(url);
       } catch {

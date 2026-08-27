@@ -7,6 +7,7 @@ import me.nicolas.stravastats.domain.business.strava.stream.PowerStream
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.stream.*
 import me.nicolas.stravastats.domain.interfaces.IYearActivityStorageProvider
+import me.nicolas.stravastats.domain.interfaces.IFITActivityDecoder
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.nio.charset.StandardCharsets
@@ -18,7 +19,7 @@ import java.util.*
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
+class FITRepository(fitDirectory: String) : IYearActivityStorageProvider, IFITActivityDecoder {
 
     private val logger = LoggerFactory.getLogger(FITRepository::class.java)
 
@@ -39,7 +40,7 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider {
         return activities
     }
 
-    fun decodeActivity(fitFile: File): StravaActivity? {
+    override fun decodeActivity(fitFile: File): StravaActivity? {
         return try {
             val fitMessages = fitFile.inputStream().use { input -> fitDecoder.decode(input) }
             fitMessages.toActivity(fitFile)

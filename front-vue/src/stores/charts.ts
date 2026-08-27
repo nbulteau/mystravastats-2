@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { buildFilteredApiUrl, requestJson } from "@/stores/api";
+import { buildFilteredApiUrl, requestJson } from "@/services/http-client";
 import { useContextStore } from "@/stores/context";
 import { DashboardData } from "@/models/dashboard-data.model";
 import type { ChartPeriodPoint } from "@/models/chart-period-point.model";
@@ -96,7 +96,7 @@ export const useChartsStore = defineStore("charts", {
       const contextStore = useContextStore();
       const key = contextStore.currentFiltersKey;
       const url =
-        buildFilteredApiUrl("charts/distance-by-period", contextStore.currentActivityType, contextStore.currentYear) +
+        buildFilteredApiUrl("getDistanceChart", contextStore.currentActivityType, contextStore.currentYear) +
         "&period=MONTHS";
       const data = normalizePeriodPoints(await requestJson<ChartPeriodPointResponse[]>(url));
       if (this.isCurrentFiltersKey(key)) {
@@ -108,7 +108,7 @@ export const useChartsStore = defineStore("charts", {
       const contextStore = useContextStore();
       const key = contextStore.currentFiltersKey;
       const url =
-        buildFilteredApiUrl("charts/elevation-by-period", contextStore.currentActivityType, contextStore.currentYear) +
+        buildFilteredApiUrl("getElevationChart", contextStore.currentActivityType, contextStore.currentYear) +
         "&period=MONTHS";
       const data = normalizePeriodPoints(await requestJson<ChartPeriodPointResponse[]>(url));
       if (this.isCurrentFiltersKey(key)) {
@@ -121,7 +121,7 @@ export const useChartsStore = defineStore("charts", {
       const key = contextStore.currentFiltersKey;
       const url =
         buildFilteredApiUrl(
-          "charts/average-speed-by-period",
+          "getAverageSpeedChart",
           contextStore.currentActivityType,
           contextStore.currentYear,
         ) + "&period=MONTHS";
@@ -135,7 +135,7 @@ export const useChartsStore = defineStore("charts", {
       const contextStore = useContextStore();
       const key = contextStore.currentFiltersKey;
       const url =
-        buildFilteredApiUrl("charts/distance-by-period", contextStore.currentActivityType, contextStore.currentYear) +
+        buildFilteredApiUrl("getDistanceChart", contextStore.currentActivityType, contextStore.currentYear) +
         "&period=WEEKS";
       const data = normalizePeriodPoints(await requestJson<ChartPeriodPointResponse[]>(url));
       if (this.isCurrentFiltersKey(key)) {
@@ -147,7 +147,7 @@ export const useChartsStore = defineStore("charts", {
       const contextStore = useContextStore();
       const key = contextStore.currentFiltersKey;
       const url =
-        buildFilteredApiUrl("charts/elevation-by-period", contextStore.currentActivityType, contextStore.currentYear) +
+        buildFilteredApiUrl("getElevationChart", contextStore.currentActivityType, contextStore.currentYear) +
         "&period=WEEKS";
       const data = normalizePeriodPoints(await requestJson<ChartPeriodPointResponse[]>(url));
       if (this.isCurrentFiltersKey(key)) {
@@ -160,7 +160,7 @@ export const useChartsStore = defineStore("charts", {
       const key = contextStore.currentFiltersKey;
       const url =
         buildFilteredApiUrl(
-          "charts/average-cadence-by-period",
+          "getAverageCadenceChart",
           contextStore.currentActivityType,
           contextStore.currentYear,
         ) + "&period=WEEKS";
@@ -173,7 +173,7 @@ export const useChartsStore = defineStore("charts", {
     async fetchAllYearsOverview() {
       const contextStore = useContextStore();
       const key = contextStore.currentFiltersKey;
-      const url = buildFilteredApiUrl("dashboard", contextStore.currentActivityType, contextStore.currentYear);
+      const url = buildFilteredApiUrl("getDashboard", contextStore.currentActivityType, contextStore.currentYear);
       const data = await requestJson<DashboardData>(url);
 
       if (this.isCurrentFiltersKey(key)) {
@@ -188,7 +188,7 @@ export const useChartsStore = defineStore("charts", {
     async fetchActivitiesForCharts() {
       const contextStore = useContextStore();
       const key = contextStore.currentFiltersKey;
-      const url = buildFilteredApiUrl("activities", contextStore.currentActivityType, contextStore.currentYear);
+      const url = buildFilteredApiUrl("listActivities", contextStore.currentActivityType, contextStore.currentYear);
       const activities = await requestJson<Activity[]>(url);
       if (this.isCurrentFiltersKey(key)) {
         this.activitiesForCharts = activities;
@@ -199,7 +199,7 @@ export const useChartsStore = defineStore("charts", {
       const contextStore = useContextStore();
       const key = contextStore.currentFiltersKey;
       const url = buildFilteredApiUrl(
-        "statistics/heart-rate-zones",
+        "getHeartRateZoneAnalysis",
         contextStore.currentActivityType,
         contextStore.currentYear,
       );

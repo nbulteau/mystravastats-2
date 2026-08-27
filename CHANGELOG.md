@@ -11,11 +11,14 @@ All notable changes to My Activity Stats are documented in this file.
 - Canonical OpenAPI inventory covering all 52 public backend operations.
 - Generated TypeScript, Go, and Kotlin contract models sourced from OpenAPI.
 - Playwright journeys for dashboards and activity details, source onboarding and synchronization, safe data corrections, and GPS Art generation.
+- Architecture decision records, executable dependency rules, and a module-size ratchet.
 
 ### Changed
 
 - Route coordinates and route-generation diagnostics now derive from shared generated contract schemas.
 - Developer checks and documentation now describe the same commands run by CI.
+- Frontend API calls now resolve typed operation identifiers through a single URL and HTTP boundary.
+- Kotlin source synchronization now depends on an injected FIT decoder port instead of a concrete adapter.
 
 ## 1.3.0 - 2026-04-17
 

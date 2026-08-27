@@ -6,14 +6,14 @@ import { useDashboardStore } from "@/stores/dashboard";
 import { useGearAnalysisStore } from "@/stores/gear-analysis";
 import { useMapStore } from "@/stores/map";
 import { useSegmentsStore } from "@/stores/segments";
-import { requestJson } from "@/stores/api";
+import { requestJson } from "@/services/http-client";
 import { emptyGearAnalysis, type GearAnalysis } from "@/models/gear-analysis.model";
 import type { Activity } from "@/models/activity.model";
 import type { DashboardData } from "@/models/dashboard-data.model";
 import type { MapTrack } from "@/models/map.model";
 import type { SegmentTargetSummary } from "@/models/segment-analysis.model";
 
-vi.mock("@/stores/api", () => ({
+vi.mock("@/services/http-client", () => ({
   buildFilteredApiUrl: vi.fn((path: string, activityType: string, year: string) => {
     const params = new URLSearchParams({ activityType });
     if (year !== "All years") {

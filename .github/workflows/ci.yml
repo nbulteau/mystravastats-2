@@ -27,6 +27,8 @@ jobs:
           cache: false
       - name: Check generated OpenAPI contracts
         run: node scripts/generate-api-contracts.mjs --check
+      - name: Check architecture boundaries
+        run: node scripts/check-architecture.mjs
       - name: Audit climb catalog parity
         run: python3 scripts/audit-climb-catalog.py --check
 

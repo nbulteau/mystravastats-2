@@ -1,0 +1,23 @@
+{
+  "maximumNewModuleLines": 1000,
+  "modules": {
+    "back-go/api/dto/converters.go": 1910,
+    "back-go/internal/dataquality/infrastructure/data_quality_corrections.go": 1106,
+    "back-go/internal/routes/infrastructure/osm_routing_adapter.go": 5608,
+    "back-go/internal/routes/infrastructure/route_explorer_computation.go": 2118,
+    "back-go/internal/shared/infrastructure/composite/activityprovider.go": 1350,
+    "back-go/internal/shared/infrastructure/fit/activityprovider.go": 1259,
+    "back-go/internal/shared/infrastructure/stravaapi/activityprovider.go": 1132,
+    "back-kotlin/src/main/kotlin/me/nicolas/stravastats/domain/services/DataQualityService.kt": 1201,
+    "back-kotlin/src/main/kotlin/me/nicolas/stravastats/domain/services/RouteExplorerService.kt": 1845,
+    "back-kotlin/src/main/kotlin/me/nicolas/stravastats/domain/services/routing/OsmRoutingEngineAdapter.kt": 4701,
+    "front-vue/src/components/charts/ActivityHeatmapChart.vue": 1570,
+    "front-vue/src/stores/routes.ts": 1455,
+    "front-vue/src/views/DiagnosticsView.vue": 5602,
+    "front-vue/src/views/DetailedActivityView.vue": 3814,
+    "front-vue/src/views/GearAnalysisView.vue": 1555,
+    "front-vue/src/views/RoutesView.vue": 3731,
+    "front-vue/src/views/SegmentsView.vue": 1021,
+    "front-vue/src/views/SettingsView.vue": 1074
+  }
+}

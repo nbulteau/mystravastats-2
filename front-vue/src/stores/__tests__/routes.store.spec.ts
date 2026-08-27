@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { BUILT_IN_SHAPE_TEMPLATE_GROUPS, useRoutesStore, type BuiltInShapeTemplateKey } from "@/stores/routes";
-import { requestJson } from "@/stores/api";
+import { requestJson } from "@/services/http-client";
 import type { GeneratedRoute } from "@/models/route-recommendation.model";
 
-vi.mock("@/stores/api", () => ({
+vi.mock("@/services/http-client", () => ({
   requestJson: vi.fn(),
 }));
 

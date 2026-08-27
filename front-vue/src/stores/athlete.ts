@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
-import { requestJson } from "@/stores/api";
+import { requestJson } from "@/services/http-client";
+import { apiUrl } from "@/services/api-url";
 import type { HeartRateZoneSettings } from "@/models/heart-rate-zone.model";
 import {
   emptyFtpEstimate,
@@ -38,7 +39,7 @@ export const useAthleteStore = defineStore("athlete", {
       if (this.athleteLoaded && !force) {
         return;
       }
-      const data = await requestJson<Record<string, unknown>>("/api/athletes/me");
+      const data = await requestJson<Record<string, unknown>>(apiUrl("getCurrentAthlete"));
       this.athleteDisplayName = `${data.firstname ?? ""} ${data.lastname ?? ""}`.trim();
       this.athleteWeight = parsePositiveNumber(data.weight);
       this.athleteFtp = parsePositiveNumber(data.ftp);
@@ -48,12 +49,12 @@ export const useAthleteStore = defineStore("athlete", {
       if (this.heartRateZoneSettingsLoaded && !force) {
         return;
       }
-      const settings = await requestJson<HeartRateZoneSettings>("/api/athletes/me/heart-rate-zones");
+      const settings = await requestJson<HeartRateZoneSettings>(apiUrl("getHeartRateZones"));
       this.heartRateZoneSettings = settings;
       this.heartRateZoneSettingsLoaded = true;
     },
     async saveHeartRateZoneSettings(settings: HeartRateZoneSettings) {
-      const updatedSettings = await requestJson<HeartRateZoneSettings>("/api/athletes/me/heart-rate-zones", {
+      const updatedSettings = await requestJson<HeartRateZoneSettings>(apiUrl("updateHeartRateZones"), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -68,7 +69,7 @@ export const useAthleteStore = defineStore("athlete", {
       if (this.performanceSettingsLoaded && !force) {
         return;
       }
-      const settings = await requestJson<AthletePerformanceSettings>("/api/athletes/me/performance-settings");
+      const settings = await requestJson<AthletePerformanceSettings>(apiUrl("getPerformanceSettings"));
       this.performanceSettings = normalizeAthletePerformanceSettings(settings);
       this.performanceSettingsLoaded = true;
     },
@@ -76,16 +77,14 @@ export const useAthleteStore = defineStore("athlete", {
       if (this.ftpEstimateLoaded && !force) {
         return;
       }
-      const params = new URLSearchParams({
-        activityType: FTP_ESTIMATE_ACTIVITY_TYPE,
-        days: String(FTP_ESTIMATE_WINDOW_DAYS),
-      });
-      const estimate = await requestJson<FtpEstimate>(`/api/athletes/me/ftp-estimate?${params.toString()}`);
+      const estimate = await requestJson<FtpEstimate>(apiUrl("getFtpEstimate", {
+        query: { activityType: FTP_ESTIMATE_ACTIVITY_TYPE, days: FTP_ESTIMATE_WINDOW_DAYS },
+      }));
       this.ftpEstimate = normalizeFtpEstimate(estimate);
       this.ftpEstimateLoaded = true;
     },
     async savePerformanceSettings(settings: AthletePerformanceSettings) {
-      const updatedSettings = await requestJson<AthletePerformanceSettings>("/api/athletes/me/performance-settings", {
+      const updatedSettings = await requestJson<AthletePerformanceSettings>(apiUrl("updatePerformanceSettings"), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

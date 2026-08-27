@@ -17,6 +17,8 @@ This directory is organized by intent: start here, then jump to the page matchin
 - [Backend Capability Matrix](./architecture/backend-capability-matrix.md) - what Go and Kotlin currently support.
 - [Runtime Configuration](./architecture/runtime-config.md) - environment variables exposed by diagnostics.
 - [Cache Layout](./architecture/cache-layout.md) - on-disk Strava cache structure.
+- [Module Boundaries](./architecture/module-boundaries.md) - enforced dependency rules and decomposition plan.
+- [Architecture Decisions](./architecture/decisions/) - accepted architectural decisions and their consequences.
 
 ## API Contract
 

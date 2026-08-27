@@ -16,7 +16,8 @@ import {
 } from "@/models/athlete-performance-settings.model";
 import { resolveHeartRateZoneSettings } from "@/utils/heart-rate-zones";
 import { getMetricTooltip } from "@/utils/metric-tooltips";
-import { requestJson } from "@/stores/api";
+import { requestJson } from "@/services/http-client";
+import { apiUrl } from "@/services/api-url";
 
 interface LocalDataBackup {
   version: number;
@@ -295,7 +296,7 @@ async function exportLocalData() {
   isBackupBusy.value = true;
   backupError.value = "";
   try {
-    const backup = await requestJson<LocalDataBackup>("/api/local-data/backup");
+    const backup = await requestJson<LocalDataBackup>(apiUrl("getLocalDataBackup"));
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -329,7 +330,7 @@ async function restoreLocalData(event: Event) {
   backupError.value = "";
   try {
     const backup = JSON.parse(await file.text()) as LocalDataBackup;
-    const result = await requestJson<{ restored: string[] }>("/api/local-data/restore", {
+    const result = await requestJson<{ restored: string[] }>(apiUrl("restoreLocalData"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(backup),

@@ -9,6 +9,7 @@ import me.nicolas.stravastats.adapters.srtm.SRTMProvider
 import me.nicolas.stravastats.adapters.strava.StravaApi
 import me.nicolas.stravastats.domain.RuntimeConfig
 import me.nicolas.stravastats.domain.interfaces.ILocalStorageProvider
+import me.nicolas.stravastats.domain.interfaces.IFITActivityDecoderFactory
 import me.nicolas.stravastats.domain.interfaces.ISourcePreviewRepositoryFactory
 import me.nicolas.stravastats.domain.interfaces.IYearActivityStorageProvider
 import me.nicolas.stravastats.domain.services.activityproviders.CompositeActivityProvider
@@ -32,6 +33,9 @@ class ActivityProviderConfig {
     private val logger = LoggerFactory.getLogger(ActivityProviderConfig::class.java)
 
     private var createdProvider: AutoCloseable? = null
+
+    @Bean
+    fun fitActivityDecoderFactory(): IFITActivityDecoderFactory = IFITActivityDecoderFactory(::FITRepository)
 
     @Bean
     fun sourcePreviewRepositoryFactory(): ISourcePreviewRepositoryFactory {

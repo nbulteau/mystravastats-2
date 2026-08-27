@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
-import { requestJson } from "@/stores/api";
+import { requestJson } from "@/services/http-client";
+import { apiUrl } from "@/services/api-url";
 import type { DataQualityCorrectionPreview, DataQualityReport } from "@/models/data-quality.model";
 import type { HealthDetailsPayload, SourceSyncResult } from "@/models/health.model";
 import type {
@@ -53,14 +54,14 @@ export const useDiagnosticsStore = defineStore("diagnostics", {
       this.isLoading = true;
       this.error = null;
       try {
-        this.health = await requestJson<HealthDetailsPayload>("/api/health/details", {
+        this.health = await requestJson<HealthDetailsPayload>(apiUrl("getHealthDetails"), {
           method: "GET",
           headers: {
             Accept: "application/json",
           },
         });
         try {
-          const report = await requestJson<DataQualityReport>("/api/data-quality/issues", {
+          const report = await requestJson<DataQualityReport>(apiUrl("getDataQualityIssues"), {
             method: "GET",
             headers: {
               Accept: "application/json",
@@ -81,7 +82,7 @@ export const useDiagnosticsStore = defineStore("diagnostics", {
     async startOsrm(): Promise<OsrmControlResult> {
       this.isStartingOsrm = true;
       try {
-        const result = await requestJson<OsrmControlResult>("/api/routing/osrm/start", {
+        const result = await requestJson<OsrmControlResult>(apiUrl("startOsrm"), {
           method: "POST",
           headers: {
             Accept: "application/json",
@@ -97,7 +98,7 @@ export const useDiagnosticsStore = defineStore("diagnostics", {
     async synchronizeSources(): Promise<SourceSyncResult> {
       this.isSynchronizingSources = true;
       try {
-        const result = await requestJson<SourceSyncResult>("/api/source-sync/synchronize", {
+        const result = await requestJson<SourceSyncResult>(apiUrl("synchronizeSources"), {
           method: "POST",
           headers: {
             Accept: "application/json",
@@ -114,7 +115,7 @@ export const useDiagnosticsStore = defineStore("diagnostics", {
       this.isPreviewingSourceMode = true;
       this.sourceModePreviewError = null;
       try {
-        const preview = await requestJson<SourceModePreview>("/api/source-modes/preview", {
+        const preview = await requestJson<SourceModePreview>(apiUrl("previewSourceMode"), {
           method: "POST",
           headers: {
             Accept: "application/json",
@@ -137,7 +138,7 @@ export const useDiagnosticsStore = defineStore("diagnostics", {
       this.isApplyingSourceMode = true;
       this.sourceModePreviewError = null;
       try {
-        const result = await requestJson<SourceModeApplyResult>("/api/source-modes/apply", {
+        const result = await requestJson<SourceModeApplyResult>(apiUrl("applySourceMode"), {
           method: "POST",
           headers: {
             Accept: "application/json",
@@ -161,7 +162,7 @@ export const useDiagnosticsStore = defineStore("diagnostics", {
       }
     },
     async startStravaOAuthEnrollment(request: StravaOAuthStartRequest): Promise<StravaOAuthStartResult> {
-      return requestJson<StravaOAuthStartResult>("/api/source-modes/strava/oauth/start", {
+      return requestJson<StravaOAuthStartResult>(apiUrl("startStravaOAuth"), {
         method: "POST",
         headers: {
           Accept: "application/json",
@@ -171,7 +172,9 @@ export const useDiagnosticsStore = defineStore("diagnostics", {
       });
     },
     async excludeActivityFromStats(activityId: number, reason?: string): Promise<DataQualityReport> {
-      const report = await requestJson<DataQualityReport>(`/api/data-quality/exclusions/${activityId}`, {
+      const report = await requestJson<DataQualityReport>(apiUrl("excludeActivityFromStatistics", {
+        path: { activityId },
+      }), {
         method: "PUT",
         headers: {
           Accept: "application/json",
@@ -183,7 +186,9 @@ export const useDiagnosticsStore = defineStore("diagnostics", {
       return this.dataQualityReport;
     },
     async includeActivityInStats(activityId: number): Promise<DataQualityReport> {
-      const report = await requestJson<DataQualityReport>(`/api/data-quality/exclusions/${activityId}`, {
+      const report = await requestJson<DataQualityReport>(apiUrl("includeActivityInStatistics", {
+        path: { activityId },
+      }), {
         method: "DELETE",
         headers: {
           Accept: "application/json",
@@ -193,7 +198,7 @@ export const useDiagnosticsStore = defineStore("diagnostics", {
       return this.dataQualityReport;
     },
     async previewSafeCorrections(): Promise<DataQualityCorrectionPreview> {
-      const preview = await requestJson<DataQualityCorrectionPreview>("/api/data-quality/corrections/safe/preview", {
+      const preview = await requestJson<DataQualityCorrectionPreview>(apiUrl("previewSafeDataQualityCorrections"), {
         method: "GET",
         headers: {
           Accept: "application/json",
@@ -202,7 +207,9 @@ export const useDiagnosticsStore = defineStore("diagnostics", {
       return normalizeDataQualityCorrectionPreview(preview);
     },
     async previewCorrection(issueId: string): Promise<DataQualityCorrectionPreview> {
-      const preview = await requestJson<DataQualityCorrectionPreview>(`/api/data-quality/corrections/preview/${encodeURIComponent(issueId)}`, {
+      const preview = await requestJson<DataQualityCorrectionPreview>(apiUrl("previewDataQualityCorrection", {
+        path: { issueId },
+      }), {
         method: "GET",
         headers: {
           Accept: "application/json",
@@ -211,7 +218,7 @@ export const useDiagnosticsStore = defineStore("diagnostics", {
       return normalizeDataQualityCorrectionPreview(preview);
     },
     async applySafeCorrections(): Promise<DataQualityReport> {
-      const report = await requestJson<DataQualityReport>("/api/data-quality/corrections/safe", {
+      const report = await requestJson<DataQualityReport>(apiUrl("applySafeDataQualityCorrections"), {
         method: "POST",
         headers: {
           Accept: "application/json",
@@ -221,7 +228,9 @@ export const useDiagnosticsStore = defineStore("diagnostics", {
       return this.dataQualityReport;
     },
     async applyCorrection(issueId: string): Promise<DataQualityReport> {
-      const report = await requestJson<DataQualityReport>(`/api/data-quality/corrections/${encodeURIComponent(issueId)}`, {
+      const report = await requestJson<DataQualityReport>(apiUrl("applyDataQualityCorrection", {
+        path: { issueId },
+      }), {
         method: "POST",
         headers: {
           Accept: "application/json",
@@ -231,7 +240,9 @@ export const useDiagnosticsStore = defineStore("diagnostics", {
       return this.dataQualityReport;
     },
     async revertCorrection(correctionId: string): Promise<DataQualityReport> {
-      const report = await requestJson<DataQualityReport>(`/api/data-quality/corrections/${encodeURIComponent(correctionId)}`, {
+      const report = await requestJson<DataQualityReport>(apiUrl("revertDataQualityCorrection", {
+        path: { correctionId },
+      }), {
         method: "DELETE",
         headers: {
           Accept: "application/json",

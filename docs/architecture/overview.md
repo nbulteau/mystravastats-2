@@ -80,3 +80,9 @@ Today, the repository contains two backend implementations:
 That is why both appear in the repository and in the build flows.
 
 For current support details, see [Backend Capability Matrix](./backend-capability-matrix.md).
+
+## Architecture Rules
+
+- [ADR 0001](./decisions/0001-dual-backend-contract.md) defines OpenAPI as the authority for the two peer backend implementations.
+- [ADR 0002](./decisions/0002-frontend-api-boundary.md) centralizes frontend URL construction and HTTP transport.
+- [Module Boundaries and Decomposition Plan](./module-boundaries.md) lists the enforced dependency rules and the order used to break down oversized modules.

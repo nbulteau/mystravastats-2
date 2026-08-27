@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { useContextStore } from "@/stores/context";
 import { useStatisticsStore } from "@/stores/statistics";
-import { buildFilteredApiUrl, requestJson } from "@/stores/api";
+import { buildFilteredApiUrl, requestJson } from "@/services/http-client";
 import type { Statistics } from "@/models/statistics.model";
 
-vi.mock("@/stores/api", () => ({
+vi.mock("@/services/http-client", () => ({
   buildFilteredApiUrl: vi.fn((path: string, activityType: string, year: string) => {
     const params = new URLSearchParams({ activityType });
     if (year !== "All years") {
@@ -62,10 +62,10 @@ describe("statistics store", () => {
     await currentFetch;
 
     // THEN
-    expect(buildFilteredApiUrl).toHaveBeenNthCalledWith(1, "statistics", "Hike_Walk", "2026");
+    expect(buildFilteredApiUrl).toHaveBeenNthCalledWith(1, "getStatistics", "Hike_Walk", "2026");
     expect(buildFilteredApiUrl).toHaveBeenNthCalledWith(
       2,
-      "statistics",
+      "getStatistics",
       "Commute_GravelRide_MountainBikeRide_Ride_VirtualRide",
       "2026",
     );

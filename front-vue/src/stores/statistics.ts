@@ -5,7 +5,7 @@ import {
   type HeartRateZoneAnalysis,
   emptyHeartRateZoneAnalysis,
 } from "@/models/heart-rate-zone.model";
-import { buildFilteredApiUrl, requestJson } from "@/stores/api";
+import { buildFilteredApiUrl, requestJson } from "@/services/http-client";
 import { useContextStore } from "@/stores/context";
 import { useAthleteStore } from "@/stores/athlete";
 
@@ -55,7 +55,7 @@ export const useStatisticsStore = defineStore("statistics", {
     },
     async fetchStatistics() {
       const contextStore = useContextStore();
-      const url = buildFilteredApiUrl("statistics", contextStore.currentActivityType, contextStore.currentYear);
+      const url = buildFilteredApiUrl("getStatistics", contextStore.currentActivityType, contextStore.currentYear);
       const key = this.currentFiltersKey();
       this.isStatisticsLoading = true;
       this.statisticsError = null;
@@ -83,7 +83,7 @@ export const useStatisticsStore = defineStore("statistics", {
     async fetchPersonalRecordsTimeline() {
       const contextStore = useContextStore();
       const url = buildFilteredApiUrl(
-        "statistics/personal-records-timeline",
+        "getPersonalRecordsTimeline",
         contextStore.currentActivityType,
         contextStore.currentYear,
       );
@@ -114,7 +114,7 @@ export const useStatisticsStore = defineStore("statistics", {
     async fetchHeartRateZoneAnalysis() {
       const contextStore = useContextStore();
       const url = buildFilteredApiUrl(
-        "statistics/heart-rate-zones",
+        "getHeartRateZoneAnalysis",
         contextStore.currentActivityType,
         contextStore.currentYear,
       );

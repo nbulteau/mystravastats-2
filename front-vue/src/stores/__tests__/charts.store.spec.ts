@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { useContextStore } from "@/stores/context";
 import { useChartsStore } from "@/stores/charts";
-import { buildFilteredApiUrl, requestJson } from "@/stores/api";
+import { buildFilteredApiUrl, requestJson } from "@/services/http-client";
 
-vi.mock("@/stores/api", () => ({
+vi.mock("@/services/http-client", () => ({
   buildFilteredApiUrl: vi.fn((path: string, activityType: string, year: string) => {
     const params = new URLSearchParams({ activityType });
     if (year !== "All years") {
@@ -107,7 +107,7 @@ describe("charts store", () => {
     await chartsStore.ensureLoaded(true);
 
     // THEN
-    expect(buildFilteredApiUrl).toHaveBeenCalledWith("dashboard", "Ride", "All years");
+    expect(buildFilteredApiUrl).toHaveBeenCalledWith("getDashboard", "Ride", "All years");
     expect(requestJson).toHaveBeenCalledTimes(3);
     expect(chartsStore.totalDistanceByYear["2025"]).toBe(4521);
     expect(chartsStore.distanceByWeeks).toEqual([]);

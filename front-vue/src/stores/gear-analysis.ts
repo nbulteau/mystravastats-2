@@ -5,7 +5,8 @@ import {
   type GearMaintenanceRecord,
   type GearMaintenanceRecordRequest,
 } from "@/models/gear-analysis.model";
-import { buildFilteredApiUrl, requestJson, requestVoid } from "@/stores/api";
+import { buildFilteredApiUrl, requestJson, requestVoid } from "@/services/http-client";
+import { apiUrl } from "@/services/api-url";
 import { useContextStore } from "@/stores/context";
 
 export const useGearAnalysisStore = defineStore("gearAnalysis", {
@@ -24,7 +25,7 @@ export const useGearAnalysisStore = defineStore("gearAnalysis", {
     },
     async fetchGearAnalysis() {
       const contextStore = useContextStore();
-      const url = buildFilteredApiUrl("gear-analysis", contextStore.currentActivityType, contextStore.currentYear);
+      const url = buildFilteredApiUrl("getGearAnalysis", contextStore.currentActivityType, contextStore.currentYear);
       const key = this.currentFiltersKey();
       this.isLoading = true;
       this.error = null;
@@ -56,7 +57,7 @@ export const useGearAnalysisStore = defineStore("gearAnalysis", {
       await this.fetchGearAnalysis();
     },
     async saveMaintenanceRecord(request: GearMaintenanceRecordRequest): Promise<GearMaintenanceRecord> {
-      const record = await requestJson<GearMaintenanceRecord>("/api/gear-analysis/maintenance", {
+      const record = await requestJson<GearMaintenanceRecord>(apiUrl("createGearMaintenance"), {
         method: "POST",
         headers: {
           Accept: "application/json",
@@ -68,7 +69,7 @@ export const useGearAnalysisStore = defineStore("gearAnalysis", {
       return record;
     },
     async deleteMaintenanceRecord(recordId: string): Promise<void> {
-      await requestVoid(`/api/gear-analysis/maintenance/${encodeURIComponent(recordId)}`, {
+      await requestVoid(apiUrl("deleteGearMaintenance", { path: { recordId } }), {
         method: "DELETE",
         headers: {
           Accept: "application/json",

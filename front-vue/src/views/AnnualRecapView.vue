@@ -7,7 +7,7 @@ import { useDashboardStore } from "@/stores/dashboard";
 import { useMapStore } from "@/stores/map";
 import type { DashboardData } from "@/models/dashboard-data.model";
 import type { Activity } from "@/models/activity.model";
-import { buildFilteredApiUrl, requestJson } from "@/stores/api";
+import { buildFilteredApiUrl, requestJson } from "@/services/http-client";
 import {
   ALL_ACTIVITY_TYPE_FILTER,
   CYCLING_ACTIVITY_TYPES,
@@ -259,7 +259,7 @@ async function fetchCommuteActivities() {
   commuteLoading.value = true;
   commuteError.value = "";
   try {
-    const activities = await requestJson<Activity[]>(buildFilteredApiUrl("activities", "Commute", "All years"));
+    const activities = await requestJson<Activity[]>(buildFilteredApiUrl("listActivities", "Commute", "All years"));
     if (requestId === commuteRequestId) commuteActivities.value = activities;
   } catch (error) {
     if (requestId === commuteRequestId) {
@@ -276,7 +276,7 @@ async function fetchAllYearsData() {
   allYearsError.value = "";
   try {
     const data = await requestJson<DashboardData>(buildFilteredApiUrl(
-      "dashboard",
+      "getDashboard",
       contextStore.currentActivityType,
       "All years",
     ));

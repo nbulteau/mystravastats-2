@@ -112,6 +112,7 @@ The default output directory is `docs/assets/screenshots`.
 ## Validation Shortcuts
 
 - Contracts: `node scripts/generate-api-contracts.mjs --check`
+- Architecture boundaries: `node scripts/check-architecture.mjs`
 - Frontend: `cd front-vue && npm run lint:check && npm run type-check && npm run test:coverage && npm run build:check`
 - Browser journeys: `cd front-vue && npm run test:e2e`
 - Go backend: `./scripts/check-go-coverage.sh`
