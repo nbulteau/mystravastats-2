@@ -160,6 +160,9 @@ test("dashboard and activity detail render from the public API", async ({ page }
     }
   });
   await page.goto("/dashboard?year=2026&activityType=Ride");
+  await expect(page.getByRole("button", { name: /Activity/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Progress/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Tools/ })).toBeVisible();
   await expect(page.getByText("Create your annual recap")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Eddington number" })).toBeVisible();
 
@@ -168,6 +171,20 @@ test("dashboard and activity detail render from the public API", async ({ page }
   await expect(page.getByRole("heading", { name: "Activity Summary" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Data & Source" })).toBeVisible();
   expect(highchartsWarnings).toEqual([]);
+});
+
+test("map controls remain usable on a mobile viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/map?year=2026&activityType=Ride");
+
+  await expect(page.getByRole("button", { name: "Tracks", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Heatmap", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Frequency", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Show GravelRide tracks" })).toBeVisible();
+
+  const actionsBox = await page.locator(".map-toolbar__actions").boundingBox();
+  expect(actionsBox).not.toBeNull();
+  expect((actionsBox?.x ?? 0) + (actionsBox?.width ?? 0)).toBeLessThanOrEqual(390);
 });
 
 test("source onboarding previews, saves and synchronizes a FIT directory", async ({ page }) => {
@@ -250,6 +267,10 @@ async function fulfillApiRoute(route: Route) {
   if (pathname === "/api/dashboard/cumulative-data-per-year") return json({ distance: { "2026": { "2026-08-27": 42.5 } }, elevation: { "2026": { "2026-08-27": 520 } } });
   if (pathname === "/api/dashboard/eddington-number") return json({ number: 1, nextTarget: 2, qualifyingCount: 1, progress: 0.5, distribution: [] });
   if (pathname === "/api/dashboard/activity-heatmap") return json({});
+  if (pathname === "/api/maps/gpx") return json([
+    { activityId: 41, activityName: "Gravel loop", activityDate: "2026-08-20", activityType: "GravelRide", distanceKm: 42, elevationGainM: 420, coordinates: [[48.10, -1.70], [48.11, -1.68], [48.12, -1.66]] },
+    { activityId: 42, activityName: "Virtual ride", activityDate: "2026-08-21", activityType: "VirtualRide", distanceKm: 30, elevationGainM: 120, coordinates: [[48.09, -1.69], [48.10, -1.67], [48.11, -1.65]] },
+  ]);
   if (pathname === "/api/statistics/heart-rate-zones") return json({ distributions: [], activities: [], periods: [] });
   if (pathname === "/api/activities/42") return json(detailedActivity);
   if (pathname === "/api/data-quality/issues") return json(dataQualityReport);

@@ -176,14 +176,16 @@ watch(
             type="button"
             class="btn"
             :class="renderMode === 'TRACES' ? 'btn-primary' : 'btn-outline-primary'"
+            :aria-pressed="renderMode === 'TRACES'"
             @click="setRenderMode('TRACES')"
           >
-            Traces
+            Tracks
           </button>
           <button
             type="button"
             class="btn"
             :class="renderMode === 'HEATMAP' ? 'btn-primary' : 'btn-outline-primary'"
+            :aria-pressed="renderMode === 'HEATMAP'"
             @click="setRenderMode('HEATMAP')"
           >
             Heatmap
@@ -192,6 +194,7 @@ watch(
             type="button"
             class="btn"
             :class="renderMode === 'PASSAGES' ? 'btn-primary' : 'btn-outline-primary'"
+            :aria-pressed="renderMode === 'PASSAGES'"
             @click="setRenderMode('PASSAGES')"
           >
             Frequency
@@ -224,6 +227,8 @@ watch(
         type="button"
         class="type-pill"
         :class="{ 'type-pill--active': activityTypeFilter === 'ALL' }"
+        :aria-pressed="activityTypeFilter === 'ALL'"
+        aria-label="Show all activity types"
         @click="selectActivityTypeFilter('ALL')"
       >
         <span class="type-pill__dot" />
@@ -236,6 +241,8 @@ watch(
         type="button"
         class="type-pill"
         :class="{ 'type-pill--active': activityTypeFilter === summary.type }"
+        :aria-pressed="activityTypeFilter === summary.type"
+        :aria-label="`Show ${summary.type} tracks`"
         @click="selectActivityTypeFilter(summary.type)"
       >
         <span
@@ -348,7 +355,22 @@ watch(
 
   .map-toolbar__actions {
     width: 100%;
-    justify-content: flex-end;
+    flex-wrap: wrap;
+    justify-content: stretch;
+  }
+
+  .map-mode-control {
+    display: flex;
+    width: 100%;
+  }
+
+  .map-mode-control .btn {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .map-toolbar__actions > .btn {
+    flex: 1 1 0;
   }
 }
 </style>

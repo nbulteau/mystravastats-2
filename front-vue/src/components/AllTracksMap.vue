@@ -4,7 +4,11 @@ import "leaflet/dist/leaflet.css";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { MapPassageSegment, MapPassages, MapRenderMode, MapTrack } from "@/models/map.model";
 import type { MapViewport } from "@/stores/map";
-import { getActivityTypeColor } from "@/utils/mapTrackColors";
+import {
+  getActivityTypeColor,
+  MAP_TRACK_HALO_COLOR,
+  MAP_TRACK_HALO_WEIGHT_DELTA,
+} from "@/utils/mapTrackColors";
 import { useRouter } from "vue-router";
 
 const props = defineProps<{
@@ -558,6 +562,15 @@ function renderTraceLayers() {
     if (latLngs.length < 2) {
       return;
     }
+
+    L.polyline(latLngs, {
+      color: MAP_TRACK_HALO_COLOR,
+      weight: traceStyle.weight + MAP_TRACK_HALO_WEIGHT_DELTA,
+      opacity: Math.min(0.82, traceStyle.opacity + 0.16),
+      interactive: false,
+      renderer: canvasRenderer,
+      smoothFactor: traceStyle.smoothFactor,
+    }).addTo(tracksLayerGroup.value!);
 
     const polyline = L.polyline(latLngs, {
       color: getActivityTypeColor(track.activityType),
