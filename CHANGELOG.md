@@ -19,6 +19,7 @@ All notable changes to My Activity Stats are documented in this file.
 - Developer checks and documentation now describe the same commands run by CI.
 - Frontend API calls now resolve typed operation identifiers through a single URL and HTTP boundary.
 - Kotlin source synchronization now depends on an injected FIT decoder port instead of a concrete adapter.
+- The documentation screenshot gallery now reflects the current UI and covers the annual recap, equipment, GPS Art, settings, and diagnostics screens.
 
 ## 1.3.0 - 2026-04-17
 

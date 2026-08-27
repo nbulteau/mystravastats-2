@@ -27,14 +27,19 @@ const ACTIVITY_GROUPS = {
 
 const SCREEN_SPECS = [
   { key: "dashboard", route: "/dashboard", file: "screen-dashboard.png", applyFilters: true },
+  { key: "annual-recap", route: "/annual-recap", file: "screen-annual-recap.png", applyFilters: true },
+  { key: "activities", route: "/activities", file: "screen-activities.png", applyFilters: true },
+  { key: "detailed", route: "/activities/__DETAIL_ID__", file: "screen-detailed-activity.png", applyFilters: false },
+  { key: "map", route: "/map", file: "screen-map.png", applyFilters: true },
+  { key: "statistics", route: "/statistics", file: "screen-statistics.png", applyFilters: true },
   { key: "charts", route: "/charts", file: "screen-charts.png", applyFilters: true },
   { key: "heatmap", route: "/heatmap", file: "screen-heatmap.png", applyFilters: true },
-  { key: "statistics", route: "/statistics", file: "screen-statistics.png", applyFilters: true },
-  { key: "badges", route: "/badges", file: "screen-badges.png", applyFilters: true },
-  { key: "activities", route: "/activities", file: "screen-activities.png", applyFilters: true },
-  { key: "map", route: "/map", file: "screen-map.png", applyFilters: true },
   { key: "segments", route: "/segments", file: "screen-segments.png", applyFilters: true },
-  { key: "detailed", route: "/activities/__DETAIL_ID__", file: "screen-detailed-activity.png", applyFilters: false },
+  { key: "badges", route: "/badges", file: "screen-badges.png", applyFilters: true },
+  { key: "gear", route: "/gear", file: "screen-gear.png", applyFilters: true },
+  { key: "routes", route: "/routes", file: "screen-routes.png", applyFilters: false },
+  { key: "settings", route: "/settings", file: "screen-settings.png", applyFilters: false },
+  { key: "diagnostics", route: "/diagnostics", file: "screen-diagnostics.png", applyFilters: false },
 ];
 
 function printHelp() {
@@ -57,7 +62,8 @@ Options:
   --wait-ms <n>               Wait before each screenshot (default: 1800)
   --viewport <WxH>            Viewport size (default: 1720x1080)
   --full-page                 Capture full page screenshots
-  --screens <list>            Comma list: dashboard,charts,heatmap,statistics,badges,activities,map,segments,detailed
+  --screens <list>            Comma list: dashboard,annual-recap,activities,detailed,map,statistics,
+                              charts,heatmap,segments,badges,gear,routes,settings,diagnostics
   --help                      Show this help
 `);
 }
@@ -302,17 +308,36 @@ async function captureScreenshots(options) {
       console.log(`Capturing ${screen.key}: ${targetUrl} -> ${outputPath}`);
 
       await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
-      await waitForHeader(page);
+      await page.waitForSelector("main", { timeout: 30000 });
 
       if (screen.applyFilters) {
-        await applyYearFilter(page, options.year);
+        await waitForHeader(page);
         await applyActivityFilter(page, requestedActivities);
+        await applyYearFilter(page, options.year);
+      }
+
+      if (screen.key === "map") {
+        const mountainBikeFilter = page.getByRole("button", { name: /MountainBikeRide/ });
+        await mountainBikeFilter.waitFor({ state: "visible", timeout: 30000 });
+        await mountainBikeFilter.click();
+        await page.waitForTimeout(600);
+        const recenterButton = page.getByRole("button", { name: "Recenter", exact: true });
+        await recenterButton.waitFor({ state: "visible", timeout: 30000 });
+        await recenterButton.click();
       }
 
       await page.waitForTimeout(options.waitMs);
+      await page.mouse.move(0, 0);
+      await page.evaluate(() => {
+        document.querySelector("#__vue-devtools-container__")?.remove();
+        document.querySelector("#vue-inspector-container")?.remove();
+        document.querySelectorAll(".tooltip").forEach((element) => element.remove());
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      });
       await page.screenshot({
         path: outputPath,
         fullPage: options.fullPage,
+        animations: "disabled",
       });
     }
   } finally {

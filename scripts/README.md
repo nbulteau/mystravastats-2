@@ -154,7 +154,8 @@ Options:
 --wait-ms <n>               Wait before each screenshot (default: 1800)
 --viewport <WxH>            Viewport size (default: 1720x1080)
 --full-page                 Capture full page screenshots
---screens <list>            Comma list: dashboard,charts,heatmap,statistics,badges,activities,map,segments,detailed
+--screens <list>            Comma list: dashboard,annual-recap,activities,detailed,map,statistics,
+                            charts,heatmap,segments,badges,gear,routes,settings,diagnostics
 --help                      Show this help
 ```
 
