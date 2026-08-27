@@ -4,11 +4,18 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.method.HandlerTypePredicate
 import org.springframework.web.servlet.config.annotation.PathMatchConfigurer
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 
 @Configuration
-class WebConfig : WebMvcConfigurer {
+class WebConfig(
+    private val mutationOriginInterceptor: MutationOriginInterceptor,
+) : WebMvcConfigurer {
+
+    override fun addInterceptors(registry: InterceptorRegistry) {
+        registry.addInterceptor(mutationOriginInterceptor).addPathPatterns("/api/**")
+    }
 
     override fun configurePathMatch(configurer: PathMatchConfigurer) {
         // Keep controller mappings clean while exposing API under /api.

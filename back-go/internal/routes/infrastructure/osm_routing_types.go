@@ -157,6 +157,7 @@ type OSMRoutingAdapter struct {
 	debug                 bool
 	baseURL               string
 	timeout               time.Duration
+	osrmClient            *osrmClient
 	client                *http.Client
 	profileOverride       string
 	extractProfileEnv     string

@@ -13,8 +13,8 @@ services:
       STRAVA_CACHE_PATH: /app/strava-cache
       OSM_ROUTING_BASE_URL: ${OSM_ROUTING_BASE_URL:-http://osrm:5000}
     ports:
-      - "8080:8080"
-      - "8090:8090"
+      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:8090:8090"
     volumes:
       - ${STRAVA_CACHE_PATH:-./strava-cache}:/app/strava-cache
     healthcheck:
@@ -33,7 +33,7 @@ services:
     environment:
       API_BACKEND_URL: http://back:8080
     ports:
-      - "80:80"
+      - "127.0.0.1:80:80"
     depends_on:
       back:
         condition: service_healthy

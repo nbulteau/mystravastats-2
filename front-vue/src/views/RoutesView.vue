@@ -11,6 +11,7 @@ import type { GeneratedRoute, RouteGenerationDiagnostic, RouteType } from "@/mod
 import { formatTime } from "@/utils/formatters";
 import { formatDistance, formatElevation, formatSignedDistanceDelta, formatSignedPercent, scoreMeterStyle, distanceDeltaClass, polylineDistanceKm, artFitScore, artFitLabel, visualMatchSummary, visualMatchMessage, visualMatchClass, artFitClass, routeQualityScore, scoreBandClass, routeSourceLabel, routeProductBadges, routeProductSummary, highlightedRouteReasons, routeTitle, presentDiagnostic, nonBlockingGenerationDiagnosticCodes } from "@/services/route-presentation";
 import { useRouteGeolocation } from "@/composables/useRouteGeolocation";
+import { drawRouteSketchPng, safeSketchFilename } from "@/services/route-sketch-export";
 
 const contextStore = useContextStore();
 const routesStore = useRoutesStore();
@@ -775,59 +776,10 @@ function exportSketchPng() {
     return;
   }
   const canvas = document.createElement("canvas");
-  canvas.width = 900;
-  canvas.height = 600;
-  const context = canvas.getContext("2d");
-  if (!context) {
+  if (!drawRouteSketchPng(canvas, points, saveShapeName.value)) {
     showToast("Unable to export sketch PNG.", ToastTypeEnum.ERROR, 4200);
     return;
   }
-
-  const padding = 52;
-  const latitudes = points.map((point) => point[0]);
-  const longitudes = points.map((point) => point[1]);
-  const minLat = Math.min(...latitudes);
-  const maxLat = Math.max(...latitudes);
-  const minLng = Math.min(...longitudes);
-  const maxLng = Math.max(...longitudes);
-  const latRange = Math.max(0.00001, maxLat - minLat);
-  const lngRange = Math.max(0.00001, maxLng - minLng);
-  const drawableWidth = canvas.width - (padding * 2);
-  const drawableHeight = canvas.height - (padding * 2);
-  const scale = Math.min(drawableWidth / lngRange, drawableHeight / latRange);
-  const usedWidth = lngRange * scale;
-  const usedHeight = latRange * scale;
-  const offsetX = (canvas.width - usedWidth) / 2;
-  const offsetY = (canvas.height - usedHeight) / 2;
-  const project = (point: number[]) => ({
-    x: offsetX + ((point[1] - minLng) * scale),
-    y: offsetY + ((maxLat - point[0]) * scale),
-  });
-
-  context.fillStyle = "#ffffff";
-  context.fillRect(0, 0, canvas.width, canvas.height);
-  context.strokeStyle = "#dfe6f1";
-  context.lineWidth = 2;
-  context.strokeRect(16, 16, canvas.width - 32, canvas.height - 32);
-  context.setLineDash([12, 10]);
-  context.lineCap = "round";
-  context.lineJoin = "round";
-  context.strokeStyle = "#6f51ff";
-  context.lineWidth = 6;
-  context.beginPath();
-  points.forEach((point, index) => {
-    const projected = project(point);
-    if (index === 0) {
-      context.moveTo(projected.x, projected.y);
-      return;
-    }
-    context.lineTo(projected.x, projected.y);
-  });
-  context.stroke();
-  context.setLineDash([]);
-  context.fillStyle = "#242933";
-  context.font = "700 22px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-  context.fillText(saveShapeName.value.trim() || "GPS Art sketch", 30, canvas.height - 28);
 
   canvas.toBlob((blob) => {
     if (!blob) {
@@ -835,8 +787,7 @@ function exportSketchPng() {
       return;
     }
     const objectUrl = URL.createObjectURL(blob);
-    const safeName = (saveShapeName.value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, ""))
-      || "strava-art-sketch";
+    const safeName = safeSketchFilename(saveShapeName.value);
     try {
       const link = document.createElement("a");
       link.href = objectUrl;

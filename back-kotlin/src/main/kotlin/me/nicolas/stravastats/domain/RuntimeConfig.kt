@@ -14,7 +14,12 @@ object RuntimeConfig {
     private const val DEFAULT_OSM_ROUTING_EXTRACT_PROFILE_FILE = "./osm/region.osrm.profile"
     private const val DEFAULT_OSM_ROUTING_HISTORY_HALF_LIFE_DAYS = 75
 
-    private val defaultCorsAllowedOrigins = listOf("http://localhost", "http://localhost:5173")
+    private val defaultCorsAllowedOrigins = listOf(
+        "http://localhost",
+        "http://localhost:5173",
+        "http://127.0.0.1",
+        "http://127.0.0.1:5173",
+    )
     private val defaultCorsAllowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
     private val defaultCorsAllowedHeaders = listOf("Content-Type", "Authorization", "X-Request-Id")
 

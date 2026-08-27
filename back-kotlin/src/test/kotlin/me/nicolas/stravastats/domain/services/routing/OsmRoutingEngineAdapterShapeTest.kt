@@ -1065,170 +1065,84 @@ class OsmRoutingEngineAdapterShapeTest {
 
     @Suppress("UNCHECKED_CAST")
     private fun invokeParseShapePolylineCoordinates(
-        adapter: OsmRoutingEngineAdapter,
+        @Suppress("UNUSED_PARAMETER") adapter: OsmRoutingEngineAdapter,
         raw: String,
-    ): List<Coordinates> {
-        val method = adapter.javaClass.getDeclaredMethod("parseShapePolylineCoordinates", String::class.java)
-        method.isAccessible = true
-        return method.invoke(adapter, raw) as List<Coordinates>
-    }
+    ): List<Coordinates> = parseShapePolylineCoordinates(raw)
 
     @Suppress("UNCHECKED_CAST")
     private fun invokeBuildShapeRoadFirstWaypoints(
-        adapter: OsmRoutingEngineAdapter,
+        @Suppress("UNUSED_PARAMETER") adapter: OsmRoutingEngineAdapter,
         start: Coordinates,
         shape: List<Coordinates>,
-    ): List<Coordinates> {
-        val method = adapter.javaClass.getDeclaredMethod(
-            "buildShapeRoadFirstWaypoints",
-            Coordinates::class.java,
-            List::class.java,
-        )
-        method.isAccessible = true
-        return method.invoke(adapter, start, shape) as List<Coordinates>
-    }
+    ): List<Coordinates> = buildShapeRoadFirstWaypoints(start, shape)
 
     @Suppress("UNCHECKED_CAST")
     private fun invokeBuildShapeLoopWaypoints(
-        adapter: OsmRoutingEngineAdapter,
+        @Suppress("UNUSED_PARAMETER") adapter: OsmRoutingEngineAdapter,
         start: Coordinates,
         shape: List<Coordinates>,
-    ): List<Coordinates> {
-        val method = adapter.javaClass.getDeclaredMethod(
-            "buildShapeLoopWaypoints",
-            Coordinates::class.java,
-            List::class.java,
-        )
-        method.isAccessible = true
-        return method.invoke(adapter, start, shape) as List<Coordinates>
-    }
+    ): List<Coordinates> = buildShapeLoopWaypoints(start, shape)
 
     @Suppress("UNCHECKED_CAST")
     private fun invokeBuildShapeDenseWaypoints(
-        adapter: OsmRoutingEngineAdapter,
+        @Suppress("UNUSED_PARAMETER") adapter: OsmRoutingEngineAdapter,
         start: Coordinates,
         shape: List<Coordinates>,
-    ): List<Coordinates> {
-        val method = adapter.javaClass.getDeclaredMethod(
-            "buildShapeDenseWaypoints",
-            Coordinates::class.java,
-            List::class.java,
-        )
-        method.isAccessible = true
-        return method.invoke(adapter, start, shape) as List<Coordinates>
-    }
+    ): List<Coordinates> = buildShapeDenseWaypoints(start, shape)
 
     @Suppress("UNCHECKED_CAST")
     private fun invokeBuildShapeSimplifiedWaypoints(
-        adapter: OsmRoutingEngineAdapter,
+        @Suppress("UNUSED_PARAMETER") adapter: OsmRoutingEngineAdapter,
         start: Coordinates,
         shape: List<Coordinates>,
-    ): List<Coordinates> {
-        val method = adapter.javaClass.getDeclaredMethod(
-            "buildShapeSimplifiedWaypoints",
-            Coordinates::class.java,
-            List::class.java,
-        )
-        method.isAccessible = true
-        return method.invoke(adapter, start, shape) as List<Coordinates>
-    }
+    ): List<Coordinates> = buildShapeSimplifiedWaypoints(start, shape)
 
     @Suppress("UNCHECKED_CAST")
     private fun invokeBuildShapeStitchedWaypoints(
-        adapter: OsmRoutingEngineAdapter,
+        @Suppress("UNUSED_PARAMETER") adapter: OsmRoutingEngineAdapter,
         start: Coordinates,
         shape: List<Coordinates>,
-    ): List<Coordinates> {
-        val method = adapter.javaClass.getDeclaredMethod(
-            "buildShapeStitchedWaypoints",
-            Coordinates::class.java,
-            List::class.java,
-        )
-        method.isAccessible = true
-        return method.invoke(adapter, start, shape) as List<Coordinates>
-    }
+    ): List<Coordinates> = buildShapeStitchedWaypoints(start, shape)
 
     private fun invokeDestinationFromBearing(
-        adapter: OsmRoutingEngineAdapter,
+        @Suppress("UNUSED_PARAMETER") adapter: OsmRoutingEngineAdapter,
         start: Coordinates,
         distanceKm: Double,
         bearingDegrees: Double,
-    ): Coordinates {
-        val method = adapter.javaClass.getDeclaredMethod(
-            "destinationFromBearing",
-            Coordinates::class.java,
-            java.lang.Double.TYPE,
-            java.lang.Double.TYPE,
-        )
-        method.isAccessible = true
-        return method.invoke(adapter, start, distanceKm, bearingDegrees) as Coordinates
-    }
+    ): Coordinates = destinationFromBearing(start, distanceKm, bearingDegrees)
 
     @Suppress("UNCHECKED_CAST")
     private fun invokeProjectShapePolylineToStart(
-        adapter: OsmRoutingEngineAdapter,
+        @Suppress("UNUSED_PARAMETER") adapter: OsmRoutingEngineAdapter,
         shape: List<Coordinates>,
         start: Coordinates,
         targetDistanceKm: Double,
-    ): List<Coordinates> {
-        val method = adapter.javaClass.getDeclaredMethod(
-            "projectShapePolylineToStart",
-            List::class.java,
-            Coordinates::class.java,
-            java.lang.Double.TYPE,
-        )
-        method.isAccessible = true
-        return method.invoke(adapter, shape, start, targetDistanceKm) as List<Coordinates>
-    }
+    ): List<Coordinates> = projectShapePolylineToStart(shape, start, targetDistanceKm)
 
     @Suppress("UNCHECKED_CAST")
     private fun invokePrepareShapeForRouting(
-        adapter: OsmRoutingEngineAdapter,
+        @Suppress("UNUSED_PARAMETER") adapter: OsmRoutingEngineAdapter,
         shape: List<Coordinates>,
         start: Coordinates,
-    ): List<Coordinates> {
-        val method = adapter.javaClass.getDeclaredMethod(
-            "prepareShapeForRouting",
-            List::class.java,
-            Coordinates::class.java,
-        )
-        method.isAccessible = true
-        return method.invoke(adapter, shape, start) as List<Coordinates>
-    }
+    ): List<Coordinates> = prepareShapeForRouting(shape, start)
 
     @Suppress("UNCHECKED_CAST")
     private fun invokeBuildShapeRoutingVariants(
-        adapter: OsmRoutingEngineAdapter,
+        @Suppress("UNUSED_PARAMETER") adapter: OsmRoutingEngineAdapter,
         shape: List<Coordinates>,
         start: Coordinates,
-    ): List<Any> {
-        val method = adapter.javaClass.getDeclaredMethod(
-            "buildShapeRoutingVariants",
-            List::class.java,
-            Coordinates::class.java,
-        )
-        method.isAccessible = true
-        return method.invoke(adapter, shape, start) as List<Any>
-    }
+    ): List<Any> = buildShapeRoutingVariants(shape, start)
 
     @Suppress("UNCHECKED_CAST")
     private fun invokeBuildShapeBestEffortRoutingStrategies(
-        adapter: OsmRoutingEngineAdapter,
+        @Suppress("UNUSED_PARAMETER") adapter: OsmRoutingEngineAdapter,
         start: Coordinates,
         shape: List<Coordinates>,
-    ): List<Any> {
-        val method = adapter.javaClass.getDeclaredMethod(
-            "buildShapeBestEffortRoutingStrategies",
-            Coordinates::class.java,
-            List::class.java,
-        )
-        method.isAccessible = true
-        return method.invoke(adapter, start, shape) as List<Any>
-    }
+    ): List<Any> = buildShapeBestEffortRoutingStrategies(start, shape)
 
     @Suppress("UNCHECKED_CAST")
     private fun invokeShapeModeMatchScore(
-        adapter: OsmRoutingEngineAdapter,
+        @Suppress("UNUSED_PARAMETER") adapter: OsmRoutingEngineAdapter,
         baseMatchScore: Double,
         shapeScore: Double,
         backtrackingRatio: Double,
@@ -1236,20 +1150,7 @@ class OsmRoutingEngineAdapterShapeTest {
         edgeReuseRatio: Double,
         maxAxisReuseRatio: Double,
         strategyCode: String,
-    ): Pair<Double, Double> {
-        val method = adapter.javaClass.getDeclaredMethod(
-            "shapeModeMatchScore",
-            java.lang.Double.TYPE,
-            java.lang.Double.TYPE,
-            java.lang.Double.TYPE,
-            java.lang.Double.TYPE,
-            java.lang.Double.TYPE,
-            java.lang.Double.TYPE,
-            String::class.java,
-        )
-        method.isAccessible = true
-        return method.invoke(
-            adapter,
+    ): Pair<Double, Double> = shapeModeMatchScore(
             baseMatchScore,
             shapeScore,
             backtrackingRatio,
@@ -1257,23 +1158,14 @@ class OsmRoutingEngineAdapterShapeTest {
             edgeReuseRatio,
             maxAxisReuseRatio,
             strategyCode,
-        ) as Pair<Double, Double>
-    }
+        )
 
     @Suppress("UNCHECKED_CAST")
     private fun invokeShapeSimilarityScore(
-        adapter: OsmRoutingEngineAdapter,
+        @Suppress("UNUSED_PARAMETER") adapter: OsmRoutingEngineAdapter,
         routePoints: List<List<Double>>,
         shapePoints: List<List<Double>>,
-    ): Double {
-        val method = adapter.javaClass.getDeclaredMethod(
-            "shapeSimilarityScore",
-            List::class.java,
-            List::class.java,
-        )
-        method.isAccessible = true
-        return method.invoke(adapter, routePoints, shapePoints) as Double
-    }
+    ): Double = shapeSimilarityScore(routePoints, shapePoints)
 
     private fun invokeFetchNearestRoadTraceRoute(
         adapter: OsmRoutingEngineAdapter,

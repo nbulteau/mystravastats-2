@@ -110,9 +110,30 @@ jobs:
         working-directory: front-vue
         run: npm run test:e2e
 
+  backend-integration:
+    name: Cross-backend source-mode integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26.5.0
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: back-go/go.mod
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: gradle
+      - name: Exercise STRAVA, FIT and GPX APIs through Go
+        run: node scripts/smoke-source-modes.mjs --backend go
+      - name: Exercise STRAVA, FIT and GPX APIs through Kotlin
+        run: node scripts/smoke-source-modes.mjs --backend kotlin
+
   docker:
     name: Docker image (${{ matrix.name }})
-    needs: [contracts-and-catalog, go, kotlin, frontend, e2e]
+    needs: [contracts-and-catalog, go, kotlin, frontend, e2e, backend-integration]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

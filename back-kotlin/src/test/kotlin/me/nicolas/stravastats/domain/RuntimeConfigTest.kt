@@ -59,7 +59,10 @@ class RuntimeConfigTest {
         assertFalse(data["stravaApiBaseConfigured"] as Boolean)
         assertFalse(data["fitFilesConfigured"] as Boolean)
         assertTrue(data["gpxFilesSupported"] as Boolean)
-        assertEquals(listOf("http://localhost", "http://localhost:5173"), cors["allowedOrigins"])
+        assertEquals(
+            listOf("http://localhost", "http://localhost:5173", "http://127.0.0.1", "http://127.0.0.1:5173"),
+            cors["allowedOrigins"],
+        )
         assertEquals(listOf("Content-Type", "Authorization", "X-Request-Id"), cors["allowedHeaders"])
         assertEquals(true, cors["allowCredentials"])
         assertEquals("http://localhost:5000", routing["baseUrl"])

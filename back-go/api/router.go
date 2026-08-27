@@ -15,6 +15,7 @@ func NewRouter() *mux.Router {
 		var handler http.Handler
 
 		handler = route.HandlerFunc
+		handler = mutationOriginGuard(handler)
 		handler = domain.Logger(handler, route.Name)
 
 		router.

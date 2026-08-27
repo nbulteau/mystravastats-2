@@ -9,15 +9,7 @@ import me.nicolas.stravastats.domain.business.RouteRecommendation
 import me.nicolas.stravastats.domain.business.RouteVariantType
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
-import tools.jackson.databind.json.JsonMapper
-import tools.jackson.module.kotlin.KotlinModule
-import tools.jackson.module.kotlin.readValue
 import java.io.File
-import java.net.URI
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
-import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -49,13 +41,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
     private val extractProfileOverride = readStringConfig("OSM_ROUTING_EXTRACT_PROFILE", "").trim()
     private val extractProfileFile = readStringConfig("OSM_ROUTING_EXTRACT_PROFILE_FILE", DEFAULT_EXTRACT_PROFILE_FILE).trim()
 
-    private val mapper = JsonMapper.builder()
-        .addModule(KotlinModule.Builder().build())
-        .build()
-
-    private val httpClient = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofMillis(timeoutMs.toLong()))
-        .build()
+    private val osrmClient = OsrmClient(baseUrl, timeoutMs)
 
     override fun generateTargetLoops(request: RoutingEngineRequest): List<RouteRecommendation> {
         if (!enabled || baseUrl.isBlank()) {
@@ -1084,16 +1070,9 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         }
 
         return runCatching {
-            val response = httpClient.send(
-                HttpRequest.newBuilder()
-                    .uri(URI.create("$baseUrl/"))
-                    .timeout(Duration.ofMillis(timeoutMs.toLong()))
-                    .GET()
-                    .build(),
-                HttpResponse.BodyHandlers.ofString(),
-            )
-            details["statusCode"] = response.statusCode()
-            if (response.statusCode() >= 500) {
+            val statusCode = osrmClient.healthStatus()
+            details["statusCode"] = statusCode
+            if (statusCode >= 500) {
                 details["status"] = "down"
                 details["reachable"] = false
             } else {
@@ -1285,86 +1264,12 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         profile: String,
         waypoints: List<Coordinates>,
         continueStraight: Boolean = true,
-    ): List<OsrmRoute> {
-        if (waypoints.size < 2) return emptyList()
-        val coordinates = waypoints.joinToString(";") { waypoint ->
-            "%.6f,%.6f".format(Locale.US, waypoint.lng, waypoint.lat)
-        }
-        val url =
-            "$baseUrl/route/v1/$profile/$coordinates?alternatives=true&steps=true&overview=full&geometries=geojson&continue_straight=$continueStraight"
-        val response = httpClient.send(
-            HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(Duration.ofMillis(timeoutMs.toLong()))
-                .GET()
-                .build(),
-            HttpResponse.BodyHandlers.ofString(),
-        )
-        if (response.statusCode() !in 200..299) {
-            throw IllegalStateException("OSRM route API returned status ${response.statusCode()}")
-        }
-        val payload = mapper.readValue<OsrmRouteResponse>(response.body())
-        if (payload.code?.lowercase(Locale.getDefault()) != "ok") {
-            throw IllegalStateException("OSRM route API returned code ${payload.code}: ${payload.message}")
-        }
-        return payload.routes
-    }
+    ): List<OsrmRoute> = osrmClient.routes(profile, waypoints, continueStraight)
 
     private fun fetchShapeMapMatchedRoutes(
         profile: String,
         shape: List<Coordinates>,
-    ): List<OsrmRoute> {
-        require(shape.size >= 2) { "at least 2 shape points are required for map matching" }
-        val sampled = sampleCoordinatesByDistance(shape, maxPoints = 48, minSpacingMeters = 45.0)
-        require(sampled.size >= 2) { "at least 2 sampled shape points are required for map matching" }
-        val coordinates = sampled.joinToString(";") { point ->
-            "%.6f,%.6f".format(Locale.US, point.lng, point.lat)
-        }
-
-        var lastError: Throwable? = null
-        listOf(35.0, 80.0, 160.0, 320.0).forEach { radiusMeters ->
-            val radiuses = sampled.joinToString(";") { "%.0f".format(Locale.US, radiusMeters) }
-            val url =
-                "$baseUrl/match/v1/$profile/$coordinates?steps=true&overview=full&geometries=geojson&gaps=ignore&tidy=true&radiuses=$radiuses"
-            try {
-                val response = httpClient.send(
-                    HttpRequest.newBuilder()
-                        .uri(URI.create(url))
-                        .timeout(Duration.ofMillis(timeoutMs.toLong()))
-                        .GET()
-                        .build(),
-                    HttpResponse.BodyHandlers.ofString(),
-                )
-                if (response.statusCode() !in 200..299) {
-                    lastError = IllegalStateException("OSRM match API returned status ${response.statusCode()}")
-                    return@forEach
-                }
-                val payload = mapper.readValue<OsrmMatchResponse>(response.body())
-                if (payload.code?.lowercase(Locale.getDefault()) != "ok") {
-                    if (payload.code.equals("NoMatch", ignoreCase = true)) {
-                        lastError = IllegalStateException("OSRM match API returned code ${payload.code}")
-                        return@forEach
-                    }
-                    throw IllegalStateException("OSRM match API returned code ${payload.code}: ${payload.message}")
-                }
-                val routes = payload.matchings.filter { route ->
-                    route.distance > 0.0 && route.geometry != null && route.geometry.coordinates.size >= 2
-                }
-                if (routes.isNotEmpty()) {
-                    return routes
-                }
-                lastError = IllegalStateException("OSRM match API returned no valid matchings")
-            } catch (error: RuntimeException) {
-                lastError = error
-            } catch (error: java.io.IOException) {
-                lastError = error
-            } catch (error: InterruptedException) {
-                Thread.currentThread().interrupt()
-                throw error
-            }
-        }
-        throw IllegalStateException(lastError?.message ?: "OSRM match API returned no route")
-    }
+    ): List<OsrmRoute> = osrmClient.match(profile, shape)
 
     private fun fetchShapeSegmentStitchedRoutes(
         profile: String,
@@ -1703,38 +1608,10 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         return abs(left[0] - right[0]) < 0.000001 && abs(left[1] - right[1]) < 0.000001
     }
 
-    private fun snapToNearestRoutablePoint(profile: String, point: Coordinates): Pair<Coordinates, Double>? {
-        val coordinate = "%.6f,%.6f".format(Locale.US, point.lng, point.lat)
-        val url = "$baseUrl/nearest/v1/$profile/$coordinate?number=1"
-        val response = runCatching {
-            httpClient.send(
-                HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .timeout(Duration.ofMillis(timeoutMs.toLong()))
-                    .GET()
-                    .build(),
-                HttpResponse.BodyHandlers.ofString(),
-            )
-        }.getOrElse { return null }
-
-        if (response.statusCode() !in 200..299) {
-            return null
-        }
-        val payload = runCatching { mapper.readValue<OsrmNearestResponse>(response.body()) }
-            .getOrElse { return null }
-        if (payload.code?.lowercase(Locale.getDefault()) != "ok") {
-            return null
-        }
-        val waypoint = payload.waypoints.firstOrNull() ?: return null
-        if (waypoint.location.size < 2) {
-            return null
-        }
-        val snappedPoint = Coordinates(
-            lat = waypoint.location[1],
-            lng = waypoint.location[0],
-        )
-        return snappedPoint to waypoint.distance
-    }
+    private fun snapToNearestRoutablePoint(
+        profile: String,
+        point: Coordinates,
+    ): Pair<Coordinates, Double>? = osrmClient.nearest(profile, point)
 
     private fun toRouteCandidate(
         request: RoutingEngineRequest,
@@ -2450,74 +2327,5 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
     private fun readIntConfig(key: String, fallback: Int): Int {
         return readConfigValue(key)?.toIntOrNull() ?: fallback
     }
-
-    // Compatibility seams for focused tests that historically exercised the
-    // monolithic adapter through reflection. Production logic lives in the
-    // specialized top-level routing modules.
-    private fun evaluateAxisReuseOutsideStartZone(points: List<List<Double>>, start: Coordinates, startZoneMeters: Double, minOppositeMeters: Double) =
-        me.nicolas.stravastats.domain.services.routing.evaluateAxisReuseOutsideStartZone(points, start, startZoneMeters, minOppositeMeters)
-
-    private fun combinedDirectionPenalty(points: List<List<Double>>, start: Coordinates, direction: String, toleranceMeters: Double) =
-        me.nicolas.stravastats.domain.services.routing.combinedDirectionPenalty(points, start, direction, toleranceMeters)
-
-    private fun farOppositeViolationRatio(points: List<List<Double>>, start: Coordinates, direction: String, toleranceMeters: Double) =
-        me.nicolas.stravastats.domain.services.routing.farOppositeViolationRatio(points, start, direction, toleranceMeters)
-
-    private fun directionalQuadrantPenalty(points: List<List<Double>>, start: Coordinates, direction: String, toleranceMeters: Double) =
-        me.nicolas.stravastats.domain.services.routing.directionalQuadrantPenalty(points, start, direction, toleranceMeters)
-
-    private fun parseShapePolylineCoordinates(raw: String) =
-        me.nicolas.stravastats.domain.services.routing.parseShapePolylineCoordinates(raw)
-
-    private fun buildShapeRoadFirstWaypoints(start: Coordinates, shape: List<Coordinates>) =
-        me.nicolas.stravastats.domain.services.routing.buildShapeRoadFirstWaypoints(start, shape)
-
-    private fun buildShapeLoopWaypoints(start: Coordinates, shape: List<Coordinates>) =
-        me.nicolas.stravastats.domain.services.routing.buildShapeLoopWaypoints(start, shape)
-
-    private fun buildShapeDenseWaypoints(start: Coordinates, shape: List<Coordinates>) =
-        me.nicolas.stravastats.domain.services.routing.buildShapeDenseWaypoints(start, shape)
-
-    private fun buildShapeSimplifiedWaypoints(start: Coordinates, shape: List<Coordinates>) =
-        me.nicolas.stravastats.domain.services.routing.buildShapeSimplifiedWaypoints(start, shape)
-
-    private fun buildShapeStitchedWaypoints(start: Coordinates, shape: List<Coordinates>) =
-        me.nicolas.stravastats.domain.services.routing.buildShapeStitchedWaypoints(start, shape)
-
-    private fun destinationFromBearing(start: Coordinates, distanceKm: Double, bearingDegrees: Double) =
-        me.nicolas.stravastats.domain.services.routing.destinationFromBearing(start, distanceKm, bearingDegrees)
-
-    private fun projectShapePolylineToStart(shape: List<Coordinates>, start: Coordinates, targetDistanceKm: Double) =
-        me.nicolas.stravastats.domain.services.routing.projectShapePolylineToStart(shape, start, targetDistanceKm)
-
-    private fun prepareShapeForRouting(shape: List<Coordinates>, start: Coordinates) =
-        me.nicolas.stravastats.domain.services.routing.prepareShapeForRouting(shape, start)
-
-    private fun buildShapeRoutingVariants(shape: List<Coordinates>, start: Coordinates) =
-        me.nicolas.stravastats.domain.services.routing.buildShapeRoutingVariants(shape, start)
-
-    private fun buildShapeBestEffortRoutingStrategies(start: Coordinates, shape: List<Coordinates>) =
-        me.nicolas.stravastats.domain.services.routing.buildShapeBestEffortRoutingStrategies(start, shape)
-
-    private fun shapeModeMatchScore(baseMatchScore: Double, shapeScore: Double, backtrackingRatio: Double, corridorOverlap: Double, edgeReuseRatio: Double, maxAxisReuseRatio: Double, strategyCode: String) =
-        me.nicolas.stravastats.domain.services.routing.shapeModeMatchScore(baseMatchScore, shapeScore, backtrackingRatio, corridorOverlap, edgeReuseRatio, maxAxisReuseRatio, strategyCode)
-
-    private fun shapeSimilarityScore(routePoints: List<List<Double>>, shapePoints: List<List<Double>>) =
-        me.nicolas.stravastats.domain.services.routing.shapeSimilarityScore(routePoints, shapePoints)
-
-    private fun classifySurfaceBucket(step: OsrmStep) =
-        me.nicolas.stravastats.domain.services.routing.classifySurfaceBucket(step)
-
-    private fun surfaceMatchScore(routeType: String, breakdown: RouteSurfaceBreakdown) =
-        me.nicolas.stravastats.domain.services.routing.surfaceMatchScore(routeType, breakdown)
-
-    private fun requiredPathRatioForRequest(routeType: String, strict: Boolean) =
-        me.nicolas.stravastats.domain.services.routing.requiredPathRatioForRequest(routeType, strict)
-
-    private fun outsideStartAxisReuseLimit(routeType: String, strict: Boolean) =
-        me.nicolas.stravastats.domain.services.routing.outsideStartAxisReuseLimit(routeType, strict)
-
-    private fun allowedOppositeOutsideStartRatio(routeType: String, strict: Boolean) =
-        me.nicolas.stravastats.domain.services.routing.allowedOppositeOutsideStartRatio(routeType, strict)
 
 }

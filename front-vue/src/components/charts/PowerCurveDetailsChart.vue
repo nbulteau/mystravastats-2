@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { Chart } from 'highcharts-vue';
 import type { Options } from 'highcharts';
 import type { DetailedActivity } from '@/models/activity.model';
+import { buildPowerCurve } from '@/services/activity-power-analysis';
 import { formatTime } from '@/utils/formatters';
 
 // Props
@@ -17,23 +18,7 @@ const chartOptions = ref<Options>({});
 
 // Computed properties
 const powerCurveData = computed(() => {
-  const watts = props.activity.stream.watts || [];
-  const maxPower = Math.max(...watts);
-
-  // init power curve data with 0 values
-  const counts = Array.from({ length: maxPower + 1 }, () => 0);
-
-  // fill power curve data
-  watts.forEach((watt) => {
-    for (let i = watt; i >= 0; i--) {
-      if (typeof counts[i] === 'number') {
-        counts[i]! += 1;
-      }
-    }
-  });
-
-  // reverse power curve data
-  return counts.map((value, index) => [value, index]);
+  return buildPowerCurve(props.activity.stream.watts || []);
 });
 
 

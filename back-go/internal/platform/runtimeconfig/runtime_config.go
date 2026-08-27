@@ -20,7 +20,7 @@ const (
 	defaultCORSAllowedOriginsSource = "default"
 )
 
-var defaultCORSAllowedOrigins = []string{"http://localhost", "http://localhost:5173"}
+var defaultCORSAllowedOrigins = []string{"http://localhost", "http://localhost:5173", "http://127.0.0.1", "http://127.0.0.1:5173"}
 var defaultCORSAllowedMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 var defaultCORSAllowedHeaders = []string{"Content-Type", "Authorization", "X-Request-Id"}
 

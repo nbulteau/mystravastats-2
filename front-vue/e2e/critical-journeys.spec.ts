@@ -153,6 +153,12 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("dashboard and activity detail render from the public API", async ({ page }) => {
+  const highchartsWarnings: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "warning" && message.text().includes("Highcharts warning")) {
+      highchartsWarnings.push(message.text());
+    }
+  });
   await page.goto("/dashboard?year=2026&activityType=Ride");
   await expect(page.getByText("Create your annual recap")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Eddington number" })).toBeVisible();
@@ -161,6 +167,7 @@ test("dashboard and activity detail render from the public API", async ({ page }
   await expect(page.getByRole("heading", { name: "Morning Ride" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Activity Summary" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Data & Source" })).toBeVisible();
+  expect(highchartsWarnings).toEqual([]);
 });
 
 test("source onboarding previews, saves and synchronizes a FIT directory", async ({ page }) => {

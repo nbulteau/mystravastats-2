@@ -38,6 +38,77 @@ data class ContractActivitySummary(
     val distance: Double? = null,
 )
 
+data class ContractRouteGenerationScore(
+    val global: Double,
+    val distance: Double,
+    val elevation: Double,
+    val duration: Double,
+    val direction: Double,
+    val shape: Double,
+    val roadFitness: Double,
+)
+
+data class ContractGeneratedRoute(
+    val routeId: String,
+    val title: String,
+    val variantType: String,
+    val routeType: String? = null,
+    val distanceKm: Double,
+    val elevationGainM: Double,
+    val durationSec: Long,
+    val estimatedDurationSec: Long,
+    val score: ContractRouteGenerationScore,
+    val reasons: List<String>,
+    val previewLatLng: List<List<Double>>,
+    val start: ContractRouteCoordinate? = null,
+    val end: ContractRouteCoordinate? = null,
+    val activityId: Long? = null,
+    val isRoadGraphGenerated: Boolean,
+)
+
+data class ContractGenerateRoutesResponse(
+    val routes: List<ContractGeneratedRoute>,
+    val diagnostics: List<ContractRouteGenerationDiagnostic>? = null,
+)
+
+data class ContractAthleteFtpSetting(
+    val effectiveFrom: String,
+    val ftp: Long,
+)
+
+data class ContractAthletePerformanceSettings(
+    val ftpHistory: List<ContractAthleteFtpSetting>,
+    val weightKg: Double? = null,
+)
+
+data class ContractDataQualityIssue(
+    val id: String,
+    val source: String,
+    val activityId: Long? = null,
+    val activityName: String? = null,
+    val severity: String,
+    val category: String,
+    val field: String,
+    val message: String,
+    val excludedFromStats: Boolean? = null,
+)
+
+data class ContractDataQualitySummary(
+    val status: String,
+    val provider: String? = null,
+    val issueCount: Long,
+    val impactedActivities: Long,
+    val excludedActivities: Long,
+    val safeCorrectionCount: Long? = null,
+    val manualReviewCount: Long? = null,
+)
+
+data class ContractDataQualityReport(
+    val generatedAt: String? = null,
+    val summary: ContractDataQualitySummary,
+    val issues: List<ContractDataQualityIssue>,
+)
+
 data class ContractOperation(val method: String, val path: String)
 
 val contractOperations: Map<String, ContractOperation> = mapOf(

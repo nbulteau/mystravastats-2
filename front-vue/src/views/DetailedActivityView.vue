@@ -602,7 +602,7 @@
 import { Tooltip } from "bootstrap";
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import type { ActivitySourceConflict, ActivitySourceRef, DetailedActivity, StravaSegmentEffort } from "@/models/activity.model";
+import type { DetailedActivity } from "@/models/activity.model";
 import { formatActivityTypeLabel, formatSpeedWithUnit, formatTime } from "@/utils/formatters";
 import { useContextStore } from "@/stores/context.js";
 import { useAthleteStore } from "@/stores/athlete";
@@ -626,6 +626,7 @@ import { Chart } from "highcharts-vue";
 import PowerDistributionChart from "@/components/charts/PowerDistributionChart.vue";
 import PowerCurveDetailsChart from "@/components/charts/PowerCurveDetailsChart.vue";
 import ActivityDetailHero from "@/components/activity-detail/ActivityDetailHero.vue";
+import { comparisonDeltaClass, detailedActivityWarning, formatActivitySourceRefs, formatCadenceValue, formatComparisonDate, formatLocalActivityDate, formatProviderLabel, formatRouteEffortDescription, formatSignedDistance, formatSignedMeters, formatSignedNumber, formatSignedSpeed, formatSignedTime, formatSourceConflictSample, formatStravaSegmentDescription, resolveEffectiveActivityType, resolveEffortElevationLabel, resolveEffortGradient } from "@/services/activity-detail-presentation";
 
 // Import the leaflet library
 import "leaflet/dist/leaflet.css";
@@ -737,16 +738,6 @@ type RouteEffortOption = {
   source: EffortPanelTab;
 };
 
-type RouteEffortDescriptionInput = {
-  distance: number;
-  seconds: number;
-  deltaAltitude?: number | null;
-  elevationGain?: number | null;
-  elevationLoss?: number | null;
-  averagePower?: number | null;
-  grade?: number | null;
-};
-
 const effortPanelTab = ref<EffortPanelTab>("computed");
 const selectedOption = ref<string | null>(null);
 const segmentSearch = ref("");
@@ -768,7 +759,7 @@ const computedEffortOptions = computed<RouteEffortOption[]>(() => {
   return (activity.value?.activityEfforts ?? []).map((effort) => ({
     id: effort.id,
     label: effort.label,
-    description: formatRouteEffortDescription(effort),
+    description: formatRouteEffortDescription(effort, effectiveActivityType.value),
     distance: effort.distance,
     seconds: effort.seconds,
     idxStart: effort.idxStart,
@@ -794,7 +785,7 @@ const stravaSegmentOptions = computed<RouteEffortOption[]>(() => {
     return {
       id: `strava-${effort.id}`,
       label: effort.segment.name || effort.name,
-      description: formatStravaSegmentDescription(effort),
+      description: formatStravaSegmentDescription(effort, effectiveActivityType.value),
       distance: effort.distance,
       seconds: effort.elapsedTime,
       idxStart: effort.startIndex,
@@ -1073,7 +1064,7 @@ const summaryRows = computed<DetailMetricRow[]>(() => {
   if (currentActivity.averageCadence > 0) {
     rows.push({
       label: "Average cadence",
-      value: formatCadenceValue(currentActivity.averageCadence),
+      value: formatCadenceValue(currentActivity.averageCadence, effectiveActivityType.value),
     });
   }
 
@@ -1611,18 +1602,6 @@ const comparisonMetricRows = computed<ComparisonMetricRow[]>(() => {
   return rows;
 });
 
-function resolveEffectiveActivityType(currentActivity?: DetailedActivity | null): string {
-  return currentActivity?.sportType || currentActivity?.type || "Ride";
-}
-
-function formatCadenceValue(cadence: number): string {
-  const displayedCadence = effectiveActivityType.value.endsWith("Run")
-    ? cadence * 2
-    : cadence;
-
-  return `${Math.round(displayedCadence)} ${cadenceUnit.value}`;
-}
-
 function pushVersionDifference(
   rows: DetailMetricRow[],
   label: string,
@@ -1644,202 +1623,13 @@ function pushVersionDifference(
 }
 
 
-function comparisonDeltaClass(value: number, positiveIsGood: boolean): string {
-  if (Math.abs(value) < 0.0001) {
-    return "detail-comparison__delta detail-comparison__delta--flat";
-  }
-  const isGood = positiveIsGood ? value > 0 : value < 0;
-  return `detail-comparison__delta ${isGood ? "detail-comparison__delta--good" : "detail-comparison__delta--warn"}`;
-}
-
-function formatSignedNumber(value: number, suffix: string, digits = 1): string {
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toFixed(digits)}${suffix}`;
-}
-
-function formatSignedDistance(value: number): string {
-  return formatSignedNumber(value / 1000, " km", 1);
-}
-
-function formatSignedMeters(value: number): string {
-  return formatSignedNumber(value, " m", 0);
-}
-
-function formatSignedSpeed(value: number): string {
-  return formatSignedNumber(value * 3.6, " km/h", 1);
-}
-
-function formatSignedTime(value: number): string {
-  const sign = value > 0 ? "+" : value < 0 ? "-" : "";
-  return `${sign}${formatTime(Math.abs(value))}`;
-}
-
-function formatLocalActivityDate(value: string): string {
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
-  if (!match) {
-    return value.substring(0, 16);
-  }
-  const [, year, month, day, hour, minute] = match;
-  const localDate = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute));
-  return localDate.toLocaleString("en-US", {
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function formatProviderLabel(provider: string | undefined): string {
-  const normalized = (provider ?? "").trim().toLowerCase();
-  if (normalized === "strava") return "Strava";
-  if (normalized === "fit") return "FIT";
-  if (normalized === "gpx") return "GPX";
-  if (normalized === "ridewithgps") return "RideWithGPS";
-  return provider || "Unknown";
-}
-
-function formatActivitySourceRefs(sources: ActivitySourceRef[] | undefined): string {
-  if (!Array.isArray(sources) || sources.length === 0) {
-    return "n/a";
-  }
-  return sources
-    .map((source) => `${formatProviderLabel(source.provider)} #${source.activityId}${source.hasStream ? " + stream" : ""}`)
-    .join(" · ");
-}
-
-function formatSourceConflictSample(conflicts: ActivitySourceConflict[] | undefined): string | undefined {
-  if (!Array.isArray(conflicts) || conflicts.length === 0) {
-    return undefined;
-  }
-  const conflict = conflicts[0];
-  return `${conflict.field}: ${formatProviderLabel(conflict.source)} ${conflict.primary} -> ${conflict.other}`;
-}
-
-function formatComparisonDate(value: string): string {
-  if (!value) {
-    return "";
-  }
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return value.substring(0, 10);
-  }
-  return parsed.toLocaleDateString("en-US", {
-    day: "2-digit",
-    month: "short",
-  });
-}
-
-function formatStravaSegmentDescription(effort: StravaSegmentEffort): string {
-  const parts = [
-    formatRouteEffortDescription({
-      distance: effort.distance,
-      seconds: effort.elapsedTime,
-      averagePower: effort.averageWatts,
-      grade: effort.segment.averageGrade,
-    }),
-  ];
-
-  if (effort.averageHeartRate > 0) {
-    parts.push(`${Math.round(effort.averageHeartRate)} bpm`);
-  }
-
-  return parts.join(" · ");
-}
-
-function formatRouteEffortDescription(effort: RouteEffortDescriptionInput): string {
-  const parts = [
-    `${(effort.distance / 1000).toFixed(2)} km`,
-    formatTime(effort.seconds),
-  ];
-
-  if (effort.seconds > 0 && effort.distance > 0) {
-    parts.push(formatSpeedWithUnit(effort.distance / effort.seconds, effectiveActivityType.value));
-  }
-
-  const gradient = resolveEffortGradient(effort);
-
-  if (gradient !== null && Number.isFinite(gradient)) {
-    parts.push(`Grade ${gradient.toFixed(1)}%`);
-  }
-
-  const elevationLabel = resolveEffortElevationLabel(effort);
-  if (elevationLabel) {
-    parts.push(elevationLabel);
-  }
-
-  if (effort.averagePower && effort.averagePower > 0) {
-    parts.push(`${Math.round(effort.averagePower)} W`);
-  }
-
-  return parts.join(" · ");
-}
-
-function resolveEffortGradient(effort: RouteEffortDescriptionInput): number | null {
-  const explicitGrade = finiteNumberOrNull(effort.grade);
-  if (explicitGrade !== null) {
-    return explicitGrade;
-  }
-
-  if (effort.distance <= 0) {
-    return null;
-  }
-
-  const deltaAltitude = finiteNumberOrNull(effort.deltaAltitude);
-  const netGradient = deltaAltitude !== null ? (deltaAltitude / effort.distance) * 100 : null;
-  if (netGradient !== null && Math.abs(netGradient) >= 0.05) {
-    return netGradient;
-  }
-
-  const elevationGain = finiteNumberOrNull(effort.elevationGain);
-  const elevationLoss = finiteNumberOrNull(effort.elevationLoss);
-  if (elevationGain !== null || elevationLoss !== null) {
-    const gain = elevationGain ?? 0;
-    const loss = elevationLoss ?? 0;
-    if (gain >= loss && gain >= 0.5) {
-      return (gain / effort.distance) * 100;
-    }
-    if (loss > gain && loss >= 0.5) {
-      return -(loss / effort.distance) * 100;
-    }
-  }
-
-  return netGradient;
-}
-
-function resolveEffortElevationLabel(effort: RouteEffortDescriptionInput): string | null {
-  const elevationGain = finiteNumberOrNull(effort.elevationGain);
-  const elevationLoss = finiteNumberOrNull(effort.elevationLoss);
-  const elevationParts: string[] = [];
-  if (elevationGain !== null && elevationGain >= 0.5) {
-    elevationParts.push(`D+ ${Math.round(elevationGain)} m`);
-  }
-  if (elevationLoss !== null && elevationLoss >= 0.5) {
-    elevationParts.push(`D- ${Math.round(elevationLoss)} m`);
-  }
-  if (elevationParts.length > 0) {
-    return elevationParts.join(" · ");
-  }
-
-  const deltaAltitude = finiteNumberOrNull(effort.deltaAltitude);
-  if (deltaAltitude === null) {
-    return null;
-  }
-  return `${deltaAltitude >= 0 ? "D+" : "D-"} ${Math.abs(Math.round(deltaAltitude))} m`;
-}
-
-function finiteNumberOrNull(value: number | null | undefined): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
 async function fetchDetailedActivity(id: string, version: "corrected" | "raw" = activityVersion.value) {
   const detailed = await fetchDetailedActivityPayload(id, version);
   activity.value = detailed;
   activityVersion.value = version;
   similarEffortExpanded.value = false;
   loadError.value = null;
-  loadWarning.value = getDetailedActivityWarning(detailed);
+  loadWarning.value = detailedActivityWarning(detailed);
   comparisonVersionActivity.value = await fetchComparisonVersionActivity(id, version);
 }
 
@@ -1860,7 +1650,7 @@ async function fetchInitialDetailedActivity(id: string) {
   comparisonVersionActivity.value = hasCorrection ? rawActivity : correctedActivity;
   similarEffortExpanded.value = false;
   loadError.value = null;
-  loadWarning.value = getDetailedActivityWarning(selectedActivity);
+  loadWarning.value = detailedActivityWarning(selectedActivity);
 }
 
 async function fetchDetailedActivityPayload(
@@ -1951,17 +1741,6 @@ async function extractApiErrorMessage(response: Response): Promise<string> {
     return cacheOnly404Message;
   }
   return response.statusText || "Unable to load this activity.";
-}
-
-function getDetailedActivityWarning(detailed: DetailedActivity): string | null {
-  const hasDistanceStream =
-    Array.isArray(detailed.stream?.distance) && detailed.stream.distance.length > 0;
-
-  if (hasDistanceStream) {
-    return null;
-  }
-
-  return "Detailed streams are missing in local cache for this activity. If you are running in cache-only mode, reconnect to Strava and refresh cache.";
 }
 
 const initMap = () => {
@@ -2376,7 +2155,7 @@ function formatChartPoint(seriesName: string, value: number): string {
     case "Heart rate":
       return `${Math.round(value)} bpm`;
     case "Cadence":
-      return formatCadenceValue(value);
+      return formatCadenceValue(value, effectiveActivityType.value);
     default:
       return value.toFixed(1);
   }

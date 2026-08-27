@@ -22,7 +22,7 @@ services:
       - ./osm:/data
     command: osrm-routed --algorithm mld /data/region.osrm
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:5000"
     healthcheck:
       test: ["CMD-SHELL", "test -f /data/region.osrm"]
       interval: 15s

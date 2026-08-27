@@ -138,17 +138,21 @@ function formatGo(content) {
 }
 
 function tsType(schema) {
-  if (schema.enum) return schema.enum.map((value) => JSON.stringify(value)).join(" | ");
-  if (schema.type === "integer" || schema.type === "number") return "number";
-  if (schema.type === "boolean") return "boolean";
-  if (schema.type === "array") return `${tsType(schema.items ?? {})}[]`;
-  if (schema.type === "object") return "Record<string, unknown>";
-  return "string";
+  let value;
+  if (schema.$ref) value = schema.$ref.split("/").at(-1);
+  else if (schema.enum) value = schema.enum.map((entry) => JSON.stringify(entry)).join(" | ");
+  else if (schema.type === "integer" || schema.type === "number") value = "number";
+  else if (schema.type === "boolean") value = "boolean";
+  else if (schema.type === "array") value = `${tsType(schema.items ?? {})}[]`;
+  else if (schema.type === "object") value = "Record<string, unknown>";
+  else value = "string";
+  return schema.nullable ? `${value} | null` : value;
 }
 
 function goType(schema, optional) {
   let value;
-  if (schema.type === "integer") value = "int64";
+  if (schema.$ref) value = `Contract${schema.$ref.split("/").at(-1)}`;
+  else if (schema.type === "integer") value = "int64";
   else if (schema.type === "number") value = "float64";
   else if (schema.type === "boolean") value = "bool";
   else if (schema.type === "array") value = `[]${goType(schema.items ?? {}, false)}`;
@@ -158,6 +162,7 @@ function goType(schema, optional) {
 }
 
 function kotlinType(schema) {
+  if (schema.$ref) return `Contract${schema.$ref.split("/").at(-1)}`;
   if (schema.type === "integer") return "Long";
   if (schema.type === "number") return "Double";
   if (schema.type === "boolean") return "Boolean";

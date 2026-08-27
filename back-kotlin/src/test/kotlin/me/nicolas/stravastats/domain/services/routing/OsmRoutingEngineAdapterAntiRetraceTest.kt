@@ -11,7 +11,6 @@ class OsmRoutingEngineAdapterAntiRetraceTest {
     @Test
     fun `evaluate axis reuse outside start zone detects opposite traversal away from start`() {
         // GIVEN
-        val adapter = OsmRoutingEngineAdapter()
         val start = Coordinates(lat = 48.13000, lng = -1.63000)
         val points = listOf(
             listOf(48.13000, -1.63000), // start
@@ -22,8 +21,7 @@ class OsmRoutingEngineAdapterAntiRetraceTest {
         )
 
         // WHEN
-        val (hasOpposite, maxReuse, oppositeRatio) = invokeEvaluateAxisReuseOutsideStartZone(
-            adapter = adapter,
+        val (hasOpposite, maxReuse, oppositeRatio) = evaluateAxisReuseOutsideStartZone(
             points = points,
             start = start,
             startZoneMeters = 2000.0,
@@ -39,7 +37,6 @@ class OsmRoutingEngineAdapterAntiRetraceTest {
     @Test
     fun `evaluate axis reuse outside start zone detects same direction reuse and strict policy`() {
         // GIVEN
-        val adapter = OsmRoutingEngineAdapter()
         val start = Coordinates(lat = 48.13000, lng = -1.63000)
         val points = listOf(
             listOf(48.13000, -1.63000), // start
@@ -53,15 +50,14 @@ class OsmRoutingEngineAdapterAntiRetraceTest {
         )
 
         // WHEN
-        val (hasOpposite, maxReuse, oppositeRatio) = invokeEvaluateAxisReuseOutsideStartZone(
-            adapter = adapter,
+        val (hasOpposite, maxReuse, oppositeRatio) = evaluateAxisReuseOutsideStartZone(
             points = points,
             start = start,
             startZoneMeters = 2000.0,
             minOppositeMeters = 120.0,
         )
-        val sameDirectionLimit = invokeOutsideStartAxisReuseLimit(adapter, routeType = "RIDE", strict = false)
-        val oppositeLimit = invokeAllowedOppositeOutsideStartRatio(adapter, routeType = "RIDE", strict = false)
+        val sameDirectionLimit = outsideStartAxisReuseLimit(routeType = "RIDE", strict = false)
+        val oppositeLimit = allowedOppositeOutsideStartRatio(routeType = "RIDE", strict = false)
 
         // THEN
         assertFalse(hasOpposite)
@@ -75,7 +71,6 @@ class OsmRoutingEngineAdapterAntiRetraceTest {
     @Test
     fun `evaluate axis reuse outside start zone counts long segment crossing hub boundary`() {
         // GIVEN
-        val adapter = OsmRoutingEngineAdapter()
         val start = Coordinates(lat = 48.13000, lng = -1.63000)
         val points = listOf(
             listOf(48.13000, -1.63000), // start
@@ -84,8 +79,7 @@ class OsmRoutingEngineAdapterAntiRetraceTest {
         )
 
         // WHEN
-        val (hasOpposite, maxReuse, oppositeRatio) = invokeEvaluateAxisReuseOutsideStartZone(
-            adapter = adapter,
+        val (hasOpposite, maxReuse, oppositeRatio) = evaluateAxisReuseOutsideStartZone(
             points = points,
             start = start,
             startZoneMeters = 2000.0,
@@ -101,7 +95,6 @@ class OsmRoutingEngineAdapterAntiRetraceTest {
     @Test
     fun `evaluate axis reuse outside start zone keeps local hub reuse allowed`() {
         // GIVEN
-        val adapter = OsmRoutingEngineAdapter()
         val start = Coordinates(lat = 48.13000, lng = -1.63000)
         val points = listOf(
             listOf(48.13000, -1.63000), // start
@@ -112,8 +105,7 @@ class OsmRoutingEngineAdapterAntiRetraceTest {
         )
 
         // WHEN
-        val (hasOpposite, maxReuse, oppositeRatio) = invokeEvaluateAxisReuseOutsideStartZone(
-            adapter = adapter,
+        val (hasOpposite, maxReuse, oppositeRatio) = evaluateAxisReuseOutsideStartZone(
             points = points,
             start = start,
             startZoneMeters = 2000.0,
@@ -126,50 +118,4 @@ class OsmRoutingEngineAdapterAntiRetraceTest {
         assertEquals(0.0, oppositeRatio, 1e-9)
     }
 
-    @Suppress("UNCHECKED_CAST")
-    private fun invokeEvaluateAxisReuseOutsideStartZone(
-        adapter: OsmRoutingEngineAdapter,
-        points: List<List<Double>>,
-        start: Coordinates,
-        startZoneMeters: Double,
-        minOppositeMeters: Double,
-    ): Triple<Boolean, Int, Double> {
-        val method = adapter.javaClass.getDeclaredMethod(
-            "evaluateAxisReuseOutsideStartZone",
-            List::class.java,
-            Coordinates::class.java,
-            Double::class.javaPrimitiveType,
-            Double::class.javaPrimitiveType,
-        )
-        method.isAccessible = true
-        return method.invoke(adapter, points, start, startZoneMeters, minOppositeMeters) as Triple<Boolean, Int, Double>
-    }
-
-    private fun invokeOutsideStartAxisReuseLimit(
-        adapter: OsmRoutingEngineAdapter,
-        routeType: String,
-        strict: Boolean,
-    ): Int {
-        val method = adapter.javaClass.getDeclaredMethod(
-            "outsideStartAxisReuseLimit",
-            String::class.java,
-            Boolean::class.javaPrimitiveType,
-        )
-        method.isAccessible = true
-        return method.invoke(adapter, routeType, strict) as Int
-    }
-
-    private fun invokeAllowedOppositeOutsideStartRatio(
-        adapter: OsmRoutingEngineAdapter,
-        routeType: String,
-        strict: Boolean,
-    ): Double {
-        val method = adapter.javaClass.getDeclaredMethod(
-            "allowedOppositeOutsideStartRatio",
-            String::class.java,
-            Boolean::class.javaPrimitiveType,
-        )
-        method.isAccessible = true
-        return method.invoke(adapter, routeType, strict) as Double
-    }
 }

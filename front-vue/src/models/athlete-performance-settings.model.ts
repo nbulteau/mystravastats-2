@@ -1,12 +1,5 @@
-export interface AthleteFtpSetting {
-  effectiveFrom: string;
-  ftp: number;
-}
-
-export interface AthletePerformanceSettings {
-  ftpHistory: AthleteFtpSetting[];
-  weightKg?: number | null;
-}
+import type { AthleteFtpSetting, AthletePerformanceSettings } from "@/generated/api-contract";
+export type { AthleteFtpSetting, AthletePerformanceSettings } from "@/generated/api-contract";
 
 export interface ResolvedManualFtp {
   ftp: number;

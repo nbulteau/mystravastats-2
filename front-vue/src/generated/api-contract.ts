@@ -4,8 +4,8 @@ export interface ApiError {
   message: string;
   code: number;
   description?: string;
-  path?: string;
-  requestId?: string;
+  path?: string | null;
+  requestId?: string | null;
 }
 
 export interface RouteCoordinate {
@@ -20,20 +20,91 @@ export interface RouteGenerationDiagnostic {
 
 export interface SourceModeSelection {
   mode: "STRAVA" | "FIT" | "GPX";
-  path?: string;
+  path?: string | null;
 }
 
 export interface OperationStatus {
   success: boolean;
-  message?: string;
+  message?: string | null;
 }
 
 export interface ActivitySummary {
   id: number;
   name: string;
   type: string;
-  date?: string;
-  distance?: number;
+  date?: string | null;
+  distance?: number | null;
+}
+
+export interface RouteGenerationScore {
+  global: number;
+  distance: number;
+  elevation: number;
+  duration: number;
+  direction: number;
+  shape: number;
+  roadFitness: number;
+}
+
+export interface GeneratedRoute {
+  routeId: string;
+  title: string;
+  variantType: string;
+  routeType?: string | null;
+  distanceKm: number;
+  elevationGainM: number;
+  durationSec: number;
+  estimatedDurationSec: number;
+  score: RouteGenerationScore;
+  reasons: string[];
+  previewLatLng: number[][];
+  start?: RouteCoordinate | null;
+  end?: RouteCoordinate | null;
+  activityId?: number | null;
+  isRoadGraphGenerated: boolean;
+}
+
+export interface GenerateRoutesResponse {
+  routes: GeneratedRoute[];
+  diagnostics?: RouteGenerationDiagnostic[];
+}
+
+export interface AthleteFtpSetting {
+  effectiveFrom: string;
+  ftp: number;
+}
+
+export interface AthletePerformanceSettings {
+  ftpHistory: AthleteFtpSetting[];
+  weightKg?: number | null;
+}
+
+export interface DataQualityIssue {
+  id: string;
+  source: string;
+  activityId?: number | null;
+  activityName?: string | null;
+  severity: string;
+  category: string;
+  field: string;
+  message: string;
+  excludedFromStats?: boolean;
+}
+
+export interface DataQualitySummary {
+  status: string;
+  provider?: string | null;
+  issueCount: number;
+  impactedActivities: number;
+  excludedActivities: number;
+  safeCorrectionCount?: number;
+  manualReviewCount?: number;
+}
+
+export interface DataQualityReport {
+  generatedAt?: string | null;
+  summary: DataQualitySummary;
+  issues: DataQualityIssue[];
 }
 
 export const apiOperations = {

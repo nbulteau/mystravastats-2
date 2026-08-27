@@ -261,3 +261,17 @@ export function bestAveragePower(watts: number[], windowSamples: number): number
   return best;
 }
 
+export function buildPowerCurve(watts: number[]): Array<[number, number]> {
+  const samples = sanitizePowerSamples(watts);
+  const durations = Array.from({ length: samples.length }, (_, index) => index + 1)
+    .filter((durationSeconds) =>
+      durationSeconds <= 60
+      || (durationSeconds <= 5 * 60 && durationSeconds % 5 === 0)
+      || (durationSeconds <= 20 * 60 && durationSeconds % 30 === 0)
+      || durationSeconds % 60 === 0
+      || durationSeconds === samples.length
+    );
+  return durations.map((durationSeconds) => {
+    return [durationSeconds, bestAveragePower(samples, durationSeconds) ?? 0];
+  });
+}

@@ -85,6 +85,7 @@ In practice, the best default setup is `STRAVA_CACHE_PATH + FIT_FILES_PATH`, wit
 ## Planning
 
 - [TODO](./TODO.md) (TODO is in French) remains at the docs root because project instructions refer to this exact path.
+- [Product roadmap](./product/roadmap.md) prioritizes the next user-facing outcomes.
 
 ## Repository Layout
 

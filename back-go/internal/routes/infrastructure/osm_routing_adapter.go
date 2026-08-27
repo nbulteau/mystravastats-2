@@ -1,7 +1,6 @@
 package infrastructure
 
 import (
-	"encoding/json"
 	"fmt"
 	"hash/fnv"
 	"log"
@@ -10,9 +9,7 @@ import (
 	"mystravastats/internal/routes/application"
 	routesDomain "mystravastats/internal/routes/domain"
 	"mystravastats/internal/shared/domain/business"
-	"net/http"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -25,17 +22,26 @@ func NewOSMRoutingAdapter() *OSMRoutingAdapter {
 	extractProfileEnv := strings.TrimSpace(runtimeconfig.StringValue("OSM_ROUTING_EXTRACT_PROFILE", ""))
 	extractProfileCfgFile := strings.TrimSpace(runtimeconfig.StringValue("OSM_ROUTING_EXTRACT_PROFILE_FILE", defaultOSRMProfileFilePath))
 
+	transport := newOSRMClient(baseURL, time.Duration(timeoutMs)*time.Millisecond)
 	return &OSMRoutingAdapter{
 		enabled:               enabled,
 		v3Enabled:             runtimeconfig.BoolValue("OSM_ROUTING_V3_ENABLED", defaultOSMRoutingV3Enabled),
 		debug:                 runtimeconfig.BoolValue("OSM_ROUTING_DEBUG", false),
 		baseURL:               baseURL,
 		timeout:               time.Duration(timeoutMs) * time.Millisecond,
-		client:                &http.Client{Timeout: time.Duration(timeoutMs) * time.Millisecond},
+		osrmClient:            transport,
+		client:                transport.client,
 		profileOverride:       profileOverride,
 		extractProfileEnv:     extractProfileEnv,
 		extractProfileCfgFile: extractProfileCfgFile,
 	}
+}
+
+func (adapter *OSMRoutingAdapter) transport() *osrmClient {
+	if adapter.osrmClient != nil {
+		return adapter.osrmClient
+	}
+	return &osrmClient{baseURL: adapter.baseURL, client: adapter.client}
 }
 
 func (adapter *OSMRoutingAdapter) HealthDetails() map[string]any {
@@ -64,24 +70,15 @@ func (adapter *OSMRoutingAdapter) HealthDetails() map[string]any {
 		return details
 	}
 
-	request, err := http.NewRequest(http.MethodGet, adapter.baseURL+"/", nil)
+	statusCode, err := adapter.transport().healthStatus()
 	if err != nil {
 		details["status"] = "down"
 		details["reachable"] = false
 		details["error"] = err.Error()
 		return details
 	}
-	response, err := adapter.client.Do(request)
-	if err != nil {
-		details["status"] = "down"
-		details["reachable"] = false
-		details["error"] = err.Error()
-		return details
-	}
-	defer func() { _ = response.Body.Close() }()
-
-	details["statusCode"] = response.StatusCode
-	if response.StatusCode >= 500 {
+	details["statusCode"] = statusCode
+	if statusCode >= 500 {
 		details["status"] = "down"
 		details["reachable"] = false
 		return details
@@ -1297,130 +1294,14 @@ func (adapter *OSMRoutingAdapter) fetchOSRMRoutesWithContinueStraight(
 	waypoints []routesDomain.Coordinates,
 	continueStraight bool,
 ) ([]osrmRoute, error) {
-	if len(waypoints) < 2 {
-		return nil, fmt.Errorf("at least 2 waypoints are required")
-	}
-
-	coordinates := make([]string, 0, len(waypoints))
-	for _, point := range waypoints {
-		coordinates = append(coordinates, fmt.Sprintf("%.6f,%.6f", point.Lng, point.Lat))
-	}
-	url := fmt.Sprintf(
-		"%s/route/v1/%s/%s?alternatives=true&steps=true&overview=full&geometries=geojson&continue_straight=%s",
-		adapter.baseURL,
-		profile,
-		strings.Join(coordinates, ";"),
-		strconv.FormatBool(continueStraight),
-	)
-
-	request, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-	response, err := adapter.client.Do(request)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = response.Body.Close() }()
-
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return nil, fmt.Errorf("osrm route API returned status %d", response.StatusCode)
-	}
-
-	var payload osrmRouteResponse
-	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
-		return nil, err
-	}
-	if strings.ToLower(payload.Code) != "ok" {
-		if payload.Message == "" {
-			return nil, fmt.Errorf("osrm route API returned code %s", payload.Code)
-		}
-		return nil, fmt.Errorf("osrm route API returned code %s: %s", payload.Code, payload.Message)
-	}
-	return payload.Routes, nil
+	return adapter.transport().routes(profile, waypoints, continueStraight)
 }
 
 func (adapter *OSMRoutingAdapter) fetchOSRMShapeMapMatchedRoutes(
 	profile string,
 	shape []routesDomain.Coordinates,
 ) ([]osrmRoute, error) {
-	if len(shape) < 2 {
-		return nil, fmt.Errorf("at least 2 shape points are required for map matching")
-	}
-	sampled := sampleCoordinatesByDistance(shape, 48, 45.0)
-	if len(sampled) < 2 {
-		return nil, fmt.Errorf("at least 2 sampled shape points are required for map matching")
-	}
-
-	coordinates := make([]string, 0, len(sampled))
-	for _, point := range sampled {
-		coordinates = append(coordinates, fmt.Sprintf("%.6f,%.6f", point.Lng, point.Lat))
-	}
-
-	var lastErr error
-	for _, radiusMeters := range []float64{35.0, 80.0, 160.0, 320.0} {
-		radiuses := make([]string, 0, len(sampled))
-		for range sampled {
-			radiuses = append(radiuses, fmt.Sprintf("%.0f", radiusMeters))
-		}
-		url := fmt.Sprintf(
-			"%s/match/v1/%s/%s?steps=true&overview=full&geometries=geojson&gaps=ignore&tidy=true&radiuses=%s",
-			adapter.baseURL,
-			profile,
-			strings.Join(coordinates, ";"),
-			strings.Join(radiuses, ";"),
-		)
-		request, err := http.NewRequest(http.MethodGet, url, nil)
-		if err != nil {
-			return nil, err
-		}
-		response, err := adapter.client.Do(request)
-		if err != nil {
-			lastErr = err
-			continue
-		}
-
-		var payload osrmMatchResponse
-		decodeErr := func() error {
-			defer func() { _ = response.Body.Close() }()
-			if response.StatusCode < 200 || response.StatusCode >= 300 {
-				return fmt.Errorf("osrm match API returned status %d", response.StatusCode)
-			}
-			if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
-				return err
-			}
-			return nil
-		}()
-		if decodeErr != nil {
-			lastErr = decodeErr
-			continue
-		}
-		if strings.ToLower(payload.Code) != "ok" {
-			if strings.EqualFold(payload.Code, "nomatch") {
-				lastErr = fmt.Errorf("osrm match API returned code %s", payload.Code)
-				continue
-			}
-			if payload.Message == "" {
-				return nil, fmt.Errorf("osrm match API returned code %s", payload.Code)
-			}
-			return nil, fmt.Errorf("osrm match API returned code %s: %s", payload.Code, payload.Message)
-		}
-
-		routes := make([]osrmRoute, 0, len(payload.Matchings))
-		for _, route := range payload.Matchings {
-			if points, ok := osrmRouteToPreviewPoints(route); ok && len(points) >= 2 && route.Distance > 0 {
-				routes = append(routes, route)
-			}
-		}
-		if len(routes) > 0 {
-			return routes, nil
-		}
-		lastErr = fmt.Errorf("osrm match API returned no valid matchings")
-	}
-	if lastErr != nil {
-		return nil, lastErr
-	}
-	return nil, fmt.Errorf("osrm match API returned no route")
+	return adapter.transport().match(profile, shape)
 }
 
 func (adapter *OSMRoutingAdapter) fetchOSRMShapeSegmentStitchedRoutes(
@@ -1776,44 +1657,7 @@ func (adapter *OSMRoutingAdapter) snapToNearestRoutablePoint(
 	profile string,
 	point routesDomain.Coordinates,
 ) (routesDomain.Coordinates, float64, bool) {
-	url := fmt.Sprintf(
-		"%s/nearest/v1/%s/%.6f,%.6f?number=1",
-		adapter.baseURL,
-		profile,
-		point.Lng,
-		point.Lat,
-	)
-
-	request, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return routesDomain.Coordinates{}, 0.0, false
-	}
-	response, err := adapter.client.Do(request)
-	if err != nil {
-		return routesDomain.Coordinates{}, 0.0, false
-	}
-	defer func() { _ = response.Body.Close() }()
-
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return routesDomain.Coordinates{}, 0.0, false
-	}
-
-	var payload osrmNearestResponse
-	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
-		return routesDomain.Coordinates{}, 0.0, false
-	}
-	if strings.ToLower(strings.TrimSpace(payload.Code)) != "ok" || len(payload.Waypoints) == 0 {
-		return routesDomain.Coordinates{}, 0.0, false
-	}
-	location := payload.Waypoints[0].Location
-	if len(location) < 2 {
-		return routesDomain.Coordinates{}, 0.0, false
-	}
-	snapped := routesDomain.Coordinates{
-		Lat: location[1],
-		Lng: location[0],
-	}
-	return snapped, math.Max(0.0, payload.Waypoints[0].Distance), true
+	return adapter.transport().nearest(profile, point)
 }
 
 func (adapter *OSMRoutingAdapter) toRouteCandidate(

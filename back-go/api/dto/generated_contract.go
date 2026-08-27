@@ -38,6 +38,77 @@ type ContractActivitySummary struct {
 	Distance *float64 `json:"distance,omitempty"`
 }
 
+type ContractRouteGenerationScore struct {
+	Global      float64 `json:"global"`
+	Distance    float64 `json:"distance"`
+	Elevation   float64 `json:"elevation"`
+	Duration    float64 `json:"duration"`
+	Direction   float64 `json:"direction"`
+	Shape       float64 `json:"shape"`
+	RoadFitness float64 `json:"roadFitness"`
+}
+
+type ContractGeneratedRoute struct {
+	RouteId              string                       `json:"routeId"`
+	Title                string                       `json:"title"`
+	VariantType          string                       `json:"variantType"`
+	RouteType            *string                      `json:"routeType,omitempty"`
+	DistanceKm           float64                      `json:"distanceKm"`
+	ElevationGainM       float64                      `json:"elevationGainM"`
+	DurationSec          int64                        `json:"durationSec"`
+	EstimatedDurationSec int64                        `json:"estimatedDurationSec"`
+	Score                ContractRouteGenerationScore `json:"score"`
+	Reasons              []string                     `json:"reasons"`
+	PreviewLatLng        [][]float64                  `json:"previewLatLng"`
+	Start                *ContractRouteCoordinate     `json:"start,omitempty"`
+	End                  *ContractRouteCoordinate     `json:"end,omitempty"`
+	ActivityId           *int64                       `json:"activityId,omitempty"`
+	IsRoadGraphGenerated bool                         `json:"isRoadGraphGenerated"`
+}
+
+type ContractGenerateRoutesResponse struct {
+	Routes      []ContractGeneratedRoute            `json:"routes"`
+	Diagnostics []ContractRouteGenerationDiagnostic `json:"diagnostics,omitempty"`
+}
+
+type ContractAthleteFtpSetting struct {
+	EffectiveFrom string `json:"effectiveFrom"`
+	Ftp           int64  `json:"ftp"`
+}
+
+type ContractAthletePerformanceSettings struct {
+	FtpHistory []ContractAthleteFtpSetting `json:"ftpHistory"`
+	WeightKg   *float64                    `json:"weightKg,omitempty"`
+}
+
+type ContractDataQualityIssue struct {
+	Id                string  `json:"id"`
+	Source            string  `json:"source"`
+	ActivityId        *int64  `json:"activityId,omitempty"`
+	ActivityName      *string `json:"activityName,omitempty"`
+	Severity          string  `json:"severity"`
+	Category          string  `json:"category"`
+	Field             string  `json:"field"`
+	Message           string  `json:"message"`
+	ExcludedFromStats *bool   `json:"excludedFromStats,omitempty"`
+}
+
+type ContractDataQualitySummary struct {
+	Status              string  `json:"status"`
+	Provider            *string `json:"provider,omitempty"`
+	IssueCount          int64   `json:"issueCount"`
+	ImpactedActivities  int64   `json:"impactedActivities"`
+	ExcludedActivities  int64   `json:"excludedActivities"`
+	SafeCorrectionCount *int64  `json:"safeCorrectionCount,omitempty"`
+	ManualReviewCount   *int64  `json:"manualReviewCount,omitempty"`
+}
+
+type ContractDataQualityReport struct {
+	GeneratedAt *string                    `json:"generatedAt,omitempty"`
+	Summary     ContractDataQualitySummary `json:"summary"`
+	Issues      []ContractDataQualityIssue `json:"issues"`
+}
+
 type ContractOperation struct {
 	Method string
 	Path   string
