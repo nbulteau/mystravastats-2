@@ -15,6 +15,11 @@ All notable changes to My Activity Stats are documented in this file.
 
 ### Changed
 
+- Synchronized the Go, Kotlin, and Vue README files with the canonical setup,
+  architecture, source-mode, contract, and validation documentation.
+- Split the largest Go/Kotlin routing adapters and Vue screens into focused
+  shape, scoring, constraint, formatting, power-analysis, presentation,
+  geolocation, component, and stylesheet modules.
 - Route coordinates and route-generation diagnostics now derive from shared generated contract schemas.
 - Developer checks and documentation now describe the same commands run by CI.
 - Frontend API calls now resolve typed operation identifiers through a single URL and HTTP boundary.

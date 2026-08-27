@@ -13,9 +13,19 @@ The module-size baseline is a ratchet, not a target. When a module is reduced, l
 
 ## Decomposition sequence
 
-1. **Route engines:** extract graph access, candidate exploration, scoring, geometry validation and diagnostics from the Go and Kotlin routing adapters. Preserve shared fixtures and parity at every extraction.
-2. **Diagnostics UI:** split source configuration, runtime health, data-quality corrections and maintenance actions into feature components and composables.
-3. **Activity and route views:** extract map lifecycle, charts, comparison logic, GPS Art drawing and route editing behind typed feature services.
+1. **Route engines:** shape parsing, shape scoring, constraints, surface scoring,
+   history bias, profile detection and shared transport models now live in
+   focused Go/Kotlin modules. Continue by extracting OSRM request orchestration
+   and candidate exploration from the remaining adapters. Preserve shared
+   fixtures and parity at every extraction.
+2. **Diagnostics UI:** formatting and normalization now live behind a typed
+   service and presentation styles are isolated. Continue by splitting source
+   configuration, runtime health and data-quality correction workflows into
+   feature components and composables.
+3. **Activity and route views:** activity power analysis, GPS Art presentation,
+   browser geolocation, the activity hero and view styles have been extracted.
+   Continue with map lifecycle, chart lifecycle, route editing and the remaining
+   comparison panels.
 4. **Backend conversion layers:** group DTO converters by capability and keep controllers limited to validation, use-case invocation and response mapping.
 5. **Remaining providers:** isolate parsing, storage and enrichment so FIT, GPX, Strava and composite providers depend on small ports.
 

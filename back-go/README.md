@@ -1,187 +1,79 @@
-## Back-Go
+# Go backend
 
-My Activity Stats Backend API - A Golang backend service for Strava statistics and activity analysis built with Clean Architecture principles.
+The Go backend is the packaged local-binary runtime for My Activity Stats. It
+serves the public API and, in standalone builds, the compiled Vue application.
+Go and Kotlin are peer implementations of the canonical HTTP contract; shared
+route-generation behavior and diagnostics must remain aligned.
 
-## Architecture Overview
+## Requirements
 
-Back-Go follows a **Clean Architecture** pattern with clear separation of concerns. The project is organized into layered modules, each with its own domain, application (use cases), and infrastructure layers.
+- Go version declared by [`go.mod`](./go.mod)
+- Node.js version declared by [`../front-vue/package.json`](../front-vue/package.json)
+  when rebuilding embedded frontend assets
+- optional local OSRM instance for GPS Art generation
 
-### Architecture Diagram
+Run `./scripts/check-toolchains.sh` from the repository root to check the local
+toolchains.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                           HTTP Server                            │
-│              (Port 8080 + CORS Support + Static Files)          │
-└────────────┬────────────────────────────────────────────────────┘
-             │
-┌────────────▼────────────────────────────────────────────────────┐
-│                    API Layer (api/)                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │   Router     │  │  Handlers    │  │  Container   │          │
-│  │  (routes)    │  │  (endpoints) │  │  (wiring)    │          │
-│  └──────────────┘  └──────────────┘  └──────────────┘          │
-└────────────┬────────────────────────────────────────────────────┘
-             │
-┌────────────▼────────────────────────────────────────────────────┐
-│              Internal Modules (Clean Architecture)               │
-│                                                                   │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │  Module (e.g., Activities, Athlete, Statistics, etc.)  │   │
-│  │                                                          │   │
-│  │  ┌──────────────────────────────────────────────────┐  │   │
-│  │  │     Application Layer                            │  │   │
-│  │  │  ├─ Use Cases (business logic)                   │  │   │
-│  │  │  └─ Ports (interfaces)                           │  │   │
-│  │  └──────────────────────────────────────────────────┘  │   │
-│  │                      △                                  │   │
-│  │                      │                                  │   │
-│  │  ┌──────────────────────────────────────────────────┐  │   │
-│  │  │     Domain Layer                                 │  │   │
-│  │  │  ├─ Business Rules                               │  │   │
-│  │  │  └─ Domain Models                                │  │   │
-│  │  └──────────────────────────────────────────────────┘  │   │
-│  │                      △                                  │   │
-│  │                      │                                  │   │
-│  │  ┌──────────────────────────────────────────────────┐  │   │
-│  │  │     Infrastructure Layer                         │  │   │
-│  │  │  ├─ Service Adapters (Strava API)                │  │   │
-│  │  │  └─ External Dependencies                        │  │   │
-│  │  └──────────────────────────────────────────────────┘  │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                   │
-│  Available Modules:                                              │
-│  • Activities - Activity retrieval and export (CSV/GPX)          │
-│  • Athlete - Athlete profile information                         │
-│  • Statistics - Performance metrics & personal records           │
-│  • Badges - Achievement system                                  │
-│  • Charts - Data visualization & trends                          │
-│  • Dashboard - Cumulative data & heat maps                       │
-│  • Routes - Route exploration & generation                       │
-│  • Segments - Segment analysis & progression                     │
-│  • HeartRate - HR zone analysis & configuration                  │
-│  • Health - System health monitoring                             │
-└─────────────────────────────────────────────────────────────────┘
-             │
-┌────────────▼────────────────────────────────────────────────────┐
-│              External Services & Storage                         │
-│  ┌──────────────────────┐  ┌──────────────────────────────────┐ │
-│  │   Strava API         │  │  Cache Storage (Memory/Disk)     │ │
-│  │  (Activity Data)     │  │  (Configuration)                 │ │
-│  └──────────────────────┘  └──────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────────┘
+## Run locally
+
+```sh
+go run .
 ```
 
-### Key Components
+The server binds to `localhost:8080` by default. Useful entry points are:
 
-- **API Layer** (`api/`): HTTP handlers, routing, and manual dependency wiring (singleton `container` that instantiates and connects use cases to their adapters)
-- **Internal Modules** (`internal/`): Feature-specific modules following clean architecture
-  - Each module has: `application/` (use cases), `domain/` (business logic), `infrastructure/` (external adapters)
-- **Domain** (`domain/`): Cross-cutting domain logic (statistics, badges)
-- **Adapters** (`adapters/`): External service integrations
+- application: <http://localhost:8080/>
+- health and diagnostics: <http://localhost:8080/api/health/details>
+- Swagger UI: <http://localhost:8080/swagger/index.html>
 
-### Data Flow
+Use `SERVER_HOST`, `PORT`, or the `-host` and `-port` flags to change the
+listener. Keep the default loopback binding unless the deployment is protected.
 
-1. **Request** → HTTP Handler (Gorilla Mux)
-2. **Handler** → Container (resolve Use Case via singleton wiring)
-3. **Use Case** → Domain Logic / Application Service
-4. **Service** → Infrastructure Adapter (Strava API)
-5. **Response** → DTO → JSON
+## Activity sources
 
-### Technology Stack
+The backend supports Strava and its local cache (`STRAVA_CACHE_PATH`), FIT
+directories (`FIT_FILES_PATH`), GPX directories (`GPX_FILES_PATH`), and
+automatic composite mode when two or more sources are explicitly configured.
+With no explicit source, the default is the local `strava-cache` directory.
 
-- **Framework**: Gorilla Mux (HTTP routing)
-- **Documentation**: Swagger (Swag)
-- **CORS**: rs/cors
-- **Language**: Go 1.26.5
+Source configuration, preview, synchronization, and Strava OAuth enrollment
+are also available from the Diagnostics screen. See
+[`../docs/data-sources/fit-gpx.md`](../docs/data-sources/fit-gpx.md) and
+[`../docs/data-sources/strava-oauth.md`](../docs/data-sources/strava-oauth.md).
 
----
+## Architecture
 
-## Running With Local Activity Files
+Feature modules under `internal/` use application ports, domain types, and
+infrastructure adapters. HTTP handlers and dependency wiring live in `api/`.
+The canonical API inventory is [`../docs/api/openapi.json`](../docs/api/openapi.json).
 
-The Go backend can run directly from local FIT or GPX files, similarly to Kotlin.
+Architecture decisions and enforced boundaries are documented in:
 
-Expected directory layout:
+- [`../docs/architecture/overview.md`](../docs/architecture/overview.md)
+- [`../docs/architecture/module-boundaries.md`](../docs/architecture/module-boundaries.md)
+- [`../docs/architecture/backend-capability-matrix.md`](../docs/architecture/backend-capability-matrix.md)
 
-```text
-fit-nicolas/
-  2026/
-    activity-1.fit
-    activity-2.fit
-  2025/
-    activity-3.fit
+## Validate and build
+
+```sh
+go test ./...
+go vet ./...
+../scripts/check-go-coverage.sh
 ```
 
-For FIT, set:
+Before building a standalone binary directly, rebuild and embed the frontend:
 
-```shell
-export FIT_FILES_PATH=/absolute/path/to/fit-nicolas
+```sh
+../scripts/sync-frontend-assets.sh go
+go build .
 ```
 
-For GPX, use the equivalent year-based directory layout and set:
+For Docker development, run from the repository root:
 
-```shell
-export GPX_FILES_PATH=/absolute/path/to/gpx-files
+```sh
+docker compose -f docker-compose-go.yml up --build
 ```
 
-Then start the backend as usual.
-
-- With exactly one explicitly configured source (`STRAVA_CACHE_PATH`,
-  `FIT_FILES_PATH`, or `GPX_FILES_PATH`), the backend uses that provider
-  exclusively.
-- With two or more explicitly configured sources, the backend uses the
-  composite provider automatically.
-- With no explicit local source, the backend uses the default Strava provider
-  and `strava-cache`.
-
----
-
-## Quick API Links
-### athlete
-http://localhost:8080/api/athletes/me
-
-### activities
-http://localhost:8080/api/activities
-
-http://localhost:8080/api/activities?year=2025&activityType=VirtualRide
-
-### statistics
-
-http://localhost:8080/api/statistics
-
-http://localhost:8080/api/statistics?year=2025&activityType=VirtualRide
-
-http://localhost:8080/api/statistics/personal-records-timeline?year=2025&activityType=Ride
-
-### charts
-
-http://localhost:8080/api/charts/distance-by-period?activityType=Ride&year=2025&period=MONTHS
-
-http://localhost:8080/api/charts/elevation-by-period?activityType=Ride&year=2025&period=MONTHS
-
-http://localhost:8080/api/charts/average-speed-by-period?activityType=Ride&year=2025&period=MONTHS
-
-### dashboard
-
-http://localhost:8080/api/dashboard/cumulative-data-per-year?activityType=Ride&year=2025
-
-## Swagger
-
-```shell
-swag init
-```
-
-### swagger-ui
-http://localhost:8080/swagger/index.html
-
-### Update dependencies
-
-```shell
-go get -u ./...
-go mod tidy
-```
-
-### Run tests
-
-```shell
-go test -v ./...
-```
+See [`../docs/getting-started/developer-setup.md`](../docs/getting-started/developer-setup.md)
+for the complete validation and packaging workflow.

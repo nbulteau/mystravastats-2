@@ -1,131 +1,76 @@
-# mystravastats-2
+# Kotlin backend
 
-## Launch mystravastats backend
+The Kotlin/Spring Boot backend is a supported implementation of the My Activity
+Stats API and a parity target for the packaged Go runtime. Public endpoints,
+route-generation behavior, and diagnostics must remain aligned with Go.
 
-JDK 25 is needed to run mystravastats.
+## Requirements
 
-```shell
-sdk list java
-sdk install java <latest 25.x-tem identifier>
+- Java 25
+- the checked-in Gradle wrapper
+- Node.js from [`../front-vue/package.json`](../front-vue/package.json) only when
+  building a standalone jar with frontend assets
+- optional local OSRM instance for GPS Art generation
 
-git clone https://github.com/nbulteau/mystravastats.git
-cd mystravastats
-./gradlew bootRun    
+Run `./scripts/check-toolchains.sh` from the repository root to check the local
+toolchains.
+
+## Run locally
+
+```sh
+./gradlew bootRun
 ```
 
-Will download activities from 2010 to now from Strava, then display statistics and charts.
+The backend binds to `127.0.0.1:8080` by default. Useful endpoints are:
 
-### Launch mystravastats using docker
+- health: <http://localhost:8080/api/actuator/health>
+- runtime diagnostics: <http://localhost:8080/api/health/details>
+- Swagger UI: <http://localhost:8080/api/swagger-ui/index.html>
 
-#### build
+Set `SERVER_ADDRESS` or `SERVER_PORT` when a different listener is required.
+Keep the default loopback binding unless the deployment is protected.
 
-First build the docker image.
+## Activity sources
 
-```shell
-git clone https://github.com/nbulteau/mystravastats.git
-cd mystravastats
+The backend supports Strava, local FIT and GPX directories, and automatic
+composite mode. It shares `STRAVA_CACHE_PATH`, `FIT_FILES_PATH`, and
+`GPX_FILES_PATH` with Go. Source preview, persistence, synchronization, and
+Strava OAuth enrollment are available from Diagnostics. SRTM elevation
+enrichment remains available for local activities.
+
+See [`../docs/data-sources/fit-gpx.md`](../docs/data-sources/fit-gpx.md),
+[`../docs/data-sources/strava-oauth.md`](../docs/data-sources/strava-oauth.md), and
+[`../docs/architecture/runtime-config.md`](../docs/architecture/runtime-config.md).
+
+## Architecture and contract
+
+Spring controllers and configuration live under `api/`; external repositories
+and Strava/SRTM integrations under `adapters/`; business types, ports, and
+services under `domain/`. The canonical shared API inventory is
+[`../docs/api/openapi.json`](../docs/api/openapi.json).
+
+- [`../docs/architecture/decisions/0001-dual-backend-contract.md`](../docs/architecture/decisions/0001-dual-backend-contract.md)
+- [`../docs/architecture/backend-capability-matrix.md`](../docs/architecture/backend-capability-matrix.md)
+- [`../docs/architecture/module-boundaries.md`](../docs/architecture/module-boundaries.md)
+
+## Validate and package
+
+```sh
+./gradlew check
+./gradlew build
 ```
 
-```shell
-docker buildx build -t mystravastats:latest .
+To create a standalone Spring Boot jar that serves the Vue application:
+
+```sh
+./gradlew bootJarWithFrontend
 ```
 
-#### For mac
+For Docker development, run from the repository root:
 
-```shell
-docker buildx build --platform linux/arm64 -t mystravastats:latest .
+```sh
+docker compose -f docker-compose-kotlin.yml up --build
 ```
 
-#### launch mystravastats using docker
-
-```shell
-docker run --rm -d -p 8080:8080 -p 8090:8090 -v [path to the strava cache]/strava-cache:/app/strava-cache --name mystravastats mystravastats:latest
-```
-
-```shell
-docker run --rm --platform linux/arm64 -d -p 8080:8080 -p 8090:8090 -v [path to the strava cache]/strava-cache:/app/strava-cache --name mystravastats mystravastats:latest
-```
-
-### Using GPX files
-
-mystravastats can work without Strava using the GPX files. Put GPX files in a directory structure 'gpx-xxxxx':
-
-```shell
-gpx-nicolas
-   |- 2022
-     |- XCVF234.gpx
-     |- XCVF235.gpx
-   |- 2021 
-    |- XCVF236.gpx
-``` 
-
-Launch mystravastats with providing the GPX repository.
-
-```shell
-export GPX_FILES_PATH=[path to the GPX directory]
-docker compose up back front-vue
-```
-
-### Using FIT files
-
-mystravastats can work without Strava using the FIT files. Put FIT files in a directory structure 'fit-xxxxx':
-
-```shell
-fit-nicolas
-   |- 2022
-     |- XCVF234.FIT
-     |- XCVF235.FIT
-   |- 2021
-     |- XCVF236.FIT
-```
-
-Launch mystravastats with providing the FIT repository.
-
-```shell
-export FIT_FILES_PATH=[path to the FIT directory]
-docker compose up back front-vue
-```
-
-### Using SRTM Altitude Data
-
-Here’s a breakdown of how to utilize STRM files for GPX or FIT files without altitude data
-
-STRM files are used to store elevation data, specifically for Shuttle Radar Topography Mission (SRTM) data. 
-SRTM data is a digital elevation model (DEM) created from radar altimetry measurements. 
-It provides topographic information with a resolution of 30 meters (SRTM3) or 1 arc-second (approximately 30 meters) for global coverage. 
-The data is stored in HGT (height) files, which contain elevation values in meters relative to the WGS84 datum.
-
-Download the SRTM files from the following link: <https://dwtkns.com/srtm30m/>
-
-create a directory 'srtm30m' in the root directory of the project and put the HGT files in it.
-
-```shell
-srtm30m
-  |- N47E000.hgt
-  |- N47E001.hgt
-  |- N47E002.hgt 
-  |- N47E003.hgt    
-```
-
-## Development
-
-### Update the gradle wrapper to the latest version
-```shell
-./gradlew wrapper --gradle-version latest   
-```
-
-### Swagger
-
-<http://localhost:8080/api/swagger-ui/index.html>
-
-### Actuator
-
-<http://localhost:8080/api/actuator>
-
-### Health check
-
-<http://localhost:8080/api/actuator/health>
-
-### Memory usage: get the max heap memory
-
-<http://localhost:8080/api/actuator/metrics/jvm.memory.max?tag=area:heap>
+See [`../docs/getting-started/developer-setup.md`](../docs/getting-started/developer-setup.md)
+for the complete workflow.
