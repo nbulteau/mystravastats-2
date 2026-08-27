@@ -1,127 +1,138 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
-    branches:
-      - main
+  push:
+    branches: [main]
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  toolchains:
-    name: Toolchain declarations
+  contracts-and-catalog:
+    name: Contracts and catalog
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26.5.0
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: back-go/go.mod
+          cache: false
+      - name: Check generated OpenAPI contracts
+        run: node scripts/generate-api-contracts.mjs --check
+      - name: Audit climb catalog parity
+        run: python3 scripts/audit-climb-catalog.py --check
 
-      - name: Check manifest/Docker/CI alignment
-        run: bash scripts/check-toolchains.sh
-
-  back-go:
-    name: Back Go (fmt + test)
+  go:
+    name: Go backend
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: back-go
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v7
         with:
-          node-version: "26.5.0"
-          cache: npm
-          cache-dependency-path: front-vue/package-lock.json
-
-      - name: Build front-vue
-        working-directory: front-vue
-        env:
-          VITE_CJS_TRACE: "false"
-          NODE_OPTIONS: --no-deprecation
-        run: |
-          npm ci
-          npm run build-only
-          ../scripts/sync-frontend-assets.sh go --skip-build
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.26.5"
+          go-version-file: back-go/go.mod
           cache-dependency-path: back-go/go.sum
+      - name: Vet
+        working-directory: back-go
+        run: go vet ./...
+      - name: Test with coverage threshold
+        run: ./scripts/check-go-coverage.sh
+      - name: Build
+        working-directory: back-go
+        run: go build ./...
 
-      - name: Check gofmt
-        run: |
-          unformatted="$(gofmt -l .)"
-          if [[ -n "$unformatted" ]]; then
-            echo "These files are not gofmt-formatted:"
-            echo "$unformatted"
-            exit 1
-          fi
-
-      - name: Run Go tests
-        run: go test ./...
-
-  back-kotlin:
-    name: Back Kotlin (test)
+  kotlin:
+    name: Kotlin backend
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: back-kotlin
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "25"
           cache: gradle
+      - name: Test, coverage and build
+        working-directory: back-kotlin
+        run: ./gradlew check
 
-      - name: Run Kotlin tests
-        run: ./gradlew --no-daemon test
-
-  front-vue:
-    name: Front Vue (lint + type-check + build)
+  frontend:
+    name: Vue frontend
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: front-vue
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: "26.5.0"
+          node-version: 26.5.0
           cache: npm
           cache-dependency-path: front-vue/package-lock.json
-
       - name: Install dependencies
+        working-directory: front-vue
         run: npm ci
-
-      - name: Run lint
-        run: npx eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix
-
-      - name: Run type-check
+      - name: Lint
+        working-directory: front-vue
+        run: npm run lint:check
+      - name: Type check
+        working-directory: front-vue
         run: npm run type-check
+      - name: Unit tests and coverage threshold
+        working-directory: front-vue
+        run: npm run test:coverage
+      - name: Production build and bundle budgets
+        working-directory: front-vue
+        run: npm run build:check
 
-      - name: Run unit tests
-        run: npm run test:unit
+  e2e:
+    name: Browser journeys
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26.5.0
+          cache: npm
+          cache-dependency-path: front-vue/package-lock.json
+      - name: Install dependencies
+        working-directory: front-vue
+        run: npm ci
+      - name: Install Chromium
+        working-directory: front-vue
+        run: npx playwright install --with-deps chromium
+      - name: Run critical browser journeys
+        working-directory: front-vue
+        run: npm run test:e2e
 
-      - name: Build
-        env:
-          VITE_CJS_TRACE: "false"
-          NODE_OPTIONS: --no-deprecation
-        run: npm run build-only
+  docker:
+    name: Docker image (${{ matrix.name }})
+    needs: [contracts-and-catalog, go, kotlin, frontend, e2e]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: go
+            context: .
+            file: back-go/Dockerfile
+          - name: kotlin
+            context: back-kotlin
+            file: back-kotlin/Dockerfile
+          - name: frontend
+            context: front-vue
+            file: front-vue/Dockerfile
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: false
+          tags: mystravastats-${{ matrix.name }}:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

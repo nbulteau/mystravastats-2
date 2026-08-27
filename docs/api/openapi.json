@@ -1,0 +1,82 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "My Activity Stats API",
+    "version": "1.4.0-draft",
+    "description": "Canonical cross-backend HTTP contract. Every public Go/Kotlin endpoint must be declared here."
+  },
+  "servers": [{"url": "/"}],
+  "paths": {
+    "/api/health/details": {"get": {"operationId": "getHealthDetails", "tags": ["health"], "responses": {"200": {"description": "Runtime and source health details", "content": {"application/json": {"schema": {"type": "object", "additionalProperties": true}}}}}}},
+    "/api/local-data/backup": {"get": {"operationId": "getLocalDataBackup", "tags": ["local-data"], "responses": {"200": {"description": "Local data backup", "content": {"application/zip": {"schema": {"type": "string", "format": "binary"}}}}}}},
+    "/api/local-data/restore": {"post": {"operationId": "restoreLocalData", "tags": ["local-data"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/data-quality/issues": {"get": {"operationId": "getDataQualityIssues", "tags": ["data-quality"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/data-quality/exclusions/{activityId}": {"parameters": [{"$ref": "#/components/parameters/ActivityId"}], "put": {"operationId": "excludeActivityFromStatistics", "tags": ["data-quality"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}, "delete": {"operationId": "includeActivityInStatistics", "tags": ["data-quality"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/data-quality/corrections/preview/{issueId}": {"parameters": [{"$ref": "#/components/parameters/IssueId"}], "get": {"operationId": "previewDataQualityCorrection", "tags": ["data-quality"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/data-quality/corrections/safe/preview": {"get": {"operationId": "previewSafeDataQualityCorrections", "tags": ["data-quality"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/data-quality/corrections/safe": {"post": {"operationId": "applySafeDataQualityCorrections", "tags": ["data-quality"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/data-quality/corrections/{issueId}": {"parameters": [{"$ref": "#/components/parameters/IssueId"}], "post": {"operationId": "applyDataQualityCorrection", "tags": ["data-quality"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/data-quality/corrections/{correctionId}": {"parameters": [{"$ref": "#/components/parameters/CorrectionId"}], "delete": {"operationId": "revertDataQualityCorrection", "tags": ["data-quality"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/source-modes/preview": {"post": {"operationId": "previewSourceMode", "tags": ["sources"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/source-modes/apply": {"post": {"operationId": "applySourceMode", "tags": ["sources"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/source-modes/strava/oauth/start": {"post": {"operationId": "startStravaOAuth", "tags": ["sources"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/source-modes/strava/oauth/callback": {"get": {"operationId": "completeStravaOAuth", "tags": ["sources"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/source-sync/synchronize": {"post": {"operationId": "synchronizeSources", "tags": ["sources"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/athletes/me": {"get": {"operationId": "getCurrentAthlete", "tags": ["athlete"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/athletes/me/ftp-estimate": {"get": {"operationId": "getFtpEstimate", "tags": ["athlete"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/athletes/me/performance-settings": {"get": {"operationId": "getPerformanceSettings", "tags": ["athlete"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}, "put": {"operationId": "updatePerformanceSettings", "tags": ["athlete"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/athletes/me/heart-rate-zones": {"get": {"operationId": "getHeartRateZones", "tags": ["athlete"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}, "put": {"operationId": "updateHeartRateZones", "tags": ["athlete"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/activities": {"get": {"operationId": "listActivities", "tags": ["activities"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/activities/csv": {"get": {"operationId": "exportActivitiesCsv", "tags": ["activities"], "responses": {"200": {"description": "CSV export", "content": {"text/csv": {"schema": {"type": "string"}}}}}}},
+    "/api/activities/{activityId}": {"parameters": [{"$ref": "#/components/parameters/ActivityId"}], "get": {"operationId": "getActivity", "tags": ["activities"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/statistics": {"get": {"operationId": "getStatistics", "tags": ["statistics"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/statistics/personal-records-timeline": {"get": {"operationId": "getPersonalRecordsTimeline", "tags": ["statistics"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/statistics/heart-rate-zones": {"get": {"operationId": "getHeartRateZoneAnalysis", "tags": ["statistics"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/statistics/segment-climb-progression": {"get": {"operationId": "getSegmentClimbProgression", "tags": ["statistics"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/gear-analysis": {"get": {"operationId": "getGearAnalysis", "tags": ["gear"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/gear-analysis/maintenance": {"post": {"operationId": "createGearMaintenance", "tags": ["gear"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/gear-analysis/maintenance/{recordId}": {"parameters": [{"$ref": "#/components/parameters/RecordId"}], "delete": {"operationId": "deleteGearMaintenance", "tags": ["gear"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/segments": {"get": {"operationId": "listSegments", "tags": ["segments"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/segments/{segmentId}/efforts": {"parameters": [{"$ref": "#/components/parameters/SegmentId"}], "get": {"operationId": "listSegmentEfforts", "tags": ["segments"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/segments/{segmentId}/summary": {"parameters": [{"$ref": "#/components/parameters/SegmentId"}], "get": {"operationId": "getSegmentSummary", "tags": ["segments"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/routes/recommendations": {"get": {"operationId": "getRouteRecommendations", "tags": ["routes"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/routes/recommendations/gpx": {"get": {"operationId": "exportRouteRecommendationGpx", "tags": ["routes"], "responses": {"200": {"$ref": "#/components/responses/GpxSuccess"}}}},
+    "/api/routes/generate/shape": {"post": {"operationId": "generateShapeRoutes", "tags": ["routes"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/routes/{routeId}/edit": {"parameters": [{"$ref": "#/components/parameters/RouteId"}], "post": {"operationId": "editGeneratedRoute", "tags": ["routes"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/routes/{routeId}/gpx": {"parameters": [{"$ref": "#/components/parameters/RouteId"}], "get": {"operationId": "exportGeneratedRouteGpx", "tags": ["routes"], "responses": {"200": {"$ref": "#/components/responses/GpxSuccess"}}}},
+    "/api/routing/osrm/start": {"post": {"operationId": "startOsrm", "tags": ["routing"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/maps/gpx": {"get": {"operationId": "getMapTracks", "tags": ["maps"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/maps/passages": {"get": {"operationId": "getMapPassages", "tags": ["maps"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/charts/distance-by-period": {"get": {"operationId": "getDistanceChart", "tags": ["charts"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/charts/elevation-by-period": {"get": {"operationId": "getElevationChart", "tags": ["charts"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/charts/average-speed-by-period": {"get": {"operationId": "getAverageSpeedChart", "tags": ["charts"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/charts/average-cadence-by-period": {"get": {"operationId": "getAverageCadenceChart", "tags": ["charts"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/dashboard": {"get": {"operationId": "getDashboard", "tags": ["dashboard"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/dashboard/cumulative-data-per-year": {"get": {"operationId": "getCumulativeData", "tags": ["dashboard"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/dashboard/eddington-number": {"get": {"operationId": "getEddingtonNumber", "tags": ["dashboard"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/dashboard/activity-heatmap": {"get": {"operationId": "getActivityHeatmap", "tags": ["dashboard"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
+    "/api/badges": {"get": {"operationId": "getBadges", "tags": ["badges"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}}
+  },
+  "components": {
+    "parameters": {
+      "ActivityId": {"name": "activityId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}},
+      "IssueId": {"name": "issueId", "in": "path", "required": true, "schema": {"type": "string"}},
+      "CorrectionId": {"name": "correctionId", "in": "path", "required": true, "schema": {"type": "string"}},
+      "RecordId": {"name": "recordId", "in": "path", "required": true, "schema": {"type": "string"}},
+      "SegmentId": {"name": "segmentId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}},
+      "RouteId": {"name": "routeId", "in": "path", "required": true, "schema": {"type": "string"}}
+    },
+    "responses": {
+      "JsonSuccess": {"description": "Successful JSON response", "content": {"application/json": {"schema": {"type": "object", "additionalProperties": true}}}},
+      "GpxSuccess": {"description": "GPX document", "content": {"application/gpx+xml": {"schema": {"type": "string"}}}}
+    },
+    "schemas": {
+      "ApiError": {"type": "object", "required": ["message", "code"], "properties": {"message": {"type": "string"}, "code": {"type": "integer"}, "description": {"type": "string"}, "path": {"type": "string", "nullable": true}, "requestId": {"type": "string", "nullable": true}}},
+      "RouteCoordinate": {"type": "object", "required": ["lat", "lng"], "properties": {"lat": {"type": "number"}, "lng": {"type": "number"}}},
+      "RouteGenerationDiagnostic": {"type": "object", "required": ["code", "message"], "properties": {"code": {"type": "string"}, "message": {"type": "string"}}},
+      "SourceModeSelection": {"type": "object", "required": ["mode"], "properties": {"mode": {"type": "string", "enum": ["STRAVA", "FIT", "GPX"]}, "path": {"type": "string", "nullable": true}}},
+      "OperationStatus": {"type": "object", "required": ["success"], "properties": {"success": {"type": "boolean"}, "message": {"type": "string", "nullable": true}}},
+      "ActivitySummary": {"type": "object", "required": ["id", "name", "type"], "properties": {"id": {"type": "integer", "format": "int64"}, "name": {"type": "string"}, "type": {"type": "string"}, "date": {"type": "string", "nullable": true}, "distance": {"type": "number", "nullable": true}}}
+    }
+  }
+}

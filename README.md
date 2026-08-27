@@ -8,6 +8,7 @@ Start with the documentation index:
 - [Quick start](./docs/getting-started/quick-start.md)
 - [Strava OAuth setup](./docs/data-sources/strava-oauth.md)
 - [Developer setup](./docs/getting-started/developer-setup.md)
+- [Changelog](./CHANGELOG.md)
 
 ## Strava Enrollment
 

@@ -23,6 +23,8 @@ mystravastats*
 .gradle-home/
 .gradle-home-macos/
 test-results/
+playwright-report/
+coverage.out
 .idea/
 node_modules/
 /osm/

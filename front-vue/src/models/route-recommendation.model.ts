@@ -14,10 +14,7 @@ export type ShapeInputType =
   | "gpx"
   | "svg";
 
-export interface RouteCoordinate {
-  lat: number;
-  lng: number;
-}
+export type RouteCoordinate = ContractRouteCoordinate;
 
 export interface RouteGenerationScore {
   global: number;
@@ -63,7 +60,8 @@ export interface EditGeneratedRouteResponse {
   diagnostics?: RouteGenerationDiagnostic[];
 }
 
-export interface RouteGenerationDiagnostic {
-  code: string;
-  message: string;
-}
+export type RouteGenerationDiagnostic = ContractRouteGenerationDiagnostic;
+import type {
+  RouteCoordinate as ContractRouteCoordinate,
+  RouteGenerationDiagnostic as ContractRouteGenerationDiagnostic,
+} from "@/generated/api-contract";

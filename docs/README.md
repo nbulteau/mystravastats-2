@@ -18,6 +18,10 @@ This directory is organized by intent: start here, then jump to the page matchin
 - [Runtime Configuration](./architecture/runtime-config.md) - environment variables exposed by diagnostics.
 - [Cache Layout](./architecture/cache-layout.md) - on-disk Strava cache structure.
 
+## API Contract
+
+- [Canonical OpenAPI contract](./api/README.md) - all public endpoints and generated cross-backend contract types.
+
 ## Data Sources
 
 - [Strava OAuth Setup](./data-sources/strava-oauth.md)
@@ -33,7 +37,7 @@ Both Go and Kotlin now support the same source modes:
 - `GPX`: local GPX files grouped by year.
 - `composite`: automatic mixed mode when two or more sources are explicitly configured.
 
-Composite mode currently supports `Strava + FIT + GPX`. RideWithGPS and TCX are planned, but not implemented yet. When composite mode is active, `/api/health/details` reports `provider=composite`, lists `activeProviders`, and exposes merge diagnostics. The Status page at `http://localhost:8080/diagnostics` renders these details in the `Data Source` section.
+Composite mode currently supports `Strava + FIT + GPX`. When composite mode is active, `/api/health/details` reports `provider=composite`, lists `activeProviders`, and exposes merge diagnostics. The Status page at `http://localhost:8080/diagnostics` renders these details in the `Data Source` section.
 
 The `Data Source` section can check a Strava cache, FIT directory or GPX directory, then persist the selected source with `Use this source`. This writes the matching key to the backend working-directory `.env` file and preserves unrelated settings. The running provider is not hot-reloaded: restart the backend with the usual command, then use `Verify active mode`.
 

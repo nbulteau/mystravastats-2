@@ -4,6 +4,9 @@ import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.Sync
 import org.gradle.jvm.toolchain.JvmVendorSpec
 import org.gradle.language.jvm.tasks.ProcessResources
+import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
+import org.gradle.testing.jacoco.tasks.JacocoReport
+import java.math.BigDecimal
 
 plugins {
     kotlin("jvm") version "2.4.10"
@@ -13,6 +16,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
     id("org.graalvm.buildtools.native") version "1.1.10"
     id("io.github.ben-manes.versions") version "0.61.0"
+    jacoco
 }
 
 group = "me.nicolas"
@@ -75,6 +79,37 @@ kotlin {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    finalizedBy(tasks.named("jacocoTestReport"))
+}
+
+jacoco {
+    toolVersion = "0.8.15"
+}
+
+tasks.named<JacocoReport>("jacocoTestReport") {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+}
+
+tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
+    dependsOn(tasks.test)
+    violationRules {
+        rule {
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = BigDecimal("0.60")
+            }
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn(tasks.named("jacocoTestCoverageVerification"))
 }
 
 val npmExecutable = if (System.getProperty("os.name").lowercase().contains("windows")) "npm.cmd" else "npm"

@@ -92,7 +92,10 @@ npm run dev
 Useful check:
 
 ```sh
+npm run lint:check
 npm run type-check
+npm run test:coverage
+npm run test:e2e
 npm run build:check
 ```
 
@@ -108,7 +111,14 @@ The default output directory is `docs/assets/screenshots`.
 
 ## Validation Shortcuts
 
-- Frontend: `cd front-vue && npm run type-check && npm run test:unit && npm run build:check`
-- Go backend: `cd back-go && go test ./...`
-- Kotlin backend: `cd back-kotlin && ./gradlew test`
+- Contracts: `node scripts/generate-api-contracts.mjs --check`
+- Frontend: `cd front-vue && npm run lint:check && npm run type-check && npm run test:coverage && npm run build:check`
+- Browser journeys: `cd front-vue && npm run test:e2e`
+- Go backend: `./scripts/check-go-coverage.sh`
+- Kotlin backend: `cd back-kotlin && ./gradlew check`
 - Route generation: run targeted Go/Kotlin tests plus the relevant [manual route checks](../routing/manual-checks.md)
+
+The same checks run in `.github/workflows/ci.yml`. Initial regression thresholds are
+50% statement coverage for Go, 60% line coverage for Kotlin, and 18% lines/functions,
+17% statements and 14% branches for the frontend. Raise them gradually as large views
+and adapters are split.

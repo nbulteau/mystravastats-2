@@ -971,6 +971,7 @@ function initMap() {
     return;
   }
   if (map.value) {
+    map.value.stop();
     map.value.remove();
   }
 
@@ -1253,7 +1254,7 @@ function redrawMapLayers(options: { fitBounds?: boolean } = {}) {
   if (options.fitBounds !== false && allPoints.length > 0) {
     const bounds = L.latLngBounds(allPoints);
     if (bounds.isValid()) {
-      map.value.fitBounds(bounds, { padding: [26, 26] });
+      map.value.fitBounds(bounds, { padding: [26, 26], animate: false });
     }
   }
 }
@@ -1727,6 +1728,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   if (map.value) {
+    map.value.stop();
     map.value.remove();
     map.value = undefined;
   }

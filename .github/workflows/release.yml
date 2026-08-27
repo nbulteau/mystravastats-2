@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26.5.0
+          cache: npm
+          cache-dependency-path: front-vue/package-lock.json
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: back-go/go.mod
+          cache-dependency-path: back-go/go.sum
+      - name: Check generated contracts
+        run: node scripts/generate-api-contracts.mjs --check
+      - name: Build frontend
+        working-directory: front-vue
+        run: npm ci && npm run type-check && npm run build-only
+      - name: Embed frontend
+        run: ./scripts/sync-frontend-assets.sh go --skip-build
+      - name: Test Go backend
+        working-directory: back-go
+        run: go test ./...
+      - name: Build cross-platform archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/stage
+          build_archive() {
+            local goos=$1
+            local goarch=$2
+            local archive=$3
+            local executable=mystravastats
+            if [[ "$goos" == "windows" ]]; then executable=mystravastats.exe; fi
+            local stage="dist/stage/${goos}-${goarch}"
+            mkdir -p "$stage/famous-climb"
+            (
+              cd back-go
+              CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" go build -buildvcs=false -o "../$stage/$executable" .
+            )
+            cp back-go/famous-climb/*.json "$stage/famous-climb/"
+            if [[ "$goos" == "windows" ]]; then
+              (cd "$stage" && zip -qr "../../$archive" .)
+            else
+              tar -C "$stage" -czf "dist/$archive" .
+            fi
+          }
+          build_archive linux amd64 "mystravastats-${GITHUB_REF_NAME}-linux-amd64.tar.gz"
+          build_archive darwin arm64 "mystravastats-${GITHUB_REF_NAME}-darwin-arm64.tar.gz"
+          build_archive windows amd64 "mystravastats-${GITHUB_REF_NAME}-windows-amd64.zip"
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/mystravastats-* --verify-tag --generate-notes --title "$GITHUB_REF_NAME"

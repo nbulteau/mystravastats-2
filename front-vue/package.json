@@ -14,7 +14,10 @@
         "build:check": "npm run build-only && node scripts/check-bundle-budget.mjs",
         "type-check": "vue-tsc --build --force",
         "test:unit": "vitest run",
+        "test:coverage": "vitest run --coverage",
+        "test:e2e": "playwright test",
         "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
+        "lint:check": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts",
         "serve": "vite"
     },
     "dependencies": {
@@ -37,12 +40,14 @@
     "devDependencies": {
         "@eslint/eslintrc": "^3.3.6",
         "@eslint/js": "^10.0.1",
+        "@playwright/test": "^1.62.1",
         "@rushstack/eslint-patch": "^1.16.1",
         "@tsconfig/node20": "^20.1.10",
         "@types/bootstrap": "^5.2.11",
         "@types/leaflet": "^1.9.22",
         "@types/node": "^26.3.0",
         "@vitejs/plugin-vue": "^6.0.8",
+        "@vitest/coverage-v8": "^4.1.11",
         "@vue/eslint-config-typescript": "^14.9.0",
         "@vue/tsconfig": "^0.9.1",
         "eslint": "^10.9.1",

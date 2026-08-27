@@ -1,6 +1,6 @@
 import { fileURLToPath, URL } from 'node:url'
 
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
@@ -36,5 +36,27 @@ export default defineConfig({
   },
   build: {
     manifest: true,
+  },
+  test: {
+    include: ['src/**/*.spec.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json-summary', 'html'],
+      reportsDirectory: 'coverage',
+      include: ['src/**/*.{ts,vue}'],
+      exclude: [
+        'src/main.ts',
+        'src/env.d.ts',
+        'src/**/*.d.ts',
+        'src/**/__tests__/**',
+        'src/generated/**',
+      ],
+      thresholds: {
+        lines: 18,
+        functions: 18,
+        branches: 14,
+        statements: 17,
+      },
+    },
   },
 })

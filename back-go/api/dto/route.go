@@ -1,9 +1,6 @@
 package dto
 
-type RouteCoordinateDto struct {
-	Lat float64 `json:"lat"`
-	Lng float64 `json:"lng"`
-}
+type RouteCoordinateDto = ContractRouteCoordinate
 
 type RouteRecommendationDto struct {
 	RouteID        string              `json:"routeId"`

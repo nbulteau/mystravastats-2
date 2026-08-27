@@ -6,11 +6,7 @@ import me.nicolas.stravastats.domain.business.RouteExplorerResult
 import me.nicolas.stravastats.domain.business.RouteRecommendation
 import me.nicolas.stravastats.domain.business.ShapeRemixRecommendation
 
-@Schema(description = "Route coordinate", name = "RouteCoordinate")
-data class RouteCoordinateDto(
-    val lat: Double,
-    val lng: Double,
-)
+typealias RouteCoordinateDto = ContractRouteCoordinate
 
 @Schema(description = "Route recommendation", name = "RouteRecommendation")
 data class RouteRecommendationDto(
@@ -94,11 +90,7 @@ data class GenerateRoutesResponseDto(
     val diagnostics: List<RouteGenerationDiagnosticDto> = emptyList(),
 )
 
-@Schema(description = "Route generation diagnostic", name = "RouteGenerationDiagnostic")
-data class RouteGenerationDiagnosticDto(
-    val code: String,
-    val message: String,
-)
+typealias RouteGenerationDiagnosticDto = ContractRouteGenerationDiagnostic
 
 data class RouteStartPointDto(
     val lat: Double,
