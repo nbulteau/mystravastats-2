@@ -14,6 +14,7 @@ import {
 } from "@/utils/activityTypes";
 import { requestJson } from "@/services/http-client";
 import { apiUrl } from "@/services/api-url";
+import projectLogo from "@/assets/logo-my-activity-stats-v1.png";
 
 const contextStore = useContextStore();
 const athleteStore = useAthleteStore();
@@ -187,7 +188,20 @@ const onChangeActivityType = (activity: ActivityTypeName) => {
       class="navbar top-navbar"
   >
     <div class="container top-navbar__content">
-      <span class="athlete-name">{{ athleteDisplayName }}</span>
+      <div class="brand-block">
+        <RouterLink
+            to="/dashboard"
+            class="project-brand"
+            aria-label="My Activity Stats — Dashboard"
+        >
+          <img
+              :src="projectLogo"
+              alt="My Activity Stats"
+              class="project-brand__logo"
+          >
+        </RouterLink>
+        <span class="athlete-name">{{ athleteDisplayName }}</span>
+      </div>
 
       <div class="filters-wrap">
         <select
@@ -494,11 +508,40 @@ const onChangeActivityType = (activity: ActivityTypeName) => {
 }
 
 .athlete-name {
-  margin-right: 14px;
+  margin-left: 12px;
   color: #2a2d33;
   font-weight: 800;
   font-size: 0.98rem;
   letter-spacing: 0.01em;
+}
+
+.brand-block {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.project-brand {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.project-brand:hover,
+.project-brand:focus-visible {
+  opacity: 0.88;
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.project-brand__logo {
+  display: block;
+  width: 174px;
+  height: 46px;
+  object-fit: contain;
+  object-position: left center;
 }
 
 .filters-wrap {
@@ -587,6 +630,16 @@ const onChangeActivityType = (activity: ActivityTypeName) => {
   .year-select {
     min-width: 115px;
     max-width: 125px;
+  }
+
+  .project-brand__logo {
+    width: 150px;
+    height: 40px;
+  }
+
+  .athlete-name {
+    margin-left: 8px;
+    font-size: 0.88rem;
   }
 
   .activity-group {
