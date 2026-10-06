@@ -9,13 +9,13 @@ import org.gradle.testing.jacoco.tasks.JacocoReport
 import java.math.BigDecimal
 
 plugins {
-    kotlin("jvm") version "2.4.10"
-    kotlin("plugin.spring") version "2.4.10"
+    kotlin("jvm") version "2.4.20"
+    kotlin("plugin.spring") version "2.4.20"
 
     id("org.springframework.boot") version "4.1.1"
     id("io.spring.dependency-management") version "1.1.7"
-    id("org.graalvm.buildtools.native") version "1.1.10"
-    id("io.github.ben-manes.versions") version "0.61.0"
+    id("org.graalvm.buildtools.native") version "1.1.14"
+    id("io.github.ben-manes.versions") version "0.64.0"
     jacoco
 }
 
@@ -51,18 +51,18 @@ dependencies {
     //developmentOnly("org.springframework.boot:spring-boot-devtools")
     //providedRuntime("org.springframework.boot:spring-boot-starter-tomcat")
 
-    implementation("tools.jackson.module:jackson-module-kotlin:3.2.2")
+    implementation("tools.jackson.module:jackson-module-kotlin:3.2.3")
 
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
 
     implementation("com.squareup.okhttp3:okhttp:5.5.0")
 
-    implementation("io.jenetics:jpx:4.0.0")
+    implementation("io.jenetics:jpx:4.0.1")
 
     // Garmin FIT Java SDK sourced from GitHub via JitPack (replaces the vendored libs/fit.jar).
     // All SessionMesg/RecordMesg accessors used by FITRepository are present and compatible.
     // Newer versions available at https://github.com/garmin/fit-java-sdk/tags.
-    implementation("com.github.garmin:fit-java-sdk:21.212.0")
+    implementation("com.github.garmin:fit-java-sdk:21.214.0")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 

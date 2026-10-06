@@ -8,10 +8,27 @@ Use the same toolchain versions in local development, CI, Docker, and release sc
 
 | Area | Version source | Supported version |
 | --- | --- | --- |
-| Go backend | `back-go/go.mod` | Go `1.26.5` |
+| Go backend | `back-go/go.mod` | Go `1.27.1` |
 | Kotlin backend | `back-kotlin/build.gradle.kts` | Java `25` |
-| Kotlin build | `back-kotlin/gradle/wrapper/gradle-wrapper.properties` | Gradle `9.7.1` |
-| Frontend | `front-vue/package.json` | Node.js `>=26.5.0` |
+| Kotlin build | `back-kotlin/gradle/wrapper/gradle-wrapper.properties` | Gradle `9.8.0` |
+| Frontend | `front-vue/package.json` | Node.js `>=26.10.0` |
+
+Dependency refresh (2026-10-06): Kotlin `2.4.20`, Gradle `9.8.0`, Vue `3.5.43`,
+Vite `8.3.3`, Vitest `5.0.3`, and the latest compatible direct and transitive
+packages. Spring Boot remains on `4.1.1` (latest stable reported by the dependency
+check); Java stays on the existing `25` LTS line. Spring-managed dependencies
+continue to follow the Boot BOM.
+
+TypeScript stays on `~6.0.3`: `vue-tsc` still uses the JavaScript compiler API
+(`typescript/lib/tsc`), so adopting the native TypeScript 7 compiler requires a
+separate Vue tooling migration.
+
+`npm audit --omit=dev` reports no vulnerabilities at this refresh. The full audit
+still reports four high-severity entries for the same development-only dependency
+chain (`@vue/eslint-config-typescript` → `fast-glob` → `micromatch` → `braces`,
+[GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)).
+No patched `braces` release is available; npm's forced fix would downgrade the
+Vue ESLint configuration. Recheck when an upstream fix is published.
 
 The CI and local scripts can check drift with:
 

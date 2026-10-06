@@ -33,7 +33,7 @@ require_file_contains back-go/Dockerfile "FROM golang:${go_version}-alpine AS bu
 require_file_contains build-go-macos.zsh "golang:${go_version}"
 require_file_contains build-go-ubuntu.sh "golang:${go_version}"
 require_file_contains build-go-windows.ps1 "golang:${go_version}"
-require_file_contains .github/workflows/ci.yml "go-version: \"${go_version}\""
+require_file_contains .github/workflows/ci.yml "go-version-file: back-go/go.mod"
 require_file_contains .github/workflows/build-go-manual.yml "go-version: \"${go_version}\""
 
 require_file_contains back-kotlin/Dockerfile "FROM gradle:${gradle_version}-jdk${java_version} AS build"
@@ -44,7 +44,7 @@ require_file_contains front-vue/Dockerfile "FROM node:${node_version}-alpine AS 
 require_file_contains build-go-macos.zsh "node:${node_version}"
 require_file_contains build-go-ubuntu.sh "node:${node_version}"
 require_file_contains build-go-windows.ps1 "node:${node_version}"
-require_file_contains .github/workflows/ci.yml "node-version: \"${node_version}\""
+require_file_contains .github/workflows/ci.yml "node-version: ${node_version}"
 require_file_contains .github/workflows/build-go-manual.yml "node-version: \"${node_version}\""
 
 echo "Toolchains aligned: Go ${go_version}, Java ${java_version}, Gradle ${gradle_version}, Node.js ${node_version}"
