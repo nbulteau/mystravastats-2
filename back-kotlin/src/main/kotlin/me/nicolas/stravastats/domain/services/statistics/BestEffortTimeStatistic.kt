@@ -83,7 +83,7 @@ private fun activityEffort(
     val distances = stream.distance.data
     val times = stream.time.data
     val altitudes = stream.altitude?.data ?: emptyList()
-    val powerPrefix = PowerWindowPrefix(stream.watts?.data)
+    val powerPrefix = PowerWindowPrefix(stream.watts?.data, stream.time.data)
 
     val streamDataSize = minOf(distances.size, times.size, altitudes.size)
     if (streamDataSize < 2) {

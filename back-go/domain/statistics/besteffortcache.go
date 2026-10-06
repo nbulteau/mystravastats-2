@@ -56,7 +56,7 @@ func getOrComputeBestEffort(
 		Metric:            metric,
 		Target:            target,
 		StreamSize:        len(stream.Distance.Data),
-		StreamFingerprint: fmt.Sprintf("power-gaps-v1:%x", sha256.Sum256(encoded)),
+		StreamFingerprint: fmt.Sprintf("power-time-v2:%x", sha256.Sum256(encoded)),
 	}
 
 	bestEffortCacheMutex.RLock()

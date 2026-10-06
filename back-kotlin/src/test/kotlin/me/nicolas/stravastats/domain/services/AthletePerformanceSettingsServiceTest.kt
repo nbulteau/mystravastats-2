@@ -95,9 +95,9 @@ class AthletePerformanceSettingsServiceTest {
         durationSeconds: Int,
         totalDistance: Double = durationSeconds / 600.0 * 500.0,
     ): StravaActivity {
-        val points = durationSeconds / 600 + 1
+        val points = durationSeconds / 5 + 1
         val distances = List(points) { index -> totalDistance * index / (points - 1).coerceAtLeast(1) }
-        val times = List(points) { index -> index * 600 }
+        val times = List(points) { index -> index * 5 }
         val altitudes = List(points) { index -> 100.0 + index }
         val powers = List(points) { watts }
         return StravaActivity(

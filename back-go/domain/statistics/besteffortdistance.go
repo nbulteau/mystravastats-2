@@ -88,7 +88,7 @@ func BestTimeForDistance(id int64, name, activityType string, stream *strava.Str
 		return nil
 	}
 
-	nonNullWatts := buildNonNullWatts(stream.Watts)
+	powerTimeline := strava.NewPowerTimeline(buildNonNullWatts(stream.Watts), stream.Time.Data)
 
 	streamDataSize := len(distances)
 	if len(times.Data) < streamDataSize {
@@ -118,7 +118,7 @@ func BestTimeForDistance(id int64, name, activityType string, stream *strava.Str
 			estimatedTimeForDistance := distance / totalDistance * float64(totalTime)
 			if estimatedTimeForDistance < bestTime && estimatedTimeForDistance > 1 {
 				bestTime = estimatedTimeForDistance
-				averagePower := averagePower(nonNullWatts, idxStart, idxEnd)
+				averagePower := powerTimeline.AverageIndices(idxStart, idxEnd)
 				elevationGain, elevationLoss := elevationPrefix.betweenPtrs(idxStart, idxEnd)
 				bestEffort = &business.ActivityEffort{
 					Distance:      distance,

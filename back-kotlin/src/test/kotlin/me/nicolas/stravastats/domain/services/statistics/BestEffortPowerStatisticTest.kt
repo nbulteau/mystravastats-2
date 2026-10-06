@@ -40,7 +40,7 @@ class BestEffortPowerStatisticTest {
             id = 32,
             stream = StatisticsFixtures.defaultStream(
                 distances = listOf(0.0, 500.0, 1000.0, 1500.0),
-                times = listOf(0, 30, 60, 90),
+                times = listOf(0, 3, 6, 9),
                 altitudes = listOf(100.0, 105.0, 110.0, 120.0),
                 watts = listOf(100, 150, 200, 400),
             )
@@ -51,7 +51,7 @@ class BestEffortPowerStatisticTest {
 
         // THEN
         assertNotNull(effort)
-        assertEquals(250, effort!!.averagePower)
+        assertEquals(175, effort!!.averagePower)
         assertEquals("Best Power for 1000 m", effort.label)
         assertEquals(1, effort.idxStart)
         assertEquals(3, effort.idxEnd)

@@ -100,10 +100,10 @@ class ActivityHelperDetailedSegmentsTest {
     fun `buildActivityEfforts adds power efforts`() {
         // GIVEN
         val stream = StatisticsFixtures.defaultStream(
-            distances = listOf(0.0, 1000.0, 2000.0),
-            times = listOf(0, 3600, 7200),
-            altitudes = listOf(100.0, 110.0, 120.0),
-            watts = listOf(180, 220, 260),
+            distances = List(721) { it * 2000.0 / 720 },
+            times = List(721) { it * 5 },
+            altitudes = List(721) { 100.0 },
+            watts = List(721) { 220 },
         )
         val activity = StatisticsFixtures.syntheticRideActivity(id = 79L, stream = stream)
             .toStravaDetailedActivity()

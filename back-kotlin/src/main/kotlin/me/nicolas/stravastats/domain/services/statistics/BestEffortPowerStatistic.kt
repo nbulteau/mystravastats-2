@@ -5,6 +5,7 @@ import me.nicolas.stravastats.domain.business.ActivityShort
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.business.strava.StravaDetailedActivity
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
+import me.nicolas.stravastats.domain.business.strava.stream.PowerTimeline
 import me.nicolas.stravastats.domain.utils.formatSeconds
 
 
@@ -16,7 +17,7 @@ internal open class BestEffortPowerStatistic(
 
     private val bestActivityEffort = activities
         .mapNotNull { activity -> activity.calculateBestPowerForTime(seconds) }
-        .maxByOrNull { activityEffort -> activityEffort.distance }
+        .maxByOrNull { activityEffort -> activityEffort.averagePower ?: 0 }
 
     init {
         require(seconds > 10) { "DistanceStream must be > 10 seconds" }
@@ -93,64 +94,25 @@ private fun activityEffort(
     stream: Stream,
     seconds: Int
 ): ActivityEffort? {
-    val altitudes = stream.altitude?.data ?: emptyList()
-
-    stream.watts?.data ?: return null
-
-    val nonNullWatts = stream.watts.data
-    val powerPrefix = PowerWindowPrefix(nonNullWatts)
-
-    var idxStart = 0
-    var idxEnd = 0
-    var maxPower = 0L
-    var bestEffort: ActivityEffort? = null
-
-    val distances = stream.distance.data
-    val times = stream.time.data
-    val streamDataSize = minOf(distances.size, times.size, altitudes.size, nonNullWatts.size)
-    if (streamDataSize < 2) {
-        return null
+    val altitudes = stream.altitude?.data ?: return null
+    val timeline = PowerTimeline(stream.watts?.data ?: return null, stream.time.data)
+    val window = timeline.best(seconds) ?: return null
+    if(window.average <= 0 || window.endIndex >= stream.distance.data.size || window.endIndex >= altitudes.size) return null
+    var gain=0.0; var loss=0.0
+    var previous=timeline.valueAt(altitudes,window.start)
+    for(i in window.startIndex+1..window.endIndex) {
+        val value=timeline.valueAt(altitudes,minOf(stream.time.data[i].toDouble(),window.end))
+        val delta=value-previous
+        if(delta>0) gain+=delta else loss-=delta
+        previous=value
     }
-
-    val elevationPrefix = ElevationGainLossPrefix.from(altitudes, streamDataSize)
-
-    while (idxEnd < streamDataSize) {
-        val totalDistance = distances[idxEnd] - distances[idxStart]
-        val totalAltitude = if (altitudes.isNotEmpty()) {
-            altitudes[idxEnd] - altitudes[idxStart]
-        } else {
-            0.0
-        }
-
-        val currentPower = powerPrefix.sum(idxStart, idxEnd)
-
-        val totalTime = times[idxEnd] - times[idxStart]
-
-        if (totalTime < seconds) {
-            ++idxEnd
-        } else {
-            if (currentPower != null && currentPower > maxPower) {
-                maxPower = currentPower
-                val averagePower = (currentPower / (idxEnd - idxStart + 1)).toInt()
-                val elevation = elevationPrefix.between(idxStart, idxEnd)
-                bestEffort = ActivityEffort(
-                    totalDistance, seconds, totalAltitude, idxStart, idxEnd, averagePower,
-                    label = "Best power for ${seconds.formatSeconds()}",
-                    activityShort = ActivityShort(
-                        id = id,
-                        name = name,
-                        type = type
-                    ),
-                    elevationGain = elevation?.gain,
-                    elevationLoss = elevation?.loss,
-                )
-            }
-            ++idxStart
-            ++idxEnd
-        }
-    }
-
-    return bestEffort
+    return ActivityEffort(
+        timeline.valueAt(stream.distance.data,window.end)-timeline.valueAt(stream.distance.data,window.start),
+        seconds, timeline.valueAt(altitudes,window.end)-timeline.valueAt(altitudes,window.start),
+        window.startIndex,window.endIndex,window.average.toInt(),
+        label="Best power for ${seconds.formatSeconds()}",
+        activityShort=ActivityShort(id=id,name=name,type=type),elevationGain=gain,elevationLoss=loss,
+    )
 }
 
 /**
@@ -166,7 +128,7 @@ private fun activityPowerDistanceEffort(
 ): ActivityEffort? {
     val altitudes = stream.altitude?.data ?: emptyList()
     val nonNullWatts = stream.watts?.data ?: return null
-    val powerPrefix = PowerWindowPrefix(nonNullWatts)
+    val powerPrefix = PowerWindowPrefix(nonNullWatts, stream.time.data)
 
     var idxStart = 0
     var idxEnd = 0

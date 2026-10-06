@@ -50,7 +50,7 @@ internal object BestEffortCache {
             metric = metric,
             target = target,
             streamSize = stream.distance.originalSize,
-            streamFingerprint = "power-gaps-v1:" + HexFormat.of().formatHex(
+            streamFingerprint = "power-time-v2:" + HexFormat.of().formatHex(
                 MessageDigest.getInstance("SHA-256").digest(objectMapper.writeValueAsBytes(stream)),
             ),
         )

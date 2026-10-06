@@ -91,7 +91,7 @@ class BadgeCheckResultDtoTest {
         assertEquals(activity.name, details.ascents.first().activityName)
         assertEquals(3207, details.ascents.first().vamMetersPerHour)
         assertEquals(40.6, details.ascents.first().averageSpeedKph)
-        assertEquals(220, details.ascents.first().averagePowerWatts)
+        assertEquals(null, details.ascents.first().averagePowerWatts) // Sparse samples cannot cover the climb.
         assertEquals(150, details.ascents.first().averageHeartRateBpm)
         assertEquals(3, details.ascents.first().comparisonPoints.size)
         assertEquals(0, details.ascents.first().comparisonPoints.first().elapsedSeconds)

@@ -304,6 +304,7 @@ func TestClassifyFITSport_UsesSportAndSubSport(t *testing.T) {
 func TestComputeFITPowerMetrics_UsesPowerStreamWhenSessionPowerIsMissing(t *testing.T) {
 	// GIVEN
 	stream := &strava.Stream{
+		Time: strava.TimeStream{Data: []int{0, 1, 2, 3}},
 		Watts: &strava.PowerStream{
 			Data: []float64{0, 100, 200, 300},
 		},
@@ -313,11 +314,11 @@ func TestComputeFITPowerMetrics_UsesPowerStreamWhenSessionPowerIsMissing(t *test
 	metrics := computeFITPowerMetrics(0, stream, 100)
 
 	// THEN
-	assertFloatEquals(t, 150, metrics.averageWatts)
-	if metrics.weightedAverageWatts != 150 {
-		t.Fatalf("expected weighted watts fallback=150, got %d", metrics.weightedAverageWatts)
+	assertFloatEquals(t, 100, metrics.averageWatts)
+	if metrics.weightedAverageWatts != 0 {
+		t.Fatalf("expected weighted watts fallback=0, got %d", metrics.weightedAverageWatts)
 	}
-	assertFloatEquals(t, 12.906, metrics.kilojoules)
+	assertFloatEquals(t, 0.3, metrics.kilojoules)
 	if !metrics.hasDeviceWatts {
 		t.Fatal("expected device watts to be true when FIT records contain power")
 	}
@@ -339,7 +340,7 @@ func TestComputeFITPowerMetrics_KeepsSessionAveragePowerWhenPresent(t *testing.T
 	if metrics.weightedAverageWatts != 250 {
 		t.Fatalf("expected session average to be reused as weighted watts, got %d", metrics.weightedAverageWatts)
 	}
-	assertFloatEquals(t, 25.812, metrics.kilojoules)
+	assertFloatEquals(t, 30, metrics.kilojoules)
 	if !metrics.hasDeviceWatts {
 		t.Fatal("expected device watts to stay true when session power is present")
 	}

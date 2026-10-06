@@ -119,7 +119,37 @@ check transport values and serialization, not parity of every statistics algorit
 - Effort caches fingerprint stream contents, so changed readings invalidate results.
   Previously stored zeros cannot be identified retrospectively as missing samples;
   those activities require reimport from the original source to recover their gaps.
-  Time weighting for irregular recordings remains separate work.
+  Derived effort caches use the `power-time-v2` fingerprint version after this change.
+
+Power timing policy (Go, Kotlin and frontend):
+
+- A reading at `time[i]` is held on `[time[i], time[i+1])`. Both power readings
+  must be present and nonnegative. The last reading adds no inferred duration.
+- Intervals of **more than 10 seconds** are unobserved, not interpolated or capped.
+  This fixed, conservative product policy is not a claim that every sparse recording
+  has a sensor failure. Missing, negative, duplicate or decreasing timestamps make
+  time-derived metrics unavailable; time is never reconstructed from sample indexes.
+- Means integrate watts × seconds and divide by the covered window duration.
+  Best time efforts require a fully covered window of exactly the requested duration.
+  Candidate starts include sample times and sample times minus that duration, allowing
+  a window boundary inside an interval. Ties select the earliest window.
+- Effort indexes enclose the window; they may bracket partial endpoint intervals.
+  Distance and altitude for time-based power efforts interpolate those endpoint positions.
+  Across activities, best power is selected by power rather than distance.
+- Power zones count only covered seconds. The frontend reports covered / recorded
+  seconds; whole-span means, normalized power and stress estimates are unavailable
+  when that recorded span is incomplete. Valid shorter records remain available.
+- Normalized power is the fourth root of the time average of the fourth power of
+  the continuous 30-second rolling mean. Its integration is exact between sample
+  breakpoints; recordings shorter than 30 seconds cannot provide this estimate.
+  This documented estimator is not a claim of bit-for-bit equality with Strava.
+- FIT stream-derived work is integrated mechanical energy, in kJ (W × s / 1000),
+  using the actual stream span rather than the session elapsed time. The former
+  `0.8604` factor is removed. Supplied session averages remain trusted summaries;
+  their existing `weightedAverageWatts` fallback remains a summary, not computed NP.
+- Existing Kotlin effort fields still serialize integer watts (truncation), whereas
+  Go supports fractional watts; shared calculation tests compare unrounded values.
+  No response fields or routes change. Recomputed figures can differ from old ones.
 - `weightKg` is current manual body mass, not a history of weight measurements.
   FTP history uses inclusive local dates; no entry means no manual FTP for that date.
 - Statistic `value` fields are display strings, potentially containing units or

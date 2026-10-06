@@ -22,7 +22,7 @@
 
 - [ ] `PRODUCT-P2-02` - Livrer la charge d'entraînement et les tendances de forme.
   - [x] Préserver les échantillons de puissance absents dans les deux backends, les imports FIT, le stockage JSON et les graphiques ; exclure les fenêtres incomplètes, conserver les zéros mesurés et invalider les résultats en cache lorsque les échantillons changent. Fixtures partagées de calcul et de réponses API.
-  - fiabiliser d'abord les calculs de puissance et de durée à partir des horodatages, y compris pour les enregistrements irréguliers ;
+  - [x] Calculer les fenêtres de puissance sur la durée exacte et les moyennes/zones selon les horodatages réels ; intégrer la puissance normalisée et l’énergie sur le temps couvert. Règle commune Go/Kotlin/front : mesure maintenue jusqu’à la suivante, deux bornes valides, interruption au-delà de 10 s, aucune extrapolation finale. Fixtures partagées irrégulières, lacunaires et rééchantillonnées.
   - afficher la charge quotidienne et hebdomadaire, puis les tendances de forme et de fatigue avec une méthode documentée ;
   - détailler la contribution de chaque activité, les sources utilisées et la couverture des données ; ne pas assimiler une activité sans données à du repos ni additionner des scores incompatibles sans normalisation explicite ;
   - exploiter la FTP applicable à la date de l'activité et distinguer les données mesurées des estimations ;

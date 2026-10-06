@@ -87,7 +87,7 @@ func BestElevationForDistance(id int64, name, activityType string, stream *strav
 		return nil
 	}
 
-	nonNullWatts := buildNonNullWatts(stream.Watts)
+	powerTimeline := strava.NewPowerTimeline(buildNonNullWatts(stream.Watts), stream.Time.Data)
 
 	streamDataSize := len(distances.Data)
 	if len(times.Data) < streamDataSize {
@@ -111,7 +111,7 @@ func BestElevationForDistance(id int64, name, activityType string, stream *strav
 		} else {
 			if totalAltitude > bestElevation {
 				bestElevation = totalAltitude
-				averagePower := averagePower(nonNullWatts, idxStart, idxEnd)
+				averagePower := powerTimeline.AverageIndices(idxStart, idxEnd)
 				elevationGain, elevationLoss := elevationPrefix.betweenPtrs(idxStart, idxEnd)
 				bestEffort = &business.ActivityEffort{
 					Distance:      distance,

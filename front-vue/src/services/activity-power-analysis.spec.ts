@@ -35,30 +35,22 @@ function activity(overrides: Partial<DetailedActivity> = {}): DetailedActivity {
 }
 
 describe("activity power analysis", () => {
-  it("excludes gaps without removing measured zeros or bridging windows", () => {
-    expect(bestAveragePower([900, null, 200, 200, 200, 100], 3)).toBe(200);
-    expect(bestAveragePower([0, 100, 200], 3)).toBe(100);
-    expect(bestAveragePower([null, 100, 200], 3)).toBeNull();
-    expect(buildPowerCurve([null, null])).toEqual([]);
-    expect(normalizedPowerFromWatts([...Array(30).fill(200), null])).toBeNull();
-    expect(buildPowerZoneEstimate([null, 0, 200], 200)?.trackedSeconds).toBe(2);
-    expect(buildPowerZoneEstimate([null], 200)).toBeNull();
-  });
-  it("sanitizes samples and computes rolling and best averages", () => {
+  it("uses complete real-time windows and retains measured zeros", () => {
+    expect(bestAveragePower([900, null, 200, 200, 200, 100], 2, [0,1,2,3,4,5])).toBe(200);
+    expect(bestAveragePower([0, 100, 200], 2, [0,1,2])).toBe(50);
+    expect(bestAveragePower([null, 100, 200], 2, [0,1,2])).toBeNull();
+    expect(buildPowerCurve([null, null], [0,1])).toEqual([]);
+    expect(buildPowerZoneEstimate([null, 0, 200], 200, [0,1,2])?.trackedSeconds).toBe(1);
+    expect(buildPowerZoneEstimate([null], 200, [0])).toBeNull();
     expect(sanitizePowerSamples([200, Number.NaN, -10, 300])).toEqual([200, Number.NaN, Number.NaN, 300]);
     expect(rollingAverage([100, 200, 300, 400], 2)).toEqual([150, 250, 350]);
-    expect(bestAveragePower([100, 200, 400, 200], 2)).toBe(300);
-    expect(bestAveragePower([100], 2)).toBeNull();
-    expect(buildPowerCurve([170, 190, 205])).toEqual([
-      [1, 205],
-      [2, 197.5],
-      [3, 565 / 3],
-    ]);
+    expect(buildPowerCurve([170, 190, 205], [0,1,2])).toEqual([[1,190],[2,180]]);
   });
 
-  it("computes normalized power for a stable 30-second sample", () => {
-    expect(normalizedPowerFromWatts(Array(30).fill(250))).toBeCloseTo(250);
-    expect(normalizedPowerFromWatts(Array(29).fill(250))).toBeNull();
+  it("requires 30 real covered seconds for normalized power", () => {
+    expect(normalizedPowerFromWatts(Array(31).fill(250), Array.from({length:31},(_,i)=>i))).toBeCloseTo(250);
+    expect(normalizedPowerFromWatts(Array(30).fill(250), Array.from({length:30},(_,i)=>i))).toBeNull();
+    expect(normalizedPowerFromWatts([250,250], [0,30])).toBeNull();
   });
 
   it("uses manual FTP and weight settings ahead of athlete profile values", () => {
@@ -66,8 +58,8 @@ describe("activity power analysis", () => {
       activity({
         stream: {
           ...activity().stream,
-          watts: Array(60).fill(200),
-          time: [0, 3600],
+          watts: Array(361).fill(200),
+          time: Array.from({length:361},(_,i)=>i*10),
         },
       }),
       280,
@@ -93,12 +85,12 @@ describe("activity power analysis", () => {
   });
 
   it("classifies every tracked second into a power zone", () => {
-    expect(buildPowerZoneEstimate([0, 180, 200, 250, 300], 200)).toEqual({
+    expect(buildPowerZoneEstimate([0, 180, 200, 250, 300, 300], 200, [0,1,2,3,4,5])).toEqual({
       trackedSeconds: 5,
       aerobicSeconds: 2,
       thresholdVo2Seconds: 1,
       anaerobicSeconds: 2,
     });
-    expect(buildPowerZoneEstimate([], 200)).toBeNull();
+    expect(buildPowerZoneEstimate([], 200, [])).toBeNull();
   });
 });

@@ -120,16 +120,24 @@ func TestBuildActivityEfforts_LabelsDetectedClimbs(t *testing.T) {
 }
 
 func TestBuildActivityEfforts_AddsPowerEfforts(t *testing.T) {
+	distances, altitudes, powers := make([]float64, 721), make([]float64, 721), make([]float64, 721)
+	times := make([]int, 721)
+	for i := range times {
+		times[i] = i * 5
+		distances[i] = float64(i) * 2000 / 720
+		altitudes[i] = 100
+		powers[i] = 220
+	}
 	// GIVEN
 	detailedActivity := &strava.DetailedActivity{
 		Id:   44,
 		Name: "Power detail",
 		Type: "Ride",
 		Stream: &strava.Stream{
-			Distance: strava.DistanceStream{Data: []float64{0, 1000, 2000}},
-			Time:     strava.TimeStream{Data: []int{0, 3600, 7200}},
-			Altitude: &strava.AltitudeStream{Data: []float64{100, 110, 120}},
-			Watts:    &strava.PowerStream{Data: []float64{180, 220, 260}},
+			Distance: strava.DistanceStream{Data: distances},
+			Time:     strava.TimeStream{Data: times},
+			Altitude: &strava.AltitudeStream{Data: altitudes},
+			Watts:    &strava.PowerStream{Data: powers},
 		},
 	}
 
@@ -667,7 +675,7 @@ func TestToBadgeCheckResultDto_ExposesClimbPosterDetails(t *testing.T) {
 	if best.ActivityName != activity.Name || best.VAMMetersPerHour == nil || *best.VAMMetersPerHour != 3207 || best.AverageSpeedKph == nil || *best.AverageSpeedKph != 40.6 {
 		t.Fatalf("unexpected computed climb performance: %#v", best)
 	}
-	if best.AveragePowerWatts == nil || *best.AveragePowerWatts != 220 || best.AverageHeartRateBpm == nil || *best.AverageHeartRateBpm != 150 {
+	if best.AveragePowerWatts != nil || best.AverageHeartRateBpm == nil || *best.AverageHeartRateBpm != 150 {
 		t.Fatalf("unexpected climb sensor averages: %#v", best)
 	}
 	if len(best.ComparisonPoints) != 3 || best.ComparisonPoints[0].ElapsedSeconds != 0 || best.ComparisonPoints[2].ElapsedSeconds != 1100 {
@@ -763,11 +771,11 @@ func TestComputeClimbMaximumGradient_IgnoresShortAltitudeSpike(t *testing.T) {
 func TestClimbPowerAveragePreservesZeroAndRejectsGaps(t *testing.T) {
 	bounds := famousClimbBounds{startIndex: 0, endIndex: 2}
 	stream := &strava.PowerStream{Data: []float64{0, 100, 200}}
-	if avg := averageCompletePowerRange(stream, bounds); avg == nil || *avg != 100 {
+	if avg := averageCompletePowerRange(stream, []int{0, 1, 2}, bounds); avg == nil || *avg != 50 {
 		t.Fatalf("expected measured zero in mean, got %v", avg)
 	}
 	stream.Data[0] = math.NaN()
-	if avg := averageCompletePowerRange(stream, bounds); avg != nil {
+	if avg := averageCompletePowerRange(stream, []int{0, 1, 2}, bounds); avg != nil {
 		t.Fatalf("missing sample must invalidate mean, got %v", avg)
 	}
 }

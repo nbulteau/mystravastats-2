@@ -161,7 +161,7 @@ func syntheticPowerActivity(id int64, name string, startDateLocal string, device
 }
 
 func syntheticPowerActivityWithDistance(id int64, name string, startDateLocal string, deviceWatts bool, watts int, durationSeconds int, totalDistance float64) *strava.Activity {
-	points := durationSeconds/600 + 1
+	points := durationSeconds/5 + 1
 	if points < 2 {
 		points = 2
 	}
@@ -171,7 +171,7 @@ func syntheticPowerActivityWithDistance(id int64, name string, startDateLocal st
 	powers := make([]float64, points)
 	for i := 0; i < points; i++ {
 		distances[i] = totalDistance * float64(i) / float64(points-1)
-		times[i] = i * 600
+		times[i] = i * 5
 		altitudes[i] = 100 + float64(i)
 		powers[i] = float64(watts)
 	}

@@ -1,0 +1,330 @@
+[
+  {
+    "name": "uneven duration",
+    "times": [
+      0,
+      1,
+      10
+    ],
+    "watts": [
+      100,
+      300,
+      300
+    ],
+    "seconds": 5,
+    "average": 280,
+    "best": 300,
+    "covered": 10
+  },
+  {
+    "name": "window ending on breakpoint",
+    "times": [
+      0,
+      4,
+      9,
+      12
+    ],
+    "watts": [
+      200,
+      300,
+      100,
+      100
+    ],
+    "seconds": 6,
+    "average": 216.66666666666666,
+    "best": 283.3333333333333,
+    "covered": 12
+  },
+  {
+    "name": "same signal denser",
+    "times": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "watts": [
+      200,
+      200,
+      200,
+      200,
+      300,
+      300,
+      300,
+      300,
+      300,
+      100,
+      100,
+      100,
+      100
+    ],
+    "seconds": 6,
+    "average": 216.66666666666666,
+    "best": 283.3333333333333,
+    "covered": 12
+  },
+  {
+    "name": "offset timestamps",
+    "times": [
+      100,
+      104,
+      109,
+      112
+    ],
+    "watts": [
+      200,
+      300,
+      100,
+      100
+    ],
+    "seconds": 6,
+    "average": 216.66666666666666,
+    "best": 283.3333333333333,
+    "covered": 12
+  },
+  {
+    "name": "gap with recovery",
+    "times": [
+      0,
+      1,
+      30,
+      31,
+      32
+    ],
+    "watts": [
+      200,
+      200,
+      200,
+      200,
+      200
+    ],
+    "seconds": 2,
+    "average": null,
+    "best": 200,
+    "covered": 3
+  },
+  {
+    "name": "exact gap threshold",
+    "times": [
+      0,
+      10
+    ],
+    "watts": [
+      200,
+      200
+    ],
+    "seconds": 10,
+    "average": 200,
+    "best": 200,
+    "covered": 10
+  },
+  {
+    "name": "over gap threshold",
+    "times": [
+      0,
+      11
+    ],
+    "watts": [
+      200,
+      200
+    ],
+    "seconds": 10,
+    "average": null,
+    "best": null,
+    "covered": 0
+  },
+  {
+    "name": "missing endpoint",
+    "times": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "watts": [
+      900,
+      null,
+      200,
+      200,
+      200
+    ],
+    "seconds": 2,
+    "average": null,
+    "best": 200,
+    "covered": 2
+  },
+  {
+    "name": "zero is measured",
+    "times": [
+      0,
+      2,
+      5
+    ],
+    "watts": [
+      0,
+      200,
+      200
+    ],
+    "seconds": 5,
+    "average": 120,
+    "best": 120,
+    "covered": 5
+  },
+  {
+    "name": "no extrapolation",
+    "times": [
+      0,
+      1
+    ],
+    "watts": [
+      200,
+      900
+    ],
+    "seconds": 2,
+    "average": 200,
+    "best": null,
+    "covered": 1
+  },
+  {
+    "name": "truncated power",
+    "times": [
+      0,
+      1,
+      2
+    ],
+    "watts": [
+      100,
+      200
+    ],
+    "seconds": 1,
+    "average": null,
+    "best": 100,
+    "covered": 1
+  },
+  {
+    "name": "duplicate time",
+    "times": [
+      0,
+      1,
+      1,
+      2
+    ],
+    "watts": [
+      200,
+      200,
+      200,
+      200
+    ],
+    "seconds": 1,
+    "average": null,
+    "best": null,
+    "covered": 0
+  },
+  {
+    "name": "reversed time",
+    "times": [
+      0,
+      2,
+      1,
+      3
+    ],
+    "watts": [
+      200,
+      200,
+      200,
+      200
+    ],
+    "seconds": 1,
+    "average": null,
+    "best": null,
+    "covered": 0
+  },
+  {
+    "name": "missing time",
+    "times": [],
+    "watts": [
+      200,
+      200,
+      200,
+      200
+    ],
+    "seconds": 1,
+    "average": null,
+    "best": null,
+    "covered": 0
+  },
+  {
+    "name": "stable normalized power",
+    "times": [
+      0,
+      5,
+      10,
+      15,
+      20,
+      25,
+      30,
+      35,
+      40,
+      45,
+      50,
+      55,
+      60
+    ],
+    "watts": [
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250
+    ],
+    "seconds": 30,
+    "average": 250,
+    "best": 250,
+    "covered": 60,
+    "normalized": 250
+  },
+  {
+    "name": "varying normalized power",
+    "times": [
+      0,
+      10,
+      20,
+      30,
+      40,
+      50,
+      60
+    ],
+    "watts": [
+      100,
+      100,
+      100,
+      300,
+      300,
+      300,
+      300
+    ],
+    "seconds": 30,
+    "average": 200,
+    "best": 300,
+    "covered": 60,
+    "normalized": 221.79606737946318
+  }
+]

@@ -191,7 +191,7 @@ func TestBestPowerForDistance_WithSyntheticStream(t *testing.T) {
 	// GIVEN
 	stream := syntheticStream(
 		[]float64{0, 500, 1000, 1500},
-		[]int{0, 30, 60, 90},
+		[]int{0, 3, 6, 9},
 		[]float64{100, 105, 110, 120},
 	)
 	stream.Watts = &strava.PowerStream{Data: []float64{100, 150, 200, 400}}
@@ -209,8 +209,8 @@ func TestBestPowerForDistance_WithSyntheticStream(t *testing.T) {
 	if effort == nil {
 		t.Fatalf("expected effort, got nil")
 	}
-	if effort.AveragePower == nil || math.Abs(*effort.AveragePower-250) > 1e-6 {
-		t.Fatalf("unexpected average power: got %v, want 250", effort.AveragePower)
+	if effort.AveragePower == nil || math.Abs(*effort.AveragePower-175) > 1e-6 {
+		t.Fatalf("unexpected average power: got %v, want 175", effort.AveragePower)
 	}
 	if effort.Label != "Best Power for 1000 m" {
 		t.Fatalf("unexpected label: got %q", effort.Label)

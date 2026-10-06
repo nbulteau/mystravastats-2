@@ -2,7 +2,6 @@ package statistics
 
 import (
 	"fmt"
-	"math"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
 )
@@ -64,7 +63,7 @@ func calculateBestPowerForTime(activities []*strava.Activity, seconds int) *busi
 	var bestEffort *business.ActivityEffort
 	for _, activity := range activities {
 		effort := BestPowerForTime(*activity, seconds)
-		if effort != nil && (bestEffort == nil || effort.Distance > bestEffort.Distance) {
+		if effort != nil && (bestEffort == nil || *effort.AveragePower > *bestEffort.AveragePower) {
 			bestEffort = effort
 		}
 	}
@@ -102,86 +101,37 @@ func BestPowerForDistance(activity strava.Activity, distance float64) *business.
 }
 
 func bestPowerForTimeForTime(id int64, name, activityType string, stream *strava.Stream, seconds int) *business.ActivityEffort {
-	altitudes := stream.Altitude
-	watts := stream.Watts
-	if watts == nil || len(watts.Data) == 0 {
+	if stream.Watts == nil {
 		return nil
 	}
-
-	nonNullWatts := buildNonNullWatts(stream.Watts)
-
-	idxStart, idxEnd, maxPower := 0, 0, 0.0
-	var bestEffort *business.ActivityEffort
-
-	distances := stream.Distance
-	times := stream.Time
-	streamDataSize := len(distances.Data)
-	if len(times.Data) < streamDataSize {
-		streamDataSize = len(times.Data)
-	}
-	if len((*altitudes).Data) < streamDataSize {
-		streamDataSize = len((*altitudes).Data)
-	}
-	if len(nonNullWatts) < streamDataSize {
-		streamDataSize = len(nonNullWatts)
-	}
-	if streamDataSize < 2 {
+	timeline := strava.NewPowerTimeline(stream.Watts.Data, stream.Time.Data)
+	window := timeline.Best(seconds)
+	if window == nil || window.Average <= 0 {
 		return nil
 	}
-
-	currentPower := 0.0
-	missingPower := 0
-	elevationPrefix := newElevationGainLossPrefix((*altitudes).Data, streamDataSize)
-
-	for idxEnd < streamDataSize {
-		totalDistance := distances.Data[idxEnd] - distances.Data[idxStart]
-		totalAltitude := 0.0
-		if len((*altitudes).Data) > 0 {
-			totalAltitude = (*altitudes).Data[idxEnd] - (*altitudes).Data[idxStart]
-		}
-
-		if math.IsNaN(nonNullWatts[idxEnd]) || math.IsInf(nonNullWatts[idxEnd], 0) {
-			missingPower++
-		} else {
-			currentPower += nonNullWatts[idxEnd]
-		}
-		totalTime := times.Data[idxEnd] - times.Data[idxStart]
-
-		if totalTime < seconds {
-			idxEnd++
-		} else {
-			if missingPower == 0 && currentPower > maxPower {
-				maxPower = currentPower
-				averagePower := averagePower(nonNullWatts, idxStart, idxEnd)
-				elevationGain, elevationLoss := elevationPrefix.betweenPtrs(idxStart, idxEnd)
-				bestEffort = &business.ActivityEffort{
-					Distance:      totalDistance,
-					Seconds:       seconds,
-					DeltaAltitude: totalAltitude,
-					ElevationGain: elevationGain,
-					ElevationLoss: elevationLoss,
-					IdxStart:      idxStart,
-					IdxEnd:        idxEnd,
-					AveragePower:  averagePower,
-					Label:         fmt.Sprintf("Best power for %s", formatSeconds(seconds)),
-					ActivityShort: business.ActivityShort{
-						Id:   id,
-						Name: name,
-						Type: business.ActivityTypes[activityType],
-					},
-				}
-			}
-			if math.IsNaN(nonNullWatts[idxStart]) || math.IsInf(nonNullWatts[idxStart], 0) {
-				missingPower--
-			} else {
-				currentPower -= nonNullWatts[idxStart]
-			}
-			idxStart++
-			idxEnd++
-		}
+	if window.EndIndex >= len(stream.Distance.Data) || window.EndIndex >= len(stream.Altitude.Data) {
+		return nil
 	}
-
-	return bestEffort
+	gain, loss := 0.0, 0.0
+	previous := timeline.ValueAt(stream.Altitude.Data, window.Start)
+	for i := window.StartIndex + 1; i <= window.EndIndex; i++ {
+		t := min(float64(stream.Time.Data[i]), window.End)
+		value := timeline.ValueAt(stream.Altitude.Data, t)
+		delta := value - previous
+		if delta > 0 {
+			gain += delta
+		} else {
+			loss -= delta
+		}
+		previous = value
+	}
+	return &business.ActivityEffort{
+		Distance: timeline.ValueAt(stream.Distance.Data, window.End) - timeline.ValueAt(stream.Distance.Data, window.Start),
+		Seconds:  seconds, DeltaAltitude: timeline.ValueAt(stream.Altitude.Data, window.End) - timeline.ValueAt(stream.Altitude.Data, window.Start),
+		ElevationGain: &gain, ElevationLoss: &loss, IdxStart: window.StartIndex, IdxEnd: window.EndIndex, AveragePower: &window.Average,
+		Label:         fmt.Sprintf("Best power for %s", formatSeconds(seconds)),
+		ActivityShort: business.ActivityShort{Id: id, Name: name, Type: business.ActivityTypes[activityType]},
+	}
 }
 
 func bestPowerForDistance(id int64, name, activityType string, stream *strava.Stream, distance float64) *business.ActivityEffort {
@@ -192,6 +142,7 @@ func bestPowerForDistance(id int64, name, activityType string, stream *strava.St
 	}
 
 	nonNullWatts := buildNonNullWatts(stream.Watts)
+	powerTimeline := strava.NewPowerTimeline(nonNullWatts, stream.Time.Data)
 
 	idxStart, idxEnd := 0, 0
 	bestAveragePower := 0.0
@@ -230,7 +181,7 @@ func bestPowerForDistance(id int64, name, activityType string, stream *strava.St
 				}
 				continue
 			}
-			averagePower := averagePower(nonNullWatts, idxStart, idxEnd)
+			averagePower := powerTimeline.AverageIndices(idxStart, idxEnd)
 			if averagePower != nil && *averagePower > bestAveragePower {
 				bestAveragePower = *averagePower
 				estimatedTimeForDistance := distance / totalDistance * float64(totalTime)

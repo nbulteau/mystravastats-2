@@ -428,10 +428,14 @@ func TestPutAthletePerformanceSettings_NormalizesAndReturns200(t *testing.T) {
 }
 
 func contractPowerActivity(id int64, name string, startDateLocal string, watts float64) *strava.Activity {
-	distances := []float64{0, 1000, 2000, 3000, 4000, 5000, 6000}
-	times := []int{0, 600, 1200, 1800, 2400, 3000, 3600}
-	altitudes := []float64{100, 101, 102, 103, 104, 105, 106}
-	powers := []float64{watts, watts, watts, watts, watts, watts, watts}
+	distances, altitudes, powers := make([]float64, 721), make([]float64, 721), make([]float64, 721)
+	times := make([]int, 721)
+	for i := range times {
+		times[i] = i * 5
+		distances[i] = float64(i) * 6000 / 720
+		altitudes[i] = 100
+		powers[i] = watts
+	}
 	return &strava.Activity{
 		Id:             id,
 		Name:           name,

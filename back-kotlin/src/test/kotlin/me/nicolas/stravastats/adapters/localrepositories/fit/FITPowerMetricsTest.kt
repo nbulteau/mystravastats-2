@@ -30,9 +30,9 @@ class FITPowerMetricsTest {
         val metrics = computeFitPowerMetrics(null, stream, 100)
 
         // THEN
-        assertEquals(150, metrics.averageWatts)
-        assertEquals(150, metrics.weightedAverageWatts)
-        assertEquals(12.906, metrics.kilojoules, 0.0001)
+        assertEquals(100, metrics.averageWatts)
+        assertEquals(0, metrics.weightedAverageWatts)
+        assertEquals(0.3, metrics.kilojoules, 0.0001)
         assertTrue(metrics.hasDeviceWatts)
     }
 
@@ -47,7 +47,7 @@ class FITPowerMetricsTest {
         // THEN
         assertEquals(250, metrics.averageWatts)
         assertEquals(250, metrics.weightedAverageWatts)
-        assertEquals(25.812, metrics.kilojoules, 0.0001)
+        assertEquals(30.0, metrics.kilojoules, 0.0001)
         assertTrue(metrics.hasDeviceWatts)
     }
 

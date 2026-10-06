@@ -18,7 +18,7 @@ const chartOptions = ref<Options>({});
 
 // Computed properties
 const powerCurveData = computed(() => {
-  return buildPowerCurve(props.activity.stream.watts || []);
+  return buildPowerCurve(props.activity.stream.watts || [], props.activity.stream.time || []);
 });
 
 

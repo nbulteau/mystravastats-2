@@ -218,7 +218,7 @@ private fun buildClimbAscentDto(
         durationSeconds = duration,
         vamMetersPerHour = vam,
         averageSpeedKph = speed,
-        averagePowerWatts = averageCompletePowerValues(stream?.watts?.data, bounds),
+        averagePowerWatts = averageCompletePowerValues(stream?.watts?.data, stream?.time?.data.orEmpty(), bounds),
         averageHeartRateBpm = averagePositiveValues(stream?.heartrate?.data, bounds),
         comparisonPoints = comparisonPoints,
         comparisonQuality = comparisonQuality,
@@ -370,12 +370,9 @@ private fun buildClimbAscentComparison(
     return points to quality
 }
 
-private fun averageCompletePowerValues(values: List<Int?>?, bounds: FamousClimbBounds): Int? {
-    if (values == null || bounds.startIndex < 0 || bounds.endIndex < bounds.startIndex || bounds.endIndex >= values.size) return null
-    val samples = values.subList(bounds.startIndex, bounds.endIndex + 1)
-    if (samples.any { it == null }) return null
-    return round(samples.filterNotNull().average()).toInt()
-}
+private fun averageCompletePowerValues(values: List<Int?>?, times: List<Int>, bounds: FamousClimbBounds): Int? =
+    me.nicolas.stravastats.domain.business.strava.stream.PowerTimeline(values.orEmpty(), times)
+        .averageIndices(bounds.startIndex,bounds.endIndex)?.let { round(it).toInt() }
 
 private fun averagePositiveValues(values: List<Int?>?, bounds: FamousClimbBounds): Int? {
     if (values == null || bounds.startIndex < 0 || bounds.endIndex < bounds.startIndex || bounds.startIndex >= values.size) {

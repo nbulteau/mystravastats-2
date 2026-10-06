@@ -1,3 +1,4 @@
+import { PowerTimeline } from "./power-timeline";
 import type { DetailedActivity } from "@/models/activity.model";
 import { resolveManualFtpForDate, type AthletePerformanceSettings, type ResolvedManualFtp } from "@/models/athlete-performance-settings.model";
 import { formatTime } from "@/utils/formatters";
@@ -17,6 +18,8 @@ export type PowerAnalysis = {
   trainingStressScore: number | null;
   workKilojoules: number | null;
   powerZoneEstimate: PowerZoneEstimate | null;
+  coveredSeconds: number;
+  recordedSeconds: number;
 };
 
 export type PowerZoneEstimate = {
@@ -37,27 +40,22 @@ export function buildPowerAnalysis(
   }
 
   const watts = sanitizePowerSamples(currentActivity.stream?.watts ?? []);
-  const durationSeconds = resolvePowerDurationSeconds(currentActivity);
-  const averagePower = watts.length > 0
-    ? watts.every(Number.isFinite) ? watts.reduce((sum, value) => sum + value, 0) / watts.length : null
-    : currentActivity.averageWatts > 0
-      ? currentActivity.averageWatts
-      : null;
-  const maxPower = watts.length > 0
-    ? watts.every(Number.isFinite) ? Math.max(...watts) : null
-    : currentActivity.maxWatts > 0
-      ? currentActivity.maxWatts
-      : null;
-  const best20MinutePower = bestAveragePower(watts, 20 * 60);
-  const best60MinutePower = bestAveragePower(watts, 60 * 60);
-  const normalizedPower = normalizedPowerFromWatts(watts);
+  const times = currentActivity.stream?.time ?? [];
+  const timeline = new PowerTimeline(watts, times);
+  const durationSeconds = timeline.duration;
+  const averagePower = timeline.average(times[0]!, times.at(-1)!);
+  const validWatts = watts.filter(Number.isFinite);
+  const maxPower = validWatts.length ? Math.max(...validWatts) : null;
+  const best20MinutePower = timeline.best(20 * 60);
+  const best60MinutePower = timeline.best(60 * 60);
+  const normalizedPower = timeline.normalized();
   const manualFtp = resolveManualFtpForDate(
     performanceSettings,
     currentActivity.startDateLocal || currentActivity.startDate,
   );
   const ftpDetails = resolveFtpDetails(manualFtp, athleteFtp, best60MinutePower, best20MinutePower);
   const weightDetails = resolveWeightDetails(performanceSettings.weightKg, athleteWeight);
-  const powerZoneEstimate = ftpDetails.ftp !== null ? buildPowerZoneEstimate(watts, ftpDetails.ftp) : null;
+  const powerZoneEstimate = ftpDetails.ftp !== null ? buildPowerZoneEstimate(watts, ftpDetails.ftp, times) : null;
   const intensityFactor =
     normalizedPower !== null && ftpDetails.ftp !== null
       ? normalizedPower / ftpDetails.ftp
@@ -90,6 +88,8 @@ export function buildPowerAnalysis(
     trainingStressScore,
     workKilojoules,
     powerZoneEstimate,
+    coveredSeconds: timeline.coveredSeconds,
+    recordedSeconds: timeline.duration,
   };
 }
 
@@ -109,6 +109,8 @@ export function emptyPowerAnalysis(): PowerAnalysis {
     trainingStressScore: null,
     workKilojoules: null,
     powerZoneEstimate: null,
+    coveredSeconds: 0,
+    recordedSeconds: 0,
   };
 }
 
@@ -116,22 +118,8 @@ export function sanitizePowerSamples(watts: Array<number | null>): number[] {
   return watts.map((value) => typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : Number.NaN);
 }
 
-export function normalizedPowerFromWatts(watts: Array<number | null>): number | null {
-  if (watts.length < 30 || watts.some((value) => value === null || !Number.isFinite(value))) {
-    return null;
-  }
-
-  const rollingAverages = rollingAverage(sanitizePowerSamples(watts), 30);
-  if (!rollingAverages.length) {
-    return null;
-  }
-
-  const fourthPowerAverage = rollingAverages.reduce(
-    (sum, value) => sum + Math.pow(value, 4),
-    0,
-  ) / rollingAverages.length;
-
-  return Math.pow(fourthPowerAverage, 0.25);
+export function normalizedPowerFromWatts(watts: Array<number | null>, times: number[]): number | null {
+  return new PowerTimeline(watts, times).normalized();
 }
 
 export function rollingAverage(values: number[], windowSize: number): number[] {
@@ -191,32 +179,19 @@ export function resolveWeightDetails(
   return { weightKg: null, source: null };
 }
 
-export function buildPowerZoneEstimate(watts: Array<number | null>, ftp: number): PowerZoneEstimate | null {
-  if (!watts.length || !Number.isFinite(ftp) || ftp <= 0) {
-    return null;
+export function buildPowerZoneEstimate(watts: Array<number | null>, ftp: number, times: number[]): PowerZoneEstimate | null {
+  if (!Number.isFinite(ftp) || ftp <= 0) return null;
+  const timeline = new PowerTimeline(watts, times);
+  const result = { trackedSeconds: 0, aerobicSeconds: 0, thresholdVo2Seconds: 0, anaerobicSeconds: 0 };
+  for (let i = 0; i < times.length - 1; i++) {
+    if (!timeline.intervalValid(i)) continue;
+    const duration = times[i + 1]! - times[i]!;
+    result.trackedSeconds += duration;
+    const power = watts[i]!;
+    if (power <= ftp * 0.9) result.aerobicSeconds += duration;
+    else if (power <= ftp * 1.2) result.thresholdVo2Seconds += duration;
+    else result.anaerobicSeconds += duration;
   }
-
-  const aerobicUpperBound = ftp * 0.9;
-  const anaerobicLowerBound = ftp * 1.2;
-
-  const result = watts.reduce<PowerZoneEstimate>((estimate, rawPower) => {
-    if (rawPower === null || !Number.isFinite(rawPower) || rawPower < 0) return estimate;
-    const power = rawPower;
-    estimate.trackedSeconds += 1;
-    if (power <= aerobicUpperBound) {
-      estimate.aerobicSeconds += 1;
-    } else if (power <= anaerobicLowerBound) {
-      estimate.thresholdVo2Seconds += 1;
-    } else {
-      estimate.anaerobicSeconds += 1;
-    }
-    return estimate;
-  }, {
-    trackedSeconds: 0,
-    aerobicSeconds: 0,
-    thresholdVo2Seconds: 0,
-    anaerobicSeconds: 0,
-  });
   return result.trackedSeconds ? result : null;
 }
 
@@ -235,44 +210,20 @@ export function formatOptionalDecimal(value: number | null, suffix: string, digi
 }
 
 export function resolvePowerDurationSeconds(currentActivity: DetailedActivity): number {
-  const time = currentActivity.stream?.time ?? [];
-  const lastTime = time.length > 0 ? time[time.length - 1] : null;
-  if (lastTime !== null && Number.isFinite(lastTime) && lastTime > 0) {
-    return lastTime;
-  }
-  return currentActivity.elapsedTime > 0 ? currentActivity.elapsedTime : currentActivity.movingTime;
+  return new PowerTimeline(currentActivity.stream?.watts ?? [], currentActivity.stream?.time ?? []).duration;
 }
 
-export function bestAveragePower(watts: Array<number | null>, windowSamples: number): number | null {
-  if (windowSamples <= 0 || !Number.isInteger(windowSamples) || watts.length < windowSamples) return null;
-  let sum = 0;
-  let missing = 0;
-  let best: number | null = null;
-  const valid = (value: number | null | undefined): value is number => typeof value === "number" && Number.isFinite(value) && value >= 0;
-  for (let i = 0; i < watts.length; i++) {
-    const incoming = watts[i];
-    if (valid(incoming)) sum += incoming; else missing++;
-    if (i >= windowSamples) {
-      const outgoing = watts[i - windowSamples];
-      if (valid(outgoing)) sum -= outgoing; else missing--;
-    }
-    if (i >= windowSamples - 1 && missing === 0) best = Math.max(best ?? -Infinity, sum / windowSamples);
-  }
-  return best;
+export function bestAveragePower(watts: Array<number | null>, seconds: number, times: number[]): number | null {
+  return new PowerTimeline(watts, times).best(seconds);
 }
 
-export function buildPowerCurve(watts: Array<number | null>): Array<[number, number]> {
-  const samples = sanitizePowerSamples(watts);
-  const durations = Array.from({ length: samples.length }, (_, index) => index + 1)
-    .filter((durationSeconds) =>
-      durationSeconds <= 60
-      || (durationSeconds <= 5 * 60 && durationSeconds % 5 === 0)
-      || (durationSeconds <= 20 * 60 && durationSeconds % 30 === 0)
-      || durationSeconds % 60 === 0
-      || durationSeconds === samples.length
-    );
-  return durations.flatMap((durationSeconds): Array<[number, number]> => {
-    const power = bestAveragePower(samples, durationSeconds);
-    return power === null ? [] : [[durationSeconds, power]];
+export function buildPowerCurve(watts: Array<number | null>, times: number[]): Array<[number, number]> {
+  const timeline = new PowerTimeline(watts, times);
+  const durations: number[] = [];
+  for (let seconds = 1; seconds <= timeline.duration; seconds += seconds < 60 ? 1 : seconds < 300 ? 5 : seconds < 1200 ? 30 : 60) durations.push(seconds);
+  if (timeline.duration > 0 && durations.at(-1) !== timeline.duration) durations.push(timeline.duration);
+  return durations.flatMap((seconds): Array<[number, number]> => {
+    const power = timeline.best(seconds);
+    return power === null ? [] : [[seconds, power]];
   });
 }

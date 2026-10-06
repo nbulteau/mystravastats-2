@@ -1341,7 +1341,7 @@ const powerRows = computed<DetailMetricRow[]>(() => {
     rows.push({
       label: "Source",
       value: powerSourceLabel.value,
-      hint: hasPowerData.value ? "Available in the profile chart" : undefined,
+      hint: hasPowerData.value ? `${Math.round(analysis.coveredSeconds)} / ${Math.round(analysis.recordedSeconds)} s covered. Missing readings and gaps over 10 s are excluded.` : undefined,
     });
   }
 
@@ -1362,7 +1362,7 @@ const bestPowerRows = computed<DetailMetricRow[]>(() => {
     { label: "60 min", seconds: 60 * 60 },
   ]
     .map(({ label, seconds }) => {
-      const value = bestAveragePower(watts, seconds);
+      const value = bestAveragePower(watts, seconds, activity.value?.stream?.time ?? []);
       return value !== null ? { label, value: `${Math.round(value)} W` } : null;
     })
     .filter((row): row is DetailMetricRow => row !== null);

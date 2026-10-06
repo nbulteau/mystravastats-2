@@ -1,7 +1,6 @@
 package me.nicolas.stravastats.adapters.localrepositories.fit
 
 import me.nicolas.stravastats.domain.business.strava.stream.Stream
-import kotlin.math.pow
 import kotlin.math.roundToInt
 
 internal data class FitPowerMetrics(
@@ -11,53 +10,15 @@ internal data class FitPowerMetrics(
     val hasDeviceWatts: Boolean,
 )
 
-internal fun computeFitPowerMetrics(
-    sessionAveragePower: Int?,
-    stream: Stream,
-    elapsedTime: Int,
-): FitPowerMetrics {
-    val samples = fitPowerSamples(stream)
-    val streamAverageWatts = averageFitPower(samples)
-    val averageWatts = sessionAveragePower?.takeIf { it > 0 } ?: streamAverageWatts
-    val weightedAverageWatts = sessionAveragePower?.takeIf { it > 0 } ?: normalizedFitPower(samples)
-
+internal fun computeFitPowerMetrics(sessionAveragePower: Int?, stream: Stream, elapsedTime: Int): FitPowerMetrics {
+    val timeline = me.nicolas.stravastats.domain.business.strava.stream.PowerTimeline(stream.watts?.data.orEmpty(),stream.time.data)
+    val session = sessionAveragePower?.takeIf { it > 0 }
+    val average = if(timeline.valid) timeline.average(stream.time.data.first().toDouble(),stream.time.data.last().toDouble()) else null
+    val duration = if(timeline.valid) stream.time.data.last()-stream.time.data.first() else 0
     return FitPowerMetrics(
-        averageWatts = averageWatts,
-        weightedAverageWatts = weightedAverageWatts,
-        kilojoules = 0.8604 * averageWatts * maxOf(elapsedTime, 0) / 1000,
-        hasDeviceWatts = sessionAveragePower?.let { it > 0 } == true || stream.watts?.data.orEmpty().any { it != null && it > 0 },
+        averageWatts = session ?: average?.roundToInt() ?: 0,
+        weightedAverageWatts = session ?: timeline.normalized()?.roundToInt() ?: 0,
+        kilojoules = if(session!=null) session*maxOf(elapsedTime,0)/1000.0 else (average ?: 0.0)*duration/1000.0,
+        hasDeviceWatts = session!=null || stream.watts?.data.orEmpty().any { it != null && it > 0 },
     )
-}
-
-internal fun fitPowerSamples(stream: Stream): List<Int> {
-    if (stream.watts?.data.orEmpty().any { it == null || it < 0 }) return emptyList()
-    val samples = stream.watts?.data.orEmpty().mapNotNull { watts ->
-        watts?.takeIf { it >= 0 }
-    }
-    return if (samples.any { it > 0 }) samples else emptyList()
-}
-
-internal fun averageFitPower(samples: List<Int>): Int {
-    if (samples.isEmpty()) {
-        return 0
-    }
-    return samples.average().roundToInt()
-}
-
-internal fun normalizedFitPower(samples: List<Int>): Int {
-    if (samples.isEmpty()) {
-        return 0
-    }
-
-    val rollingWindowSeconds = 30
-    if (samples.size < rollingWindowSeconds) {
-        return averageFitPower(samples)
-    }
-
-    val fourthPowerAverage = samples
-        .windowed(rollingWindowSeconds)
-        .map { window -> window.average().pow(4.0) }
-        .average()
-
-    return fourthPowerAverage.pow(0.25).roundToInt()
 }

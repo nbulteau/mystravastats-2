@@ -5,35 +5,29 @@ import { computed, } from "vue";
 import type { Options } from 'highcharts';
 import type { DetailedActivity } from '@/models/activity.model';
 
+import { PowerTimeline } from "@/services/power-timeline";
+
 const props = defineProps<{
     activity: DetailedActivity;
 }>();
 
 
 const powerDistributionChartOptions = computed<Options>(() => {
-    const powerData = (props.activity?.stream?.watts ?? []).filter((value): value is number => value !== null && Number.isFinite(value) && value >= 0);
-    const maxPower = Math.ceil(Math.max(0, ...powerData) / 25) * 25;
-
-    // Initialize zones
+    const watts = props.activity?.stream?.watts ?? [];
+    const times = props.activity?.stream?.time ?? [];
+    const timeline = new PowerTimeline(watts, times);
     const zones: { [key: number]: number } = {};
-    for (let i = 0; i <= maxPower; i += 25) {
-        zones[i] = 0;
+    for (let i = 0; i < times.length - 1; i++) {
+        if (!timeline.intervalValid(i)) continue;
+        const zone = Math.floor(watts[i]! / 25) * 25;
+        zones[zone] = (zones[zone] ?? 0) + times[i + 1]! - times[i]!;
     }
-
-    // Count seconds in each zone
-    powerData.forEach((power) => {
-        const zoneLower = Math.floor(power / 25) * 25;
-        if (zones[zoneLower] === undefined) {
-            zones[zoneLower] = 0;
-        }
-        zones[zoneLower]++;
-    });
 
     // Prepare data for Highcharts
     const seriesData = Object.entries(zones).map(([power, seconds]) => ({
         x: parseInt(power),
         y: seconds,
-        percentage: ((seconds / Math.max(1, powerData.length)) * 100).toFixed(1),
+        percentage: ((seconds / Math.max(1, timeline.coveredSeconds)) * 100).toFixed(1),
     }));
 
     const formatTimeString = (seconds: number) => {

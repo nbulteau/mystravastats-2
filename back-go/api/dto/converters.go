@@ -1465,7 +1465,7 @@ func buildClimbAscentDto(activity *strava.Activity, bounds famousClimbBounds, ba
 		}
 	}
 	if activity.Stream != nil {
-		ascent.AveragePowerWatts = averageCompletePowerRange(activity.Stream.Watts, bounds)
+		ascent.AveragePowerWatts = averageCompletePowerRange(activity.Stream.Watts, activity.Stream.Time.Data, bounds)
 		ascent.AverageHeartRateBpm = averagePositiveIntRange(activity.Stream.HeartRate, bounds)
 	}
 	return ascent
@@ -1585,18 +1585,15 @@ func buildClimbAscentComparison(activity *strava.Activity, bounds famousClimbBou
 	return points, quality
 }
 
-func averageCompletePowerRange(stream *strava.PowerStream, bounds famousClimbBounds) *int {
-	if stream == nil || bounds.startIndex < 0 || bounds.endIndex < bounds.startIndex || bounds.endIndex >= len(stream.Data) {
+func averageCompletePowerRange(stream *strava.PowerStream, times []int, bounds famousClimbBounds) *int {
+	if stream == nil {
 		return nil
 	}
-	total := 0.0
-	for _, value := range stream.Data[bounds.startIndex : bounds.endIndex+1] {
-		if !isFiniteNumber(value) {
-			return nil
-		}
-		total += value
+	value := strava.NewPowerTimeline(stream.Data, times).AverageIndices(bounds.startIndex, bounds.endIndex)
+	if value == nil {
+		return nil
 	}
-	average := int(math.Round(total / float64(bounds.endIndex-bounds.startIndex+1)))
+	average := int(math.Round(*value))
 	return &average
 }
 
