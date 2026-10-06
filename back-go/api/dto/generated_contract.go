@@ -536,6 +536,62 @@ type ContractAchievement struct {
 	TypeId      int64  `json:"typeId"`
 }
 
+type ContractTrainingLoadActivity struct {
+	ActivityId           int64    `json:"activityId"`
+	Name                 string   `json:"name"`
+	Date                 string   `json:"date"`
+	Sport                string   `json:"sport"`
+	Source               string   `json:"source"`
+	Reason               string   `json:"reason"`
+	Load                 *float64 `json:"load"`
+	Ftp                  *int64   `json:"ftp"`
+	FtpEffectiveFrom     *string  `json:"ftpEffectiveFrom"`
+	NormalizedPower      *float64 `json:"normalizedPower"`
+	IntensityFactor      *float64 `json:"intensityFactor"`
+	Best5MinutePower     *float64 `json:"best5MinutePower"`
+	MovingSeconds        int64    `json:"movingSeconds"`
+	ElapsedSeconds       int64    `json:"elapsedSeconds"`
+	RecordedSeconds      float64  `json:"recordedSeconds"`
+	CoveredSeconds       float64  `json:"coveredSeconds"`
+	DistanceMeters       float64  `json:"distanceMeters"`
+	ElevationMeters      float64  `json:"elevationMeters"`
+	AerobicSeconds       float64  `json:"aerobicSeconds"`
+	ThresholdSeconds     float64  `json:"thresholdSeconds"`
+	HighIntensitySeconds float64  `json:"highIntensitySeconds"`
+}
+
+type ContractTrainingLoadPeriod struct {
+	StartDate             string   `json:"startDate"`
+	EndDate               string   `json:"endDate"`
+	ActivityCount         int64    `json:"activityCount"`
+	ScoredCount           int64    `json:"scoredCount"`
+	MeasuredLoad          *float64 `json:"measuredLoad"`
+	EstimatedLoad         *float64 `json:"estimatedLoad"`
+	MovingSeconds         int64    `json:"movingSeconds"`
+	DistanceMeters        float64  `json:"distanceMeters"`
+	ElevationMeters       float64  `json:"elevationMeters"`
+	CoveredSeconds        float64  `json:"coveredSeconds"`
+	RecordedSeconds       float64  `json:"recordedSeconds"`
+	AerobicSeconds        float64  `json:"aerobicSeconds"`
+	ThresholdSeconds      float64  `json:"thresholdSeconds"`
+	HighIntensitySeconds  float64  `json:"highIntensitySeconds"`
+	Best5MinutePower      *float64 `json:"best5MinutePower"`
+	Best5MinuteActivityId *int64   `json:"best5MinuteActivityId"`
+}
+
+type ContractTrainingLoadWeek struct {
+	Summary ContractTrainingLoadPeriod   `json:"summary"`
+	Days    []ContractTrainingLoadPeriod `json:"days"`
+}
+
+type ContractTrainingReport struct {
+	Method            string                         `json:"method"`
+	MaxGapSeconds     int64                          `json:"maxGapSeconds"`
+	UndatedActivities int64                          `json:"undatedActivities"`
+	Weeks             []ContractTrainingLoadWeek     `json:"weeks"`
+	Activities        []ContractTrainingLoadActivity `json:"activities"`
+}
+
 type ContractOperation struct {
 	Method string
 	Path   string
@@ -594,4 +650,5 @@ var ContractOperations = map[string]ContractOperation{
 	"getHeartRateZoneAnalysis":          {Method: "GET", Path: "/api/statistics/heart-rate-zones"},
 	"getPersonalRecordsTimeline":        {Method: "GET", Path: "/api/statistics/personal-records-timeline"},
 	"getSegmentClimbProgression":        {Method: "GET", Path: "/api/statistics/segment-climb-progression"},
+	"getTrainingLoad":                   {Method: "GET", Path: "/api/statistics/training-load"},
 }

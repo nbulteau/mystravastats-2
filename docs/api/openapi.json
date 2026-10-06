@@ -2943,6 +2943,62 @@
           }
         }
       }
+    },
+    "/api/statistics/training-load": {
+      "get": {
+        "operationId": "getTrainingLoad",
+        "tags": [
+          "statistics"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response; units and missing values are documented in the schema.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "week",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Local date YYYY-MM-DD. Normalized to Monday; ISO weeks may cross calendar years. Independent of year filter."
+          }
+        ],
+        "summary": "Weekly training load with activity evidence and four preceding weeks"
+      }
     }
   },
   "components": {
@@ -5469,6 +5525,287 @@
           },
           "typeId": {
             "type": "integer"
+          }
+        }
+      },
+      "TrainingLoadActivity": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "activityId",
+          "name",
+          "date",
+          "sport",
+          "source",
+          "reason",
+          "load",
+          "ftp",
+          "ftpEffectiveFrom",
+          "normalizedPower",
+          "intensityFactor",
+          "best5MinutePower",
+          "movingSeconds",
+          "elapsedSeconds",
+          "recordedSeconds",
+          "coveredSeconds",
+          "distanceMeters",
+          "elevationMeters",
+          "aerobicSeconds",
+          "thresholdSeconds",
+          "highIntensitySeconds"
+        ],
+        "properties": {
+          "activityId": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "name": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "sport": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "measured",
+              "estimated",
+              "unavailable"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "available",
+              "unsupported-sport",
+              "missing-power",
+              "invalid-time",
+              "power-gaps",
+              "too-short",
+              "incomplete-activity",
+              "missing-dated-ftp"
+            ]
+          },
+          "load": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "description": "Observed seconds / 3600 \u00d7 (normalized power / dated FTP)^2 \u00d7 100. Null means unavailable, zero is measured zero."
+          },
+          "ftp": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
+          "ftpEffectiveFrom": {
+            "type": "string",
+            "nullable": true,
+            "format": "date",
+            "description": "Most recent valid manual FTP entry on or before activity local date. No current-profile fallback."
+          },
+          "normalizedPower": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0
+          },
+          "intensityFactor": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0
+          },
+          "best5MinutePower": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0
+          },
+          "movingSeconds": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "elapsedSeconds": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "recordedSeconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "coveredSeconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "distanceMeters": {
+            "type": "number",
+            "minimum": 0
+          },
+          "elevationMeters": {
+            "type": "number",
+            "minimum": 0
+          },
+          "aerobicSeconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "thresholdSeconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "highIntensitySeconds": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      },
+      "TrainingLoadPeriod": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "startDate",
+          "endDate",
+          "activityCount",
+          "scoredCount",
+          "measuredLoad",
+          "estimatedLoad",
+          "movingSeconds",
+          "distanceMeters",
+          "elevationMeters",
+          "coveredSeconds",
+          "recordedSeconds",
+          "aerobicSeconds",
+          "thresholdSeconds",
+          "highIntensitySeconds",
+          "best5MinutePower",
+          "best5MinuteActivityId"
+        ],
+        "properties": {
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "activityCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "scoredCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "measuredLoad": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "description": "Sum of available scores from measured power only; null if none. Inspect scoredCount/activityCount for missing load."
+          },
+          "estimatedLoad": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "description": "Separate sum from estimated power; never silently combined with measured load."
+          },
+          "movingSeconds": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "distanceMeters": {
+            "type": "number",
+            "minimum": 0
+          },
+          "elevationMeters": {
+            "type": "number",
+            "minimum": 0
+          },
+          "coveredSeconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "recordedSeconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "aerobicSeconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "thresholdSeconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "highIntensitySeconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "best5MinutePower": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0
+          },
+          "best5MinuteActivityId": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          }
+        }
+      },
+      "TrainingLoadWeek": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "summary",
+          "days"
+        ],
+        "properties": {
+          "summary": {
+            "$ref": "#/components/schemas/TrainingLoadPeriod"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainingLoadPeriod"
+            }
+          }
+        }
+      },
+      "TrainingReport": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "method",
+          "maxGapSeconds",
+          "undatedActivities",
+          "weeks",
+          "activities"
+        ],
+        "properties": {
+          "method": {
+            "type": "string"
+          },
+          "maxGapSeconds": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "undatedActivities": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "weeks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainingLoadWeek"
+            }
+          },
+          "activities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainingLoadActivity"
+            }
           }
         }
       }

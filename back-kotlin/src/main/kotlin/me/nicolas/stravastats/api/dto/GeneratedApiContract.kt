@@ -536,6 +536,62 @@ data class ContractAchievement(
     val typeId: Long,
 )
 
+data class ContractTrainingLoadActivity(
+    val activityId: Long,
+    val name: String,
+    val date: String,
+    val sport: String,
+    val source: String,
+    val reason: String,
+    val load: Double? = null,
+    val ftp: Long? = null,
+    val ftpEffectiveFrom: String? = null,
+    val normalizedPower: Double? = null,
+    val intensityFactor: Double? = null,
+    val best5MinutePower: Double? = null,
+    val movingSeconds: Long,
+    val elapsedSeconds: Long,
+    val recordedSeconds: Double,
+    val coveredSeconds: Double,
+    val distanceMeters: Double,
+    val elevationMeters: Double,
+    val aerobicSeconds: Double,
+    val thresholdSeconds: Double,
+    val highIntensitySeconds: Double,
+)
+
+data class ContractTrainingLoadPeriod(
+    val startDate: String,
+    val endDate: String,
+    val activityCount: Long,
+    val scoredCount: Long,
+    val measuredLoad: Double? = null,
+    val estimatedLoad: Double? = null,
+    val movingSeconds: Long,
+    val distanceMeters: Double,
+    val elevationMeters: Double,
+    val coveredSeconds: Double,
+    val recordedSeconds: Double,
+    val aerobicSeconds: Double,
+    val thresholdSeconds: Double,
+    val highIntensitySeconds: Double,
+    val best5MinutePower: Double? = null,
+    val best5MinuteActivityId: Long? = null,
+)
+
+data class ContractTrainingLoadWeek(
+    val summary: ContractTrainingLoadPeriod,
+    val days: List<ContractTrainingLoadPeriod>,
+)
+
+data class ContractTrainingReport(
+    val method: String,
+    val maxGapSeconds: Long,
+    val undatedActivities: Long,
+    val weeks: List<ContractTrainingLoadWeek>,
+    val activities: List<ContractTrainingLoadActivity>,
+)
+
 data class ContractOperation(val method: String, val path: String)
 
 val contractOperations: Map<String, ContractOperation> = mapOf(
@@ -591,4 +647,5 @@ val contractOperations: Map<String, ContractOperation> = mapOf(
     "getHeartRateZoneAnalysis" to ContractOperation("GET", "/api/statistics/heart-rate-zones"),
     "getPersonalRecordsTimeline" to ContractOperation("GET", "/api/statistics/personal-records-timeline"),
     "getSegmentClimbProgression" to ContractOperation("GET", "/api/statistics/segment-climb-progression"),
+    "getTrainingLoad" to ContractOperation("GET", "/api/statistics/training-load"),
 )

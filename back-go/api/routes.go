@@ -12,6 +12,7 @@ type Route struct {
 type Routes []Route
 
 var routes = Routes{
+	{Name: "GetTrainingLoad", Method: "GET", Pattern: "/api/statistics/training-load", HandlerFunc: getTrainingLoad},
 	{Name: "GetHealthDetails", Method: "GET", Pattern: "/api/health/details", HandlerFunc: getHealthDetails},
 	{Name: "GetLocalDataBackup", Method: "GET", Pattern: "/api/local-data/backup", HandlerFunc: getLocalDataBackup},
 	{Name: "PostLocalDataRestore", Method: "POST", Pattern: "/api/local-data/restore", HandlerFunc: postLocalDataRestore},

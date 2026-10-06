@@ -1,6 +1,7 @@
 package api
 
 import (
+	trainingApp "mystravastats/internal/training/application"
 	"sync"
 
 	activitiesApp "mystravastats/internal/activities/application"
@@ -33,6 +34,7 @@ import (
 )
 
 type container struct {
+	getTrainingLoadUseCase                   *trainingApp.UseCase
 	getDetailedActivityUseCase               *activitiesApp.GetDetailedActivityUseCase
 	getActivityComparisonUseCase             *activitiesApp.GetActivityComparisonUseCase
 	listActivitiesUseCase                    *activitiesApp.ListActivitiesUseCase
@@ -103,6 +105,7 @@ func getContainer() *container {
 		dashboardReader := dashboardInfra.NewDashboardServiceAdapter()
 		sourceModeReader := sourceModeInfra.NewSourceModeServiceAdapter()
 		sharedContainer = &container{
+			getTrainingLoadUseCase:                   trainingApp.NewUseCase(athleteReader),
 			getDetailedActivityUseCase:               activitiesApp.NewGetDetailedActivityUseCase(detailedActivityReader),
 			getActivityComparisonUseCase:             activitiesApp.NewGetActivityComparisonUseCase(detailedActivityReader),
 			listActivitiesUseCase:                    activitiesApp.NewListActivitiesUseCase(detailedActivityReader),

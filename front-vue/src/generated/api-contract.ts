@@ -534,6 +534,62 @@ export interface Achievement {
   typeId: number;
 }
 
+export interface TrainingLoadActivity {
+  activityId: number;
+  name: string;
+  date: string;
+  sport: string;
+  source: "measured" | "estimated" | "unavailable";
+  reason: "available" | "unsupported-sport" | "missing-power" | "invalid-time" | "power-gaps" | "too-short" | "incomplete-activity" | "missing-dated-ftp";
+  load: number | null;
+  ftp: number | null;
+  ftpEffectiveFrom: string | null;
+  normalizedPower: number | null;
+  intensityFactor: number | null;
+  best5MinutePower: number | null;
+  movingSeconds: number;
+  elapsedSeconds: number;
+  recordedSeconds: number;
+  coveredSeconds: number;
+  distanceMeters: number;
+  elevationMeters: number;
+  aerobicSeconds: number;
+  thresholdSeconds: number;
+  highIntensitySeconds: number;
+}
+
+export interface TrainingLoadPeriod {
+  startDate: string;
+  endDate: string;
+  activityCount: number;
+  scoredCount: number;
+  measuredLoad: number | null;
+  estimatedLoad: number | null;
+  movingSeconds: number;
+  distanceMeters: number;
+  elevationMeters: number;
+  coveredSeconds: number;
+  recordedSeconds: number;
+  aerobicSeconds: number;
+  thresholdSeconds: number;
+  highIntensitySeconds: number;
+  best5MinutePower: number | null;
+  best5MinuteActivityId: number | null;
+}
+
+export interface TrainingLoadWeek {
+  summary: TrainingLoadPeriod;
+  days: TrainingLoadPeriod[];
+}
+
+export interface TrainingReport {
+  method: string;
+  maxGapSeconds: number;
+  undatedActivities: number;
+  weeks: TrainingLoadWeek[];
+  activities: TrainingLoadActivity[];
+}
+
 export const apiOperations = {
   listActivities: { method: "GET", path: "/api/activities" },
   getActivity: { method: "GET", path: "/api/activities/{activityId}" },
@@ -587,6 +643,7 @@ export const apiOperations = {
   getHeartRateZoneAnalysis: { method: "GET", path: "/api/statistics/heart-rate-zones" },
   getPersonalRecordsTimeline: { method: "GET", path: "/api/statistics/personal-records-timeline" },
   getSegmentClimbProgression: { method: "GET", path: "/api/statistics/segment-climb-progression" },
+  getTrainingLoad: { method: "GET", path: "/api/statistics/training-load" },
 } as const;
 
 export type ApiOperationId = keyof typeof apiOperations;
