@@ -23,10 +23,11 @@
 - [ ] `PRODUCT-P2-02` - Livrer la charge d'entraînement et les tendances de forme.
   - [x] Préserver les échantillons de puissance absents dans les deux backends, les imports FIT, le stockage JSON et les graphiques ; exclure les fenêtres incomplètes, conserver les zéros mesurés et invalider les résultats en cache lorsque les échantillons changent. Fixtures partagées de calcul et de réponses API.
   - [x] Calculer les fenêtres de puissance sur la durée exacte et les moyennes/zones selon les horodatages réels ; intégrer la puissance normalisée et l’énergie sur le temps couvert. Règle commune Go/Kotlin/front : mesure maintenue jusqu’à la suivante, deux bornes valides, interruption au-delà de 10 s, aucune extrapolation finale. Fixtures partagées irrégulières, lacunaires et rééchantillonnées.
-  - afficher la charge quotidienne et hebdomadaire, puis les tendances de forme et de fatigue avec une méthode documentée ;
-  - détailler la contribution de chaque activité, les sources utilisées et la couverture des données ; ne pas assimiler une activité sans données à du repos ni additionner des scores incompatibles sans normalisation explicite ;
-  - exploiter la FTP applicable à la date de l'activité et distinguer les données mesurées des estimations ;
-  - assurer la parité Go/Kotlin sur des fixtures partagées et le fonctionnement avec Strava, FIT et GPX selon les données disponibles.
+  - [x] Afficher la charge par activité, jour et semaine dans « Progress → Training load », avec comparaison aux quatre semaines précédentes et méthode documentée.
+  - [ ] Ajouter les tendances de forme et de fatigue sur une série quotidienne suffisamment couverte ;
+  - [x] Détailler chaque contribution, la provenance de la puissance et les données manquantes ; séparer les totaux mesurés/estimés, conserver une charge inconnue à `null`, distinguer absence d’activité enregistrée et repos.
+  - [x] Utiliser uniquement la dernière FTP manuelle datée applicable à l’activité pour la charge ; aligner la fiche d’activité et le bilan, sans appliquer rétroactivement la FTP actuelle.
+  - [x] Vérifier les deux endpoints sur sept fixtures HTTP partagées et OpenAPI : historique FTP, sources, vrais zéros, lacunes, semaines interannuelles et données sans date. Les activités Strava/FIT/GPX restent visibles ; un score exige une série de puissance exploitable.
 
 - [ ] `PRODUCT-P2-03` - Livrer des courbes de puissance comparées.
   - comparer une activité aux six dernières semaines, à une saison et à l'historique complet ;
@@ -35,6 +36,8 @@
   - réutiliser les calculs temporels fiabilisés et signaler les périodes insuffisamment couvertes, avec des tests de parité Go/Kotlin.
 
 - [ ] `PRODUCT-P2-04` - Livrer un bilan hebdomadaire explicable.
+  - [x] Première version intégrée à Training load : volume/dénivelé, intensité mesurée, charge, meilleur effort mesuré de 5 min et quatre semaines de référence ; explications déterministes reliées aux activités et aux données manquantes.
+  - [ ] Étendre les records de la semaine aux événements de records personnels sur toutes les durées/métriques.
   - synthétiser le volume, le dénivelé, la répartition de l'intensité, la charge et les records, avec comparaison aux semaines précédentes ;
   - produire d'abord des conclusions déterministes, chacune reliée aux chiffres, à la période de référence et aux activités qui la justifient ;
   - expliciter les données manquantes et les estimations, sans présenter les tendances comme un diagnostic médical ;

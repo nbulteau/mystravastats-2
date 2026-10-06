@@ -1292,7 +1292,7 @@ const powerRows = computed<DetailMetricRow[]>(() => {
     rows.push({ label: "Intensity Factor (IF)", value: analysis.intensityFactor.toFixed(3) });
   }
   if (analysis.trainingStressScore !== null) {
-    rows.push({ label: "Training Stress Score (TSS)", value: analysis.trainingStressScore.toFixed(1) });
+    rows.push({ label: currentActivity.deviceWatts ? "Power load" : "Power load (estimated)", value: analysis.trainingStressScore.toFixed(1), hint: "Dated FTP and complete activity coverage; same method as the weekly training report" });
   }
   if (analysis.powerZoneEstimate !== null) {
     rows.push({

@@ -6,7 +6,7 @@ import (
 )
 
 func getTrainingLoad(w http.ResponseWriter, r *http.Request) {
-	_, types, err := parseActivityRequestParams(r)
+	types, err := getActivityTypeParam(r)
 	if err != nil {
 		writeBadRequest(w, "Invalid request parameters", err.Error())
 		return

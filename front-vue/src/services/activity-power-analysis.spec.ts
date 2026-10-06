@@ -13,6 +13,7 @@ import {
 
 function activity(overrides: Partial<DetailedActivity> = {}): DetailedActivity {
   return {
+    type: "Ride",
     averageWatts: 0,
     maxWatts: 0,
     kilojoules: 0,
@@ -75,6 +76,15 @@ describe("activity power analysis", () => {
     expect(analysis.intensityFactor).toBeCloseTo(0.8);
     expect(analysis.trainingStressScore).toBeCloseTo(64);
     expect(analysis.workKilojoules).toBe(720);
+  });
+
+  it("does not assign historical load from today's FTP or an incomplete activity", () => {
+    const ride = activity({elapsedTime: 60, stream: {...activity().stream, watts: Array(61).fill(200), time: Array.from({length:61},(_,i)=>i)}});
+    expect(buildPowerAnalysis(ride, 200, 70, {ftpHistory:[]}).trainingStressScore).toBeNull();
+    const settings={ftpHistory:[{effectiveFrom:"2026-01-01",ftp:200}]};
+    expect(buildPowerAnalysis(ride,200,70,settings).trainingStressScore).toBeCloseTo(100/60);
+    expect(buildPowerAnalysis({...ride,elapsedTime:100},200,70,settings).trainingStressScore).toBeNull();
+    expect(buildPowerAnalysis({...ride,type:"Run"},200,70,settings).trainingStressScore).toBeNull();
   });
 
   it("falls back from profile FTP to power-based estimates", () => {

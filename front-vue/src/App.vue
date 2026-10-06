@@ -41,6 +41,7 @@ const navGroups: readonly NavGroup[] = [
     label: "Progress",
     icon: "fa-solid fa-arrow-trend-up",
     items: [
+      { name: "training-load", to: "/training-load", label: "Training load", icon: "fa-solid fa-heart-pulse" },
       { name: "statistics", to: "/statistics", label: "Statistics", icon: "fa-solid fa-ranking-star" },
       { name: "charts", to: "/charts", label: "Trends", icon: "fa-solid fa-chart-area" },
       { name: "heatmap", to: "/heatmap", label: "Heatmap", icon: "fa-solid fa-calendar-days" },

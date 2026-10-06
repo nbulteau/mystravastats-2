@@ -38,6 +38,7 @@ object TrainingReports {
     private fun calculate(a: StravaActivity, date: String, settings: AthletePerformanceSettings): LoadActivity {
         val row = LoadActivity(activityId=a.id,name=a.name,date=date,sport=a.type,source=if(a.deviceWatts) "measured" else "estimated",
             movingSeconds=maxOf(0,a.movingTime),elapsedSeconds=maxOf(0,a.elapsedTime),distanceMeters=clean(a.distance),elevationMeters=clean(a.totalElevationGain))
+        if(a.stream?.watts?.data.isNullOrEmpty()) row.source="unavailable"
         for(entry in settings.ftpHistory) {
             if(Regex("\\d{4}-\\d{2}-\\d{2}").matches(entry.effectiveFrom) && parseDate(entry.effectiveFrom)!=null && entry.ftp>0 && entry.effectiveFrom<=date && (row.ftpEffectiveFrom==null || entry.effectiveFrom>=row.ftpEffectiveFrom!!)) {
                 row.ftp=entry.ftp;row.ftpEffectiveFrom=entry.effectiveFrom
@@ -46,7 +47,7 @@ object TrainingReports {
         if(a.type !in setOf("Ride","VirtualRide","MountainBikeRide","GravelRide","Commute")) {row.reason="unsupported-sport";return row}
         val stream=a.stream
         if(stream?.watts?.data.isNullOrEmpty()) {row.source="unavailable";row.reason="missing-power";return row}
-        val timeline=PowerTimeline(stream!!.watts!!.data,stream.time.data)
+        val timeline=PowerTimeline(stream.watts.data,stream.time.data)
         if(!timeline.valid) {row.reason="invalid-time";return row}
         val times=timeline.times
         row.recordedSeconds=(times.last()-times.first()).toDouble()

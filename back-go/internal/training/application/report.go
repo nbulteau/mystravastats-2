@@ -133,6 +133,9 @@ func calculateActivity(a *strava.Activity, date string, settings business.Athlet
 	if a.DeviceWatts {
 		row.Source = "measured"
 	}
+	if a.Stream == nil || a.Stream.Watts == nil || len(a.Stream.Watts.Data) == 0 {
+		row.Source = "unavailable"
+	}
 	for _, entry := range settings.FtpHistory {
 		_, err := time.Parse("2006-01-02", entry.EffectiveFrom)
 		if err == nil && entry.Ftp > 0 && entry.EffectiveFrom <= date && (row.FTPEffectiveFrom == nil || entry.EffectiveFrom >= *row.FTPEffectiveFrom) {

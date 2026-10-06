@@ -164,3 +164,51 @@ Power timing policy (Go, Kotlin and frontend):
 Remaining work includes the other domain responses, broader success payload
 fixtures and content-negotiation/size-limit parity. Pagination, resource naming
 changes and asynchronous job resources require separate contract migrations.
+
+
+## Weekly training report
+
+`GET /api/statistics/training-load?activityType=Ride_GravelRide&week=2026-10-05`
+returns `TrainingReport` in both backends. `week` is a required ISO local date,
+normalized to its Monday. The response contains that week and four preceding
+weeks (each with seven days), including weeks spanning two calendar years. The
+frontend week picker is independent of the global year filter. Activity dates use
+`start_date_local`, falling back to `start_date` only when local date is empty.
+Activities without a usable date cannot be assigned and are counted separately.
+Data-quality exclusions are respected. The endpoint reads available streams; it
+never starts a source synchronization or substitutes summary watts for samples.
+
+The `power-duration-v1` score is observed hours × (normalized power / FTP)² × 100.
+It applies to cycling only and requires a complete power recording >=30 seconds,
+a first timestamp of zero and an end within one second of the activity elapsed
+end. No final second is invented. The 10-second interval policy and continuous
+normalized-power estimator above apply. FTP is the last valid, positive manual
+history entry effective on or before the activity's local date. Current profile
+FTP and undated estimates never provide retrospective load. Detail-page power
+load uses these same eligibility rules; its other profile-based power metrics
+remain independent estimates.
+
+Each activity returns its source (`measured`, `estimated`, `unavailable`), score,
+FTP/date, normalized power, intensity factor, covered/recorded/elapsed seconds and
+an explicit availability reason. A measured zero produces a zero score; missing
+load remains null. Unsupported sports and missing-power activities retain their
+volume/elevation contributions. No heart-rate score is combined with power load.
+Measured and estimated totals are separate; `scoredCount / activityCount` must
+accompany totals. A period with no calculated load returns null, including a week
+without recorded activities: this is not proof of rest.
+
+Intensity totals cover measured-power intervals with dated FTP only, including
+usable intervals of otherwise incomplete activities. The three bins are <=90%,
+>90–120%, and >120% FTP. Five-minute bests require a complete measured window,
+but not FTP; they are weekly bests, not all-time personal-record claims. Volume
+uses recorded moving time, distance and ascent. Comparisons use full prior calendar
+weeks and explicitly note that the selected week may still be in progress. No
+form/fatigue inference or coaching recommendation is produced in this version.
+
+`test-fixtures/api/training-load.json` drives real HTTP tests in both backends.
+They export `test-results/training-{go,kotlin}-responses.json`. Run
+`node scripts/validate-training-responses.mjs test-results/training-go-responses.json test-results/training-kotlin-responses.json`
+to validate every response against OpenAPI and compare complete responses with
+numeric tolerance 1e-6. CI validates each backend plus the shared browser example.
+The browser journey covers loading failure/retry, availability, activity links,
+week selection and mobile overflow; the frontend store tests stale-response races.

@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { requestJson } from "@/services/http-client";
 import { apiUrl } from "@/services/api-url";
-import type { ApiTrainingReport } from "@/generated/api-contract";
+import type { TrainingReport } from "@/generated/api-contract";
 import { useContextStore } from "./context";
 
 function today(): string {
@@ -9,13 +9,13 @@ function today(): string {
   return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
 }
 export const useTrainingLoadStore = defineStore("training-load", {
-  state: () => ({ week: today(), report: null as ApiTrainingReport | null, loading: false, error: "", requestId: 0 }),
+  state: () => ({ week: today(), report: null as TrainingReport | null, loading: false, error: "", requestId: 0 }),
   actions: {
     async load() {
       const requestId = ++this.requestId;
       this.loading = true; this.error = ""; this.report = null;
       try {
-        const report = await requestJson<ApiTrainingReport>(apiUrl("getTrainingLoad", {query: {week: this.week, activityType: useContextStore().currentActivityType}}));
+        const report = await requestJson<TrainingReport>(apiUrl("getTrainingLoad", {query: {week: this.week, activityType: useContextStore().currentActivityType}}));
         if (requestId === this.requestId) this.report = report;
       } catch (error) {
         if (requestId === this.requestId) this.error = error instanceof Error ? error.message : "Unable to load training report.";

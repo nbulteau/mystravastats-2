@@ -81,6 +81,7 @@ tasks.withType<Test> {
     useJUnitPlatform()
     inputs.files(fileTree("../test-fixtures/api") { include("*.json") })
     outputs.file("../test-results/api-kotlin-responses.json")
+    outputs.file("../test-results/training-kotlin-responses.json")
     finalizedBy(tasks.named("jacocoTestReport"))
 }
 

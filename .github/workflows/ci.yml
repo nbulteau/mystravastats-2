@@ -57,6 +57,7 @@ jobs:
         run: |
           npm ci --prefix scripts --ignore-scripts
           node scripts/validate-api-responses.mjs test-results/api-go-responses.json
+          node scripts/validate-training-responses.mjs test-results/training-go-responses.json
       - name: Build
         working-directory: back-go
         run: go build ./...
@@ -81,6 +82,7 @@ jobs:
         run: |
           npm ci --prefix scripts --ignore-scripts
           node scripts/validate-api-responses.mjs test-results/api-kotlin-responses.json
+          node scripts/validate-training-responses.mjs test-results/training-kotlin-responses.json
 
   frontend:
     name: Vue frontend

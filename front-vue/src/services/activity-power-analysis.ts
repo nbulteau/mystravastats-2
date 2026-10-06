@@ -64,6 +64,10 @@ export function buildPowerAnalysis(
     normalizedPower !== null &&
     intensityFactor !== null &&
     ftpDetails.ftp !== null &&
+    manualFtp !== null &&
+    ["Ride", "VirtualRide", "MountainBikeRide", "GravelRide", "Commute"].includes(currentActivity.type) &&
+    times[0] === 0 && currentActivity.elapsedTime > 0 &&
+    Math.abs((times.at(-1) ?? 0) - currentActivity.elapsedTime) <= 1 &&
     durationSeconds > 0
       ? (durationSeconds * normalizedPower * intensityFactor) / (ftpDetails.ftp * 3600) * 100
       : null;

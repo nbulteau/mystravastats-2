@@ -3,6 +3,7 @@ import {createRouter, createWebHistory, type Router} from 'vue-router'
 const router: Router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    { path: "/training-load", name: "training-load", component: () => import("@/views/TrainingLoadView.vue") },
     {
       path: '/',
       redirect: '/dashboard',

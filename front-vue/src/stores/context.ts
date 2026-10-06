@@ -11,7 +11,10 @@ import { useSegmentsStore } from "@/stores/segments";
 import { useStatisticsStore } from "@/stores/statistics";
 import { DEFAULT_ACTIVITY_TYPE_FILTER } from "@/utils/activityTypes";
 
+import { useTrainingLoadStore } from "@/stores/training-load";
+
 export type AppView =
+  | "training-load"
   | "statistics"
   | "gear"
   | "activities"
@@ -53,6 +56,9 @@ export const useContextStore = defineStore("context", {
     },
     async refreshCurrentViewData(force = false) {
       switch (this.currentView) {
+        case "training-load":
+          await useTrainingLoadStore().load();
+          break;
         case "statistics":
           await useStatisticsStore().ensureLoaded(force);
           break;
