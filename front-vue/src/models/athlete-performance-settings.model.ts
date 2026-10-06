@@ -6,26 +6,10 @@ export interface ResolvedManualFtp {
   effectiveFrom: string;
 }
 
-export type FtpEstimateConfidence = "high" | "medium" | "low" | "unavailable";
+export type FtpEstimateConfidence = FtpEstimate["confidence"];
 
-export interface FtpEstimate {
-  available: boolean;
-  ftp: number;
-  method: string;
-  methodLabel: string;
-  bestPower: number;
-  multiplier: number;
-  basedOnSeconds: number;
-  confidence: FtpEstimateConfidence;
-  source: string;
-  sourceKind: string;
-  activityId: number;
-  activityName: string;
-  activityType: string;
-  activityDate: string;
-  windowDays: number;
-  activityCount: number;
-}
+export type { FtpEstimate } from "@/generated/api-contract";
+import type { FtpEstimate } from "@/generated/api-contract";
 
 export function emptyAthletePerformanceSettings(): AthletePerformanceSettings {
   return {

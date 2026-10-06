@@ -2,6 +2,7 @@ package statistics
 
 import (
 	"fmt"
+	"math"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
 )
@@ -129,6 +130,7 @@ func bestPowerForTimeForTime(id int64, name, activityType string, stream *strava
 	}
 
 	currentPower := 0.0
+	missingPower := 0
 	elevationPrefix := newElevationGainLossPrefix((*altitudes).Data, streamDataSize)
 
 	for idxEnd < streamDataSize {
@@ -138,13 +140,17 @@ func bestPowerForTimeForTime(id int64, name, activityType string, stream *strava
 			totalAltitude = (*altitudes).Data[idxEnd] - (*altitudes).Data[idxStart]
 		}
 
-		currentPower += nonNullWatts[idxEnd]
+		if math.IsNaN(nonNullWatts[idxEnd]) || math.IsInf(nonNullWatts[idxEnd], 0) {
+			missingPower++
+		} else {
+			currentPower += nonNullWatts[idxEnd]
+		}
 		totalTime := times.Data[idxEnd] - times.Data[idxStart]
 
 		if totalTime < seconds {
 			idxEnd++
 		} else {
-			if currentPower > maxPower {
+			if missingPower == 0 && currentPower > maxPower {
 				maxPower = currentPower
 				averagePower := averagePower(nonNullWatts, idxStart, idxEnd)
 				elevationGain, elevationLoss := elevationPrefix.betweenPtrs(idxStart, idxEnd)
@@ -165,7 +171,11 @@ func bestPowerForTimeForTime(id int64, name, activityType string, stream *strava
 					},
 				}
 			}
-			currentPower -= nonNullWatts[idxStart]
+			if math.IsNaN(nonNullWatts[idxStart]) || math.IsInf(nonNullWatts[idxStart], 0) {
+				missingPower--
+			} else {
+				currentPower -= nonNullWatts[idxStart]
+			}
 			idxStart++
 			idxEnd++
 		}

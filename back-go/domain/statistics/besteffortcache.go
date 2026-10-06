@@ -1,6 +1,7 @@
 package statistics
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"mystravastats/internal/shared/domain/business"
@@ -13,10 +14,11 @@ import (
 )
 
 type bestEffortCacheKey struct {
-	ActivityID int64  `json:"activityId"`
-	Metric     string `json:"metric"`
-	Target     string `json:"target"`
-	StreamSize int    `json:"streamSize"`
+	ActivityID        int64  `json:"activityId"`
+	Metric            string `json:"metric"`
+	Target            string `json:"target"`
+	StreamSize        int    `json:"streamSize"`
+	StreamFingerprint string `json:"streamFingerprint"`
 }
 
 type bestEffortCacheValue struct {
@@ -44,12 +46,17 @@ func getOrComputeBestEffort(
 	if stream == nil {
 		return supplier()
 	}
+	encoded, err := json.Marshal(stream)
+	if err != nil {
+		return supplier()
+	}
 
 	key := bestEffortCacheKey{
-		ActivityID: activityID,
-		Metric:     metric,
-		Target:     target,
-		StreamSize: len(stream.Distance.Data),
+		ActivityID:        activityID,
+		Metric:            metric,
+		Target:            target,
+		StreamSize:        len(stream.Distance.Data),
+		StreamFingerprint: fmt.Sprintf("power-gaps-v1:%x", sha256.Sum256(encoded)),
 	}
 
 	bestEffortCacheMutex.RLock()
@@ -130,7 +137,10 @@ func SaveBestEffortCacheToDisk(path string) (int, error) {
 		if left.Target != right.Target {
 			return left.Target < right.Target
 		}
-		return left.StreamSize < right.StreamSize
+		if left.StreamSize != right.StreamSize {
+			return left.StreamSize < right.StreamSize
+		}
+		return left.StreamFingerprint < right.StreamFingerprint
 	})
 
 	if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {

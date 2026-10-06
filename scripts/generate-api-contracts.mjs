@@ -5,6 +5,7 @@ import { execFileSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import SwaggerParser from "@apidevtools/swagger-parser";
+import { validateBusinessResponseFixtures } from "./validate-api-responses.mjs";
 
 const repository = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const specPath = resolve(repository, "docs/api/openapi.json");
@@ -37,6 +38,7 @@ operations.sort((left, right) => left.path.localeCompare(right.path) || left.met
 
 await assertGoRouteParity(operations);
 await assertKotlinRouteParity(operations);
+await validateBusinessResponseFixtures();
 
 const schemas = spec.components?.schemas ?? {};
 const outputs = new Map([
@@ -119,8 +121,8 @@ function renderGo(apiOperations, apiSchemas) {
   const models = Object.entries(apiSchemas).map(([name, schema]) => {
     const required = new Set(schema.required ?? []);
     const fields = Object.entries(schema.properties ?? {}).map(([propertyName, property]) => {
-      const optional = !required.has(propertyName) || property.nullable;
-      const fieldType = goType(property, optional);
+      const optional = !required.has(propertyName);
+      const fieldType = goType(property, optional || property.nullable);
       return `\t${pascalCase(propertyName)} ${fieldType} \`json:"${propertyName}${optional ? ",omitempty" : ""}"\``;
     }).join("\n");
     return `type Contract${name} struct {\n${fields}\n}`;
@@ -136,7 +138,7 @@ function renderKotlin(apiOperations, apiSchemas) {
     const required = new Set(schema.required ?? []);
     const fields = Object.entries(schema.properties ?? {}).map(([propertyName, property]) => {
       const optional = !required.has(propertyName) || property.nullable;
-      return `    val ${propertyName}: ${kotlinType(property)}${optional ? "? = null" : ""}`;
+      return `    val ${propertyName}: ${kotlinType(property, false)}${optional ? "? = null" : ""}`;
     }).join(",\n");
     return `data class Contract${name}(\n${fields},\n)`;
   }).join("\n\n");
@@ -157,8 +159,11 @@ function tsType(schema) {
   else if (schema.enum) value = schema.enum.map((entry) => JSON.stringify(entry)).join(" | ");
   else if (schema.type === "integer" || schema.type === "number") value = "number";
   else if (schema.type === "boolean") value = "boolean";
-  else if (schema.type === "array") value = `${tsType(schema.items ?? {})}[]`;
-  else if (schema.type === "object") value = "Record<string, unknown>";
+  else if (schema.type === "array") {
+    const item = tsType(schema.items ?? {});
+    value = `${item.includes(" | ") ? `(${item})` : item}[]`;
+  }
+  else if (schema.type === "object") value = `Record<string, ${typeof schema.additionalProperties === "object" ? tsType(schema.additionalProperties) : "unknown"}>`;
   else value = "string";
   return schema.nullable ? `${value} | null` : value;
 }
@@ -170,20 +175,21 @@ function goType(schema, optional) {
   else if (schema.type === "integer") value = "int64";
   else if (schema.type === "number") value = "float64";
   else if (schema.type === "boolean") value = "bool";
-  else if (schema.type === "array") value = `[]${goType(schema.items ?? {}, false)}`;
-  else if (schema.type === "object") value = "map[string]any";
+  else if (schema.type === "array") value = `[]${goType(schema.items ?? {}, schema.items?.nullable)}`;
+  else if (schema.type === "object") value = `map[string]${typeof schema.additionalProperties === "object" ? goType(schema.additionalProperties, schema.additionalProperties.nullable) : "any"}`;
   else value = "string";
   return optional && !value.startsWith("[]") && !value.startsWith("map[") ? `*${value}` : value;
 }
 
-function kotlinType(schema) {
+function kotlinType(schema, nullable = schema.nullable) {
   schema = unwrapSchema(schema);
+  if (nullable) return `${kotlinType(schema, false)}?`;
   if (schema.$ref) return `Contract${schema.$ref.split("/").at(-1)}`;
   if (schema.type === "integer") return "Long";
   if (schema.type === "number") return "Double";
   if (schema.type === "boolean") return "Boolean";
   if (schema.type === "array") return `List<${kotlinType(schema.items ?? {})}>`;
-  if (schema.type === "object") return "Map<String, Any>";
+  if (schema.type === "object") return `Map<String, ${typeof schema.additionalProperties === "object" ? kotlinType(schema.additionalProperties) : "Any"}>`;
   return "String";
 }
 

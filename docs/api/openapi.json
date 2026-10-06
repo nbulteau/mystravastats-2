@@ -664,7 +664,19 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/JsonSuccess"
+            "description": "Successful response; units and missing values are documented in the schema.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FtpEstimate"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
@@ -878,7 +890,12 @@
         ],
         "responses": {
           "200": {
-            "description": "Activities",
+            "description": "Successful response; units and missing values are documented in the schema.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -887,11 +904,6 @@
                     "$ref": "#/components/schemas/ActivitySummary"
                   }
                 }
-              }
-            },
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/RequestId"
               }
             }
           },
@@ -1007,7 +1019,19 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/JsonSuccess"
+            "description": "Successful response; units and missing values are documented in the schema.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetailedActivity"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
@@ -1043,7 +1067,22 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/JsonArraySuccess"
+            "description": "Successful response; units and missing values are documented in the schema.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Statistic"
+                  }
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
@@ -1090,7 +1129,22 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/JsonArraySuccess"
+            "description": "Successful response; units and missing values are documented in the schema.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PersonalRecordTimeline"
+                  }
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
@@ -1145,7 +1199,19 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/JsonSuccess"
+            "description": "Successful response; units and missing values are documented in the schema.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeartRateZoneAnalysis"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
@@ -1192,7 +1258,19 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/JsonSuccess"
+            "description": "Successful response; units and missing values are documented in the schema.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SegmentClimbProgression"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
@@ -1389,7 +1467,22 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/JsonArraySuccess"
+            "description": "Successful response; units and missing values are documented in the schema.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SegmentClimbTargetSummary"
+                  }
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
@@ -1478,7 +1571,22 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/JsonArraySuccess"
+            "description": "Successful response; units and missing values are documented in the schema.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SegmentClimbAttempt"
+                  }
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
@@ -1554,7 +1662,19 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/JsonSuccess"
+            "description": "Successful response; units and missing values are documented in the schema.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SegmentSummary"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
@@ -3111,10 +3231,30 @@
       },
       "ActivitySummary": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
           "id",
           "name",
-          "type"
+          "type",
+          "commute",
+          "link",
+          "distance",
+          "elapsedTime",
+          "movingTime",
+          "totalElevationGain",
+          "averageSpeed",
+          "averageHeartrate",
+          "bestSpeedForDistanceFor1000m",
+          "bestElevationForDistanceFor500m",
+          "bestElevationForDistanceFor1000m",
+          "date",
+          "averageWatts",
+          "weightedAverageWatts",
+          "bestPowerFor20Minutes",
+          "bestPowerFor60Minutes",
+          "bestPowerFor20minutes",
+          "bestPowerFor60minutes",
+          "ftp"
         ],
         "properties": {
           "id": {
@@ -3127,15 +3267,105 @@
           "type": {
             "type": "string"
           },
-          "date": {
-            "type": "string",
-            "nullable": true
+          "commute": {
+            "type": "boolean"
+          },
+          "link": {
+            "type": "string"
           },
           "distance": {
+            "type": "integer",
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "elapsedTime": {
+            "type": "integer",
+            "x-unit": "s",
+            "description": "Unit: s."
+          },
+          "movingTime": {
+            "type": "integer",
+            "x-unit": "s",
+            "description": "Unit: s."
+          },
+          "totalElevationGain": {
+            "type": "integer",
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "averageSpeed": {
             "type": "number",
-            "nullable": true
+            "x-unit": "m/s",
+            "description": "Unit: m/s."
+          },
+          "averageHeartrate": {
+            "type": "integer",
+            "x-unit": "bpm",
+            "description": "Unit: bpm."
+          },
+          "bestSpeedForDistanceFor1000m": {
+            "type": "number",
+            "x-unit": "m/s",
+            "description": "Unit: m/s."
+          },
+          "bestElevationForDistanceFor500m": {
+            "type": "number",
+            "x-unit": "%",
+            "description": "Unit: %."
+          },
+          "bestElevationForDistanceFor1000m": {
+            "type": "number",
+            "x-unit": "%",
+            "description": "Unit: %."
+          },
+          "date": {
+            "type": "string"
+          },
+          "averageWatts": {
+            "type": "integer",
+            "x-unit": "W",
+            "description": "Unit: W."
+          },
+          "weightedAverageWatts": {
+            "type": "integer",
+            "x-unit": "W",
+            "description": "Unit: W."
+          },
+          "bestPowerFor20Minutes": {
+            "type": "integer",
+            "x-unit": "W",
+            "description": "Compatibility alias of bestPowerFor20minutes; retained in both backends. Unit: W.",
+            "deprecated": true
+          },
+          "bestPowerFor60Minutes": {
+            "type": "integer",
+            "x-unit": "W",
+            "description": "Compatibility alias of bestPowerFor60minutes; retained in both backends. Unit: W.",
+            "deprecated": true
+          },
+          "bestPowerFor20minutes": {
+            "type": "integer",
+            "x-unit": "W",
+            "description": "Unit: W."
+          },
+          "bestPowerFor60minutes": {
+            "type": "integer",
+            "x-unit": "W",
+            "description": "Unit: W."
+          },
+          "ftp": {
+            "type": "integer",
+            "x-unit": "W",
+            "description": "Unit: W."
+          },
+          "badgeEffortSeconds": {
+            "type": "integer",
+            "nullable": true,
+            "x-unit": "s",
+            "description": "Unit: s."
           }
-        }
+        },
+        "description": "Activity list representation. Legacy numeric summary fields use zero for unavailable metrics; inspect detailed streams before calculating load."
       },
       "RouteGenerationScore": {
         "type": "object",
@@ -3288,10 +3518,13 @@
         "properties": {
           "effectiveFrom": {
             "type": "string",
-            "format": "date"
+            "format": "date",
+            "description": "Inclusive local calendar date (YYYY-MM-DD)."
           },
           "ftp": {
-            "type": "integer"
+            "type": "integer",
+            "x-unit": "W",
+            "description": "Unit: W."
           }
         }
       },
@@ -3309,9 +3542,12 @@
           },
           "weightKg": {
             "type": "number",
-            "nullable": true
+            "nullable": true,
+            "x-unit": "kg",
+            "description": "Unit: kg."
           }
-        }
+        },
+        "description": "Manual FTP history ordered by effectiveFrom; the last valid entry on or before the activity date applies. weightKg is the current manual body mass, not historical body mass. Missing/null weight is unavailable."
       },
       "DataQualityIssue": {
         "type": "object",
@@ -3413,18 +3649,25 @@
       },
       "HeartRateZoneSettings": {
         "type": "object",
+        "additionalProperties": false,
         "properties": {
           "maxHr": {
             "type": "integer",
-            "nullable": true
+            "nullable": true,
+            "x-unit": "bpm",
+            "description": "Unit: bpm."
           },
           "thresholdHr": {
             "type": "integer",
-            "nullable": true
+            "nullable": true,
+            "x-unit": "bpm",
+            "description": "Unit: bpm."
           },
           "reserveHr": {
             "type": "integer",
-            "nullable": true
+            "nullable": true,
+            "x-unit": "bpm",
+            "description": "Unit: bpm."
           }
         }
       },
@@ -3599,7 +3842,9 @@
           },
           "distance": {
             "type": "number",
-            "default": 0
+            "default": 0,
+            "x-unit": "m",
+            "description": "Unit: m."
           },
           "note": {
             "type": "string",
@@ -3646,6 +3891,1586 @@
           "reloaded",
           "fit"
         ]
+      },
+      "DetailedActivity": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "averageCadence",
+          "averageHeartrate",
+          "averageWatts",
+          "averageSpeed",
+          "calories",
+          "commute",
+          "deviceWatts",
+          "distance",
+          "elapsedTime",
+          "elevHigh",
+          "id",
+          "link",
+          "kilojoules",
+          "maxHeartrate",
+          "maxSpeed",
+          "maxWatts",
+          "movingTime",
+          "name",
+          "activityEfforts",
+          "stravaSegmentEfforts",
+          "startDate",
+          "startDateLocal",
+          "startLatlng",
+          "stream",
+          "sufferScore",
+          "totalDescent",
+          "totalElevationGain",
+          "type",
+          "sportType",
+          "weightedAverageWatts"
+        ],
+        "properties": {
+          "averageCadence": {
+            "type": "integer"
+          },
+          "averageHeartrate": {
+            "type": "integer",
+            "x-unit": "bpm",
+            "description": "Unit: bpm."
+          },
+          "averageWatts": {
+            "type": "integer",
+            "x-unit": "W",
+            "description": "Unit: W."
+          },
+          "averageSpeed": {
+            "type": "number",
+            "x-unit": "m/s",
+            "description": "Unit: m/s."
+          },
+          "calories": {
+            "type": "number",
+            "x-unit": "kcal",
+            "description": "Unit: kcal."
+          },
+          "commute": {
+            "type": "boolean"
+          },
+          "deviceWatts": {
+            "type": "boolean",
+            "description": "True for power-meter measurements, false for estimated or unavailable power. Check stream.watts separately."
+          },
+          "distance": {
+            "type": "number",
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "elapsedTime": {
+            "type": "integer",
+            "x-unit": "s",
+            "description": "Unit: s."
+          },
+          "elevHigh": {
+            "type": "number",
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "link": {
+            "type": "string"
+          },
+          "kilojoules": {
+            "type": "number",
+            "x-unit": "kJ",
+            "description": "Unit: kJ."
+          },
+          "maxHeartrate": {
+            "type": "integer",
+            "x-unit": "bpm",
+            "description": "Unit: bpm."
+          },
+          "maxSpeed": {
+            "type": "number",
+            "x-unit": "m/s",
+            "description": "Unit: m/s."
+          },
+          "maxWatts": {
+            "type": "integer",
+            "x-unit": "W",
+            "description": "Unit: W."
+          },
+          "movingTime": {
+            "type": "integer",
+            "x-unit": "s",
+            "description": "Unit: s."
+          },
+          "name": {
+            "type": "string"
+          },
+          "activityEfforts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityEffort"
+            }
+          },
+          "stravaSegmentEfforts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StravaSegmentEffort"
+            }
+          },
+          "activityComparison": {
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ActivityComparison"
+              }
+            ],
+            "nullable": true,
+            "description": "Optional metadata. Omitted and null both mean unavailable."
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startDateLocal": {
+            "type": "string"
+          },
+          "startLatlng": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "source": {
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ActivitySource"
+              }
+            ],
+            "nullable": true,
+            "description": "Optional metadata. Omitted and null both mean unavailable."
+          },
+          "stream": {
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ActivityStream"
+              }
+            ],
+            "nullable": true
+          },
+          "sufferScore": {
+            "type": "number",
+            "nullable": true
+          },
+          "totalDescent": {
+            "type": "number",
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "totalElevationGain": {
+            "type": "integer",
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "type": {
+            "type": "string"
+          },
+          "sportType": {
+            "type": "string"
+          },
+          "weightedAverageWatts": {
+            "type": "integer",
+            "x-unit": "W",
+            "description": "Unit: W."
+          }
+        },
+        "description": "Activity details in SI units unless explicitly stated. stream=null means no recorded series. Legacy numeric summary fields can be zero when unavailable; zero alone is not evidence of a measurement. deviceWatts identifies measured versus estimated power when power data exists."
+      },
+      "ActivitySource": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "primaryProvider",
+          "primaryId"
+        ],
+        "properties": {
+          "primaryProvider": {
+            "type": "string"
+          },
+          "primaryId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "streamProvider": {
+            "type": "string",
+            "nullable": true
+          },
+          "mergeConfidence": {
+            "type": "string",
+            "nullable": true
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivitySourceRef"
+            },
+            "nullable": true
+          },
+          "conflicts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivitySourceConflict"
+            },
+            "nullable": true
+          },
+          "fieldSources": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "ActivitySourceRef": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider",
+          "activityId",
+          "startDateLocal",
+          "distance",
+          "movingTime",
+          "hasStream"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "activityId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "startDateLocal": {
+            "type": "string"
+          },
+          "distance": {
+            "type": "number",
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "movingTime": {
+            "type": "integer",
+            "x-unit": "s",
+            "description": "Unit: s."
+          },
+          "hasStream": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ActivitySourceConflict": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "field",
+          "primary",
+          "other",
+          "source"
+        ],
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "primary": {
+            "type": "string"
+          },
+          "other": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        }
+      },
+      "ActivityComparison": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status",
+          "label",
+          "criteria",
+          "baseline",
+          "deltas",
+          "similarActivities",
+          "commonSegments"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "criteria": {
+            "$ref": "#/components/schemas/ActivityComparisonCriteria"
+          },
+          "baseline": {
+            "$ref": "#/components/schemas/ActivityComparisonBaseline"
+          },
+          "deltas": {
+            "$ref": "#/components/schemas/ActivityComparisonDeltas"
+          },
+          "similarActivities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityComparisonActivity"
+            }
+          },
+          "commonSegments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityComparisonSegment"
+            }
+          }
+        }
+      },
+      "ActivityComparisonCriteria": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "activityType",
+          "year",
+          "sampleSize"
+        ],
+        "properties": {
+          "activityType": {
+            "type": "string"
+          },
+          "year": {
+            "type": "integer"
+          },
+          "sampleSize": {
+            "type": "integer"
+          }
+        }
+      },
+      "ActivityComparisonBaseline": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "distance",
+          "elevationGain",
+          "movingTime",
+          "averageSpeed",
+          "averageHeartrate",
+          "averageWatts",
+          "averageCadence"
+        ],
+        "properties": {
+          "distance": {
+            "type": "number",
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "elevationGain": {
+            "type": "number",
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "movingTime": {
+            "type": "integer",
+            "x-unit": "s",
+            "description": "Unit: s."
+          },
+          "averageSpeed": {
+            "type": "number",
+            "x-unit": "m/s",
+            "description": "Unit: m/s."
+          },
+          "averageHeartrate": {
+            "type": "number",
+            "x-unit": "bpm",
+            "description": "Unit: bpm."
+          },
+          "averageWatts": {
+            "type": "number",
+            "x-unit": "W",
+            "description": "Unit: W."
+          },
+          "averageCadence": {
+            "type": "number"
+          }
+        }
+      },
+      "ActivityComparisonDeltas": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "distance",
+          "elevationGain",
+          "movingTime",
+          "averageSpeed",
+          "averageSpeedPct",
+          "averageHeartrate",
+          "averageWatts",
+          "averageCadence"
+        ],
+        "properties": {
+          "distance": {
+            "type": "number",
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "elevationGain": {
+            "type": "number",
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "movingTime": {
+            "type": "integer",
+            "x-unit": "s",
+            "description": "Unit: s."
+          },
+          "averageSpeed": {
+            "type": "number",
+            "x-unit": "m/s",
+            "description": "Unit: m/s."
+          },
+          "averageSpeedPct": {
+            "type": "number",
+            "x-unit": "%",
+            "description": "Unit: %."
+          },
+          "averageHeartrate": {
+            "type": "number",
+            "x-unit": "bpm",
+            "description": "Unit: bpm."
+          },
+          "averageWatts": {
+            "type": "number",
+            "x-unit": "W",
+            "description": "Unit: W."
+          },
+          "averageCadence": {
+            "type": "number"
+          }
+        }
+      },
+      "ActivityComparisonActivity": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "date",
+          "distance",
+          "elevationGain",
+          "movingTime",
+          "averageSpeed",
+          "averageHeartrate",
+          "averageWatts",
+          "averageCadence",
+          "similarityScore"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "distance": {
+            "type": "number",
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "elevationGain": {
+            "type": "number",
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "movingTime": {
+            "type": "integer",
+            "x-unit": "s",
+            "description": "Unit: s."
+          },
+          "averageSpeed": {
+            "type": "number",
+            "x-unit": "m/s",
+            "description": "Unit: m/s."
+          },
+          "averageHeartrate": {
+            "type": "number",
+            "x-unit": "bpm",
+            "description": "Unit: bpm."
+          },
+          "averageWatts": {
+            "type": "number",
+            "x-unit": "W",
+            "description": "Unit: W."
+          },
+          "averageCadence": {
+            "type": "number"
+          },
+          "similarityScore": {
+            "type": "number"
+          }
+        }
+      },
+      "ActivityComparisonSegment": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "matchCount",
+          "activityIds",
+          "activityNames"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "matchCount": {
+            "type": "integer"
+          },
+          "activityIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "activityNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ActivityEffort": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "label",
+          "distance",
+          "seconds",
+          "deltaAltitude",
+          "idxStart",
+          "idxEnd",
+          "averagePower",
+          "description"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "distance": {
+            "type": "number",
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "seconds": {
+            "type": "integer",
+            "x-unit": "s",
+            "description": "Unit: s."
+          },
+          "deltaAltitude": {
+            "type": "number",
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "elevationGain": {
+            "type": "number",
+            "nullable": true,
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "elevationLoss": {
+            "type": "number",
+            "nullable": true,
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "idxStart": {
+            "type": "integer"
+          },
+          "idxEnd": {
+            "type": "integer"
+          },
+          "averagePower": {
+            "type": "number",
+            "nullable": true,
+            "x-unit": "W",
+            "description": "Unit: W."
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "StravaSegmentEffort": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "averageCadence",
+          "averageHeartRate",
+          "averageWatts",
+          "deviceWatts",
+          "distance",
+          "elapsedTime",
+          "endIndex",
+          "hidden",
+          "id",
+          "maxHeartRate",
+          "movingTime",
+          "name",
+          "resourceState",
+          "segment",
+          "startDate",
+          "startDateLocal",
+          "startIndex"
+        ],
+        "properties": {
+          "averageCadence": {
+            "type": "number"
+          },
+          "averageHeartRate": {
+            "type": "number",
+            "x-unit": "bpm",
+            "description": "Unit: bpm."
+          },
+          "averageWatts": {
+            "type": "number",
+            "x-unit": "W",
+            "description": "Unit: W."
+          },
+          "deviceWatts": {
+            "type": "boolean"
+          },
+          "distance": {
+            "type": "number",
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "elapsedTime": {
+            "type": "integer",
+            "x-unit": "s",
+            "description": "Unit: s."
+          },
+          "endIndex": {
+            "type": "integer"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "komRank": {
+            "type": "integer",
+            "nullable": true
+          },
+          "maxHeartRate": {
+            "type": "number",
+            "x-unit": "bpm",
+            "description": "Unit: bpm."
+          },
+          "movingTime": {
+            "type": "integer",
+            "x-unit": "s",
+            "description": "Unit: s."
+          },
+          "name": {
+            "type": "string"
+          },
+          "prRank": {
+            "type": "integer",
+            "nullable": true
+          },
+          "resourceState": {
+            "type": "integer"
+          },
+          "segment": {
+            "$ref": "#/components/schemas/StravaSegment"
+          },
+          "startDate": {
+            "type": "string"
+          },
+          "startDateLocal": {
+            "type": "string"
+          },
+          "startIndex": {
+            "type": "integer"
+          },
+          "visibility": {
+            "type": "string",
+            "nullable": true
+          },
+          "achievements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Achievement"
+            }
+          },
+          "activity": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "athlete": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "Shared segment effort fields; achievements, activity and athlete are optional provider metadata currently emitted by Kotlin."
+      },
+      "StravaSegment": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "activityType",
+          "averageGrade",
+          "climbCategory",
+          "distance",
+          "elevationHigh",
+          "elevationLow",
+          "endLatLng",
+          "hazardous",
+          "id",
+          "maximumGrade",
+          "name",
+          "isPrivate",
+          "resourceState",
+          "starred",
+          "startLatLng"
+        ],
+        "properties": {
+          "activityType": {
+            "type": "string"
+          },
+          "averageGrade": {
+            "type": "number",
+            "x-unit": "%",
+            "description": "Unit: %."
+          },
+          "city": {
+            "type": "string",
+            "nullable": true
+          },
+          "climbCategory": {
+            "type": "integer"
+          },
+          "country": {
+            "type": "string",
+            "nullable": true
+          },
+          "distance": {
+            "type": "number",
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "elevationHigh": {
+            "type": "number",
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "elevationLow": {
+            "type": "number",
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "endLatLng": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "hazardous": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "maximumGrade": {
+            "type": "number",
+            "x-unit": "%",
+            "description": "Unit: %."
+          },
+          "name": {
+            "type": "string"
+          },
+          "isPrivate": {
+            "type": "boolean"
+          },
+          "resourceState": {
+            "type": "integer"
+          },
+          "starred": {
+            "type": "boolean"
+          },
+          "startLatLng": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "state": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ActivityStream": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "distance",
+          "time"
+        ],
+        "properties": {
+          "distance": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "x-unit": "m",
+            "description": "Per-sample values in m; indexed against time."
+          },
+          "time": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "x-unit": "s",
+            "description": "Per-sample values in s; indexed against time."
+          },
+          "latlng": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "nullable": true,
+            "x-unit": "degrees",
+            "description": "Per-sample values in degrees; indexed against time."
+          },
+          "heartrate": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "nullable": true,
+            "x-unit": "bpm",
+            "description": "Per-sample values in bpm; indexed against time."
+          },
+          "cadence": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "nullable": true,
+            "x-unit": "rpm",
+            "description": "Per-sample values in rpm; indexed against time."
+          },
+          "moving": {
+            "type": "array",
+            "items": {
+              "type": "boolean"
+            },
+            "nullable": true
+          },
+          "altitude": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "nullable": true,
+            "x-unit": "m",
+            "description": "Per-sample values in m; indexed against time."
+          },
+          "watts": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "nullable": true
+            },
+            "nullable": true,
+            "x-unit": "W",
+            "description": "Power in W. Nullable samples are accepted by the contract; Kotlin can emit null entries. Legacy Go storage currently decodes null samples as zero (tracked separately); this endpoint does not establish measurement coverage."
+          },
+          "velocitySmooth": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "nullable": true,
+            "x-unit": "m/s",
+            "description": "Per-sample values in m/s; indexed against time."
+          }
+        },
+        "description": "Time-indexed sensor arrays. time contains elapsed seconds from the activity start, not sample indexes. Sampling intervals may be irregular. An absent, null or empty sensor array contains no usable samples. Zero is an actual reading in a populated array; do not infer coverage from summary fields. Arrays may have different lengths; consumers must check coverage."
+      },
+      "Statistic": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "label",
+          "value"
+        ],
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string",
+            "description": "Formatted display string, which may include a unit or unavailable marker. Not a machine-readable numeric metric; do not parse it for training-load calculations."
+          },
+          "activity": {
+            "$ref": "#/components/schemas/ActivityShort"
+          }
+        }
+      },
+      "ActivityShort": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "type"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "PersonalRecordTimeline": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metricKey",
+          "metricLabel",
+          "activityDate",
+          "value",
+          "activity"
+        ],
+        "properties": {
+          "metricKey": {
+            "type": "string"
+          },
+          "metricLabel": {
+            "type": "string"
+          },
+          "activityDate": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "previousValue": {
+            "type": "string",
+            "nullable": true
+          },
+          "improvement": {
+            "type": "string",
+            "nullable": true
+          },
+          "activity": {
+            "$ref": "#/components/schemas/ActivityShort"
+          }
+        }
+      },
+      "SegmentClimbProgression": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric",
+          "targetTypeFilter",
+          "weatherContextAvailable",
+          "targets",
+          "attempts"
+        ],
+        "properties": {
+          "metric": {
+            "type": "string"
+          },
+          "targetTypeFilter": {
+            "type": "string"
+          },
+          "weatherContextAvailable": {
+            "type": "boolean"
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SegmentClimbTargetSummary"
+            }
+          },
+          "selectedTargetId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "selectedTargetType": {
+            "type": "string",
+            "nullable": true
+          },
+          "attempts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SegmentClimbAttempt"
+            }
+          }
+        }
+      },
+      "SegmentClimbTargetSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "targetId",
+          "targetName",
+          "targetType",
+          "climbCategory",
+          "distance",
+          "averageGrade",
+          "attemptsCount",
+          "bestValue",
+          "latestValue",
+          "consistency",
+          "averagePacing",
+          "closeToPrCount",
+          "recentTrend"
+        ],
+        "properties": {
+          "targetId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "targetName": {
+            "type": "string"
+          },
+          "targetType": {
+            "type": "string"
+          },
+          "climbCategory": {
+            "type": "integer"
+          },
+          "distance": {
+            "type": "number",
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "averageGrade": {
+            "type": "number",
+            "x-unit": "%",
+            "description": "Unit: %."
+          },
+          "attemptsCount": {
+            "type": "integer"
+          },
+          "bestValue": {
+            "type": "string"
+          },
+          "latestValue": {
+            "type": "string"
+          },
+          "consistency": {
+            "type": "string"
+          },
+          "averagePacing": {
+            "type": "string"
+          },
+          "closeToPrCount": {
+            "type": "integer"
+          },
+          "recentTrend": {
+            "type": "string"
+          }
+        }
+      },
+      "SegmentClimbAttempt": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "targetId",
+          "targetName",
+          "targetType",
+          "activityDate",
+          "elapsedTimeSeconds",
+          "movingTimeSeconds",
+          "speedKph",
+          "distance",
+          "averageGrade",
+          "elevationGain",
+          "averagePowerWatts",
+          "averageHeartRate",
+          "setsNewPr",
+          "closeToPr",
+          "deltaToPr",
+          "activity"
+        ],
+        "properties": {
+          "targetId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "targetName": {
+            "type": "string"
+          },
+          "targetType": {
+            "type": "string"
+          },
+          "activityDate": {
+            "type": "string"
+          },
+          "elapsedTimeSeconds": {
+            "type": "integer",
+            "x-unit": "s",
+            "description": "Unit: s."
+          },
+          "movingTimeSeconds": {
+            "type": "integer",
+            "x-unit": "s",
+            "description": "Unit: s."
+          },
+          "speedKph": {
+            "type": "number",
+            "x-unit": "km/h",
+            "description": "Unit: km/h."
+          },
+          "distance": {
+            "type": "number",
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "averageGrade": {
+            "type": "number",
+            "x-unit": "%",
+            "description": "Unit: %."
+          },
+          "elevationGain": {
+            "type": "number",
+            "x-unit": "m",
+            "description": "Unit: m."
+          },
+          "averagePowerWatts": {
+            "type": "number",
+            "x-unit": "W",
+            "description": "Unit: W."
+          },
+          "averageHeartRate": {
+            "type": "number",
+            "x-unit": "bpm",
+            "description": "Unit: bpm."
+          },
+          "prRank": {
+            "type": "integer",
+            "nullable": true
+          },
+          "personalRank": {
+            "type": "integer",
+            "nullable": true
+          },
+          "setsNewPr": {
+            "type": "boolean"
+          },
+          "closeToPr": {
+            "type": "boolean"
+          },
+          "deltaToPr": {
+            "type": "string"
+          },
+          "weatherSummary": {
+            "type": "string",
+            "nullable": true
+          },
+          "activity": {
+            "$ref": "#/components/schemas/ActivityShort"
+          }
+        }
+      },
+      "SegmentSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric",
+          "segment",
+          "topEfforts"
+        ],
+        "properties": {
+          "metric": {
+            "type": "string"
+          },
+          "segment": {
+            "$ref": "#/components/schemas/SegmentClimbTargetSummary"
+          },
+          "personalRecord": {
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SegmentClimbAttempt"
+              }
+            ],
+            "nullable": true
+          },
+          "topEfforts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SegmentClimbAttempt"
+            }
+          }
+        }
+      },
+      "ResolvedHeartRateZoneSettings": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "maxHr",
+          "method",
+          "source"
+        ],
+        "properties": {
+          "maxHr": {
+            "type": "integer",
+            "x-unit": "bpm",
+            "description": "Unit: bpm."
+          },
+          "thresholdHr": {
+            "type": "integer",
+            "nullable": true,
+            "x-unit": "bpm",
+            "description": "Unit: bpm."
+          },
+          "reserveHr": {
+            "type": "integer",
+            "nullable": true,
+            "x-unit": "bpm",
+            "description": "Unit: bpm."
+          },
+          "method": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        }
+      },
+      "HeartRateZoneDistribution": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "zone",
+          "label",
+          "seconds",
+          "percentage"
+        ],
+        "properties": {
+          "zone": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "seconds": {
+            "type": "integer",
+            "x-unit": "s",
+            "description": "Unit: s."
+          },
+          "percentage": {
+            "type": "number",
+            "x-unit": "%",
+            "description": "Unit: %."
+          }
+        }
+      },
+      "HeartRateZoneActivitySummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "activity",
+          "activityDate",
+          "totalTrackedSeconds",
+          "easySeconds",
+          "hardSeconds",
+          "zones"
+        ],
+        "properties": {
+          "activity": {
+            "$ref": "#/components/schemas/ActivityShort"
+          },
+          "activityDate": {
+            "type": "string"
+          },
+          "totalTrackedSeconds": {
+            "type": "integer",
+            "x-unit": "s",
+            "description": "Unit: s."
+          },
+          "easySeconds": {
+            "type": "integer",
+            "x-unit": "s",
+            "description": "Unit: s."
+          },
+          "hardSeconds": {
+            "type": "integer",
+            "x-unit": "s",
+            "description": "Unit: s."
+          },
+          "easyHardRatio": {
+            "type": "number",
+            "nullable": true
+          },
+          "zones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HeartRateZoneDistribution"
+            }
+          }
+        }
+      },
+      "HeartRateZonePeriodSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "period",
+          "totalTrackedSeconds",
+          "easySeconds",
+          "hardSeconds",
+          "zones"
+        ],
+        "properties": {
+          "period": {
+            "type": "string"
+          },
+          "totalTrackedSeconds": {
+            "type": "integer",
+            "x-unit": "s",
+            "description": "Unit: s."
+          },
+          "easySeconds": {
+            "type": "integer",
+            "x-unit": "s",
+            "description": "Unit: s."
+          },
+          "hardSeconds": {
+            "type": "integer",
+            "x-unit": "s",
+            "description": "Unit: s."
+          },
+          "easyHardRatio": {
+            "type": "number",
+            "nullable": true
+          },
+          "zones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HeartRateZoneDistribution"
+            }
+          }
+        }
+      },
+      "HeartRateZoneAnalysis": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "settings",
+          "hasHeartRateData",
+          "totalTrackedSeconds",
+          "zones",
+          "activities",
+          "byMonth",
+          "byYear"
+        ],
+        "properties": {
+          "settings": {
+            "$ref": "#/components/schemas/HeartRateZoneSettings"
+          },
+          "resolvedSettings": {
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResolvedHeartRateZoneSettings"
+              }
+            ],
+            "nullable": true
+          },
+          "hasHeartRateData": {
+            "type": "boolean"
+          },
+          "totalTrackedSeconds": {
+            "type": "integer",
+            "x-unit": "s",
+            "description": "Unit: s."
+          },
+          "easyHardRatio": {
+            "type": "number",
+            "nullable": true
+          },
+          "zones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HeartRateZoneDistribution"
+            }
+          },
+          "activities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HeartRateZoneActivitySummary"
+            }
+          },
+          "byMonth": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HeartRateZonePeriodSummary"
+            }
+          },
+          "byYear": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HeartRateZonePeriodSummary"
+            }
+          }
+        }
+      },
+      "FtpEstimate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "available",
+          "ftp",
+          "method",
+          "methodLabel",
+          "bestPower",
+          "multiplier",
+          "basedOnSeconds",
+          "confidence",
+          "source",
+          "sourceKind",
+          "activityId",
+          "activityName",
+          "activityType",
+          "activityDate",
+          "windowDays",
+          "activityCount"
+        ],
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "ftp": {
+            "type": "integer",
+            "x-unit": "W",
+            "description": "Unit: W."
+          },
+          "method": {
+            "type": "string"
+          },
+          "methodLabel": {
+            "type": "string"
+          },
+          "bestPower": {
+            "type": "integer",
+            "x-unit": "W",
+            "description": "Unit: W."
+          },
+          "multiplier": {
+            "type": "number"
+          },
+          "basedOnSeconds": {
+            "type": "integer",
+            "x-unit": "s",
+            "description": "Unit: s."
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low",
+              "unavailable"
+            ]
+          },
+          "source": {
+            "type": "string"
+          },
+          "sourceKind": {
+            "type": "string"
+          },
+          "activityId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "activityName": {
+            "type": "string"
+          },
+          "activityType": {
+            "type": "string"
+          },
+          "activityDate": {
+            "type": "string"
+          },
+          "windowDays": {
+            "type": "integer",
+            "x-unit": "days"
+          },
+          "activityCount": {
+            "type": "integer"
+          }
+        },
+        "description": "Power-derived estimate with its evidence and time window. When available=false, numeric zeros are sentinels and must not be treated as a measured FTP."
+      },
+      "Achievement": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "effortCount",
+          "rank",
+          "type",
+          "typeId"
+        ],
+        "properties": {
+          "effortCount": {
+            "type": "integer"
+          },
+          "rank": {
+            "type": "integer"
+          },
+          "type": {
+            "type": "string"
+          },
+          "typeId": {
+            "type": "integer"
+          }
+        }
       }
     },
     "headers": {

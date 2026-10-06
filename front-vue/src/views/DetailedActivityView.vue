@@ -2135,11 +2135,11 @@ function syncChartSeries(redraw = true) {
   }
 }
 
-function buildDistanceSeries(values: number[], distances: number[]) {
+function buildDistanceSeries(values: Array<number | null>, distances: number[]) {
   const size = Math.min(values.length, distances.length);
   return Array.from({ length: size }, (_, index) => ({
     x: (distances[index] ?? 0) / 1000,
-    y: Number.isFinite(values[index]) ? values[index] : 0,
+    y: Number.isFinite(values[index]) ? values[index] : null,
   }));
 }
 

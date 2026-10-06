@@ -31,7 +31,7 @@ export interface Stream {
     moving: boolean[] | null;
     altitude: number[] | null;
     latlng: number[][] | null;
-    watts: number[] | null;
+    watts: Array<number | null> | null;
     velocitySmooth?: number[] | null;
 }
 

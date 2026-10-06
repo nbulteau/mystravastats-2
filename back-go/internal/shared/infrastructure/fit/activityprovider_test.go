@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
@@ -462,5 +463,24 @@ func assertFloatEquals(t *testing.T, expected float64, actual float64) {
 	t.Helper()
 	if math.Abs(expected-actual) > 0.0001 {
 		t.Fatalf("expected %.4f, got %.4f", expected, actual)
+	}
+}
+
+func TestFITPowerGapsAreNotCompacted(t *testing.T) {
+	stream := &strava.Stream{Watts: &strava.PowerStream{Data: []float64{200, math.NaN(), 200}}}
+	metrics := computeFITPowerMetrics(0, stream, 3)
+	if metrics.averageWatts != 0 || metrics.weightedAverageWatts != 0 || metrics.kilojoules != 0 {
+		t.Fatalf("incomplete stream must not imply full coverage: %+v", metrics)
+	}
+	if computeFITPowerMetrics(250, stream, 3).averageWatts != 250 {
+		t.Fatal("session summary should remain usable")
+	}
+}
+
+func TestFITRecordPowerPreservesMissingAndZero(t *testing.T) {
+	records := []*fitparser.RecordMsg{{Power: 0}, {Power: fitInvalidUint16}, {Power: 200}}
+	stream := buildStreamFromFITRecords(records, time.Unix(1, 0))
+	if stream.Watts == nil || len(stream.Watts.Data) != 3 || stream.Watts.Data[0] != 0 || !math.IsNaN(stream.Watts.Data[1]) || stream.Watts.Data[2] != 200 {
+		t.Fatalf("unexpected power stream: %+v", stream.Watts)
 	}
 }

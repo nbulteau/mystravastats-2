@@ -218,7 +218,7 @@ private fun buildClimbAscentDto(
         durationSeconds = duration,
         vamMetersPerHour = vam,
         averageSpeedKph = speed,
-        averagePowerWatts = averagePositiveValues(stream?.watts?.data, bounds),
+        averagePowerWatts = averageCompletePowerValues(stream?.watts?.data, bounds),
         averageHeartRateBpm = averagePositiveValues(stream?.heartrate?.data, bounds),
         comparisonPoints = comparisonPoints,
         comparisonQuality = comparisonQuality,
@@ -354,7 +354,7 @@ private fun buildClimbAscentComparison(
             elevationMeters = elevation,
             speedKph = speedKph,
             vamMetersPerHour = vam,
-            powerWatts = stream.watts?.data?.getOrNull(index)?.takeIf { it > 0 },
+            powerWatts = stream.watts?.data?.getOrNull(index)?.takeIf { it >= 0 },
             heartRateBpm = stream.heartrate?.data?.getOrNull(index)?.takeIf { it > 0 },
         )
     }
@@ -368,6 +368,13 @@ private fun buildClimbAscentComparison(
         warnings = warnings,
     )
     return points to quality
+}
+
+private fun averageCompletePowerValues(values: List<Int?>?, bounds: FamousClimbBounds): Int? {
+    if (values == null || bounds.startIndex < 0 || bounds.endIndex < bounds.startIndex || bounds.endIndex >= values.size) return null
+    val samples = values.subList(bounds.startIndex, bounds.endIndex + 1)
+    if (samples.any { it == null }) return null
+    return round(samples.filterNotNull().average()).toInt()
 }
 
 private fun averagePositiveValues(values: List<Int?>?, bounds: FamousClimbBounds): Int? {

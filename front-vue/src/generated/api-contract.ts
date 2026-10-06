@@ -31,8 +31,26 @@ export interface ActivitySummary {
   id: number;
   name: string;
   type: string;
-  date?: string | null;
-  distance?: number | null;
+  commute: boolean;
+  link: string;
+  distance: number;
+  elapsedTime: number;
+  movingTime: number;
+  totalElevationGain: number;
+  averageSpeed: number;
+  averageHeartrate: number;
+  bestSpeedForDistanceFor1000m: number;
+  bestElevationForDistanceFor500m: number;
+  bestElevationForDistanceFor1000m: number;
+  date: string;
+  averageWatts: number;
+  weightedAverageWatts: number;
+  bestPowerFor20Minutes: number;
+  bestPowerFor60Minutes: number;
+  bestPowerFor20minutes: number;
+  bestPowerFor60minutes: number;
+  ftp: number;
+  badgeEffortSeconds?: number | null;
 }
 
 export interface RouteGenerationScore {
@@ -172,6 +190,348 @@ export interface SourceSyncResult {
   durationMs: number;
   reloaded: boolean;
   fit: Record<string, unknown>;
+}
+
+export interface DetailedActivity {
+  averageCadence: number;
+  averageHeartrate: number;
+  averageWatts: number;
+  averageSpeed: number;
+  calories: number;
+  commute: boolean;
+  deviceWatts: boolean;
+  distance: number;
+  elapsedTime: number;
+  elevHigh: number;
+  id: number;
+  link: string;
+  kilojoules: number;
+  maxHeartrate: number;
+  maxSpeed: number;
+  maxWatts: number;
+  movingTime: number;
+  name: string;
+  activityEfforts: ActivityEffort[];
+  stravaSegmentEfforts: StravaSegmentEffort[];
+  activityComparison?: ActivityComparison | null;
+  startDate: string;
+  startDateLocal: string;
+  startLatlng: number[];
+  source?: ActivitySource | null;
+  stream: ActivityStream | null;
+  sufferScore: number | null;
+  totalDescent: number;
+  totalElevationGain: number;
+  type: string;
+  sportType: string;
+  weightedAverageWatts: number;
+}
+
+export interface ActivitySource {
+  primaryProvider: string;
+  primaryId: number;
+  streamProvider?: string | null;
+  mergeConfidence?: string | null;
+  sources?: ActivitySourceRef[] | null;
+  conflicts?: ActivitySourceConflict[] | null;
+  fieldSources?: Record<string, string> | null;
+}
+
+export interface ActivitySourceRef {
+  provider: string;
+  activityId: number;
+  startDateLocal: string;
+  distance: number;
+  movingTime: number;
+  hasStream: boolean;
+}
+
+export interface ActivitySourceConflict {
+  field: string;
+  primary: string;
+  other: string;
+  source: string;
+}
+
+export interface ActivityComparison {
+  status: string;
+  label: string;
+  criteria: ActivityComparisonCriteria;
+  baseline: ActivityComparisonBaseline;
+  deltas: ActivityComparisonDeltas;
+  similarActivities: ActivityComparisonActivity[];
+  commonSegments: ActivityComparisonSegment[];
+}
+
+export interface ActivityComparisonCriteria {
+  activityType: string;
+  year: number;
+  sampleSize: number;
+}
+
+export interface ActivityComparisonBaseline {
+  distance: number;
+  elevationGain: number;
+  movingTime: number;
+  averageSpeed: number;
+  averageHeartrate: number;
+  averageWatts: number;
+  averageCadence: number;
+}
+
+export interface ActivityComparisonDeltas {
+  distance: number;
+  elevationGain: number;
+  movingTime: number;
+  averageSpeed: number;
+  averageSpeedPct: number;
+  averageHeartrate: number;
+  averageWatts: number;
+  averageCadence: number;
+}
+
+export interface ActivityComparisonActivity {
+  id: number;
+  name: string;
+  date: string;
+  distance: number;
+  elevationGain: number;
+  movingTime: number;
+  averageSpeed: number;
+  averageHeartrate: number;
+  averageWatts: number;
+  averageCadence: number;
+  similarityScore: number;
+}
+
+export interface ActivityComparisonSegment {
+  id: number;
+  name: string;
+  matchCount: number;
+  activityIds: number[];
+  activityNames: string[];
+}
+
+export interface ActivityEffort {
+  id: string;
+  label: string;
+  distance: number;
+  seconds: number;
+  deltaAltitude: number;
+  elevationGain?: number | null;
+  elevationLoss?: number | null;
+  idxStart: number;
+  idxEnd: number;
+  averagePower: number | null;
+  description: string;
+}
+
+export interface StravaSegmentEffort {
+  averageCadence: number;
+  averageHeartRate: number;
+  averageWatts: number;
+  deviceWatts: boolean;
+  distance: number;
+  elapsedTime: number;
+  endIndex: number;
+  hidden: boolean;
+  id: number;
+  komRank?: number | null;
+  maxHeartRate: number;
+  movingTime: number;
+  name: string;
+  prRank?: number | null;
+  resourceState: number;
+  segment: StravaSegment;
+  startDate: string;
+  startDateLocal: string;
+  startIndex: number;
+  visibility?: string | null;
+  achievements?: Achievement[];
+  activity?: number;
+  athlete?: number;
+}
+
+export interface StravaSegment {
+  activityType: string;
+  averageGrade: number;
+  city?: string | null;
+  climbCategory: number;
+  country?: string | null;
+  distance: number;
+  elevationHigh: number;
+  elevationLow: number;
+  endLatLng: number[];
+  hazardous: boolean;
+  id: number;
+  maximumGrade: number;
+  name: string;
+  isPrivate: boolean;
+  resourceState: number;
+  starred: boolean;
+  startLatLng: number[];
+  state?: string | null;
+}
+
+export interface ActivityStream {
+  distance: number[];
+  time: number[];
+  latlng?: number[][] | null;
+  heartrate?: number[] | null;
+  cadence?: number[] | null;
+  moving?: boolean[] | null;
+  altitude?: number[] | null;
+  watts?: (number | null)[] | null;
+  velocitySmooth?: number[] | null;
+}
+
+export interface Statistic {
+  label: string;
+  value: string;
+  activity?: ActivityShort;
+}
+
+export interface ActivityShort {
+  id: number;
+  name: string;
+  type: string;
+}
+
+export interface PersonalRecordTimeline {
+  metricKey: string;
+  metricLabel: string;
+  activityDate: string;
+  value: string;
+  previousValue?: string | null;
+  improvement?: string | null;
+  activity: ActivityShort;
+}
+
+export interface SegmentClimbProgression {
+  metric: string;
+  targetTypeFilter: string;
+  weatherContextAvailable: boolean;
+  targets: SegmentClimbTargetSummary[];
+  selectedTargetId?: number | null;
+  selectedTargetType?: string | null;
+  attempts: SegmentClimbAttempt[];
+}
+
+export interface SegmentClimbTargetSummary {
+  targetId: number;
+  targetName: string;
+  targetType: string;
+  climbCategory: number;
+  distance: number;
+  averageGrade: number;
+  attemptsCount: number;
+  bestValue: string;
+  latestValue: string;
+  consistency: string;
+  averagePacing: string;
+  closeToPrCount: number;
+  recentTrend: string;
+}
+
+export interface SegmentClimbAttempt {
+  targetId: number;
+  targetName: string;
+  targetType: string;
+  activityDate: string;
+  elapsedTimeSeconds: number;
+  movingTimeSeconds: number;
+  speedKph: number;
+  distance: number;
+  averageGrade: number;
+  elevationGain: number;
+  averagePowerWatts: number;
+  averageHeartRate: number;
+  prRank?: number | null;
+  personalRank?: number | null;
+  setsNewPr: boolean;
+  closeToPr: boolean;
+  deltaToPr: string;
+  weatherSummary?: string | null;
+  activity: ActivityShort;
+}
+
+export interface SegmentSummary {
+  metric: string;
+  segment: SegmentClimbTargetSummary;
+  personalRecord?: SegmentClimbAttempt | null;
+  topEfforts: SegmentClimbAttempt[];
+}
+
+export interface ResolvedHeartRateZoneSettings {
+  maxHr: number;
+  thresholdHr?: number | null;
+  reserveHr?: number | null;
+  method: string;
+  source: string;
+}
+
+export interface HeartRateZoneDistribution {
+  zone: string;
+  label: string;
+  seconds: number;
+  percentage: number;
+}
+
+export interface HeartRateZoneActivitySummary {
+  activity: ActivityShort;
+  activityDate: string;
+  totalTrackedSeconds: number;
+  easySeconds: number;
+  hardSeconds: number;
+  easyHardRatio?: number | null;
+  zones: HeartRateZoneDistribution[];
+}
+
+export interface HeartRateZonePeriodSummary {
+  period: string;
+  totalTrackedSeconds: number;
+  easySeconds: number;
+  hardSeconds: number;
+  easyHardRatio?: number | null;
+  zones: HeartRateZoneDistribution[];
+}
+
+export interface HeartRateZoneAnalysis {
+  settings: HeartRateZoneSettings;
+  resolvedSettings?: ResolvedHeartRateZoneSettings | null;
+  hasHeartRateData: boolean;
+  totalTrackedSeconds: number;
+  easyHardRatio?: number | null;
+  zones: HeartRateZoneDistribution[];
+  activities: HeartRateZoneActivitySummary[];
+  byMonth: HeartRateZonePeriodSummary[];
+  byYear: HeartRateZonePeriodSummary[];
+}
+
+export interface FtpEstimate {
+  available: boolean;
+  ftp: number;
+  method: string;
+  methodLabel: string;
+  bestPower: number;
+  multiplier: number;
+  basedOnSeconds: number;
+  confidence: "high" | "medium" | "low" | "unavailable";
+  source: string;
+  sourceKind: string;
+  activityId: number;
+  activityName: string;
+  activityType: string;
+  activityDate: string;
+  windowDays: number;
+  activityCount: number;
+}
+
+export interface Achievement {
+  effortCount: number;
+  rank: number;
+  type: string;
+  typeId: number;
 }
 
 export const apiOperations = {

@@ -1,0 +1,43 @@
+[
+  {
+    "watts": [
+      900,
+      null,
+      200,
+      200,
+      200,
+      100
+    ],
+    "expected": 200
+  },
+  {
+    "watts": [
+      0,
+      100,
+      200
+    ],
+    "expected": 100
+  },
+  {
+    "watts": [
+      null,
+      100,
+      200
+    ],
+    "expected": null
+  },
+  {
+    "watts": [
+      null,
+      null,
+      null
+    ],
+    "expected": null
+  },
+  {
+    "watts": [
+      100
+    ],
+    "expected": null
+  }
+]

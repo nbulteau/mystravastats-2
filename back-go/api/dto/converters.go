@@ -120,12 +120,13 @@ func ToActivityDto(activity strava.Activity) ActivityDto {
 		WeightedAverageWatts:             activity.WeightedAverageWatts,
 		BestPowerFor20Minutes:            finiteEffortPower(bestPowerFor20Minutes),
 		BestPowerFor60Minutes:            finiteEffortPower(bestPowerFor60Minutes),
+		BestPowerFor20minutes:            finiteEffortPower(bestPowerFor20Minutes),
+		BestPowerFor60minutes:            finiteEffortPower(bestPowerFor60Minutes),
 		FTP:                              ftp,
 	}
 }
 
 func ToDetailedActivityDto(detailedActivity *strava.DetailedActivity) DetailedActivityDto {
-
 	activityForDto := *detailedActivity
 	activityForDto.Stream = sanitizeStreamForDto(detailedActivity.Stream)
 	detailedActivity = &activityForDto
@@ -237,7 +238,7 @@ func sanitizeStreamForDto(stream *strava.Stream) *strava.Stream {
 	}
 	if stream.Watts != nil {
 		watts := *stream.Watts
-		watts.Data = finiteFloat64Slice(stream.Watts.Data)
+		watts.Data = append(strava.PowerSamples(nil), stream.Watts.Data...)
 		sanitized.Watts = &watts
 	}
 	if stream.VelocitySmooth != nil {
@@ -365,9 +366,9 @@ func toStreamDto(stream *strava.Stream) *StreamDto {
 		altitude = finiteFloat64Slice(stream.Altitude.Data)
 	}
 
-	var watts []float64
+	var watts strava.PowerSamples
 	if stream.Watts != nil && stream.Watts.Data != nil {
-		watts = finiteFloat64Slice(stream.Watts.Data)
+		watts = append(strava.PowerSamples(nil), stream.Watts.Data...)
 	}
 
 	var velocitySmooth []float64
@@ -1295,22 +1296,21 @@ func isFiniteNumber(value float64) bool {
 }
 
 func calculateBestElevationForDistance(activity *strava.DetailedActivity, f float64) *business.ActivityEffort {
-	if activity.Stream == nil {
+	if activity.Stream == nil || activity.Stream.Altitude == nil {
 		return nil
 	}
 	return statistics.BestElevationForDistance(activity.Id, activity.Name, activity.Type, activity.Stream, f)
 }
 
 func calculateBestDistanceForTime(activity *strava.DetailedActivity, i int) *business.ActivityEffort {
-	if activity.Stream == nil {
+	if activity.Stream == nil || activity.Stream.Altitude == nil {
 		return nil
 	}
 	return statistics.BestDistanceForTime(activity.Id, activity.Name, activity.Type, activity.Stream, i)
 }
 
 func calculateBestTimeForDistance(activity *strava.DetailedActivity, f float64) *business.ActivityEffort {
-
-	if activity.Stream == nil {
+	if activity.Stream == nil || activity.Stream.Altitude == nil {
 		return nil
 	}
 	return statistics.BestTimeForDistance(activity.Id, activity.Name, activity.Type, activity.Stream, f)
@@ -1465,7 +1465,7 @@ func buildClimbAscentDto(activity *strava.Activity, bounds famousClimbBounds, ba
 		}
 	}
 	if activity.Stream != nil {
-		ascent.AveragePowerWatts = averagePositiveFloatRange(activity.Stream.Watts, bounds)
+		ascent.AveragePowerWatts = averageCompletePowerRange(activity.Stream.Watts, bounds)
 		ascent.AverageHeartRateBpm = averagePositiveIntRange(activity.Stream.HeartRate, bounds)
 	}
 	return ascent
@@ -1572,7 +1572,7 @@ func buildClimbAscentComparison(activity *strava.Activity, bounds famousClimbBou
 				point.SpeedKph = &speed
 			}
 		}
-		if stream.Watts != nil && index < len(stream.Watts.Data) && isFiniteNumber(stream.Watts.Data[index]) && stream.Watts.Data[index] > 0 {
+		if stream.Watts != nil && index < len(stream.Watts.Data) && isFiniteNumber(stream.Watts.Data[index]) && stream.Watts.Data[index] >= 0 {
 			power := int(math.Round(stream.Watts.Data[index]))
 			point.PowerWatts = &power
 		}
@@ -1585,23 +1585,18 @@ func buildClimbAscentComparison(activity *strava.Activity, bounds famousClimbBou
 	return points, quality
 }
 
-func averagePositiveFloatRange(stream *strava.PowerStream, bounds famousClimbBounds) *int {
-	if stream == nil || bounds.startIndex < 0 || bounds.endIndex < bounds.startIndex || bounds.startIndex >= len(stream.Data) {
+func averageCompletePowerRange(stream *strava.PowerStream, bounds famousClimbBounds) *int {
+	if stream == nil || bounds.startIndex < 0 || bounds.endIndex < bounds.startIndex || bounds.endIndex >= len(stream.Data) {
 		return nil
 	}
-	endIndex := min(bounds.endIndex, len(stream.Data)-1)
 	total := 0.0
-	count := 0
-	for _, value := range stream.Data[bounds.startIndex : endIndex+1] {
-		if isFiniteNumber(value) && value > 0 {
-			total += value
-			count++
+	for _, value := range stream.Data[bounds.startIndex : bounds.endIndex+1] {
+		if !isFiniteNumber(value) {
+			return nil
 		}
+		total += value
 	}
-	if count == 0 {
-		return nil
-	}
-	average := int(math.Round(total / float64(count)))
+	average := int(math.Round(total / float64(bounds.endIndex-bounds.startIndex+1)))
 	return &average
 }
 

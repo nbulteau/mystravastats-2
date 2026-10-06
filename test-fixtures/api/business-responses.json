@@ -1,0 +1,1644 @@
+[
+  {
+    "name": "detail without stream",
+    "operationId": "getActivity",
+    "method": "GET",
+    "path": "/api/activities/42",
+    "status": 200,
+    "expected": {
+      "averageCadence": 80,
+      "averageHeartrate": 135,
+      "averageWatts": 180,
+      "averageSpeed": 5,
+      "calories": 15,
+      "commute": false,
+      "deviceWatts": true,
+      "distance": 100,
+      "elapsedTime": 20,
+      "elevHigh": 105,
+      "id": 42,
+      "link": "",
+      "kilojoules": 3.24,
+      "maxHeartrate": 150,
+      "maxSpeed": 8,
+      "maxWatts": 240,
+      "movingTime": 18,
+      "name": "Contract ride",
+      "activityEfforts": [],
+      "stravaSegmentEfforts": [],
+      "startDate": "2026-04-05T08:00:00Z",
+      "startDateLocal": "2026-04-05T10:00:00Z",
+      "startLatlng": [
+        45,
+        6
+      ],
+      "stream": null,
+      "sufferScore": null,
+      "totalDescent": 0,
+      "totalElevationGain": 5,
+      "type": "Ride",
+      "sportType": "GravelRide",
+      "weightedAverageWatts": 190
+    },
+    "activity": {
+      "achievement_count": 0,
+      "athlete": {
+        "id": 0
+      },
+      "athlete_count": 0,
+      "average_cadence": 80,
+      "average_heartrate": 135,
+      "average_speed": 5,
+      "average_temp": 0,
+      "average_watts": 180,
+      "calories": 15,
+      "comment_count": 0,
+      "commute": false,
+      "description": null,
+      "device_name": null,
+      "device_watts": true,
+      "distance": 100,
+      "elapsed_time": 20,
+      "elev_high": 105,
+      "elev_low": 0,
+      "embed_token": "",
+      "end_latlng": [],
+      "external_id": "",
+      "flagged": false,
+      "from_accepted_tag": false,
+      "gear": null,
+      "gear_id": null,
+      "has_heartrate": false,
+      "has_kudoed": false,
+      "hide_from_home": false,
+      "id": 42,
+      "kilojoules": 3.24,
+      "kudos_count": 0,
+      "leaderboard_opt_out": false,
+      "map": null,
+      "manual": false,
+      "max_heartrate": 150,
+      "max_speed": 8,
+      "max_watts": 240,
+      "moving_time": 18,
+      "name": "Contract ride",
+      "pr_count": 0,
+      "private": false,
+      "resource_state": 0,
+      "segment_efforts": [],
+      "segment_leaderboard_opt_out": false,
+      "splits_metric": [],
+      "sport_type": "GravelRide",
+      "start_date": "2026-04-05T08:00:00Z",
+      "start_date_local": "2026-04-05T10:00:00Z",
+      "start_latlng": [
+        45,
+        6
+      ],
+      "suffer_score": null,
+      "timezone": "",
+      "total_elevation_gain": 5,
+      "total_photo_count": 0,
+      "trainer": false,
+      "type": "Ride",
+      "upload_id": 0,
+      "utc_offset": 0,
+      "weighted_average_watts": 190,
+      "workout_type": 0,
+      "stream": null,
+      "source": null
+    }
+  },
+  {
+    "name": "irregular sensor timestamps and real zero watts",
+    "operationId": "getActivity",
+    "method": "GET",
+    "path": "/api/activities/42",
+    "status": 200,
+    "expected": {
+      "averageCadence": 80,
+      "averageHeartrate": 135,
+      "averageWatts": 180,
+      "averageSpeed": 5,
+      "calories": 15,
+      "commute": false,
+      "deviceWatts": true,
+      "distance": 100,
+      "elapsedTime": 20,
+      "elevHigh": 105,
+      "id": 42,
+      "link": "",
+      "kilojoules": 3.24,
+      "maxHeartrate": 150,
+      "maxSpeed": 8,
+      "maxWatts": 240,
+      "movingTime": 18,
+      "name": "Contract ride",
+      "activityEfforts": [],
+      "stravaSegmentEfforts": [],
+      "startDate": "2026-04-05T08:00:00Z",
+      "startDateLocal": "2026-04-05T10:00:00Z",
+      "startLatlng": [
+        45,
+        6
+      ],
+      "stream": {
+        "time": [
+          0,
+          2,
+          7,
+          20
+        ],
+        "distance": [
+          0,
+          10,
+          35,
+          100
+        ],
+        "watts": [
+          0,
+          160,
+          200,
+          240
+        ],
+        "heartrate": [
+          110,
+          120,
+          140,
+          150
+        ],
+        "cadence": [
+          0,
+          70,
+          80,
+          90
+        ],
+        "moving": [
+          false,
+          true,
+          true,
+          true
+        ],
+        "altitude": [
+          100,
+          105,
+          102,
+          101
+        ],
+        "latlng": [
+          [
+            45,
+            6
+          ],
+          [
+            45,
+            6.0001
+          ],
+          [
+            45,
+            6.0003
+          ],
+          [
+            45,
+            6.001
+          ]
+        ],
+        "velocitySmooth": [
+          0,
+          5,
+          5,
+          5
+        ]
+      },
+      "sufferScore": null,
+      "totalDescent": 4,
+      "totalElevationGain": 5,
+      "type": "Ride",
+      "sportType": "GravelRide",
+      "weightedAverageWatts": 190
+    },
+    "activity": {
+      "achievement_count": 0,
+      "athlete": {
+        "id": 0
+      },
+      "athlete_count": 0,
+      "average_cadence": 80,
+      "average_heartrate": 135,
+      "average_speed": 5,
+      "average_temp": 0,
+      "average_watts": 180,
+      "calories": 15,
+      "comment_count": 0,
+      "commute": false,
+      "description": null,
+      "device_name": null,
+      "device_watts": true,
+      "distance": 100,
+      "elapsed_time": 20,
+      "elev_high": 105,
+      "elev_low": 0,
+      "embed_token": "",
+      "end_latlng": [],
+      "external_id": "",
+      "flagged": false,
+      "from_accepted_tag": false,
+      "gear": null,
+      "gear_id": null,
+      "has_heartrate": false,
+      "has_kudoed": false,
+      "hide_from_home": false,
+      "id": 42,
+      "kilojoules": 3.24,
+      "kudos_count": 0,
+      "leaderboard_opt_out": false,
+      "map": null,
+      "manual": false,
+      "max_heartrate": 150,
+      "max_speed": 8,
+      "max_watts": 240,
+      "moving_time": 18,
+      "name": "Contract ride",
+      "pr_count": 0,
+      "private": false,
+      "resource_state": 0,
+      "segment_efforts": [],
+      "segment_leaderboard_opt_out": false,
+      "splits_metric": [],
+      "sport_type": "GravelRide",
+      "start_date": "2026-04-05T08:00:00Z",
+      "start_date_local": "2026-04-05T10:00:00Z",
+      "start_latlng": [
+        45,
+        6
+      ],
+      "suffer_score": null,
+      "timezone": "",
+      "total_elevation_gain": 5,
+      "total_photo_count": 0,
+      "trainer": false,
+      "type": "Ride",
+      "upload_id": 0,
+      "utc_offset": 0,
+      "weighted_average_watts": 190,
+      "workout_type": 0,
+      "stream": {
+        "time": {
+          "data": [
+            0,
+            2,
+            7,
+            20
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "distance": {
+          "data": [
+            0,
+            10,
+            35,
+            100
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "watts": {
+          "data": [
+            0,
+            160,
+            200,
+            240
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "heartrate": {
+          "data": [
+            110,
+            120,
+            140,
+            150
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "cadence": {
+          "data": [
+            0,
+            70,
+            80,
+            90
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "moving": {
+          "data": [
+            false,
+            true,
+            true,
+            true
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "altitude": {
+          "data": [
+            100,
+            105,
+            102,
+            101
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "latlng": {
+          "data": [
+            [
+              45,
+              6
+            ],
+            [
+              45,
+              6.0001
+            ],
+            [
+              45,
+              6.0003
+            ],
+            [
+              45,
+              6.001
+            ]
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "velocity_smooth": {
+          "data": [
+            0,
+            5,
+            5,
+            5
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        }
+      },
+      "source": null
+    }
+  },
+  {
+    "name": "missing sensor arrays",
+    "operationId": "getActivity",
+    "method": "GET",
+    "path": "/api/activities/42",
+    "status": 200,
+    "expected": {
+      "averageCadence": 80,
+      "averageHeartrate": 0,
+      "averageWatts": 0,
+      "averageSpeed": 5,
+      "calories": 15,
+      "commute": false,
+      "deviceWatts": false,
+      "distance": 100,
+      "elapsedTime": 20,
+      "elevHigh": 105,
+      "id": 42,
+      "link": "",
+      "kilojoules": 3.24,
+      "maxHeartrate": 150,
+      "maxSpeed": 8,
+      "maxWatts": 240,
+      "movingTime": 18,
+      "name": "Contract ride",
+      "activityEfforts": [],
+      "stravaSegmentEfforts": [],
+      "startDate": "2026-04-05T08:00:00Z",
+      "startDateLocal": "2026-04-05T10:00:00Z",
+      "startLatlng": [
+        45,
+        6
+      ],
+      "stream": {
+        "time": [
+          0,
+          2,
+          7,
+          20
+        ],
+        "distance": [
+          0,
+          10,
+          35,
+          100
+        ]
+      },
+      "sufferScore": null,
+      "totalDescent": 0,
+      "totalElevationGain": 5,
+      "type": "Ride",
+      "sportType": "GravelRide",
+      "weightedAverageWatts": 190
+    },
+    "activity": {
+      "achievement_count": 0,
+      "athlete": {
+        "id": 0
+      },
+      "athlete_count": 0,
+      "average_cadence": 80,
+      "average_heartrate": 0,
+      "average_speed": 5,
+      "average_temp": 0,
+      "average_watts": 0,
+      "calories": 15,
+      "comment_count": 0,
+      "commute": false,
+      "description": null,
+      "device_name": null,
+      "device_watts": false,
+      "distance": 100,
+      "elapsed_time": 20,
+      "elev_high": 105,
+      "elev_low": 0,
+      "embed_token": "",
+      "end_latlng": [],
+      "external_id": "",
+      "flagged": false,
+      "from_accepted_tag": false,
+      "gear": null,
+      "gear_id": null,
+      "has_heartrate": false,
+      "has_kudoed": false,
+      "hide_from_home": false,
+      "id": 42,
+      "kilojoules": 3.24,
+      "kudos_count": 0,
+      "leaderboard_opt_out": false,
+      "map": null,
+      "manual": false,
+      "max_heartrate": 150,
+      "max_speed": 8,
+      "max_watts": 240,
+      "moving_time": 18,
+      "name": "Contract ride",
+      "pr_count": 0,
+      "private": false,
+      "resource_state": 0,
+      "segment_efforts": [],
+      "segment_leaderboard_opt_out": false,
+      "splits_metric": [],
+      "sport_type": "GravelRide",
+      "start_date": "2026-04-05T08:00:00Z",
+      "start_date_local": "2026-04-05T10:00:00Z",
+      "start_latlng": [
+        45,
+        6
+      ],
+      "suffer_score": null,
+      "timezone": "",
+      "total_elevation_gain": 5,
+      "total_photo_count": 0,
+      "trainer": false,
+      "type": "Ride",
+      "upload_id": 0,
+      "utc_offset": 0,
+      "weighted_average_watts": 190,
+      "workout_type": 0,
+      "stream": {
+        "time": {
+          "data": [
+            0,
+            2,
+            7,
+            20
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "distance": {
+          "data": [
+            0,
+            10,
+            35,
+            100
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        }
+      },
+      "source": null
+    }
+  },
+  {
+    "name": "empty stream retains empty mandatory arrays",
+    "operationId": "getActivity",
+    "method": "GET",
+    "path": "/api/activities/42",
+    "status": 200,
+    "expected": {
+      "averageCadence": 80,
+      "averageHeartrate": 135,
+      "averageWatts": 180,
+      "averageSpeed": 5,
+      "calories": 15,
+      "commute": false,
+      "deviceWatts": true,
+      "distance": 100,
+      "elapsedTime": 20,
+      "elevHigh": 105,
+      "id": 42,
+      "link": "",
+      "kilojoules": 3.24,
+      "maxHeartrate": 150,
+      "maxSpeed": 8,
+      "maxWatts": 240,
+      "movingTime": 18,
+      "name": "Contract ride",
+      "activityEfforts": [],
+      "stravaSegmentEfforts": [],
+      "startDate": "2026-04-05T08:00:00Z",
+      "startDateLocal": "2026-04-05T10:00:00Z",
+      "startLatlng": [
+        45,
+        6
+      ],
+      "stream": {
+        "distance": [],
+        "time": []
+      },
+      "sufferScore": null,
+      "totalDescent": 0,
+      "totalElevationGain": 5,
+      "type": "Ride",
+      "sportType": "GravelRide",
+      "weightedAverageWatts": 190
+    },
+    "activity": {
+      "achievement_count": 0,
+      "athlete": {
+        "id": 0
+      },
+      "athlete_count": 0,
+      "average_cadence": 80,
+      "average_heartrate": 135,
+      "average_speed": 5,
+      "average_temp": 0,
+      "average_watts": 180,
+      "calories": 15,
+      "comment_count": 0,
+      "commute": false,
+      "description": null,
+      "device_name": null,
+      "device_watts": true,
+      "distance": 100,
+      "elapsed_time": 20,
+      "elev_high": 105,
+      "elev_low": 0,
+      "embed_token": "",
+      "end_latlng": [],
+      "external_id": "",
+      "flagged": false,
+      "from_accepted_tag": false,
+      "gear": null,
+      "gear_id": null,
+      "has_heartrate": false,
+      "has_kudoed": false,
+      "hide_from_home": false,
+      "id": 42,
+      "kilojoules": 3.24,
+      "kudos_count": 0,
+      "leaderboard_opt_out": false,
+      "map": null,
+      "manual": false,
+      "max_heartrate": 150,
+      "max_speed": 8,
+      "max_watts": 240,
+      "moving_time": 18,
+      "name": "Contract ride",
+      "pr_count": 0,
+      "private": false,
+      "resource_state": 0,
+      "segment_efforts": [],
+      "segment_leaderboard_opt_out": false,
+      "splits_metric": [],
+      "sport_type": "GravelRide",
+      "start_date": "2026-04-05T08:00:00Z",
+      "start_date_local": "2026-04-05T10:00:00Z",
+      "start_latlng": [
+        45,
+        6
+      ],
+      "suffer_score": null,
+      "timezone": "",
+      "total_elevation_gain": 5,
+      "total_photo_count": 0,
+      "trainer": false,
+      "type": "Ride",
+      "upload_id": 0,
+      "utc_offset": 0,
+      "weighted_average_watts": 190,
+      "workout_type": 0,
+      "stream": {
+        "distance": {
+          "data": [],
+          "original_size": 0,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "time": {
+          "data": [],
+          "original_size": 0,
+          "resolution": "high",
+          "series_type": "time"
+        }
+      },
+      "source": null
+    }
+  },
+  {
+    "name": "activity list includes both power spellings",
+    "operationId": "listActivities",
+    "method": "GET",
+    "path": "/api/activities?activityType=Ride",
+    "status": 200,
+    "expected": [
+      {
+        "id": 42,
+        "name": "Contract ride",
+        "type": "Ride",
+        "commute": false,
+        "link": "",
+        "distance": 100,
+        "elapsedTime": 20,
+        "movingTime": 18,
+        "totalElevationGain": 5,
+        "averageSpeed": 5,
+        "averageHeartrate": 135,
+        "bestSpeedForDistanceFor1000m": 0,
+        "bestElevationForDistanceFor500m": 0,
+        "bestElevationForDistanceFor1000m": 0,
+        "date": "2026-04-05T10:00:00Z",
+        "averageWatts": 180,
+        "weightedAverageWatts": 190,
+        "bestPowerFor20Minutes": 0,
+        "bestPowerFor60Minutes": 0,
+        "bestPowerFor20minutes": 0,
+        "bestPowerFor60minutes": 0,
+        "ftp": 0
+      }
+    ],
+    "activities": [
+      {
+        "achievement_count": 0,
+        "athlete": {
+          "id": 0
+        },
+        "athlete_count": 0,
+        "average_cadence": 80,
+        "average_heartrate": 135,
+        "average_speed": 5,
+        "average_temp": 0,
+        "average_watts": 180,
+        "calories": 15,
+        "comment_count": 0,
+        "commute": false,
+        "description": null,
+        "device_name": null,
+        "device_watts": true,
+        "distance": 100,
+        "elapsed_time": 20,
+        "elev_high": 105,
+        "elev_low": 0,
+        "embed_token": "",
+        "end_latlng": [],
+        "external_id": "",
+        "flagged": false,
+        "from_accepted_tag": false,
+        "gear": null,
+        "gear_id": null,
+        "has_heartrate": false,
+        "has_kudoed": false,
+        "hide_from_home": false,
+        "id": 42,
+        "kilojoules": 3.24,
+        "kudos_count": 0,
+        "leaderboard_opt_out": false,
+        "map": null,
+        "manual": false,
+        "max_heartrate": 150,
+        "max_speed": 8,
+        "max_watts": 240,
+        "moving_time": 18,
+        "name": "Contract ride",
+        "pr_count": 0,
+        "private": false,
+        "resource_state": 0,
+        "segment_efforts": [],
+        "segment_leaderboard_opt_out": false,
+        "splits_metric": [],
+        "sport_type": "GravelRide",
+        "start_date": "2026-04-05T08:00:00Z",
+        "start_date_local": "2026-04-05T10:00:00Z",
+        "start_latlng": [
+          45,
+          6
+        ],
+        "suffer_score": null,
+        "timezone": "",
+        "total_elevation_gain": 5,
+        "total_photo_count": 0,
+        "trainer": false,
+        "type": "Ride",
+        "upload_id": 0,
+        "utc_offset": 0,
+        "weighted_average_watts": 190,
+        "workout_type": 0,
+        "stream": null,
+        "source": null
+      }
+    ]
+  },
+  {
+    "name": "empty activity list",
+    "operationId": "listActivities",
+    "method": "GET",
+    "path": "/api/activities?activityType=Ride",
+    "status": 200,
+    "expected": [],
+    "activities": []
+  },
+  {
+    "name": "empty performance settings",
+    "operationId": "getPerformanceSettings",
+    "method": "GET",
+    "path": "/api/athletes/me/performance-settings",
+    "status": 200,
+    "expected": {
+      "ftpHistory": []
+    },
+    "settings": {}
+  },
+  {
+    "name": "normalized dated FTP and body mass",
+    "operationId": "getPerformanceSettings",
+    "method": "GET",
+    "path": "/api/athletes/me/performance-settings",
+    "status": 200,
+    "expected": {
+      "ftpHistory": [
+        {
+          "effectiveFrom": "2026-01-01",
+          "ftp": 240
+        },
+        {
+          "effectiveFrom": "2026-05-01",
+          "ftp": 265
+        }
+      ],
+      "weightKg": 72.5
+    },
+    "settings": {
+      "ftpHistory": [
+        {
+          "effectiveFrom": "2026-05-01",
+          "ftp": 260
+        },
+        {
+          "effectiveFrom": "invalid",
+          "ftp": 250
+        },
+        {
+          "effectiveFrom": "2026-01-01",
+          "ftp": 240
+        },
+        {
+          "effectiveFrom": "2026-05-01",
+          "ftp": 265
+        },
+        {
+          "effectiveFrom": "2026-04-01",
+          "ftp": 0
+        }
+      ],
+      "weightKg": 72.5
+    }
+  },
+  {
+    "name": "invalid body mass is unavailable",
+    "operationId": "getPerformanceSettings",
+    "method": "GET",
+    "path": "/api/athletes/me/performance-settings",
+    "status": 200,
+    "expected": {
+      "ftpHistory": []
+    },
+    "settings": {
+      "ftpHistory": [],
+      "weightKg": -1
+    }
+  },
+  {
+    "name": "replace performance settings",
+    "operationId": "updatePerformanceSettings",
+    "method": "PUT",
+    "path": "/api/athletes/me/performance-settings",
+    "status": 200,
+    "expected": {
+      "ftpHistory": [
+        {
+          "effectiveFrom": "2026-01-01",
+          "ftp": 240
+        },
+        {
+          "effectiveFrom": "2026-05-01",
+          "ftp": 265
+        }
+      ],
+      "weightKg": 72.5
+    },
+    "settings": {},
+    "requestBody": {
+      "ftpHistory": [
+        {
+          "effectiveFrom": "2026-05-01",
+          "ftp": 260
+        },
+        {
+          "effectiveFrom": "invalid",
+          "ftp": 250
+        },
+        {
+          "effectiveFrom": "2026-01-01",
+          "ftp": 240
+        },
+        {
+          "effectiveFrom": "2026-05-01",
+          "ftp": 265
+        },
+        {
+          "effectiveFrom": "2026-04-01",
+          "ftp": 0
+        }
+      ],
+      "weightKg": 72.5
+    }
+  },
+  {
+    "name": "FTP unavailable without activity data",
+    "operationId": "getFtpEstimate",
+    "method": "GET",
+    "path": "/api/athletes/me/ftp-estimate",
+    "status": 200,
+    "expected": {
+      "available": false,
+      "ftp": 0,
+      "method": "",
+      "methodLabel": "",
+      "bestPower": 0,
+      "multiplier": 0,
+      "basedOnSeconds": 0,
+      "confidence": "unavailable",
+      "source": "No activities available",
+      "sourceKind": "none",
+      "activityId": 0,
+      "activityName": "",
+      "activityType": "",
+      "activityDate": "",
+      "windowDays": 180,
+      "activityCount": 0
+    },
+    "activities": []
+  },
+  {
+    "name": "formatted statistics with optional reference",
+    "operationId": "getStatistics",
+    "method": "GET",
+    "path": "/api/statistics?activityType=Ride",
+    "status": 200,
+    "expected": [
+      {
+        "label": "Total distance",
+        "value": "1.25 km"
+      },
+      {
+        "label": "Longest ride",
+        "value": "1.25 km",
+        "activity": {
+          "id": 42,
+          "name": "Contract ride",
+          "type": "Ride"
+        }
+      }
+    ],
+    "statistics": [
+      {
+        "label": "Total distance",
+        "value": "1.25 km"
+      },
+      {
+        "label": "Longest ride",
+        "value": "1.25 km",
+        "activity": {
+          "id": 42,
+          "name": "Contract ride",
+          "type": "Ride"
+        }
+      }
+    ]
+  },
+  {
+    "name": "empty statistics",
+    "operationId": "getStatistics",
+    "method": "GET",
+    "path": "/api/statistics?activityType=Ride",
+    "status": 200,
+    "expected": [],
+    "statistics": []
+  },
+  {
+    "name": "personal record references and missing previous value",
+    "operationId": "getPersonalRecordsTimeline",
+    "method": "GET",
+    "path": "/api/statistics/personal-records-timeline?activityType=Ride",
+    "status": 200,
+    "expected": [
+      {
+        "metricKey": "distance",
+        "metricLabel": "Distance",
+        "activityDate": "2026-04-05",
+        "value": "1.25 km",
+        "activity": {
+          "id": 42,
+          "name": "Contract ride",
+          "type": "Ride"
+        }
+      },
+      {
+        "metricKey": "distance",
+        "metricLabel": "Distance",
+        "activityDate": "2026-04-06",
+        "value": "1.50 km",
+        "previousValue": "1.25 km",
+        "improvement": "+0.25 km",
+        "activity": {
+          "id": 43,
+          "name": "Longer ride",
+          "type": "Ride"
+        }
+      }
+    ],
+    "timeline": [
+      {
+        "metricKey": "distance",
+        "metricLabel": "Distance",
+        "activityDate": "2026-04-05",
+        "value": "1.25 km",
+        "activity": {
+          "id": 42,
+          "name": "Contract ride",
+          "type": "Ride"
+        }
+      },
+      {
+        "metricKey": "distance",
+        "metricLabel": "Distance",
+        "activityDate": "2026-04-06",
+        "value": "1.50 km",
+        "previousValue": "1.25 km",
+        "improvement": "+0.25 km",
+        "activity": {
+          "id": 43,
+          "name": "Longer ride",
+          "type": "Ride"
+        }
+      }
+    ]
+  },
+  {
+    "name": "empty personal records",
+    "operationId": "getPersonalRecordsTimeline",
+    "method": "GET",
+    "path": "/api/statistics/personal-records-timeline?activityType=Ride",
+    "status": 200,
+    "expected": [],
+    "timeline": []
+  },
+  {
+    "name": "no heart rate coverage is not measured rest",
+    "operationId": "getHeartRateZoneAnalysis",
+    "method": "GET",
+    "path": "/api/statistics/heart-rate-zones?activityType=Ride",
+    "status": 200,
+    "expected": {
+      "settings": {},
+      "hasHeartRateData": false,
+      "totalTrackedSeconds": 0,
+      "zones": [],
+      "activities": [],
+      "byMonth": [],
+      "byYear": []
+    },
+    "heartRate": {
+      "settings": {},
+      "hasHeartRateData": false,
+      "totalTrackedSeconds": 0,
+      "zones": [],
+      "activities": [],
+      "byMonth": [],
+      "byYear": []
+    }
+  },
+  {
+    "name": "power gaps preserve sample positions",
+    "operationId": "getActivity",
+    "method": "GET",
+    "path": "/api/activities/42",
+    "status": 200,
+    "expected": {
+      "averageCadence": 80,
+      "averageHeartrate": 135,
+      "averageWatts": 180,
+      "averageSpeed": 5,
+      "calories": 15,
+      "commute": false,
+      "deviceWatts": true,
+      "distance": 100,
+      "elapsedTime": 20,
+      "elevHigh": 105,
+      "id": 42,
+      "link": "",
+      "kilojoules": 3.24,
+      "maxHeartrate": 150,
+      "maxSpeed": 8,
+      "maxWatts": 240,
+      "movingTime": 18,
+      "name": "Contract ride",
+      "activityEfforts": [],
+      "stravaSegmentEfforts": [],
+      "startDate": "2026-04-05T08:00:00Z",
+      "startDateLocal": "2026-04-05T10:00:00Z",
+      "startLatlng": [
+        45,
+        6
+      ],
+      "stream": {
+        "time": [
+          0,
+          2,
+          7,
+          20
+        ],
+        "distance": [
+          0,
+          10,
+          35,
+          100
+        ],
+        "watts": [
+          0,
+          null,
+          200,
+          240
+        ],
+        "heartrate": [
+          110,
+          120,
+          140,
+          150
+        ],
+        "cadence": [
+          0,
+          70,
+          80,
+          90
+        ],
+        "moving": [
+          false,
+          true,
+          true,
+          true
+        ],
+        "altitude": [
+          100,
+          105,
+          102,
+          101
+        ],
+        "latlng": [
+          [
+            45,
+            6
+          ],
+          [
+            45,
+            6.0001
+          ],
+          [
+            45,
+            6.0003
+          ],
+          [
+            45,
+            6.001
+          ]
+        ],
+        "velocitySmooth": [
+          0,
+          5,
+          5,
+          5
+        ]
+      },
+      "sufferScore": null,
+      "totalDescent": 4,
+      "totalElevationGain": 5,
+      "type": "Ride",
+      "sportType": "GravelRide",
+      "weightedAverageWatts": 190
+    },
+    "activity": {
+      "achievement_count": 0,
+      "athlete": {
+        "id": 0
+      },
+      "athlete_count": 0,
+      "average_cadence": 80,
+      "average_heartrate": 135,
+      "average_speed": 5,
+      "average_temp": 0,
+      "average_watts": 180,
+      "calories": 15,
+      "comment_count": 0,
+      "commute": false,
+      "description": null,
+      "device_name": null,
+      "device_watts": true,
+      "distance": 100,
+      "elapsed_time": 20,
+      "elev_high": 105,
+      "elev_low": 0,
+      "embed_token": "",
+      "end_latlng": [],
+      "external_id": "",
+      "flagged": false,
+      "from_accepted_tag": false,
+      "gear": null,
+      "gear_id": null,
+      "has_heartrate": false,
+      "has_kudoed": false,
+      "hide_from_home": false,
+      "id": 42,
+      "kilojoules": 3.24,
+      "kudos_count": 0,
+      "leaderboard_opt_out": false,
+      "map": null,
+      "manual": false,
+      "max_heartrate": 150,
+      "max_speed": 8,
+      "max_watts": 240,
+      "moving_time": 18,
+      "name": "Contract ride",
+      "pr_count": 0,
+      "private": false,
+      "resource_state": 0,
+      "segment_efforts": [],
+      "segment_leaderboard_opt_out": false,
+      "splits_metric": [],
+      "sport_type": "GravelRide",
+      "start_date": "2026-04-05T08:00:00Z",
+      "start_date_local": "2026-04-05T10:00:00Z",
+      "start_latlng": [
+        45,
+        6
+      ],
+      "suffer_score": null,
+      "timezone": "",
+      "total_elevation_gain": 5,
+      "total_photo_count": 0,
+      "trainer": false,
+      "type": "Ride",
+      "upload_id": 0,
+      "utc_offset": 0,
+      "weighted_average_watts": 190,
+      "workout_type": 0,
+      "stream": {
+        "time": {
+          "data": [
+            0,
+            2,
+            7,
+            20
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "distance": {
+          "data": [
+            0,
+            10,
+            35,
+            100
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "watts": {
+          "data": [
+            0,
+            null,
+            200,
+            240
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "heartrate": {
+          "data": [
+            110,
+            120,
+            140,
+            150
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "cadence": {
+          "data": [
+            0,
+            70,
+            80,
+            90
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "moving": {
+          "data": [
+            false,
+            true,
+            true,
+            true
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "altitude": {
+          "data": [
+            100,
+            105,
+            102,
+            101
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "latlng": {
+          "data": [
+            [
+              45,
+              6
+            ],
+            [
+              45,
+              6.0001
+            ],
+            [
+              45,
+              6.0003
+            ],
+            [
+              45,
+              6.001
+            ]
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "velocity_smooth": {
+          "data": [
+            0,
+            5,
+            5,
+            5
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        }
+      },
+      "source": null
+    }
+  },
+  {
+    "name": "unavailable power samples",
+    "operationId": "getActivity",
+    "method": "GET",
+    "path": "/api/activities/42",
+    "status": 200,
+    "expected": {
+      "averageCadence": 80,
+      "averageHeartrate": 135,
+      "averageWatts": 180,
+      "averageSpeed": 5,
+      "calories": 15,
+      "commute": false,
+      "deviceWatts": true,
+      "distance": 100,
+      "elapsedTime": 20,
+      "elevHigh": 105,
+      "id": 42,
+      "link": "",
+      "kilojoules": 3.24,
+      "maxHeartrate": 150,
+      "maxSpeed": 8,
+      "maxWatts": 240,
+      "movingTime": 18,
+      "name": "Contract ride",
+      "activityEfforts": [],
+      "stravaSegmentEfforts": [],
+      "startDate": "2026-04-05T08:00:00Z",
+      "startDateLocal": "2026-04-05T10:00:00Z",
+      "startLatlng": [
+        45,
+        6
+      ],
+      "stream": {
+        "time": [
+          0,
+          2,
+          7,
+          20
+        ],
+        "distance": [
+          0,
+          10,
+          35,
+          100
+        ],
+        "watts": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "heartrate": [
+          110,
+          120,
+          140,
+          150
+        ],
+        "cadence": [
+          0,
+          70,
+          80,
+          90
+        ],
+        "moving": [
+          false,
+          true,
+          true,
+          true
+        ],
+        "altitude": [
+          100,
+          105,
+          102,
+          101
+        ],
+        "latlng": [
+          [
+            45,
+            6
+          ],
+          [
+            45,
+            6.0001
+          ],
+          [
+            45,
+            6.0003
+          ],
+          [
+            45,
+            6.001
+          ]
+        ],
+        "velocitySmooth": [
+          0,
+          5,
+          5,
+          5
+        ]
+      },
+      "sufferScore": null,
+      "totalDescent": 4,
+      "totalElevationGain": 5,
+      "type": "Ride",
+      "sportType": "GravelRide",
+      "weightedAverageWatts": 190
+    },
+    "activity": {
+      "achievement_count": 0,
+      "athlete": {
+        "id": 0
+      },
+      "athlete_count": 0,
+      "average_cadence": 80,
+      "average_heartrate": 135,
+      "average_speed": 5,
+      "average_temp": 0,
+      "average_watts": 180,
+      "calories": 15,
+      "comment_count": 0,
+      "commute": false,
+      "description": null,
+      "device_name": null,
+      "device_watts": true,
+      "distance": 100,
+      "elapsed_time": 20,
+      "elev_high": 105,
+      "elev_low": 0,
+      "embed_token": "",
+      "end_latlng": [],
+      "external_id": "",
+      "flagged": false,
+      "from_accepted_tag": false,
+      "gear": null,
+      "gear_id": null,
+      "has_heartrate": false,
+      "has_kudoed": false,
+      "hide_from_home": false,
+      "id": 42,
+      "kilojoules": 3.24,
+      "kudos_count": 0,
+      "leaderboard_opt_out": false,
+      "map": null,
+      "manual": false,
+      "max_heartrate": 150,
+      "max_speed": 8,
+      "max_watts": 240,
+      "moving_time": 18,
+      "name": "Contract ride",
+      "pr_count": 0,
+      "private": false,
+      "resource_state": 0,
+      "segment_efforts": [],
+      "segment_leaderboard_opt_out": false,
+      "splits_metric": [],
+      "sport_type": "GravelRide",
+      "start_date": "2026-04-05T08:00:00Z",
+      "start_date_local": "2026-04-05T10:00:00Z",
+      "start_latlng": [
+        45,
+        6
+      ],
+      "suffer_score": null,
+      "timezone": "",
+      "total_elevation_gain": 5,
+      "total_photo_count": 0,
+      "trainer": false,
+      "type": "Ride",
+      "upload_id": 0,
+      "utc_offset": 0,
+      "weighted_average_watts": 190,
+      "workout_type": 0,
+      "stream": {
+        "time": {
+          "data": [
+            0,
+            2,
+            7,
+            20
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "distance": {
+          "data": [
+            0,
+            10,
+            35,
+            100
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "watts": {
+          "data": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "heartrate": {
+          "data": [
+            110,
+            120,
+            140,
+            150
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "cadence": {
+          "data": [
+            0,
+            70,
+            80,
+            90
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "moving": {
+          "data": [
+            false,
+            true,
+            true,
+            true
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "altitude": {
+          "data": [
+            100,
+            105,
+            102,
+            101
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "latlng": {
+          "data": [
+            [
+              45,
+              6
+            ],
+            [
+              45,
+              6.0001
+            ],
+            [
+              45,
+              6.0003
+            ],
+            [
+              45,
+              6.001
+            ]
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        },
+        "velocity_smooth": {
+          "data": [
+            0,
+            5,
+            5,
+            5
+          ],
+          "original_size": 4,
+          "resolution": "high",
+          "series_type": "time"
+        }
+      },
+      "source": null
+    }
+  }
+]

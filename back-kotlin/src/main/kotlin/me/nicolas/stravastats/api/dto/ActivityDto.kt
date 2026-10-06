@@ -1,6 +1,7 @@
 package me.nicolas.stravastats.api.dto
 
 import io.swagger.v3.oas.annotations.media.Schema
+import com.fasterxml.jackson.annotation.JsonProperty
 import me.nicolas.stravastats.domain.business.strava.StravaActivity
 import me.nicolas.stravastats.domain.services.statistics.calculateBestElevationForDistance
 import me.nicolas.stravastats.domain.services.statistics.calculateBestPowerForTime
@@ -51,7 +52,14 @@ data class ActivityDto(
     val ftp: Int,
     @param:Schema(description = "Badge-specific effort duration in seconds (for famous climbs)")
     val badgeEffortSeconds: Int? = null,
-)
+) {
+    // Keep the historical Go spelling available while both runtimes expose the frontend spelling.
+    @get:JsonProperty("bestPowerFor20Minutes")
+    val legacyBestPowerFor20Minutes: Int get() = bestPowerFor20minutes
+
+    @get:JsonProperty("bestPowerFor60Minutes")
+    val legacyBestPowerFor60Minutes: Int get() = bestPowerFor60minutes
+}
 
 fun StravaActivity.toDto(): ActivityDto {
 

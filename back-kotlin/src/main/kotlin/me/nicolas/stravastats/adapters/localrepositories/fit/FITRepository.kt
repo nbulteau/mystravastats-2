@@ -168,7 +168,7 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider, IFITAc
     /**
      * Build Strava Stream structure using the GPS records
      */
-    private fun List<RecordMesg>.buildStream(sessionStartTimestamp: Long): Stream? {
+    internal fun List<RecordMesg>.buildStream(sessionStartTimestamp: Long): Stream? {
         if (this.isEmpty()) {
             return null
         }
@@ -249,9 +249,9 @@ class FITRepository(fitDirectory: String) : IYearActivityStorageProvider, IFITAc
 
         // power
         val dataPower = this.map { recordMesg ->
-            recordMesg.power?.takeIf { value -> value > 0 } ?: 0
+            recordMesg.power?.takeIf { value -> value >= 0 }
         }
-        val streamPower = if (dataPower.any { value -> value > 0 }) {
+        val streamPower = if (dataPower.any { value -> value != null }) {
             PowerStream(
                 data = dataPower,
                 originalSize = dataPower.size,

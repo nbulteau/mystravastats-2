@@ -2,6 +2,7 @@ package statistics
 
 import (
 	"fmt"
+	"math"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
 	"time"
@@ -88,10 +89,13 @@ func averagePower(watts []float64, idxStart int, idxEnd int) *float64 {
 		return nil
 	}
 	if idxEnd >= len(watts) {
-		idxEnd = len(watts) - 1
+		return nil
 	}
 	sumPower := 0.0
 	for i := idxStart; i <= idxEnd; i++ {
+		if math.IsNaN(watts[i]) || math.IsInf(watts[i], 0) {
+			return nil
+		}
 		sumPower += watts[i]
 	}
 	averagePower := sumPower / float64(idxEnd-idxStart+1)

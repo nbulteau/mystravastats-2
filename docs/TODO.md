@@ -15,9 +15,13 @@
 ## Priorité moyenne
 
 - [ ] `API-P2-01` - Compléter les schémas de réponse métier et les fixtures de succès ; harmoniser la négociation de contenu et les limites de taille des corps entre backends.
+  - [x] Décrire les activités détaillées, séries temporelles, efforts/comparaisons, réglages et estimations FTP, statistiques, records, analyses cardiaques et segments ; préciser unités et valeurs indisponibles.
+  - [x] Vérifier 18 fixtures de réponses Go/Kotlin et leurs JSON réels contre OpenAPI dans la CI ; conserver les deux graphies des puissances 20/60 minutes et corriger le plantage Go sans altitude.
+  - [ ] Étendre les fixtures aux efforts/comparaisons non vides et aux estimations FTP disponibles, puis aux autres familles de réponses et à la négociation de contenu.
 - [ ] `API-P2-02` - Préparer une migration explicite vers des collections paginées et des ressources de synchronisation/génération asynchrones, avec adaptation du frontend et compatibilité des anciennes URL.
 
 - [ ] `PRODUCT-P2-02` - Livrer la charge d'entraînement et les tendances de forme.
+  - [x] Préserver les échantillons de puissance absents dans les deux backends, les imports FIT, le stockage JSON et les graphiques ; exclure les fenêtres incomplètes, conserver les zéros mesurés et invalider les résultats en cache lorsque les échantillons changent. Fixtures partagées de calcul et de réponses API.
   - fiabiliser d'abord les calculs de puissance et de durée à partir des horodatages, y compris pour les enregistrements irréguliers ;
   - afficher la charge quotidienne et hebdomadaire, puis les tendances de forme et de fatigue avec une méthode documentée ;
   - détailler la contribution de chaque activité, les sources utilisées et la couverture des données ; ne pas assimiler une activité sans données à du repos ni additionner des scores incompatibles sans normalisation explicite ;

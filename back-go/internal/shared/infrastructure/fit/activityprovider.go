@@ -10,6 +10,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -380,7 +381,6 @@ type fitPowerMetrics struct {
 func computeFITPowerMetrics(sessionAveragePower float64, stream *strava.Stream, elapsedTime int) fitPowerMetrics {
 	samples := fitPowerSamples(stream)
 	streamAverageWatts := averageFITPower(samples)
-
 	averageWatts := 0.0
 	if sessionAveragePower > 0 {
 		averageWatts = sessionAveragePower
@@ -399,7 +399,7 @@ func computeFITPowerMetrics(sessionAveragePower float64, stream *strava.Stream, 
 		averageWatts:         averageWatts,
 		weightedAverageWatts: weightedAverageWatts,
 		kilojoules:           0.8604 * averageWatts * float64(maxInt(elapsedTime, 0)) / 1000,
-		hasDeviceWatts:       sessionAveragePower > 0 || len(samples) > 0,
+		hasDeviceWatts:       sessionAveragePower > 0 || (stream != nil && stream.Watts != nil && slices.ContainsFunc(stream.Watts.Data, func(value float64) bool { return isFinite(value) && value > 0 && value < float64(fitInvalidUint16) })),
 	}
 }
 
@@ -412,7 +412,7 @@ func fitPowerSamples(stream *strava.Stream) []float64 {
 	hasPositivePower := false
 	for _, watts := range stream.Watts.Data {
 		if !isFinite(watts) || watts < 0 || watts >= float64(fitInvalidUint16) {
-			continue
+			return nil
 		}
 		if watts > 0 {
 			hasPositivePower = true
@@ -568,9 +568,9 @@ func buildStreamFromFITRecords(records []*fitparser.RecordMsg, startTime time.Ti
 		}
 		heartRateData = append(heartRateData, heartRate)
 
-		power := validFITUint16Float(record.Power)
-		if !isFinite(power) || power < 0 {
-			power = 0
+		power := float64(record.Power)
+		if record.Power == fitInvalidUint16 {
+			power = math.NaN()
 		}
 		powerData = append(powerData, power)
 	}
@@ -633,7 +633,7 @@ func buildStreamFromFITRecords(records []*fitparser.RecordMsg, startTime time.Ti
 		}
 	}
 
-	if hasAnyFloat(powerData) {
+	if slices.ContainsFunc(powerData, func(value float64) bool { return isFinite(value) }) {
 		stream.Watts = &strava.PowerStream{
 			Data:         powerData,
 			OriginalSize: len(powerData),

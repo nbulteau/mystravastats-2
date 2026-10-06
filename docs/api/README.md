@@ -6,6 +6,12 @@ request bodies, success formats and HTTP errors. Domain response schemas remain
 partial where `additionalProperties` is allowed; they are not yet exhaustive DTO
 validation.
 
+Activity lists/details (including streams, provenance, efforts and comparisons),
+FTP estimates/settings, statistics, personal records, heart-rate analysis and
+segment summaries now have concrete response schemas. Units are recorded in
+property descriptions and `x-unit`. Most of these response objects reject
+undocumented fields; source/settings request compatibility is retained where noted.
+
 Generate the cross-platform contract models and operation registries with:
 
 ```sh
@@ -71,6 +77,60 @@ Kotlin's MockMvc verifies HEAD routing, status and headers but retains the gener
 representation: Servlet 6.1 delegates body suppression to the servlet container.
 The fixture's empty-body assertion is therefore only made by the Go harness.
 
-Remaining work includes fully typed domain responses, broader success payload
+`test-fixtures/api/business-responses.json` adds 18 success scenarios through the
+real controllers and DTO converters in both backends. It covers irregular sample
+times, actual zero power, absent sensors, empty streams/collections, unavailable
+FTP, dated FTP normalization, body mass, persistence of settings and formatted
+statistics with activity references. Domain providers are stubbed; settings
+normalization and unavailable-FTP handling use the actual services/use cases.
+
+The tests compare values (numeric tolerance `1e-6`) and allow omitted versus null
+optional properties. They also export the unmodified HTTP JSON for a second check
+against OpenAPI. That check enforces required nullable fields and rejects unknown
+fields and incorrect types; it runs in each backend CI job.
+
+Run the focused checks from the repository root:
+
+```sh
+(cd back-go && go test ./api -run TestSharedBusinessResponses -count=1)
+(cd back-kotlin && ./gradlew test --tests '*BusinessResponseFixtureTest')
+node scripts/validate-api-responses.mjs test-results/api-go-responses.json test-results/api-kotlin-responses.json
+node --test scripts/validate-api-responses.test.mjs
+```
+
+The generated response files are ignored build artifacts. The OpenAPI generator
+also validates the shared expected responses on every `--check` run. These tests
+check transport values and serialization, not parity of every statistics algorithm.
+
+## Measurement semantics and compatibility
+
+- `stream.time` is elapsed time in seconds, not a sample index. Never assume a
+  one-second interval. Sensor arrays can have different lengths.
+- Missing/null/empty sensor arrays have no usable samples. In a populated sensor
+  array, zero is a reading. Summary metrics still use legacy zero sentinels for
+  unavailable data, so their presence alone does not establish coverage.
+- Both backends preserve null power samples and their positions through ingestion,
+  JSON storage and API responses. Go represents missing readings internally as NaN;
+  `PowerSamples` serializes them as null. Measured zeros remain valid readings.
+  Best-power windows containing a missing sample are excluded; other effort averages
+  are unavailable for incomplete windows. Charts retain gaps and power zones omit
+  missing readings. FIT-derived summary estimates require a complete power stream
+  unless a session summary is available. These summaries retain legacy zero sentinels.
+- Effort caches fingerprint stream contents, so changed readings invalidate results.
+  Previously stored zeros cannot be identified retrospectively as missing samples;
+  those activities require reimport from the original source to recover their gaps.
+  Time weighting for irregular recordings remains separate work.
+- `weightKg` is current manual body mass, not a history of weight measurements.
+  FTP history uses inclusive local dates; no entry means no manual FTP for that date.
+- Statistic `value` fields are display strings, potentially containing units or
+  unavailable markers. They are not numeric inputs for training-load calculations.
+- Both backends now emit `bestPowerFor20minutes`/`bestPowerFor60minutes` and the
+  historical Go aliases `bestPowerFor20Minutes`/`bestPowerFor60Minutes`. The aliases
+  are deprecated in OpenAPI but retained; no public field was removed.
+- Go now handles missing altitude on detail responses like Kotlin: unavailable
+  derived efforts are omitted instead of triggering a panic. No routing algorithm
+  or power-window calculation changed.
+
+Remaining work includes the other domain responses, broader success payload
 fixtures and content-negotiation/size-limit parity. Pagination, resource naming
 changes and asynchronous job resources require separate contract migrations.

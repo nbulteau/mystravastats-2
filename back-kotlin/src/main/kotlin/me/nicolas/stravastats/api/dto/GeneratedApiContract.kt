@@ -33,8 +33,26 @@ data class ContractActivitySummary(
     val id: Long,
     val name: String,
     val type: String,
-    val date: String? = null,
-    val distance: Double? = null,
+    val commute: Boolean,
+    val link: String,
+    val distance: Long,
+    val elapsedTime: Long,
+    val movingTime: Long,
+    val totalElevationGain: Long,
+    val averageSpeed: Double,
+    val averageHeartrate: Long,
+    val bestSpeedForDistanceFor1000m: Double,
+    val bestElevationForDistanceFor500m: Double,
+    val bestElevationForDistanceFor1000m: Double,
+    val date: String,
+    val averageWatts: Long,
+    val weightedAverageWatts: Long,
+    val bestPowerFor20Minutes: Long,
+    val bestPowerFor60Minutes: Long,
+    val bestPowerFor20minutes: Long,
+    val bestPowerFor60minutes: Long,
+    val ftp: Long,
+    val badgeEffortSeconds: Long? = null,
 )
 
 data class ContractRouteGenerationScore(
@@ -174,6 +192,348 @@ data class ContractSourceSyncResult(
     val durationMs: Long,
     val reloaded: Boolean,
     val fit: Map<String, Any>,
+)
+
+data class ContractDetailedActivity(
+    val averageCadence: Long,
+    val averageHeartrate: Long,
+    val averageWatts: Long,
+    val averageSpeed: Double,
+    val calories: Double,
+    val commute: Boolean,
+    val deviceWatts: Boolean,
+    val distance: Double,
+    val elapsedTime: Long,
+    val elevHigh: Double,
+    val id: Long,
+    val link: String,
+    val kilojoules: Double,
+    val maxHeartrate: Long,
+    val maxSpeed: Double,
+    val maxWatts: Long,
+    val movingTime: Long,
+    val name: String,
+    val activityEfforts: List<ContractActivityEffort>,
+    val stravaSegmentEfforts: List<ContractStravaSegmentEffort>,
+    val activityComparison: ContractActivityComparison? = null,
+    val startDate: String,
+    val startDateLocal: String,
+    val startLatlng: List<Double>,
+    val source: ContractActivitySource? = null,
+    val stream: ContractActivityStream? = null,
+    val sufferScore: Double? = null,
+    val totalDescent: Double,
+    val totalElevationGain: Long,
+    val type: String,
+    val sportType: String,
+    val weightedAverageWatts: Long,
+)
+
+data class ContractActivitySource(
+    val primaryProvider: String,
+    val primaryId: Long,
+    val streamProvider: String? = null,
+    val mergeConfidence: String? = null,
+    val sources: List<ContractActivitySourceRef>? = null,
+    val conflicts: List<ContractActivitySourceConflict>? = null,
+    val fieldSources: Map<String, String>? = null,
+)
+
+data class ContractActivitySourceRef(
+    val provider: String,
+    val activityId: Long,
+    val startDateLocal: String,
+    val distance: Double,
+    val movingTime: Long,
+    val hasStream: Boolean,
+)
+
+data class ContractActivitySourceConflict(
+    val field: String,
+    val primary: String,
+    val other: String,
+    val source: String,
+)
+
+data class ContractActivityComparison(
+    val status: String,
+    val label: String,
+    val criteria: ContractActivityComparisonCriteria,
+    val baseline: ContractActivityComparisonBaseline,
+    val deltas: ContractActivityComparisonDeltas,
+    val similarActivities: List<ContractActivityComparisonActivity>,
+    val commonSegments: List<ContractActivityComparisonSegment>,
+)
+
+data class ContractActivityComparisonCriteria(
+    val activityType: String,
+    val year: Long,
+    val sampleSize: Long,
+)
+
+data class ContractActivityComparisonBaseline(
+    val distance: Double,
+    val elevationGain: Double,
+    val movingTime: Long,
+    val averageSpeed: Double,
+    val averageHeartrate: Double,
+    val averageWatts: Double,
+    val averageCadence: Double,
+)
+
+data class ContractActivityComparisonDeltas(
+    val distance: Double,
+    val elevationGain: Double,
+    val movingTime: Long,
+    val averageSpeed: Double,
+    val averageSpeedPct: Double,
+    val averageHeartrate: Double,
+    val averageWatts: Double,
+    val averageCadence: Double,
+)
+
+data class ContractActivityComparisonActivity(
+    val id: Long,
+    val name: String,
+    val date: String,
+    val distance: Double,
+    val elevationGain: Double,
+    val movingTime: Long,
+    val averageSpeed: Double,
+    val averageHeartrate: Double,
+    val averageWatts: Double,
+    val averageCadence: Double,
+    val similarityScore: Double,
+)
+
+data class ContractActivityComparisonSegment(
+    val id: Long,
+    val name: String,
+    val matchCount: Long,
+    val activityIds: List<Long>,
+    val activityNames: List<String>,
+)
+
+data class ContractActivityEffort(
+    val id: String,
+    val label: String,
+    val distance: Double,
+    val seconds: Long,
+    val deltaAltitude: Double,
+    val elevationGain: Double? = null,
+    val elevationLoss: Double? = null,
+    val idxStart: Long,
+    val idxEnd: Long,
+    val averagePower: Double? = null,
+    val description: String,
+)
+
+data class ContractStravaSegmentEffort(
+    val averageCadence: Double,
+    val averageHeartRate: Double,
+    val averageWatts: Double,
+    val deviceWatts: Boolean,
+    val distance: Double,
+    val elapsedTime: Long,
+    val endIndex: Long,
+    val hidden: Boolean,
+    val id: Long,
+    val komRank: Long? = null,
+    val maxHeartRate: Double,
+    val movingTime: Long,
+    val name: String,
+    val prRank: Long? = null,
+    val resourceState: Long,
+    val segment: ContractStravaSegment,
+    val startDate: String,
+    val startDateLocal: String,
+    val startIndex: Long,
+    val visibility: String? = null,
+    val achievements: List<ContractAchievement>? = null,
+    val activity: Long? = null,
+    val athlete: Long? = null,
+)
+
+data class ContractStravaSegment(
+    val activityType: String,
+    val averageGrade: Double,
+    val city: String? = null,
+    val climbCategory: Long,
+    val country: String? = null,
+    val distance: Double,
+    val elevationHigh: Double,
+    val elevationLow: Double,
+    val endLatLng: List<Double>,
+    val hazardous: Boolean,
+    val id: Long,
+    val maximumGrade: Double,
+    val name: String,
+    val isPrivate: Boolean,
+    val resourceState: Long,
+    val starred: Boolean,
+    val startLatLng: List<Double>,
+    val state: String? = null,
+)
+
+data class ContractActivityStream(
+    val distance: List<Double>,
+    val time: List<Long>,
+    val latlng: List<List<Double>>? = null,
+    val heartrate: List<Long>? = null,
+    val cadence: List<Long>? = null,
+    val moving: List<Boolean>? = null,
+    val altitude: List<Double>? = null,
+    val watts: List<Double?>? = null,
+    val velocitySmooth: List<Double>? = null,
+)
+
+data class ContractStatistic(
+    val label: String,
+    val value: String,
+    val activity: ContractActivityShort? = null,
+)
+
+data class ContractActivityShort(
+    val id: Long,
+    val name: String,
+    val type: String,
+)
+
+data class ContractPersonalRecordTimeline(
+    val metricKey: String,
+    val metricLabel: String,
+    val activityDate: String,
+    val value: String,
+    val previousValue: String? = null,
+    val improvement: String? = null,
+    val activity: ContractActivityShort,
+)
+
+data class ContractSegmentClimbProgression(
+    val metric: String,
+    val targetTypeFilter: String,
+    val weatherContextAvailable: Boolean,
+    val targets: List<ContractSegmentClimbTargetSummary>,
+    val selectedTargetId: Long? = null,
+    val selectedTargetType: String? = null,
+    val attempts: List<ContractSegmentClimbAttempt>,
+)
+
+data class ContractSegmentClimbTargetSummary(
+    val targetId: Long,
+    val targetName: String,
+    val targetType: String,
+    val climbCategory: Long,
+    val distance: Double,
+    val averageGrade: Double,
+    val attemptsCount: Long,
+    val bestValue: String,
+    val latestValue: String,
+    val consistency: String,
+    val averagePacing: String,
+    val closeToPrCount: Long,
+    val recentTrend: String,
+)
+
+data class ContractSegmentClimbAttempt(
+    val targetId: Long,
+    val targetName: String,
+    val targetType: String,
+    val activityDate: String,
+    val elapsedTimeSeconds: Long,
+    val movingTimeSeconds: Long,
+    val speedKph: Double,
+    val distance: Double,
+    val averageGrade: Double,
+    val elevationGain: Double,
+    val averagePowerWatts: Double,
+    val averageHeartRate: Double,
+    val prRank: Long? = null,
+    val personalRank: Long? = null,
+    val setsNewPr: Boolean,
+    val closeToPr: Boolean,
+    val deltaToPr: String,
+    val weatherSummary: String? = null,
+    val activity: ContractActivityShort,
+)
+
+data class ContractSegmentSummary(
+    val metric: String,
+    val segment: ContractSegmentClimbTargetSummary,
+    val personalRecord: ContractSegmentClimbAttempt? = null,
+    val topEfforts: List<ContractSegmentClimbAttempt>,
+)
+
+data class ContractResolvedHeartRateZoneSettings(
+    val maxHr: Long,
+    val thresholdHr: Long? = null,
+    val reserveHr: Long? = null,
+    val method: String,
+    val source: String,
+)
+
+data class ContractHeartRateZoneDistribution(
+    val zone: String,
+    val label: String,
+    val seconds: Long,
+    val percentage: Double,
+)
+
+data class ContractHeartRateZoneActivitySummary(
+    val activity: ContractActivityShort,
+    val activityDate: String,
+    val totalTrackedSeconds: Long,
+    val easySeconds: Long,
+    val hardSeconds: Long,
+    val easyHardRatio: Double? = null,
+    val zones: List<ContractHeartRateZoneDistribution>,
+)
+
+data class ContractHeartRateZonePeriodSummary(
+    val period: String,
+    val totalTrackedSeconds: Long,
+    val easySeconds: Long,
+    val hardSeconds: Long,
+    val easyHardRatio: Double? = null,
+    val zones: List<ContractHeartRateZoneDistribution>,
+)
+
+data class ContractHeartRateZoneAnalysis(
+    val settings: ContractHeartRateZoneSettings,
+    val resolvedSettings: ContractResolvedHeartRateZoneSettings? = null,
+    val hasHeartRateData: Boolean,
+    val totalTrackedSeconds: Long,
+    val easyHardRatio: Double? = null,
+    val zones: List<ContractHeartRateZoneDistribution>,
+    val activities: List<ContractHeartRateZoneActivitySummary>,
+    val byMonth: List<ContractHeartRateZonePeriodSummary>,
+    val byYear: List<ContractHeartRateZonePeriodSummary>,
+)
+
+data class ContractFtpEstimate(
+    val available: Boolean,
+    val ftp: Long,
+    val method: String,
+    val methodLabel: String,
+    val bestPower: Long,
+    val multiplier: Double,
+    val basedOnSeconds: Long,
+    val confidence: String,
+    val source: String,
+    val sourceKind: String,
+    val activityId: Long,
+    val activityName: String,
+    val activityType: String,
+    val activityDate: String,
+    val windowDays: Long,
+    val activityCount: Long,
+)
+
+data class ContractAchievement(
+    val effortCount: Long,
+    val rank: Long,
+    val type: String,
+    val typeId: Long,
 )
 
 data class ContractOperation(val method: String, val path: String)

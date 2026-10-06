@@ -1,6 +1,9 @@
 package dto
 
-import "time"
+import (
+	"mystravastats/internal/shared/domain/strava"
+	"time"
+)
 
 type ActivityDto struct {
 	Id                               int64   `json:"id"`
@@ -22,6 +25,8 @@ type ActivityDto struct {
 	WeightedAverageWatts             int     `json:"weightedAverageWatts"`
 	BestPowerFor20Minutes            int     `json:"bestPowerFor20Minutes"`
 	BestPowerFor60Minutes            int     `json:"bestPowerFor60Minutes"`
+	BestPowerFor20minutes            int     `json:"bestPowerFor20minutes"`
+	BestPowerFor60minutes            int     `json:"bestPowerFor60minutes"`
 	FTP                              int     `json:"ftp"`
 	BadgeEffortSeconds               int     `json:"badgeEffortSeconds,omitempty"`
 }
@@ -205,13 +210,13 @@ type StravaSegmentDto struct {
 }
 
 type StreamDto struct {
-	Distance       []float64   `json:"distance"`
-	Time           []int       `json:"time"`
-	Latlng         [][]float64 `json:"latlng,omitempty"`
-	Heartrate      []int       `json:"heartrate,omitempty"`
-	Cadence        []int       `json:"cadence,omitempty"`
-	Moving         []bool      `json:"moving,omitempty"`
-	Altitude       []float64   `json:"altitude,omitempty"`
-	Watts          []float64   `json:"watts,omitempty"`
-	VelocitySmooth []float64   `json:"velocitySmooth,omitempty"`
+	Distance       []float64           `json:"distance"`
+	Time           []int               `json:"time"`
+	Latlng         [][]float64         `json:"latlng,omitempty"`
+	Heartrate      []int               `json:"heartrate,omitempty"`
+	Cadence        []int               `json:"cadence,omitempty"`
+	Moving         []bool              `json:"moving,omitempty"`
+	Altitude       []float64           `json:"altitude,omitempty"`
+	Watts          strava.PowerSamples `json:"watts,omitempty"`
+	VelocitySmooth []float64           `json:"velocitySmooth,omitempty"`
 }

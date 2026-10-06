@@ -409,7 +409,7 @@ func TestToDetailedActivityDto_SanitizesNonFiniteValues(t *testing.T) {
 	if dto.StartLatlng[0] != 0 || dto.StartLatlng[1] != 0 {
 		t.Fatalf("expected start lat/lng to be sanitized, got %#v", dto.StartLatlng)
 	}
-	if dto.Stream == nil || dto.Stream.Distance[1] != 0 || dto.Stream.Altitude[1] != 0 || dto.Stream.Watts[1] != 0 || dto.Stream.VelocitySmooth[1] != 0 {
+	if dto.Stream == nil || dto.Stream.Distance[1] != 0 || dto.Stream.Altitude[1] != 0 || !math.IsNaN(dto.Stream.Watts[1]) || dto.Stream.VelocitySmooth[1] != 0 {
 		t.Fatalf("expected stream values to be sanitized, got %#v", dto.Stream)
 	}
 }
@@ -757,5 +757,17 @@ func TestComputeClimbMaximumGradient_IgnoresShortAltitudeSpike(t *testing.T) {
 
 	if maximumGradient == nil || *maximumGradient != 8 {
 		t.Fatalf("expected a 500 m rolling maximum of 8%%, got %#v", maximumGradient)
+	}
+}
+
+func TestClimbPowerAveragePreservesZeroAndRejectsGaps(t *testing.T) {
+	bounds := famousClimbBounds{startIndex: 0, endIndex: 2}
+	stream := &strava.PowerStream{Data: []float64{0, 100, 200}}
+	if avg := averageCompletePowerRange(stream, bounds); avg == nil || *avg != 100 {
+		t.Fatalf("expected measured zero in mean, got %v", avg)
+	}
+	stream.Data[0] = math.NaN()
+	if avg := averageCompletePowerRange(stream, bounds); avg != nil {
+		t.Fatalf("missing sample must invalidate mean, got %v", avg)
 	}
 }

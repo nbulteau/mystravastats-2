@@ -35,8 +35,17 @@ function activity(overrides: Partial<DetailedActivity> = {}): DetailedActivity {
 }
 
 describe("activity power analysis", () => {
+  it("excludes gaps without removing measured zeros or bridging windows", () => {
+    expect(bestAveragePower([900, null, 200, 200, 200, 100], 3)).toBe(200);
+    expect(bestAveragePower([0, 100, 200], 3)).toBe(100);
+    expect(bestAveragePower([null, 100, 200], 3)).toBeNull();
+    expect(buildPowerCurve([null, null])).toEqual([]);
+    expect(normalizedPowerFromWatts([...Array(30).fill(200), null])).toBeNull();
+    expect(buildPowerZoneEstimate([null, 0, 200], 200)?.trackedSeconds).toBe(2);
+    expect(buildPowerZoneEstimate([null], 200)).toBeNull();
+  });
   it("sanitizes samples and computes rolling and best averages", () => {
-    expect(sanitizePowerSamples([200, Number.NaN, -10, 300])).toEqual([200, 0, 0, 300]);
+    expect(sanitizePowerSamples([200, Number.NaN, -10, 300])).toEqual([200, Number.NaN, Number.NaN, 300]);
     expect(rollingAverage([100, 200, 300, 400], 2)).toEqual([150, 250, 350]);
     expect(bestAveragePower([100, 200, 400, 200], 2)).toBe(300);
     expect(bestAveragePower([100], 2)).toBeNull();

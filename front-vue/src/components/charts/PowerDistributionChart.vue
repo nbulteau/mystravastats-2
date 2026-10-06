@@ -11,8 +11,8 @@ const props = defineProps<{
 
 
 const powerDistributionChartOptions = computed<Options>(() => {
-    const powerData = props.activity?.stream?.watts ?? [];
-    const maxPower = Math.ceil(Math.max(...powerData) / 25) * 25;
+    const powerData = (props.activity?.stream?.watts ?? []).filter((value): value is number => value !== null && Number.isFinite(value) && value >= 0);
+    const maxPower = Math.ceil(Math.max(0, ...powerData) / 25) * 25;
 
     // Initialize zones
     const zones: { [key: number]: number } = {};
@@ -33,7 +33,7 @@ const powerDistributionChartOptions = computed<Options>(() => {
     const seriesData = Object.entries(zones).map(([power, seconds]) => ({
         x: parseInt(power),
         y: seconds,
-        percentage: ((seconds / powerData.length) * 100).toFixed(1),
+        percentage: ((seconds / Math.max(1, powerData.length)) * 100).toFixed(1),
     }));
 
     const formatTimeString = (seconds: number) => {

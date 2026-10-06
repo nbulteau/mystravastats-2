@@ -79,6 +79,8 @@ kotlin {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    inputs.files(fileTree("../test-fixtures/api") { include("*.json") })
+    outputs.file("../test-results/api-kotlin-responses.json")
     finalizedBy(tasks.named("jacocoTestReport"))
 }
 

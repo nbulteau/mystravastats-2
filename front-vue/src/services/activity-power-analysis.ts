@@ -39,12 +39,12 @@ export function buildPowerAnalysis(
   const watts = sanitizePowerSamples(currentActivity.stream?.watts ?? []);
   const durationSeconds = resolvePowerDurationSeconds(currentActivity);
   const averagePower = watts.length > 0
-    ? watts.reduce((sum, value) => sum + value, 0) / watts.length
+    ? watts.every(Number.isFinite) ? watts.reduce((sum, value) => sum + value, 0) / watts.length : null
     : currentActivity.averageWatts > 0
       ? currentActivity.averageWatts
       : null;
   const maxPower = watts.length > 0
-    ? Math.max(...watts)
+    ? watts.every(Number.isFinite) ? Math.max(...watts) : null
     : currentActivity.maxWatts > 0
       ? currentActivity.maxWatts
       : null;
@@ -112,16 +112,16 @@ export function emptyPowerAnalysis(): PowerAnalysis {
   };
 }
 
-export function sanitizePowerSamples(watts: number[]): number[] {
-  return watts.map((value) => Number.isFinite(value) && value > 0 ? value : 0);
+export function sanitizePowerSamples(watts: Array<number | null>): number[] {
+  return watts.map((value) => typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : Number.NaN);
 }
 
-export function normalizedPowerFromWatts(watts: number[]): number | null {
-  if (watts.length < 30) {
+export function normalizedPowerFromWatts(watts: Array<number | null>): number | null {
+  if (watts.length < 30 || watts.some((value) => value === null || !Number.isFinite(value))) {
     return null;
   }
 
-  const rollingAverages = rollingAverage(watts, 30);
+  const rollingAverages = rollingAverage(sanitizePowerSamples(watts), 30);
   if (!rollingAverages.length) {
     return null;
   }
@@ -191,7 +191,7 @@ export function resolveWeightDetails(
   return { weightKg: null, source: null };
 }
 
-export function buildPowerZoneEstimate(watts: number[], ftp: number): PowerZoneEstimate | null {
+export function buildPowerZoneEstimate(watts: Array<number | null>, ftp: number): PowerZoneEstimate | null {
   if (!watts.length || !Number.isFinite(ftp) || ftp <= 0) {
     return null;
   }
@@ -199,8 +199,9 @@ export function buildPowerZoneEstimate(watts: number[], ftp: number): PowerZoneE
   const aerobicUpperBound = ftp * 0.9;
   const anaerobicLowerBound = ftp * 1.2;
 
-  return watts.reduce<PowerZoneEstimate>((estimate, rawPower) => {
-    const power = Number.isFinite(rawPower) && rawPower > 0 ? rawPower : 0;
+  const result = watts.reduce<PowerZoneEstimate>((estimate, rawPower) => {
+    if (rawPower === null || !Number.isFinite(rawPower) || rawPower < 0) return estimate;
+    const power = rawPower;
     estimate.trackedSeconds += 1;
     if (power <= aerobicUpperBound) {
       estimate.aerobicSeconds += 1;
@@ -216,6 +217,7 @@ export function buildPowerZoneEstimate(watts: number[], ftp: number): PowerZoneE
     thresholdVo2Seconds: 0,
     anaerobicSeconds: 0,
   });
+  return result.trackedSeconds ? result : null;
 }
 
 export function formatPowerZoneTime(seconds: number, totalSeconds: number): string {
@@ -241,27 +243,25 @@ export function resolvePowerDurationSeconds(currentActivity: DetailedActivity): 
   return currentActivity.elapsedTime > 0 ? currentActivity.elapsedTime : currentActivity.movingTime;
 }
 
-export function bestAveragePower(watts: number[], windowSamples: number): number | null {
-  const finiteWatts = watts.map((value) => Number.isFinite(value) ? value : 0);
-  if (finiteWatts.length < windowSamples || windowSamples <= 0) {
-    return null;
+export function bestAveragePower(watts: Array<number | null>, windowSamples: number): number | null {
+  if (windowSamples <= 0 || !Number.isInteger(windowSamples) || watts.length < windowSamples) return null;
+  let sum = 0;
+  let missing = 0;
+  let best: number | null = null;
+  const valid = (value: number | null | undefined): value is number => typeof value === "number" && Number.isFinite(value) && value >= 0;
+  for (let i = 0; i < watts.length; i++) {
+    const incoming = watts[i];
+    if (valid(incoming)) sum += incoming; else missing++;
+    if (i >= windowSamples) {
+      const outgoing = watts[i - windowSamples];
+      if (valid(outgoing)) sum -= outgoing; else missing--;
+    }
+    if (i >= windowSamples - 1 && missing === 0) best = Math.max(best ?? -Infinity, sum / windowSamples);
   }
-
-  let windowSum = 0;
-  for (let index = 0; index < windowSamples; index += 1) {
-    windowSum += finiteWatts[index] ?? 0;
-  }
-
-  let best = windowSum / windowSamples;
-  for (let index = windowSamples; index < finiteWatts.length; index += 1) {
-    windowSum += (finiteWatts[index] ?? 0) - (finiteWatts[index - windowSamples] ?? 0);
-    best = Math.max(best, windowSum / windowSamples);
-  }
-
   return best;
 }
 
-export function buildPowerCurve(watts: number[]): Array<[number, number]> {
+export function buildPowerCurve(watts: Array<number | null>): Array<[number, number]> {
   const samples = sanitizePowerSamples(watts);
   const durations = Array.from({ length: samples.length }, (_, index) => index + 1)
     .filter((durationSeconds) =>
@@ -271,7 +271,8 @@ export function buildPowerCurve(watts: number[]): Array<[number, number]> {
       || durationSeconds % 60 === 0
       || durationSeconds === samples.length
     );
-  return durations.map((durationSeconds) => {
-    return [durationSeconds, bestAveragePower(samples, durationSeconds) ?? 0];
+  return durations.flatMap((durationSeconds): Array<[number, number]> => {
+    const power = bestAveragePower(samples, durationSeconds);
+    return power === null ? [] : [[durationSeconds, power]];
   });
 }

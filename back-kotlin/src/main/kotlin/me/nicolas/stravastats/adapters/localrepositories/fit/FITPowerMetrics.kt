@@ -25,11 +25,12 @@ internal fun computeFitPowerMetrics(
         averageWatts = averageWatts,
         weightedAverageWatts = weightedAverageWatts,
         kilojoules = 0.8604 * averageWatts * maxOf(elapsedTime, 0) / 1000,
-        hasDeviceWatts = sessionAveragePower?.let { it > 0 } == true || samples.isNotEmpty(),
+        hasDeviceWatts = sessionAveragePower?.let { it > 0 } == true || stream.watts?.data.orEmpty().any { it != null && it > 0 },
     )
 }
 
 internal fun fitPowerSamples(stream: Stream): List<Int> {
+    if (stream.watts?.data.orEmpty().any { it == null || it < 0 }) return emptyList()
     val samples = stream.watts?.data.orEmpty().mapNotNull { watts ->
         watts?.takeIf { it >= 0 }
     }

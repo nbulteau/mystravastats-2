@@ -13,6 +13,18 @@ import java.time.OffsetDateTime
 
 class FITRepositoryTest {
     @Test
+    fun `FIT records retain missing power and measured zero`() {
+        val repository = FITRepository("unused")
+        val records = listOf(
+            com.garmin.fit.RecordMesg().apply { power = 0 },
+            com.garmin.fit.RecordMesg(),
+            com.garmin.fit.RecordMesg().apply { power = 200 },
+        )
+        val stream = with(repository) { records.buildStream(1L) }
+        assertEquals(listOf(0, null, 200), stream?.watts?.data)
+    }
+
+    @Test
     fun `decodeActivity keeps FIT activity local and emits parseable dates`() {
         val fixture = File(sharedSourceModeFixtureRoot(), "fit/2026/smoke-ride.fit")
         val repository = FITRepository(fixture.parentFile.parentFile.path)

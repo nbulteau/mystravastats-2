@@ -97,11 +97,12 @@ private fun activityEffort(
 
     stream.watts?.data ?: return null
 
-    val nonNullWatts: List<Int> = stream.watts.data.map { it ?: 0 }
+    val nonNullWatts = stream.watts.data
+    val powerPrefix = PowerWindowPrefix(nonNullWatts)
 
     var idxStart = 0
     var idxEnd = 0
-    var maxPower = 0
+    var maxPower = 0L
     var bestEffort: ActivityEffort? = null
 
     val distances = stream.distance.data
@@ -111,7 +112,6 @@ private fun activityEffort(
         return null
     }
 
-    var currentPower = 0
     val elevationPrefix = ElevationGainLossPrefix.from(altitudes, streamDataSize)
 
     while (idxEnd < streamDataSize) {
@@ -122,16 +122,16 @@ private fun activityEffort(
             0.0
         }
 
-        currentPower += nonNullWatts[idxEnd]
+        val currentPower = powerPrefix.sum(idxStart, idxEnd)
 
         val totalTime = times[idxEnd] - times[idxStart]
 
         if (totalTime < seconds) {
             ++idxEnd
         } else {
-            if (currentPower > maxPower) {
+            if (currentPower != null && currentPower > maxPower) {
                 maxPower = currentPower
-                val averagePower = currentPower / (idxEnd - idxStart + 1)
+                val averagePower = (currentPower / (idxEnd - idxStart + 1)).toInt()
                 val elevation = elevationPrefix.between(idxStart, idxEnd)
                 bestEffort = ActivityEffort(
                     totalDistance, seconds, totalAltitude, idxStart, idxEnd, averagePower,
@@ -145,7 +145,6 @@ private fun activityEffort(
                     elevationLoss = elevation?.loss,
                 )
             }
-            currentPower -= nonNullWatts[idxStart]
             ++idxStart
             ++idxEnd
         }
@@ -166,7 +165,8 @@ private fun activityPowerDistanceEffort(
     distance: Double
 ): ActivityEffort? {
     val altitudes = stream.altitude?.data ?: emptyList()
-    val nonNullWatts = stream.watts?.data?.map { it ?: 0 } ?: return null
+    val nonNullWatts = stream.watts?.data ?: return null
+    val powerPrefix = PowerWindowPrefix(nonNullWatts)
 
     var idxStart = 0
     var idxEnd = 0
@@ -197,8 +197,8 @@ private fun activityPowerDistanceEffort(
                 }
                 continue
             }
-            val averagePower = nonNullWatts.subList(idxStart, idxEnd + 1).average()
-            if (averagePower > bestAveragePower) {
+            val averagePower = powerPrefix.average(idxStart, idxEnd)
+            if (averagePower != null && averagePower > bestAveragePower) {
                 bestAveragePower = averagePower
                 val estimatedTimeForDistance = distance / totalDistance * totalTime
                 val elevation = elevationPrefix.between(idxStart, idxEnd)

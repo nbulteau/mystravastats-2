@@ -11,6 +11,17 @@ import org.junit.jupiter.api.Test
 
 class FITPowerMetricsTest {
     @Test
+    fun `gaps cannot be compacted to infer full duration power`() {
+        val stream = powerStreamOf(200, null, 200)
+        val metrics = computeFitPowerMetrics(null, stream, 3)
+        assertEquals(0, metrics.averageWatts)
+        assertEquals(0, metrics.weightedAverageWatts)
+        assertEquals(0.0, metrics.kilojoules)
+        assertTrue(metrics.hasDeviceWatts)
+        assertEquals(250, computeFitPowerMetrics(250, stream, 3).averageWatts)
+    }
+
+    @Test
     fun `computeFitPowerMetrics uses power stream when session power is missing`() {
         // GIVEN
         val stream = powerStreamOf(0, 100, 200, 300)

@@ -10,6 +10,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.util.Optional
+import java.security.MessageDigest
+import java.util.HexFormat
 import java.util.concurrent.ConcurrentHashMap
 
 data class EffortCacheKey(
@@ -17,6 +19,7 @@ data class EffortCacheKey(
     val metric: String,
     val target: String,
     val streamSize: Int,
+    val streamFingerprint: String = "",
 )
 
 private data class PersistedEffortEntry(
@@ -47,6 +50,9 @@ internal object BestEffortCache {
             metric = metric,
             target = target,
             streamSize = stream.distance.originalSize,
+            streamFingerprint = "power-gaps-v1:" + HexFormat.of().formatHex(
+                MessageDigest.getInstance("SHA-256").digest(objectMapper.writeValueAsBytes(stream)),
+            ),
         )
 
         return cache.computeIfAbsent(key) {
@@ -93,6 +99,7 @@ internal object BestEffortCache {
                     .thenBy { it.key.metric }
                     .thenBy { it.key.target }
                     .thenBy { it.key.streamSize }
+                    .thenBy { it.key.streamFingerprint }
             )
 
         return runCatching {
