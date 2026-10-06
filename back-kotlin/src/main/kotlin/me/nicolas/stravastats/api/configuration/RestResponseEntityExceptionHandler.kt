@@ -7,6 +7,9 @@ import org.springframework.data.rest.webmvc.ResourceNotFoundException
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatusCode
+import org.springframework.http.HttpMethod
+import org.springframework.http.MediaType
+import org.springframework.http.ProblemDetail
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.MissingServletRequestParameterException
 import org.springframework.web.bind.annotation.ControllerAdvice
@@ -17,6 +20,36 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 @ControllerAdvice
 class RestResponseEntityExceptionHandler : ResponseEntityExceptionHandler() {
+
+    override fun handleExceptionInternal(
+        ex: Exception, body: Any?, headers: HttpHeaders, statusCode: HttpStatusCode, request: WebRequest,
+    ): ResponseEntity<Any>? {
+        val status = HttpStatus.resolve(statusCode.value())
+        val error = if (body is ErrorResponseMessageDto) body else ErrorResponseMessageDto(
+            message = status?.reasonPhrase ?: "Request failed",
+            description = if (statusCode.is5xxServerError) "An internal error occurred"
+                else (body as? ProblemDetail)?.detail ?: status?.reasonPhrase ?: "Request failed",
+            code = 1,
+        )
+        val responseHeaders = HttpHeaders()
+        responseHeaders.putAll(headers)
+        if (statusCode.value() == 405) {
+            val allowed = responseHeaders.allow.toMutableSet()
+            if (HttpMethod.GET in allowed) allowed += HttpMethod.HEAD
+            allowed += HttpMethod.OPTIONS
+            responseHeaders.allow = allowed
+        }
+        responseHeaders.contentType = MediaType.APPLICATION_JSON
+        return super.handleExceptionInternal(
+            ex, error.copy(requestId = request.getHeader("X-Request-Id")), responseHeaders, statusCode, request,
+        )
+    }
+
+    @ExceptionHandler(Exception::class)
+    protected fun handleUnexpectedException(exception: Exception, request: WebRequest): ResponseEntity<Any>? {
+        logger.error("requestId=${request.getHeader("X-Request-Id")} unexpected API error", exception)
+        return handleExceptionInternal(exception, null, HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request)
+    }
 
     @ExceptionHandler(value = [OsrmControlException::class])
     protected fun handleOsrmControlException(
@@ -52,7 +85,7 @@ class RestResponseEntityExceptionHandler : ResponseEntityExceptionHandler() {
         return handleExceptionInternal(exception, errorResponse, HttpHeaders(), HttpStatus.NOT_FOUND, request!!)
     }
 
-    @ExceptionHandler(value = [IllegalArgumentException::class, IllegalStateException::class])
+    @ExceptionHandler(value = [IllegalArgumentException::class])
     protected fun handleConflict(exception: RuntimeException, request: WebRequest?): ResponseEntity<Any>? {
         val errorResponse = ErrorResponseMessageDto(
             message = "Illegal argument",

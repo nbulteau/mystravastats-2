@@ -25,6 +25,8 @@ jobs:
         with:
           go-version-file: back-go/go.mod
           cache: false
+      - name: Install contract validation dependencies
+        run: npm ci --prefix scripts --ignore-scripts
       - name: Check generated OpenAPI contracts
         run: node scripts/generate-api-contracts.mjs --check
       - name: Check architecture boundaries

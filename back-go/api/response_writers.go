@@ -134,6 +134,7 @@ func writeAPIError(writer http.ResponseWriter, status int, message string, descr
 		Message:     message,
 		Description: description,
 		Code:        1,
+		RequestID:   writer.Header().Get("X-Request-Id"),
 	}); err != nil {
 		log.Printf("failed to write API error response: %v", err)
 	}

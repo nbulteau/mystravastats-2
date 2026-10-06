@@ -4,6 +4,7 @@ import { readdir, readFile, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import SwaggerParser from "@apidevtools/swagger-parser";
 
 const repository = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const specPath = resolve(repository, "docs/api/openapi.json");
@@ -11,10 +12,16 @@ const checkOnly = process.argv.includes("--check");
 const httpMethods = new Set(["get", "post", "put", "delete", "patch"]);
 
 const spec = JSON.parse(await readFile(specPath, "utf8"));
+// Validate a copy: dereferencing must not mutate the generator input.
+await SwaggerParser.validate(structuredClone(spec));
 const operations = [];
 const operationIds = new Set();
+const pathTemplates = new Set();
 
 for (const [path, pathItem] of Object.entries(spec.paths ?? {})) {
+  const template = normalizePath(path);
+  if (pathTemplates.has(template)) throw new Error(`Duplicate path template: ${path}`);
+  pathTemplates.add(template);
   for (const [method, operation] of Object.entries(pathItem)) {
     if (!httpMethods.has(method)) continue;
     if (!operation.operationId) throw new Error(`${method.toUpperCase()} ${path} has no operationId`);
@@ -53,13 +60,8 @@ async function assertGoRouteParity(contractOperations) {
   const source = await readFile(resolve(repository, "back-go/api/routes.go"), "utf8");
   const routePattern = /Method:\s*"([A-Z]+)",\s*Pattern:\s*"([^"]+)"/g;
   const implemented = new Set();
-  for (const match of source.matchAll(routePattern)) implemented.add(`${match[1]} ${match[2]}`);
-  const contracted = new Set(contractOperations.map(({ method, path }) => `${method} ${path}`));
-  const missing = [...implemented].filter((route) => !contracted.has(route));
-  const stale = [...contracted].filter((route) => !implemented.has(route));
-  if (missing.length || stale.length) {
-    throw new Error(`OpenAPI/Go route mismatch. Missing: ${missing.join(", ") || "none"}. Stale: ${stale.join(", ") || "none"}.`);
-  }
+  for (const match of source.matchAll(routePattern)) implemented.add(`${match[1]} ${normalizePath(match[2])}`);
+  assertRouteParity("Go", implemented, contractOperations);
 }
 
 async function assertKotlinRouteParity(contractOperations) {
@@ -73,19 +75,30 @@ async function assertKotlinRouteParity(contractOperations) {
     const mappingPattern = /@(Get|Post|Put|Delete|Patch)Mapping(?:\(([^)]*)\))?/g;
     for (const match of source.matchAll(mappingPattern)) {
       const relativePath = match[2]?.match(/^\s*"([^"]*)"/)?.[1] ?? "";
-      implemented.add(`${match[1].toUpperCase()} /api${basePath}${relativePath}`);
+      implemented.add(`${match[1].toUpperCase()} ${normalizePath(`/api${basePath}${relativePath}`)}`);
     }
   }
   assertRouteParity("Kotlin", implemented, contractOperations);
 }
 
 function assertRouteParity(runtime, implemented, contractOperations) {
-  const contracted = new Set(contractOperations.map(({ method, path }) => `${method} ${path}`));
+  const contracted = new Set(contractOperations.map(({ method, path }) => `${method} ${normalizePath(path)}`));
   const missing = [...implemented].filter((route) => !contracted.has(route));
   const stale = [...contracted].filter((route) => !implemented.has(route));
   if (missing.length || stale.length) {
     throw new Error(`OpenAPI/${runtime} route mismatch. Missing: ${missing.join(", ") || "none"}. Stale: ${stale.join(", ") || "none"}.`);
   }
+}
+
+// Parameter names do not change the HTTP URL; OpenAPI permits only one template per path.
+function normalizePath(path) { return path.replace(/\{[^}]+\}/g, "{}"); }
+
+function unwrapSchema(schema) {
+  if (!schema.allOf) return schema;
+  if (schema.allOf.length !== 1 || !schema.allOf[0].$ref) {
+    throw new Error("The DTO generator only supports allOf wrapping one reference");
+  }
+  return { ...schema, ...schema.allOf[0] };
 }
 
 function renderTypeScript(apiOperations, apiSchemas) {
@@ -138,6 +151,7 @@ function formatGo(content) {
 }
 
 function tsType(schema) {
+  schema = unwrapSchema(schema);
   let value;
   if (schema.$ref) value = schema.$ref.split("/").at(-1);
   else if (schema.enum) value = schema.enum.map((entry) => JSON.stringify(entry)).join(" | ");
@@ -150,6 +164,7 @@ function tsType(schema) {
 }
 
 function goType(schema, optional) {
+  schema = unwrapSchema(schema);
   let value;
   if (schema.$ref) value = `Contract${schema.$ref.split("/").at(-1)}`;
   else if (schema.type === "integer") value = "int64";
@@ -162,6 +177,7 @@ function goType(schema, optional) {
 }
 
 function kotlinType(schema) {
+  schema = unwrapSchema(schema);
   if (schema.$ref) return `Contract${schema.$ref.split("/").at(-1)}`;
   if (schema.type === "integer") return "Long";
   if (schema.type === "number") return "Double";

@@ -42,8 +42,10 @@ func mutationOriginGuard(next http.Handler) http.Handler {
 		writer.Header().Set("Content-Type", "application/json")
 		writer.WriteHeader(http.StatusForbidden)
 		_ = json.NewEncoder(writer).Encode(map[string]any{
-			"code":    http.StatusForbidden,
-			"message": "cross-origin mutation rejected",
+			"code":        http.StatusForbidden,
+			"message":     "cross-origin mutation rejected",
+			"description": "The request origin is not allowed to modify local data",
+			"requestId":   writer.Header().Get("X-Request-Id"),
 		})
 	})
 }

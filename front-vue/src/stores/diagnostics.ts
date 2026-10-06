@@ -229,7 +229,7 @@ export const useDiagnosticsStore = defineStore("diagnostics", {
     },
     async applyCorrection(issueId: string): Promise<DataQualityReport> {
       const report = await requestJson<DataQualityReport>(apiUrl("applyDataQualityCorrection", {
-        path: { issueId },
+        path: { id: issueId },
       }), {
         method: "POST",
         headers: {
@@ -241,7 +241,7 @@ export const useDiagnosticsStore = defineStore("diagnostics", {
     },
     async revertCorrection(correctionId: string): Promise<DataQualityReport> {
       const report = await requestJson<DataQualityReport>(apiUrl("revertDataQualityCorrection", {
-        path: { correctionId },
+        path: { id: correctionId },
       }), {
         method: "DELETE",
         headers: {

@@ -119,6 +119,7 @@ class ActivitiesController(
         @PathVariable activityId: Long,
         @RequestParam(required = false) version: String?,
     ): DetailedActivityDto {
+        require(activityId > 0) { "activityId must be > 0" }
         val activity = activityService.getDetailedActivity(activityId, corrected = version != "raw")
             ?: throw ResourceNotFoundException("StravaActivity id $activityId not found")
         return activity.toDto(activityService.getActivityComparison(activity))

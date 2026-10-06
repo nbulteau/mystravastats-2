@@ -5,9 +5,8 @@ package me.nicolas.stravastats.api.dto
 data class ContractApiError(
     val message: String,
     val code: Long,
-    val description: String? = null,
-    val path: String? = null,
-    val requestId: String? = null,
+    val description: String,
+    val requestId: String,
 )
 
 data class ContractRouteCoordinate(
@@ -21,7 +20,7 @@ data class ContractRouteGenerationDiagnostic(
 )
 
 data class ContractSourceModeSelection(
-    val mode: String,
+    val mode: String? = null,
     val path: String? = null,
 )
 
@@ -109,6 +108,74 @@ data class ContractDataQualityReport(
     val issues: List<ContractDataQualityIssue>,
 )
 
+data class ContractHeartRateZoneSettings(
+    val maxHr: Long? = null,
+    val thresholdHr: Long? = null,
+    val reserveHr: Long? = null,
+)
+
+data class ContractDataQualityExclusionRequest(
+    val reason: String? = null,
+)
+
+data class ContractLocalDataBackup(
+    val version: Long,
+    val exportedAt: String,
+    val athleteId: String,
+    val files: Map<String, Any>,
+)
+
+data class ContractLocalDataRestoreResult(
+    val restored: List<String>,
+)
+
+data class ContractStravaOAuthStartRequest(
+    val path: String? = null,
+    val clientId: String? = null,
+    val clientSecret: String? = null,
+    val useCache: Boolean? = null,
+)
+
+data class ContractGenerateShapeRoutesRequest(
+    val shapeInputType: String,
+    val shapeData: String,
+    val startPoint: ContractRouteCoordinate? = null,
+    val routeType: String? = null,
+    val variantCount: Long? = null,
+)
+
+data class ContractEditGeneratedRouteRequest(
+    val routeType: String? = null,
+    val controlPoints: List<ContractRouteCoordinate>,
+)
+
+data class ContractEditGeneratedRouteResponse(
+    val route: ContractGeneratedRoute? = null,
+    val controlPoints: List<ContractRouteCoordinate>,
+    val diagnostics: List<ContractRouteGenerationDiagnostic>,
+)
+
+data class ContractGearMaintenanceRequest(
+    val gearId: String? = null,
+    val component: String? = null,
+    val action: String? = null,
+    val operation: String? = null,
+    val date: String? = null,
+    val distance: Double? = null,
+    val note: String? = null,
+)
+
+data class ContractSourceSyncResult(
+    val status: String,
+    val reason: String,
+    val message: String,
+    val startedAt: String,
+    val completedAt: String,
+    val durationMs: Long,
+    val reloaded: Boolean,
+    val fit: Map<String, Any>,
+)
+
 data class ContractOperation(val method: String, val path: String)
 
 val contractOperations: Map<String, ContractOperation> = mapOf(
@@ -130,8 +197,8 @@ val contractOperations: Map<String, ContractOperation> = mapOf(
     "getActivityHeatmap" to ContractOperation("GET", "/api/dashboard/activity-heatmap"),
     "getCumulativeData" to ContractOperation("GET", "/api/dashboard/cumulative-data-per-year"),
     "getEddingtonNumber" to ContractOperation("GET", "/api/dashboard/eddington-number"),
-    "revertDataQualityCorrection" to ContractOperation("DELETE", "/api/data-quality/corrections/{correctionId}"),
-    "applyDataQualityCorrection" to ContractOperation("POST", "/api/data-quality/corrections/{issueId}"),
+    "revertDataQualityCorrection" to ContractOperation("DELETE", "/api/data-quality/corrections/{id}"),
+    "applyDataQualityCorrection" to ContractOperation("POST", "/api/data-quality/corrections/{id}"),
     "previewDataQualityCorrection" to ContractOperation("GET", "/api/data-quality/corrections/preview/{issueId}"),
     "applySafeDataQualityCorrections" to ContractOperation("POST", "/api/data-quality/corrections/safe"),
     "previewSafeDataQualityCorrections" to ContractOperation("GET", "/api/data-quality/corrections/safe/preview"),

@@ -23,8 +23,11 @@ class WebConfig(
     }
 
     override fun addViewControllers(registry: ViewControllerRegistry) {
-        // Forward client-side routes to the Vue entry point.
-        registry.addViewController("/{spring:[^.]*}").setViewName("forward:/index.html")
-        registry.addViewController("/**/{spring:[^.]*}").setViewName("forward:/index.html")
+        // Explicit Vue routes keep unknown API paths out of the SPA fallback.
+        listOf(
+            "/", "/statistics", "/gear", "/activities", "/map", "/charts", "/dashboard",
+            "/annual-recap", "/commute-recap", "/heatmap", "/segments", "/routes", "/diagnostics",
+            "/settings", "/badges", "/badges/climbs/{variantId}", "/activities/{id}",
+        ).forEach { registry.addViewController(it).setViewName("forward:/index.html") }
     }
 }

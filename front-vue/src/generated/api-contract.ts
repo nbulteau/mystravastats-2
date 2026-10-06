@@ -3,9 +3,8 @@
 export interface ApiError {
   message: string;
   code: number;
-  description?: string;
-  path?: string | null;
-  requestId?: string | null;
+  description: string;
+  requestId: string;
 }
 
 export interface RouteCoordinate {
@@ -19,7 +18,7 @@ export interface RouteGenerationDiagnostic {
 }
 
 export interface SourceModeSelection {
-  mode: "STRAVA" | "FIT" | "GPX";
+  mode?: "STRAVA" | "FIT" | "GPX";
   path?: string | null;
 }
 
@@ -107,6 +106,74 @@ export interface DataQualityReport {
   issues: DataQualityIssue[];
 }
 
+export interface HeartRateZoneSettings {
+  maxHr?: number | null;
+  thresholdHr?: number | null;
+  reserveHr?: number | null;
+}
+
+export interface DataQualityExclusionRequest {
+  reason?: string | null;
+}
+
+export interface LocalDataBackup {
+  version: 1;
+  exportedAt: string;
+  athleteId: string;
+  files: Record<string, unknown>;
+}
+
+export interface LocalDataRestoreResult {
+  restored: string[];
+}
+
+export interface StravaOAuthStartRequest {
+  path?: string;
+  clientId?: string;
+  clientSecret?: string;
+  useCache?: boolean;
+}
+
+export interface GenerateShapeRoutesRequest {
+  shapeInputType: "draw" | "gpx" | "svg" | "polyline";
+  shapeData: string;
+  startPoint?: RouteCoordinate;
+  routeType?: string;
+  variantCount?: number;
+}
+
+export interface EditGeneratedRouteRequest {
+  routeType?: string;
+  controlPoints: RouteCoordinate[];
+}
+
+export interface EditGeneratedRouteResponse {
+  route?: GeneratedRoute | null;
+  controlPoints: RouteCoordinate[];
+  diagnostics: RouteGenerationDiagnostic[];
+}
+
+export interface GearMaintenanceRequest {
+  gearId?: string;
+  component?: string;
+  action?: string;
+  operation?: string;
+  date?: string;
+  distance?: number;
+  note?: string | null;
+}
+
+export interface SourceSyncResult {
+  status: string;
+  reason: string;
+  message: string;
+  startedAt: string;
+  completedAt: string;
+  durationMs: number;
+  reloaded: boolean;
+  fit: Record<string, unknown>;
+}
+
 export const apiOperations = {
   listActivities: { method: "GET", path: "/api/activities" },
   getActivity: { method: "GET", path: "/api/activities/{activityId}" },
@@ -126,8 +193,8 @@ export const apiOperations = {
   getActivityHeatmap: { method: "GET", path: "/api/dashboard/activity-heatmap" },
   getCumulativeData: { method: "GET", path: "/api/dashboard/cumulative-data-per-year" },
   getEddingtonNumber: { method: "GET", path: "/api/dashboard/eddington-number" },
-  revertDataQualityCorrection: { method: "DELETE", path: "/api/data-quality/corrections/{correctionId}" },
-  applyDataQualityCorrection: { method: "POST", path: "/api/data-quality/corrections/{issueId}" },
+  revertDataQualityCorrection: { method: "DELETE", path: "/api/data-quality/corrections/{id}" },
+  applyDataQualityCorrection: { method: "POST", path: "/api/data-quality/corrections/{id}" },
   previewDataQualityCorrection: { method: "GET", path: "/api/data-quality/corrections/preview/{issueId}" },
   applySafeDataQualityCorrections: { method: "POST", path: "/api/data-quality/corrections/safe" },
   previewSafeDataQualityCorrections: { method: "GET", path: "/api/data-quality/corrections/safe/preview" },

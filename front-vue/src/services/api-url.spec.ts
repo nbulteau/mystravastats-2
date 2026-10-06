@@ -16,4 +16,11 @@ describe("apiUrl", () => {
   it("rejects a missing path parameter", () => {
     expect(() => apiUrl("getActivity")).toThrow(/activityId/);
   });
+
+  it("preserves correction URLs with the shared OpenAPI path template", () => {
+    expect(apiUrl("applyDataQualityCorrection", { path: { id: "issue-1" } }))
+      .toBe("/api/data-quality/corrections/issue-1");
+    expect(apiUrl("revertDataQualityCorrection", { path: { id: "correction-1" } }))
+      .toBe("/api/data-quality/corrections/correction-1");
+  });
 });

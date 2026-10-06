@@ -24,6 +24,8 @@ jobs:
         with:
           go-version-file: back-go/go.mod
           cache-dependency-path: back-go/go.sum
+      - name: Install contract validation dependencies
+        run: npm ci --prefix scripts --ignore-scripts
       - name: Check generated contracts
         run: node scripts/generate-api-contracts.mjs --check
       - name: Build frontend

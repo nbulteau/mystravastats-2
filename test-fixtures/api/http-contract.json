@@ -1,0 +1,178 @@
+[
+  {
+    "name": "empty activities",
+    "method": "GET",
+    "path": "/api/activities?activityType=Ride",
+    "status": 200,
+    "bodyType": "array"
+  },
+  {
+    "name": "HEAD activities",
+    "method": "HEAD",
+    "path": "/api/activities?activityType=Ride",
+    "status": 200,
+    "emptyBody": true
+  },
+  {
+    "name": "missing sport",
+    "method": "GET",
+    "path": "/api/activities",
+    "status": 400,
+    "error": true
+  },
+  {
+    "name": "unknown sport",
+    "method": "GET",
+    "path": "/api/activities?activityType=Invalid",
+    "status": 400,
+    "error": true
+  },
+  {
+    "name": "invalid year",
+    "method": "GET",
+    "path": "/api/activities?activityType=Ride&year=no",
+    "status": 400,
+    "error": true
+  },
+  {
+    "name": "invalid identifier",
+    "method": "GET",
+    "path": "/api/activities/no",
+    "status": 400,
+    "error": true
+  },
+  {
+    "name": "zero identifier",
+    "method": "GET",
+    "path": "/api/activities/0",
+    "status": 400,
+    "error": true
+  },
+  {
+    "name": "negative identifier",
+    "method": "GET",
+    "path": "/api/activities/-1",
+    "status": 400,
+    "error": true
+  },
+  {
+    "name": "absent activity",
+    "method": "GET",
+    "path": "/api/activities/42",
+    "status": 404,
+    "error": true
+  },
+  {
+    "name": "storage failure",
+    "method": "GET",
+    "path": "/api/activities/42",
+    "status": 500,
+    "error": true,
+    "scenario": "read-failure"
+  },
+  {
+    "name": "unknown endpoint",
+    "method": "GET",
+    "path": "/api/unknown",
+    "status": 404,
+    "error": true
+  },
+  {
+    "name": "unknown nested endpoint",
+    "method": "POST",
+    "path": "/api/unknown/child",
+    "status": 404,
+    "error": true
+  },
+  {
+    "name": "wrong method",
+    "method": "POST",
+    "path": "/api/activities",
+    "status": 405,
+    "error": true,
+    "allow": [
+      "GET",
+      "HEAD"
+    ]
+  },
+  {
+    "name": "wrong method on export",
+    "method": "DELETE",
+    "path": "/api/activities/csv",
+    "status": 405,
+    "error": true,
+    "allow": [
+      "GET",
+      "HEAD"
+    ]
+  },
+  {
+    "name": "HEAD error",
+    "method": "HEAD",
+    "path": "/api/activities/no",
+    "status": 400,
+    "emptyBody": true
+  },
+  {
+    "name": "malformed JSON",
+    "method": "POST",
+    "path": "/api/local-data/restore",
+    "status": 400,
+    "error": true,
+    "body": "{broken"
+  },
+  {
+    "name": "missing JSON",
+    "method": "POST",
+    "path": "/api/local-data/restore",
+    "status": 400,
+    "error": true
+  },
+  {
+    "name": "missing chart year",
+    "method": "GET",
+    "path": "/api/charts/distance-by-period?activityType=Ride&period=MONTHS",
+    "status": 400,
+    "error": true
+  },
+  {
+    "name": "invalid period",
+    "method": "GET",
+    "path": "/api/charts/distance-by-period?activityType=Ride&year=2026&period=bad",
+    "status": 400,
+    "error": true
+  },
+  {
+    "name": "failed synchronization",
+    "method": "POST",
+    "path": "/api/source-sync/synchronize",
+    "status": 500,
+    "scenario": "sync-failed",
+    "bodyStatus": "failed"
+  },
+  {
+    "name": "successful synchronization",
+    "method": "POST",
+    "path": "/api/source-sync/synchronize",
+    "status": 200,
+    "scenario": "sync-success",
+    "bodyStatus": "success"
+  },
+  {
+    "name": "generated request id",
+    "method": "GET",
+    "path": "/api/activities",
+    "status": 400,
+    "error": true,
+    "requestId": ""
+  },
+  {
+    "name": "invalid request id replaced",
+    "method": "GET",
+    "path": "/api/activities",
+    "status": 400,
+    "error": true,
+    "requestId": "bad id",
+    "replaceRequestId": true
+  }
+]

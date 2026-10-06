@@ -74,7 +74,12 @@ func getDetailedActivity(writer http.ResponseWriter, request *http.Request) {
 			writeBadRequest(writer, "Invalid request parameters", "activityId must be > 0")
 			return
 		}
-		writeNotFound(writer, "Resource not found", fmt.Sprintf("Activity %d not found", activityId))
+		if errors.Is(err, activitiesDomain.ErrDetailedActivityNotFound) {
+			writeNotFound(writer, "Resource not found", fmt.Sprintf("Activity %d not found", activityId))
+		} else {
+			log.Printf("requestId=%s failed to read activity %d: %v", writer.Header().Get("X-Request-Id"), activityId, err)
+			writeInternalServerError(writer, "Failed to read activity")
+		}
 		return
 	}
 

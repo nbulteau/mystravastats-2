@@ -6,11 +6,16 @@
 - [x] `ARCH-P1-02` - Extraire les présentations Diagnostics/Activité et l'export PNG GPS Art hors des vues Vue.
 - [x] `ARCH-P1-03` - Isoler le transport OSRM dans des clients dédiés Go et Kotlin sans modifier les règles de génération.
 - [x] `API-P1-01` - Étendre les schémas OpenAPI générés aux routes, réglages de performance et diagnostics de qualité.
+- [x] `API-P1-02` - Fiabiliser les 52 opérations OpenAPI : paramètres, corps JSON, formats et statuts ; validation automatique du document et suppression des chemins modèles en doublon.
+- [x] `API-P1-03` - Ajouter des scénarios HTTP partagés Go/Kotlin et aligner les erreurs 400/404/405/500, `Allow`, les échecs de synchronisation et `X-Request-Id`, sans changement des URL publiques.
 - [x] `SEC-P1-01` - Lier les services Docker à la boucle locale et bloquer les mutations web provenant d'origines non autorisées.
 
 - [x] `DEPS-P1-01` - Actualiser les deux backends et le frontend (2026-10-06) : Go 1.27.1, Kotlin 2.4.20, Gradle 9.8.0, Node 26.10.0, Vue 3.5.43, Vite 8.3.3 et Vitest 5.0.3 ; aligner Docker, CI et scripts de build.
 
 ## Priorité moyenne
+
+- [ ] `API-P2-01` - Compléter les schémas de réponse métier et les fixtures de succès ; harmoniser la négociation de contenu et les limites de taille des corps entre backends.
+- [ ] `API-P2-02` - Préparer une migration explicite vers des collections paginées et des ressources de synchronisation/génération asynchrones, avec adaptation du frontend et compatibilité des anciennes URL.
 
 - [ ] `PRODUCT-P2-02` - Livrer la charge d'entraînement et les tendances de forme.
   - fiabiliser d'abord les calculs de puissance et de durée à partir des horodatages, y compris pour les enregistrements irréguliers ;

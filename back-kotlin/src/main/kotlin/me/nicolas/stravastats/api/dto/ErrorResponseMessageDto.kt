@@ -21,4 +21,5 @@ data class ErrorResponseMessageDto(
         required = true
     )
     val code: Int,
+    val requestId: String? = null,
 )

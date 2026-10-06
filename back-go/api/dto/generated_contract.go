@@ -3,11 +3,10 @@
 package dto
 
 type ContractApiError struct {
-	Message     string  `json:"message"`
-	Code        int64   `json:"code"`
-	Description *string `json:"description,omitempty"`
-	Path        *string `json:"path,omitempty"`
-	RequestId   *string `json:"requestId,omitempty"`
+	Message     string `json:"message"`
+	Code        int64  `json:"code"`
+	Description string `json:"description"`
+	RequestId   string `json:"requestId"`
 }
 
 type ContractRouteCoordinate struct {
@@ -21,7 +20,7 @@ type ContractRouteGenerationDiagnostic struct {
 }
 
 type ContractSourceModeSelection struct {
-	Mode string  `json:"mode"`
+	Mode *string `json:"mode,omitempty"`
 	Path *string `json:"path,omitempty"`
 }
 
@@ -109,6 +108,74 @@ type ContractDataQualityReport struct {
 	Issues      []ContractDataQualityIssue `json:"issues"`
 }
 
+type ContractHeartRateZoneSettings struct {
+	MaxHr       *int64 `json:"maxHr,omitempty"`
+	ThresholdHr *int64 `json:"thresholdHr,omitempty"`
+	ReserveHr   *int64 `json:"reserveHr,omitempty"`
+}
+
+type ContractDataQualityExclusionRequest struct {
+	Reason *string `json:"reason,omitempty"`
+}
+
+type ContractLocalDataBackup struct {
+	Version    int64          `json:"version"`
+	ExportedAt string         `json:"exportedAt"`
+	AthleteId  string         `json:"athleteId"`
+	Files      map[string]any `json:"files"`
+}
+
+type ContractLocalDataRestoreResult struct {
+	Restored []string `json:"restored"`
+}
+
+type ContractStravaOAuthStartRequest struct {
+	Path         *string `json:"path,omitempty"`
+	ClientId     *string `json:"clientId,omitempty"`
+	ClientSecret *string `json:"clientSecret,omitempty"`
+	UseCache     *bool   `json:"useCache,omitempty"`
+}
+
+type ContractGenerateShapeRoutesRequest struct {
+	ShapeInputType string                   `json:"shapeInputType"`
+	ShapeData      string                   `json:"shapeData"`
+	StartPoint     *ContractRouteCoordinate `json:"startPoint,omitempty"`
+	RouteType      *string                  `json:"routeType,omitempty"`
+	VariantCount   *int64                   `json:"variantCount,omitempty"`
+}
+
+type ContractEditGeneratedRouteRequest struct {
+	RouteType     *string                   `json:"routeType,omitempty"`
+	ControlPoints []ContractRouteCoordinate `json:"controlPoints"`
+}
+
+type ContractEditGeneratedRouteResponse struct {
+	Route         *ContractGeneratedRoute             `json:"route,omitempty"`
+	ControlPoints []ContractRouteCoordinate           `json:"controlPoints"`
+	Diagnostics   []ContractRouteGenerationDiagnostic `json:"diagnostics"`
+}
+
+type ContractGearMaintenanceRequest struct {
+	GearId    *string  `json:"gearId,omitempty"`
+	Component *string  `json:"component,omitempty"`
+	Action    *string  `json:"action,omitempty"`
+	Operation *string  `json:"operation,omitempty"`
+	Date      *string  `json:"date,omitempty"`
+	Distance  *float64 `json:"distance,omitempty"`
+	Note      *string  `json:"note,omitempty"`
+}
+
+type ContractSourceSyncResult struct {
+	Status      string         `json:"status"`
+	Reason      string         `json:"reason"`
+	Message     string         `json:"message"`
+	StartedAt   string         `json:"startedAt"`
+	CompletedAt string         `json:"completedAt"`
+	DurationMs  int64          `json:"durationMs"`
+	Reloaded    bool           `json:"reloaded"`
+	Fit         map[string]any `json:"fit"`
+}
+
 type ContractOperation struct {
 	Method string
 	Path   string
@@ -133,8 +200,8 @@ var ContractOperations = map[string]ContractOperation{
 	"getActivityHeatmap":                {Method: "GET", Path: "/api/dashboard/activity-heatmap"},
 	"getCumulativeData":                 {Method: "GET", Path: "/api/dashboard/cumulative-data-per-year"},
 	"getEddingtonNumber":                {Method: "GET", Path: "/api/dashboard/eddington-number"},
-	"revertDataQualityCorrection":       {Method: "DELETE", Path: "/api/data-quality/corrections/{correctionId}"},
-	"applyDataQualityCorrection":        {Method: "POST", Path: "/api/data-quality/corrections/{issueId}"},
+	"revertDataQualityCorrection":       {Method: "DELETE", Path: "/api/data-quality/corrections/{id}"},
+	"applyDataQualityCorrection":        {Method: "POST", Path: "/api/data-quality/corrections/{id}"},
 	"previewDataQualityCorrection":      {Method: "GET", Path: "/api/data-quality/corrections/preview/{issueId}"},
 	"applySafeDataQualityCorrections":   {Method: "POST", Path: "/api/data-quality/corrections/safe"},
 	"previewSafeDataQualityCorrections": {Method: "GET", Path: "/api/data-quality/corrections/safe/preview"},

@@ -2,89 +2,3659 @@
   "openapi": "3.0.3",
   "info": {
     "title": "My Activity Stats API",
-    "version": "1.4.0-draft",
-    "description": "Canonical cross-backend HTTP contract. Every public Go/Kotlin endpoint must be declared here."
+    "version": "1.4.0",
+    "description": "Canonical cross-backend HTTP contract. Existing URLs are preserved. GET endpoints also support HEAD (same status and headers, no body). Unsupported methods return 405 with Allow; unknown API URLs return 404 JSON. Every API response includes X-Request-Id. Object schemas with additionalProperties remain intentionally partial until domain DTO coverage is extended."
   },
-  "servers": [{"url": "/"}],
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
   "paths": {
-    "/api/health/details": {"get": {"operationId": "getHealthDetails", "tags": ["health"], "responses": {"200": {"description": "Runtime and source health details", "content": {"application/json": {"schema": {"type": "object", "additionalProperties": true}}}}}}},
-    "/api/local-data/backup": {"get": {"operationId": "getLocalDataBackup", "tags": ["local-data"], "responses": {"200": {"description": "Local data backup", "content": {"application/zip": {"schema": {"type": "string", "format": "binary"}}}}}}},
-    "/api/local-data/restore": {"post": {"operationId": "restoreLocalData", "tags": ["local-data"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/data-quality/issues": {"get": {"operationId": "getDataQualityIssues", "tags": ["data-quality"], "responses": {"200": {"description": "Data-quality report", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/DataQualityReport"}}}}}}},
-    "/api/data-quality/exclusions/{activityId}": {"parameters": [{"$ref": "#/components/parameters/ActivityId"}], "put": {"operationId": "excludeActivityFromStatistics", "tags": ["data-quality"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}, "delete": {"operationId": "includeActivityInStatistics", "tags": ["data-quality"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/data-quality/corrections/preview/{issueId}": {"parameters": [{"$ref": "#/components/parameters/IssueId"}], "get": {"operationId": "previewDataQualityCorrection", "tags": ["data-quality"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/data-quality/corrections/safe/preview": {"get": {"operationId": "previewSafeDataQualityCorrections", "tags": ["data-quality"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/data-quality/corrections/safe": {"post": {"operationId": "applySafeDataQualityCorrections", "tags": ["data-quality"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/data-quality/corrections/{issueId}": {"parameters": [{"$ref": "#/components/parameters/IssueId"}], "post": {"operationId": "applyDataQualityCorrection", "tags": ["data-quality"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/data-quality/corrections/{correctionId}": {"parameters": [{"$ref": "#/components/parameters/CorrectionId"}], "delete": {"operationId": "revertDataQualityCorrection", "tags": ["data-quality"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/source-modes/preview": {"post": {"operationId": "previewSourceMode", "tags": ["sources"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/source-modes/apply": {"post": {"operationId": "applySourceMode", "tags": ["sources"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/source-modes/strava/oauth/start": {"post": {"operationId": "startStravaOAuth", "tags": ["sources"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/source-modes/strava/oauth/callback": {"get": {"operationId": "completeStravaOAuth", "tags": ["sources"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/source-sync/synchronize": {"post": {"operationId": "synchronizeSources", "tags": ["sources"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/athletes/me": {"get": {"operationId": "getCurrentAthlete", "tags": ["athlete"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/athletes/me/ftp-estimate": {"get": {"operationId": "getFtpEstimate", "tags": ["athlete"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/athletes/me/performance-settings": {"get": {"operationId": "getPerformanceSettings", "tags": ["athlete"], "responses": {"200": {"description": "Athlete performance settings", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AthletePerformanceSettings"}}}}}}, "put": {"operationId": "updatePerformanceSettings", "tags": ["athlete"], "responses": {"200": {"description": "Updated athlete performance settings", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AthletePerformanceSettings"}}}}}}},
-    "/api/athletes/me/heart-rate-zones": {"get": {"operationId": "getHeartRateZones", "tags": ["athlete"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}, "put": {"operationId": "updateHeartRateZones", "tags": ["athlete"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/activities": {"get": {"operationId": "listActivities", "tags": ["activities"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/activities/csv": {"get": {"operationId": "exportActivitiesCsv", "tags": ["activities"], "responses": {"200": {"description": "CSV export", "content": {"text/csv": {"schema": {"type": "string"}}}}}}},
-    "/api/activities/{activityId}": {"parameters": [{"$ref": "#/components/parameters/ActivityId"}], "get": {"operationId": "getActivity", "tags": ["activities"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/statistics": {"get": {"operationId": "getStatistics", "tags": ["statistics"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/statistics/personal-records-timeline": {"get": {"operationId": "getPersonalRecordsTimeline", "tags": ["statistics"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/statistics/heart-rate-zones": {"get": {"operationId": "getHeartRateZoneAnalysis", "tags": ["statistics"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/statistics/segment-climb-progression": {"get": {"operationId": "getSegmentClimbProgression", "tags": ["statistics"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/gear-analysis": {"get": {"operationId": "getGearAnalysis", "tags": ["gear"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/gear-analysis/maintenance": {"post": {"operationId": "createGearMaintenance", "tags": ["gear"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/gear-analysis/maintenance/{recordId}": {"parameters": [{"$ref": "#/components/parameters/RecordId"}], "delete": {"operationId": "deleteGearMaintenance", "tags": ["gear"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/segments": {"get": {"operationId": "listSegments", "tags": ["segments"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/segments/{segmentId}/efforts": {"parameters": [{"$ref": "#/components/parameters/SegmentId"}], "get": {"operationId": "listSegmentEfforts", "tags": ["segments"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/segments/{segmentId}/summary": {"parameters": [{"$ref": "#/components/parameters/SegmentId"}], "get": {"operationId": "getSegmentSummary", "tags": ["segments"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/routes/recommendations": {"get": {"operationId": "getRouteRecommendations", "tags": ["routes"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/routes/recommendations/gpx": {"get": {"operationId": "exportRouteRecommendationGpx", "tags": ["routes"], "responses": {"200": {"$ref": "#/components/responses/GpxSuccess"}}}},
-    "/api/routes/generate/shape": {"post": {"operationId": "generateShapeRoutes", "tags": ["routes"], "responses": {"200": {"description": "Generated route proposals and diagnostics", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/GenerateRoutesResponse"}}}}}}},
-    "/api/routes/{routeId}/edit": {"parameters": [{"$ref": "#/components/parameters/RouteId"}], "post": {"operationId": "editGeneratedRoute", "tags": ["routes"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/routes/{routeId}/gpx": {"parameters": [{"$ref": "#/components/parameters/RouteId"}], "get": {"operationId": "exportGeneratedRouteGpx", "tags": ["routes"], "responses": {"200": {"$ref": "#/components/responses/GpxSuccess"}}}},
-    "/api/routing/osrm/start": {"post": {"operationId": "startOsrm", "tags": ["routing"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/maps/gpx": {"get": {"operationId": "getMapTracks", "tags": ["maps"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/maps/passages": {"get": {"operationId": "getMapPassages", "tags": ["maps"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/charts/distance-by-period": {"get": {"operationId": "getDistanceChart", "tags": ["charts"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/charts/elevation-by-period": {"get": {"operationId": "getElevationChart", "tags": ["charts"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/charts/average-speed-by-period": {"get": {"operationId": "getAverageSpeedChart", "tags": ["charts"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/charts/average-cadence-by-period": {"get": {"operationId": "getAverageCadenceChart", "tags": ["charts"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/dashboard": {"get": {"operationId": "getDashboard", "tags": ["dashboard"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/dashboard/cumulative-data-per-year": {"get": {"operationId": "getCumulativeData", "tags": ["dashboard"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/dashboard/eddington-number": {"get": {"operationId": "getEddingtonNumber", "tags": ["dashboard"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/dashboard/activity-heatmap": {"get": {"operationId": "getActivityHeatmap", "tags": ["dashboard"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}},
-    "/api/badges": {"get": {"operationId": "getBadges", "tags": ["badges"], "responses": {"200": {"$ref": "#/components/responses/JsonSuccess"}}}}
+    "/api/health/details": {
+      "get": {
+        "operationId": "getHealthDetails",
+        "tags": [
+          "health"
+        ],
+        "responses": {
+          "200": {
+            "description": "Runtime and source health details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/local-data/backup": {
+      "get": {
+        "operationId": "getLocalDataBackup",
+        "tags": [
+          "local-data"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalDataBackup"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/local-data/restore": {
+      "post": {
+        "operationId": "restoreLocalData",
+        "tags": [
+          "local-data"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalDataRestoreResult"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocalDataBackup"
+              }
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/data-quality/issues": {
+      "get": {
+        "operationId": "getDataQualityIssues",
+        "tags": [
+          "data-quality"
+        ],
+        "responses": {
+          "200": {
+            "description": "Data-quality report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataQualityReport"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/data-quality/exclusions/{activityId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ActivityId"
+        },
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ],
+      "put": {
+        "operationId": "excludeActivityFromStatistics",
+        "tags": [
+          "data-quality"
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated data-quality report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataQualityReport"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataQualityExclusionRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "includeActivityInStatistics",
+        "tags": [
+          "data-quality"
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated data-quality report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataQualityReport"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/data-quality/corrections/preview/{issueId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/IssueId"
+        },
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ],
+      "get": {
+        "operationId": "previewDataQualityCorrection",
+        "tags": [
+          "data-quality"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonSuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/data-quality/corrections/safe/preview": {
+      "get": {
+        "operationId": "previewSafeDataQualityCorrections",
+        "tags": [
+          "data-quality"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonSuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/data-quality/corrections/safe": {
+      "post": {
+        "operationId": "applySafeDataQualityCorrections",
+        "tags": [
+          "data-quality"
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated data-quality report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataQualityReport"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/source-modes/preview": {
+      "post": {
+        "operationId": "previewSourceMode",
+        "tags": [
+          "sources"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonSuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceModeSelection"
+              }
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/source-modes/apply": {
+      "post": {
+        "operationId": "applySourceMode",
+        "tags": [
+          "sources"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonSuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceModeSelection"
+              }
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/source-modes/strava/oauth/start": {
+      "post": {
+        "operationId": "startStravaOAuth",
+        "tags": [
+          "sources"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonSuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StravaOAuthStartRequest"
+              }
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/source-modes/strava/oauth/callback": {
+      "get": {
+        "operationId": "completeStravaOAuth",
+        "tags": [
+          "sources"
+        ],
+        "responses": {
+          "200": {
+            "description": "OAuth result page",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "description": "OAuth failure page",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "502": {
+            "description": "OAuth failure page",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "error",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/source-sync/synchronize": {
+      "post": {
+        "operationId": "synchronizeSources",
+        "tags": [
+          "sources"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceSyncResult"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "description": "Synchronization failed; preserves the synchronization result payload.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceSyncResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/athletes/me": {
+      "get": {
+        "operationId": "getCurrentAthlete",
+        "tags": [
+          "athlete"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonSuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/athletes/me/ftp-estimate": {
+      "get": {
+        "operationId": "getFtpEstimate",
+        "tags": [
+          "athlete"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonSuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/athletes/me/performance-settings": {
+      "get": {
+        "operationId": "getPerformanceSettings",
+        "tags": [
+          "athlete"
+        ],
+        "responses": {
+          "200": {
+            "description": "Athlete performance settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AthletePerformanceSettings"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updatePerformanceSettings",
+        "tags": [
+          "athlete"
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated athlete performance settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AthletePerformanceSettings"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AthletePerformanceSettings"
+              }
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/athletes/me/heart-rate-zones": {
+      "get": {
+        "operationId": "getHeartRateZones",
+        "tags": [
+          "athlete"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeartRateZoneSettings"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateHeartRateZones",
+        "tags": [
+          "athlete"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeartRateZoneSettings"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HeartRateZoneSettings"
+              }
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/activities": {
+      "get": {
+        "operationId": "listActivities",
+        "tags": [
+          "activities"
+        ],
+        "responses": {
+          "200": {
+            "description": "Activities",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActivitySummary"
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Calendar year; omitted means all years except on charts, where it is required."
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/activities/csv": {
+      "get": {
+        "operationId": "exportActivitiesCsv",
+        "tags": [
+          "activities"
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV export",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Calendar year; omitted means all years except on charts, where it is required."
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/activities/{activityId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ActivityId"
+        },
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ],
+      "get": {
+        "operationId": "getActivity",
+        "tags": [
+          "activities"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonSuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        },
+        "parameters": [
+          {
+            "name": "version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "raw returns uncorrected data; any other value uses corrected data."
+          }
+        ]
+      }
+    },
+    "/api/statistics": {
+      "get": {
+        "operationId": "getStatistics",
+        "tags": [
+          "statistics"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonArraySuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Calendar year; omitted means all years except on charts, where it is required."
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/statistics/personal-records-timeline": {
+      "get": {
+        "operationId": "getPersonalRecordsTimeline",
+        "tags": [
+          "statistics"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonArraySuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Calendar year; omitted means all years except on charts, where it is required."
+          },
+          {
+            "name": "metric",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/statistics/heart-rate-zones": {
+      "get": {
+        "operationId": "getHeartRateZoneAnalysis",
+        "tags": [
+          "statistics"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonSuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Calendar year; omitted means all years except on charts, where it is required."
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/statistics/segment-climb-progression": {
+      "get": {
+        "operationId": "getSegmentClimbProgression",
+        "tags": [
+          "statistics"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonSuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Calendar year; omitted means all years except on charts, where it is required."
+          },
+          {
+            "name": "metric",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/gear-analysis": {
+      "get": {
+        "operationId": "getGearAnalysis",
+        "tags": [
+          "gear"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonSuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Calendar year; omitted means all years except on charts, where it is required."
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/gear-analysis/maintenance": {
+      "post": {
+        "operationId": "createGearMaintenance",
+        "tags": [
+          "gear"
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/JsonSuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GearMaintenanceRequest"
+              }
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/gear-analysis/maintenance/{recordId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RecordId"
+        },
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ],
+      "delete": {
+        "operationId": "deleteGearMaintenance",
+        "tags": [
+          "gear"
+        ],
+        "responses": {
+          "204": {
+            "description": "Maintenance record deleted; no response body.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/segments": {
+      "get": {
+        "operationId": "listSegments",
+        "tags": [
+          "segments"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonArraySuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Calendar year; omitted means all years except on charts, where it is required."
+          },
+          {
+            "name": "metric",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/segments/{segmentId}/efforts": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/SegmentId"
+        },
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ],
+      "get": {
+        "operationId": "listSegmentEfforts",
+        "tags": [
+          "segments"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonArraySuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Calendar year; omitted means all years except on charts, where it is required."
+          },
+          {
+            "name": "metric",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ]
+      }
+    },
+    "/api/segments/{segmentId}/summary": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/SegmentId"
+        },
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ],
+      "get": {
+        "operationId": "getSegmentSummary",
+        "tags": [
+          "segments"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonSuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Calendar year; omitted means all years except on charts, where it is required."
+          },
+          {
+            "name": "metric",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ]
+      }
+    },
+    "/api/routes/recommendations": {
+      "get": {
+        "operationId": "getRouteRecommendations",
+        "tags": [
+          "routes"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonSuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Calendar year; omitted means all years except on charts, where it is required."
+          },
+          {
+            "name": "distanceTargetKm",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "elevationTargetM",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "durationTargetMin",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "startDirection",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "startLat",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "startLng",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "routeType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "season",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "shape",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "shapePolyline",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeRemix",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 6
+            }
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/routes/recommendations/gpx": {
+      "get": {
+        "operationId": "exportRouteRecommendationGpx",
+        "tags": [
+          "routes"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GpxSuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Calendar year; omitted means all years except on charts, where it is required."
+          },
+          {
+            "name": "distanceTargetKm",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "elevationTargetM",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "durationTargetMin",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "startDirection",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "startLat",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "startLng",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "routeType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "season",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "shape",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "shapePolyline",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeRemix",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 6
+            }
+          },
+          {
+            "name": "routeId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/routes/generate/shape": {
+      "post": {
+        "operationId": "generateShapeRoutes",
+        "tags": [
+          "routes"
+        ],
+        "responses": {
+          "200": {
+            "description": "Generated route proposals and diagnostics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateRoutesResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Calendar year; omitted means all years except on charts, where it is required."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateShapeRoutesRequest"
+              }
+            }
+          }
+        },
+        "description": "Returns 200 with routes and diagnostics even when no usable proposal is found. No candidate is not an HTTP server error."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/routes/{routeId}/edit": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RouteId"
+        },
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ],
+      "post": {
+        "operationId": "editGeneratedRoute",
+        "tags": [
+          "routes"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditGeneratedRouteResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "description": "Routing engine unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditGeneratedRouteRequest"
+              }
+            }
+          }
+        },
+        "description": "Calculates an edited proposal with a new route ID. Does not modify a persisted resource in place."
+      }
+    },
+    "/api/routes/{routeId}/gpx": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RouteId"
+        },
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ],
+      "get": {
+        "operationId": "exportGeneratedRouteGpx",
+        "tags": [
+          "routes"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GpxSuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/routing/osrm/start": {
+      "post": {
+        "operationId": "startOsrm",
+        "tags": [
+          "routing"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonSuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "403": {
+            "description": "OSRM control failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "OSRM control failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "OSRM control failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/maps/gpx": {
+      "get": {
+        "operationId": "getMapTracks",
+        "tags": [
+          "maps"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonArraySuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Calendar year; omitted means all years except on charts, where it is required."
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/maps/passages": {
+      "get": {
+        "operationId": "getMapPassages",
+        "tags": [
+          "maps"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonSuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Calendar year; omitted means all years except on charts, where it is required."
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/charts/distance-by-period": {
+      "get": {
+        "operationId": "getDistanceChart",
+        "tags": [
+          "charts"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonArraySuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Calendar year; omitted means all years except on charts, where it is required."
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "MONTHS",
+                "WEEKS",
+                "DAYS"
+              ]
+            }
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/charts/elevation-by-period": {
+      "get": {
+        "operationId": "getElevationChart",
+        "tags": [
+          "charts"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonArraySuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Calendar year; omitted means all years except on charts, where it is required."
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "MONTHS",
+                "WEEKS",
+                "DAYS"
+              ]
+            }
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/charts/average-speed-by-period": {
+      "get": {
+        "operationId": "getAverageSpeedChart",
+        "tags": [
+          "charts"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonArraySuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Calendar year; omitted means all years except on charts, where it is required."
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "MONTHS",
+                "WEEKS",
+                "DAYS"
+              ]
+            }
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/charts/average-cadence-by-period": {
+      "get": {
+        "operationId": "getAverageCadenceChart",
+        "tags": [
+          "charts"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonArraySuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Calendar year; omitted means all years except on charts, where it is required."
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "MONTHS",
+                "WEEKS",
+                "DAYS"
+              ]
+            }
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/dashboard": {
+      "get": {
+        "operationId": "getDashboard",
+        "tags": [
+          "dashboard"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonSuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/dashboard/cumulative-data-per-year": {
+      "get": {
+        "operationId": "getCumulativeData",
+        "tags": [
+          "dashboard"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonSuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/dashboard/eddington-number": {
+      "get": {
+        "operationId": "getEddingtonNumber",
+        "tags": [
+          "dashboard"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonSuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Calendar year; omitted means all years except on charts, where it is required."
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "lifetime",
+                "year",
+                "rolling-12-months"
+              ],
+              "default": "lifetime"
+            },
+            "description": "The year scope requires the year parameter."
+          },
+          {
+            "name": "metric",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "distance",
+                "elevation"
+              ],
+              "default": "distance"
+            }
+          },
+          {
+            "name": "basis",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "days",
+                "activities"
+              ],
+              "default": "days"
+            }
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/dashboard/activity-heatmap": {
+      "get": {
+        "operationId": "getActivityHeatmap",
+        "tags": [
+          "dashboard"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonSuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/badges": {
+      "get": {
+        "operationId": "getBadges",
+        "tags": [
+          "badges"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonArraySuccess"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Strava activity types separated by underscores, for example Ride_GravelRide. Case-sensitive."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Calendar year; omitted means all years except on charts, where it is required."
+          },
+          {
+            "name": "badgeSet",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ]
+    },
+    "/api/data-quality/corrections/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Issue ID for POST; applied correction ID for DELETE.",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "$ref": "#/components/parameters/RequestId"
+        }
+      ],
+      "post": {
+        "operationId": "applyDataQualityCorrection",
+        "tags": [
+          "data-quality"
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated data-quality report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataQualityReport"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "revertDataQualityCorrection",
+        "tags": [
+          "data-quality"
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated data-quality report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataQualityReport"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    }
   },
   "components": {
     "parameters": {
-      "ActivityId": {"name": "activityId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}},
-      "IssueId": {"name": "issueId", "in": "path", "required": true, "schema": {"type": "string"}},
-      "CorrectionId": {"name": "correctionId", "in": "path", "required": true, "schema": {"type": "string"}},
-      "RecordId": {"name": "recordId", "in": "path", "required": true, "schema": {"type": "string"}},
-      "SegmentId": {"name": "segmentId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}},
-      "RouteId": {"name": "routeId", "in": "path", "required": true, "schema": {"type": "string"}}
+      "ActivityId": {
+        "name": "activityId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "IssueId": {
+        "name": "issueId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "CorrectionId": {
+        "name": "correctionId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "RecordId": {
+        "name": "recordId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "SegmentId": {
+        "name": "segmentId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "RouteId": {
+        "name": "routeId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "RequestId": {
+        "name": "X-Request-Id",
+        "in": "header",
+        "required": false,
+        "description": "Echoed when it matches the pattern; otherwise a new ID is generated.",
+        "schema": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+        }
+      }
     },
     "responses": {
-      "JsonSuccess": {"description": "Successful JSON response", "content": {"application/json": {"schema": {"type": "object", "additionalProperties": true}}}},
-      "GpxSuccess": {"description": "GPX document", "content": {"application/gpx+xml": {"schema": {"type": "string"}}}}
+      "JsonSuccess": {
+        "description": "Successful JSON response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        },
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        }
+      },
+      "GpxSuccess": {
+        "description": "GPX document",
+        "content": {
+          "application/gpx+xml": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        },
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        }
+      },
+      "JsonArraySuccess": {
+        "description": "JSON collection (empty collection is []).",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        }
+      },
+      "BadRequest": {
+        "description": "Invalid parameters or malformed JSON",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            }
+          }
+        },
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource or API endpoint not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            }
+          }
+        },
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        }
+      },
+      "MethodNotAllowed": {
+        "description": "HTTP method not supported",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            }
+          }
+        },
+        "headers": {
+          "Allow": {
+            "description": "Supported HTTP methods",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        }
+      },
+      "InternalError": {
+        "description": "Internal server error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            }
+          }
+        },
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Cross-origin mutation rejected",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            }
+          }
+        },
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        }
+      }
     },
     "schemas": {
-      "ApiError": {"type": "object", "required": ["message", "code"], "properties": {"message": {"type": "string"}, "code": {"type": "integer"}, "description": {"type": "string"}, "path": {"type": "string", "nullable": true}, "requestId": {"type": "string", "nullable": true}}},
-      "RouteCoordinate": {"type": "object", "required": ["lat", "lng"], "properties": {"lat": {"type": "number"}, "lng": {"type": "number"}}},
-      "RouteGenerationDiagnostic": {"type": "object", "required": ["code", "message"], "properties": {"code": {"type": "string"}, "message": {"type": "string"}}},
-      "SourceModeSelection": {"type": "object", "required": ["mode"], "properties": {"mode": {"type": "string", "enum": ["STRAVA", "FIT", "GPX"]}, "path": {"type": "string", "nullable": true}}},
-      "OperationStatus": {"type": "object", "required": ["success"], "properties": {"success": {"type": "boolean"}, "message": {"type": "string", "nullable": true}}},
-      "ActivitySummary": {"type": "object", "required": ["id", "name", "type"], "properties": {"id": {"type": "integer", "format": "int64"}, "name": {"type": "string"}, "type": {"type": "string"}, "date": {"type": "string", "nullable": true}, "distance": {"type": "number", "nullable": true}}},
-      "RouteGenerationScore": {"type": "object", "required": ["global", "distance", "elevation", "duration", "direction", "shape", "roadFitness"], "properties": {"global": {"type": "number"}, "distance": {"type": "number"}, "elevation": {"type": "number"}, "duration": {"type": "number"}, "direction": {"type": "number"}, "shape": {"type": "number"}, "roadFitness": {"type": "number"}}},
-      "GeneratedRoute": {"type": "object", "required": ["routeId", "title", "variantType", "distanceKm", "elevationGainM", "durationSec", "estimatedDurationSec", "score", "reasons", "previewLatLng", "isRoadGraphGenerated"], "properties": {"routeId": {"type": "string"}, "title": {"type": "string"}, "variantType": {"type": "string"}, "routeType": {"type": "string", "nullable": true}, "distanceKm": {"type": "number"}, "elevationGainM": {"type": "number"}, "durationSec": {"type": "integer"}, "estimatedDurationSec": {"type": "integer"}, "score": {"$ref": "#/components/schemas/RouteGenerationScore"}, "reasons": {"type": "array", "items": {"type": "string"}}, "previewLatLng": {"type": "array", "items": {"type": "array", "items": {"type": "number"}}}, "start": {"$ref": "#/components/schemas/RouteCoordinate", "nullable": true}, "end": {"$ref": "#/components/schemas/RouteCoordinate", "nullable": true}, "activityId": {"type": "integer", "format": "int64", "nullable": true}, "isRoadGraphGenerated": {"type": "boolean"}}},
-      "GenerateRoutesResponse": {"type": "object", "required": ["routes"], "properties": {"routes": {"type": "array", "items": {"$ref": "#/components/schemas/GeneratedRoute"}}, "diagnostics": {"type": "array", "items": {"$ref": "#/components/schemas/RouteGenerationDiagnostic"}}}},
-      "AthleteFtpSetting": {"type": "object", "required": ["effectiveFrom", "ftp"], "properties": {"effectiveFrom": {"type": "string", "format": "date"}, "ftp": {"type": "integer"}}},
-      "AthletePerformanceSettings": {"type": "object", "required": ["ftpHistory"], "properties": {"ftpHistory": {"type": "array", "items": {"$ref": "#/components/schemas/AthleteFtpSetting"}}, "weightKg": {"type": "number", "nullable": true}}},
-      "DataQualityIssue": {"type": "object", "required": ["id", "source", "severity", "category", "field", "message"], "properties": {"id": {"type": "string"}, "source": {"type": "string"}, "activityId": {"type": "integer", "format": "int64", "nullable": true}, "activityName": {"type": "string", "nullable": true}, "severity": {"type": "string"}, "category": {"type": "string"}, "field": {"type": "string"}, "message": {"type": "string"}, "excludedFromStats": {"type": "boolean"}}},
-      "DataQualitySummary": {"type": "object", "required": ["status", "issueCount", "impactedActivities", "excludedActivities"], "properties": {"status": {"type": "string"}, "provider": {"type": "string", "nullable": true}, "issueCount": {"type": "integer"}, "impactedActivities": {"type": "integer"}, "excludedActivities": {"type": "integer"}, "safeCorrectionCount": {"type": "integer"}, "manualReviewCount": {"type": "integer"}}},
-      "DataQualityReport": {"type": "object", "required": ["summary", "issues"], "properties": {"generatedAt": {"type": "string", "nullable": true}, "summary": {"$ref": "#/components/schemas/DataQualitySummary"}, "issues": {"type": "array", "items": {"$ref": "#/components/schemas/DataQualityIssue"}}}}
+      "ApiError": {
+        "type": "object",
+        "required": [
+          "message",
+          "description",
+          "code",
+          "requestId"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "code": {
+            "type": "integer",
+            "description": "Legacy application code: 1 for API errors, 403 for an origin rejection. Use the HTTP status for error classification."
+          },
+          "description": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          }
+        }
+      },
+      "RouteCoordinate": {
+        "type": "object",
+        "required": [
+          "lat",
+          "lng"
+        ],
+        "properties": {
+          "lat": {
+            "type": "number"
+          },
+          "lng": {
+            "type": "number"
+          }
+        }
+      },
+      "RouteGenerationDiagnostic": {
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "SourceModeSelection": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "STRAVA",
+              "FIT",
+              "GPX"
+            ],
+            "default": "STRAVA"
+          },
+          "path": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "OperationStatus": {
+        "type": "object",
+        "required": [
+          "success"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ActivitySummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "type"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "nullable": true
+          },
+          "distance": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      },
+      "RouteGenerationScore": {
+        "type": "object",
+        "required": [
+          "global",
+          "distance",
+          "elevation",
+          "duration",
+          "direction",
+          "shape",
+          "roadFitness"
+        ],
+        "properties": {
+          "global": {
+            "type": "number"
+          },
+          "distance": {
+            "type": "number"
+          },
+          "elevation": {
+            "type": "number"
+          },
+          "duration": {
+            "type": "number"
+          },
+          "direction": {
+            "type": "number"
+          },
+          "shape": {
+            "type": "number"
+          },
+          "roadFitness": {
+            "type": "number"
+          }
+        }
+      },
+      "GeneratedRoute": {
+        "type": "object",
+        "required": [
+          "routeId",
+          "title",
+          "variantType",
+          "distanceKm",
+          "elevationGainM",
+          "durationSec",
+          "estimatedDurationSec",
+          "score",
+          "reasons",
+          "previewLatLng",
+          "isRoadGraphGenerated"
+        ],
+        "properties": {
+          "routeId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "variantType": {
+            "type": "string"
+          },
+          "routeType": {
+            "type": "string",
+            "nullable": true
+          },
+          "distanceKm": {
+            "type": "number"
+          },
+          "elevationGainM": {
+            "type": "number"
+          },
+          "durationSec": {
+            "type": "integer"
+          },
+          "estimatedDurationSec": {
+            "type": "integer"
+          },
+          "score": {
+            "$ref": "#/components/schemas/RouteGenerationScore"
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "previewLatLng": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          },
+          "start": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RouteCoordinate"
+              }
+            ]
+          },
+          "end": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RouteCoordinate"
+              }
+            ]
+          },
+          "activityId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "isRoadGraphGenerated": {
+            "type": "boolean"
+          }
+        }
+      },
+      "GenerateRoutesResponse": {
+        "type": "object",
+        "required": [
+          "routes"
+        ],
+        "properties": {
+          "routes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GeneratedRoute"
+            }
+          },
+          "diagnostics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RouteGenerationDiagnostic"
+            }
+          }
+        }
+      },
+      "AthleteFtpSetting": {
+        "type": "object",
+        "required": [
+          "effectiveFrom",
+          "ftp"
+        ],
+        "properties": {
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "ftp": {
+            "type": "integer"
+          }
+        }
+      },
+      "AthletePerformanceSettings": {
+        "type": "object",
+        "required": [
+          "ftpHistory"
+        ],
+        "properties": {
+          "ftpHistory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AthleteFtpSetting"
+            }
+          },
+          "weightKg": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      },
+      "DataQualityIssue": {
+        "type": "object",
+        "required": [
+          "id",
+          "source",
+          "severity",
+          "category",
+          "field",
+          "message"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "activityId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "activityName": {
+            "type": "string",
+            "nullable": true
+          },
+          "severity": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "field": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "excludedFromStats": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DataQualitySummary": {
+        "type": "object",
+        "required": [
+          "status",
+          "issueCount",
+          "impactedActivities",
+          "excludedActivities"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string",
+            "nullable": true
+          },
+          "issueCount": {
+            "type": "integer"
+          },
+          "impactedActivities": {
+            "type": "integer"
+          },
+          "excludedActivities": {
+            "type": "integer"
+          },
+          "safeCorrectionCount": {
+            "type": "integer"
+          },
+          "manualReviewCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "DataQualityReport": {
+        "type": "object",
+        "required": [
+          "summary",
+          "issues"
+        ],
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "summary": {
+            "$ref": "#/components/schemas/DataQualitySummary"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataQualityIssue"
+            }
+          }
+        }
+      },
+      "HeartRateZoneSettings": {
+        "type": "object",
+        "properties": {
+          "maxHr": {
+            "type": "integer",
+            "nullable": true
+          },
+          "thresholdHr": {
+            "type": "integer",
+            "nullable": true
+          },
+          "reserveHr": {
+            "type": "integer",
+            "nullable": true
+          }
+        }
+      },
+      "DataQualityExclusionRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "LocalDataBackup": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "exportedAt": {
+            "type": "string"
+          },
+          "athleteId": {
+            "type": "string"
+          },
+          "files": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "version",
+          "exportedAt",
+          "athleteId",
+          "files"
+        ]
+      },
+      "LocalDataRestoreResult": {
+        "type": "object",
+        "properties": {
+          "restored": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "restored"
+        ]
+      },
+      "StravaOAuthStartRequest": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "clientSecret": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "useCache": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "GenerateShapeRoutesRequest": {
+        "type": "object",
+        "properties": {
+          "shapeInputType": {
+            "type": "string",
+            "enum": [
+              "draw",
+              "gpx",
+              "svg",
+              "polyline"
+            ]
+          },
+          "shapeData": {
+            "type": "string",
+            "minLength": 1
+          },
+          "startPoint": {
+            "$ref": "#/components/schemas/RouteCoordinate"
+          },
+          "routeType": {
+            "type": "string",
+            "description": "Defaults to ROAD when omitted."
+          },
+          "variantCount": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 24
+          }
+        },
+        "required": [
+          "shapeInputType",
+          "shapeData"
+        ]
+      },
+      "EditGeneratedRouteRequest": {
+        "type": "object",
+        "properties": {
+          "routeType": {
+            "type": "string"
+          },
+          "controlPoints": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "$ref": "#/components/schemas/RouteCoordinate"
+            }
+          }
+        },
+        "required": [
+          "controlPoints"
+        ]
+      },
+      "EditGeneratedRouteResponse": {
+        "type": "object",
+        "properties": {
+          "route": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GeneratedRoute"
+              }
+            ],
+            "nullable": true,
+            "type": "object"
+          },
+          "controlPoints": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RouteCoordinate"
+            }
+          },
+          "diagnostics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RouteGenerationDiagnostic"
+            }
+          }
+        },
+        "required": [
+          "controlPoints",
+          "diagnostics"
+        ]
+      },
+      "GearMaintenanceRequest": {
+        "type": "object",
+        "properties": {
+          "gearId": {
+            "type": "string"
+          },
+          "component": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "distance": {
+            "type": "number",
+            "default": 0
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "SourceSyncResult": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string"
+          },
+          "completedAt": {
+            "type": "string"
+          },
+          "durationMs": {
+            "type": "integer"
+          },
+          "reloaded": {
+            "type": "boolean"
+          },
+          "fit": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "status",
+          "reason",
+          "message",
+          "startedAt",
+          "completedAt",
+          "durationMs",
+          "reloaded",
+          "fit"
+        ]
+      }
+    },
+    "headers": {
+      "RequestId": {
+        "description": "Request correlation identifier, also included in JSON errors.",
+        "schema": {
+          "type": "string"
+        }
+      }
     }
   }
 }
