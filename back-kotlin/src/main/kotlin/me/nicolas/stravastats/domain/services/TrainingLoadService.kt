@@ -33,7 +33,7 @@ object TrainingReports {
             val start = monday.minusDays(offset*7L)
             LoadWeek(period(start,start.plusDays(6),rows), (0..6).map { period(start.plusDays(it.toLong()),start.plusDays(it.toLong()),rows) })
         }
-        return Report("power-duration-v1",PowerTimeline.MAX_GAP_SECONDS,undated,weeks,rows)
+        return Report("power-duration-v2",PowerTimeline.MAX_GAP_SECONDS,undated,weeks,rows)
     }
     private fun calculate(a: StravaActivity, date: String, settings: AthletePerformanceSettings): LoadActivity {
         val row = LoadActivity(activityId=a.id,name=a.name,date=date,sport=a.type,source=if(a.deviceWatts) "measured" else "estimated",
@@ -64,15 +64,38 @@ object TrainingReports {
         row.best5MinutePower=timeline.best(300)?.average
         row.normalizedPower=timeline.normalized()
         row.reason=when {
-            row.coveredSeconds<row.recordedSeconds -> "power-gaps"
-            row.recordedSeconds<30 -> "too-short"
-            times.first()!=0 || a.elapsedTime<=0 || abs(times.last().toDouble()-a.elapsedTime)>1 -> "incomplete-activity"
+            row.ftp==null && row.coveredSeconds<row.recordedSeconds -> "power-gaps"
+            row.ftp==null && row.recordedSeconds<30 -> "too-short"
+            row.ftp==null && (times.first()!=0 || a.elapsedTime<=0 || abs(times.last().toDouble()-a.elapsedTime)>1) -> "incomplete-activity"
             row.ftp==null -> "missing-dated-ftp"
-            row.normalizedPower==null -> "missing-power"
-            else -> {
+            row.normalizedPower!=null && times.first()==0 && a.elapsedTime>0 && abs(times.last().toDouble()-a.elapsedTime)<=1 -> {
                 val intensity=row.normalizedPower!!/row.ftp!!
                 row.intensityFactor=intensity;row.load=row.coveredSeconds/3600*intensity*intensity*100
+                row.scoredSeconds=row.coveredSeconds
                 "available"
+            }
+            else -> {
+                var first=0
+                var partialLoad=0.0
+                for(i in 0..times.lastIndex) {
+                    if(i<times.lastIndex && timeline.intervalValid(i)) continue
+                    if(i>first && times[i]-times[first]>=30) {
+                        val span=PowerTimeline(timeline.watts.subList(first,i+1),times.subList(first,i+1))
+                        span.normalized()?.let { np ->
+                            val seconds=(times[i]-times[first]).toDouble()
+                            row.scoredSeconds+=seconds
+                            partialLoad+=seconds/3600*(np/row.ftp!!)*(np/row.ftp!!)*100
+                        }
+                    }
+                    first=i+1
+                }
+                when {
+                    row.scoredSeconds>=30 -> {row.load=partialLoad;"partial"}
+                    row.coveredSeconds<row.recordedSeconds -> "power-gaps"
+                    row.recordedSeconds<30 -> "too-short"
+                    times.first()!=0 || a.elapsedTime<=0 || abs(times.last().toDouble()-a.elapsedTime)>1 -> "incomplete-activity"
+                    else -> "missing-power"
+                }
             }
         }
         return row
@@ -81,10 +104,13 @@ object TrainingReports {
         val p=LoadPeriod(startDate=start.toString(),endDate=end.toString())
         for(row in rows.filter { it.date>=p.startDate && it.date<=p.endDate }) {
             p.activityCount++;p.movingSeconds+=row.movingSeconds;p.distanceMeters+=row.distanceMeters;p.elevationMeters+=row.elevationMeters
-            p.coveredSeconds+=row.coveredSeconds;p.recordedSeconds+=row.recordedSeconds
+            p.coveredSeconds+=row.coveredSeconds;p.scoredSeconds+=row.scoredSeconds;p.recordedSeconds+=row.recordedSeconds
             row.load?.let { load ->
                 p.scoredCount++
-                if(row.source=="measured") p.measuredLoad=(p.measuredLoad ?: 0.0)+load else p.estimatedLoad=(p.estimatedLoad ?: 0.0)+load
+                if(row.reason=="partial") {
+                    p.partialCount++
+                    if(row.source=="measured") p.partialMeasuredLoad=(p.partialMeasuredLoad ?: 0.0)+load else p.partialEstimatedLoad=(p.partialEstimatedLoad ?: 0.0)+load
+                } else if(row.source=="measured") p.measuredLoad=(p.measuredLoad ?: 0.0)+load else p.estimatedLoad=(p.estimatedLoad ?: 0.0)+load
             }
             if(row.source=="measured") {
                 p.aerobicSeconds+=row.aerobicSeconds;p.thresholdSeconds+=row.thresholdSeconds;p.highIntensitySeconds+=row.highIntensitySeconds

@@ -37,6 +37,7 @@ type LoadActivity struct {
 	ElapsedSeconds       int      `json:"elapsedSeconds"`
 	RecordedSeconds      float64  `json:"recordedSeconds"`
 	CoveredSeconds       float64  `json:"coveredSeconds"`
+	ScoredSeconds        float64  `json:"scoredSeconds"`
 	DistanceMeters       float64  `json:"distanceMeters"`
 	ElevationMeters      float64  `json:"elevationMeters"`
 	AerobicSeconds       float64  `json:"aerobicSeconds"`
@@ -48,12 +49,16 @@ type LoadPeriod struct {
 	EndDate               string   `json:"endDate"`
 	ActivityCount         int      `json:"activityCount"`
 	ScoredCount           int      `json:"scoredCount"`
+	PartialCount          int      `json:"partialCount"`
 	MeasuredLoad          *float64 `json:"measuredLoad"`
 	EstimatedLoad         *float64 `json:"estimatedLoad"`
+	PartialMeasuredLoad   *float64 `json:"partialMeasuredLoad"`
+	PartialEstimatedLoad  *float64 `json:"partialEstimatedLoad"`
 	MovingSeconds         int      `json:"movingSeconds"`
 	DistanceMeters        float64  `json:"distanceMeters"`
 	ElevationMeters       float64  `json:"elevationMeters"`
 	CoveredSeconds        float64  `json:"coveredSeconds"`
+	ScoredSeconds         float64  `json:"scoredSeconds"`
 	RecordedSeconds       float64  `json:"recordedSeconds"`
 	AerobicSeconds        float64  `json:"aerobicSeconds"`
 	ThresholdSeconds      float64  `json:"thresholdSeconds"`
@@ -95,7 +100,7 @@ func BuildReport(date time.Time, activities []*strava.Activity, settings busines
 	start := Monday(date)
 	from := start.AddDate(0, 0, -28)
 	until := start.AddDate(0, 0, 7)
-	report := Report{Method: "power-duration-v1", MaxGapSeconds: strava.MaxPowerGapSeconds, Weeks: []LoadWeek{}, Activities: []LoadActivity{}}
+	report := Report{Method: "power-duration-v2", MaxGapSeconds: strava.MaxPowerGapSeconds, Weeks: []LoadWeek{}, Activities: []LoadActivity{}}
 	for _, activity := range activities {
 		if activity == nil {
 			continue
@@ -183,22 +188,51 @@ func calculateActivity(a *strava.Activity, date string, settings business.Athlet
 	}
 	row.NormalizedPower = timeline.Normalized()
 	switch {
-	case row.CoveredSeconds < row.RecordedSeconds:
+	case row.FTP == nil && row.CoveredSeconds < row.RecordedSeconds:
 		row.Reason = "power-gaps"
-	case row.RecordedSeconds < 30:
+	case row.FTP == nil && row.RecordedSeconds < 30:
 		row.Reason = "too-short"
-	case times[0] != 0 || a.ElapsedTime <= 0 || math.Abs(float64(times[len(times)-1]-a.ElapsedTime)) > 1:
+	case row.FTP == nil && (times[0] != 0 || a.ElapsedTime <= 0 || math.Abs(float64(times[len(times)-1]-a.ElapsedTime)) > 1):
 		row.Reason = "incomplete-activity"
 	case row.FTP == nil:
 		row.Reason = "missing-dated-ftp"
-	case row.NormalizedPower == nil:
-		row.Reason = "missing-power"
-	default:
+	case row.NormalizedPower != nil && times[0] == 0 && a.ElapsedTime > 0 && math.Abs(float64(times[len(times)-1]-a.ElapsedTime)) <= 1:
 		intensity := *row.NormalizedPower / float64(*row.FTP)
 		load := row.CoveredSeconds / 3600 * intensity * intensity * 100
 		row.IntensityFactor = &intensity
 		row.Load = &load
+		row.ScoredSeconds = row.CoveredSeconds
 		row.Reason = "available"
+	default:
+		// Score each uninterrupted span separately. A missing interval never
+		// contributes time or power to a 30-second rolling window.
+		load := 0.0
+		for first, i := 0, 0; i <= len(times)-1; i++ {
+			if i < len(times)-1 && timeline.IntervalValid(i) {
+				continue
+			}
+			if i > first && times[i]-times[first] >= 30 {
+				span := strava.NewPowerTimeline(timeline.Watts[first:i+1], times[first:i+1])
+				if np := span.Normalized(); np != nil {
+					seconds := float64(times[i] - times[first])
+					row.ScoredSeconds += seconds
+					load += seconds / 3600 * math.Pow(*np/float64(*row.FTP), 2) * 100
+				}
+			}
+			first = i + 1
+		}
+		if row.ScoredSeconds >= 30 {
+			row.Load = &load
+			row.Reason = "partial"
+		} else if row.CoveredSeconds < row.RecordedSeconds {
+			row.Reason = "power-gaps"
+		} else if row.RecordedSeconds < 30 {
+			row.Reason = "too-short"
+		} else if times[0] != 0 || a.ElapsedTime <= 0 || math.Abs(float64(times[len(times)-1]-a.ElapsedTime)) > 1 {
+			row.Reason = "incomplete-activity"
+		} else {
+			row.Reason = "missing-power"
+		}
 	}
 	return row
 }
@@ -220,10 +254,18 @@ func period(start, end time.Time, rows []LoadActivity) LoadPeriod {
 		p.DistanceMeters += row.DistanceMeters
 		p.ElevationMeters += row.ElevationMeters
 		p.CoveredSeconds += row.CoveredSeconds
+		p.ScoredSeconds += row.ScoredSeconds
 		p.RecordedSeconds += row.RecordedSeconds
 		if row.Load != nil {
 			p.ScoredCount++
-			if row.Source == "measured" {
+			if row.Reason == "partial" {
+				p.PartialCount++
+				if row.Source == "measured" {
+					add(&p.PartialMeasuredLoad, *row.Load)
+				} else {
+					add(&p.PartialEstimatedLoad, *row.Load)
+				}
+			} else if row.Source == "measured" {
 				add(&p.MeasuredLoad, *row.Load)
 			} else {
 				add(&p.EstimatedLoad, *row.Load)

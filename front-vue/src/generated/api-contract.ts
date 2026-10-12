@@ -540,7 +540,7 @@ export interface TrainingLoadActivity {
   date: string;
   sport: string;
   source: "measured" | "estimated" | "unavailable";
-  reason: "available" | "unsupported-sport" | "missing-power" | "invalid-time" | "power-gaps" | "too-short" | "incomplete-activity" | "missing-dated-ftp";
+  reason: "available" | "unsupported-sport" | "missing-power" | "invalid-time" | "power-gaps" | "too-short" | "incomplete-activity" | "missing-dated-ftp" | "partial";
   load: number | null;
   ftp: number | null;
   ftpEffectiveFrom: string | null;
@@ -556,6 +556,7 @@ export interface TrainingLoadActivity {
   aerobicSeconds: number;
   thresholdSeconds: number;
   highIntensitySeconds: number;
+  scoredSeconds: number;
 }
 
 export interface TrainingLoadPeriod {
@@ -575,6 +576,10 @@ export interface TrainingLoadPeriod {
   highIntensitySeconds: number;
   best5MinutePower: number | null;
   best5MinuteActivityId: number | null;
+  partialCount: number;
+  partialMeasuredLoad: number | null;
+  partialEstimatedLoad: number | null;
+  scoredSeconds: number;
 }
 
 export interface TrainingLoadWeek {

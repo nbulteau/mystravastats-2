@@ -558,6 +558,7 @@ type ContractTrainingLoadActivity struct {
 	AerobicSeconds       float64  `json:"aerobicSeconds"`
 	ThresholdSeconds     float64  `json:"thresholdSeconds"`
 	HighIntensitySeconds float64  `json:"highIntensitySeconds"`
+	ScoredSeconds        float64  `json:"scoredSeconds"`
 }
 
 type ContractTrainingLoadPeriod struct {
@@ -577,6 +578,10 @@ type ContractTrainingLoadPeriod struct {
 	HighIntensitySeconds  float64  `json:"highIntensitySeconds"`
 	Best5MinutePower      *float64 `json:"best5MinutePower"`
 	Best5MinuteActivityId *int64   `json:"best5MinuteActivityId"`
+	PartialCount          int64    `json:"partialCount"`
+	PartialMeasuredLoad   *float64 `json:"partialMeasuredLoad"`
+	PartialEstimatedLoad  *float64 `json:"partialEstimatedLoad"`
+	ScoredSeconds         float64  `json:"scoredSeconds"`
 }
 
 type ContractTrainingLoadWeek struct {

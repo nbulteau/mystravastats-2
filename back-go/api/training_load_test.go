@@ -2,13 +2,13 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"math"
 	"mystravastats/internal/shared/domain/business"
 	"mystravastats/internal/shared/domain/strava"
 	training "mystravastats/internal/training/application"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"testing"
 )
 
@@ -65,7 +65,7 @@ func TestTrainingLoadSharedHTTPFixtures(t *testing.T) {
 				found := false
 				for _, raw := range body["activities"].([]any) {
 					row := raw.(map[string]any)
-					if fmt.Sprint(row["activityId"]) == id {
+					if strconv.FormatInt(int64(row["activityId"].(float64)), 10) == id {
 						found = true
 						assertTrainingSubset(t, expected, row)
 					}

@@ -178,23 +178,29 @@ Activities without a usable date cannot be assigned and are counted separately.
 Data-quality exclusions are respected. The endpoint reads available streams; it
 never starts a source synchronization or substitutes summary watts for samples.
 
-The `power-duration-v1` score is observed hours × (normalized power / FTP)² × 100.
-It applies to cycling only and requires a complete power recording >=30 seconds,
-a first timestamp of zero and an end within one second of the activity elapsed
-end. No final second is invented. The 10-second interval policy and continuous
-normalized-power estimator above apply. FTP is the last valid, positive manual
+The `power-duration-v2` score is observed hours × (normalized power / FTP)² × 100.
+It applies to cycling only. Complete load requires a fully covered recording of
+at least 30 seconds, a first timestamp of zero and an end within one second of
+the activity elapsed end. Otherwise, each continuous valid span of at least 30
+seconds is scored separately; the sum is marked `partial` and excluded from
+complete totals. Missing intervals and shorter spans are never extrapolated or
+scored. `scoredSeconds` is the time that actually contributed to the load;
+`coveredSeconds` may include shorter valid spans. No final second is invented.
+The 10-second interval policy and continuous normalized-power estimator above
+apply within each span. FTP is the last valid, positive manual
 history entry effective on or before the activity's local date. Current profile
-FTP and undated estimates never provide retrospective load. Detail-page power
-load uses these same eligibility rules; its other profile-based power metrics
-remain independent estimates.
+FTP and undated estimates never provide retrospective load. The activity detail
+page still shows complete load only; its other profile-based power metrics remain
+independent estimates.
 
 Each activity returns its source (`measured`, `estimated`, `unavailable`), score,
 FTP/date, normalized power, intensity factor, covered/recorded/elapsed seconds and
 an explicit availability reason. A measured zero produces a zero score; missing
 load remains null. Unsupported sports and missing-power activities retain their
 volume/elevation contributions. No heart-rate score is combined with power load.
-Measured and estimated totals are separate; `scoredCount / activityCount` must
-accompany totals. A period with no calculated load returns null, including a week
+Measured and estimated totals are separate, as are complete and partial totals.
+`partialCount` identifies scored activities whose load omits unobserved time;
+`scoredCount / activityCount` must accompany totals. A period with no calculated load returns null, including a week
 without recorded activities: this is not proof of rest.
 
 Intensity totals cover measured-power intervals with dated FTP only, including

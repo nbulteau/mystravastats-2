@@ -558,6 +558,7 @@ data class ContractTrainingLoadActivity(
     val aerobicSeconds: Double,
     val thresholdSeconds: Double,
     val highIntensitySeconds: Double,
+    val scoredSeconds: Double,
 )
 
 data class ContractTrainingLoadPeriod(
@@ -577,6 +578,10 @@ data class ContractTrainingLoadPeriod(
     val highIntensitySeconds: Double,
     val best5MinutePower: Double? = null,
     val best5MinuteActivityId: Long? = null,
+    val partialCount: Long,
+    val partialMeasuredLoad: Double? = null,
+    val partialEstimatedLoad: Double? = null,
+    val scoredSeconds: Double,
 )
 
 data class ContractTrainingLoadWeek(

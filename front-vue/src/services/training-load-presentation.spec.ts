@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { largestMeasuredContribution, loadNumber, shiftWeek, volumeComparison } from "./training-load-presentation";
+import { coverage, largestMeasuredContribution, loadNumber, shiftWeek, volumeComparison } from "./training-load-presentation";
 import type { TrainingLoadActivity, TrainingLoadPeriod } from "@/generated/api-contract";
 describe("weekly report explanations", () => {
   it("never formats missing load as a zero", () => { expect(loadNumber(null)).toBe("Unavailable");expect(loadNumber(0)).toBe("0.0"); });
@@ -10,7 +10,11 @@ describe("weekly report explanations", () => {
     expect(volumeComparison({movingSeconds:3600} as TrainingLoadPeriod,{activityCount:0} as TrainingLoadPeriod)).toContain("No activities recorded");
   });
   it("keeps estimates out of the largest measured contribution", () => {
-    const rows=[{source:"estimated",load:200},{source:"measured",load:null},{source:"measured",load:50,activityId:3}] as TrainingLoadActivity[];
+    const rows=[{source:"estimated",reason:"available",load:200},{source:"measured",reason:"partial",load:100},{source:"measured",reason:"available",load:50,activityId:3}] as TrainingLoadActivity[];
     expect(largestMeasuredContribution(rows)?.activityId).toBe(3);
+  });
+  it("shows scored coverage without treating missing time as load", () => {
+    expect(coverage(38605,41504)).toBe("93%");
+    expect(coverage(0,0)).toBe("Unavailable");
   });
 });

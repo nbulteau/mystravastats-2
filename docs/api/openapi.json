@@ -5552,7 +5552,8 @@
           "elevationMeters",
           "aerobicSeconds",
           "thresholdSeconds",
-          "highIntensitySeconds"
+          "highIntensitySeconds",
+          "scoredSeconds"
         ],
         "properties": {
           "activityId": {
@@ -5587,14 +5588,15 @@
               "power-gaps",
               "too-short",
               "incomplete-activity",
-              "missing-dated-ftp"
+              "missing-dated-ftp",
+              "partial"
             ]
           },
           "load": {
             "type": "number",
             "nullable": true,
             "minimum": 0,
-            "description": "Observed seconds / 3600 \u00d7 (normalized power / dated FTP)^2 \u00d7 100. Null means unavailable, zero is measured zero."
+            "description": "For available activities, full-recording load. For partial activities, sum of scores from continuous usable spans only. Null means unavailable."
           },
           "ftp": {
             "type": "integer",
@@ -5657,6 +5659,11 @@
           "highIntensitySeconds": {
             "type": "number",
             "minimum": 0
+          },
+          "scoredSeconds": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Seconds in continuous power spans of at least 30 seconds that contributed to load."
           }
         }
       },
@@ -5679,7 +5686,11 @@
           "thresholdSeconds",
           "highIntensitySeconds",
           "best5MinutePower",
-          "best5MinuteActivityId"
+          "best5MinuteActivityId",
+          "partialCount",
+          "partialMeasuredLoad",
+          "partialEstimatedLoad",
+          "scoredSeconds"
         ],
         "properties": {
           "startDate": {
@@ -5702,13 +5713,13 @@
             "type": "number",
             "nullable": true,
             "minimum": 0,
-            "description": "Sum of available scores from measured power only; null if none. Inspect scoredCount/activityCount for missing load."
+            "description": "Sum of complete measured-power loads only; null if none."
           },
           "estimatedLoad": {
             "type": "number",
             "nullable": true,
             "minimum": 0,
-            "description": "Separate sum from estimated power; never silently combined with measured load."
+            "description": "Sum of complete estimated-power loads only; null if none."
           },
           "movingSeconds": {
             "type": "integer",
@@ -5750,6 +5761,26 @@
           "best5MinuteActivityId": {
             "type": "integer",
             "nullable": true,
+            "minimum": 0
+          },
+          "partialCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "partialMeasuredLoad": {
+            "type": "number",
+            "minimum": 0,
+            "nullable": true,
+            "description": "Sum of partial measured-power loads; excluded from measuredLoad."
+          },
+          "partialEstimatedLoad": {
+            "type": "number",
+            "minimum": 0,
+            "nullable": true,
+            "description": "Sum of partial estimated-power loads; excluded from estimatedLoad."
+          },
+          "scoredSeconds": {
+            "type": "number",
             "minimum": 0
           }
         }
