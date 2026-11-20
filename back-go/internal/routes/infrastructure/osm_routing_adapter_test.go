@@ -1910,7 +1910,7 @@ func TestSelectCandidatesWithRelaxation_WhenAllLevelsReject_ThenBestEffortStillR
 	}
 }
 
-func TestSelectCandidatesWithRelaxation_WhenDirectionalStrictProfileRejectsAll_ThenDirectionalBestEffortCanReturnRoute(t *testing.T) {
+func TestSelectCandidatesWithRelaxation_StrictBacktrackingDoesNotUseDirectionalBestEffort(t *testing.T) {
 	// GIVEN
 	request := application.RoutingEngineRequest{
 		StartPoint:         routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000},
@@ -1937,12 +1937,36 @@ func TestSelectCandidatesWithRelaxation_WhenDirectionalStrictProfileRejectsAll_T
 	// WHEN
 	recommendations := selectCandidatesWithRelaxation(request, candidates, rejectCounts)
 
-	// THEN
-	if len(recommendations) != 1 {
-		t.Fatalf("expected 1 recommendation from directional best-effort, got %d", len(recommendations))
+	// THEN: direction may be relaxed, but strict anti-retrace must not be.
+	if len(recommendations) != 0 {
+		t.Fatalf("expected strict anti-retrace to reject directional best-effort candidate, got %v", recommendations)
 	}
-	if recommendations[0].RouteID != "directional-safety-net" {
-		t.Fatalf("expected directional-safety-net route to be selected, got %s", recommendations[0].RouteID)
+}
+
+func TestSelectCandidatesWithRelaxation_StrictBacktrackingDoesNotUseEmergencyFallback(t *testing.T) {
+	// GIVEN
+	request := application.RoutingEngineRequest{
+		StartPoint:         routesDomain.Coordinates{Lat: 48.13000, Lng: -1.63000},
+		DistanceTargetKm:   40.0,
+		RouteType:          "RIDE",
+		StrictBacktracking: true,
+		Limit:              1,
+	}
+	candidates := []osrmRouteCandidate{{
+		recommendation:     routesDomain.RouteRecommendation{RouteID: "retrace-emergency", MatchScore: 90.0},
+		backtrackingRatio:  0.50,
+		corridorOverlap:    0.50,
+		edgeReuseRatio:     0.50,
+		segmentDiversity:   0.05,
+		distanceDeltaRatio: 0.10,
+	}}
+
+	// WHEN
+	recommendations := selectCandidatesWithRelaxation(request, candidates, map[string]int{})
+
+	// THEN
+	if len(recommendations) != 0 {
+		t.Fatalf("expected strict anti-retrace to reject emergency fallback candidate, got %v", recommendations)
 	}
 }
 

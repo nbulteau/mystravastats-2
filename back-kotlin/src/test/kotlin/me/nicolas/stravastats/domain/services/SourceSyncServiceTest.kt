@@ -56,6 +56,27 @@ class SourceSyncServiceTest {
         assertTrue(java.io.File(result.fit.imported.first().destination).exists())
     }
 
+    @Test
+    fun `synchronize reports failed when FIT inbox path exists as a file`() {
+        val temp = Files.createTempDirectory("source-sync-kotlin-inbox-file")
+        val destinationDirectory = temp.resolve("fit")
+        val inboxFile = temp.resolve("inbox-file")
+        Files.createDirectories(destinationDirectory)
+        Files.createFile(inboxFile)
+
+        System.setProperty("FIT_FILES_PATH", destinationDirectory.toString())
+        System.setProperty("FIT_INBOX_PATH", inboxFile.toString())
+
+        val result = SourceSyncService(
+            ReloadOnlyActivityProvider(),
+            IFITActivityDecoderFactory(::FITRepository),
+        ).synchronize("test")
+
+        assertEquals("failed", result.fit.status)
+        assertEquals("failed", result.status)
+        assertTrue(result.fit.errors.isNotEmpty())
+    }
+
     private class ReloadOnlyActivityProvider : IActivityProvider {
         var reloadCalled = false
 

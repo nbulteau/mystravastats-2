@@ -43,9 +43,13 @@ class BusinessResponseFixtureTest {
             val rawActivities = case["activities"]?.toList()?.map { mapper.treeToValue(it, StravaActivity::class.java) } ?: emptyList()
             every { activities.getActivitiesByActivityTypeAndYear(any(), any()) } returns rawActivities
             every { provider.getActivitiesByActivityTypeAndYear(any(), any()) } returns rawActivities
+            every { provider.getCachedDetailedActivity(any()) } returns null
             val detailed = case["activity"]?.let { mapper.treeToValue(it, StravaDetailedActivity::class.java) }
             every { activities.getDetailedActivity(any(), any()) } returns detailed
-            every { activities.getActivityComparison(any()) } returns null
+            val comparisonService = ActivityService(provider)
+            every { activities.getActivityComparison(any()) } answers {
+                if (rawActivities.isEmpty()) null else comparisonService.getActivityComparison(firstArg())
+            }
             var stored = case["settings"]?.let { mapper.treeToValue(it, AthletePerformanceSettings::class.java) }
                 ?: AthletePerformanceSettings()
             every { provider.getPerformanceSettings() } answers { stored }
@@ -74,7 +78,17 @@ class BusinessResponseFixtureTest {
                 .andReturn().response
             assertEquals(case["status"].asInt(), response.status, "$name: ${response.contentAsString}")
             val body = mapper.readTree(response.contentAsString)
-            compareJSON(case["expected"], body, name)
+            val allowedExtraPaths = case["allowedExtraPaths"]?.toList()?.map { it.asText() }?.toSet() ?: emptySet()
+            compareJSON(case["expected"], body, name, allowedExtraPaths)
+            case["expectedActivityEfforts"]?.let { expectedEfforts ->
+                val actualEfforts = body["activityEfforts"]
+                assertTrue(actualEfforts?.isArray == true, "$name: expected activityEfforts array")
+                assertEquals(expectedEfforts.size(), actualEfforts!!.size(), "$name: activityEfforts count")
+                expectedEfforts.forEachIndexed { index, expected ->
+                    assertEquals(expected["id"].textValue(), actualEfforts[index]["id"].textValue(), "$name: activityEfforts[$index].id")
+                    assertEquals(expected["label"].textValue(), actualEfforts[index]["label"].textValue(), "$name: activityEfforts[$index].label")
+                }
+            }
             outputs += mapOf("name" to name, "operationId" to case["operationId"].asText(), "status" to response.status, "body" to body)
             if (case["method"].asText() == "PUT") compareJSON(case["expected"], mapper.valueToTree(stored), "$name persisted")
         }
@@ -85,22 +99,27 @@ class BusinessResponseFixtureTest {
     }
 
     // OpenAPI validation separately checks required nullable properties on the raw JSON.
-    private fun compareJSON(expected: JsonNode?, actual: JsonNode?, path: String) {
+    private fun compareJSON(expected: JsonNode?, actual: JsonNode?, path: String, allowedExtraPaths: Set<String> = emptySet()) {
         if (expected == null || expected.isNull) {
             assertTrue(actual == null || actual.isNull, "$path: expected unavailable, got $actual")
         } else if (expected.isObject) {
             assertTrue(actual?.isObject == true, path)
-            expected.properties().forEach { (key, value) -> compareJSON(value, actual!![key], "$path.$key") }
+            expected.properties().forEach { (key, value) -> compareJSON(value, actual!![key], "$path.$key", allowedExtraPaths) }
             actual!!.properties().forEach { (key, value) ->
-                if (!expected.has(key)) assertTrue(value.isNull, "$path: unexpected $key=$value")
+                if (!expected.has(key) && !value.isNull) {
+                    val extraPath = "$path.$key".removePrefix("$pathRoot.")
+                    assertTrue(allowedExtraPaths.contains(extraPath), "$path: unexpected $key=$value")
+                }
             }
         } else if (expected.isArray) {
             assertTrue(actual?.isArray == true, path)
             assertEquals(expected.size(), actual!!.size(), path)
-            expected.forEachIndexed { index, value -> compareJSON(value, actual[index], "$path[$index]") }
+            expected.forEachIndexed { index, value -> compareJSON(value, actual[index], "$path[$index]", allowedExtraPaths) }
         } else if (expected.isNumber) {
             assertTrue(actual?.isNumber == true, path)
             assertEquals(expected.asDouble(), actual!!.asDouble(), 1e-6, path)
         } else assertEquals(expected, actual, path)
     }
+
+    private val pathRoot = "detailed activity with efforts and comparison"
 }

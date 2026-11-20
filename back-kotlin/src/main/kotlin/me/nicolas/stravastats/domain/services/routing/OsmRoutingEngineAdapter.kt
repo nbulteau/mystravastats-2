@@ -163,23 +163,6 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 }
             }
         }
-        if (recommendations.isEmpty() && request.strictBacktracking) {
-            // Secondary fallback: strict anti-backtracking can be too restrictive in dense
-            // urban/off-road graphs. Retry once with relaxed anti-backtracking instead
-            // of returning no route at all.
-            val relaxedRequest = request.copy(
-                strictBacktracking = false,
-                directionStrict = false,
-            )
-            val fallbackRecommendations = generateTargetLoops(relaxedRequest)
-            if (fallbackRecommendations.isNotEmpty()) {
-                return fallbackRecommendations.map { recommendation ->
-                    recommendation.copy(
-                        reasons = recommendation.reasons + "Anti-backtracking relaxed: strict mode found no valid loop",
-                    )
-                }
-            }
-        }
         if (recommendations.isEmpty()) {
             // Absolute fallback: snap start to nearest routable node and retry once.
             val snappedStart = snapToNearestRoutablePoint(profile, request.startPoint)
@@ -194,7 +177,6 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 if (snapOffsetM > 3.0) {
                     val snappedRequest = request.copy(
                         startPoint = snappedPoint,
-                        strictBacktracking = false,
                         directionStrict = false,
                         startDirection = null,
                     )
@@ -222,7 +204,6 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                     routeType = fallbackType,
                     startDirection = null,
                     directionStrict = false,
-                    strictBacktracking = false,
                 )
                 val fallbackRecommendations = generateTargetLoops(fallbackRequest)
                 if (fallbackRecommendations.isNotEmpty()) {
@@ -1690,7 +1671,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             request.startPoint.lat,
             request.startPoint.lng,
         )
-        if (!bestEffort && !startsNearRequestedStart(preview, request.startPoint, START_SNAP_TOLERANCE_METERS)) {
+        if ((!bestEffort || request.strictBacktracking) && !startsNearRequestedStart(preview, request.startPoint, START_SNAP_TOLERANCE_METERS)) {
             // In fallback mode, allow larger snap distance to avoid returning no route.
             if (
                 request.strictBacktracking ||
@@ -1729,7 +1710,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             routeType = request.routeType,
             strict = request.strictBacktracking,
         )
-        if (!bestEffort && !shapeMode && hasOppositeOutsideStart) {
+        if ((request.strictBacktracking || (!bestEffort && !shapeMode)) && hasOppositeOutsideStart) {
             if (request.strictBacktracking) {
                 incrementRejectCount(rejectCounts, "STRICT_BACKTRACKING_OUTSIDE_START")
             } else {
@@ -1737,7 +1718,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             }
             return null
         }
-        if (!bestEffort && !shapeMode && maxAxisReuseOutsideStart > maxAxisReuseOutsideStartLimit) {
+        if ((request.strictBacktracking || (!bestEffort && !shapeMode)) && maxAxisReuseOutsideStart > maxAxisReuseOutsideStartLimit) {
             incrementRejectCount(rejectCounts, "AXIS_REUSE_OUTSIDE_START")
             return null
         }
@@ -1756,7 +1737,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
             maxEdgeReuseReject = 0.55
             maxAxisReuseReject = 14
         }
-        if (!bestEffort && !shapeMode && (
+        if ((request.strictBacktracking || (!bestEffort && !shapeMode)) && (
             backtrackingRatio > maxBacktrackingReject ||
             corridorOverlap > maxCorridorReject ||
             edgeReuse > maxEdgeReuseReject ||
@@ -1959,7 +1940,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
         val selected = mutableListOf<RouteRecommendation>()
         val selectedIds = mutableSetOf<String>()
 
-        if (shapeMode) {
+        if (shapeMode && !request.strictBacktracking) {
             // GPS Art is judged first by the drawing. Retrace can be necessary
             // to preserve the model, so route-loop relaxation levels are diagnostics
             // here, not hard selection gates.
@@ -1993,12 +1974,13 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
 
         // Safety net: when strict/balanced/relaxed/fallback all reject candidates,
         // return best-ranked loops with softer anti-overlap thresholds instead of 0 result.
+        // Strict anti-backtracking requests must not bypass those limits.
         val (softAxisCap, directionalAxisCap) = bestEffortAxisReuseCaps(
             distanceTargetKm = request.distanceTargetKm,
             hasDirection = hasDirection,
             directionStrict = request.directionStrict,
         )
-        if (shapeMode && selected.size < limit) {
+        if (shapeMode && !request.strictBacktracking && selected.size < limit) {
             appendBestEffortCandidates(
                 sortedCandidates = sortedCandidates,
                 selected = selected,
@@ -2014,7 +1996,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 priorityReason = "Selection priority: art-fit first",
             )
         }
-        if (selected.size < limit) {
+        if (!request.strictBacktracking && selected.size < limit) {
             var softMaxBacktracking = 0.16
             var softMaxCorridor = 0.12
             var softMaxEdgeReuse = 0.12
@@ -2042,7 +2024,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 priorityReason = "",
             )
         }
-        if (selected.size < limit && hasDirection) {
+        if (!request.strictBacktracking && selected.size < limit && hasDirection) {
             // Last safety net in directional mode: keep anti-retrace filters, but relax them
             // just enough to avoid returning zero route too often.
             appendBestEffortCandidates(
@@ -2060,7 +2042,7 @@ class OsmRoutingEngineAdapter : RoutingEnginePort {
                 priorityReason = "",
             )
         }
-        if (selected.isEmpty()) {
+        if (selected.isEmpty() && !request.strictBacktracking) {
             // Absolute last resort: return best-ranked generated candidates rather than none.
             // This keeps UX responsive while preserving all generation diagnostics in reasons.
             sortedCandidates.take(limit).forEach { candidate ->

@@ -1082,7 +1082,8 @@ func BuildActivityEfforts(activity *strava.DetailedActivity) []business.Activity
 	}
 
 	for _, segmentEffort := range activity.SegmentEfforts {
-		if segmentEffort.Segment.ClimbCategory > 2 || segmentEffort.Segment.Starred {
+		isTopThreePersonalRecord := segmentEffort.PrRank != nil && *segmentEffort.PrRank <= 3
+		if segmentEffort.Segment.ClimbCategory > 2 || segmentEffort.Segment.Starred || isTopThreePersonalRecord {
 			activityEfforts = append(activityEfforts, toActivityEffort(&segmentEffort, activity))
 		}
 	}

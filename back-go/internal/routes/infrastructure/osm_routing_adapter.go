@@ -212,24 +212,6 @@ func (adapter *OSMRoutingAdapter) GenerateTargetLoops(
 			return fallbackRecommendations, nil
 		}
 	}
-	if len(recommendations) == 0 && request.StrictBacktracking {
-		// Secondary fallback: strict anti-backtracking can be too restrictive in dense
-		// urban/off-road graphs. Retry once with relaxed anti-backtracking instead
-		// of returning no route at all.
-		relaxedRequest := request
-		relaxedRequest.StrictBacktracking = false
-		relaxedRequest.DirectionStrict = false
-		fallbackRecommendations, fallbackErr := adapter.GenerateTargetLoops(relaxedRequest)
-		if fallbackErr == nil && len(fallbackRecommendations) > 0 {
-			for index := range fallbackRecommendations {
-				fallbackRecommendations[index].Reasons = append(
-					fallbackRecommendations[index].Reasons,
-					"Anti-backtracking relaxed: strict mode found no valid loop",
-				)
-			}
-			return fallbackRecommendations, nil
-		}
-	}
 	if len(recommendations) == 0 {
 		// Absolute fallback: snap start to nearest routable node and retry once.
 		if snappedStart, snapDistanceM, snapped := adapter.snapToNearestRoutablePoint(profile, request.StartPoint); snapped {
@@ -237,7 +219,6 @@ func (adapter *OSMRoutingAdapter) GenerateTargetLoops(
 			if snapOffset > 3.0 {
 				snappedRequest := request
 				snappedRequest.StartPoint = snappedStart
-				snappedRequest.StrictBacktracking = false
 				snappedRequest.DirectionStrict = false
 				snappedRequest.StartDirection = ""
 				fallbackRecommendations, fallbackErr := adapter.GenerateTargetLoops(snappedRequest)
@@ -266,7 +247,6 @@ func (adapter *OSMRoutingAdapter) GenerateTargetLoops(
 			fallbackRequest.RouteType = fallbackType
 			fallbackRequest.StartDirection = ""
 			fallbackRequest.DirectionStrict = false
-			fallbackRequest.StrictBacktracking = false
 			fallbackRecommendations, fallbackErr := adapter.GenerateTargetLoops(fallbackRequest)
 			if fallbackErr == nil && len(fallbackRecommendations) > 0 {
 				for index := range fallbackRecommendations {
@@ -1747,7 +1727,7 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreviewWithMode(
 		return osrmRouteCandidate{}, false
 	}
 	startOffsetMeters := haversineDistanceMeters(points[0][0], points[0][1], request.StartPoint.Lat, request.StartPoint.Lng)
-	if !bestEffort && !startsNearRequestedStart(points, request.StartPoint, startSnapToleranceMeters) {
+	if (!bestEffort || request.StrictBacktracking) && !startsNearRequestedStart(points, request.StartPoint, startSnapToleranceMeters) {
 		// In fallback mode, allow larger snap distance to avoid returning no route.
 		if request.StrictBacktracking || !startsNearRequestedStart(points, request.StartPoint, fallbackStartSnapTolerance) {
 			incrementRejectCount(rejectCounts, "START_TOO_FAR")
@@ -1785,7 +1765,7 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreviewWithMode(
 		request.RouteType,
 		request.StrictBacktracking,
 	)
-	if !bestEffort && !shapeMode && hasOppositeOutsideStart {
+	if (request.StrictBacktracking || (!bestEffort && !shapeMode)) && hasOppositeOutsideStart {
 		if request.StrictBacktracking {
 			incrementRejectCount(rejectCounts, "STRICT_BACKTRACKING_OUTSIDE_START")
 		} else {
@@ -1793,7 +1773,7 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreviewWithMode(
 		}
 		return osrmRouteCandidate{}, false
 	}
-	if !bestEffort && !shapeMode && maxAxisReuseOutsideStart > maxAxisReuseOutsideStartLimit {
+	if (request.StrictBacktracking || (!bestEffort && !shapeMode)) && maxAxisReuseOutsideStart > maxAxisReuseOutsideStartLimit {
 		incrementRejectCount(rejectCounts, "AXIS_REUSE_OUTSIDE_START")
 		return osrmRouteCandidate{}, false
 	}
@@ -1812,7 +1792,7 @@ func (adapter *OSMRoutingAdapter) toRouteCandidateFromPreviewWithMode(
 		maxEdgeReuseReject = 0.55
 		maxAxisReuseReject = 14
 	}
-	if !bestEffort && !shapeMode && (backtrackingRatio > maxBacktrackingReject ||
+	if (request.StrictBacktracking || (!bestEffort && !shapeMode)) && (backtrackingRatio > maxBacktrackingReject ||
 		corridorOverlap > maxCorridorReject ||
 		edgeReuse > maxEdgeReuseReject ||
 		maxAxisReuseCount > maxAxisReuseReject) {
@@ -2049,7 +2029,7 @@ func selectCandidatesWithRelaxation(
 	selected := make([]routesDomain.RouteRecommendation, 0, limit)
 	selectedIDs := make(map[string]struct{}, limit)
 
-	if shapeMode {
+	if shapeMode && !request.StrictBacktracking {
 		// Strava Art is judged first by the drawing. Retrace can be necessary to
 		// preserve the model, so route-loop relaxation levels are diagnostics here,
 		// not hard selection gates.
@@ -2100,8 +2080,9 @@ func selectCandidatesWithRelaxation(
 
 	// Safety net: if all configured levels reject candidates, return the best
 	// ranked loops with softer anti-overlap limits instead of returning zero.
+	// Strict anti-backtracking requests must not bypass those limits.
 	softAxisCap, directionalAxisCap := bestEffortAxisReuseCaps(request.DistanceTargetKm, hasDirection, request.DirectionStrict)
-	if shapeMode && len(selected) < limit {
+	if shapeMode && !request.StrictBacktracking && len(selected) < limit {
 		selected = appendBestEffortCandidates(
 			sortedCandidates,
 			selected,
@@ -2117,7 +2098,7 @@ func selectCandidatesWithRelaxation(
 			"Selection priority: art-fit first",
 		)
 	}
-	if len(selected) < limit {
+	if !request.StrictBacktracking && len(selected) < limit {
 		softMaxBacktracking := 0.16
 		softMaxCorridor := 0.12
 		softMaxEdgeReuse := 0.12
@@ -2145,7 +2126,7 @@ func selectCandidatesWithRelaxation(
 			"",
 		)
 	}
-	if len(selected) < limit && hasDirection {
+	if !request.StrictBacktracking && len(selected) < limit && hasDirection {
 		// Last safety net in directional mode: keep anti-retrace filters, but relax them
 		// just enough to avoid returning zero route too often.
 		selected = appendBestEffortCandidates(
@@ -2163,7 +2144,7 @@ func selectCandidatesWithRelaxation(
 			"",
 		)
 	}
-	if len(selected) == 0 {
+	if len(selected) == 0 && !request.StrictBacktracking {
 		// Absolute last resort: return best-ranked generated candidates rather than none.
 		// This keeps UX responsive while preserving all generation diagnostics in reasons.
 		for _, candidate := range sortedCandidates {

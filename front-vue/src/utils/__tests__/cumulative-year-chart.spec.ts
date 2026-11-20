@@ -29,6 +29,29 @@ function input(overrides: Partial<CumulativeChartInput> = {}): CumulativeChartIn
 }
 
 describe("cumulative year chart helpers", () => {
+  it("keeps all historical years in the all-years comparison", () => {
+    const distancePerYear = new Map(
+      Array.from({ length: 8 }, (_, index) => [
+        String(2019 + index),
+        yearData({ "01-01": index + 1 }),
+      ] as const),
+    );
+
+    const chartData = buildCumulativeYearChartData(input({ distancePerYear }));
+
+    expect(chartData.series.map((series) => series.name)).toEqual([
+      "2019",
+      "2020",
+      "2021",
+      "2022",
+      "2023",
+      "2024",
+      "2025",
+      "2026",
+      "2026 projected",
+    ]);
+  });
+
   it("builds all historical years, current year, and projected current year", () => {
     // WHEN
     const chartData = buildCumulativeYearChartData(input());

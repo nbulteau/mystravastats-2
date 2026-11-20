@@ -77,12 +77,20 @@ Kotlin's MockMvc verifies HEAD routing, status and headers but retains the gener
 representation: Servlet 6.1 delegates body suppression to the servlet container.
 The fixture's empty-body assertion is therefore only made by the Go harness.
 
-`test-fixtures/api/business-responses.json` adds 18 success scenarios through the
+`test-fixtures/api/business-responses.json` adds 20 success scenarios through the
 real controllers and DTO converters in both backends. It covers irregular sample
-times, actual zero power, absent sensors, empty streams/collections, unavailable
-FTP, dated FTP normalization, body mass, persistence of settings and formatted
-statistics with activity references. Domain providers are stubbed; settings
-normalization and unavailable-FTP handling use the actual services/use cases.
+times, actual zero power, absent sensors, empty streams/collections, a detailed
+activity with computed efforts and comparison, available and unavailable FTP,
+dated FTP normalization, body mass, persistence of settings and formatted
+statistics with activity references. Domain providers are stubbed; comparison,
+settings normalization and FTP estimates use the actual services/use cases.
+The Kotlin segment-effort DTO also includes the optional `activity`, `athlete`
+and `achievements` properties defined by OpenAPI; the Go DTO omits them. The
+shared multi-segment fixture declares these properties as Kotlin-specific
+extras at each segment index, while the raw Go and Kotlin responses are each
+checked against the same OpenAPI schemas. It also verifies that Go and Kotlin
+select the same top-three PR, category and favorite segment efforts in source
+order, with matching effort IDs.
 
 The tests compare values (numeric tolerance `1e-6`) and allow omitted versus null
 optional properties. They also export the unmodified HTTP JSON for a second check

@@ -190,7 +190,7 @@ fun StravaDetailedActivity.toDto(activityComparison: ActivityComparison? = null)
         maxWatts = activityForDto.maxWatts,
         movingTime = activityForDto.movingTime,
         name = activityForDto.name,
-        activityEfforts = activityEfforts.map { activityEffort -> activityEffort.toDto() },
+        activityEfforts = activityEfforts.mapIndexed { index, activityEffort -> activityEffort.toDto(index) },
         stravaSegmentEfforts = activityForDto.segmentEfforts.map { segmentEffort -> segmentEffort.toDto() },
         startDate = activityForDto.startDate,
         startDateLocal = activityForDto.startDateLocal,
@@ -408,9 +408,9 @@ data class ActivityEffortDto(
     val description: String,
 )
 
-fun ActivityEffort.toDto(): ActivityEffortDto {
+fun ActivityEffort.toDto(index: Int): ActivityEffortDto {
     return ActivityEffortDto(
-        id = "${this.label.hashCode()}-${this.idxStart}-${this.idxEnd}-${this.seconds}",
+        id = "${index}_${this.idxStart}_${this.idxEnd}",
         label = this.label,
         distance = this.distance.finiteOrZero(),
         seconds = this.seconds,

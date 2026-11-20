@@ -13,7 +13,7 @@
     "back-kotlin/src/main/kotlin/me/nicolas/stravastats/domain/services/routing/OsmRoutingEngineAdapter.kt": 2331,
     "front-vue/src/components/charts/ActivityHeatmapChart.vue": 1570,
     "front-vue/src/stores/routes.ts": 1455,
-    "front-vue/src/views/DiagnosticsView.vue": 2987,
+    "front-vue/src/views/DiagnosticsView.vue": 2182,
     "front-vue/src/views/DetailedActivityView.vue": 2313,
     "front-vue/src/views/GearAnalysisView.vue": 1555,
     "front-vue/src/views/RoutesView.vue": 1815,

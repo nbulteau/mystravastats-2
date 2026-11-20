@@ -63,11 +63,13 @@ class DetailedActivityDtoTest {
         )
 
         // WHEN
-        val firstDto = first.toDto()
-        val secondDto = second.toDto()
+        val firstDto = first.toDto(0)
+        val secondDto = second.toDto(1)
 
         // THEN
         assertNotEquals(firstDto.id, secondDto.id)
+        assertEquals("0_10_40", firstDto.id)
+        assertEquals("1_50_80", secondDto.id)
     }
 
     @Test

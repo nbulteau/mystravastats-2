@@ -78,10 +78,30 @@ func getGeneratedRouteFromCache(routeID string) (generatedRouteCacheEntry, bool)
 	}
 
 	if entry.ExpiresAt.Before(now) {
-		generatedRouteCache.mu.Lock()
-		delete(generatedRouteCache.items, routeID)
-		generatedRouteCache.mu.Unlock()
-		return generatedRouteCacheEntry{}, false
+		if deleteGeneratedRouteIfExpired(routeID, entry, now) {
+			return generatedRouteCacheEntry{}, false
+		}
+		// A generation may have replaced the expired entry while the lock changed
+		// from shared to exclusive. Re-read so this request can use the fresh value.
+		generatedRouteCache.mu.RLock()
+		entry, found = generatedRouteCache.items[routeID]
+		generatedRouteCache.mu.RUnlock()
+		if !found || entry.ExpiresAt.Before(time.Now()) {
+			return generatedRouteCacheEntry{}, false
+		}
+		return entry, true
 	}
 	return entry, true
+}
+
+func deleteGeneratedRouteIfExpired(routeID string, observed generatedRouteCacheEntry, now time.Time) bool {
+	generatedRouteCache.mu.Lock()
+	defer generatedRouteCache.mu.Unlock()
+
+	current, found := generatedRouteCache.items[routeID]
+	if !found || !current.ExpiresAt.Equal(observed.ExpiresAt) || !current.ExpiresAt.Before(now) {
+		return false
+	}
+	delete(generatedRouteCache.items, routeID)
+	return true
 }

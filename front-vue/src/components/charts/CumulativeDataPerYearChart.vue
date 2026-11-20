@@ -142,7 +142,11 @@ function historyColor(year: string, index: number): string {
   return HISTORY_COLORS[index % HISTORY_COLORS.length];
 }
 
-function highchartsSeries(series: CumulativeChartSeries, index: number): SeriesLineOptions {
+function highchartsSeries(
+  series: CumulativeChartSeries,
+  index: number,
+  visible: boolean,
+): SeriesLineOptions {
   const isFocusedComparison = comparisonMode.value !== "all-years" && series.role === "history";
   const color = series.role === "current"
     ? CURRENT_YEAR_COLOR
@@ -154,6 +158,7 @@ function highchartsSeries(series: CumulativeChartSeries, index: number): SeriesL
     type: "line",
     name: series.name,
     data: series.data,
+    visible,
     color,
     dashStyle: series.role === "projection" ? "ShortDash" as DashStyleValue : "Solid" as DashStyleValue,
     enableMouseTracking: true,
@@ -227,7 +232,18 @@ function updateChartData() {
   (chartOptions.yAxis as YAxisOptions).title = {
     text: chartData.yAxisTitle,
   };
-  chartOptions.series = chartData.series.map(highchartsSeries);
+  const visibleYears = new Set(
+    chartData.series
+      .filter((series) => series.role === "history")
+      .map((series) => series.year)
+      .sort((left, right) => Number(right) - Number(left))
+      .slice(0, 5),
+  );
+  chartOptions.series = chartData.series.map((series, index) => highchartsSeries(
+    series,
+    index,
+    series.role !== "history" || comparisonMode.value !== "all-years" || visibleYears.has(series.year),
+  ));
 }
 
 watch(

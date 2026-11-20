@@ -52,7 +52,7 @@ class ActivityEffort(
 
     fun getDescription() = "${this.label}:" +
             "<ul>" +
-            "<li>Distance : %.1f km</li>".format(distance / 1000) +
+            "<li>Distance : ${String.format(Locale.US, "%.1f km", distance / 1000)}</li>" +
             "<li>Time : ${seconds.formatSeconds()}</li>" +
             "<li>Speed : ${getFormattedSpeedWithUnits()}</li>" +
             "<li>Gradient: ${getFormattedGradient()}%</li>" +

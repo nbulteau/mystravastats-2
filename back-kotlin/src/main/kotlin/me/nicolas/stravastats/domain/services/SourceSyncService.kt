@@ -104,7 +104,17 @@ class SourceSyncService(
         val errors = mutableListOf<String>()
         if (inboxPath.isNotEmpty()) {
             try {
-                File(inboxPath).mkdirs()
+                val inboxDirectory = File(inboxPath)
+                if (!inboxDirectory.mkdirs() && (!inboxDirectory.exists() || !inboxDirectory.isDirectory)) {
+                    return FITImportResult(
+                        status = "failed",
+                        message = "Unable to create FIT inbox directory.",
+                        configured = true,
+                        destinationPath = destinationPath,
+                        inboxPath = inboxPath,
+                        errors = listOf("FIT inbox path is not a directory or cannot be created."),
+                    )
+                }
             } catch (exception: Exception) {
                 return FITImportResult(
                     status = "failed",

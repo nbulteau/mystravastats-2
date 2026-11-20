@@ -33,6 +33,18 @@ func (s responseFixtureStatistic) Activity() *business.ActivityShort {
 	return &business.ActivityShort{Id: a.ID, Name: a.Name, Type: business.ActivityTypes[a.Type]}
 }
 
+type businessResponseComparisonReader struct {
+	activities []*strava.Activity
+}
+
+func (reader businessResponseComparisonReader) FindActivitiesByYearAndTypes(_ *int, _ ...business.ActivityType) []*strava.Activity {
+	return reader.activities
+}
+
+func (businessResponseComparisonReader) FindCachedDetailedActivityByID(_ int64) *strava.DetailedActivity {
+	return nil
+}
+
 func TestSharedBusinessResponses(t *testing.T) {
 	data, err := os.ReadFile("../../test-fixtures/api/business-responses.json")
 	if err != nil {
@@ -47,8 +59,13 @@ func TestSharedBusinessResponses(t *testing.T) {
 		Statistics                      []dto.StatisticDto
 		Timeline                        []dto.PersonalRecordTimelineDto
 		HeartRate                       business.HeartRateZoneAnalysis
-		RequestBody                     json.RawMessage
-		Expected                        any
+		AllowedExtraPaths               []string
+		ExpectedActivityEfforts         []struct {
+			ID    string `json:"id"`
+			Label string `json:"label"`
+		} `json:"expectedActivityEfforts"`
+		RequestBody json.RawMessage
+		Expected    any
 	}
 	if err := json.Unmarshal(data, &cases); err != nil {
 		t.Fatal(err)
@@ -65,9 +82,14 @@ func TestSharedBusinessResponses(t *testing.T) {
 			for i, row := range tc.Timeline {
 				timeline[i] = business.PersonalRecordTimelineEntry{MetricKey: row.MetricKey, MetricLabel: row.MetricLabel, ActivityDate: row.ActivityDate, Value: row.Value, PreviousValue: row.PreviousValue, Improvement: row.Improvement, Activity: business.ActivityShort{Id: row.Activity.ID, Name: row.Activity.Name, Type: business.ActivityTypes[row.Activity.Type]}}
 			}
+			var comparisonUseCase *activitiesApp.GetActivityComparisonUseCase
+			if len(tc.Activities) > 0 {
+				comparisonUseCase = activitiesApp.NewGetActivityComparisonUseCase(businessResponseComparisonReader{activities: tc.Activities})
+			}
 			setTestContainer(t, &container{
 				listActivitiesUseCase:              activitiesApp.NewListActivitiesUseCase(&contractActivitiesReaderStub{activities: tc.Activities}),
 				getDetailedActivityUseCase:         activitiesApp.NewGetDetailedActivityUseCase(&contractDetailedActivityReaderStub{activity: tc.Activity}),
+				getActivityComparisonUseCase:       comparisonUseCase,
 				getPerformanceSettingsUseCase:      athleteApp.NewGetPerformanceSettingsUseCase(athlete),
 				updatePerformanceSettingsUseCase:   athleteApp.NewUpdatePerformanceSettingsUseCase(athlete),
 				getFtpEstimateUseCase:              athleteApp.NewGetFtpEstimateUseCase(athlete),
@@ -86,7 +108,32 @@ func TestSharedBusinessResponses(t *testing.T) {
 			if err := json.Unmarshal(response.Body.Bytes(), &actual); err != nil {
 				t.Fatal(err)
 			}
-			compareBusinessJSON(t, tc.Expected, actual, "$")
+			compareBusinessJSON(t, tc.Expected, actual, "$", tc.AllowedExtraPaths)
+			if tc.ExpectedActivityEfforts != nil {
+				body, ok := actual.(map[string]any)
+				if !ok {
+					t.Fatalf("expected activity response object, got %T", actual)
+				}
+				actualEfforts, ok := body["activityEfforts"].([]any)
+				if !ok {
+					t.Fatalf("expected activityEfforts array, got %T", body["activityEfforts"])
+				}
+				if len(actualEfforts) != len(tc.ExpectedActivityEfforts) {
+					t.Fatalf("activityEfforts count: expected %d, got %d", len(tc.ExpectedActivityEfforts), len(actualEfforts))
+				}
+				for i, expected := range tc.ExpectedActivityEfforts {
+					effort, ok := actualEfforts[i].(map[string]any)
+					if !ok {
+						t.Fatalf("activityEfforts[%d]: expected object, got %T", i, actualEfforts[i])
+					}
+					if effort["id"] != expected.ID {
+						t.Errorf("activityEfforts[%d].id: expected %q, got %v", i, expected.ID, effort["id"])
+					}
+					if effort["label"] != expected.Label {
+						t.Errorf("activityEfforts[%d].label: expected %q, got %v", i, expected.Label, effort["label"])
+					}
+				}
+			}
 			outputs = append(outputs, map[string]any{"name": tc.Name, "operationId": tc.OperationID, "status": response.Code, "body": actual})
 			if tc.Method == "PUT" {
 				stored, _ := json.Marshal(dto.ToAthletePerformanceSettingsDto(athlete.performanceSettings))
@@ -94,7 +141,7 @@ func TestSharedBusinessResponses(t *testing.T) {
 				if err := json.Unmarshal(stored, &persisted); err != nil {
 					t.Fatal(err)
 				}
-				compareBusinessJSON(t, tc.Expected, persisted, "stored")
+				compareBusinessJSON(t, tc.Expected, persisted, "stored", tc.AllowedExtraPaths)
 			}
 		})
 	}
@@ -116,7 +163,7 @@ func TestSharedBusinessResponses(t *testing.T) {
 
 // Missing and null optional properties are equivalent on the legacy APIs.
 // The separate OpenAPI validation step still enforces required nullable fields.
-func compareBusinessJSON(t *testing.T, expected, actual any, path string) {
+func compareBusinessJSON(t *testing.T, expected, actual any, path string, allowedExtraPaths []string) {
 	t.Helper()
 	switch e := expected.(type) {
 	case map[string]any:
@@ -125,10 +172,10 @@ func compareBusinessJSON(t *testing.T, expected, actual any, path string) {
 			t.Fatalf("%s: expected object, got %v", path, actual)
 		}
 		for key, value := range e {
-			compareBusinessJSON(t, value, a[key], path+"."+key)
+			compareBusinessJSON(t, value, a[key], path+"."+key, allowedExtraPaths)
 		}
 		for key, value := range a {
-			if _, found := e[key]; !found && value != nil {
+			if _, found := e[key]; !found && value != nil && !contains(allowedExtraPaths, strings.TrimPrefix(path+"."+key, "$.")) {
 				t.Errorf("%s: unexpected field %s=%v", path, key, value)
 			}
 		}
@@ -138,7 +185,7 @@ func compareBusinessJSON(t *testing.T, expected, actual any, path string) {
 			t.Fatalf("%s: expected %v, got %v", path, expected, actual)
 		}
 		for i := range e {
-			compareBusinessJSON(t, e[i], a[i], fmt.Sprintf("%s[%d]", path, i))
+			compareBusinessJSON(t, e[i], a[i], fmt.Sprintf("%s[%d]", path, i), allowedExtraPaths)
 		}
 	case float64:
 		a, ok := actual.(float64)
@@ -150,4 +197,13 @@ func compareBusinessJSON(t *testing.T, expected, actual any, path string) {
 			t.Errorf("%s: expected %v, got %v", path, expected, actual)
 		}
 	}
+}
+
+func contains(values []string, wanted string) bool {
+	for _, value := range values {
+		if value == wanted {
+			return true
+		}
+	}
+	return false
 }

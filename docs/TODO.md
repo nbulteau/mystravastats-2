@@ -9,6 +9,7 @@
 - [x] `API-P1-02` - Fiabiliser les 52 opérations OpenAPI : paramètres, corps JSON, formats et statuts ; validation automatique du document et suppression des chemins modèles en doublon.
 - [x] `API-P1-03` - Ajouter des scénarios HTTP partagés Go/Kotlin et aligner les erreurs 400/404/405/500, `Allow`, les échecs de synchronisation et `X-Request-Id`, sans changement des URL publiques.
 - [x] `SEC-P1-01` - Lier les services Docker à la boucle locale et bloquer les mutations web provenant d'origines non autorisées.
+- [x] `ROUTE-P1-01` - Préserver les garde-fous anti-retrace stricts dans les sélections best effort et les retries Go/Kotlin, sans modifier la priorité Art fit de GPS Art.
 
 - [x] `DEPS-P1-01` - Actualiser les deux backends et le frontend (2026-10-06) : Go 1.27.1, Kotlin 2.4.20, Gradle 9.8.0, Node 26.10.0, Vue 3.5.43, Vite 8.3.3 et Vitest 5.0.3 ; aligner Docker, CI et scripts de build.
 
@@ -17,7 +18,9 @@
 - [ ] `API-P2-01` - Compléter les schémas de réponse métier et les fixtures de succès ; harmoniser la négociation de contenu et les limites de taille des corps entre backends.
   - [x] Décrire les activités détaillées, séries temporelles, efforts/comparaisons, réglages et estimations FTP, statistiques, records, analyses cardiaques et segments ; préciser unités et valeurs indisponibles.
   - [x] Vérifier 18 fixtures de réponses Go/Kotlin et leurs JSON réels contre OpenAPI dans la CI ; conserver les deux graphies des puissances 20/60 minutes et corriger le plantage Go sans altitude.
-  - [ ] Étendre les fixtures aux efforts/comparaisons non vides et aux estimations FTP disponibles, puis aux autres familles de réponses et à la négociation de contenu.
+  - [x] Ajouter une activité avec efforts et comparaison non vides ainsi qu’une estimation FTP disponible ; valider les sorties réelles Go/Kotlin contre OpenAPI.
+  - [x] Vérifier la parité des efforts multi-segments et IDs Go/Kotlin, y compris PR top 3, rang 4 exclu, favoris et ordre source.
+  - [ ] Étendre les fixtures aux autres familles de réponses et harmoniser la négociation de contenu et les limites de taille des corps.
 - [ ] `API-P2-02` - Préparer une migration explicite vers des collections paginées et des ressources de synchronisation/génération asynchrones, avec adaptation du frontend et compatibilité des anciennes URL.
 
 - [ ] `PRODUCT-P2-02` - Livrer la charge d'entraînement et les tendances de forme.
@@ -45,6 +48,8 @@
   - s'appuyer sur les indicateurs de charge et de puissance validés ci-dessus, sans dépendance à des objectifs sportifs ni à une IA générative.
 
 - [ ] `ARCH-P2-01` - Poursuivre la réduction des modules encore au-dessus du seuil de 1 000 lignes.
+  - [x] Extraire les filtres et actions de correction Data Quality de `DiagnosticsView.vue` vers un composable ; vue réduite de 2 987 à 2 682 lignes, le travail de décomposition reste ouvert.
+  - [x] Extraire la configuration/activation Strava, FIT et GPX dans `useDiagnosticsSourceMode.ts` ; vue réduite à 2 182 lignes, la décomposition reste ouverte.
 
 - [ ] `DATA-P2-03` - Étendre progressivement le catalogue européen.
   - traiter ensuite l'Autriche, la Slovénie, l'Allemagne, la Belgique, le Royaume-Uni, la Norvège et les Balkans ;
